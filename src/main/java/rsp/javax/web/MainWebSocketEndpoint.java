@@ -37,6 +37,26 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
                 final String newRoute = page.state2route.apply(page.path, newState);
                 if(newRoute.equals(page.path)) {
                     state = newState;
+
+                    final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
+                    final EnrichingXhtmlContext<S> newEnrichingContext = new EnrichingXhtmlContext<>(newContext,
+                            qsid.sessionId,
+                            "/",
+                            DefaultConnectionLostWidget.HTML,
+                            5000);
+                    final Component<S> root = (Component<S>) session.getUserProperties().get("root-component");
+                    root.materialize(this).accept(newEnrichingContext);
+
+                    // calculate diff between currentContext and newContext
+                    final var currentRoot = (Tag) session.getUserProperties().get("current-dom");
+                    final var remoteChangePerformer = new RemoteDomChangesPerformer();
+                    new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
+                    remoteChangePerformer.commandsString().ifPresent(commands -> {
+                        sendText(session, commands);
+                    });
+
+                    session.getUserProperties().put("current-dom", newContext.root);
+
                 } else {
                     // send new URL/route command
                     System.out.println("New route: " + newRoute);
@@ -83,25 +103,6 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
                         eventElementPath = eventElementPath.parent().get();
                     }
                 }
-
-                final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
-                final EnrichingXhtmlContext<S> newEnrichingContext = new EnrichingXhtmlContext<>(newContext,
-                        qsid.sessionId,
-                        "/",
-                        DefaultConnectionLostWidget.HTML,
-                        5000);
-                final Component<S> root = (Component<S>) session.getUserProperties().get("root-component");
-                root.materialize(useState).accept(newEnrichingContext);
-
-                // calculate diff between currentContext and newContext
-                final var currentRoot = (Tag) session.getUserProperties().get("current-dom");
-                final var remoteChangePerformer = new RemoteDomChangesPerformer();
-                new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
-                remoteChangePerformer.commandsString().ifPresent(commands -> {
-                    sendText(session, commands);
-                });
-
-                session.getUserProperties().put("current-dom", newContext.root);
             }
         });
 

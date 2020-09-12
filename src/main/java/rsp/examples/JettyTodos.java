@@ -37,12 +37,15 @@ public class JettyTodos {
                                        div(input(attr("type", "checkbox")),
                                            span(when(todo.getValue().done, style("text-decoration", "line-through")),
                                                                text(todo.getValue().text)),
-                                           event("click", d -> {
+                                           event("click", c -> {
                                                useState.accept(useState.get().toggleDone(todo.getKey()));
                                            }))))),
                                form(input(attr("type", "text"),
                                           attr("placeholder", "What should be done?")),
-                                    button(text("Add todo"))))));
+                                    button(text("Add todo")),
+                                    event("submit", c -> {
+                                       // c.value("id").then(v -> useState.accept(useState.get().addTodo(v)));
+                                    })   ))));
 
         final State initialState = initialState();
         final Function<HttpRequest, State> routes = request -> initialState;
@@ -80,6 +83,11 @@ public class JettyTodos {
             return new State(newTodos, this.edit);
         }
 
+        public State addTodo(String text) {
+            final Todo[] newTodos = Arrays.copyOf(todos, todos.length + 1);
+            newTodos[todos.length] = new Todo(text, false);
+            return new State(newTodos, Optional.empty());
+        }
     }
 
     static class Todo {
