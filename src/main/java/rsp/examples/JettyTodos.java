@@ -8,7 +8,6 @@ import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
 import rsp.services.PageRendering;
-import rsp.dsl.Html;
 import rsp.util.CollectionUtils;
 
 import java.util.Arrays;
@@ -21,27 +20,29 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static rsp.dsl.Html.*;
+
 public class JettyTodos {
 
     public static final int DEFAULT_PORT = 8080;
     
     public static void main(String[] args) throws Exception {
         final Component<State> render = useState ->
-                Html.html(
-                      Html.body(
-                           Html.div(Html.text("TODO tracker"),
-                           Html.div(Html.style("height", "250px"),
-                               Html.style("overflow", "scroll"),
-                               Html.of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().todos)).map(todo ->
-                                       Html.div(Html.input(Html.attr("type", "checkbox")),
-                                           Html.span(Html.when(todo.getValue().done, Html.style("text-decoration", "line-through")),
-                                                               Html.text(todo.getValue().text)),
-                                           Html.event("click", d -> {
+                html(
+                      body(
+                           div(text("TODO tracker"),
+                           div(style("height", "250px"),
+                               style("overflow", "scroll"),
+                               of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().todos)).map(todo ->
+                                       div(input(attr("type", "checkbox")),
+                                           span(when(todo.getValue().done, style("text-decoration", "line-through")),
+                                                               text(todo.getValue().text)),
+                                           event("click", d -> {
                                                useState.accept(useState.get().toggleDone(todo.getKey()));
                                            }))))),
-                               Html.form(Html.input(Html.attr("type", "text"),
-                                          Html.attr("placeholder", "What should be done?")),
-                                    Html.button(Html.text("Add todo"))))));
+                               form(input(attr("type", "text"),
+                                          attr("placeholder", "What should be done?")),
+                                    button(text("Add todo"))))));
 
         final State initialState = initialState();
         final Function<HttpRequest, State> routes = request -> initialState;
