@@ -4,6 +4,7 @@ import rsp.Event;
 import rsp.EventContext;
 import rsp.RenderContext;
 import rsp.XmlNs;
+import rsp.dsl.RefDefinition;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -56,6 +57,11 @@ public class DomTreeRenderContext<S> implements RenderContext<S> {
     public void addEvent(String eventType, Consumer<EventContext> eventHandler) {
         final Path eventPath = tagsStack.peek().path;
         events.put(eventPath, new Event(eventType, eventPath, eventHandler));
+    }
+
+    @Override
+    public void addRef(RefDefinition ref) {
+
     }
 
 }

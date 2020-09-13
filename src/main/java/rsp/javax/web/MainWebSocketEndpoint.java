@@ -2,11 +2,15 @@ package rsp.javax.web;
 
 import rsp.*;
 import rsp.dom.*;
+import rsp.server.InMessage;
+import rsp.server.ParseInMessage;
 import rsp.state.UseState;
 
 import javax.websocket.*;
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MainWebSocketEndpoint<S> extends Endpoint {
     private final Map<QualifiedSessionId, Page<S>> pagesStorage;
@@ -68,18 +72,19 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
                 return state;
             }
         };
-        final DomTreeRenderContext<S> context = new DomTreeRenderContext<>();
-        final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(context,
+        final DomTreeRenderContext<S> domTreeRenderContext = new DomTreeRenderContext<>();
+        final Map<String, CompletableFuture<?>> registeredEventHandlers = new ConcurrentHashMap<>();
+        final EnrichingXhtmlContext<S> enrichingDomTreeRenderContext = new EnrichingXhtmlContext<>(domTreeRenderContext,
                 qsid.sessionId,
                 "/",
                 DefaultConnectionLostWidget.HTML,
                 5000);
-        page.rootComponent.materialize(useState).accept(enrichingContext);
-        session.getUserProperties().put("current-dom", context.root);
+        page.rootComponent.materialize(useState).accept(enrichingDomTreeRenderContext);
+        session.getUserProperties().put("current-dom", domTreeRenderContext.root);
         sendText(session, "[0,0]");
 
         // Register event types on client
-        context.events.entrySet().stream().map(e -> e.getValue().eventType).distinct().forEach(eventType -> {
+        domTreeRenderContext.events.entrySet().stream().map(e -> e.getValue().eventType).distinct().forEach(eventType -> {
             sendText( session,"[2,\"" + eventType + "\",false]");
         });
 
@@ -87,25 +92,29 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
             @Override
             public void onMessage(String s) {
                 System.out.println(s);
-                final String eventType = s.startsWith("[6") ? "heartBeat" : "click";
-                if(eventType.equals("heartBeat")) {
-                    return;
-                }
+                ParseInMessage.parse(s).ifPresent(message -> {
+                    if (message instanceof InMessage.DomEventInMessage) {
+                        final InMessage.DomEventInMessage domEvent = (InMessage.DomEventInMessage) message;
+                        Path eventElementPath = domEvent.path;
+                        while(domEvent.path.level() > 0) {
+                            Event event = domTreeRenderContext.events.get(eventElementPath);
+                            if(event != null && event.eventType.equals(domEvent.eventType)) {
+                                final EventContext eventContext = new EventContext(registeredEventHandlers);
+                                event.eventHandler.accept(eventContext);
+                                break;
+                            } else {
+                                eventElementPath = eventElementPath.parent().get();
+                            }
+                        }
+                    } else if (message instanceof InMessage.ExtractPropertyResponseInMessage) {
+                        final InMessage.ExtractPropertyResponseInMessage propertyMessage = (InMessage.ExtractPropertyResponseInMessage) message;
 
-                Path eventElementPath = eventElementPath(s);
-                while(eventElementPath.level() > 0) {
-                    Event event = context.events.get(eventElementPath);
-                    if(event != null && event.eventType.equals(eventType)) {
-                        final EventContext eventContext = new EventContext();
-                        event.eventHandler.accept(eventContext);
-                        break;
-                    } else {
-                        eventElementPath = eventElementPath.parent().get();
+                    } else if (message instanceof InMessage.HeartBeat) {
+                        // no-op
                     }
-                }
+                });
             }
         });
-
     }
 
     private final void sendText(Session session, String text) {
@@ -116,18 +125,12 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
         }
     }
 
-    private Path eventElementPath(String s) {
-        return Path.of(s.split("\"")[1].split(":")[1]);
-    }
-
     public void onClose(Session session, CloseReason closeReason) {
-        System.out.println("Closed " + closeReason.getReasonPhrase());
+        System.out.println("Closed: " + closeReason.getReasonPhrase());
     }
 
     public void onError(Session session, Throwable thr) {
         System.out.println("Error:" + thr.getLocalizedMessage());
         thr.printStackTrace();
     }
-
-
 }

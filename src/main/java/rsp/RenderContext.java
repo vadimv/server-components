@@ -1,5 +1,7 @@
 package rsp;
 
+import rsp.dsl.RefDefinition;
+
 import java.util.function.Consumer;
 
 public interface RenderContext<S> {
@@ -9,4 +11,5 @@ public interface RenderContext<S> {
     void setStyle(String name, String value);
     void addTextNode(String text);
     void addEvent(String eventName, Consumer<EventContext> eventHandler);
+    void addRef(RefDefinition ref);
 }

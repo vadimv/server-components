@@ -27,6 +27,7 @@ public class JettyTodos {
     public static final int DEFAULT_PORT = 8080;
     
     public static void main(String[] args) throws Exception {
+        final var textInputRef = createRef();
         final Component<State> render = useState ->
                 html(
                       body(
@@ -40,12 +41,14 @@ public class JettyTodos {
                                            event("click", c -> {
                                                useState.accept(useState.get().toggleDone(todo.getKey()));
                                            }))))),
-                               form(input(attr("type", "text"),
+                               form(input(textInputRef,
+                                          attr("type", "text"),
                                           attr("placeholder", "What should be done?")),
                                     button(text("Add todo")),
                                     event("submit", c -> {
-                                       // c.value("id").then(v -> useState.accept(useState.get().addTodo(v)));
-                                    })   ))));
+                                        c.value(textInputRef).thenApply(v -> useState.get().addTodo(v))
+                                                           .thenAccept(s -> useState.accept(s));
+                                    })))));
 
         final State initialState = initialState();
         final Function<HttpRequest, State> routes = request -> initialState;

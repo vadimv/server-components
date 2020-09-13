@@ -83,4 +83,8 @@ public class Html {
     public static EventDefinition event(String eventType, Consumer<EventContext> handler) {
         return new EventDefinition(eventType, handler);
     }
+
+    public static RefDefinition createRef() {
+        return new RefDefinition();
+    }
 }

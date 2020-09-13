@@ -1,5 +1,7 @@
 package rsp;
 
+import rsp.dsl.RefDefinition;
+
 import java.util.function.Consumer;
 
 public class XhtmlRenderContext<S> implements RenderContext<S> {
@@ -113,6 +115,11 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
 
     @Override
     public void addEvent(String eventType, Consumer<EventContext> eventHandler) {
+        // no-op
+    }
+
+    @Override
+    public void addRef(RefDefinition ref) {
         // no-op
     }
 

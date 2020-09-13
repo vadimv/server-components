@@ -1,5 +1,7 @@
 package rsp;
 
+import rsp.dsl.RefDefinition;
+
 import java.util.function.Consumer;
 
 public class DelegatingRenderContext<S> implements RenderContext<S> {
@@ -49,6 +51,13 @@ public class DelegatingRenderContext<S> implements RenderContext<S> {
     public void addEvent(String eventName, Consumer<EventContext> eventHandler) {
         for(RenderContext rc: contexts) {
             rc.addEvent(eventName, eventHandler);
+        }
+    }
+
+    @Override
+    public void addRef(RefDefinition ref) {
+        for(RenderContext rc: contexts) {
+            rc.addRef(ref);
         }
     }
 }
