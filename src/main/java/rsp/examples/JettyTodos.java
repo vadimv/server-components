@@ -47,7 +47,7 @@ public class JettyTodos {
                                     button(text("Add todo")),
                                     event("submit", c -> {
                                         c.value(textInputRef).thenApply(v -> useState.get().addTodo(v))
-                                                           .thenAccept(s -> useState.accept(s));
+                                                             .thenAccept(s -> useState.accept(s));
                                     })))));
 
         final State initialState = initialState();

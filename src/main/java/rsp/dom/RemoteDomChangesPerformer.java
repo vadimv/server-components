@@ -5,55 +5,117 @@ import rsp.XmlNs;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class RemoteDomChangesPerformer implements ChangesPerformer {
-    private static final int  CREATE = 0; // (id, childId, xmlNs, tag)
-    private static final int  CREATE_TEXT = 1; // (id, childId, text)
-    private static final int  REMOVE = 2; // (id, childId)
-    private static final int  SET_ATTR = 3; // (id, xmlNs, name, value, isProperty)
-    private static final int  REMOVE_ATTR = 4; // (id, xmlNs, name, isProperty)
-    private static final int  SET_STYLE = 5; // (id, name, value)
-    private static final int  REMOVE_STYLE = 6; // (id, name)
-    
-    public final List<String> commands = new ArrayList<>();
+    public final List<DomChange> commands = new ArrayList<>();
 
     @Override
-    public void removeAttr(Path id, XmlNs xmlNs, String name) {
-        commands.add("4," + id + ",\"" + xmlNs + "\",\"" + name + "\"," + "false");
+    public void removeAttr(Path path, XmlNs xmlNs, String name) {
+        commands.add(new RemoveAttr(path, xmlNs, name));
     }
 
     @Override
-    public void removeStyle(Path id, String name) {
-        commands.add("6,\"" + id + "\",\"" + name + "\"");
+    public void removeStyle(Path path, String name) {
+        commands.add(new RemoveStyle(path, name));
     }
 
     @Override
-    public void remove(Path id) {
-        commands.add("2,\"" + id + "\",\"" + id.parent().get() + "\"");
+    public void remove(Path path) {
+        commands.add(new Remove(path));
     }
 
     @Override
-    public void setAttr(Path id, XmlNs xmlNs, String name, String value) {
-        commands.add("3," + id + ",\"" + xmlNs + "\",\"" + name + "\"," + value + ",false");
+    public void setAttr(Path path, XmlNs xmlNs, String name, String value) {
+        commands.add(new SetAttr(path, xmlNs, name, value));
     }
 
     @Override
-    public void setStyle(Path id, String name, String value) {
-        commands.add("5,\"" + id + "\",\"" + name + "\",\"" + value + "\",false");
+    public void setStyle(Path path, String name, String value) {
+        commands.add(new SetStyle(path, name, value));
     }
 
     @Override
-    public void createText(Path parentId, Path id, String text) {
-        commands.add("1,\"" + parentId + "\",\"" + id + "\",\"" + text + "\"");
+    public void createText(Path parentPath, Path path, String text) {
+        commands.add(new CreateText(parentPath, path, text));
     }
 
     @Override
-    public void create(Path id, XmlNs xmlNs, String tag) {
-        commands.add("0,\"" + id + "\"," +  xmlNs + ",\"" + tag + "\"");
+    public void create(Path path, XmlNs xmlNs, String tag) {
+        commands.add(new Create(path, xmlNs, tag));
     }
 
-    public Optional<String> commandsString() {
-        return commands.size() > 0 ? Optional.of("[4," + String.join(",", commands) + "]") : Optional.empty();
+    public interface DomChange {}
+
+    public static final class RemoveAttr implements DomChange {
+        public final Path path;
+        public final XmlNs xmlNs;
+        public final String name;
+        public RemoveAttr(Path path, XmlNs xmlNs, String name) {
+            this.path = path;
+            this.xmlNs = xmlNs;
+            this.name = name;
+        }
+    }
+
+    public static final class RemoveStyle implements DomChange {
+        public final Path path;
+        public final String name;
+        public RemoveStyle(Path path, String name) {
+            this.path = path;
+            this.name = name;
+        }
+    }
+
+    public static class Remove implements DomChange {
+        public final Path path;
+        public Remove(Path path) {
+            this.path = path;
+        }
+    }
+
+    public static class SetAttr implements DomChange {
+        public final Path path;
+        public final XmlNs xmlNs;
+        public final String name;
+        public final String value;
+        public SetAttr(Path path, XmlNs xmlNs, String name, String value) {
+            this.path = path;
+            this.xmlNs = xmlNs;
+            this.name = name;
+            this.value = value;
+        }
+    }
+
+    public static class SetStyle implements DomChange {
+        public final Path path;
+        public final String name;
+        public final String value;
+        public SetStyle(Path path, String name, String value) {
+            this.path = path;
+            this.name = name;
+            this.value = value;
+        }
+    }
+
+    public static class CreateText implements DomChange {
+        public final Path parentPath;
+        public final Path path;
+        public final String text;
+        public CreateText(Path parentPath, Path path, String text) {
+            this.parentPath = parentPath;
+            this.path = path;
+            this.text = text;
+        }
+    }
+
+    public static class Create implements DomChange {
+        public final Path path;
+        public final XmlNs xmlNs;
+        public final String tag;
+        public Create(Path path, XmlNs xmlNs, String tag) {
+            this.path = path;
+            this.xmlNs = xmlNs;
+            this.tag = tag;
+        }
     }
 }

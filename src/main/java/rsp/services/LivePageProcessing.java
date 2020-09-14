@@ -1,34 +1,43 @@
-package rsp.javax.web;
+package rsp.services;
 
 import rsp.*;
 import rsp.dom.*;
-import rsp.server.*;
+import rsp.server.InMessage;
+import rsp.server.InMessages;
+import rsp.server.OutMessages;
+import rsp.server.SerializeKorolevOutMessages;
 import rsp.state.UseState;
 
-import javax.websocket.*;
-import java.io.IOException;
+import javax.websocket.Session;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class MainWebSocketEndpoint<S> extends Endpoint {
-    private final Map<QualifiedSessionId, Page<S>> pagesStorage;
+public class LivePageProcessing implements InMessages {
+
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
 
-    public MainWebSocketEndpoint(Map<QualifiedSessionId, Page<S>> pagesStorage) {
-        this.pagesStorage = pagesStorage;
+    public LivePageProcessing() {
+
     }
 
     @Override
-    public void onOpen(Session session, EndpointConfig endpointConfig) {
-        System.out.println("WebSocket open " + session.getRequestURI());
+    public void extractProperty(int descriptorId, String value) {
+
+    }
+
+    @Override
+    public void domEvent(int renderNumber, Path path, String eventType) {
+
+    }
+/*
+    public static <S> LivePageProcessing of(Map<QualifiedSessionId, Page<S>> pagesStorage, OutMessages out) {
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"), session.getPathParameters().get("sid"));
         final Page<S> page = pagesStorage.get(qsid);
-        final OutMessages out = new SerializeKorolevOutMessages((msg) -> sendText(session, msg));
         if(page == null) {
             // a connection after server's restart
-            out.evalJs(descriptorsCounter.incrementAndGet(), "location.reload()");
+            out.evalJs(0, "location.reload()");
             return;
         } else {
             pagesStorage.remove(qsid);
@@ -88,53 +97,29 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
         domTreeRenderContext.events.entrySet().stream().map(e -> e.getValue().eventType).distinct().forEach(eventType -> {
             out.listenEvent(eventType, false);
         });
-        //final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage()
-        session.addMessageHandler(new MessageHandler.Whole<String>() {
-            @Override
-            public void onMessage(String s) {
-                System.out.println(s);
-                ParseInMessage.parse(s).ifPresent(message -> {
-                    if (message instanceof InMessage.DomEventInMessage) {
-                        final InMessage.DomEventInMessage domEvent = (InMessage.DomEventInMessage) message;
-                        Path eventElementPath = domEvent.path;
-                        while(domEvent.path.level() > 0) {
-                            Event event = domTreeRenderContext.events.get(eventElementPath);
-                            if(event != null && event.eventType.equals(domEvent.eventType)) {
-                                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                                         registeredEventHandlers,
-                                                                                         ref -> domTreeRenderContext.refs.get(ref),
-                                                                                         command -> sendText(session, command));
-                                event.eventHandler.accept(eventContext);
-                                break;
-                            } else {
-                                eventElementPath = eventElementPath.parent().get();
-                            }
-                        }
-                    } else if (message instanceof InMessage.ExtractPropertyResponseInMessage) {
-                        final InMessage.ExtractPropertyResponseInMessage propertyMessage = (InMessage.ExtractPropertyResponseInMessage) message;
+        return new LivePageProcessing();
+    }
 
-                    } else if (message instanceof InMessage.HeartBeat) {
-                        // no-op
-                    }
-                });
+    @Override
+    public void extractProperty(int descriptorId, String value) {
+
+    }
+
+    @Override
+    public void domEvent(int renderNumber, Path path, String eventType) {
+        Path eventElementPath = path;
+        while(eventElementPath.level() > 0) {
+            Event event = domTreeRenderContext.events.get(eventElementPath);
+            if(event != null && event.eventType.equals(domEvent.eventType)) {
+                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
+                        registeredEventHandlers,
+                        ref -> domTreeRenderContext.refs.get(ref),
+                        command -> sendText(session, command));
+                event.eventHandler.accept(eventContext);
+                break;
+            } else {
+                eventElementPath = eventElementPath.parent().get();
             }
-        });
-    }
-
-    private static void sendText(Session session, String text) {
-        try {
-            session.getBasicRemote().sendText(text);
-        } catch (IOException ioException) {
-            throw new RuntimeException(ioException);
         }
-    }
-
-    public void onClose(Session session, CloseReason closeReason) {
-        System.out.println("Closed: " + closeReason.getReasonPhrase());
-    }
-
-    public void onError(Session session, Throwable thr) {
-        System.out.println("Error:" + thr.getLocalizedMessage());
-        thr.printStackTrace();
-    }
+    } **/
 }

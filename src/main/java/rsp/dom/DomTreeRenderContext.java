@@ -7,11 +7,13 @@ import rsp.XmlNs;
 import rsp.dsl.RefDefinition;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public class DomTreeRenderContext<S> implements RenderContext<S> {
 
-    public final Map<Path, Event> events = new HashMap();
+    public final ConcurrentHashMap<Path, Event> events = new ConcurrentHashMap();
+    public final ConcurrentHashMap<Object, Path> refs = new ConcurrentHashMap();
 
     public Tag root;
     private Deque<Tag> tagsStack = new ArrayDeque<>();
@@ -61,7 +63,7 @@ public class DomTreeRenderContext<S> implements RenderContext<S> {
 
     @Override
     public void addRef(RefDefinition ref) {
-
+        refs.put(ref, tagsStack.peek().path);
     }
 
 }
