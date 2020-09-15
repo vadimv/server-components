@@ -103,7 +103,7 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
                                 final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                                          registeredEventHandlers,
                                                                                          ref -> domTreeRenderContext.refs.get(ref),
-                                                                                         command -> sendText(session, command));
+                                                                                         out);
                                 event.eventHandler.accept(eventContext);
                                 break;
                             } else {
