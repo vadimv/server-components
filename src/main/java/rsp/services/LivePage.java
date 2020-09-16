@@ -5,7 +5,6 @@ import rsp.dom.*;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
 import rsp.state.MutableState;
-import rsp.state.ReadOnly;
 import rsp.state.UseState;
 
 import java.util.Map;
@@ -13,27 +12,23 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public class LivePage<S> implements InMessages {
-
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
     private final Map<String, CompletableFuture<?>> registeredEventHandlers = new ConcurrentHashMap<>();
 
-    private final Component<S> rootComponent;
     private final UseState<S> useState;
     private final UseState<Tag> currentDom;
     private final UseState<Map<Path, Event>> currentEvents;
     private final UseState<Map<Object, Path>> currentRefs;
     private final OutMessages out;
 
-    public LivePage(Component<S> rootComponent,
-                    UseState<S> useState,
+    public LivePage(UseState<S> useState,
                     UseState<Tag> currentDom,
                     UseState<Map<Path, Event>> currentEvents,
                     UseState<Map<Object, Path>> currentRefs,
                     OutMessages out) {
-        this.rootComponent = rootComponent;
         this.useState = useState;
         this.currentDom = currentDom;
         this.currentEvents = currentEvents;
@@ -41,9 +36,9 @@ public class LivePage<S> implements InMessages {
         this.out = out;
     }
 
-    public static <S> Optional<LivePage> of(Map<QualifiedSessionId, Page<S>> pagesStorage,
+    public static <S> Optional<LivePage<S>> of(Map<QualifiedSessionId, Page<S>> pagesStorage,
                                             Map<String, String> pathParameters,
-                                            Function<RenderContext<S>, RenderContext<S>> contextEnrich,
+                                            BiFunction<QualifiedSessionId, RenderContext<S>, RenderContext<S>> contextEnrich,
                                             OutMessages out) {
         final QualifiedSessionId qsid = new QualifiedSessionId(pathParameters.get("pid"), pathParameters.get("sid"));
         final Page<S> page = pagesStorage.get(qsid);
@@ -57,20 +52,6 @@ public class LivePage<S> implements InMessages {
 
         final UseState<Tag> currentDomRoot = new MutableState<>(page.domRoot);
         final UseState<Component<S>> currentRootComponent = new MutableState<>(page.rootComponent);
-
-        final DomTreeRenderContext<S> domTreeRenderContext = new DomTreeRenderContext<>();
-        final Map<String, CompletableFuture<?>> registeredEventHandlers = new ConcurrentHashMap<>();
-        page.rootComponent.materialize(new ReadOnly<>(page.initialState)).accept(contextEnrich.apply(domTreeRenderContext));
-        currentDomRoot.accept(domTreeRenderContext.root);
-        final UseState<Map<Path, Event>> currentEvents = new MutableState<>(domTreeRenderContext.events);
-        final UseState<Map<Object, Path>> currentRefs = new MutableState<>(domTreeRenderContext.refs);
-        out.setRenderNum(0);//TODO
-
-        // Register event types on client
-        domTreeRenderContext.events.entrySet().stream().map(e -> e.getValue().eventType).distinct().forEach(eventType -> {
-            out.listenEvent(eventType, false);
-        });
-
         final UseState<S> useState = new UseState<S>() {
             private volatile S state = page.initialState;
             @Override
@@ -81,7 +62,7 @@ public class LivePage<S> implements InMessages {
 
                     final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
                     final Component<S> root = currentRootComponent.get();
-                    root.materialize(this).accept(contextEnrich.apply(newContext));
+                    root.materialize(this).accept(contextEnrich.apply(qsid, newContext));
 
                     // calculate diff between currentContext and newContext
                     final var currentRoot = currentDomRoot.get();
@@ -102,13 +83,23 @@ public class LivePage<S> implements InMessages {
                 return state;
             }
         };
+        final DomTreeRenderContext<S> domTreeRenderContext = new DomTreeRenderContext<>();
+        page.rootComponent.materialize(useState).accept(contextEnrich.apply(qsid, domTreeRenderContext));
+        currentDomRoot.accept(domTreeRenderContext.root);
+        final UseState<Map<Path, Event>> currentEvents = new MutableState<>(domTreeRenderContext.events);
+        final UseState<Map<Object, Path>> currentRefs = new MutableState<>(domTreeRenderContext.refs);
+        out.setRenderNum(0);//TODO
 
-        return Optional.of(new LivePage(page.rootComponent,
-                                                  useState,
-                                                  currentDomRoot,
-                                                  currentEvents,
-                                                  currentRefs,
-                                                  out));
+        // Register event types on client
+        domTreeRenderContext.events.entrySet().stream().map(e -> e.getValue().eventType).distinct().forEach(eventType -> {
+            out.listenEvent(eventType, false);
+        });
+
+        return Optional.of(new LivePage<>(useState,
+                                          currentDomRoot,
+                                          currentEvents,
+                                          currentRefs,
+                                          out));
     }
 
     @Override

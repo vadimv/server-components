@@ -60,7 +60,7 @@ public class JettyTodos {
         final var s = new JettyServer(port,
                                 "",
                                     new MainHttpServlet<>(pageRendering),
-                                    new MainWebSocketEndpoint(pagesStorage));
+                                    new MainWebSocketEndpoint<>(pagesStorage));
         s.start();
         s.join();
     }
