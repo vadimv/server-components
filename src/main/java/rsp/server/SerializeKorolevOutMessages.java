@@ -10,7 +10,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
     private static final int SET_RENDER_NUM = 0; // (n)
     private static final int CLEAN_ROOT = 1; // ()
     private static final int LISTEN_EVENT = 2; // (type, preventDefault)
-    private static final int EXTRACT_PROPERTY = 3; // (id, propertyName, descriptor)
+    private static final int EXTRACT_PROPERTY = 3; // (descriptor, id, propertyName )
     private static final int MODIFY_DOM = 4; // (commands)
     private static final int FOCUS = 5; // (id) {
     private static final int CHANGE_PAGE_URL = 6; // (path)
@@ -53,9 +53,9 @@ public class SerializeKorolevOutMessages implements OutMessages {
     @Override
     public void extractProperty(Path path, String name, int descriptor) {
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
+                                                            quote(descriptor),
                                                             quote(path),
-                                                            quote(name),
-                                                            quote(descriptor)));
+                                                            quote(name)));
         messagesConsumer.accept(message);
     }
 
