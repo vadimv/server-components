@@ -7,6 +7,7 @@ import rsp.server.OutMessages;
 import rsp.state.MutableState;
 import rsp.state.UseState;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -16,7 +17,7 @@ import java.util.function.BiFunction;
 
 public class LivePage<S> implements InMessages {
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
-    private final Map<String, CompletableFuture<?>> registeredEventHandlers = new ConcurrentHashMap<>();
+    private final Map<Integer, CompletableFuture<String>> registeredEventHandlers = new ConcurrentHashMap<>();
 
     private final UseState<S> useState;
     private final UseState<Tag> currentDom;
@@ -52,6 +53,7 @@ public class LivePage<S> implements InMessages {
 
         final UseState<Tag> currentDomRoot = new MutableState<>(page.domRoot);
         final UseState<Component<S>> currentRootComponent = new MutableState<>(page.rootComponent);
+        final UseState<Map<Path, Event>> currentEvents = new MutableState<>(new HashMap<>());
         final UseState<S> useState = new UseState<S>() {
             private volatile S state = page.initialState;
             @Override
@@ -67,11 +69,15 @@ public class LivePage<S> implements InMessages {
                     // calculate diff between currentContext and newContext
                     final var currentRoot = currentDomRoot.get();
                     final var remoteChangePerformer = new RemoteDomChangesPerformer();
-                    new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
-                    remoteChangePerformer.commands.forEach(command -> {
-                        out.modifyDom(command);
-                    });
+                    try {
+                        new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    out.modifyDom(remoteChangePerformer.commands);
                     currentDomRoot.accept(newContext.root);
+                    currentEvents.accept(newContext.events);
                 } else {
                     // send new URL/route command
                     System.out.println("New route: " + newRoute);
@@ -86,7 +92,7 @@ public class LivePage<S> implements InMessages {
         final DomTreeRenderContext<S> domTreeRenderContext = new DomTreeRenderContext<>();
         page.rootComponent.materialize(useState).accept(contextEnrich.apply(qsid, domTreeRenderContext));
         currentDomRoot.accept(domTreeRenderContext.root);
-        final UseState<Map<Path, Event>> currentEvents = new MutableState<>(domTreeRenderContext.events);
+        currentEvents.accept(domTreeRenderContext.events);
         final UseState<Map<Object, Path>> currentRefs = new MutableState<>(domTreeRenderContext.refs);
         out.setRenderNum(0);//TODO
 
@@ -98,13 +104,17 @@ public class LivePage<S> implements InMessages {
         return Optional.of(new LivePage<>(useState,
                                           currentDomRoot,
                                           currentEvents,
-                                          currentRefs,
+                                          new MutableState<>(domTreeRenderContext.refs),
                                           out));
     }
 
     @Override
     public void extractProperty(int descriptorId, String value) {
-
+        System.out.println("extractProperty:" + descriptorId + " value=" + value);
+        final var cf = registeredEventHandlers.get(descriptorId);
+        if(cf != null) {
+            cf.complete(value);
+        }
     }
 
     @Override

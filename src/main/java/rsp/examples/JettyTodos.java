@@ -37,18 +37,19 @@ public class JettyTodos {
                                of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().todos)).map(todo ->
                                        div(input(attr("type", "checkbox")),
                                            span(when(todo.getValue().done, style("text-decoration", "line-through")),
-                                                               text(todo.getValue().text)),
+                                                text(todo.getValue().text)),
                                            event("click", c -> {
                                                useState.accept(useState.get().toggleDone(todo.getKey()));
                                            }))))),
-                               form(input(textInputRef,
-                                          attr("type", "text"),
-                                          attr("placeholder", "What should be done?")),
-                                    button(text("Add todo")),
-                                    event("submit", c -> {
-                                        c.value(textInputRef).thenApply(v -> useState.get().addTodo(v))
-                                                             .thenAccept(s -> useState.accept(s));
-                                    })))));
+                           form(input(textInputRef,
+                                      attr("type", "text"),
+                                      attr("placeholder", "What should be done?")),
+                                button(text("Add todo")),
+                                event("submit", c -> {
+                                    c.value(textInputRef).thenApply(v -> useState.get().addTodo(v))
+                                                         .thenAccept(s -> { c.setValue(textInputRef, "");
+                                                                            useState.accept(s);});
+                                })))));
 
         final State initialState = initialState();
         final Function<HttpRequest, State> routes = request -> initialState;

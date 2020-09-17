@@ -32,7 +32,7 @@ public class DeserializeKorolevInMessage {
 
     private void parseExtractPropertyResponse(String str) {
         final String[] tokens = unquote(str).split(":");
-        inMessages.extractProperty(Integer.parseInt(tokens[0]), tokens[1]);
+        inMessages.extractProperty(Integer.parseInt(tokens[0]), tokens[2]);
     }
 
     private void parseDomEvent(String str) {

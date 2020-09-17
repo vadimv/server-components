@@ -1,10 +1,13 @@
 package rsp.server;
 
+import rsp.XmlNs;
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer.*;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class SerializeKorolevOutMessages implements OutMessages {
     private static final int SET_RENDER_NUM = 0; // (n)
@@ -51,7 +54,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     @Override
-    public void extractProperty(Path path, String name, int descriptor) {
+    public void extractProperty(int descriptor, Path path, String name) {
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
                                                             quote(descriptor),
                                                             quote(path),
@@ -60,9 +63,13 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     @Override
-    public void modifyDom(DomChange domChange) {
-        final String message = addSquareBrackets(joinString(MODIFY_DOM, modifyDomMessageBody(domChange)));
-        messagesConsumer.accept(message);
+    public void modifyDom(List<DomChange> domChanges) {
+        if(domChanges.size() > 0) {
+            final String[] changes = domChanges.stream().map(this::modifyDomMessageBody).toArray(String[]::new);
+            final String message = addSquareBrackets(joinString(MODIFY_DOM,
+                                                                joinString(changes)));
+            messagesConsumer.accept(message);
+        }
     }
 
     private String modifyDomMessageBody(DomChange domChange) {
@@ -77,7 +84,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
             return joinString(REMOVE, quote(c.path));
         } else if(domChange instanceof SetAttr) {
             final SetAttr c = (SetAttr)domChange;
-            return joinString(SET_ATTR, quote(c.path), quote(c.xmlNs), quote(c.name), quote(c.value));
+            return joinString(SET_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(c.name), quote(c.value), c.isProperty);
         } else if(domChange instanceof SetStyle) {
             final SetStyle c = (SetStyle)domChange;
             return joinString(SET_STYLE, quote(c.path), quote(c.name), quote(c.value));
@@ -86,10 +93,14 @@ public class SerializeKorolevOutMessages implements OutMessages {
             return joinString(CREATE_TEXT, quote(c.parentPath), quote(c.path), quote(c.text));
         } else if(domChange instanceof Create) {
             final Create c = (Create)domChange;
-            return joinString(CREATE, quote(c.path), quote(c.tag));
+            return joinString(CREATE, quote(c.path.parent().orElseThrow()), quote(c.path), xmlNsString(c.xmlNs), quote(c.tag));
         } else {
             throw new IllegalStateException("Unsupported DomChange object type:" + domChange);
         }
+    }
+
+    private String xmlNsString(XmlNs xmlNs) {
+        return xmlNs.uri.equals(XmlNs.html.uri) ? "0" : xmlNs.toString();
     }
 
     @Override

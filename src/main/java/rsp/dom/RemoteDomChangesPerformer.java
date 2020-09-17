@@ -26,7 +26,7 @@ public class RemoteDomChangesPerformer implements ChangesPerformer {
 
     @Override
     public void setAttr(Path path, XmlNs xmlNs, String name, String value) {
-        commands.add(new SetAttr(path, xmlNs, name, value));
+        commands.add(new SetAttr(path, xmlNs, name, value, false));
     }
 
     @Override
@@ -78,11 +78,13 @@ public class RemoteDomChangesPerformer implements ChangesPerformer {
         public final XmlNs xmlNs;
         public final String name;
         public final String value;
-        public SetAttr(Path path, XmlNs xmlNs, String name, String value) {
+        public final boolean isProperty;
+        public SetAttr(Path path, XmlNs xmlNs, String name, String value, boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
             this.value = value;
+            this.isProperty = isProperty;
         }
     }
 

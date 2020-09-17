@@ -106,7 +106,19 @@ public class Diff {
         changesPerformer.create(path, tag.xmlns, tag.name);
         var p = path.incLevel();
         for(Node child:tag.children) {
-            create((Tag)child, p, changesPerformer);
+            if(child instanceof Tag) {
+                final Tag newTag = (Tag) child;
+                create(newTag, p, changesPerformer);
+                for(Style style: newTag.styles) {
+                    changesPerformer.setStyle(p, style.name, style.value);
+                }
+                for(Attribute attribute: newTag.attributes) {
+                    changesPerformer.setAttr(p, XmlNs.html, attribute.name, attribute.value);
+                }
+            } else if(child instanceof Text) {
+                final Text text = (Text) child;
+                changesPerformer.createText(tag.path, p, text.text);
+            }
             p = p.incSibling();
         }
     }
