@@ -37,9 +37,11 @@ public class JettyTodos {
                                style("overflow", "scroll"),
                                of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().todos)).map(todo ->
                                        div(input(attr("type", "checkbox"),
-                                               event("click", c -> {
+                                                 when(todo.getValue().done, attr("checked", "checked")),
+                                                 attr("autocomplete", "off"), /* reset the checkbox on Firefox reload current page */
+                                                 event("click", c -> {
                                                    useState.accept(useState.get().toggleDone(todo.getKey()));
-                                               })),
+                                                 })),
                                            span(when(todo.getValue().done, style("text-decoration", "line-through")),
                                                 text(todo.getValue().text))
                                           )))),
