@@ -119,7 +119,7 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addRef(RefDefinition ref) {
+    public void addRef(Ref ref) {
         // no-op
     }
 

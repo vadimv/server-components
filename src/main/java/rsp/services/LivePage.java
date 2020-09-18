@@ -22,13 +22,13 @@ public class LivePage<S> implements InMessages {
     private final UseState<S> useState;
     private final UseState<Tag> currentDom;
     private final UseState<Map<Path, Event>> currentEvents;
-    private final UseState<Map<Object, Path>> currentRefs;
+    private final UseState<Map<Ref, Path>> currentRefs;
     private final OutMessages out;
 
     public LivePage(UseState<S> useState,
                     UseState<Tag> currentDom,
                     UseState<Map<Path, Event>> currentEvents,
-                    UseState<Map<Object, Path>> currentRefs,
+                    UseState<Map<Ref, Path>> currentRefs,
                     OutMessages out) {
         this.useState = useState;
         this.currentDom = currentDom;
@@ -38,9 +38,9 @@ public class LivePage<S> implements InMessages {
     }
 
     public static <S> Optional<LivePage<S>> of(Map<QualifiedSessionId, Page<S>> pagesStorage,
-                                            Map<String, String> pathParameters,
-                                            BiFunction<QualifiedSessionId, RenderContext<S>, RenderContext<S>> contextEnrich,
-                                            OutMessages out) {
+                                               Map<String, String> pathParameters,
+                                               BiFunction<QualifiedSessionId, RenderContext<S>, RenderContext<S>> contextEnrich,
+                                               OutMessages out) {
         final QualifiedSessionId qsid = new QualifiedSessionId(pathParameters.get("pid"), pathParameters.get("sid"));
         final Page<S> page = pagesStorage.get(qsid);
         if(page == null) {
@@ -93,12 +93,13 @@ public class LivePage<S> implements InMessages {
         page.rootComponent.materialize(useState).accept(contextEnrich.apply(qsid, domTreeRenderContext));
         currentDomRoot.accept(domTreeRenderContext.root);
         currentEvents.accept(domTreeRenderContext.events);
-        final UseState<Map<Object, Path>> currentRefs = new MutableState<>(domTreeRenderContext.refs);
+        final UseState<Map<Ref, Path>> currentRefs = new MutableState<>(domTreeRenderContext.refs);
         out.setRenderNum(0);//TODO
 
         // Register event types on client
         domTreeRenderContext.events.entrySet().stream().map(e -> e.getValue().eventType).distinct().forEach(eventType -> {
-            out.listenEvent(eventType, false);
+            if(!eventType.equals("submit")) // TODO check why a form submit event should not be registered
+                out.listenEvent(eventType, false);
         });
 
         return Optional.of(new LivePage<>(useState,

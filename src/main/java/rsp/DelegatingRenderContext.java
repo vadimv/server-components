@@ -55,7 +55,7 @@ public class DelegatingRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addRef(RefDefinition ref) {
+    public void addRef(Ref ref) {
         for(RenderContext rc: contexts) {
             rc.addRef(ref);
         }

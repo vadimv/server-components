@@ -11,5 +11,5 @@ public interface RenderContext<S> {
     void setStyle(String name, String value);
     void addTextNode(String text);
     void addEvent(String eventName, Consumer<EventContext> eventHandler);
-    void addRef(RefDefinition ref);
+    void addRef(Ref ref);
 }

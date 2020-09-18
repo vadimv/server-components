@@ -3,6 +3,7 @@ package rsp.examples;
 import rsp.Component;
 import rsp.Page;
 import rsp.QualifiedSessionId;
+import rsp.dsl.RefDefinition;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.jetty.JettyServer;
@@ -27,7 +28,7 @@ public class JettyTodos {
     public static final int DEFAULT_PORT = 8080;
     
     public static void main(String[] args) throws Exception {
-        final var textInputRef = createRef();
+        final RefDefinition<Integer> textInputRef = createRef();
         final Component<State> render = useState ->
                 html(
                       body(
@@ -35,12 +36,13 @@ public class JettyTodos {
                            div(style("height", "250px"),
                                style("overflow", "scroll"),
                                of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().todos)).map(todo ->
-                                       div(input(attr("type", "checkbox")),
+                                       div(input(attr("type", "checkbox"),
+                                               event("click", c -> {
+                                                   useState.accept(useState.get().toggleDone(todo.getKey()));
+                                               })),
                                            span(when(todo.getValue().done, style("text-decoration", "line-through")),
-                                                text(todo.getValue().text)),
-                                           event("click", c -> {
-                                               useState.accept(useState.get().toggleDone(todo.getKey()));
-                                           }))))),
+                                                text(todo.getValue().text))
+                                          )))),
                            form(input(textInputRef,
                                       attr("type", "text"),
                                       attr("placeholder", "What should be done?")),

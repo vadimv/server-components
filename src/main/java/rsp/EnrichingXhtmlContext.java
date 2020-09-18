@@ -87,7 +87,7 @@ public class EnrichingXhtmlContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addRef(RefDefinition ref) {
+    public void addRef(Ref ref) {
         context.addRef(ref);
     }
 

@@ -1,22 +1,14 @@
 package rsp.dsl;
 
-import rsp.EventContext;
+import rsp.Ref;
 import rsp.RenderContext;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 
-public class RefDefinition extends DocumentPartDefinition {
-    private final Object parentRef;
-    private final Object key;
+public class RefDefinition<K> extends DocumentPartDefinition implements Ref {
+
     public RefDefinition() {
-        this(new Object(), new Object());
-    }
-
-    private RefDefinition(Object parentRef, Object key) {
         super(DocumentPartKind.OTHER);
-        this.parentRef = parentRef;
-        this.key = key;
     }
 
     @Override
@@ -24,21 +16,35 @@ public class RefDefinition extends DocumentPartDefinition {
         renderContext.addRef(this);
     }
 
-    public RefDefinition withKey(Object key) {
-        return new RefDefinition(this, key);
+    public KeyRef<K> withKey(K key) {
+        return new KeyRef<K>(this, key);
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        RefDefinition that = (RefDefinition) o;
-        return parentRef.equals(that.parentRef) &&
-                key.equals(that.key);
-    }
+    public static class KeyRef<K> extends DocumentPartDefinition implements Ref {
+        private final RefDefinition<K> parentRef;
+        private final K key;
+        public KeyRef(RefDefinition<K> parentRef, K key) {
+            super(DocumentPartKind.OTHER);
+            this.parentRef = Objects.requireNonNull(parentRef);
+            this.key = Objects.requireNonNull(key);
+        }
 
-    @Override
-    public int hashCode() {
-        return Objects.hash(parentRef, key);
+        @Override
+        public void accept(RenderContext renderContext) {
+            renderContext.addRef(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            KeyRef<?> keyRef = (KeyRef<?>) o;
+            return parentRef.equals(keyRef.parentRef) && key.equals(keyRef.key);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(parentRef, key);
+        }
     }
 }
