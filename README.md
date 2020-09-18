@@ -5,7 +5,7 @@ Reactive Sever Pages (RSP) is a Java library for creating single page web applic
 RSP is a simplified port of parts of Korolev Scala framework to Java.
 
 How it works:
-a browser event like click or form submit sent on websocket to the server where it updates the state which results with a new virtual DOM.
+a browser event like click or form submit sent on websocket to the server where it updates the state resulting with a new virtual DOM.
 The difference between the current and new virtual DOM trees calculated and sent back to the browser to update the page's presentation.
 
 * Plain Java used for both sever and client side programming including a Java DSL for HTML
