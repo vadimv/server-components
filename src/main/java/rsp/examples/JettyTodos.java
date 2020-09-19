@@ -59,7 +59,7 @@ public class JettyTodos {
         final Function<HttpRequest, State> routes = request -> initialState;
         final BiFunction<String, State, String> state2path = (c, s) -> c;
         final Map<QualifiedSessionId, Page<State>> pagesStorage = new ConcurrentHashMap<>();
-        final PageRendering<State> pageRendering = new PageRendering<>(routes, state2path, render, pagesStorage);
+        final PageRendering<State> pageRendering = new PageRendering<>(routes, state2path, pagesStorage, render);
 
         final int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
         final var s = new JettyServer(port,

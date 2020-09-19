@@ -28,12 +28,12 @@ public class PageRendering<S> {
 
     public PageRendering(Function<HttpRequest, S> useStateFunction,
                          BiFunction<String, S, String> state2route,
-                         Component<S> documentDefinition,
-                         Map<QualifiedSessionId, Page<S>> pagesStorage) {
+                         Map<QualifiedSessionId, Page<S>> pagesStorage,
+                         Component<S> documentDefinition) {
         this.useStateFunction = useStateFunction;
         this.state2route = state2route;
-        this.documentDefinition = documentDefinition;
         this.pagesStorage = pagesStorage;
+        this.documentDefinition = documentDefinition;
     }
 
     public HttpResponse httpGet(HttpRequest request) {
