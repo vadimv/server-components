@@ -1,15 +1,21 @@
 package rsp;
 
-import rsp.dsl.RefDefinition;
-
 import java.util.function.Consumer;
 
 public class XhtmlRenderContext<S> implements RenderContext<S> {
 
+    public final static int OP_OPEN = 1;
+    public final static int OP_CLOSE = 2;
+    public final static int OP_ATTR = 3;
+    public final static int OP_TEXT = 4;
+    public final static int OP_LAST_ATTR = 5;
+    public final static int OP_END = 6;
+    public final static int OP_STYLE = 100;
+
     private final StringBuilder builder;
     private final TextPrettyPrinting prettyPrinting;
 
-    private int lastOp = Op.OP_CLOSE;
+    private int lastOp = OP_CLOSE;
     private int indentation = 0;
     public XhtmlRenderContext(TextPrettyPrinting prettyPrinting,
                               String docType) {
@@ -37,8 +43,8 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
     }
 
     private void beforeOpenNode() {
-        if (lastOp != Op.OP_CLOSE && lastOp != Op.OP_TEXT) {
-            if (lastOp == Op.OP_STYLE) {
+        if (lastOp != OP_CLOSE && lastOp != OP_TEXT) {
+            if (lastOp == OP_STYLE) {
                 builder.append('"');
             }
             builder.append('>');
@@ -51,23 +57,23 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
     @Override
     public void openNode(XmlNs xmlns, String name) {
         beforeOpenNode();
-        if(lastOp != Op.OP_TEXT) {
+        if(lastOp != OP_TEXT) {
             addIndentation();
         }
         builder.append('<');
         builder.append(name);
-        lastOp = Op.OP_OPEN;
+        lastOp = OP_OPEN;
         indentation += 1;
     }
 
     @Override
     public void closeNode(String name) {
         indentation -= 1;
-        if (lastOp == Op.OP_ATTR || lastOp == Op.OP_OPEN) {
+        if (lastOp == OP_ATTR || lastOp == OP_OPEN) {
             builder.append('>');
-        } else if (lastOp == Op.OP_STYLE) {
+        } else if (lastOp == OP_STYLE) {
             builder.append("\">");
-        } else if (lastOp != Op.OP_TEXT) {
+        } else if (lastOp != OP_TEXT) {
             addIndentation();
         }
         builder.append('<');
@@ -75,12 +81,12 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
         builder.append(name);
         builder.append('>');
  /*       builder.append(prettyPrinting.lineBreak);*/
-        lastOp = Op.OP_CLOSE;
+        lastOp = OP_CLOSE;
     }
 
     @Override
     public void setAttr(XmlNs xmlNs, String name, String value) {
-        if (lastOp == Op.OP_STYLE) {
+        if (lastOp == OP_STYLE) {
             builder.append('"');
         }
         builder.append(' ');
@@ -89,19 +95,19 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
         builder.append('"');
         builder.append(value);
         builder.append('"');
-        lastOp = Op.OP_ATTR;
+        lastOp = OP_ATTR;
     }
 
     @Override
     public void setStyle(String name, String value) {
-        if (lastOp != Op.OP_STYLE) {
+        if (lastOp != OP_STYLE) {
             builder.append(" style=\"");
         }
         builder.append(name);
         builder.append(":");
         builder.append(value);
         builder.append(";");
-        lastOp = Op.OP_STYLE;
+        lastOp = OP_STYLE;
     }
 
     @Override
@@ -110,7 +116,7 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
         //addIndentation();
         builder.append(text);
         //builder.append(prettyPrinting.lineBreak);
-        lastOp = Op.OP_TEXT;
+        lastOp = OP_TEXT;
     }
 
     @Override

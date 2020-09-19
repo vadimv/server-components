@@ -1,6 +1,5 @@
 package rsp.server;
 
-import rsp.Op;
 import rsp.dom.Path;
 
 import java.util.Objects;
