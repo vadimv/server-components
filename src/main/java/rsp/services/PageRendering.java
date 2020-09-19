@@ -21,16 +21,16 @@ public class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Component<S> documentDefinition;
-    private final Function<HttpRequest, S> useStateFunction;
+    private final Function<HttpRequest, S> routing;
     private final BiFunction<String, S, String> state2route;
 
     public final Map<QualifiedSessionId, Page<S>> pagesStorage;
 
-    public PageRendering(Function<HttpRequest, S> useStateFunction,
+    public PageRendering(Function<HttpRequest, S> routing,
                          BiFunction<String, S, String> state2route,
                          Map<QualifiedSessionId, Page<S>> pagesStorage,
                          Component<S> documentDefinition) {
-        this.useStateFunction = useStateFunction;
+        this.routing = routing;
         this.state2route = state2route;
         this.pagesStorage = pagesStorage;
         this.documentDefinition = documentDefinition;
@@ -40,7 +40,7 @@ public class PageRendering<S> {
         final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
         final String sessionId = randomStringGenerator.newString();
         final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
-        final S initialState = useStateFunction.apply(request);
+        final S initialState = routing.apply(request);
 
 
         final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
