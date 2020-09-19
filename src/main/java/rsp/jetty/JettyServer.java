@@ -1,5 +1,4 @@
 package rsp.jetty;
-
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
@@ -11,27 +10,21 @@ import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
-
-import javax.servlet.http.HttpServlet;
-import javax.websocket.Endpoint;
+import rsp.App;
+import rsp.javax.web.MainHttpServlet;
+import rsp.javax.web.MainWebSocketEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 
 public class JettyServer {
 
     private static final int MAX_THREADS = 50;
 
-    private final int port;
-    private final String basePath;
-    private final HttpServlet httpServlet;
-    private final Endpoint webSocketEndpoint;
+    private final App app;
 
     private Server server;
 
-    public JettyServer(int port, String basePath, HttpServlet httpServlet, Endpoint webSocketEndpoint) {
-        this.port = port;
-        this.basePath = basePath;
-        this.httpServlet = httpServlet;
-        this.webSocketEndpoint = webSocketEndpoint;
+    public JettyServer(App app) {
+        this.app = app;
     }
 
     public void start() throws Exception {
@@ -41,7 +34,7 @@ public class JettyServer {
         server = new Server(threadPool);
         
         final ServerConnector connector = new ServerConnector(server);
-        connector.setPort(port);
+        connector.setPort(app.port);
         server.setConnectors(new Connector[] {connector});
 
         final ResourceHandler resource_handler = new ResourceHandler();
@@ -52,12 +45,13 @@ public class JettyServer {
         resourceContextHandler.setContextPath("/static/*");
 
         final ServletContextHandler context = new ServletContextHandler();
-        context.setContextPath("/" + basePath);
-        context.addServlet(new ServletHolder(httpServlet),"/*");
+        context.setContextPath("/" + app.basePath);
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(app.pageRendering())),"/*");
 
+        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
-                    ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), "/bridge/web-socket/{pid}/{sid}")
+                    ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)
                                                 .configurator(new ServerEndpointConfig.Configurator() {
                                                     public <T> T getEndpointInstance(Class<T> clazz) throws InstantiationException {
                                                         return (T)webSocketEndpoint;

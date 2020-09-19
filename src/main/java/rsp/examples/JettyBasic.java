@@ -1,5 +1,6 @@
 package rsp.examples;
 
+import rsp.App;
 import rsp.Component;
 import rsp.Page;
 import rsp.QualifiedSessionId;
@@ -49,11 +50,7 @@ public class JettyBasic {
             return "/1";
         };
         final Map<QualifiedSessionId, Page<Integer>> pagesStorage = new ConcurrentHashMap<>();
-        final PageRendering<Integer> pageRendering = new PageRendering<>(routes, state2path, pagesStorage, render);
-        final var s = new JettyServer(p,
-                                "",
-                                        new MainHttpServlet<>(pageRendering),
-                                        new MainWebSocketEndpoint(pagesStorage));
+        final var s = new JettyServer(new App(p,"", routes, state2path, pagesStorage, render));
         s.start();
         s.join();
     }

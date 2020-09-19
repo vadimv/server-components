@@ -1,23 +1,14 @@
 package rsp.examples;
 
+import rsp.App;
 import rsp.Component;
-import rsp.Page;
-import rsp.QualifiedSessionId;
 import rsp.dsl.RefDefinition;
-import rsp.javax.web.MainHttpServlet;
-import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.jetty.JettyServer;
-import rsp.server.HttpRequest;
-import rsp.services.PageRendering;
 import rsp.util.CollectionUtils;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -55,17 +46,11 @@ public class JettyTodos {
                                                                             useState.accept(s);});
                                 })))));
 
-        final State initialState = initialState();
-        final Function<HttpRequest, State> routes = request -> initialState;
-        final BiFunction<String, State, String> state2path = (c, s) -> c;
-        final Map<QualifiedSessionId, Page<State>> pagesStorage = new ConcurrentHashMap<>();
-        final PageRendering<State> pageRendering = new PageRendering<>(routes, state2path, pagesStorage, render);
-
         final int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
-        final var s = new JettyServer(port,
-                                "",
-                                    new MainHttpServlet<>(pageRendering),
-                                    new MainWebSocketEndpoint<>(pagesStorage));
+        final var s = new JettyServer(new App(port,
+                                      "",
+                                              initialState(),
+                                              render));
         s.start();
         s.join();
     }
