@@ -1,4 +1,4 @@
-package rsp.examples;
+package rsp.examples.todos;
 
 import rsp.App;
 import rsp.Component;

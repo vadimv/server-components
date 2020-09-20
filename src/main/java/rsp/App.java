@@ -1,6 +1,5 @@
 package rsp;
 
-import rsp.examples.JettyTodos;
 import rsp.server.HttpRequest;
 import rsp.services.PageRendering;
 
