@@ -19,7 +19,7 @@ public class JettyTodos {
     public static final int DEFAULT_PORT = 8080;
     
     public static void main(String[] args) throws Exception {
-        final RefDefinition<Integer> textInputRef = createRef();
+        final RefDefinition textInputRef = createRef();
         final Component<State> render = useState ->
                 html(
                       body(
