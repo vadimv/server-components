@@ -6,14 +6,10 @@ import rsp.jetty.JettyServer;
 import rsp.util.CollectionUtils;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
 import static rsp.dsl.Html.*;
 
 public class JettyHn {
@@ -28,7 +24,7 @@ public class JettyHn {
                                                 span(text(story.getValue().id + " " + story.getValue().name))
                                         ))
                                 )));
-        final HnApiServices hnApi = new HnApiServices();
+        final HnApiService hnApi = new HnApiService();
         final var server = new JettyServer(new App<State>(8080,
                                                     "",
                                                     request -> hnApi.storiesIds()
