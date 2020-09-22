@@ -8,7 +8,9 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.rmi.RemoteException;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 public class MainHttpServlet<S>  extends HttpServlet {
     private final PageRendering<S> pageRendering;
@@ -22,8 +24,8 @@ public class MainHttpServlet<S>  extends HttpServlet {
         final HttpRequest req = new HttpRequest(request.getPathInfo(),
                                                 s -> Optional.ofNullable(request.getParameter(s)),
                                                 n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
-        final HttpResponse resp = pageRendering.httpGet(req);
-        setServletResponse(resp, response);
+            final HttpResponse resp = pageRendering.httpGet(req);
+            setServletResponse(resp, response);
     }
 
     private void setServletResponse(HttpResponse resp, HttpServletResponse response) throws IOException {

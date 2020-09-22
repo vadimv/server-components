@@ -4,6 +4,7 @@ import rsp.server.HttpRequest;
 import rsp.services.PageRendering;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -14,14 +15,14 @@ public class App<S> {
     public final int port;
     public final String basePath;
 
-    public final Function<HttpRequest, S> routes;
+    public final Function<HttpRequest, CompletableFuture<S>> routes;
     public final BiFunction<String, S, String> state2path;
     public final Map<QualifiedSessionId, Page<S>> pagesStorage;
     public final Component<S> rootComponent;
 
     public App(int port,
                String basePath,
-               Function<HttpRequest, S> routes,
+               Function<HttpRequest, CompletableFuture<S>> routes,
                BiFunction<String, S, String> state2path,
                Map<QualifiedSessionId, Page<S>> pagesStorage,
                Component<S> rootComponent) {
@@ -35,11 +36,23 @@ public class App<S> {
 
     public App(int port,
                String basePath,
+               Function<HttpRequest, CompletableFuture<S>> routes,
+               Component<S> rootComponent) {
+        this(port,
+            basePath,
+            routes,
+            (currentPath, s) -> currentPath,
+            new ConcurrentHashMap<>(),
+            rootComponent);
+    }
+
+    public App(int port,
+               String basePath,
                S initialState,
                Component<S> rootComponent) {
         this(port,
              basePath,
-             request -> initialState,
+             request -> CompletableFuture.completedFuture(initialState),
              (currentPath, s) -> currentPath,
              new ConcurrentHashMap<>(),
              rootComponent);

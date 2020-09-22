@@ -11,6 +11,8 @@ import rsp.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -21,12 +23,12 @@ public class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Component<S> documentDefinition;
-    private final Function<HttpRequest, S> routing;
+    private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final BiFunction<String, S, String> state2route;
 
     public final Map<QualifiedSessionId, Page<S>> pagesStorage;
 
-    public PageRendering(Function<HttpRequest, S> routing,
+    public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
                          BiFunction<String, S, String> state2route,
                          Map<QualifiedSessionId, Page<S>> pagesStorage,
                          Component<S> documentDefinition) {
@@ -40,7 +42,7 @@ public class PageRendering<S> {
         final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
         final String sessionId = randomStringGenerator.newString();
         final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
-        final S initialState = routing.apply(request);
+        final S initialState = routing.apply(request).join();
 
 
         final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
