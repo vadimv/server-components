@@ -4,9 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.util.CollectionUtils;
-import rsp.util.Tuple2;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -22,7 +20,7 @@ public class JettyHn {
         final Component<State> render = useState ->
                 html(
                         body(
-                                div(text("TODO tracker")),
+                                div(text("Hacker News")),
                                 of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
                                         div(
                                                 span(text(story.getValue().id + " " + story.getValue().name))

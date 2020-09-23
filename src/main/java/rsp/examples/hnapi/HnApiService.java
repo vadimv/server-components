@@ -18,7 +18,7 @@ public class HnApiService {
     private static final String HACKER_NEWS_BASE_URL = "https://hacker-news.firebaseio.com/v0/";
 
     private static final Pattern FIELD_REGEX = Pattern.compile("\"(.+?)\" *?: *?(\".+?\"|\\d+|\\[.+?\\])");
-    public static final int PAGE_SIZE = 30;
+    public static final int PAGE_SIZE = 50;
     public static ForkJoinPool EXECUTOR = new ForkJoinPool(PAGE_SIZE);
 
     public CompletableFuture<List<Integer>> storiesIds() {
