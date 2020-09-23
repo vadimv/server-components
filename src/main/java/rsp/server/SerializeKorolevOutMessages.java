@@ -3,6 +3,7 @@ package rsp.server;
 import rsp.XmlNs;
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer.*;
+import rsp.util.JsonUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -114,7 +115,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     private String quote(Object str) {
-        return "\"" + str + "\"";
+        return "\"" + JsonUtils.escape(str.toString(), true) + "\"";
     }
 
     private String addSquareBrackets(String str) {

@@ -1,6 +1,6 @@
 package rsp.util;
 
-public class UnescapeJsonUtils {
+public class JsonUtils {
     public static String unescape(String s) {
         final StringBuilder sb = new StringBuilder();
         int i = 0;
@@ -13,7 +13,7 @@ public class UnescapeJsonUtils {
                 sb.append(c);
             } else {
                 charsConsumed = 2;
-                switch (s.charAt(i + 1)) {
+                switch(s.charAt(i + 1)) {
                     case '\\': sb.append('\\'); break;
                     case '"': sb.append('"'); break;
                     case 'b': sb.append('\b'); break;
@@ -29,6 +29,30 @@ public class UnescapeJsonUtils {
                 }
             }
             i += charsConsumed;
+        }
+        return sb.toString();
+    }
+
+    public static String escape(String s, Boolean unicode) {
+        final StringBuilder sb = new StringBuilder();
+        int i = 0;
+        int len = s.length();
+        while (i < len) {
+            final char c = s.charAt(i);
+            switch(c) {
+                case '"'  : sb.append("\\\""); break;
+                case '\\' : sb.append("\\\\"); break;
+                case '\b' : sb.append("\\b"); break;
+                case '\f' : sb.append("\\f"); break;
+                case '\n' : sb.append("\\n"); break;
+                case '\r' : sb.append("\\r"); break;
+                case '\t' : sb.append("\\t"); break;
+                default:
+                    if (c < ' ' || (c > '~' && unicode)) sb.append(String.format("\\u%d04x", (int)c));
+                    else sb.append(c);
+                    break;
+            }
+            i += 1;
         }
         return sb.toString();
     }

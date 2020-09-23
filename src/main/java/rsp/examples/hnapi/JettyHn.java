@@ -4,7 +4,9 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.util.CollectionUtils;
+import rsp.util.Tuple2;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -15,31 +17,52 @@ import static rsp.dsl.Html.*;
 public class JettyHn {
 
     public static void main(String[] args) throws Exception {
+        final HnApiService hnApi = new HnApiService();
+
         final Component<State> render = useState ->
                 html(
                         body(
                                 div(text("TODO tracker")),
-                                of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().strories)).map(story ->
+                                of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
                                         div(
                                                 span(text(story.getValue().id + " " + story.getValue().name))
                                         ))
-                                )));
-        final HnApiService hnApi = new HnApiService();
+                                  ),
+                                event("click", c -> {
+                                    final State currentState = useState.get();
+                                    final List<Integer> newStoriesIds = pageIds(Arrays.stream(currentState.storiesIds).boxed().collect(Collectors.toList()),
+                                                                                currentState.pageNum,
+                                                                                HnApiService.PAGE_SIZE);
+                                    final CompletableFuture<State> newState = hnApi.stories(newStoriesIds)
+                                                                                   .thenApply(r -> new State(currentState.storiesIds,
+                                                                                                               concatArrays(currentState.stories, r.toArray(State.Story[]::new)),
+                                                                                                               currentState.pageNum + 1));
+                                    newState.thenAccept(state -> useState.accept(state));
+                                })
+
+                        )
+                    );
+
         final var server = new JettyServer(new App<State>(8080,
                                                     "",
                                                     request -> hnApi.storiesIds()
-                                                                    .thenCompose(l -> sequence(l.stream()
-                                                                                       .map(s-> hnApi.story(s)).collect(Collectors.toList())))
-                                                                    .thenApply(stories -> new State(stories.toArray(new State.Story[0])))        ,
+                                                                    .thenCompose(ids -> hnApi.stories(pageIds(ids, 0, HnApiService.PAGE_SIZE))
+                                                                                    .thenApply(r -> new State(ids.stream().mapToInt(Integer::intValue).toArray(),
+                                                                                                              r.toArray(State.Story[]::new),
+                                                                                                             0))),
                                                     render));
         server.start();
         server.join();
     }
 
-    static<T> CompletableFuture<List<T>> sequence(List<CompletableFuture<T>> listOfCompletableFutures) {
-        return CompletableFuture.allOf(listOfCompletableFutures.toArray(new CompletableFuture<?>[0]))
-                .thenApply(v -> listOfCompletableFutures.stream()
-                                                        .map(CompletableFuture::join)
-                                                        .collect(Collectors.toList()));
+    private static List<Integer> pageIds(List<Integer> storiesIds, int pageNum, int pageSize) {
+        return storiesIds.subList(pageNum * pageSize, (pageNum + 1) * pageSize);
     }
+
+    public static <T> T[] concatArrays(T[] first, T[] second) {
+        final T[] result = Arrays.copyOf(first, first.length + second.length);
+        System.arraycopy(second, 0, result, first.length, second.length);
+        return result;
+    }
+
 }
