@@ -21,8 +21,20 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <phase>package</phase>
+                    </execution>
+                </executions>
                 <configuration>
-                    <mainClass>mainClass</mainClass>
+                    <mainClass>rsp.util.JsUtils</mainClass>
+                    <arguments>
+                        <argument>./src/main/es6</argument>
+                        <argument>./target</argument>
+                    </arguments>
                 </configuration>
             </plugin>
         </plugins>
@@ -60,6 +72,11 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
             <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.javascript</groupId>
+            <artifactId>closure-compiler</artifactId>
+            <version>v20190106</version>
         </dependency>
     </dependencies>
 
