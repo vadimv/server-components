@@ -28,13 +28,14 @@ public class JettyHn {
                                   ),
                                 event("click", c -> {
                                     final State currentState = useState.get();
+                                    final int newPageNum = currentState.pageNum + 1;
                                     final List<Integer> newStoriesIds = pageIds(Arrays.stream(currentState.storiesIds).boxed().collect(Collectors.toList()),
-                                                                                currentState.pageNum,
+                                                                                newPageNum,
                                                                                 HnApiService.PAGE_SIZE);
                                     final CompletableFuture<State> newState = hnApi.stories(newStoriesIds)
                                                                                    .thenApply(r -> new State(currentState.storiesIds,
-                                                                                                               concatArrays(currentState.stories, r.toArray(State.Story[]::new)),
-                                                                                                               currentState.pageNum + 1));
+                                                                                                             concatArrays(currentState.stories, r.toArray(State.Story[]::new)),
+                                                                                                             newPageNum));
                                     newState.thenAccept(state -> useState.accept(state));
                                 })
 
@@ -45,7 +46,7 @@ public class JettyHn {
                                                     "",
                                                     request -> hnApi.storiesIds()
                                                                     .thenCompose(ids -> hnApi.stories(pageIds(ids, 0, HnApiService.PAGE_SIZE))
-                                                                                    .thenApply(r -> new State(ids.stream().mapToInt(Integer::intValue).toArray(),
+                                                                                        .thenApply(r -> new State(ids.stream().mapToInt(Integer::intValue).toArray(),
                                                                                                               r.toArray(State.Story[]::new),
                                                                                                              0))),
                                                     render));
@@ -57,7 +58,7 @@ public class JettyHn {
         return storiesIds.subList(pageNum * pageSize, (pageNum + 1) * pageSize);
     }
 
-    public static <T> T[] concatArrays(T[] first, T[] second) {
+    private static <T> T[] concatArrays(T[] first, T[] second) {
         final T[] result = Arrays.copyOf(first, first.length + second.length);
         System.arraycopy(second, 0, result, first.length, second.length);
         return result;
