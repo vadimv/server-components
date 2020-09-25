@@ -33,13 +33,14 @@ public class JsUtils {
         final List<SourceFile> externs = AbstractCommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
         final Result result = compiler.compile(externs, inputs(sourceDir), options(sourceDir, sourceMapOutputFile));
 
-        final StringBuilder sourceMapOutput = new StringBuilder();
-        result.sourceMap.appendTo(sourceMapOutput, sourceMapOutputFile.getName());
+        final StringBuilder sourceMapStringBuilder = new StringBuilder();
+        result.sourceMap.appendTo(sourceMapStringBuilder, sourceMapOutputFile.getName());
+
         Files.writeString(sourceOutputFile.toPath(),
                 "(function(){"
                 + compiler.toSource()
                 + "}).call(this);\n//# sourceMappingURL=korolev-client.min.js.map\n");
-        Files.writeString(sourceMapOutputFile.toPath(), sourceMapOutput.toString());
+        Files.writeString(sourceMapOutputFile.toPath(), sourceMapStringBuilder.toString());
     }
 
     private static List<SourceFile> inputs(File sourceDir) {

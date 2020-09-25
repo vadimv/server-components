@@ -33,7 +33,7 @@ public class JsonUtils {
         return sb.toString();
     }
 
-    public static String escape(String s, Boolean unicode) {
+    public static String escape(String s) {
         final StringBuilder sb = new StringBuilder();
         int i = 0;
         int len = s.length();
@@ -48,7 +48,7 @@ public class JsonUtils {
                 case '\r' : sb.append("\\r"); break;
                 case '\t' : sb.append("\\t"); break;
                 default:
-                    if (c < ' ' || (c > '~' && unicode)) sb.append(String.format("\\u%d04x", (int)c));
+                    if (c < ' ' || (c > '~')) sb.append(String.format("\\u%04x", (int)c));
                     else sb.append(c);
                     break;
             }

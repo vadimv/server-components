@@ -115,7 +115,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     private String quote(Object str) {
-        return "\"" + JsonUtils.escape(str.toString(), true) + "\"";
+        return "\"" + JsonUtils.escape(str.toString()) + "\"";
     }
 
     private String addSquareBrackets(String str) {
