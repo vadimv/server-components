@@ -32,14 +32,14 @@ public class JsUtils {
         final Compiler compiler = new Compiler();
         final List<SourceFile> externs = AbstractCommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
         final Result result = compiler.compile(externs, inputs(sourceDir), options(sourceDir, sourceMapOutputFile));
-
+        final String compiledJs = compiler.toSource();
         final StringBuilder sourceMapStringBuilder = new StringBuilder();
         result.sourceMap.appendTo(sourceMapStringBuilder, sourceMapOutputFile.getName());
 
         Files.writeString(sourceOutputFile.toPath(),
-                "(function(){"
-                + compiler.toSource()
-                + "}).call(this);\n//# sourceMappingURL=korolev-client.min.js.map\n");
+                        "(function(){"
+                        + compiledJs
+                        + "}).call(this);\n//# sourceMappingURL=korolev-client.min.js.map\n");
         Files.writeString(sourceMapOutputFile.toPath(), sourceMapStringBuilder.toString());
     }
 
