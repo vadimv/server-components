@@ -1,18 +1,16 @@
 package rsp.services;
 
+import rsp.*;
 import rsp.dom.DomTreeRenderContext;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
-import rsp.state.MutableState;
 import rsp.state.ReadOnly;
 import rsp.util.RandomString;
 import rsp.util.Tuple2;
-import rsp.*;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
