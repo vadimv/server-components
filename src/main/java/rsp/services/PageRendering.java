@@ -43,10 +43,10 @@ public class PageRendering<S> {
         return routing.apply(request).thenApply(initialState -> {
             final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
             final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(newCtx,
-                                                                                            sessionId,
-                                                                                            "/",
-                                                                                            DefaultConnectionLostWidget.HTML,
-                                                                                            5000);
+                                                                                          sessionId,
+                                                                                          "/",
+                                                                                          DefaultConnectionLostWidget.HTML,
+                                                                                          5000);
             final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
             documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
 
