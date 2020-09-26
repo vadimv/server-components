@@ -70,20 +70,4 @@ public class PageRendering<S> {
                                     newCtx.toString());
         });
     }
-
-    public RenderContext<S> renderComponents(S state, String sessionId) {
-        final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
-        final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(newCtx,
-                                                                sessionId,
-                                                           "/",
-                                                                DefaultConnectionLostWidget.HTML,
-                                                   5000);
-        documentDefinition.materialize(new MutableState<>(state)).accept(enrichingContext);
-        return enrichingContext;
-    }
-
-    private static String stateSessionKey(String deviceId, String sessionId) {
-        return deviceId + "-" + sessionId;
-    }
-
 }
