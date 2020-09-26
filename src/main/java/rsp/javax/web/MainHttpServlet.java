@@ -4,6 +4,7 @@ import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.services.PageRendering;
 
+import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,18 +21,28 @@ public class MainHttpServlet<S>  extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        final HttpRequest req = new HttpRequest(request.getPathInfo(),
-                                                s -> Optional.ofNullable(request.getParameter(s)),
-                                                n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
-            final HttpResponse resp = pageRendering.httpGet(req);
-            setServletResponse(resp, response);
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+        final AsyncContext asyncContext = request.startAsync();
+        asyncContext.start(() -> {
+            final HttpRequest req = new HttpRequest(request.getPathInfo(),
+                                                    s -> Optional.ofNullable(request.getParameter(s)),
+                                                    n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
+
+            pageRendering.httpGet(req).thenAccept(resp -> {
+                    setServletResponse(resp, response);
+                    asyncContext.complete();
+            }); // TODO handle exceptions
+        });
     }
 
-    private void setServletResponse(HttpResponse resp, HttpServletResponse response) throws IOException {
+    private void setServletResponse(HttpResponse resp, HttpServletResponse response) {
         response.setStatus(resp.status);
         resp.headers.stream().forEach(h -> response.addHeader(h._1, h._2));
-        response.getWriter().print(resp.body);
+        try {
+            response.getWriter().print(resp.body);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

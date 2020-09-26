@@ -38,38 +38,37 @@ public class PageRendering<S> {
         this.documentDefinition = documentDefinition;
     }
 
-    public HttpResponse httpGet(HttpRequest request) {
+    public CompletableFuture<HttpResponse> httpGet(HttpRequest request) {
         final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
         final String sessionId = randomStringGenerator.newString();
         final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
-        final S initialState = routing.apply(request).join();
+        return routing.apply(request).thenApply(initialState -> {
+            final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
+            final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(newCtx,
+                                                                                            sessionId,
+                                                                                            "/",
+                                                                                            DefaultConnectionLostWidget.HTML,
+                                                                                            5000);
+            final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
+            documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
 
 
-        final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
-        final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(newCtx,
-                                                                                        sessionId,
-                                                                                        "/",
-                                                                                        DefaultConnectionLostWidget.HTML,
-                                                                                        5000);
-        final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
-        documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
+            pagesStorage.put(pageId, new Page<S>(request.path,
+                                                 documentDefinition,
+                                                 initialState,
+                                                 state2route,
+                                                 domTreeContext.root,
+                                                 domTreeContext.events));
 
-
-        pagesStorage.put(pageId, new Page<S>(request.path,
-                                             documentDefinition,
-                                             initialState,
-                                             state2route,
-                                             domTreeContext.root,
-                                             domTreeContext.events));
-
-        final List<Tuple2<String,String>> headers = List.of(new Tuple2<>("Content-Type", "text/html"),
-                                                            HttpResponse.Headers.setCookie(DEVICE_ID_COOKIE_NAME,
-                                                                                           deviceId,
-                                                                                           "/",
-                                                                                         60 * 60 * 24 * 365 * 10 /* 10 years */ ));
-        return  new HttpResponse(200,
-                                headers,
-                                newCtx.toString());
+            final List<Tuple2<String,String>> headers = List.of(new Tuple2<>("Content-Type", "text/html"),
+                                                                HttpResponse.Headers.setCookie(DEVICE_ID_COOKIE_NAME,
+                                                                                               deviceId,
+                                                                                               "/",
+                                                                                             60 * 60 * 24 * 365 * 10 /* 10 years */ ));
+            return new HttpResponse(200,
+                                    headers,
+                                    newCtx.toString());
+        });
     }
 
     public RenderContext<S> renderComponents(S state, String sessionId) {
