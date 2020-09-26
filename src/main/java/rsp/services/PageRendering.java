@@ -52,7 +52,6 @@ public class PageRendering<S> {
             final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
             documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
 
-
             pagesStorage.put(pageId, new Page<S>(request.path,
                                                  documentDefinition,
                                                  initialState,
