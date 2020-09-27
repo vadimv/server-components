@@ -8,6 +8,7 @@ import rsp.state.ReadOnly;
 import rsp.util.RandomString;
 import rsp.util.Tuple2;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -37,6 +38,9 @@ public class PageRendering<S> {
     }
 
     public CompletableFuture<HttpResponse> httpGet(HttpRequest request) {
+        if(request.path.contains("favicon.ico")) {
+            return CompletableFuture.completedFuture(new HttpResponse(404, Collections.EMPTY_LIST, "No favicon.ico"));
+        }
         final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
         final String sessionId = randomStringGenerator.newString();
         final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
@@ -57,14 +61,21 @@ public class PageRendering<S> {
                                                  domTreeContext.root,
                                                  domTreeContext.events));
 
-            final List<Tuple2<String,String>> headers = List.of(new Tuple2<>("Content-Type", "text/html"),
-                                                                HttpResponse.Headers.setCookie(DEVICE_ID_COOKIE_NAME,
-                                                                                               deviceId,
-                                                                                               "/",
-                                                                                             60 * 60 * 24 * 365 * 10 /* 10 years */ ));
-            return new HttpResponse(200,
-                                    headers,
+              return new HttpResponse(200,
+                                    headers(deviceId),
                                     newCtx.toString());
         });
     }
+
+    private List<Tuple2<String,String>> headers(String deviceId) {
+        return List.of(new Tuple2<>("content-type", "text/html; charset=utf-8"),
+                       new Tuple2<>("cache-control", "no-store, no-cache, must-revalidate"),
+                       new Tuple2<>("Set-Cookie", String.format("%s=%s; Path=%s; Max-Age=%d; SameSite=Lax",
+                                                                DEVICE_ID_COOKIE_NAME,
+                                                                deviceId,
+                                                                "/",
+                                                                60 * 60 * 24 * 365 * 10 /* 10 years */ )));
+
+    }
+
 }

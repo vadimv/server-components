@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.rmi.RemoteException;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
@@ -28,10 +29,14 @@ public class MainHttpServlet<S>  extends HttpServlet {
                                                     s -> Optional.ofNullable(request.getParameter(s)),
                                                     n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
 
-            pageRendering.httpGet(req).thenAccept(resp -> {
-                    setServletResponse(resp, response);
+            pageRendering.httpGet(req).whenComplete((resp, ex) -> {
+                    if(ex != null) {
+                        setServletResponse(new HttpResponse(500, Collections.emptyList(), ex.getMessage()), response);
+                    } else {
+                        setServletResponse(resp, response);
+                    }
                     asyncContext.complete();
-            }); // TODO handle exceptions
+            });
         });
     }
 

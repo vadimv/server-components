@@ -16,12 +16,4 @@ public class HttpResponse {
         this.headers = headers;
         this.body = body;
     }
-
-    public static class Headers {
-        public static Tuple2<String,String> setCookie(String name, String value, String path, int maxAge ) {
-            return new Tuple2<>("Set-Cookie",
-                                String.format("%s=%s; Path=%s; Max-Age=%d; SameSite=Lax",
-                                              name, value, path, maxAge ));
-        }
-    }
 }
