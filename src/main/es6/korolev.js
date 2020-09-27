@@ -1,4 +1,4 @@
-import { getDeviceId } from './utils.js';
+import { getDeviceId, throttle, debounce } from './utils.js';
 
 /** @enum {number} */
 export const CallbackType = {
