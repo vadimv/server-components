@@ -1,6 +1,6 @@
 package rsp;
 
-import rsp.dsl.RefDefinition;
+import rsp.dsl.EventDefinition;
 
 import java.util.function.Consumer;
 
@@ -10,6 +10,6 @@ public interface RenderContext<S> {
     void setAttr(XmlNs xmlNs, String name, String value);
     void setStyle(String name, String value);
     void addTextNode(String text);
-    void addEvent(String eventName, Consumer<EventContext> eventHandler);
+    void addEvent(EventDefinition.EventElementMode mode, String eventName, Consumer<EventContext> eventHandler);
     void addRef(Ref ref);
 }

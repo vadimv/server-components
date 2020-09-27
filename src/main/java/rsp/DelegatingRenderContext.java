@@ -1,5 +1,6 @@
 package rsp;
 
+import rsp.dsl.EventDefinition;
 import rsp.dsl.RefDefinition;
 
 import java.util.function.Consumer;
@@ -48,9 +49,9 @@ public class DelegatingRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(String eventName, Consumer<EventContext> eventHandler) {
+    public void addEvent(EventDefinition.EventElementMode mode, String eventName, Consumer<EventContext> eventHandler) {
         for(RenderContext rc: contexts) {
-            rc.addEvent(eventName, eventHandler);
+            rc.addEvent(mode, eventName, eventHandler);
         }
     }
 

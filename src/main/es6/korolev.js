@@ -46,22 +46,6 @@ export class Korolev {
     /** @type {Array} */
     this.eventData = [];
 
-    this.listenRoot = (name, preventDefault) => {
-      var listener = (event) => {
-        if (event.target.vId) {
-          if (preventDefault) {
-            event.preventDefault();
-          }
-          this.eventData[this.renderNum] = event;
-          this.callback(CallbackType.DOM_EVENT, this.renderNum + ':' + event.target.vId + ':' + event.type);
-        }
-      };
-      this.root.addEventListener(name, listener);
-      this.rootListeners.push({ 'listener': listener, 'type': name });
-    };
-
-    this.listenRoot('submit', true);
-
     this.historyHandler = (/** @type {Event} */ event) => {
       if (event.state === null) callback(CallbackType.HISTORY, this.initialPath);
       else callback(CallbackType.HISTORY, event.state);
@@ -73,8 +57,29 @@ export class Korolev {
       callback(CallbackType.DOM_EVENT, this.renderNum + ':' + 1 + ':' + event.type);
     };
 
+    this.listenRoot = (name, preventDefault) => {
+      var listener = (event) => {
+        if (event.target.vId) {
+          if (preventDefault) {
+            event.preventDefault();
+          }
+          this.eventData[this.renderNum] = event;
+          this.callback(CallbackType.DOM_EVENT, this.renderNum + ':' + event.target.vId + ':' + event.type);
+        }
+      };
+      var nameArr = name.split(':');
+      if(nameArr.length === 2 && nameArr[0] === 'w') {
+            window.addEventListener(nameArr[1], this.windowHandler);
+      } else {
+            this.root.addEventListener(name, listener);
+            this.rootListeners.push({ 'listener': listener, 'type': name });
+      }
+    };
+
+    this.listenRoot('submit', true);
+
     window.addEventListener('popstate', this.historyHandler);
-    window.addEventListener('resize', this.windowHandler);
+    //window.addEventListener('resize', this.windowHandler);
   }
 
   swapElementInRegistry(a, b) {

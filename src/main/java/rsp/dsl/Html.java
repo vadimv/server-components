@@ -84,6 +84,10 @@ public class Html {
         return new EventDefinition(eventType, handler);
     }
 
+    public static WindowDefinition window() {
+        return new WindowDefinition();
+    }
+
     public static RefDefinition createRef() {
         return new RefDefinition();
     }

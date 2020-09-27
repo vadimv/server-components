@@ -6,6 +6,7 @@ import rsp.server.InMessages;
 import rsp.server.OutMessages;
 import rsp.state.MutableState;
 import rsp.state.UseState;
+import rsp.util.Tuple2;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -97,9 +98,14 @@ public class LivePage<S> implements InMessages {
         out.setRenderNum(0);//TODO
 
         // Register event types on client
-        domTreeRenderContext.events.entrySet().stream().map(e -> e.getValue().eventType).distinct().forEach(eventType -> {
-            if(!eventType.equals("submit")) // TODO check why a form submit event should not be registered
-                out.listenEvent(eventType, false);
+        domTreeRenderContext.events.entrySet().stream().map(e -> new Tuple2<>(e.getValue().eventType, e.getValue().elementPath))
+                .distinct()
+                .forEach(e -> {
+            if(!e._1.equals("submit")) { // TODO check why a form submit event should not be registered
+                final String extendedEventType = e._2.equals(Path.WINDOW) ? "w:" + e._1 : e._1;
+                out.listenEvent(extendedEventType, false);
+            }
+
         });
 
         return Optional.of(new LivePage<>(useState,
@@ -121,17 +127,19 @@ public class LivePage<S> implements InMessages {
     @Override
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
-        while(eventElementPath.level() > 1) {
-            Event event = currentEvents.get().get(eventElementPath);
+        while(eventElementPath.level() > 0) {
+            final Event event = currentEvents.get().get(eventElementPath);
             if(event != null && event.eventType.equals(eventType)) {
                 final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                    registeredEventHandlers,
-                                                                    ref -> currentRefs.get().get(ref),
-                                                                    out);
+                                                                         registeredEventHandlers,
+                                                                         ref -> currentRefs.get().get(ref),
+                                                                         out);
                 event.eventHandler.accept(eventContext);
                 break;
-            } else {
+            } else if(eventElementPath.level() > 1) {
                 eventElementPath = eventElementPath.parent().get();
+            } else {
+                // TODO log illegal state 'a DOM event handler not found'
             }
         }
     }

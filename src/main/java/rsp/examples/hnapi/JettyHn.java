@@ -26,7 +26,7 @@ public class JettyHn {
                                                 span(text(story.getValue().id + " " + story.getValue().name))
                                         ))
                                   ),
-                                event("click", c -> {
+                                window().event("scroll", c -> {
                                     final State currentState = useState.get();
                                     final int newPageNum = currentState.pageNum + 1;
                                     final List<Integer> newStoriesIds = pageIds(Arrays.stream(currentState.storiesIds).boxed().collect(Collectors.toList()),

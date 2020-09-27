@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 public class Path {
     public static final String SEPARATOR = "_";
+    public static final Path WINDOW = Path.of("1");
 
     private final int[] array;
 

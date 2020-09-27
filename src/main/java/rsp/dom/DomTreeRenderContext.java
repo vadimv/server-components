@@ -1,6 +1,7 @@
 package rsp.dom;
 
 import rsp.*;
+import rsp.dsl.EventDefinition;
 import rsp.dsl.RefDefinition;
 
 import java.util.*;
@@ -53,8 +54,8 @@ public class DomTreeRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(String eventType, Consumer<EventContext> eventHandler) {
-        final Path eventPath = tagsStack.peek().path;
+    public void addEvent(EventDefinition.EventElementMode mode, String eventType, Consumer<EventContext> eventHandler) {
+        final Path eventPath = mode.equals(EventDefinition.EventElementMode.WINDOW) ? Path.WINDOW : tagsStack.peek().path;
         events.put(eventPath, new Event(eventType, eventPath, eventHandler));
     }
 

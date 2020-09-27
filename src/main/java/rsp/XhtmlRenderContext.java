@@ -1,5 +1,7 @@
 package rsp;
 
+import rsp.dsl.EventDefinition;
+
 import java.util.function.Consumer;
 
 public class XhtmlRenderContext<S> implements RenderContext<S> {
@@ -120,7 +122,7 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(String eventType, Consumer<EventContext> eventHandler) {
+    public void addEvent(EventDefinition.EventElementMode mode, String eventType, Consumer<EventContext> eventHandler) {
         // no-op
     }
 

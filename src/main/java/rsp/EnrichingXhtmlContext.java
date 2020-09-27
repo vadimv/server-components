@@ -1,5 +1,6 @@
 package rsp;
 
+import rsp.dsl.EventDefinition;
 import rsp.dsl.RefDefinition;
 
 import java.util.function.Consumer;
@@ -82,8 +83,8 @@ public class EnrichingXhtmlContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(String eventName, Consumer<EventContext> eventHandler) {
-       context.addEvent(eventName, eventHandler);
+    public void addEvent(EventDefinition.EventElementMode mode, String eventName, Consumer<EventContext> eventHandler) {
+       context.addEvent(mode, eventName, eventHandler);
     }
 
     @Override
