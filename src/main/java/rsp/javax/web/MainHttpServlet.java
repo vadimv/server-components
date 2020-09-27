@@ -29,14 +29,18 @@ public class MainHttpServlet<S>  extends HttpServlet {
                                                     s -> Optional.ofNullable(request.getParameter(s)),
                                                     n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
 
-            pageRendering.httpGet(req).whenComplete((resp, ex) -> {
+            pageRendering.httpGet(req).handle((resp, ex) -> {
                     if(ex != null) {
-                        setServletResponse(new HttpResponse(500, Collections.emptyList(), ex.getMessage()), response);
+                        return new HttpResponse(500, Collections.emptyList(), ex.getMessage());
                     } else {
-                        setServletResponse(resp, response);
+                        return resp;
                     }
-                    asyncContext.complete();
+
+            }).thenAccept(resp -> {
+                setServletResponse(resp, response);
+                asyncContext.complete();
             });
+
         });
     }
 

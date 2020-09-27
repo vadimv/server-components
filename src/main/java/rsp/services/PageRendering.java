@@ -41,30 +41,35 @@ public class PageRendering<S> {
         if(request.path.contains("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.EMPTY_LIST, "No favicon.ico"));
         }
-        final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
-        final String sessionId = randomStringGenerator.newString();
-        final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
-        return routing.apply(request).thenApply(initialState -> {
-            final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
-            final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(newCtx,
-                                                                                          sessionId,
-                                                                                          "/",
-                                                                                          DefaultConnectionLostWidget.HTML,
-                                                                                          5000);
-            final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
-            documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
+        try {
+            return routing.apply(request).thenApply(initialState -> {
+                final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
+                final String sessionId = randomStringGenerator.newString();
+                final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            pagesStorage.put(pageId, new Page<S>(request.path,
-                                                 documentDefinition,
-                                                 initialState,
-                                                 state2route,
-                                                 domTreeContext.root,
-                                                 domTreeContext.events));
+                final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
+                final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(newCtx,
+                        sessionId,
+                        "/",
+                        DefaultConnectionLostWidget.HTML,
+                        5000);
+                final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
+                documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
 
-              return new HttpResponse(200,
-                                    headers(deviceId),
-                                    newCtx.toString());
-        });
+                pagesStorage.put(pageId, new Page<S>(request.path,
+                        documentDefinition,
+                        initialState,
+                        state2route,
+                        domTreeContext.root,
+                        domTreeContext.events));
+
+                return new HttpResponse(200,
+                                        headers(deviceId),
+                                        newCtx.toString());
+            });
+        } catch (Throwable ex) {
+            return CompletableFuture.failedFuture(ex);
+        }
     }
 
     private List<Tuple2<String,String>> headers(String deviceId) {
