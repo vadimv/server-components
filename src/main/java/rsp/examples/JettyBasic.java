@@ -12,6 +12,7 @@ import rsp.services.PageRendering;
 import rsp.dsl.Html;
 
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -50,7 +51,7 @@ public class JettyBasic {
             return "/1";
         };
         final Map<QualifiedSessionId, Page<Integer>> pagesStorage = new ConcurrentHashMap<>();
-        final var s = new JettyServer(new App(p,"", routes, state2path, pagesStorage, render));
+        final var s = new JettyServer(new App<>(p,"", routes.andThen(v -> CompletableFuture.completedFuture(v)), state2path, pagesStorage, render));
         s.start();
         s.join();
     }
