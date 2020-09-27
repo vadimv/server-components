@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 
 public class JsUtils {
     public static void main(String[] args) throws IOException {
-        assembleJs(new File(args[0]), new File(args[1]));
+        System.exit(assembleJs(new File(args[0]), new File(args[1])) == 0 ? 0 : -1);
     }
 
-    public static void assembleJs(File sourceDir, File targetDir) throws IOException {
+    public static int assembleJs(File sourceDir, File targetDir) throws IOException {
         System.out.println("Assembling ES6 sources using Google Closure Compiler");
         if(!sourceDir.isDirectory()) {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " sources directory expected");
@@ -41,6 +41,7 @@ public class JsUtils {
                         + compiledJs
                         + "}).call(this);\n//# sourceMappingURL=korolev-client.min.js.map\n");
         Files.writeString(sourceMapOutputFile.toPath(), sourceMapStringBuilder.toString());
+        return result.errors.size();
     }
 
     private static List<SourceFile> inputs(File sourceDir) {
