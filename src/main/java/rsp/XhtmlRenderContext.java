@@ -122,7 +122,10 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(EventDefinition.EventElementMode mode, String eventType, Consumer<EventContext> eventHandler) {
+    public void addEvent(EventDefinition.EventElementMode mode,
+                         String eventType,
+                         Consumer<EventContext> eventHandler,
+                         Event.Modifier modifier) {
         // no-op
     }
 

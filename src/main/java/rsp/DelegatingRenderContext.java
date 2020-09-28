@@ -49,9 +49,12 @@ public class DelegatingRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(EventDefinition.EventElementMode mode, String eventName, Consumer<EventContext> eventHandler) {
+    public void addEvent(EventDefinition.EventElementMode mode,
+                         String eventName,
+                         Consumer<EventContext> eventHandler,
+                         Event.Modifier modifier) {
         for(RenderContext rc: contexts) {
-            rc.addEvent(mode, eventName, eventHandler);
+            rc.addEvent(mode, eventName, eventHandler, modifier);
         }
     }
 

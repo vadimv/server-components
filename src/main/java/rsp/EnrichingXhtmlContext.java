@@ -83,8 +83,11 @@ public class EnrichingXhtmlContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(EventDefinition.EventElementMode mode, String eventName, Consumer<EventContext> eventHandler) {
-       context.addEvent(mode, eventName, eventHandler);
+    public void addEvent(EventDefinition.EventElementMode mode,
+                         String eventName,
+                         Consumer<EventContext> eventHandler,
+                         Event.Modifier modifier) {
+       context.addEvent(mode, eventName, eventHandler, modifier);
     }
 
     @Override

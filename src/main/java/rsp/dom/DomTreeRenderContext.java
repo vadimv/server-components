@@ -54,9 +54,12 @@ public class DomTreeRenderContext<S> implements RenderContext<S> {
     }
 
     @Override
-    public void addEvent(EventDefinition.EventElementMode mode, String eventType, Consumer<EventContext> eventHandler) {
+    public void addEvent(EventDefinition.EventElementMode mode,
+                         String eventType,
+                         Consumer<EventContext> eventHandler,
+                         Event.Modifier modifier) {
         final Path eventPath = mode.equals(EventDefinition.EventElementMode.WINDOW) ? Path.WINDOW : tagsStack.peek().path;
-        events.put(eventPath, new Event(eventType, eventPath, eventHandler));
+        events.put(eventPath, new Event(eventType, eventPath, eventHandler, modifier));
     }
 
     @Override

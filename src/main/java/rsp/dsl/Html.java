@@ -1,5 +1,6 @@
 package rsp.dsl;
 
+import rsp.Event;
 import rsp.EventContext;
 
 import java.util.function.Consumer;
@@ -81,7 +82,7 @@ public class Html {
     }
 
     public static EventDefinition event(String eventType, Consumer<EventContext> handler) {
-        return new EventDefinition(eventType, handler);
+        return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
     }
 
     public static WindowDefinition window() {

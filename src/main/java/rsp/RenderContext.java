@@ -10,6 +10,9 @@ public interface RenderContext<S> {
     void setAttr(XmlNs xmlNs, String name, String value);
     void setStyle(String name, String value);
     void addTextNode(String text);
-    void addEvent(EventDefinition.EventElementMode mode, String eventName, Consumer<EventContext> eventHandler);
+    void addEvent(EventDefinition.EventElementMode mode,
+                  String eventName,
+                  Consumer<EventContext> eventHandler,
+                  Event.Modifier modifier);
     void addRef(Ref ref);
 }
