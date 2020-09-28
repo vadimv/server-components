@@ -37,7 +37,7 @@ public class JettyHn {
                                                                                                              concatArrays(currentState.stories, r.toArray(State.Story[]::new)),
                                                                                                              newPageNum));
                                     newState.thenAccept(state -> useState.accept(state));
-                                })
+                                }).throttle(500)
 
                         )
                     );
