@@ -106,8 +106,7 @@ public class LivePage<S> implements InMessages {
                     final Event event = entry.getValue();
                     final Event.Target eventTarget = event.eventTarget;
                     if(!eventTarget.eventType.equals("submit")) { // TODO check why a form submit event should not be registered
-                        final String extendedEventType = eventTarget.equals(Path.WINDOW) ? "w:" + eventTarget.eventType : eventTarget.eventType;
-                        out.listenEvent(eventTarget.elementPath, extendedEventType, false, event.modifier);
+                        out.listenEvent(eventTarget.elementPath, eventTarget.eventType, false, event.modifier);
                     }
 
         });
@@ -131,6 +130,16 @@ public class LivePage<S> implements InMessages {
     @Override
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
+        if(path.equals(Path.WINDOW)) {
+            final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
+            final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
+                                                                     registeredEventHandlers,
+                                                                     ref -> currentRefs.get().get(ref),
+                                                                     out);
+            event.eventHandler.accept(eventContext);
+            return;
+        }
+
         while(eventElementPath.level() > 1) {
             final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
             if(event != null && event.eventTarget.eventType.equals(eventType)) {
