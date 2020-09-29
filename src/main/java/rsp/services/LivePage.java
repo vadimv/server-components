@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public class LivePage<S> implements InMessages {
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
@@ -22,13 +23,13 @@ public class LivePage<S> implements InMessages {
 
     private final UseState<S> useState;
     private final UseState<Tag> currentDom;
-    private final UseState<Map<Path, Event>> currentEvents;
+    private final UseState<Map<Event.Target, Event>> currentEvents;
     private final UseState<Map<Ref, Path>> currentRefs;
     private final OutMessages out;
 
     public LivePage(UseState<S> useState,
                     UseState<Tag> currentDom,
-                    UseState<Map<Path, Event>> currentEvents,
+                    UseState<Map<Event.Target, Event>> currentEvents,
                     UseState<Map<Ref, Path>> currentRefs,
                     OutMessages out) {
         this.useState = useState;
@@ -54,7 +55,7 @@ public class LivePage<S> implements InMessages {
 
         final UseState<Tag> currentDomRoot = new MutableState<>(page.domRoot);
         final UseState<Component<S>> currentRootComponent = new MutableState<>(page.rootComponent);
-        final UseState<Map<Path, Event>> currentEvents = new MutableState<>(new HashMap<>());
+        final UseState<Map<Event.Target, Event>> currentEvents = new MutableState<>(new HashMap<>());
         final UseState<S> useState = new UseState<S>() {
             private volatile S state = page.initialState;
             @Override
@@ -98,13 +99,16 @@ public class LivePage<S> implements InMessages {
         out.setRenderNum(0);//TODO
 
         // Register event types on client
-        domTreeRenderContext.events.entrySet().stream().map(e -> new Tuple2<>(e.getValue().eventType, e.getValue().elementPath))
-                .distinct()
-                .forEach(e -> {
-            if(!e._1.equals("submit")) { // TODO check why a form submit event should not be registered
-                final String extendedEventType = e._2.equals(Path.WINDOW) ? "w:" + e._1 : e._1;
-                out.listenEvent(extendedEventType, false);
-            }
+        domTreeRenderContext.events.entrySet().stream().map(entry -> entry.getValue())
+                .collect(Collectors.toMap(e -> e.eventTarget.eventType, e -> e, (existing, replacement) -> replacement))
+                .entrySet()
+                .forEach(entry -> {
+                    final Event event = entry.getValue();
+                    final Event.Target eventTarget = event.eventTarget;
+                    if(!eventTarget.eventType.equals("submit")) { // TODO check why a form submit event should not be registered
+                        final String extendedEventType = eventTarget.equals(Path.WINDOW) ? "w:" + eventTarget.eventType : eventTarget.eventType;
+                        out.listenEvent(eventTarget.elementPath, extendedEventType, false, event.modifier);
+                    }
 
         });
 
@@ -127,10 +131,10 @@ public class LivePage<S> implements InMessages {
     @Override
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
-        while(eventElementPath.level() > 0) {
-            final Event event = currentEvents.get().get(eventElementPath);
-            if(event != null && event.eventType.equals(eventType)) {
-                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
+        while(eventElementPath.level() > 1  ) {
+            final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
+            if(event != null && event.eventTarget.eventType.equals(eventType)) {
+               final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                          registeredEventHandlers,
                                                                          ref -> currentRefs.get().get(ref),
                                                                          out);

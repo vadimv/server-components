@@ -12,14 +12,14 @@ public class Page<S> {
     public final S initialState;
     public final BiFunction<String, S, String> state2route;
     public final Tag domRoot;
-    public final Map<Path, Event> events;
+    public final Map<Event.Target, Event> events;
 
     public Page(String path,
                 Component<S> rootComponent,
                 S initialState,
                 BiFunction<String, S, String> state2route,
                 Tag domRoot,
-                Map<Path, Event> events) {
+                Map<Event.Target, Event> events) {
         this.path = path;
         this.rootComponent = rootComponent;
         this.initialState = initialState;

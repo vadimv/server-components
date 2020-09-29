@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 public class DomTreeRenderContext<S> implements RenderContext<S> {
 
-    public final ConcurrentHashMap<Path, Event> events = new ConcurrentHashMap();
+    public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
     public final ConcurrentHashMap<Ref, Path> refs = new ConcurrentHashMap();
 
     public Tag root;
@@ -59,7 +59,8 @@ public class DomTreeRenderContext<S> implements RenderContext<S> {
                          Consumer<EventContext> eventHandler,
                          Event.Modifier modifier) {
         final Path eventPath = mode.equals(EventDefinition.EventElementMode.WINDOW) ? Path.WINDOW : tagsStack.peek().path;
-        events.put(eventPath, new Event(eventType, eventPath, eventHandler, modifier));
+        final Event.Target eventTarget = new Event.Target(eventType, eventPath);
+        events.put(eventTarget, new Event(eventTarget, eventHandler, modifier));
     }
 
     @Override

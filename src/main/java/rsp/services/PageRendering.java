@@ -57,11 +57,11 @@ public class PageRendering<S> {
                 documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
 
                 pagesStorage.put(pageId, new Page<S>(request.path,
-                        documentDefinition,
-                        initialState,
-                        state2route,
-                        domTreeContext.root,
-                        domTreeContext.events));
+                                                     documentDefinition,
+                                                     initialState,
+                                                     state2route,
+                                                     domTreeContext.root,
+                                                     domTreeContext.events));
 
                 return new HttpResponse(200,
                                         headers(deviceId),
