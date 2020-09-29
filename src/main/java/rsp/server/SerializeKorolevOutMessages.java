@@ -51,7 +51,8 @@ public class SerializeKorolevOutMessages implements OutMessages {
 
     @Override
     public void listenEvent(Path path, String eventType, boolean preventDefault, Event.Modifier modifier) {
-        final String message = addSquareBrackets(joinString(LISTEN_EVENT, quote(eventType), preventDefault));
+        final String extendedEventType = path.equals(Path.WINDOW) ? "w:" + eventType : eventType;
+        final String message = addSquareBrackets(joinString(LISTEN_EVENT, quote(extendedEventType), preventDefault));
         messagesConsumer.accept(message);
     }
 
