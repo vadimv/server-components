@@ -131,15 +131,15 @@ public class LivePage<S> implements InMessages {
     @Override
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
-        while(eventElementPath.level() > 1  ) {
+        while(eventElementPath.level() > 1) {
             final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
             if(event != null && event.eventTarget.eventType.equals(eventType)) {
                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                         registeredEventHandlers,
-                                                                         ref -> currentRefs.get().get(ref),
-                                                                         out);
-                event.eventHandler.accept(eventContext);
-                break;
+                                                                        registeredEventHandlers,
+                                                                        ref -> currentRefs.get().get(ref),
+                                                                        out);
+               event.eventHandler.accept(eventContext);
+               break;
             } else if(eventElementPath.level() > 1) {
                 eventElementPath = eventElementPath.parent().get();
             } else {
