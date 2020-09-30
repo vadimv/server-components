@@ -275,7 +275,7 @@ export class Korolev {
     * @param {boolean} isProperty
     */
   setAttr(id, xmlNs, name, value, isProperty) {
-    var element = this.els[id];
+    var element = id == '1' ? window : this.els[id];
     if (isProperty) element[name] = value;
     else if (xmlNs === 0) {
       element.setAttribute(name, value);
