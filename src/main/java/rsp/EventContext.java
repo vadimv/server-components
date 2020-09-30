@@ -3,6 +3,7 @@ package rsp;
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer;
 import rsp.dsl.RefDefinition;
+import rsp.dsl.WindowDefinition;
 import rsp.server.OutMessages;
 
 import java.util.List;
@@ -29,17 +30,21 @@ public class EventContext {
         this.out = out;
     }
 
-    public CompletableFuture<String> value(RefDefinition ref) {
+    public CompletableFuture<String> value(Ref ref) {
         final Integer newDescriptor = descriptorSupplier.get();
-        final Path path = pathLookup.apply(ref);
+        final Path path = of(ref);
         final CompletableFuture<String> valueFuture = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, valueFuture);
         out.extractProperty(newDescriptor, path, "value");
         return valueFuture;
     }
 
-    public void setValue(RefDefinition ref, String value) {
-        final Path path = pathLookup.apply(ref);
+    public void setValue(Ref ref, String value) {
+        final Path path = of(ref);
         out.modifyDom(List.of(new RemoteDomChangesPerformer.SetAttr(path, XmlNs.html, "value", value, true)));
+    }
+
+    private Path of(Ref ref) {
+        return ref instanceof WindowDefinition ? Path.WINDOW : pathLookup.apply(ref);
     }
 }

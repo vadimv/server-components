@@ -233,7 +233,7 @@ export class Korolev {
     * @param {string} propertyName
     */
   extractProperty(descriptor, id, propertyName) {
-    let element = this.els[id];
+    let element = id === '1' ? window : this.els[id];
     let value = element[propertyName];
     var result, type;
     switch (typeof value) {

@@ -2,6 +2,8 @@ package rsp.examples.hnapi;
 
 import rsp.App;
 import rsp.Component;
+import rsp.Ref;
+import rsp.dsl.RefDefinition;
 import rsp.jetty.JettyServer;
 import rsp.util.CollectionUtils;
 
@@ -16,10 +18,11 @@ public class JettyHn {
 
     public static void main(String[] args) throws Exception {
         final HnApiService hnApi = new HnApiService();
-
+        final var bodyRef = createRef();
+        final var windowRef = window().ref();
         final Component<State> render = useState ->
                 html(
-                        body(
+                        body(bodyRef,
                                 div(text("Hacker News")),
                                 of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
                                         div(
