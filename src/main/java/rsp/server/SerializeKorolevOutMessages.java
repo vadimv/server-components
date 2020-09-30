@@ -4,12 +4,12 @@ import rsp.Event;
 import rsp.XmlNs;
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer.*;
-import rsp.util.JsonUtils;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+
+import static rsp.util.JsonUtils.escape;
 
 public class SerializeKorolevOutMessages implements OutMessages {
     private static final int SET_RENDER_NUM = 0; // (n)
@@ -36,6 +36,11 @@ public class SerializeKorolevOutMessages implements OutMessages {
     private static final int  REMOVE_ATTR = 4; // (id, xmlNs, name, isProperty)
     private static final int  SET_STYLE = 5; // (id, name, value)
     private static final int  REMOVE_STYLE = 6; // (id, name)
+
+    // EVENT modifier
+    private static final int  NO_EVENT_MODIFIER = 0;
+    private static final int  THROTTLE_EVENT_MODIFIER = 1;
+    private static final int  DEBOUNCE_EVENT_MODIFIER = 2;
     
     private final Consumer<String> messagesConsumer;
 
@@ -50,10 +55,25 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     @Override
-    public void listenEvent(Path path, String eventType, boolean preventDefault, Event.Modifier modifier) {
-        final String extendedEventType = path.equals(Path.WINDOW) ? "w:" + eventType : eventType;
-        final String message = addSquareBrackets(joinString(LISTEN_EVENT, quote(extendedEventType), preventDefault));
+    public void listenEvent(String eventType, boolean preventDefault, Path path, Event.Modifier modifier) {
+        final String message = addSquareBrackets(joinString(LISTEN_EVENT,
+                                                                    quote(escape(eventType)),
+                                                                    preventDefault,
+                                                                    quote(path.toString()),
+                                                                    quote(modifierString(modifier))));
         messagesConsumer.accept(message);
+    }
+
+    private static String modifierString(Event.Modifier eventModifier) {
+        if(eventModifier instanceof Event.ThrottleModifier) {
+            final Event.ThrottleModifier m = (Event.ThrottleModifier) eventModifier;
+            return THROTTLE_EVENT_MODIFIER + ":" +  m.timeFrameMs;
+        } else if(eventModifier instanceof Event.DebounceModifier) {
+            final Event.DebounceModifier m = (Event.DebounceModifier) eventModifier;
+            return DEBOUNCE_EVENT_MODIFIER + ":" + m.waitMs + ":" + m.immediate;
+        } else {
+            return Integer.toString(NO_EVENT_MODIFIER);
+        }
     }
 
     @Override
@@ -61,7 +81,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
                                                             quote(descriptor),
                                                             quote(path),
-                                                            quote(name)));
+                                                            quote(escape(name))));
         messagesConsumer.accept(message);
     }
 
@@ -78,25 +98,25 @@ public class SerializeKorolevOutMessages implements OutMessages {
     private String modifyDomMessageBody(DomChange domChange) {
         if(domChange instanceof RemoveAttr) {
             final RemoveAttr c = (RemoveAttr)domChange;
-            return joinString(REMOVE_ATTR, quote(c.path), quote(c.xmlNs), quote(c.name), false);
+            return joinString(REMOVE_ATTR, quote(c.path), quote(c.xmlNs), quote(escape(c.name)), false);
         } else if(domChange instanceof RemoveStyle) {
             final RemoveStyle c = (RemoveStyle)domChange;
-            return joinString(REMOVE_STYLE, quote(c.path), quote(c.name), false);
+            return joinString(REMOVE_STYLE, quote(c.path), quote(escape(c.name)), false);
         } else if(domChange instanceof Remove) {
             final Remove c = (Remove)domChange;
             return joinString(REMOVE, quote(c.path));
         } else if(domChange instanceof SetAttr) {
             final SetAttr c = (SetAttr)domChange;
-            return joinString(SET_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(c.name), quote(c.value), c.isProperty);
+            return joinString(SET_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), quote(c.value), c.isProperty);
         } else if(domChange instanceof SetStyle) {
             final SetStyle c = (SetStyle)domChange;
-            return joinString(SET_STYLE, quote(c.path), quote(c.name), quote(c.value));
+            return joinString(SET_STYLE, quote(c.path), quote(escape(c.name)), quote(escape(c.value)));
         } else if(domChange instanceof CreateText) {
             final CreateText c = (CreateText)domChange;
-            return joinString(CREATE_TEXT, quote(c.parentPath), quote(c.path), quote(c.text));
+            return joinString(CREATE_TEXT, quote(c.parentPath), quote(c.path), quote(escape(c.text)));
         } else if(domChange instanceof Create) {
             final Create c = (Create)domChange;
-            return joinString(CREATE, quote(c.path.parent().orElseThrow()), quote(c.path), xmlNsString(c.xmlNs), quote(c.tag));
+            return joinString(CREATE, quote(c.path.parent().orElseThrow()), quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.tag)));
         } else {
             throw new IllegalStateException("Unsupported DomChange object type:" + domChange);
         }
@@ -117,7 +137,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     private String quote(Object str) {
-        return "\"" + JsonUtils.escape(str.toString()) + "\"";
+        return "\"" + str + "\"";
     }
 
     private String addSquareBrackets(String str) {

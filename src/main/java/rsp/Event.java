@@ -48,7 +48,7 @@ public class Event<S> {
     }
 
     public static class ThrottleModifier implements Modifier {
-        private final int timeFrameMs;
+        public final int timeFrameMs;
 
         public ThrottleModifier(int timeFrameMs) {
             this.timeFrameMs = timeFrameMs;
@@ -56,8 +56,8 @@ public class Event<S> {
     }
 
     public static class DebounceModifier implements Modifier {
-        private final int waitMs;
-        private final boolean immediate;
+        public final int waitMs;
+        public final boolean immediate;
 
         public DebounceModifier(int waitMs, boolean immediate) {
             this.waitMs = waitMs;

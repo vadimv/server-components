@@ -106,7 +106,7 @@ public class LivePage<S> implements InMessages {
                     final Event event = entry.getValue();
                     final Event.Target eventTarget = event.eventTarget;
                     if(!eventTarget.eventType.equals("submit")) { // TODO check why a form submit event should not be registered
-                        out.listenEvent(eventTarget.elementPath, eventTarget.eventType, false, event.modifier);
+                        out.listenEvent(eventTarget.eventType, false, eventTarget.elementPath, event.modifier);
                     }
 
         });
