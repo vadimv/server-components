@@ -64,15 +64,30 @@ export class Korolev {
             event.preventDefault();
           }
           this.eventData[this.renderNum] = event;
+
           this.callback(CallbackType.DOM_EVENT, this.renderNum + ':' + event.target.vId + ':' + event.type);
         }
       };
-      if(path === '1') {
-            window.addEventListener(name, this.windowHandler);
-      } else {
-            this.root.addEventListener(name, listener);
-            this.rootListeners.push({ 'listener': listener, 'type': name });
+
+      this.createEventModifier = (eventModifier, listener) => {
+         let mArray = eventModifier.split(':');
+         if(mArray[0] === '1') {
+            return throttle(listener, parseInt(mArray[1]));
+         } else if(mArray[0] === '2') {
+            return debounce(listener, parseInt(mArray[1]), mArray[1] === 'true');
+         }
       }
+
+      let modifyEvent = eventModifier && eventModifier != '0';
+
+      if(path === '1') { // top level element
+            window.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, this.windowHandler)
+                                                        : this.windowHandler);
+      } else {
+            this.root.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, this.listener)
+                                                            : listener);
+      }
+      this.rootListeners.push({ 'listener': listener, 'type': name });
     };
 
     this.listenRoot('submit', true);

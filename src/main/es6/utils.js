@@ -45,9 +45,10 @@ export class ConnectionLostWidget {
 export function throttle(func, timeFrame) {
   var lastTime = 0;
   return function () {
+      var context = this, args = arguments;
       var now = new Date();
       if (now - lastTime >= timeFrame) {
-          func();
+          func.apply(context, args);
           lastTime = now;
       }
   };
