@@ -41,9 +41,10 @@ public class JettyTodos {
                                       attr("placeholder", "What should be done?")),
                                 button(text("Add todo")),
                                 event("submit", c -> {
-                                    c.value(textInputRef).thenApply(v -> useState.get().addTodo(v))
-                                                         .thenAccept(s -> { c.setValue(textInputRef, "");
-                                                                            useState.accept(s);});
+                                    var inputProps = c.props(textInputRef);
+                                    inputProps.get("value").thenApply(v -> useState.get().addTodo(v))
+                                                           .thenAccept(s -> { inputProps.set("value", "");
+                                                                              useState.accept(s); });
                                 })))));
 
         final int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;

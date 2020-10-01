@@ -2,14 +2,12 @@ package rsp;
 
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer;
-import rsp.dsl.RefDefinition;
 import rsp.dsl.WindowDefinition;
 import rsp.server.OutMessages;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -30,21 +28,42 @@ public class EventContext {
         this.out = out;
     }
 
-    public CompletableFuture<String> value(Ref ref) {
-        final Integer newDescriptor = descriptorSupplier.get();
-        final Path path = of(ref);
-        final CompletableFuture<String> valueFuture = new CompletableFuture<>();
-        registeredEventHandlers.put(newDescriptor, valueFuture);
-        out.extractProperty(newDescriptor, path, "value");
-        return valueFuture;
-    }
-
-    public void setValue(Ref ref, String value) {
-        final Path path = of(ref);
-        out.modifyDom(List.of(new RemoteDomChangesPerformer.SetAttr(path, XmlNs.html, "value", value, true)));
+    public PropertiesHandle props(Ref ref) {
+        return new PropertiesHandle(ref);
     }
 
     private Path of(Ref ref) {
         return ref instanceof WindowDefinition ? Path.WINDOW : pathLookup.apply(ref);
+    }
+
+    public class PropertiesHandle {
+        private final Ref ref;
+        public PropertiesHandle(Ref ref) {
+            this.ref = ref;
+        }
+
+        public CompletableFuture<String> get(String propertyName) {
+            final Integer newDescriptor = descriptorSupplier.get();
+            final Path path = of(ref);
+            if(path != null) {
+                final CompletableFuture<String> valueFuture = new CompletableFuture<>();
+                registeredEventHandlers.put(newDescriptor, valueFuture);
+                out.extractProperty(newDescriptor, path, propertyName);
+                return valueFuture;
+            } else {
+                return CompletableFuture.failedFuture(new IllegalStateException("Ref not found: " + ref));
+            }
+
+        }
+
+        public CompletableFuture<Void> set(String propertyName, String value) {
+            final Path path = of(ref);
+            if(path != null) {
+                out.modifyDom(List.of(new RemoteDomChangesPerformer.SetAttr(path, XmlNs.html, propertyName, value, true)));
+                return new CompletableFuture<>();
+            } else {
+                return CompletableFuture.failedFuture(new IllegalStateException("Ref not found: " + ref));
+            }
+        }
     }
 }
