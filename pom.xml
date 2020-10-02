@@ -36,7 +36,7 @@
                         <classpath/>
                         <argument>rsp.util.JsUtils</argument>
                         <argument>./src/main/es6</argument>
-                        <argument>./target</argument>
+                        <argument>./target/classes</argument>
                     </arguments>
                 </configuration>
             </plugin>

@@ -37,12 +37,12 @@ public class JettyServer {
         connector.setPort(app.port);
         server.setConnectors(new Connector[] {connector});
 
-        final ResourceHandler resourcesHandler = new ResourceHandler();
+       final ResourceHandler resourcesHandler = new ResourceHandler();
         resourcesHandler.setDirectoriesListed(true);
         resourcesHandler.setResourceBase("./target");
         ContextHandler resourceContextHandler = new ContextHandler();
         resourceContextHandler.setHandler(resourcesHandler);
-        resourceContextHandler.setContextPath("/static/*");
+        resourceContextHandler.setContextPath("/static2/*");
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + app.basePath);

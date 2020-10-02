@@ -8,6 +8,14 @@ import rsp.state.ReadOnly;
 import rsp.util.RandomString;
 import rsp.util.Tuple2;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,9 +46,41 @@ public class PageRendering<S> {
     }
 
     public CompletableFuture<HttpResponse> httpGet(HttpRequest request) {
-        if(request.path.contains("favicon.ico")) {
+        if(request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.EMPTY_LIST, "No favicon.ico"));
+        } else if(request.path.startsWith("/static/")) {
+            return staticFileResponse(request);
+        } else {
+            return rspResponse(request);
         }
+    }
+
+    private CompletableFuture<HttpResponse> staticFileResponse(HttpRequest request) {
+        final String[] pathTokens = request.path.split("/");
+        if(pathTokens.length > 2) {
+            final String fileName = pathTokens[pathTokens.length - 1];
+
+            final URL fileUrl =  this.getClass().getResource("/" + fileName);
+            if (fileUrl != null) {
+                try {
+                    return CompletableFuture.completedFuture(new HttpResponse(200,
+                                                                               Collections.emptyList(),
+                                                                               fileUrl.openStream()));
+                    } catch (IOException e) {
+                        return CompletableFuture.completedFuture(new HttpResponse(500,
+                                                                                    Collections.EMPTY_LIST,
+                                                                                    "Exception on loading a static resource: "
+                                                                                            + request.path
+                                                                                            + " " + e.getMessage()));
+                    }
+            }
+        }
+        return CompletableFuture.completedFuture(new HttpResponse(404,
+                                                                   Collections.EMPTY_LIST,
+                                                             "Resource not found: " + request.path));
+    }
+
+    private CompletableFuture<HttpResponse> rspResponse(HttpRequest request) {
         try {
             return routing.apply(request).thenApply(initialState -> {
                 final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
