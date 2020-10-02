@@ -45,7 +45,7 @@ public class EventContext {
         public CompletableFuture<String> get(String propertyName) {
             final Integer newDescriptor = descriptorSupplier.get();
             final Path path = of(ref);
-            if(path != null) {
+            if (path != null) {
                 final CompletableFuture<String> valueFuture = new CompletableFuture<>();
                 registeredEventHandlers.put(newDescriptor, valueFuture);
                 out.extractProperty(newDescriptor, path, propertyName);
@@ -58,7 +58,7 @@ public class EventContext {
 
         public CompletableFuture<Void> set(String propertyName, String value) {
             final Path path = of(ref);
-            if(path != null) {
+            if (path != null) {
                 out.modifyDom(List.of(new RemoteDomChangesPerformer.SetAttr(path, XmlNs.html, propertyName, value, true)));
                 return new CompletableFuture<>();
             } else {

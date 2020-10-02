@@ -71,7 +71,7 @@ export class Korolev {
 
       this.createEventModifier = (eventModifier, listener) => {
          let mArray = eventModifier.split(':');
-         if(mArray[0] === '1') {
+         if (mArray[0] === '1') {
             return throttle(listener, parseInt(mArray[1]));
          } else if(mArray[0] === '2') {
             return debounce(listener, parseInt(mArray[1]), mArray[1] === 'true');
@@ -80,7 +80,7 @@ export class Korolev {
 
       let modifyEvent = eventModifier && eventModifier != '0';
 
-      if(path === '1') { // top level element
+      if (path === '1') { // top level element
             window.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, this.windowHandler)
                                                         : this.windowHandler);
       } else {

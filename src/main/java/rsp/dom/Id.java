@@ -37,7 +37,7 @@ public class Id {
 
     @Override
     public String toString() {
-        if(array.length == 0) {
+        if (array.length == 0) {
             return "";
         } else {
             return String.join(SEPARATOR, Arrays.stream(array).mapToObj(Integer::toString).collect(Collectors.toList()));
@@ -46,7 +46,7 @@ public class Id {
 
     @Override
     public boolean equals(Object other) {
-        if(other instanceof Id) {
+        if (other instanceof Id) {
             Arrays.equals(array, (int[]) other);
         }
         return false;

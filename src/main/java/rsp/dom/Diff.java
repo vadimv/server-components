@@ -18,7 +18,7 @@ public class Diff {
     }
 
     public static void diff(Tag c, Tag w, Path path, ChangesPerformer changesPerformer) {
-        if(!c.name.equals(w.name)) {
+        if (!c.name.equals(w.name)) {
             changesPerformer.remove(path);
             create((Tag)w, path, changesPerformer);
         } else {
@@ -32,14 +32,14 @@ public class Diff {
         var c = ca.listIterator();
         var w = wa.listIterator();
         while(c.hasNext() || w.hasNext()) {
-            if(c.hasNext() && w.hasNext()) {
+            if (c.hasNext() && w.hasNext()) {
                 final Attribute cAttr = c.next();
                 final Attribute wAttr = w.next();
-                if(!cAttr.equals(wAttr)) {
+                if (!cAttr.equals(wAttr)) {
                     performer.removeAttr(path, XmlNs.html, cAttr.name);
                     performer.setAttr(path, XmlNs.html, wAttr.name, wAttr.value);
                 }
-            } else if(c.hasNext()) {
+            } else if (c.hasNext()) {
                 final Attribute cAttr = c.next();
                 performer.removeAttr(path, XmlNs.html, cAttr.name);
             } else {
@@ -53,14 +53,14 @@ public class Diff {
         var c = ca.listIterator();
         var w = wa.listIterator();
         while(c.hasNext() || w.hasNext()) {
-            if(c.hasNext() && w.hasNext()) {
+            if (c.hasNext() && w.hasNext()) {
                 final Style cAttr = c.next();
                 final Style wAttr = w.next();
-                if(!cAttr.equals(wAttr)) {
+                if (!cAttr.equals(wAttr)) {
                     performer.removeStyle(path, cAttr.name);
                     performer.setStyle(path, wAttr.name, wAttr.value);
                 }
-            } else if(c.hasNext()) {
+            } else if (c.hasNext()) {
                 final Style cAttr = c.next();
                 performer.removeStyle(path, cAttr.name);
             } else {
@@ -76,21 +76,21 @@ public class Diff {
 
         var p = path;
         while(c.hasNext() || w.hasNext()) {
-            if(c.hasNext() && w.hasNext()) {
+            if (c.hasNext() && w.hasNext()) {
                 final Node nc = c.next();
                 final Node nw = w.next();
-                if(nc instanceof Tag && nw instanceof Tag) {
+                if (nc instanceof Tag && nw instanceof Tag) {
                     diff((Tag)nc, (Tag)nw, p, performer);
-                } else if(nw instanceof Tag) {
+                } else if (nw instanceof Tag) {
                     performer.remove(path);
                     create(((Tag) nw), path, performer);
-                } else if(nc instanceof Tag) {
+                } else if (nc instanceof Tag) {
                     performer.remove(path);
                     performer.createText(path.parent().get(), path, ((Text)nw).text);
-                } else if(!((Text)nc).text.equals(((Text)nw).text)) {
+                } else if (!((Text)nc).text.equals(((Text)nw).text)) {
                     performer.createText(path.parent().get(), path, ((Text)nw).text);
                 }
-            } else if(c.hasNext()) {
+            } else if (c.hasNext()) {
                 c.next();
                 performer.remove(path);
             } else {
@@ -106,7 +106,7 @@ public class Diff {
         changesPerformer.create(path, tag.xmlns, tag.name);
         var p = path.incLevel();
         for(Node child:tag.children) {
-            if(child instanceof Tag) {
+            if (child instanceof Tag) {
                 final Tag newTag = (Tag) child;
                 create(newTag, p, changesPerformer);
                 for(Style style: newTag.styles) {
@@ -115,7 +115,7 @@ public class Diff {
                 for(Attribute attribute: newTag.attributes) {
                     changesPerformer.setAttr(p, XmlNs.html, attribute.name, attribute.value);
                 }
-            } else if(child instanceof Text) {
+            } else if (child instanceof Text) {
                 final Text text = (Text) child;
                 changesPerformer.createText(tag.path, p, text.text);
             }

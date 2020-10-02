@@ -35,7 +35,7 @@ public class JettyHn {
                                        .thenCompose(innerHeight -> windowProps.get("pageYOffset")
                                        .thenCompose(pageYOffset -> bodyProps.get("offsetHeight")
                                        .thenAccept(offsetHeight -> {
-                                           if((parseFloat(innerHeight) + parseFloat(pageYOffset)) >= parseFloat(offsetHeight)) {
+                                           if ((parseFloat(innerHeight) + parseFloat(pageYOffset)) >= parseFloat(offsetHeight)) {
                                                final State currentState = useState.get();
                                                final int newPageNum = currentState.pageNum + 1;
                                                final List<Integer> newStoriesIds = pageIds(Arrays.stream(currentState.storiesIds).boxed().collect(Collectors.toList()),

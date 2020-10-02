@@ -45,7 +45,7 @@ public class LivePage<S> implements InMessages {
                                                OutMessages out) {
         final QualifiedSessionId qsid = new QualifiedSessionId(pathParameters.get("pid"), pathParameters.get("sid"));
         final Page<S> page = pagesStorage.get(qsid);
-        if(page == null) {
+        if (page == null) {
             // a connection after server's restart
             out.evalJs(0, "location.reload()");
             return Optional.empty();
@@ -61,7 +61,7 @@ public class LivePage<S> implements InMessages {
             @Override
             public void accept(S newState) {
                 final String newRoute = page.state2route.apply(page.path, newState);
-                if(newRoute.equals(page.path)) {
+                if (newRoute.equals(page.path)) {
                     state = newState;
 
                     final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
@@ -105,7 +105,7 @@ public class LivePage<S> implements InMessages {
                 .forEach(entry -> {
                     final Event event = entry.getValue();
                     final Event.Target eventTarget = event.eventTarget;
-                    if(!eventTarget.eventType.equals("submit")) { // TODO check why a form submit event should not be registered
+                    if (!eventTarget.eventType.equals("submit")) { // TODO check why a form submit event should not be registered
                         out.listenEvent(eventTarget.eventType, false, eventTarget.elementPath, event.modifier);
                     }
 
@@ -122,7 +122,7 @@ public class LivePage<S> implements InMessages {
     public void extractProperty(int descriptorId, String value) {
         System.out.println("extractProperty:" + descriptorId + " value=" + value);
         final var cf = registeredEventHandlers.get(descriptorId);
-        if(cf != null) {
+        if (cf != null) {
             cf.complete(value);
         }
     }
@@ -130,7 +130,7 @@ public class LivePage<S> implements InMessages {
     @Override
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
-        if(path.equals(Path.WINDOW)) {
+        if (path.equals(Path.WINDOW)) {
             final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
             final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                      registeredEventHandlers,
@@ -142,14 +142,14 @@ public class LivePage<S> implements InMessages {
 
         while(eventElementPath.level() > 1) {
             final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
-            if(event != null && event.eventTarget.eventType.equals(eventType)) {
+            if (event != null && event.eventTarget.eventType.equals(eventType)) {
                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                         registeredEventHandlers,
                                                                         ref -> currentRefs.get().get(ref),
                                                                         out);
                event.eventHandler.accept(eventContext);
                break;
-            } else if(eventElementPath.level() > 1) {
+            } else if (eventElementPath.level() > 1) {
                 eventElementPath = eventElementPath.parent().get();
             } else {
                 // TODO log illegal state 'a DOM event handler not found'

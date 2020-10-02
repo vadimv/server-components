@@ -38,8 +38,8 @@ public class JettyBasic {
         };
 
         final Function<HttpRequest, Integer> routes = request -> {
-            if(path(request, "/1")) return 1;
-            else if(path(request, "/2")) return 2;
+            if (path(request, "/1")) return 1;
+            else if (path(request, "/2")) return 2;
             else return -1;
         };
 

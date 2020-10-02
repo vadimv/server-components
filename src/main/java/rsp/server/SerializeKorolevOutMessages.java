@@ -65,10 +65,10 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     private static String modifierString(Event.Modifier eventModifier) {
-        if(eventModifier instanceof Event.ThrottleModifier) {
+        if (eventModifier instanceof Event.ThrottleModifier) {
             final Event.ThrottleModifier m = (Event.ThrottleModifier) eventModifier;
             return THROTTLE_EVENT_MODIFIER + ":" +  m.timeFrameMs;
-        } else if(eventModifier instanceof Event.DebounceModifier) {
+        } else if (eventModifier instanceof Event.DebounceModifier) {
             final Event.DebounceModifier m = (Event.DebounceModifier) eventModifier;
             return DEBOUNCE_EVENT_MODIFIER + ":" + m.waitMs + ":" + m.immediate;
         } else {
@@ -87,7 +87,7 @@ public class SerializeKorolevOutMessages implements OutMessages {
 
     @Override
     public void modifyDom(List<DomChange> domChanges) {
-        if(domChanges.size() > 0) {
+        if (domChanges.size() > 0) {
             final String[] changes = domChanges.stream().map(this::modifyDomMessageBody).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(MODIFY_DOM,
                                                                 joinString(changes)));
@@ -96,25 +96,25 @@ public class SerializeKorolevOutMessages implements OutMessages {
     }
 
     private String modifyDomMessageBody(DomChange domChange) {
-        if(domChange instanceof RemoveAttr) {
+        if (domChange instanceof RemoveAttr) {
             final RemoveAttr c = (RemoveAttr)domChange;
             return joinString(REMOVE_ATTR, quote(c.path), quote(c.xmlNs), quote(escape(c.name)), false);
-        } else if(domChange instanceof RemoveStyle) {
+        } else if (domChange instanceof RemoveStyle) {
             final RemoveStyle c = (RemoveStyle)domChange;
             return joinString(REMOVE_STYLE, quote(c.path), quote(escape(c.name)), false);
-        } else if(domChange instanceof Remove) {
+        } else if (domChange instanceof Remove) {
             final Remove c = (Remove)domChange;
             return joinString(REMOVE, quote(c.path));
-        } else if(domChange instanceof SetAttr) {
+        } else if (domChange instanceof SetAttr) {
             final SetAttr c = (SetAttr)domChange;
             return joinString(SET_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), quote(c.value), c.isProperty);
-        } else if(domChange instanceof SetStyle) {
+        } else if (domChange instanceof SetStyle) {
             final SetStyle c = (SetStyle)domChange;
             return joinString(SET_STYLE, quote(c.path), quote(escape(c.name)), quote(escape(c.value)));
-        } else if(domChange instanceof CreateText) {
+        } else if (domChange instanceof CreateText) {
             final CreateText c = (CreateText)domChange;
             return joinString(CREATE_TEXT, quote(c.parentPath), quote(c.path), quote(escape(c.text)));
-        } else if(domChange instanceof Create) {
+        } else if (domChange instanceof Create) {
             final Create c = (Create)domChange;
             return joinString(CREATE, quote(c.path.parent().orElseThrow()), quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.tag)));
         } else {

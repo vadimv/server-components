@@ -56,7 +56,7 @@ public class Path {
 
     @Override
     public String toString() {
-        if(array.length == 0) {
+        if (array.length == 0) {
             return "";
         } else {
             return String.join(SEPARATOR, Arrays.stream(array).mapToObj(Integer::toString).collect(Collectors.toList()));
@@ -65,7 +65,7 @@ public class Path {
 
     @Override
     public boolean equals(Object other) {
-        if(other instanceof Path) {
+        if (other instanceof Path) {
             return Arrays.equals(array, ((Path) other).array);
         }
         return false;

@@ -33,7 +33,7 @@ public class MainHttpServlet<S>  extends HttpServlet {
                                                     n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
 
             pageRendering.httpGet(req).handle((resp, ex) -> {
-                    if(ex != null) {
+                    if (ex != null) {
                         return new HttpResponse(500, Collections.emptyList(), ex.getMessage());
                     } else {
                         return resp;
@@ -70,7 +70,7 @@ public class MainHttpServlet<S>  extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
  /*       UseState<S> useState = storage.get(stateSessionKey(request));
-        if(useState == null) {
+        if (useState == null) {
             useState = useStateFunction.apply(request);
         }
 

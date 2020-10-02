@@ -28,7 +28,7 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
 
     private void addIndentation() {
         if (prettyPrinting.enableAutoIndent) {
-            if(builder.length() != 0) {
+            if (builder.length() != 0) {
                 builder.append(prettyPrinting.lineBreak);
             }
 
@@ -50,7 +50,7 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
                 builder.append('"');
             }
             builder.append('>');
-/*            if(lastOp != OpText) {
+/*            if (lastOp != OpText) {
                 builder.append(prettyPrinting.lineBreak);
             }*/
         }
@@ -59,7 +59,7 @@ public class XhtmlRenderContext<S> implements RenderContext<S> {
     @Override
     public void openNode(XmlNs xmlns, String name) {
         beforeOpenNode();
-        if(lastOp != OP_TEXT) {
+        if (lastOp != OP_TEXT) {
             addIndentation();
         }
         builder.append('<');

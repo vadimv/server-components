@@ -46,9 +46,9 @@ public class PageRendering<S> {
     }
 
     public CompletableFuture<HttpResponse> httpGet(HttpRequest request) {
-        if(request.path.endsWith("favicon.ico")) {
+        if (request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.EMPTY_LIST, "No favicon.ico"));
-        } else if(request.path.startsWith("/static/")) {
+        } else if (request.path.startsWith("/static/")) {
             return staticFileResponse(request);
         } else {
             return rspResponse(request);
@@ -57,7 +57,7 @@ public class PageRendering<S> {
 
     private CompletableFuture<HttpResponse> staticFileResponse(HttpRequest request) {
         final String[] pathTokens = request.path.split("/");
-        if(pathTokens.length > 2) {
+        if (pathTokens.length > 2) {
             final String fileName = pathTokens[pathTokens.length - 1];
 
             final URL fileUrl =  this.getClass().getResource("/" + fileName);

@@ -10,9 +10,9 @@ public class ServletUtils {
         Objects.requireNonNull(request);
         Objects.requireNonNull(name);
         final Cookie[] cookies = request.getCookies();
-        if(cookies != null) {
+        if (cookies != null) {
             for(int i=0;i< cookies.length;i++) {
-                if(name.equals(cookies[i].getName())){
+                if (name.equals(cookies[i].getName())){
                     return Optional.of(cookies[i]);
                 }
             }

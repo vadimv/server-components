@@ -18,11 +18,11 @@ public class JsUtils {
 
     public static int assembleJs(File sourceDir, File targetDir) throws IOException {
         System.out.println("Assembling ES6 sources using Google Closure Compiler");
-        if(!sourceDir.isDirectory()) {
+        if (!sourceDir.isDirectory()) {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " sources directory expected");
         }
 
-        if(!targetDir.isDirectory()) {
+        if (!targetDir.isDirectory()) {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " target directory expected");
         }
 
