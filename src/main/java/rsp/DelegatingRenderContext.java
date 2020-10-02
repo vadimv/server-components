@@ -1,7 +1,6 @@
 package rsp;
 
 import rsp.dsl.EventDefinition;
-import rsp.dsl.RefDefinition;
 
 import java.util.function.Consumer;
 
