@@ -15,35 +15,35 @@ public class DelegatingRenderContext<S> implements RenderContext<S> {
 
     @Override
     public void openNode(XmlNs xmlns, String name) {
-        for(RenderContext rc: contexts) {
+        for (RenderContext rc: contexts) {
             rc.openNode(xmlns, name);
         }
     }
 
     @Override
     public void closeNode(String name) {
-        for(RenderContext rc: contexts) {
+        for (RenderContext rc: contexts) {
             rc.closeNode(name);
         }
     }
 
     @Override
     public void setAttr(XmlNs xmlNs, String name, String value) {
-        for(RenderContext rc: contexts) {
+        for (RenderContext rc: contexts) {
             rc.setAttr(xmlNs, name, value);
         }
     }
 
     @Override
     public void setStyle(String name, String value) {
-        for(RenderContext rc: contexts) {
+        for (RenderContext rc: contexts) {
             rc.setStyle(name, value);
         }
     }
 
     @Override
     public void addTextNode(String text) {
-        for(RenderContext rc: contexts) {
+        for (RenderContext rc: contexts) {
             rc.addTextNode(text);
         }
     }
@@ -53,14 +53,14 @@ public class DelegatingRenderContext<S> implements RenderContext<S> {
                          String eventName,
                          Consumer<EventContext> eventHandler,
                          Event.Modifier modifier) {
-        for(RenderContext rc: contexts) {
+        for (RenderContext rc: contexts) {
             rc.addEvent(mode, eventName, eventHandler, modifier);
         }
     }
 
     @Override
     public void addRef(Ref ref) {
-        for(RenderContext rc: contexts) {
+        for (RenderContext rc: contexts) {
             rc.addRef(ref);
         }
     }

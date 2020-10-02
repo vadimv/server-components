@@ -105,14 +105,14 @@ public class Diff {
     private static void create(Tag tag, Path path, ChangesPerformer changesPerformer) {
         changesPerformer.create(path, tag.xmlns, tag.name);
         var p = path.incLevel();
-        for(Node child:tag.children) {
+        for (Node child:tag.children) {
             if (child instanceof Tag) {
                 final Tag newTag = (Tag) child;
                 create(newTag, p, changesPerformer);
-                for(Style style: newTag.styles) {
+                for (Style style: newTag.styles) {
                     changesPerformer.setStyle(p, style.name, style.value);
                 }
-                for(Attribute attribute: newTag.attributes) {
+                for (Attribute attribute: newTag.attributes) {
                     changesPerformer.setAttr(p, XmlNs.html, attribute.name, attribute.value);
                 }
             } else if (child instanceof Text) {

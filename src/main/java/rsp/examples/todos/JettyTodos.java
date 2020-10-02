@@ -71,7 +71,7 @@ public class JettyTodos {
 
         public State toggleDone(int todoIndex) {
             final Todo[] newTodos = new Todo[todos.length];
-            for(int i=0;i<todos.length;i++) {
+            for (int i=0;i<todos.length;i++) {
                 newTodos[i] = i == todoIndex ? new Todo(todos[i].text, !todos[i].done) : todos[i];
             }
             return new State(newTodos, this.edit);
