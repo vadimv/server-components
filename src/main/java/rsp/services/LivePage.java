@@ -124,6 +124,7 @@ public class LivePage<S> implements InMessages {
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
+            registeredEventHandlers.remove(descriptorId);
         }
     }
 
