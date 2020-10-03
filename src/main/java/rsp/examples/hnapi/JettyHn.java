@@ -53,8 +53,7 @@ public class JettyHn {
                     )
                 );
 
-        final var server = new JettyServer(new App<State>(8080,
-                                                    "",
+        final var server = new JettyServer(8080,"", new App<State>(
                                                     request -> hnApi.storiesIds()
                                                                     .thenCompose(ids -> hnApi.stories(pageIds(ids, 0, HnApiService.PAGE_SIZE))
                                                                                         .thenApply(r -> new State(ids.stream().mapToInt(Integer::intValue).toArray(),

@@ -51,7 +51,9 @@ public class JettyBasic {
             return "/1";
         };
         final Map<QualifiedSessionId, Page<Integer>> pagesStorage = new ConcurrentHashMap<>();
-        final var s = new JettyServer(new App<>(p,"", routes.andThen(v -> CompletableFuture.completedFuture(v)), state2path, pagesStorage, render));
+        final var s = new JettyServer(p,
+                              "",
+                                      new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)), state2path, pagesStorage, render));
         s.start();
         s.join();
     }

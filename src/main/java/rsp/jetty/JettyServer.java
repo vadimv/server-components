@@ -22,25 +22,28 @@ import java.util.Optional;
 public class JettyServer {
 
     public static final int DEFAULT_MAX_THREADS = 50;
-
+    public final int port;
+    public final String basePath;
     private final App app;
     private final Optional<StaticResources> staticResources;
     private final int maxThreads;
 
     private Server server;
 
-    public JettyServer(App app, Optional<StaticResources> staticResources, int maxThreads) {
+    public JettyServer(int port, String basePath, App app, Optional<StaticResources> staticResources, int maxThreads) {
+        this.port = port;
+        this.basePath = basePath;
         this.app = Objects.requireNonNull(app);
         this.staticResources = Objects.requireNonNull(staticResources);
         this.maxThreads = maxThreads;
     }
 
-    public JettyServer(App app, Optional<StaticResources> staticResources) {
-        this(app, staticResources, DEFAULT_MAX_THREADS);
+    public JettyServer(int port, String basePath, App app, Optional<StaticResources> staticResources) {
+        this(port, basePath, app, staticResources, DEFAULT_MAX_THREADS);
     }
 
-    public JettyServer(App app) {
-        this(app, Optional.empty(), DEFAULT_MAX_THREADS);
+    public JettyServer(int port, String basePath, App app) {
+        this(port, basePath, app, Optional.empty(), DEFAULT_MAX_THREADS);
     }
 
     public void start() throws Exception {
@@ -50,7 +53,7 @@ public class JettyServer {
         server = new Server(threadPool);
         
         final ServerConnector connector = new ServerConnector(server);
-        connector.setPort(app.port);
+        connector.setPort(port);
         server.setConnectors(new Connector[] {connector});
 
         final HandlerList handlers = new HandlerList();
@@ -65,7 +68,7 @@ public class JettyServer {
         });
 
         final ServletContextHandler context = new ServletContextHandler();
-        context.setContextPath("/" + app.basePath);
+        context.setContextPath("/" + basePath);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(app.pageRendering())),"/*");
 
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage);

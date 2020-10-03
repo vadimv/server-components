@@ -48,9 +48,9 @@ public class JettyTodos {
                                 })))));
 
         final int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
-        final var s = new JettyServer(new App(port,
-                                      "",
-                                              initialState(),
+        final var s = new JettyServer(port,
+                                "",
+                                      new App(initialState(),
                                               render));
         s.start();
         s.join();
