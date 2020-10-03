@@ -30,9 +30,9 @@ public class JettyBasic {
 
         final Component<Integer> render = useState -> {
                 final var state = useState.get();
-                return Html.html( Html.body(
-                                   Html.div(Html.span( Html.style("background-color", useState.get() %2 ==0 ? "red" : "blue"),  Html.text(state.toString()))),
-                                     Html.event("click",
+                return Html.html(Html.body(
+                                   Html.div(Html.span( Html.style("background-color", useState.get() % 2 ==0 ? "red" : "blue"),  Html.text(state.toString()))),
+                                   Html.event("click",
                                                     d -> { useState.accept(useState.get() + 1);})
                 ));
         };
