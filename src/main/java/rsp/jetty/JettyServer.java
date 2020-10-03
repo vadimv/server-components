@@ -1,6 +1,6 @@
 package rsp.jetty;
+
 import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.ContextHandler;
@@ -13,18 +13,28 @@ import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainer
 import rsp.App;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
+import rsp.server.StaticResources;
+
 import javax.websocket.server.ServerEndpointConfig;
+import java.util.Objects;
+import java.util.Optional;
 
 public class JettyServer {
 
     private static final int MAX_THREADS = 50;
 
     private final App app;
+    private final Optional<StaticResources> staticResources;
 
     private Server server;
 
+    public JettyServer(App app, Optional<StaticResources> staticResources) {
+        this.app = Objects.requireNonNull(app);
+        this.staticResources = Objects.requireNonNull(staticResources);
+    }
+
     public JettyServer(App app) {
-        this.app = app;
+        this(app, Optional.empty());
     }
 
     public void start() throws Exception {
@@ -37,12 +47,16 @@ public class JettyServer {
         connector.setPort(app.port);
         server.setConnectors(new Connector[] {connector});
 
-       final ResourceHandler resourcesHandler = new ResourceHandler();
-        resourcesHandler.setDirectoriesListed(true);
-        resourcesHandler.setResourceBase("./target");
-        ContextHandler resourceContextHandler = new ContextHandler();
-        resourceContextHandler.setHandler(resourcesHandler);
-        resourceContextHandler.setContextPath("/static2/*");
+        final HandlerList handlers = new HandlerList();
+        staticResources.ifPresent(sr -> {
+            final ResourceHandler resourcesHandler = new ResourceHandler();
+            resourcesHandler.setDirectoriesListed(true);
+            resourcesHandler.setResourceBase(sr.resourcesBaseDir.getAbsolutePath());
+            final ContextHandler resourceContextHandler = new ContextHandler();
+            resourceContextHandler.setHandler(resourcesHandler);
+            resourceContextHandler.setContextPath(sr.contextPath);
+            handlers.addHandler(resourcesHandler);
+        });
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + app.basePath);
@@ -59,9 +73,8 @@ public class JettyServer {
                                                 }).build();
             serverContainer.addEndpoint(config);
         });
+        handlers.addHandler(context);
 
-        final HandlerList handlers = new HandlerList();
-        handlers.setHandlers(new Handler[] { resourceContextHandler, context });
         server.setHandler(handlers);
         server.start();    
     }
