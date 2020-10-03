@@ -21,25 +21,31 @@ import java.util.Optional;
 
 public class JettyServer {
 
-    private static final int MAX_THREADS = 50;
+    public static final int DEFAULT_MAX_THREADS = 50;
 
     private final App app;
     private final Optional<StaticResources> staticResources;
+    private final int maxThreads;
 
     private Server server;
 
-    public JettyServer(App app, Optional<StaticResources> staticResources) {
+    public JettyServer(App app, Optional<StaticResources> staticResources, int maxThreads) {
         this.app = Objects.requireNonNull(app);
         this.staticResources = Objects.requireNonNull(staticResources);
+        this.maxThreads = maxThreads;
+    }
+
+    public JettyServer(App app, Optional<StaticResources> staticResources) {
+        this(app, staticResources, DEFAULT_MAX_THREADS);
     }
 
     public JettyServer(App app) {
-        this(app, Optional.empty());
+        this(app, Optional.empty(), DEFAULT_MAX_THREADS);
     }
 
     public void start() throws Exception {
         final QueuedThreadPool threadPool = new QueuedThreadPool();
-        threadPool.setMaxThreads(MAX_THREADS);
+        threadPool.setMaxThreads(maxThreads);
         
         server = new Server(threadPool);
         
