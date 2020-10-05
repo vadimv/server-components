@@ -22,19 +22,16 @@ public class LivePage<S> implements InMessages {
     private final Map<Integer, CompletableFuture<String>> registeredEventHandlers = new ConcurrentHashMap<>();
 
     private final UseState<S> useState;
-    private final UseState<Tag> currentDom;
-    private final UseState<Map<Event.Target, Event>> currentEvents;
+    private final UseState<Snapshot<S>> current;
     private final UseState<Map<Ref, Path>> currentRefs;
     private final OutMessages out;
 
     public LivePage(UseState<S> useState,
-                    UseState<Tag> currentDom,
-                    UseState<Map<Event.Target, Event>> currentEvents,
+                    UseState<Snapshot<S>> current,
                     UseState<Map<Ref, Path>> currentRefs,
                     OutMessages out) {
         this.useState = useState;
-        this.currentDom = currentDom;
-        this.currentEvents = currentEvents;
+        this.current = current;
         this.currentRefs = currentRefs;
         this.out = out;
     }
@@ -53,9 +50,7 @@ public class LivePage<S> implements InMessages {
 
         pagesStorage.remove(qsid);
 
-        final UseState<Tag> currentDomRoot = new MutableState<>(page.domRoot);
-        final UseState<Component<S>> currentRootComponent = new MutableState<>(page.rootComponent);
-        final UseState<Map<Event.Target, Event>> currentEvents = new MutableState<>(new HashMap<>());
+        final UseState<Snapshot<S>> current = new MutableState<>(new Snapshot<>(page.domRoot, new HashMap<>()));
         final UseState<S> useState = new UseState<S>() {
             private volatile S state = page.initialState;
             @Override
@@ -65,11 +60,10 @@ public class LivePage<S> implements InMessages {
                     state = newState;
 
                     final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
-                    final Component<S> root = currentRootComponent.get();
-                    root.materialize(this).accept(contextEnrich.apply(qsid, newContext));
+                    page.rootComponent.materialize(this).accept(contextEnrich.apply(qsid, newContext));
 
                     // calculate diff between currentContext and newContext
-                    final var currentRoot = currentDomRoot.get();
+                    final var currentRoot = current.get().domRoot;
                     final var remoteChangePerformer = new RemoteDomChangesPerformer();
                     try {
                         new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
@@ -78,8 +72,7 @@ public class LivePage<S> implements InMessages {
                     }
 
                     out.modifyDom(remoteChangePerformer.commands);
-                    currentDomRoot.accept(newContext.root);
-                    currentEvents.accept(newContext.events);
+                    current.accept(new Snapshot<>(newContext.root, newContext.events));
                 } else {
                     // send new URL/route command
                     System.out.println("New route: " + newRoute);
@@ -93,8 +86,7 @@ public class LivePage<S> implements InMessages {
         };
         final DomTreeRenderContext<S> domTreeRenderContext = new DomTreeRenderContext<>();
         page.rootComponent.materialize(useState).accept(contextEnrich.apply(qsid, domTreeRenderContext));
-        currentDomRoot.accept(domTreeRenderContext.root);
-        currentEvents.accept(domTreeRenderContext.events);
+        current.accept(new Snapshot<>(domTreeRenderContext.root, domTreeRenderContext.events));
         final UseState<Map<Ref, Path>> currentRefs = new MutableState<>(domTreeRenderContext.refs);
         out.setRenderNum(0);//TODO
 
@@ -112,8 +104,7 @@ public class LivePage<S> implements InMessages {
         });
 
         return Optional.of(new LivePage<>(useState,
-                                          currentDomRoot,
-                                          currentEvents,
+                                          current,
                                           new MutableState<>(domTreeRenderContext.refs),
                                           out));
     }
@@ -132,7 +123,7 @@ public class LivePage<S> implements InMessages {
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
         if (path.equals(Path.WINDOW)) {
-            final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
+            final Event event = current.get().events.get(new Event.Target(eventType, eventElementPath));
             final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                      registeredEventHandlers,
                                                                      ref -> currentRefs.get().get(ref),
@@ -142,7 +133,7 @@ public class LivePage<S> implements InMessages {
         }
 
         while(eventElementPath.level() > 1) {
-            final Event event = currentEvents.get().get(new Event.Target(eventType, eventElementPath));
+            final Event event = current.get().events.get(new Event.Target(eventType, eventElementPath));
             if (event != null && event.eventTarget.eventType.equals(eventType)) {
                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                         registeredEventHandlers,
@@ -156,5 +147,21 @@ public class LivePage<S> implements InMessages {
                 // TODO log illegal state 'a DOM event handler not found'
             }
         }
+    }
+
+    private static class Snapshot<S> {
+        //public S state;
+        public final Tag domRoot;
+        public final Map<Event.Target, Event> events;
+
+
+        public Snapshot(//S state,
+                        Tag domRoot, Map<Event.Target, Event> events) {
+            //this.state = state;
+            this.domRoot = domRoot;
+            this.events = events;
+        }
+
+
     }
 }
