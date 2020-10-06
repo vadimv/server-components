@@ -18,7 +18,6 @@ public class JettyHn {
     public static void main(String[] args) throws Exception {
         final HnApiService hnApi = new HnApiService();
         final var bodyRef = createRef();
-        final var windowRef = window().ref();
         final Component<State> render = useState ->
             html(
                     body(bodyRef,
