@@ -32,17 +32,19 @@ public class PageRendering<S> {
     private final Component<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final BiFunction<String, S, String> state2route;
-
-    public final Map<QualifiedSessionId, Page<S>> pagesStorage;
+    private final Map<QualifiedSessionId, Page<S>> pagesStorage;
+    private final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich;
 
     public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
                          BiFunction<String, S, String> state2route,
                          Map<QualifiedSessionId, Page<S>> pagesStorage,
-                         Component<S> documentDefinition) {
+                         Component<S> documentDefinition,
+                         BiFunction<String, RenderContext<S>, RenderContext<S>> enrich) {
         this.routing = routing;
         this.state2route = state2route;
         this.pagesStorage = pagesStorage;
         this.documentDefinition = documentDefinition;
+        this.enrich = enrich;
     }
 
     public CompletableFuture<HttpResponse> httpGet(HttpRequest request) {
@@ -88,13 +90,9 @@ public class PageRendering<S> {
                 final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
                 final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
-                final EnrichingXhtmlContext<S> enrichingContext = new EnrichingXhtmlContext<>(newCtx,
-                        sessionId,
-                        "/",
-                        DefaultConnectionLostWidget.HTML,
-                        5000);
                 final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
-                documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrichingContext, domTreeContext));
+                documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrich.apply(sessionId, newCtx),
+                                                                                                                enrich.apply(sessionId, domTreeContext)));
 
                 pagesStorage.put(pageId, new Page<S>(request.path,
                                                      documentDefinition,

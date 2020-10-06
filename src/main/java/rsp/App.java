@@ -43,8 +43,17 @@ public class App<S> {
              rootComponent);
     }
 
+    public final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich = (sessionId,ctx) ->
+            new EnrichingXhtmlContext<>(ctx,
+                                        sessionId,
+                                        "/",
+                                        DefaultConnectionLostWidget.HTML,
+                                        5000);
+
     public PageRendering<S> pageRendering() {
-        return new PageRendering(routes, state2path, pagesStorage, rootComponent);
+        return new PageRendering(routes, state2path, pagesStorage, rootComponent, enrich);
     }
+
+
 }
 

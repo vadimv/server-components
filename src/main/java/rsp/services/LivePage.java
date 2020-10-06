@@ -8,9 +8,7 @@ import rsp.state.MutableState;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -22,23 +20,20 @@ public class LivePage<S> implements InMessages {
     private final Map<Integer, CompletableFuture<String>> registeredEventHandlers = new ConcurrentHashMap<>();
 
     private final UseState<S> useState;
-    private final UseState<Snapshot<S>> current;
-    private final UseState<Map<Ref, Path>> currentRefs;
+    private final UseState<Snapshot> current;
     private final OutMessages out;
 
     public LivePage(UseState<S> useState,
-                    UseState<Snapshot<S>> current,
-                    UseState<Map<Ref, Path>> currentRefs,
+                    UseState<Snapshot> current,
                     OutMessages out) {
         this.useState = useState;
         this.current = current;
-        this.currentRefs = currentRefs;
         this.out = out;
     }
 
     public static <S> Optional<LivePage<S>> of(Map<QualifiedSessionId, Page<S>> pagesStorage,
                                                Map<String, String> pathParameters,
-                                               BiFunction<QualifiedSessionId, RenderContext<S>, RenderContext<S>> contextEnrich,
+                                               BiFunction<String, RenderContext<S>, RenderContext<S>> contextEnrich,
                                                OutMessages out) {
         final QualifiedSessionId qsid = new QualifiedSessionId(pathParameters.get("pid"), pathParameters.get("sid"));
         final Page<S> page = pagesStorage.get(qsid);
@@ -50,7 +45,9 @@ public class LivePage<S> implements InMessages {
 
         pagesStorage.remove(qsid);
 
-        final UseState<Snapshot<S>> current = new MutableState<>(new Snapshot<>(page.domRoot, new HashMap<>()));
+        final UseState<Snapshot> current = new MutableState<>(new Snapshot(page.domRoot,
+                                                                           new HashMap<>(),
+                                                                           new HashMap<>()));
         final UseState<S> useState = new UseState<S>() {
             private volatile S state = page.initialState;
             @Override
@@ -60,19 +57,33 @@ public class LivePage<S> implements InMessages {
                     state = newState;
 
                     final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
-                    page.rootComponent.materialize(this).accept(contextEnrich.apply(qsid, newContext));
+                    page.rootComponent.materialize(this).accept(contextEnrich.apply(qsid.sessionId, newContext));
 
                     // calculate diff between currentContext and newContext
                     final var currentRoot = current.get().domRoot;
                     final var remoteChangePerformer = new RemoteDomChangesPerformer();
-                    try {
-                        new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+                    new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
 
                     out.modifyDom(remoteChangePerformer.commands);
-                    current.accept(new Snapshot<>(newContext.root, newContext.events));
+
+                    // Register new event types on client
+                    final Set<Event> newEvents = new HashSet<>();
+                    final Set<Event> oldEvents = current.get().events.values().stream().collect(Collectors.toSet());
+                    for(Event event : newContext.events.values()) {
+                        if(!oldEvents.contains(event)) {
+                            newEvents.add(event);
+                        }
+                    }
+                    newEvents.stream()
+                             .forEach(event -> {
+                                 final Event.Target eventTarget = event.eventTarget;
+                                 out.listenEvent(eventTarget.eventType,
+                                                 eventTarget.eventType.equals("submit"),
+                                                 eventTarget.elementPath,
+                                                 event.modifier);
+                            });
+
+                    current.accept(new Snapshot(newContext.root, newContext.events, newContext.refs));
                 } else {
                     // send new URL/route command
                     System.out.println("New route: " + newRoute);
@@ -84,28 +95,12 @@ public class LivePage<S> implements InMessages {
                 return state;
             }
         };
-        final DomTreeRenderContext<S> domTreeRenderContext = new DomTreeRenderContext<>();
-        page.rootComponent.materialize(useState).accept(contextEnrich.apply(qsid, domTreeRenderContext));
-        current.accept(new Snapshot<>(domTreeRenderContext.root, domTreeRenderContext.events));
-        final UseState<Map<Ref, Path>> currentRefs = new MutableState<>(domTreeRenderContext.refs);
+        useState.accept(page.initialState);
+
         out.setRenderNum(0);//TODO
-
-        // Register event types on client
-        domTreeRenderContext.events.entrySet().stream().map(entry -> entry.getValue())
-                .collect(Collectors.toMap(e -> e.eventTarget.eventType, e -> e, (existing, replacement) -> replacement))
-                .entrySet()
-                .forEach(entry -> {
-                    final Event event = entry.getValue();
-                    final Event.Target eventTarget = event.eventTarget;
-                    if (!eventTarget.eventType.equals("submit")) { // TODO check why a form submit event should not be registered
-                        out.listenEvent(eventTarget.eventType, false, eventTarget.elementPath, event.modifier);
-                    }
-
-        });
 
         return Optional.of(new LivePage<>(useState,
                                           current,
-                                          new MutableState<>(domTreeRenderContext.refs),
                                           out));
     }
 
@@ -126,7 +121,7 @@ public class LivePage<S> implements InMessages {
             final Event event = current.get().events.get(new Event.Target(eventType, eventElementPath));
             final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                      registeredEventHandlers,
-                                                                     ref -> currentRefs.get().get(ref),
+                                                                     ref -> current.get().refs.get(ref),
                                                                      out);
             event.eventHandler.accept(eventContext);
             return;
@@ -137,7 +132,7 @@ public class LivePage<S> implements InMessages {
             if (event != null && event.eventTarget.eventType.equals(eventType)) {
                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                         registeredEventHandlers,
-                                                                        ref -> currentRefs.get().get(ref),
+                                                                        ref -> current.get().refs.get(ref),
                                                                         out);
                event.eventHandler.accept(eventContext);
                break;
@@ -149,19 +144,18 @@ public class LivePage<S> implements InMessages {
         }
     }
 
-    private static class Snapshot<S> {
-        //public S state;
+    private static class Snapshot {
         public final Tag domRoot;
         public final Map<Event.Target, Event> events;
+        public final Map<Ref, Path> refs;
 
 
-        public Snapshot(//S state,
-                        Tag domRoot, Map<Event.Target, Event> events) {
-            //this.state = state;
+        public Snapshot(Tag domRoot,
+                        Map<Event.Target, Event> events,
+                        Map<Ref, Path> refs) {
             this.domRoot = domRoot;
             this.events = events;
+            this.refs = refs;
         }
-
-
     }
 }

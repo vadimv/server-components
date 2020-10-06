@@ -1,34 +1,30 @@
 package rsp.javax.web;
 
 import rsp.*;
-import rsp.dom.*;
-import rsp.server.*;
+import rsp.server.DeserializeKorolevInMessage;
+import rsp.server.OutMessages;
+import rsp.server.SerializeKorolevOutMessages;
 import rsp.services.LivePage;
-import rsp.state.UseState;
 
 import javax.websocket.*;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
 public class MainWebSocketEndpoint<S> extends Endpoint {
     private final Map<QualifiedSessionId, Page<S>> pagesStorage;
+    private final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich;
 
-    public MainWebSocketEndpoint(Map<QualifiedSessionId, Page<S>> pagesStorage) {
+    public MainWebSocketEndpoint(Map<QualifiedSessionId,
+                                 Page<S>> pagesStorage,
+                                 BiFunction<String, RenderContext<S>, RenderContext<S>> enrich) {
         this.pagesStorage = pagesStorage;
+        this.enrich = enrich;
     }
 
     @Override
     public void onOpen(Session session, EndpointConfig endpointConfig) {
-        final BiFunction<QualifiedSessionId, RenderContext<S>, RenderContext<S>> enrich =(qsid,ctx) -> new EnrichingXhtmlContext<>(ctx,
-                qsid.sessionId,
-                "/",
-                DefaultConnectionLostWidget.HTML,
-                5000);
         final OutMessages out = new SerializeKorolevOutMessages((msg) -> sendText(session, msg));
         final Optional<LivePage<S>> livePage = LivePage.of(pagesStorage,
                                                              session.getPathParameters(),

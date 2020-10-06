@@ -71,7 +71,7 @@ public class JettyServer {
         context.setContextPath("/" + basePath);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(app.pageRendering())),"/*");
 
-        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage);
+        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage, app.enrich);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)

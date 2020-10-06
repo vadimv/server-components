@@ -49,7 +49,7 @@ public class JettyHn {
                                                newState.thenAccept(state -> useState.accept(state));
                                            }
                                        })));
-                        }).debounce(300)
+                        }).debounce(500)
                     )
                 );
 

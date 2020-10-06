@@ -57,7 +57,9 @@ export class Korolev {
       callback(CallbackType.DOM_EVENT, this.renderNum + ':' + 1 + ':' + event.type);
     };
 
-    this.listenRoot = (name, preventDefault, path, eventModifier) => {
+    window.vId = document.vId = '1';
+
+    this.listenRoot = (target, name, preventDefault, eventModifier) => {
       var listener = (event) => {
         if (event.target.vId) {
           if (preventDefault) {
@@ -79,21 +81,12 @@ export class Korolev {
       }
 
       let modifyEvent = eventModifier && eventModifier != '0';
-
-      if (path === '1') { // top level element
-            window.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, this.windowHandler)
-                                                        : this.windowHandler);
-      } else {
-            this.root.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, this.listener)
-                                                            : listener);
-      }
+      target.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, listener)
+                                                : listener);
       this.rootListeners.push({ 'listener': listener, 'type': name });
     };
 
-    this.listenRoot('submit', true);
-
     window.addEventListener('popstate', this.historyHandler);
-    //window.addEventListener('resize', this.windowHandler);
   }
 
   swapElementInRegistry(a, b) {
@@ -146,7 +139,7 @@ export class Korolev {
     * @param {string} eventModifier
     */
   listenEvent(type, preventDefault, path, eventModifier) {
-    this.listenRoot(type, preventDefault, path, eventModifier);
+    this.listenRoot(path === '1' ? window : this.els[path], type, preventDefault, eventModifier);
   }
 
   /**
