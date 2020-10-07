@@ -2,6 +2,7 @@ package rsp.services;
 
 import rsp.*;
 import rsp.dom.*;
+import rsp.server.HttpRequest;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
 import rsp.state.MutableState;
@@ -13,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class LivePage<S> implements InMessages {
@@ -31,9 +33,12 @@ public class LivePage<S> implements InMessages {
         this.out = out;
     }
 
-    public static <S> Optional<LivePage<S>> of(Map<QualifiedSessionId, Page<S>> pagesStorage,
-                                               Map<String, String> pathParameters,
-                                               BiFunction<String, RenderContext<S>, RenderContext<S>> contextEnrich,
+    public static <S> Optional<LivePage<S>> of(Map<String, String> pathParameters,
+                                               Function<HttpRequest, CompletableFuture<S>> routing,
+                                               BiFunction<String, S, String> state2route,
+                                               Map<QualifiedSessionId, Page<S>> pagesStorage,
+                                               Component<S> documentDefinition,
+                                               BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
                                                OutMessages out) {
         final QualifiedSessionId qsid = new QualifiedSessionId(pathParameters.get("pid"), pathParameters.get("sid"));
         final Page<S> page = pagesStorage.get(qsid);
@@ -52,12 +57,12 @@ public class LivePage<S> implements InMessages {
             private volatile S state = page.initialState;
             @Override
             public void accept(S newState) {
-                final String newRoute = page.state2route.apply(page.path, newState);
+                final String newRoute = state2route.apply(page.path, newState);
                 if (newRoute.equals(page.path)) {
                     state = newState;
 
                     final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
-                    page.rootComponent.materialize(this).accept(contextEnrich.apply(qsid.sessionId, newContext));
+                    documentDefinition.materialize(this).accept(enrich.apply(qsid.sessionId, newContext));
 
                     // calculate diff between currentContext and newContext
                     final var currentRoot = current.get().domRoot;

@@ -51,10 +51,5 @@ public class App<S> {
                                         DefaultConnectionLostWidget.HTML,
                                         HEARTBEAT_INTERVAL_MS);
 
-    public PageRendering<S> pageRendering() {
-        return new PageRendering(routes, state2path, pagesStorage, rootComponent, enrich);
-    }
-
-
 }
 

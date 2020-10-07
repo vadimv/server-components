@@ -14,6 +14,7 @@ import rsp.App;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.server.StaticResources;
+import rsp.services.PageRendering;
 
 import javax.websocket.server.ServerEndpointConfig;
 import java.util.Objects;
@@ -69,9 +70,17 @@ public class JettyServer {
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + basePath);
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(app.pageRendering())),"/*");
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
+                                                                                     app.state2path,
+                                                                                     app.pagesStorage,
+                                                                                     app.rootComponent,
+                                                                                     app.enrich))),"/*");
 
-        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage, app.enrich);
+        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
+                                                                                     app.state2path,
+                                                                                     app.pagesStorage,
+                                                                                     app.rootComponent,
+                                                                                     app.enrich);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)
