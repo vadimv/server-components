@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.Float.parseFloat;
 import static rsp.dsl.Html.*;
+import static rsp.util.ArrayUtils.concat;
 
 public class JettyHn {
 
@@ -41,10 +42,11 @@ public class JettyHn {
                                                                                            newPageNum,
                                                                                            HnApiService.PAGE_SIZE);
                                                final CompletableFuture<State> newState = hnApi.stories(newStoriesIds)
-                                                                                              .thenApply(r -> new State(currentState.storiesIds,
-                                                                                                                           concatArrays(currentState.stories,
-                                                                                                                                        r.toArray(State.Story[]::new)),
-                                                                                                                           newPageNum));
+                                                                                              .thenApply(newStories ->
+                                                                                                      new State(currentState.storiesIds,
+                                                                                                                concat(currentState.stories,
+                                                                                                                       newStories.toArray(State.Story[]::new)),
+                                                                                                                newPageNum));
                                                newState.thenAccept(state -> useState.accept(state));
                                            }
                                        })));
@@ -67,10 +69,5 @@ public class JettyHn {
         return storiesIds.subList(pageNum * pageSize, (pageNum + 1) * pageSize);
     }
 
-    private static <T> T[] concatArrays(T[] first, T[] second) {
-        final T[] result = Arrays.copyOf(first, first.length + second.length);
-        System.arraycopy(second, 0, result, first.length, second.length);
-        return result;
-    }
 
 }

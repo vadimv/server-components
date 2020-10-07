@@ -11,6 +11,7 @@ import java.util.function.Function;
 
 public class App<S> {
     public static final String WS_ENDPOINT_PATH = "/bridge/web-socket/{pid}/{sid}";
+    public static final int HEARTBEAT_INTERVAL_MS = 5000;
 
     public final Function<HttpRequest, CompletableFuture<S>> routes;
     public final BiFunction<String, S, String> state2path;
@@ -48,7 +49,7 @@ public class App<S> {
                                         sessionId,
                                         "/",
                                         DefaultConnectionLostWidget.HTML,
-                                        5000);
+                                        HEARTBEAT_INTERVAL_MS);
 
     public PageRendering<S> pageRendering() {
         return new PageRendering(routes, state2path, pagesStorage, rootComponent, enrich);
