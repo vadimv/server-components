@@ -4,20 +4,21 @@ import rsp.ChangesPerformer;
 import rsp.XmlNs;
 
 import java.util.List;
+import java.util.Optional;
 
 public class Diff {
 
-    private final Tag current;
+    private final Optional<Tag> current;
     private final Tag work;
     private final ChangesPerformer performer;
 
-    public Diff(Tag lhsRoot, Tag rhsRoot, ChangesPerformer performer) {
-        this.current = lhsRoot;
-        this.work = rhsRoot;
+    public Diff(Optional<Tag> current, Tag work, ChangesPerformer performer) {
+        this.current = current;
+        this.work = work;
         this.performer = performer;
     }
 
-    public static void diff(Tag c, Tag w, Path path, ChangesPerformer changesPerformer) {
+    private static void diff(Tag c, Tag w, Path path, ChangesPerformer changesPerformer) {
         if (!c.name.equals(w.name)) {
             changesPerformer.remove(path);
             create((Tag)w, path, changesPerformer);
@@ -124,6 +125,7 @@ public class Diff {
     }
 
     public void run() {
-        diff(current, work, new Path(1), performer);
+        current.ifPresentOrElse(current -> diff(current, work, new Path(1), performer),
+                                () -> create(work, new Path(1), performer));
     }
 }

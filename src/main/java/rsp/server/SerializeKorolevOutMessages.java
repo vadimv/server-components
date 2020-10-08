@@ -116,7 +116,8 @@ public class SerializeKorolevOutMessages implements OutMessages {
             return joinString(CREATE_TEXT, quote(c.parentPath), quote(c.path), quote(escape(c.text)));
         } else if (domChange instanceof Create) {
             final Create c = (Create)domChange;
-            return joinString(CREATE, quote(c.path.parent().orElseThrow()), quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.tag)));
+            return joinString(CREATE, quote(c.path.parent().get()),
+                    quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.tag)));
         } else {
             throw new IllegalStateException("Unsupported DomChange object type:" + domChange);
         }

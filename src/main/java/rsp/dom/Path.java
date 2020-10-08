@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 public class Path {
     public static final String SEPARATOR = "_";
+    public static final Path ROOT = Path.of("0");
     public static final Path WINDOW = Path.of("1");
 
     private final int[] array;
@@ -36,7 +37,7 @@ public class Path {
 
     public Optional<Path> parent() {
         if (array.length <= 1) {
-            return Optional.empty();
+            return Optional.of(ROOT);
         } else {
             return Optional.of(take(array.length - 1));
         }

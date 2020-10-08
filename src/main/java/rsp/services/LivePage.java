@@ -7,7 +7,6 @@ import rsp.server.InMessages;
 import rsp.server.OutMessages;
 import rsp.state.MutableState;
 import rsp.state.UseState;
-import rsp.util.Tuple2;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -20,45 +19,51 @@ import java.util.stream.Collectors;
 public class LivePage<S> implements InMessages {
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
     private final Map<Integer, CompletableFuture<String>> registeredEventHandlers = new ConcurrentHashMap<>();
-
-    private final UseState<S> useState;
-    private final UseState<Snapshot> current;
+    private final HttpRequest handshakeRequest;
+    private final QualifiedSessionId qsid;
+    private final Function<HttpRequest, CompletableFuture<S>> routing;
+    private final BiFunction<String, S, String> state2route;
+    private final Map<QualifiedSessionId, Page<S>> pagesStorage;
+    private final UseState<S> stateHandler;
+    private final UseState<Snapshot> currentPageSnapshot;
     private final OutMessages out;
 
-    public LivePage(UseState<S> useState,
+    public LivePage(HttpRequest handshakeRequest,
+                    QualifiedSessionId qsid,
+                    Function<HttpRequest, CompletableFuture<S>> routing,
+                    BiFunction<String, S, String> state2route,
+                    Map<QualifiedSessionId, Page<S>> pagesStorage,
+                    UseState<S> stateHandler,
                     UseState<Snapshot> current,
                     OutMessages out) {
-        this.useState = useState;
-        this.current = current;
+        this.handshakeRequest = handshakeRequest;
+        this.qsid = qsid;
+        this.routing = routing;
+        this.state2route = state2route;
+        this.pagesStorage = pagesStorage;
+        this.stateHandler = stateHandler;
+        this.currentPageSnapshot = current;
         this.out = out;
     }
 
-    public static <S> Optional<LivePage<S>> of(Map<String, String> pathParameters,
-                                               Function<HttpRequest, CompletableFuture<S>> routing,
-                                               BiFunction<String, S, String> state2route,
-                                               Map<QualifiedSessionId, Page<S>> pagesStorage,
-                                               Component<S> documentDefinition,
-                                               BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
-                                               OutMessages out) {
-        final QualifiedSessionId qsid = new QualifiedSessionId(pathParameters.get("pid"), pathParameters.get("sid"));
-        final Page<S> page = pagesStorage.get(qsid);
-        if (page == null) {
-            // a connection after server's restart
-            out.evalJs(0, "location.reload()");
-            return Optional.empty();
-        }
+    public static <S> LivePage<S> of(HttpRequest handshakeRequest,
+                                       QualifiedSessionId qsid,
+                                       Function<HttpRequest, CompletableFuture<S>> routing,
+                                       BiFunction<String, S, String> state2route,
+                                       Map<QualifiedSessionId, Page<S>> pagesStorage,
+                                       Component<S> documentDefinition,
+                                       BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
+                                       OutMessages out) {
 
-        pagesStorage.remove(qsid);
 
-        final UseState<Snapshot> current = new MutableState<>(new Snapshot(page.domRoot,
+        final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
         final UseState<S> useState = new UseState<S>() {
-            private volatile S state = page.initialState;
+            private volatile S state = null;
+
             @Override
             public void accept(S newState) {
-                final String newRoute = state2route.apply(page.path, newState);
-                if (newRoute.equals(page.path)) {
                     state = newState;
 
                     final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
@@ -88,25 +93,44 @@ public class LivePage<S> implements InMessages {
                                                  event.modifier);
                             });
 
-                    current.accept(new Snapshot(newContext.root, newContext.events, newContext.refs));
-                } else {
-                    // send new URL/route command
-                    System.out.println("New route: " + newRoute);
-                }
+                    current.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
             }
 
             @Override
             public S get() {
-                return state;
+                if (state != null) {
+                    return state;
+                } else {
+                    throw new IllegalStateException("Live page state not initialized.");
+                }
+
             }
         };
-        useState.accept(page.initialState);
 
-        out.setRenderNum(0);//TODO
+        return new LivePage<>(handshakeRequest,
+                              qsid,
+                              routing,
+                              state2route,
+                              pagesStorage,
+                              useState,
+                              current,
+                              out);
+    }
 
-        return Optional.of(new LivePage<>(useState,
-                                          current,
-                                          out));
+    public void start() {
+        final Page<S> page = pagesStorage.get(qsid);
+        if (page == null) {
+            routing.apply(handshakeRequest).thenAccept(state -> {
+                stateHandler.accept(state);
+                out.setRenderNum(0);
+            });
+        } else {
+            final var s = currentPageSnapshot.get();
+            pagesStorage.remove(qsid);
+            currentPageSnapshot.accept(new Snapshot(Optional.of(page.domRoot), s.events, s.refs));
+            stateHandler.accept(page.initialState);
+            out.setRenderNum(0);
+        }
     }
 
     @Override
@@ -123,21 +147,21 @@ public class LivePage<S> implements InMessages {
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
         if (path.equals(Path.WINDOW)) {
-            final Event event = current.get().events.get(new Event.Target(eventType, eventElementPath));
+            final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
             final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                      registeredEventHandlers,
-                                                                     ref -> current.get().refs.get(ref),
+                                                                     ref -> currentPageSnapshot.get().refs.get(ref),
                                                                      out);
             event.eventHandler.accept(eventContext);
             return;
         }
 
         while(eventElementPath.level() > 1) {
-            final Event event = current.get().events.get(new Event.Target(eventType, eventElementPath));
+            final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
             if (event != null && event.eventTarget.eventType.equals(eventType)) {
                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
                                                                         registeredEventHandlers,
-                                                                        ref -> current.get().refs.get(ref),
+                                                                        ref -> currentPageSnapshot.get().refs.get(ref),
                                                                         out);
                event.eventHandler.accept(eventContext);
                break;
@@ -150,12 +174,12 @@ public class LivePage<S> implements InMessages {
     }
 
     private static class Snapshot {
-        public final Tag domRoot;
+        public final Optional<Tag> domRoot;
         public final Map<Event.Target, Event> events;
         public final Map<Ref, Path> refs;
 
 
-        public Snapshot(Tag domRoot,
+        public Snapshot(Optional<Tag> domRoot,
                         Map<Event.Target, Event> events,
                         Map<Ref, Path> refs) {
             this.domRoot = domRoot;

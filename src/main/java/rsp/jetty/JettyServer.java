@@ -13,9 +13,12 @@ import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainer
 import rsp.App;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
+import rsp.server.HttpRequest;
 import rsp.server.StaticResources;
 import rsp.services.PageRendering;
 
+import javax.websocket.HandshakeResponse;
+import javax.websocket.server.HandshakeRequest;
 import javax.websocket.server.ServerEndpointConfig;
 import java.util.Objects;
 import java.util.Optional;
@@ -85,8 +88,17 @@ public class JettyServer {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)
                                                 .configurator(new ServerEndpointConfig.Configurator() {
+                                                    @Override
                                                     public <T> T getEndpointInstance(Class<T> clazz) throws InstantiationException {
                                                         return (T)webSocketEndpoint;
+                                                    }
+
+                                                    @Override
+                                                    public void modifyHandshake(ServerEndpointConfig conf,
+                                                                                HandshakeRequest req,
+                                                                                HandshakeResponse resp) {
+                                                        conf.getUserProperties().put(MainWebSocketEndpoint.HANDSHAKE_REQUEST_PROPERTY_NAME,
+                                                                                     HttpRequest.of(req));
                                                     }
                                                 }).build();
             serverContainer.addEndpoint(config);

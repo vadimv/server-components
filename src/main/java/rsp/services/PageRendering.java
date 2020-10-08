@@ -85,7 +85,7 @@ public class PageRendering<S> {
     private CompletableFuture<HttpResponse> rspResponse(HttpRequest request) {
         try {
             return routing.apply(request).thenApply(initialState -> {
-                final String deviceId = request.getCookie.apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
+                final String deviceId = request.getCookie().apply(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
                 final String sessionId = randomStringGenerator.newString();
                 final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
