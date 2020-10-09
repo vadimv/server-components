@@ -31,8 +31,8 @@ public class Diff {
     }
 
     private static void diffAttributes(CopyOnWriteArraySet<Attribute> ca, CopyOnWriteArraySet<Attribute> wa, Path path, ChangesPerformer performer) {
-        var c = new CopyOnWriteArraySet<>(ca);
-        var w = new CopyOnWriteArraySet<>(wa);
+        final var c = new CopyOnWriteArraySet<>(ca);
+        final var w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
         c.forEach(attribute ->  {
             performer.removeAttr(path, XmlNs.html, attribute.name);
