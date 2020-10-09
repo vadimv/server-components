@@ -6,6 +6,7 @@ import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
 import rsp.server.SerializeKorolevOutMessages;
 import rsp.services.LivePage;
+import rsp.services.PageRendering;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
@@ -22,17 +23,17 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     private final Component<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final BiFunction<String, S, String> state2route;
-    private final Map<QualifiedSessionId, Page<S>> pagesStorage;
+    private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich;
 
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
                                  BiFunction<String, S, String> state2route,
-                                 Map<QualifiedSessionId, Page<S>> pagesStorage,
+                                 Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                  Component<S> documentDefinition,
                                  BiFunction<String, RenderContext<S>, RenderContext<S>> enrich) {
         this.routing = routing;
         this.state2route = state2route;
-        this.pagesStorage = pagesStorage;
+        this.renderedPages = renderedPages;
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
     }
@@ -46,7 +47,7 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
                                                                           session.getPathParameters().get("sid")),
                                                    routing,
                                                    state2route,
-                                                   pagesStorage,
+                                                   renderedPages,
                                                    documentDefinition,
                                                    enrich,
                                                    out);

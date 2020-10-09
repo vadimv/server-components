@@ -2,18 +2,11 @@ package rsp.examples;
 
 import rsp.App;
 import rsp.Component;
-import rsp.Page;
-import rsp.QualifiedSessionId;
-import rsp.javax.web.MainHttpServlet;
-import rsp.javax.web.MainWebSocketEndpoint;
+import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
-import rsp.services.PageRendering;
-import rsp.dsl.Html;
 
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -50,10 +43,9 @@ public class JettyBasic {
             }
             return "/1";
         };
-        final Map<QualifiedSessionId, Page<Integer>> pagesStorage = new ConcurrentHashMap<>();
         final var s = new JettyServer(p,
                               "",
-                                      new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)), state2path, pagesStorage, render));
+                                      new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)), state2path, render));
         s.start();
         s.join();
     }

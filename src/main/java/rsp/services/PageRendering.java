@@ -2,6 +2,7 @@ package rsp.services;
 
 import rsp.*;
 import rsp.dom.DomTreeRenderContext;
+import rsp.dom.Tag;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.state.ReadOnly;
@@ -9,13 +10,7 @@ import rsp.util.RandomString;
 import rsp.util.Tuple2;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -32,17 +27,17 @@ public class PageRendering<S> {
     private final Component<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final BiFunction<String, S, String> state2route;
-    private final Map<QualifiedSessionId, Page<S>> pagesStorage;
+    private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich;
 
     public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
                          BiFunction<String, S, String> state2route,
-                         Map<QualifiedSessionId, Page<S>> pagesStorage,
+                         Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          Component<S> documentDefinition,
                          BiFunction<String, RenderContext<S>, RenderContext<S>> enrich) {
         this.routing = routing;
         this.state2route = state2route;
-        this.pagesStorage = pagesStorage;
+        this.renderedPages = pagesStorage;
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
     }
@@ -94,12 +89,7 @@ public class PageRendering<S> {
                 documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrich.apply(sessionId, newCtx),
                                                                                                                 enrich.apply(sessionId, domTreeContext)));
 
-                pagesStorage.put(pageId, new Page<S>(request.path,
-                                                     documentDefinition,
-                                                     initialState,
-                                                     state2route,
-                                                     domTreeContext.root,
-                                                     domTreeContext.events));
+                renderedPages.put(pageId, new RenderedPage<S>(initialState, domTreeContext.root));
 
                 return new HttpResponse(200,
                                         headers(deviceId),
@@ -119,6 +109,17 @@ public class PageRendering<S> {
                                                                 "/",
                                                                 60 * 60 * 24 * 365 * 10 /* 10 years */ )));
 
+    }
+
+    public static class RenderedPage<S> {
+        public final S state;
+        public final Tag domRoot;
+
+        public RenderedPage(S initialState,
+                            Tag domRoot) {
+            this.state = initialState;
+            this.domRoot = domRoot;
+        }
     }
 
 }

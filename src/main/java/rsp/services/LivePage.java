@@ -23,7 +23,7 @@ public class LivePage<S> implements InMessages {
     private final QualifiedSessionId qsid;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final BiFunction<String, S, String> state2route;
-    private final Map<QualifiedSessionId, Page<S>> pagesStorage;
+    private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final UseState<S> stateHandler;
     private final UseState<Snapshot> currentPageSnapshot;
     private final OutMessages out;
@@ -32,7 +32,7 @@ public class LivePage<S> implements InMessages {
                     QualifiedSessionId qsid,
                     Function<HttpRequest, CompletableFuture<S>> routing,
                     BiFunction<String, S, String> state2route,
-                    Map<QualifiedSessionId, Page<S>> pagesStorage,
+                    Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                     UseState<S> stateHandler,
                     UseState<Snapshot> current,
                     OutMessages out) {
@@ -40,7 +40,7 @@ public class LivePage<S> implements InMessages {
         this.qsid = qsid;
         this.routing = routing;
         this.state2route = state2route;
-        this.pagesStorage = pagesStorage;
+        this.renderedPages = renderedPages;
         this.stateHandler = stateHandler;
         this.currentPageSnapshot = current;
         this.out = out;
@@ -50,12 +50,10 @@ public class LivePage<S> implements InMessages {
                                        QualifiedSessionId qsid,
                                        Function<HttpRequest, CompletableFuture<S>> routing,
                                        BiFunction<String, S, String> state2route,
-                                       Map<QualifiedSessionId, Page<S>> pagesStorage,
+                                       Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                        Component<S> documentDefinition,
                                        BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
                                        OutMessages out) {
-
-
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
@@ -111,24 +109,24 @@ public class LivePage<S> implements InMessages {
                               qsid,
                               routing,
                               state2route,
-                              pagesStorage,
+                              renderedPages,
                               useState,
                               current,
                               out);
     }
 
     public void start() {
-        final Page<S> page = pagesStorage.get(qsid);
+        final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
         if (page == null) {
             routing.apply(handshakeRequest).thenAccept(state -> {
                 stateHandler.accept(state);
                 out.setRenderNum(0);
             });
         } else {
+            renderedPages.remove(qsid);
             final var s = currentPageSnapshot.get();
-            pagesStorage.remove(qsid);
             currentPageSnapshot.accept(new Snapshot(Optional.of(page.domRoot), s.events, s.refs));
-            stateHandler.accept(page.initialState);
+            stateHandler.accept(page.state);
             out.setRenderNum(0);
         }
     }
