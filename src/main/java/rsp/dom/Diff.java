@@ -43,25 +43,17 @@ public class Diff {
         });
     }
 
-    private static void diffStyles(List<Style> ca, List<Style> wa, Path path, ChangesPerformer performer) {
-        var c = ca.listIterator();
-        var w = wa.listIterator();
-        while(c.hasNext() || w.hasNext()) {
-            if (c.hasNext() && w.hasNext()) {
-                final Style cAttr = c.next();
-                final Style wAttr = w.next();
-                if (!cAttr.equals(wAttr)) {
-                    performer.removeStyle(path, cAttr.name);
-                    performer.setStyle(path, wAttr.name, wAttr.value);
-                }
-            } else if (c.hasNext()) {
-                final Style cAttr = c.next();
-                performer.removeStyle(path, cAttr.name);
-            } else {
-                final Style wAttr = w.next();
-                performer.setStyle(path, wAttr.name, wAttr.value);
-            }
-        }
+    private static void diffStyles(CopyOnWriteArraySet<Style> ca, CopyOnWriteArraySet<Style> wa, Path path, ChangesPerformer performer) {
+        final var c = new CopyOnWriteArraySet<>(ca);
+        final var w = new CopyOnWriteArraySet<>(wa);
+        c.removeAll(wa);
+        c.forEach(attribute ->  {
+            performer.removeStyle(path, attribute.name);
+        });
+        w.removeAll(ca);
+        w.forEach(attribute -> {
+            performer.setStyle(path, attribute.name, attribute.value);
+        });
     }
 
     private static void diffChildren(List<Node> cc, List<Node> wc, Path path, ChangesPerformer performer) {
