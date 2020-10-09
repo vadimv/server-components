@@ -4,6 +4,7 @@ import rsp.XmlNs;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class Tag implements Node {
 
@@ -11,7 +12,7 @@ public class Tag implements Node {
     public final XmlNs xmlns;
     public final String name;
 
-    public final List<Attribute> attributes = new ArrayList<>();
+    public final CopyOnWriteArraySet<Attribute> attributes = new CopyOnWriteArraySet<>();
     public final List<Style> styles = new ArrayList<>();
     public final List<Node> children = new ArrayList<>();
 

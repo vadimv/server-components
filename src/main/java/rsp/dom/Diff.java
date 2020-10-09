@@ -5,6 +5,7 @@ import rsp.XmlNs;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 public class Diff {
 
@@ -29,25 +30,17 @@ public class Diff {
         }
     }
 
-    private static void diffAttributes(List<Attribute> ca, List<Attribute> wa, Path path, ChangesPerformer performer) {
-        var c = ca.listIterator();
-        var w = wa.listIterator();
-        while(c.hasNext() || w.hasNext()) {
-            if (c.hasNext() && w.hasNext()) {
-                final Attribute cAttr = c.next();
-                final Attribute wAttr = w.next();
-                if (!cAttr.equals(wAttr)) {
-                    performer.removeAttr(path, XmlNs.html, cAttr.name);
-                    performer.setAttr(path, XmlNs.html, wAttr.name, wAttr.value);
-                }
-            } else if (c.hasNext()) {
-                final Attribute cAttr = c.next();
-                performer.removeAttr(path, XmlNs.html, cAttr.name);
-            } else {
-                final Attribute wAttr = w.next();
-                performer.setAttr(path, XmlNs.html, wAttr.name, wAttr.value);
-            }
-        }
+    private static void diffAttributes(CopyOnWriteArraySet<Attribute> ca, CopyOnWriteArraySet<Attribute> wa, Path path, ChangesPerformer performer) {
+        var c = new CopyOnWriteArraySet<>(ca);
+        var w = new CopyOnWriteArraySet<>(wa);
+        c.removeAll(wa);
+        c.forEach(attribute ->  {
+            performer.removeAttr(path, XmlNs.html, attribute.name);
+        });
+        w.removeAll(ca);
+        w.forEach(attribute -> {
+            performer.setAttr(path, XmlNs.html, attribute.name, attribute.value);
+        });
     }
 
     private static void diffStyles(List<Style> ca, List<Style> wa, Path path, ChangesPerformer performer) {
