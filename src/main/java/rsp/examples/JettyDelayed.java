@@ -51,7 +51,7 @@ public class JettyDelayed {
             }
         }
 
-        public void cancel() {
+        public synchronized void cancel() {
             if(scheduledFuture != null) {
                 scheduledFuture.cancel(false);
             }
