@@ -22,10 +22,9 @@ public class MutableState<S> implements UseState<S> {
 
     @Override
     public void accept(S state) {
-        final S oldState = this.state;
         this.state = state;
         for (StateListener<S> listener:listeners) {
-            listener.onNewState(oldState, state);
+            listener.onNewState(state, this);
         }
     }
 
@@ -36,6 +35,6 @@ public class MutableState<S> implements UseState<S> {
     }
 
     public interface StateListener<S> {
-        void onNewState(S oldState, S newState);
+        void onNewState(S newState, MutableState<S> obj);
     }
 }

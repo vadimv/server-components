@@ -57,53 +57,36 @@ public class LivePage<S> implements InMessages {
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
-        final UseState<S> useState = new UseState<S>() {
-            private volatile S state = null;
+        final MutableState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
+            final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
+            documentDefinition.materialize(self).accept(enrich.apply(qsid.sessionId, newContext));
 
-            @Override
-            public void accept(S newState) {
-                    state = newState;
+            // calculate diff between currentContext and newContext
+            final var currentRoot = current.get().domRoot;
+            final var remoteChangePerformer = new RemoteDomChangesPerformer();
+            new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
 
-                    final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
-                    documentDefinition.materialize(this).accept(enrich.apply(qsid.sessionId, newContext));
+            out.modifyDom(remoteChangePerformer.commands);
 
-                    // calculate diff between currentContext and newContext
-                    final var currentRoot = current.get().domRoot;
-                    final var remoteChangePerformer = new RemoteDomChangesPerformer();
-                    new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
-
-                    out.modifyDom(remoteChangePerformer.commands);
-
-                    // Register new event types on client
-                    final Set<Event> newEvents = new HashSet<>();
-                    final Set<Event> oldEvents = current.get().events.values().stream().collect(Collectors.toSet());
-                    for(Event event : newContext.events.values()) {
-                        if(!oldEvents.contains(event)) {
-                            newEvents.add(event);
-                        }
-                    }
-                    newEvents.stream()
-                             .forEach(event -> {
-                                 final Event.Target eventTarget = event.eventTarget;
-                                 out.listenEvent(eventTarget.eventType,
-                                                 eventTarget.eventType.equals("submit"),
-                                                 eventTarget.elementPath,
-                                                 event.modifier);
-                            });
-
-                    current.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
-            }
-
-            @Override
-            public S get() {
-                if (state != null) {
-                    return state;
-                } else {
-                    throw new IllegalStateException("Live page state not initialized.");
+            // Register new event types on client
+            final Set<Event> newEvents = new HashSet<>();
+            final Set<Event> oldEvents = current.get().events.values().stream().collect(Collectors.toSet());
+            for(Event event : newContext.events.values()) {
+                if(!oldEvents.contains(event)) {
+                    newEvents.add(event);
                 }
-
             }
-        };
+            newEvents.stream()
+                    .forEach(event -> {
+                        final Event.Target eventTarget = event.eventTarget;
+                        out.listenEvent(eventTarget.eventType,
+                                eventTarget.eventType.equals("submit"),
+                                eventTarget.elementPath,
+                                event.modifier);
+                    });
+
+            current.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
+        }));
 
         return new LivePage<>(handshakeRequest,
                               qsid,
@@ -150,7 +133,12 @@ public class LivePage<S> implements InMessages {
                                                                      registeredEventHandlers,
                                                                      ref -> currentPageSnapshot.get().refs.get(ref),
                                                                      out);
-            event.eventHandler.accept(eventContext);
+            if (event != null) {
+                event.eventHandler.accept(eventContext);
+            } else {
+                //TODO warn
+            }
+
             return;
         }
 
@@ -161,7 +149,11 @@ public class LivePage<S> implements InMessages {
                                                                         registeredEventHandlers,
                                                                         ref -> currentPageSnapshot.get().refs.get(ref),
                                                                         out);
-               event.eventHandler.accept(eventContext);
+                if (event != null) {
+                    event.eventHandler.accept(eventContext);
+                } else {
+                    //TODO warn
+                }
                break;
             } else if (eventElementPath.level() > 1) {
                 eventElementPath = eventElementPath.parent().get();
