@@ -1,6 +1,5 @@
 package rsp.examples;
 
-
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
