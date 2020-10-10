@@ -4,7 +4,7 @@ import java.util.Arrays;
 
 public class MutableState<S> implements UseState<S> {
     private final StateListener<S>[] listeners;
-    private volatile S state;
+    private S state;
 
     public MutableState(S initialState)  {
         this(initialState, new StateListener[] {});
@@ -16,12 +16,12 @@ public class MutableState<S> implements UseState<S> {
     }
 
     @Override
-    public S get() {
+    public synchronized S get() {
         return state;
     }
 
     @Override
-    public void accept(S state) {
+    public synchronized void accept(S state) {
         this.state = state;
         for (StateListener<S> listener:listeners) {
             listener.onNewState(state, this);
@@ -35,6 +35,6 @@ public class MutableState<S> implements UseState<S> {
     }
 
     public interface StateListener<S> {
-        void onNewState(S newState, MutableState<S> obj);
+        void onNewState(S newState, MutableState<S> selfObj);
     }
 }

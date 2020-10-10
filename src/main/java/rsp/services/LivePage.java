@@ -57,7 +57,7 @@ public class LivePage<S> implements InMessages {
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
-        final MutableState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
+        final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
             final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
             documentDefinition.materialize(self).accept(enrich.apply(qsid.sessionId, newContext));
 
