@@ -61,6 +61,10 @@ public class Html {
         return new TextDefinition(text);
     }
 
+    public static TextDefinition text(Object text) {
+        return new TextDefinition(text.toString());
+    }
+
     public static AttributeDefinition attr(String name, String value) {
         return new AttributeDefinition(name, value);
     }
