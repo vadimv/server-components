@@ -125,6 +125,16 @@ public class LivePage<S> implements InMessages {
     }
 
     @Override
+    public void evalJsResponse(int descriptorId, String value) {
+        System.out.println("evalJsResponse:" + descriptorId + " value=" + value);
+        final var cf = registeredEventHandlers.get(descriptorId);
+        if (cf != null) {
+            cf.complete(value);
+            registeredEventHandlers.remove(descriptorId);
+        }
+    }
+
+    @Override
     public void domEvent(int renderNumber, Path path, String eventType) {
         Path eventElementPath = path;
         if (path.equals(Path.WINDOW)) {

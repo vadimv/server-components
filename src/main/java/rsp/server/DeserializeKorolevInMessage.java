@@ -26,6 +26,7 @@ public class DeserializeKorolevInMessage {
         switch(messageType) {
             case DOM_EVENT: parseDomEvent(tokens[1]); break;
             case EXTRACT_PROPERTY_RESPONSE: parseExtractPropertyResponse(tokens[1]); break;
+            case EVAL_JS_RESPONSE: parseEvalJsResponse(tokens[1]); break;
             case HEARTBEAT: heartBeat(); break;
         }
     }
@@ -33,6 +34,11 @@ public class DeserializeKorolevInMessage {
     private void parseExtractPropertyResponse(String str) {
         final String[] tokens = unquote(str).split(":");
         inMessages.extractProperty(Integer.parseInt(tokens[0]), tokens.length > 2 ? tokens[2] : "");
+    }
+
+    private void parseEvalJsResponse(String str) {
+        final String[] tokens = unquote(str).split(":");
+        inMessages.evalJsResponse(Integer.parseInt(tokens[0]), tokens.length > 2 ? tokens[2] : "");
     }
 
     private void parseDomEvent(String str) {

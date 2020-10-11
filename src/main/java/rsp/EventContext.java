@@ -32,6 +32,14 @@ public class EventContext {
         return new PropertiesHandle(ref);
     }
 
+    public CompletableFuture<String> evalJs(String js) {
+        final Integer newDescriptor = descriptorSupplier.get();
+        final CompletableFuture<String> resultHandler = new CompletableFuture<>();
+        registeredEventHandlers.put(newDescriptor, resultHandler);
+        out.evalJs(newDescriptor, js);
+        return resultHandler;
+    }
+
     private Path of(Ref ref) {
         return ref instanceof WindowDefinition ? Path.WINDOW : pathLookup.apply(ref);
     }
