@@ -17,7 +17,7 @@ public class JettyDelayed {
                 html(body(
                     button(attr("type", "button"),
                            text(useState.get().run ? "Stop" : "Start"),
-                            event("click", c -> {
+                           on("click", c -> {
                                 useState.accept(new State(useState.get().i, !useState.get().run));
                                 final ScheduledTask st = new ScheduledTask();
                                 st.scheduleAtFixedRate(() -> {

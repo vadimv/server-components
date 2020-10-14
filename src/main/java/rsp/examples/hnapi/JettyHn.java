@@ -28,7 +28,7 @@ public class JettyHn {
                                         span(text(story.getValue().id + " " + story.getValue().name))
                                 ))
                           ),
-                        window().event("scroll", c -> {
+                        window().on("scroll", c -> {
                             final var windowProps = c.props(window());
                             final var bodyProps = c.props(bodyRef);
                             windowProps.get("innerHeight")

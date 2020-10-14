@@ -43,7 +43,7 @@ public class DeserializeKorolevInMessage {
 
     private void parseDomEvent(String str) {
         final String[] tokens = unquote(str).split(":");
-        inMessages.domEvent(Integer.parseInt(tokens[0]), Path.of(tokens[1]), tokens[2]);
+        inMessages.domEvent(Integer.parseInt(tokens[0]), Path.of(tokens[1]), tokens[2], tokens[3]);
     }
 
     private void heartBeat() {

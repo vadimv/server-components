@@ -68,7 +68,7 @@ public class JettyServer {
             final ContextHandler resourceContextHandler = new ContextHandler();
             resourceContextHandler.setHandler(resourcesHandler);
             resourceContextHandler.setContextPath(sr.contextPath);
-            handlers.addHandler(resourcesHandler);
+            handlers.addHandler(resourceContextHandler);
         });
 
         final ServletContextHandler context = new ServletContextHandler();

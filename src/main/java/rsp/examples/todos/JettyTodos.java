@@ -30,7 +30,7 @@ public class JettyTodos {
                                        div(input(attr("type", "checkbox"),
                                                  when(todo.getValue().done, attr("checked", "checked")),
                                                  attr("autocomplete", "off"), /* reset the checkbox on Firefox reload current page */
-                                                 event("click", c -> {
+                                                 on("click", c -> {
                                                    useState.accept(useState.get().toggleDone(todo.getKey()));
                                                  })),
                                            span(when(todo.getValue().done, style("text-decoration", "line-through")),
@@ -40,7 +40,7 @@ public class JettyTodos {
                                       attr("type", "text"),
                                       attr("placeholder", "What should be done?")),
                                 button(text("Add todo")),
-                                event("submit", c -> {
+                                on("submit", c -> {
                                     var inputProps = c.props(textInputRef);
                                     inputProps.get("value").thenApply(v -> useState.get().addTodo(v))
                                                            .thenAccept(s -> { inputProps.set("value", "");

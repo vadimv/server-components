@@ -86,7 +86,7 @@ public class PageRendering<S> {
 
                 final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
                 final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
-                documentDefinition.materialize(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrich.apply(sessionId, newCtx),
+                documentDefinition.of(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrich.apply(sessionId, newCtx),
                                                                                                                 enrich.apply(sessionId, domTreeContext)));
 
                 renderedPages.put(pageId, new RenderedPage<S>(initialState, domTreeContext.root));

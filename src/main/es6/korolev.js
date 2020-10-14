@@ -67,9 +67,24 @@ export class Korolev {
           }
           this.eventData[this.renderNum] = event;
 
-          this.callback(CallbackType.DOM_EVENT, this.renderNum + ':' + event.target.vId + ':' + event.type);
+          this.callback(CallbackType.DOM_EVENT, this.renderNum
+                                                + ':' + event.target.vId
+                                                + ':' + event.type
+                                                + ':' + JSON.stringify(this.eventObject(event.type, event)));
         }
       };
+
+      /**
+       * Add some specific properties of an event object for some specific event types
+       */
+      this.eventObject = (eventType, e) => {
+        var result = {};
+        if (eventType == 'keydown') {
+            result.keyCode = e.keyCode;
+        }
+
+        return result;
+      }
 
       this.createEventModifier = (eventModifier, listener) => {
          let mArray = eventModifier.split(':');

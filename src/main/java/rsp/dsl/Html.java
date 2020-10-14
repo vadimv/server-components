@@ -2,6 +2,7 @@ package rsp.dsl;
 
 import rsp.Event;
 import rsp.EventContext;
+import rsp.state.UseState;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -85,7 +86,7 @@ public class Html {
         return condition ? then : new EmptyDefinition();
     }
 
-    public static EventDefinition event(String eventType, Consumer<EventContext> handler) {
+    public static EventDefinition on(String eventType, Consumer<EventContext> handler) {
         return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
     }
 
@@ -95,5 +96,33 @@ public class Html {
 
     public static RefDefinition createRef() {
         return new RefDefinition();
+    }
+
+    public static <S> UseState<S> useState(Supplier<S> supplier, Consumer<S> consumer) {
+        return new UseState<S>() {
+            @Override
+            public void accept(S s) {
+                consumer.accept(s);
+            }
+
+            @Override
+            public S get() {
+                return supplier.get();
+            }
+        };
+    }
+
+    public static <S> UseState<S> useState(Supplier<S> supplier) {
+        return new UseState<S>() {
+            @Override
+            public void accept(S s) {
+                //no-op
+            }
+
+            @Override
+            public S get() {
+                return supplier.get();
+            }
+        };
     }
 }

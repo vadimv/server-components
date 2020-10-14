@@ -59,7 +59,7 @@ public class LivePage<S> implements InMessages {
                                                                            new HashMap<>()));
         final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
             final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
-            documentDefinition.materialize(self).accept(enrich.apply(qsid.sessionId, newContext));
+            documentDefinition.of(self).accept(enrich.apply(qsid.sessionId, newContext));
 
             // calculate diff between currentContext and newContext
             final var currentRoot = current.get().domRoot;
@@ -135,7 +135,7 @@ public class LivePage<S> implements InMessages {
     }
 
     @Override
-    public void domEvent(int renderNumber, Path path, String eventType) {
+    public void domEvent(int renderNumber, Path path, String eventType, String eventObject) {
         Path eventElementPath = path;
         if (path.equals(Path.WINDOW)) {
             final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
