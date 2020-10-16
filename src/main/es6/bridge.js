@@ -29,8 +29,16 @@ export class Bridge {
    * @param {CallbackType} type
    * @param {string} [args]
    */
-  _onCallback(type, args) {
-    let message = JSON.stringify(args !== undefined ? [type, args] : [type]);
+  _onCallback(type, args, eventObject) {
+    let messageArr = [];
+    messageArr.push(type);
+    if (args) {
+        messageArr.push(args);
+    }
+    if (eventObject) {
+        messageArr.push(eventObject);
+    }
+    let message = JSON.stringify(messageArr);
     if (protocolDebugEnabled)
       console.log('<-', message);
     this._connection.send(message);

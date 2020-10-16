@@ -6,8 +6,8 @@ import java.util.stream.Collectors;
 
 public class Path {
     public static final String SEPARATOR = "_";
-    public static final Path ROOT = Path.of("0");
-    public static final Path WINDOW = Path.of("1");
+    public static final Path DOCUMENT = Path.of("1");
+    public static final Path WINDOW = Path.of("0");
 
     private final int[] array;
 
@@ -36,8 +36,10 @@ public class Path {
     }
 
     public Optional<Path> parent() {
-        if (array.length <= 1) {
-            return Optional.of(ROOT);
+        if (this.equals(WINDOW)) {
+            return Optional.empty();
+        } else if (this.equals(DOCUMENT)) {
+            return Optional.of(WINDOW);
         } else {
             return Optional.of(take(array.length - 1));
         }

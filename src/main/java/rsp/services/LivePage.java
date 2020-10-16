@@ -135,40 +135,26 @@ public class LivePage<S> implements InMessages {
     }
 
     @Override
-    public void domEvent(int renderNumber, Path path, String eventType, String eventObject) {
+    public void domEvent(int renderNumber, Path path, String eventType, Function<String, Optional<String>> eventObject) {
         Path eventElementPath = path;
-        if (path.equals(Path.WINDOW)) {
-            final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
-            final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                     registeredEventHandlers,
-                                                                     ref -> currentPageSnapshot.get().refs.get(ref),
-                                                                     out);
-            if (event != null) {
-                event.eventHandler.accept(eventContext);
-            } else {
-                //TODO warn
-            }
-
-            return;
-        }
-
-        while(eventElementPath.level() > 1) {
+        while(eventElementPath.level() > 0) {
             final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
             if (event != null && event.eventTarget.eventType.equals(eventType)) {
                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                        registeredEventHandlers,
-                                                                        ref -> currentPageSnapshot.get().refs.get(ref),
-                                                                        out);
-                if (event != null) {
-                    event.eventHandler.accept(eventContext);
-                } else {
-                    //TODO warn
-                }
+                                                                  registeredEventHandlers,
+                                                                  ref -> currentPageSnapshot.get().refs.get(ref),
+                                                                  eventObject,
+                                                                  out);
+               event.eventHandler.accept(eventContext);
                break;
-            } else if (eventElementPath.level() > 1) {
-                eventElementPath = eventElementPath.parent().get();
             } else {
-                // TODO log illegal state 'a DOM event handler not found'
+                final Optional<Path> parentPath = eventElementPath.parent();
+                if (parentPath.isPresent()) {
+                    eventElementPath = parentPath.get();
+                } else {
+                    // TODO warn
+                    break;
+                }
             }
         }
     }

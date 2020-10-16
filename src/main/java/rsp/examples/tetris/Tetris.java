@@ -20,7 +20,10 @@ public class Tetris {
 
     public static void main(String[] args) throws Exception {
         final Component<State> render = useState ->
-            html(
+            html(on("keydown",  c -> {
+                        System.out.println("keydown");
+                        System.out.println(c.eventObject().apply("keyCode").orElse("no"));
+                    }),
                 head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
                 body(
                     div(attr("class", "stage"),

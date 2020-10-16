@@ -1,8 +1,15 @@
 package rsp.server;
 
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import rsp.dom.Path;
+import rsp.util.JsonUtils;
 
 import java.util.Objects;
+import java.util.Optional;
 
 public class DeserializeKorolevInMessage {
     private final InMessages inMessages;
@@ -21,29 +28,39 @@ public class DeserializeKorolevInMessage {
 
     public void parse(String message) {
         Objects.requireNonNull(message);
-        final String[] tokens = message.substring(1, message.length() - 1).trim().split(",", 2);
-        final int messageType = Integer.parseInt(tokens[0]);
-        switch(messageType) {
-            case DOM_EVENT: parseDomEvent(tokens[1]); break;
-            case EXTRACT_PROPERTY_RESPONSE: parseExtractPropertyResponse(tokens[1]); break;
-            case EVAL_JS_RESPONSE: parseEvalJsResponse(tokens[1]); break;
-            case HEARTBEAT: heartBeat(); break;
+        final JSONParser jsonParser = new JSONParser();
+        try {
+            final JSONArray messageJson = (JSONArray) jsonParser.parse(message);
+            final int messageType = Math.toIntExact((long)messageJson.get(0));
+            switch(messageType) {
+                case DOM_EVENT: parseDomEvent((String) messageJson.get(1), (JSONObject) messageJson.get(2)); break;
+                case EXTRACT_PROPERTY_RESPONSE: parseExtractPropertyResponse((String) messageJson.get(1)); break;
+                case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1)); break;
+                case HEARTBEAT: heartBeat(); break;
+            }
+        } catch (ParseException e) {
+            throw new RuntimeException("Error parsing an incoming message: " + message);
         }
     }
 
     private void parseExtractPropertyResponse(String str) {
-        final String[] tokens = unquote(str).split(":");
+        final String[] tokens = str.split(":");
         inMessages.extractProperty(Integer.parseInt(tokens[0]), tokens.length > 2 ? tokens[2] : "");
     }
 
     private void parseEvalJsResponse(String str) {
-        final String[] tokens = unquote(str).split(":");
+        final String[] tokens = str.split(":");
         inMessages.evalJsResponse(Integer.parseInt(tokens[0]), tokens.length > 2 ? tokens[2] : "");
     }
 
-    private void parseDomEvent(String str) {
-        final String[] tokens = unquote(str).split(":");
-        inMessages.domEvent(Integer.parseInt(tokens[0]), Path.of(tokens[1]), tokens[2], tokens[3]);
+
+
+    private void parseDomEvent(String str, JSONObject eventObject) {
+        final String[] tokens = str.split(":");
+        inMessages.domEvent(Integer.parseInt(tokens[0]),
+                            Path.of(tokens[1]),
+                            tokens[2],
+                            name -> Optional.ofNullable((String)eventObject.get(name)));
     }
 
     private void heartBeat() {

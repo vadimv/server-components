@@ -51,13 +51,8 @@ export class Korolev {
       else callback(CallbackType.HISTORY, event.state);
     };
 
-    this.windowHandler = (/** @type {Event} */ event) => {
-      // 1 - event for top level element only ('body)
-      this.eventData[this.renderNum] = event.target;
-      callback(CallbackType.DOM_EVENT, this.renderNum + ':' + 1 + ':' + event.type);
-    };
-
-    window.vId = document.vId = '1';
+    window.vId = '0';
+    document.vId = '1';
 
     this.listenRoot = (target, name, preventDefault, eventModifier) => {
       var listener = (event) => {
@@ -67,10 +62,9 @@ export class Korolev {
           }
           this.eventData[this.renderNum] = event;
 
-          this.callback(CallbackType.DOM_EVENT, this.renderNum
-                                                + ':' + event.target.vId
-                                                + ':' + event.type
-                                                + ':' + JSON.stringify(this.eventObject(event.type, event)));
+          this.callback(CallbackType.DOM_EVENT,
+                        this.renderNum + ':' + event.target.vId + ':' + event.type,
+                        this.eventObject(event.type, event));
         }
       };
 
@@ -80,7 +74,7 @@ export class Korolev {
       this.eventObject = (eventType, e) => {
         var result = {};
         if (eventType == 'keydown') {
-            result.keyCode = e.keyCode;
+            result.keyCode = '"' + e.keyCode + '"';
         }
 
         return result;
@@ -114,7 +108,6 @@ export class Korolev {
     this.rootListeners.forEach((o) => this.root.removeEventListener(o.type, o.listener));
     // Remove popstate handler
     window.removeEventListener('popstate', this.historyHandler);
-    window.removeEventListener('resize', this.windowHandler);
   }
   
   /** @param {number} n */
@@ -154,7 +147,8 @@ export class Korolev {
     * @param {string} eventModifier
     */
   listenEvent(type, preventDefault, path, eventModifier) {
-    this.listenRoot(path === '1' ? window : this.els[path], type, preventDefault, eventModifier);
+    let target = path === window.vId ? window : this.els[path];
+    this.listenRoot(target, type, preventDefault, eventModifier);
   }
 
   /**
