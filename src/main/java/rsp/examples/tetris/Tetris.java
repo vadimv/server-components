@@ -6,6 +6,7 @@ import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
 
 import java.io.File;
+import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -22,14 +23,24 @@ public class Tetris {
         final Component<State> render = useState ->
             html(on("keydown",  c -> {
                         System.out.println("keydown");
-                        System.out.println(c.eventObject().apply("keyCode").orElse("no"));
+                        final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
+                        System.out.println(keyCode);
+                        if ("13".equals(keyCode)) {
+                            useState.accept(useState.get().addTetramino(Tetromions.tetrominoMap.get('L'), 1, 1));
+                        } else if ("37".equals(keyCode)) {
+                            useState.accept(useState.get().moveTetraminoLeft());
+                        } else if ("39".equals(keyCode)) {
+                            useState.accept(useState.get().moveTetraminoRight());
+                        } else if ("40".equals(keyCode)) {
+                            useState.accept(useState.get().moveTetraminoDown());
+                        }
                     }),
                 head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
                 body(
                     div(attr("class", "stage"),
-                        of(Arrays.stream(useState.get().stage.cells).flatMap(row ->
-                                Arrays.stream(row)).map(cell ->
-                                    div(attr("class", "cell t" + (char)cell.type))))),
+                        of(Arrays.stream(useState.get().stage.cells()).flatMap(row ->
+                                CharBuffer.wrap(row).chars().mapToObj(i -> (char)i)).map(cell ->
+                                    div(attr("class", "cell t" + cell))))),
                         window().on("onkeydown", c -> System.out.println("key down"))));
 
         final var s = new JettyServer(DEFAULT_PORT,

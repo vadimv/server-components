@@ -6,7 +6,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import rsp.dom.Path;
-import rsp.util.JsonUtils;
 
 import java.util.Objects;
 import java.util.Optional;

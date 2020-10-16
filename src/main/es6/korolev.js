@@ -74,7 +74,7 @@ export class Korolev {
       this.eventObject = (eventType, e) => {
         var result = {};
         if (eventType == 'keydown') {
-            result.keyCode = '"' + e.keyCode + '"';
+            result.keyCode = '' + e.keyCode;
         }
 
         return result;
