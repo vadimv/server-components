@@ -21,9 +21,9 @@ public class Stage {
 
     public char[][] cells() {
         final char[][] c = Arrays.stream(cells).map(char[]::clone).toArray(char[][]::new); // copy
-        for(int i = 0; i < tetramino.shape.length; i++) {
-            for(int j = 0; j < tetramino.shape[0].length; j++) {
-                c[tetraminoX + i][tetraminoY + j]  = tetramino.shape[i][j];
+        for(int y= 0; y < tetramino.shape.length; y++) {
+            for(int x = 0; x < tetramino.shape[0].length; x++) {
+                c[tetraminoY + y][tetraminoX + x]  = tetramino.shape[y][x];
             }
         }
         return c;
@@ -47,9 +47,9 @@ public class Stage {
 
     public static Stage create() {
         final char[][] cells = new char[HEIGHT][WIDTH];
-        for(int i = 0; i < HEIGHT; i++) {
-            for(int j = 0; j < WIDTH; j++) {
-                cells[i][j] = '0';
+        for(int y = 0; y < HEIGHT; y++) {
+            for(int x = 0; x < WIDTH; x++) {
+                cells[y][x] = '0';
             }
         }
         return new Stage(cells, Tetromions.tetrominoMap.get('0'), 0, 0);
