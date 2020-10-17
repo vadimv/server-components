@@ -22,9 +22,8 @@ public class Tetris {
     public static void main(String[] args) throws Exception {
         final Component<State> render = useState ->
             html(on("keydown",  c -> {
-                        System.out.println("keydown");
                         final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
-                        System.out.println(keyCode);
+                        System.out.println("keydown " + keyCode);
                         if ("13".equals(keyCode)) {
                             useState.accept(useState.get().addTetramino(Tetromions.randomTetromino(), 1, 1));
                         } else if ("37".equals(keyCode)) {
@@ -42,8 +41,7 @@ public class Tetris {
                     div(attr("class", "stage"),
                         of(Arrays.stream(useState.get().stage.cells()).flatMap(row ->
                                 CharBuffer.wrap(row).chars().mapToObj(i -> (char)i)).map(cell ->
-                                    div(attr("class", "cell t" + cell))))),
-                        window().on("onkeydown", c -> System.out.println("key down"))));
+                                    div(attr("class", "cell t" + cell)))))));
 
         final var s = new JettyServer(DEFAULT_PORT,
                                 "",
@@ -53,23 +51,5 @@ public class Tetris {
                                                 "/res/*")));
         s.start();
         s.join();
-    }
-
-    private static class ScheduledTask {
-        private final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-        private ScheduledFuture<?> scheduledFuture;
-
-
-        public synchronized void scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
-            if(scheduledFuture == null) {
-                scheduledFuture = executorService.scheduleAtFixedRate(command, delay, period, timeUnit);
-            }
-        }
-
-        public synchronized void cancel() {
-            if(scheduledFuture != null) {
-                scheduledFuture.cancel(false);
-            }
-        }
     }
 }

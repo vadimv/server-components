@@ -11,6 +11,8 @@ import rsp.state.UseState;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -26,6 +28,7 @@ public class LivePage<S> implements InMessages {
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final UseState<S> stateHandler;
     private final UseState<Snapshot> currentPageSnapshot;
+    private final ScheduledExecutorService executorService;
     private final OutMessages out;
 
     public LivePage(HttpRequest handshakeRequest,
@@ -35,6 +38,7 @@ public class LivePage<S> implements InMessages {
                     Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                     UseState<S> stateHandler,
                     UseState<Snapshot> current,
+                    ScheduledExecutorService executorService,
                     OutMessages out) {
         this.handshakeRequest = handshakeRequest;
         this.qsid = qsid;
@@ -43,6 +47,7 @@ public class LivePage<S> implements InMessages {
         this.renderedPages = renderedPages;
         this.stateHandler = stateHandler;
         this.currentPageSnapshot = current;
+        this.executorService = executorService;
         this.out = out;
     }
 
@@ -87,7 +92,7 @@ public class LivePage<S> implements InMessages {
 
             current.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
-
+        final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
         return new LivePage<>(handshakeRequest,
                               qsid,
                               routing,
@@ -95,6 +100,7 @@ public class LivePage<S> implements InMessages {
                               renderedPages,
                               useState,
                               current,
+                              executorService,
                               out);
     }
 
@@ -144,6 +150,7 @@ public class LivePage<S> implements InMessages {
                                                                   registeredEventHandlers,
                                                                   ref -> currentPageSnapshot.get().refs.get(ref),
                                                                   eventObject,
+                                                                  executorService,
                                                                   out);
                event.eventHandler.accept(eventContext);
                break;

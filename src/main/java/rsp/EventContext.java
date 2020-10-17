@@ -9,26 +9,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class EventContext {
 
     private final Map<Integer, CompletableFuture<String>> registeredEventHandlers;
-    private final OutMessages out;
     private final Supplier<Integer> descriptorSupplier;
     private final Function<Object, Path> pathLookup;
     private final Function<String, Optional<String>> eventObject;
-
+    private final ScheduledExecutorService executorService;
+    private final OutMessages out;
     public EventContext(Supplier<Integer> descriptorSupplier,
                         Map<Integer, CompletableFuture<String>> registeredEventHandlers,
                         Function<Object, Path> pathLookup,
                         Function<String, Optional<String>> eventObject,
+                        ScheduledExecutorService executorService,
                         OutMessages out) {
         this.descriptorSupplier = descriptorSupplier;
         this.registeredEventHandlers = registeredEventHandlers;
         this.pathLookup = pathLookup;
         this.eventObject = eventObject;
+        this.executorService = executorService;
         this.out = out;
     }
 
@@ -50,6 +54,10 @@ public class EventContext {
 
     public Function<String, Optional<String>> eventObject() {
         return eventObject;
+    }
+
+    public void scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
+        executorService.scheduleAtFixedRate(command, delay, period, timeUnit);
     }
 
     public class PropertiesHandle {
