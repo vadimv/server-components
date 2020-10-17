@@ -25,4 +25,8 @@ public class State {
     public State moveTetraminoRight() {
         return new State(stage.moveTetraminoRight());
     }
+
+    public State rotateTetramino() {
+        return new State(stage.rotateCcw());
+    }
 }

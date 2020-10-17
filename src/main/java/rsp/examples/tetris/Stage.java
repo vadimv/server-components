@@ -45,6 +45,18 @@ public class Stage {
         return new Stage(cells, tetramino, tetraminoX + 1, tetraminoY);
     }
 
+    public Stage rotateCcw() {
+        final char[][] t = new char[tetramino.shape.length][tetramino.shape[0].length];
+        final int w = tetramino.shape.length;
+        final int h = tetramino.shape[0].length;
+        for(int y = 0; y < w; y++) {
+            for(int x = 0; x < h; x++) {
+                t[w - x - 1][y]  = tetramino.shape[y][x];
+            }
+        }
+        return new Stage(cells, new Tetromions.Tetromino(t), tetraminoX, tetraminoY);
+    }
+
     public static Stage create() {
         final char[][] cells = new char[HEIGHT][WIDTH];
         for(int y = 0; y < HEIGHT; y++) {

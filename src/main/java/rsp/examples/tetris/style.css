@@ -51,47 +51,35 @@ aside {
 
 .tI {
     background: rgba(80, 227, 230, 0.8);
-    border: 4px solid;
+    border: 3px solid;
 }
 
 .tJ {
     background: rgba(36, 95, 223, 0.8);
-    border: 4px solid;
+    border: 3px solid;
 }
 
 .tL {
     background: rgba(223, 173, 36, 0.8);
-    border: 4px solid;
+    border: 3px solid;
 }
 
 .tO {
     background: rgba(223, 217, 36, 0.8);
-    border: 4px solid;
+    border: 3px solid;
 }
 
 .tS {
     background: rgba(48, 211, 56, 0.8);
-    border: 4px solid;
+    border: 3px solid;
 }
 
 .tT {
     background: rgba(132, 61, 198, 0.8);
-    border: 4px solid;
+    border: 3px solid;
 }
 
 .tZ {
     background: rgba(227, 78, 78, 0.8);
-    border: '4px solid';
-}
-
-
-
-.tT {
-    background: rgba(${props => props.color}, 0.8);
-    border: '4px solid';
-}
-
-.tZ {
-    background: rgba(${props => props.color}, 0.8);
-    border: '4px solid';
+    border: 3px solid;
 }

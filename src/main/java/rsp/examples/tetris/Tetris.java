@@ -26,13 +26,15 @@ public class Tetris {
                         final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
                         System.out.println(keyCode);
                         if ("13".equals(keyCode)) {
-                            useState.accept(useState.get().addTetramino(Tetromions.tetrominoMap.get('L'), 1, 1));
+                            useState.accept(useState.get().addTetramino(Tetromions.randomTetromino(), 1, 1));
                         } else if ("37".equals(keyCode)) {
                             useState.accept(useState.get().moveTetraminoLeft());
                         } else if ("39".equals(keyCode)) {
                             useState.accept(useState.get().moveTetraminoRight());
                         } else if ("40".equals(keyCode)) {
                             useState.accept(useState.get().moveTetraminoDown());
+                        } else if ("38".equals(keyCode)) {
+                            useState.accept(useState.get().rotateTetramino());
                         }
                     }),
                 head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
