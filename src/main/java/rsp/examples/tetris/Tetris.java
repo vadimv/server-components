@@ -27,7 +27,7 @@ public class Tetris {
                             useState.accept(useState.get().moveTetraminoLeft());
                         } else if ("39".equals(keyCode) && !useState.get().checkCollision(1, 0, false)) {
                             useState.accept(useState.get().moveTetraminoRight());
-                        } else if ("40".equals(keyCode) && !useState.get().checkCollision(0, 0, false)) {
+                        } else if ("40".equals(keyCode) && !useState.get().checkCollision(0, 1, false)) {
                             useState.accept(useState.get().moveTetraminoDown());
                         } else if ("38".equals(keyCode) && !useState.get().checkCollision(0, 1, true)) {
                             useState.accept(useState.get().rotateTetramino());
