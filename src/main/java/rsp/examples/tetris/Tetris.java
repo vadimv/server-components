@@ -9,9 +9,6 @@ import java.io.File;
 import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import static rsp.dsl.Html.*;
@@ -26,13 +23,13 @@ public class Tetris {
                         System.out.println("keydown " + keyCode);
                         if ("13".equals(keyCode)) {
                             useState.accept(useState.get().addTetramino(Tetromions.randomTetromino(), 1, 1));
-                        } else if ("37".equals(keyCode)) {
+                        } else if ("37".equals(keyCode) && !useState.get().checkCollision(-1, 0, false)) {
                             useState.accept(useState.get().moveTetraminoLeft());
-                        } else if ("39".equals(keyCode)) {
+                        } else if ("39".equals(keyCode) && !useState.get().checkCollision(1, 0, false)) {
                             useState.accept(useState.get().moveTetraminoRight());
-                        } else if ("40".equals(keyCode)) {
+                        } else if ("40".equals(keyCode) && !useState.get().checkCollision(0, 0, false)) {
                             useState.accept(useState.get().moveTetraminoDown());
-                        } else if ("38".equals(keyCode)) {
+                        } else if ("38".equals(keyCode) && !useState.get().checkCollision(0, 1, true)) {
                             useState.accept(useState.get().rotateTetramino());
                         }
                     }),
@@ -42,12 +39,9 @@ public class Tetris {
                         of(Arrays.stream(useState.get().stage.cells()).flatMap(row ->
                                 CharBuffer.wrap(row).chars().mapToObj(i -> (char)i)).map(cell ->
                                     div(attr("class", "cell t" + cell))))),
-                    aside(div(
-
-                            ),
-                            button(attr("type", "button"),
-                                   text("Start"),
-                                   on("click", c -> {
+                    aside(button(attr("type", "button"),
+                                 text("Start"),
+                                 on("click", c -> {
                                        System.out.println("Start clicked");
                                        c.scheduleAtFixedRate(() -> {
                                            System.out.println("Schedule command");

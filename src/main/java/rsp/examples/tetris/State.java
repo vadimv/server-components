@@ -14,6 +14,10 @@ public class State {
         return new State(stage.addTetramino(tetramino, x, y));
     }
 
+    public boolean checkCollision(int dx, int dy, boolean rotate) {
+        return stage.checkCollision(dx, dy, rotate);
+    }
+
     public State moveTetraminoDown() {
         return new State(stage.moveTetraminoDown());
     }

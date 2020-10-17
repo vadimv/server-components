@@ -36,6 +36,28 @@ public class Stage {
         return new Stage(cells, tetramino, x, y);
     }
 
+    public boolean checkCollision(int dx, int dy, boolean rotate) {
+        final char[][] m = rotate ? rotateMatrix(tetramino.shape) : tetramino.shape;
+        final int h = m.length;
+        final int w = m[0].length;
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                if (m[y][x] != '0') {
+                    if (tetraminoY + y + dy >= HEIGHT) {
+                        return true;
+                    } else if ((tetraminoX + x + dx) < 0) {
+                        return true;
+                    } else if ((tetraminoX + x + dx) >= WIDTH) {
+                        return true;
+                    } else if (cells[tetraminoY + y + dy][tetraminoX + x + dx] != '0') {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     public Stage moveTetraminoDown() {
         return new Stage(cells, tetramino, tetraminoX, tetraminoY + 1);
     }
@@ -48,16 +70,29 @@ public class Stage {
         return new Stage(cells, tetramino, tetraminoX + 1, tetraminoY);
     }
 
+    private static char[][] rotateMatrix(char[][] m) {
+        final int h = m.length;
+        final int w = m[0].length;
+        final char[][] t = new char[h][w];
+
+        for(int y = 0; y < h; y++) {
+            for(int x = 0; x < w; x++) {
+                t[w - x - 1][y]  = m[y][x];
+            }
+        }
+        return t;
+    }
+
     public Stage rotateCcw() {
-        final char[][] t = new char[tetramino.shape.length][tetramino.shape[0].length];
+  /*      final char[][] t = new char[tetramino.shape.length][tetramino.shape[0].length];
         final int w = tetramino.shape.length;
         final int h = tetramino.shape[0].length;
         for(int y = 0; y < w; y++) {
             for(int x = 0; x < h; x++) {
                 t[w - x - 1][y]  = tetramino.shape[y][x];
             }
-        }
-        return new Stage(cells, new Tetromions.Tetromino(t), tetraminoX, tetraminoY);
+        }*/
+        return new Stage(cells, new Tetromions.Tetromino(rotateMatrix(tetramino.shape)), tetraminoX, tetraminoY);
     }
 
     public static Stage create() {
