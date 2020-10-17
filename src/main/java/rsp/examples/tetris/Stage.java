@@ -23,7 +23,10 @@ public class Stage {
         final char[][] c = Arrays.stream(cells).map(char[]::clone).toArray(char[][]::new); // copy
         for(int y= 0; y < tetramino.shape.length; y++) {
             for(int x = 0; x < tetramino.shape[0].length; x++) {
-                c[tetraminoY + y][tetraminoX + x]  = tetramino.shape[y][x];
+                final char type = tetramino.shape[y][x];
+                if (type != '0') {
+                    c[tetraminoY + y][tetraminoX + x]  = tetramino.shape[y][x];
+                }
             }
         }
         return c;
