@@ -43,13 +43,10 @@ public class Stage {
         for (int y = 0; y < h; y++) {
             for (int x = 0; x < w; x++) {
                 if (m[y][x] != '0') {
-                    if (tetraminoY + y + dy >= HEIGHT) {
-                        return true;
-                    } else if ((tetraminoX + x + dx) < 0) {
-                        return true;
-                    } else if ((tetraminoX + x + dx) >= WIDTH) {
-                        return true;
-                    } else if (cells[tetraminoY + y + dy][tetraminoX + x + dx] != '0') {
+                    if ((tetraminoY + y + dy >= HEIGHT)
+                        || ((tetraminoX + x + dx) < 0)
+                        || ((tetraminoX + x + dx) >= WIDTH)
+                        || (cells[tetraminoY + y + dy][tetraminoX + x + dx] != '0')) {
                         return true;
                     }
                 }
