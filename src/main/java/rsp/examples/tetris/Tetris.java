@@ -41,7 +41,20 @@ public class Tetris {
                     div(attr("class", "stage"),
                         of(Arrays.stream(useState.get().stage.cells()).flatMap(row ->
                                 CharBuffer.wrap(row).chars().mapToObj(i -> (char)i)).map(cell ->
-                                    div(attr("class", "cell t" + cell)))))));
+                                    div(attr("class", "cell t" + cell))))),
+                    aside(div(
+
+                            ),
+                            button(attr("type", "button"),
+                                   text("Start"),
+                                   on("click", c -> {
+                                       System.out.println("Start clicked");
+                                       c.scheduleAtFixedRate(() -> {
+                                           System.out.println("Schedule command");
+                                           useState.accept(useState.get().moveTetraminoDown());
+                                       }, 0, 1, TimeUnit.SECONDS);
+                                   })
+                    ))));
 
         final var s = new JettyServer(DEFAULT_PORT,
                                 "",

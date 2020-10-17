@@ -42,6 +42,10 @@ public class Html {
         return tag("div", children);
     }
 
+    public static TagDefinition aside(DocumentPartDefinition... children) {
+        return tag("aside", children);
+    }
+
     public static TagDefinition span(DocumentPartDefinition... children) {
         return tag("span", children);
     }
