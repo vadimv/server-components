@@ -4,6 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
+import rsp.state.UseState;
 
 import java.io.File;
 import java.nio.CharBuffer;
@@ -26,14 +27,14 @@ public class Tetris {
                         System.out.println("keydown " + keyCode);
                         if ("13".equals(keyCode)) {
                             useState.accept(useState.get().addTetramino(Tetromions.randomTetromino(), 1, 1));
-                        } else if ("37".equals(keyCode) && !useState.get().checkCollision(-1, 0, false)) {
-                            useState.accept(useState.get().moveTetraminoLeft());
-                        } else if ("39".equals(keyCode) && !useState.get().checkCollision(1, 0, false)) {
-                            useState.accept(useState.get().moveTetraminoRight());
-                        } else if ("40".equals(keyCode) && !useState.get().checkCollision(0, 1, false)) {
-                            useState.accept(useState.get().moveTetraminoDown());
-                        } else if ("38".equals(keyCode) && !useState.get().checkCollision(0, 1, true)) {
-                            useState.accept(useState.get().rotateTetramino());
+                        } else if ("37".equals(keyCode)) {
+                            tryMoveLeft(useState);
+                        } else if ("39".equals(keyCode)) {
+                            tryMoveRight(useState);
+                        } else if ("40".equals(keyCode)) {
+                            tryMoveDown(useState);
+                        } else if ("38".equals(keyCode)) {
+                            tryRotate(useState);
                         }
                     }),
                 head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
@@ -69,5 +70,29 @@ public class Tetris {
                                                 "/res/*")));
         s.start();
         s.join();
+    }
+
+    private static void tryMoveLeft(UseState<State> s) {
+        if (!s.get().checkCollision(-1, 0, false)) {
+            s.accept(s.get().moveTetraminoLeft());
+        }
+    }
+
+    private static void tryMoveRight(UseState<State> s) {
+        if (!s.get().checkCollision(1, 0, false)) {
+            s.accept(s.get().moveTetraminoRight());
+        }
+    }
+
+    private static void tryMoveDown(UseState<State> s) {
+        if (!s.get().checkCollision(0, 1, false)) {
+            s.accept(s.get().moveTetraminoDown());
+        }
+    }
+
+    private static void tryRotate(UseState<State> s) {
+        if (!s.get().checkCollision(0, 1, true)) {
+            s.accept(s.get().rotateTetramino());
+        }
     }
 }
