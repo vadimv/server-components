@@ -166,6 +166,10 @@ public class LivePage<S> implements InMessages {
         }
     }
 
+    public void shutdown() {
+
+    }
+
     private static class Snapshot {
         public final Optional<Tag> domRoot;
         public final Map<Event.Target, Event> events;

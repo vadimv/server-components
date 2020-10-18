@@ -19,6 +19,7 @@ import java.util.function.Function;
 
 public class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
+    private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
     private final Component<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
@@ -42,15 +43,15 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     public void onOpen(Session session, EndpointConfig endpointConfig) {
         final OutMessages out = new SerializeKorolevOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
-        final LivePage<S> livePage = LivePage.of(handshakeRequest,
-                                                   new QualifiedSessionId(session.getPathParameters().get("pid"),
-                                                                          session.getPathParameters().get("sid")),
-                                                   routing,
-                                                   state2route,
-                                                   renderedPages,
-                                                   documentDefinition,
-                                                   enrich,
-                                                   out);
+        LivePage<S> livePage = LivePage.of(handshakeRequest,
+                                           new QualifiedSessionId(session.getPathParameters().get("pid"),
+                                                                  session.getPathParameters().get("sid")),
+                                           routing,
+                                           state2route,
+                                           renderedPages,
+                                           documentDefinition,
+                                           enrich,
+                                           out);
         final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage(livePage);
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override
@@ -60,6 +61,7 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
             }
         });
         livePage.start();
+        session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
     }
 
     private static void sendText(Session session, String text) {
@@ -70,13 +72,24 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
         }
     }
 
+    @Override
     public void onClose(Session session, CloseReason closeReason) {
+        shutdown(session);
         System.out.println("Closed: " + closeReason.getReasonPhrase());
     }
 
+    @Override
     public void onError(Session session, Throwable thr) {
+        shutdown(session);
         System.out.println("Error:" + thr.getLocalizedMessage());
         thr.printStackTrace();
+    }
+
+    private void shutdown(Session session) {
+        final LivePage<S> livePage = (LivePage<S>) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
+        if (livePage != null) {
+            livePage.shutdown();
+        }
     }
 
     public static HttpRequest of(HandshakeRequest handshakeRequest) {
