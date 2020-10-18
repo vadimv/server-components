@@ -25,9 +25,7 @@ public class Tetris {
             html(on("keydown",  c -> {
                         final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
                         System.out.println("keydown " + keyCode);
-                        if ("13".equals(keyCode)) {
-                            setTetramino(useState);
-                        } else if ("37".equals(keyCode)) {
+                        if ("37".equals(keyCode)) {
                             tryMoveLeft(useState);
                         } else if ("39".equals(keyCode)) {
                             tryMoveRight(useState);
@@ -47,6 +45,7 @@ public class Tetris {
                                  text("Start"),
                                  on("click", c -> {
                                        System.out.println("Start clicked");
+                                       setTetramino(useState);
                                        timer.set(c.scheduleAtFixedRate(() -> {
                                            System.out.println("Schedule command");
                                            if (!tryMoveDown(useState)) {
