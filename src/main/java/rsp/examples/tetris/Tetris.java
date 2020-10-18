@@ -9,7 +9,9 @@ import java.io.File;
 import java.nio.CharBuffer;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static rsp.dsl.Html.*;
 
@@ -17,6 +19,7 @@ public class Tetris {
     public static final int DEFAULT_PORT = 8080;
 
     public static void main(String[] args) throws Exception {
+        final AtomicReference<ScheduledFuture<?>> timer = new AtomicReference();
         final Component<State> render = useState ->
             html(on("keydown",  c -> {
                         final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
@@ -43,12 +46,20 @@ public class Tetris {
                                  text("Start"),
                                  on("click", c -> {
                                        System.out.println("Start clicked");
-                                       c.scheduleAtFixedRate(() -> {
+                                       timer.set(c.scheduleAtFixedRate(() -> {
                                            System.out.println("Schedule command");
                                            useState.accept(useState.get().moveTetraminoDown());
-                                       }, 0, 1, TimeUnit.SECONDS);
+                                       }, 0, 1, TimeUnit.SECONDS));
                                    })
-                    ))));
+                    ), button(attr("type", "button"),
+                            text("Stop"),
+                            on("click", c -> {
+                                final var t = timer.get();
+                                if (t != null) {
+                                    t.cancel(false);
+                                }
+                            }))
+                            )));
 
         final var s = new JettyServer(DEFAULT_PORT,
                                 "",

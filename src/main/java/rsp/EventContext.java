@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -56,8 +57,8 @@ public class EventContext {
         return eventObject;
     }
 
-    public void scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
-        executorService.scheduleAtFixedRate(command, delay, period, timeUnit);
+    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
+        return executorService.scheduleAtFixedRate(command, delay, period, timeUnit);
     }
 
     public class PropertiesHandle {
