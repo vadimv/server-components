@@ -26,7 +26,7 @@ public class Tetris {
                         final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
                         System.out.println("keydown " + keyCode);
                         if ("13".equals(keyCode)) {
-                            useState.accept(useState.get().addTetramino(Tetromions.randomTetromino(), 1, 1));
+                            setTetramino(useState);
                         } else if ("37".equals(keyCode)) {
                             tryMoveLeft(useState);
                         } else if ("39".equals(keyCode)) {
@@ -49,7 +49,9 @@ public class Tetris {
                                        System.out.println("Start clicked");
                                        timer.set(c.scheduleAtFixedRate(() -> {
                                            System.out.println("Schedule command");
-                                           useState.accept(useState.get().moveTetraminoDown());
+                                           if (!tryMoveDown(useState)) {
+                                               setTetramino(useState);
+                                           }
                                        }, 0, 1, TimeUnit.SECONDS));
                                    })
                     ), button(attr("type", "button"),
@@ -72,6 +74,10 @@ public class Tetris {
         s.join();
     }
 
+    private static void setTetramino(UseState<State> s) {
+        s.accept(s.get().addTetraminoToCells().setTetramino(Tetromions.randomTetromino(), 1, 1));
+    }
+
     private static void tryMoveLeft(UseState<State> s) {
         if (!s.get().checkCollision(-1, 0, false)) {
             s.accept(s.get().moveTetraminoLeft());
@@ -84,9 +90,12 @@ public class Tetris {
         }
     }
 
-    private static void tryMoveDown(UseState<State> s) {
+    private static boolean tryMoveDown(UseState<State> s) {
         if (!s.get().checkCollision(0, 1, false)) {
             s.accept(s.get().moveTetraminoDown());
+            return true;
+        } else {
+            return false;
         }
     }
 

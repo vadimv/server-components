@@ -32,8 +32,21 @@ public class Stage {
         return c;
     }
 
-    public Stage addTetramino(Tetromions.Tetromino tetramino, int x, int y) {
+    public Stage setTetramino(Tetromions.Tetromino tetramino, int x, int y) {
         return new Stage(cells, tetramino, x, y);
+    }
+
+    public Stage addTetraminoToCells() {
+        final char[][] c = Arrays.stream(cells).map(char[]::clone).toArray(char[][]::new); // copy
+        for(int y= 0; y < tetramino.shape.length; y++) {
+            for(int x = 0; x < tetramino.shape[0].length; x++) {
+                final char type = tetramino.shape[y][x];
+                if (type != '0') {
+                    c[tetraminoY + y][tetraminoX + x]  = tetramino.shape[y][x];
+                }
+            }
+        }
+        return new Stage(c, tetramino, tetraminoX, tetraminoY);
     }
 
     public boolean checkCollision(int dx, int dy, boolean rotate) {

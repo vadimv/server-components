@@ -10,8 +10,12 @@ public class State {
         return new State(Stage.create());
     }
 
-    public State addTetramino(Tetromions.Tetromino tetramino, int x, int y) {
-        return new State(stage.addTetramino(tetramino, x, y));
+    public State setTetramino(Tetromions.Tetromino tetramino, int x, int y) {
+        return new State(stage.setTetramino(tetramino, x, y));
+    }
+
+    public State addTetraminoToCells() {
+        return new State(stage.addTetraminoToCells());
     }
 
     public boolean checkCollision(int dx, int dy, boolean rotate) {
