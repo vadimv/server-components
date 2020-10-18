@@ -57,6 +57,10 @@ public class EventContext {
         return eventObject;
     }
 
+    public ScheduledFuture<?> schedule(Runnable command, int delay, TimeUnit timeUnit) {
+        return executorService.schedule(command, delay, timeUnit);
+    }
+
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
         return executorService.scheduleAtFixedRate(command, delay, period, timeUnit);
     }
