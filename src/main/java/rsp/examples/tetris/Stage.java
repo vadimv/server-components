@@ -98,12 +98,31 @@ public class Stage {
     }
 
     public static Stage create() {
-        final char[][] cells = new char[HEIGHT][WIDTH];
+        final char[][] c = new char[HEIGHT][WIDTH];
         for(int y = 0; y < HEIGHT; y++) {
             for(int x = 0; x < WIDTH; x++) {
-                cells[y][x] = '0';
+                c[y][x] = '0';
             }
         }
-        return new Stage(cells, Tetromions.tetrominoMap.get('0'), 0, 0);
+        return new Stage(c, Tetromions.tetrominoMap.get('0'), 0, 0);
+    }
+
+    public Stage collapseFullLayers() {
+        final char[][] c = Arrays.stream(cells).map(char[]::clone).toArray(char[][]::new); // copy
+        for(int y1 = HEIGHT - 1, y2 = HEIGHT - 1; y1 >= 0; y1--) {
+            if (!isFull(cells[y1])) {
+                System.arraycopy(c,y1, c, y2--, 1);
+            }
+        }
+        return new Stage(c, tetramino, tetraminoX, tetraminoY);
+    }
+
+    private boolean isFull(char[] row) {
+        for (char cell:row) {
+            if (cell == '0') {
+                return false;
+            }
+        }
+        return true;
     }
 }

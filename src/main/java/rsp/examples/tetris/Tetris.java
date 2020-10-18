@@ -75,7 +75,10 @@ public class Tetris {
     }
 
     private static void setTetramino(UseState<State> s) {
-        s.accept(s.get().addTetraminoToCells().setTetramino(Tetromions.randomTetromino(), 1, 1));
+        final Tetromions.Tetromino t = Tetromions.randomTetromino();
+        s.accept(s.get().addTetraminoToCells()
+                        .collapseFullLayers()
+                        .setTetramino(t, (Stage.WIDTH - t.shape.length) / 2, 0));
     }
 
     private static void tryMoveLeft(UseState<State> s) {

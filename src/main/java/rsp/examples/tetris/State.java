@@ -18,6 +18,10 @@ public class State {
         return new State(stage.addTetraminoToCells());
     }
 
+    public State collapseFullLayers() {
+        return new State(stage.collapseFullLayers());
+    }
+
     public boolean checkCollision(int dx, int dy, boolean rotate) {
         return stage.checkCollision(dx, dy, rotate);
     }
