@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -21,13 +20,13 @@ public class EventContext {
     private final Supplier<Integer> descriptorSupplier;
     private final Function<Object, Path> pathLookup;
     private final Function<String, Optional<String>> eventObject;
-    private final ScheduledExecutorService executorService;
+    private final Schedule executorService;
     private final OutMessages out;
     public EventContext(Supplier<Integer> descriptorSupplier,
                         Map<Integer, CompletableFuture<String>> registeredEventHandlers,
                         Function<Object, Path> pathLookup,
                         Function<String, Optional<String>> eventObject,
-                        ScheduledExecutorService executorService,
+                        Schedule executorService,
                         OutMessages out) {
         this.descriptorSupplier = descriptorSupplier;
         this.registeredEventHandlers = registeredEventHandlers;

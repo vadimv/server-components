@@ -9,16 +9,13 @@ import rsp.state.MutableState;
 import rsp.state.UseState;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class LivePage<S> implements InMessages {
+public class LivePage<S> implements InMessages, Schedule {
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
     private final Map<Integer, CompletableFuture<String>> registeredEventHandlers = new ConcurrentHashMap<>();
     private final HttpRequest handshakeRequest;
@@ -93,6 +90,7 @@ public class LivePage<S> implements InMessages {
             current.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
         final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+
         return new LivePage<>(handshakeRequest,
                               qsid,
                               routing,
@@ -142,25 +140,27 @@ public class LivePage<S> implements InMessages {
 
     @Override
     public void domEvent(int renderNumber, Path path, String eventType, Function<String, Optional<String>> eventObject) {
-        Path eventElementPath = path;
-        while(eventElementPath.level() > 0) {
-            final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
-            if (event != null && event.eventTarget.eventType.equals(eventType)) {
-               final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                  registeredEventHandlers,
-                                                                  ref -> currentPageSnapshot.get().refs.get(ref),
-                                                                  eventObject,
-                                                                  executorService,
-                                                                  out);
-               event.eventHandler.accept(eventContext);
-               break;
-            } else {
-                final Optional<Path> parentPath = eventElementPath.parent();
-                if (parentPath.isPresent()) {
-                    eventElementPath = parentPath.get();
-                } else {
-                    // TODO warn
+        synchronized (this) {
+            Path eventElementPath = path;
+            while(eventElementPath.level() > 0) {
+                final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
+                if (event != null && event.eventTarget.eventType.equals(eventType)) {
+                    final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
+                            registeredEventHandlers,
+                            ref -> currentPageSnapshot.get().refs.get(ref),
+                            eventObject,
+                            this,
+                            out);
+                    event.eventHandler.accept(eventContext);
                     break;
+                } else {
+                    final Optional<Path> parentPath = eventElementPath.parent();
+                    if (parentPath.isPresent()) {
+                        eventElementPath = parentPath.get();
+                    } else {
+                        // TODO warn
+                        break;
+                    }
                 }
             }
         }
@@ -168,6 +168,24 @@ public class LivePage<S> implements InMessages {
 
     public void shutdown() {
 
+    }
+
+    @Override
+    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+        return executorService.scheduleAtFixedRate(() -> {
+            synchronized (this) {
+                command.run();
+            }
+        }, initialDelay, period, unit);
+    }
+
+    @Override
+    public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
+        return executorService.schedule(() -> {
+            synchronized (this) {
+                command.run();
+            }
+        }, delay, unit);
     }
 
     private static class Snapshot {
