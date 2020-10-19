@@ -52,16 +52,15 @@ public class Tetris {
                                                setTetramino(useState);
                                            }
                                        }, 0, 1, TimeUnit.SECONDS));
-                                   })
-                    ), button(attr("type", "button"),
+                                   })),
+                         button(attr("type", "button"),
                             text("Stop"),
                             on("click", c -> {
                                 final var t = timer.get();
                                 if (t != null) {
                                     t.cancel(false);
                                 }
-                            }))
-                            )));
+                            })))));
 
         final var s = new JettyServer(DEFAULT_PORT,
                                 "",
@@ -102,7 +101,7 @@ public class Tetris {
     }
 
     private static void tryRotate(UseState<State> s) {
-        if (!s.get().checkCollision(0, 1, true)) {
+        if (!s.get().checkCollision(0, 0, true)) {
             s.accept(s.get().rotateTetramino());
         }
     }
