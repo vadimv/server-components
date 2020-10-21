@@ -4,7 +4,6 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
-import rsp.state.UseState;
 
 import java.io.File;
 import java.nio.CharBuffer;
@@ -24,15 +23,12 @@ public class Tetris {
         final Component<State> render = useState ->
             html(on("keydown",  c -> {
                         final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
-                        System.out.println("keydown " + keyCode);
-                        if ("37".equals(keyCode)) {
-                            tryMoveLeft(useState);
-                        } else if ("39".equals(keyCode)) {
-                            tryMoveRight(useState);
-                        } else if ("40".equals(keyCode)) {
-                            tryMoveDown(useState);
-                        } else if ("38".equals(keyCode)) {
-                            tryRotate(useState);
+                        final State s = useState.get();
+                        switch (keyCode) {
+                            case "37": s.tryMoveLeft().ifPresent(ns -> useState.accept(ns)); break;
+                            case "39": s.tryMoveRight().ifPresent(ns -> useState.accept(ns)); break;
+                            case "40": s.tryMoveDown().ifPresent(ns -> useState.accept(ns)); break;
+                            case "38": s.tryRotate().ifPresent(ns -> useState.accept(ns)); break;
                         }
                     }),
                 head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
@@ -41,26 +37,26 @@ public class Tetris {
                         of(Arrays.stream(useState.get().stage.cells()).flatMap(row ->
                                 CharBuffer.wrap(row).chars().mapToObj(i -> (char)i)).map(cell ->
                                     div(attr("class", "cell t" + cell))))),
-                    aside(button(attr("type", "button"),
-                                 text("Start"),
-                                 on("click", c -> {
-                                       System.out.println("Start clicked");
-                                       setTetramino(useState);
+                    div(attr("class", "sidebar"),
+                        span(text("Score: " + useState.get().score())),
+                        button(attr("type", "button"),
+                               when(useState.get().isRunning, attr("disabled", "true")),
+                               text("Start"),
+                               on("click", c -> {
+                                       State.initialState().start().newTetramino().ifPresent(ns -> useState.accept(ns));
                                        timer.set(c.scheduleAtFixedRate(() -> {
-                                           System.out.println("Schedule command");
-                                           if (!tryMoveDown(useState)) {
-                                               setTetramino(useState);
-                                           }
+                                           final State s = useState.get();
+                                           s.tryMoveDown().ifPresentOrElse(ns -> {
+                                              useState.accept(ns);
+                                           }, () -> {
+                                               s.newTetramino().ifPresentOrElse(ns -> useState.accept(ns), () -> {
+                                                   timer.get().cancel(false);
+                                                   useState.accept(s.stop());
+                                               });
+                                           });
                                        }, 0, 1, TimeUnit.SECONDS));
-                                   })),
-                         button(attr("type", "button"),
-                            text("Stop"),
-                            on("click", c -> {
-                                final var t = timer.get();
-                                if (t != null) {
-                                    t.cancel(false);
-                                }
-                            })))));
+                               })))
+                ));
 
         final var s = new JettyServer(DEFAULT_PORT,
                                 "",
@@ -70,39 +66,5 @@ public class Tetris {
                                                 "/res/*")));
         s.start();
         s.join();
-    }
-
-    private static void setTetramino(UseState<State> s) {
-        final Tetromions.Tetromino t = Tetromions.randomTetromino();
-        s.accept(s.get().addTetraminoToCells()
-                        .collapseFullLayers()
-                        .setTetramino(t, (Stage.WIDTH - t.shape.length) / 2, 0));
-    }
-
-    private static void tryMoveLeft(UseState<State> s) {
-        if (!s.get().checkCollision(-1, 0, false)) {
-            s.accept(s.get().moveTetraminoLeft());
-        }
-    }
-
-    private static void tryMoveRight(UseState<State> s) {
-        if (!s.get().checkCollision(1, 0, false)) {
-            s.accept(s.get().moveTetraminoRight());
-        }
-    }
-
-    private static boolean tryMoveDown(UseState<State> s) {
-        if (!s.get().checkCollision(0, 1, false)) {
-            s.accept(s.get().moveTetraminoDown());
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    private static void tryRotate(UseState<State> s) {
-        if (!s.get().checkCollision(0, 0, true)) {
-            s.accept(s.get().rotateTetramino());
-        }
     }
 }

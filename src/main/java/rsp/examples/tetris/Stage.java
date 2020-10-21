@@ -1,6 +1,7 @@
 package rsp.examples.tetris;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Stage {
     public static final int WIDTH = 12;
@@ -11,12 +12,14 @@ public class Stage {
     private final int tetraminoX;
     private final int tetraminoY;
 
+    public final int collapsedLayersCount;
 
-    public Stage(char[][] cells, Tetromions.Tetromino tetramino, int tetraminoX, int tetraminoY) {
+    public Stage(char[][] cells, Tetromions.Tetromino tetramino, int tetraminoX, int tetraminoY, int collapsedLayersCount) {
         this.cells = cells;
         this.tetramino = tetramino;
         this.tetraminoX = tetraminoX;
         this.tetraminoY = tetraminoY;
+        this.collapsedLayersCount = collapsedLayersCount;
     }
 
     public char[][] cells() {
@@ -33,7 +36,7 @@ public class Stage {
     }
 
     public Stage setTetramino(Tetromions.Tetromino tetramino, int x, int y) {
-        return new Stage(cells, tetramino, x, y);
+        return new Stage(cells, tetramino, x, y, collapsedLayersCount);
     }
 
     public Stage addTetraminoToCells() {
@@ -46,8 +49,9 @@ public class Stage {
                 }
             }
         }
-        return new Stage(c, tetramino, tetraminoX, tetraminoY);
+        return new Stage(c, tetramino, tetraminoX, tetraminoY, collapsedLayersCount);
     }
+
 
     public boolean checkCollision(int dx, int dy, boolean rotate) {
         final char[][] m = rotate ? rotateMatrix(tetramino.shape) : tetramino.shape;
@@ -69,15 +73,15 @@ public class Stage {
     }
 
     public Stage moveTetraminoDown() {
-        return new Stage(cells, tetramino, tetraminoX, tetraminoY + 1);
+        return new Stage(cells, tetramino, tetraminoX, tetraminoY + 1, collapsedLayersCount);
     }
 
     public Stage moveTetraminoLeft() {
-        return new Stage(cells, tetramino, tetraminoX - 1, tetraminoY);
+        return new Stage(cells, tetramino, tetraminoX - 1, tetraminoY, collapsedLayersCount);
     }
 
     public Stage moveTetraminoRight() {
-        return new Stage(cells, tetramino, tetraminoX + 1, tetraminoY);
+        return new Stage(cells, tetramino, tetraminoX + 1, tetraminoY, collapsedLayersCount);
     }
 
     private static char[][] rotateMatrix(char[][] m) {
@@ -94,7 +98,7 @@ public class Stage {
     }
 
     public Stage rotateCcw() {
-        return new Stage(cells, new Tetromions.Tetromino(rotateMatrix(tetramino.shape)), tetraminoX, tetraminoY);
+        return new Stage(cells, new Tetromions.Tetromino(rotateMatrix(tetramino.shape)), tetraminoX, tetraminoY, collapsedLayersCount);
     }
 
     public static Stage create() {
@@ -104,17 +108,20 @@ public class Stage {
                 c[y][x] = '0';
             }
         }
-        return new Stage(c, Tetromions.tetrominoMap.get('0'), 0, 0);
+        return new Stage(c, Tetromions.tetrominoMap.get('0'), 0, 0, 0);
     }
 
     public Stage collapseFullLayers() {
         final char[][] c = Arrays.stream(cells).map(char[]::clone).toArray(char[][]::new); // copy
+        int n = 0;
         for(int y1 = HEIGHT - 1, y2 = HEIGHT - 1; y1 >= 0; y1--) {
             if (!isFull(cells[y1])) {
                 System.arraycopy(c,y1, c, y2--, 1);
+            } else {
+                n++;
             }
         }
-        return new Stage(c, tetramino, tetraminoX, tetraminoY);
+        return new Stage(c, tetramino, tetraminoX, tetraminoY, collapsedLayersCount + n);
     }
 
     private boolean isFull(char[] row) {
@@ -124,5 +131,24 @@ public class Stage {
             }
         }
         return true;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Stage stage = (Stage) o;
+        return tetraminoX == stage.tetraminoX &&
+                tetraminoY == stage.tetraminoY &&
+                collapsedLayersCount == stage.collapsedLayersCount &&
+                Arrays.equals(cells, stage.cells) &&
+                tetramino.equals(stage.tetramino);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(tetramino, tetraminoX, tetraminoY, collapsedLayersCount);
+        result = 31 * result + Arrays.hashCode(cells);
+        return result;
     }
 }

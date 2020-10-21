@@ -1,9 +1,6 @@
 package rsp.examples.tetris;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class Tetromions {
     public static final Map<Character, Tetromino> tetrominoMap = create();
@@ -32,5 +29,18 @@ public class Tetromions {
         }
 
         public final char[][] shape;
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Tetromino tetromino = (Tetromino) o;
+            return Arrays.equals(shape, tetromino.shape);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(shape);
+        }
     }
 }

@@ -79,6 +79,7 @@ public class RemoteDomChangesPerformer implements ChangesPerformer {
         public final String name;
         public final String value;
         public final boolean isProperty;
+
         public SetAttr(Path path, XmlNs xmlNs, String name, String value, boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;

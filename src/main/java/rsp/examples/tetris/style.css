@@ -14,11 +14,12 @@
     max-width: 900px;
 }
 
-aside {
+.sidebar {
     width: 100%;
     max-width: 200px;
     display: block;
     padding: 0 20px;
+    float: right;
 }
 
 .stage {
