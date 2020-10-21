@@ -16,6 +16,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class LivePage<S> implements InMessages, Schedule {
+    public static final String POST_START_EVENT_TYPE = "page-start";
+    public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
+
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
     private final Map<Integer, CompletableFuture<String>> registeredEventHandlers = new ConcurrentHashMap<>();
     private final HttpRequest handshakeRequest;
@@ -103,19 +106,49 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     public void start() {
-        final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
-        if (page == null) {
-            routing.apply(handshakeRequest).thenAccept(state -> {
-                stateHandler.accept(state);
+        synchronized (this) {
+            final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
+            if (page == null) {
+                routing.apply(handshakeRequest).thenAccept(state -> {
+                    stateHandler.accept(state);
+                    out.setRenderNum(0);
+                });
+            } else {
+                renderedPages.remove(qsid);
+                final var s = currentPageSnapshot.get();
+                currentPageSnapshot.accept(new Snapshot(Optional.of(page.domRoot), s.events, s.refs));
+                stateHandler.accept(page.state);
                 out.setRenderNum(0);
+            }
+
+            // Invoke this page's post start events
+            currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
+                if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
+                    final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
+                                                                        registeredEventHandlers,
+                                                                        ref -> currentPageSnapshot.get().refs.get(ref),
+                                                                        s -> Optional.empty(),
+                                                                        this,
+                                                                        out);
+                    event.eventHandler.accept(eventContext);
+                }
             });
-        } else {
-            renderedPages.remove(qsid);
-            final var s = currentPageSnapshot.get();
-            currentPageSnapshot.accept(new Snapshot(Optional.of(page.domRoot), s.events, s.refs));
-            stateHandler.accept(page.state);
-            out.setRenderNum(0);
         }
+    }
+
+    public void shutdown() {
+        // Invoke this page's post shutdown events
+        currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
+            if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
+                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
+                        registeredEventHandlers,
+                        ref -> currentPageSnapshot.get().refs.get(ref),
+                        s -> Optional.empty(),
+                        this,
+                        out);
+                event.eventHandler.accept(eventContext);
+            }
+        });
     }
 
     @Override
@@ -146,11 +179,11 @@ public class LivePage<S> implements InMessages, Schedule {
                 final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
                     final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                            registeredEventHandlers,
-                            ref -> currentPageSnapshot.get().refs.get(ref),
-                            eventObject,
-                            this,
-                            out);
+                                                                        registeredEventHandlers,
+                                                                        ref -> currentPageSnapshot.get().refs.get(ref),
+                                                                        eventObject,
+                                                                        this,
+                                                                        out);
                     event.eventHandler.accept(eventContext);
                     break;
                 } else {
@@ -164,10 +197,6 @@ public class LivePage<S> implements InMessages, Schedule {
                 }
             }
         }
-    }
-
-    public void shutdown() {
-
     }
 
     @Override
