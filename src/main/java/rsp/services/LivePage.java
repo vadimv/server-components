@@ -58,7 +58,7 @@ public class LivePage<S> implements InMessages, Schedule {
                                        Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                        Component<S> documentDefinition,
                                        BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
-                                       ScheduledExecutorService executorService,
+                                       ScheduledExecutorService scheduler,
                                        OutMessages out) {
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
@@ -101,7 +101,7 @@ public class LivePage<S> implements InMessages, Schedule {
                               renderedPages,
                               useState,
                               current,
-                              executorService,
+                              scheduler,
                               out);
     }
 
