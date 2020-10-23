@@ -45,7 +45,7 @@ public class App<S> {
     }
 
 
-    public final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich() {
+    public final BiFunction<String, RenderContext<S>, RenderContext<S>> enrichRenderContext() {
         return (sessionId, ctx) ->
                 new EnrichingXhtmlContext<>(ctx,
                                             sessionId,

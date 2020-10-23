@@ -77,13 +77,13 @@ public class JettyServer {
                                                                                      app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrich()))),"/*");
+                                                                                     app.enrichRenderContext()))),"/*");
 
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
                                                                                      app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrich());
+                                                                                     app.enrichRenderContext());
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)
