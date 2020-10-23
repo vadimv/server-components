@@ -28,7 +28,7 @@ public class LivePage<S> implements InMessages, Schedule {
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final UseState<S> stateHandler;
     private final UseState<Snapshot> currentPageSnapshot;
-    private final ScheduledExecutorService executorService;
+    private final ScheduledExecutorService scheduledExecutorService;
     private final OutMessages out;
 
     public LivePage(HttpRequest handshakeRequest,
@@ -38,7 +38,7 @@ public class LivePage<S> implements InMessages, Schedule {
                     Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                     UseState<S> stateHandler,
                     UseState<Snapshot> current,
-                    ScheduledExecutorService executorService,
+                    ScheduledExecutorService scheduledExecutorService,
                     OutMessages out) {
         this.handshakeRequest = handshakeRequest;
         this.qsid = qsid;
@@ -47,7 +47,7 @@ public class LivePage<S> implements InMessages, Schedule {
         this.renderedPages = renderedPages;
         this.stateHandler = stateHandler;
         this.currentPageSnapshot = current;
-        this.executorService = executorService;
+        this.scheduledExecutorService = scheduledExecutorService;
         this.out = out;
     }
 
@@ -201,7 +201,7 @@ public class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
-        return executorService.scheduleAtFixedRate(() -> {
+        return scheduledExecutorService.scheduleAtFixedRate(() -> {
             synchronized (this) {
                 command.run();
             }
@@ -210,7 +210,7 @@ public class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return executorService.schedule(() -> {
+        return scheduledExecutorService.schedule(() -> {
             synchronized (this) {
                 command.run();
             }
