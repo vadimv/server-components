@@ -43,11 +43,11 @@ public class JettyServer {
     }
 
     public JettyServer(int port, String basePath, App app, Optional<StaticResources> staticResources) {
-        this(port, basePath, app, staticResources, DEFAULT_MAX_THREADS);
+        this(port, basePath, app, staticResources, app.config.webServerMaxThreads);
     }
 
     public JettyServer(int port, String basePath, App app) {
-        this(port, basePath, app, Optional.empty(), DEFAULT_MAX_THREADS);
+        this(port, basePath, app, Optional.empty(), app.config.webServerMaxThreads);
     }
 
     public void start() throws Exception {
@@ -77,13 +77,13 @@ public class JettyServer {
                                                                                      app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrich))),"/*");
+                                                                                     app.enrich()))),"/*");
 
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
                                                                                      app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrich);
+                                                                                     app.enrich());
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)
