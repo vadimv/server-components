@@ -40,30 +40,31 @@ public class Tetris {
                     div(attr("class", "sidebar"),
                         span(text("Score: " + useState.get().score())),
                         button(attr("type", "button"),
-                               when(useState.get().isRunning, attr("disabled", "true")),
+                               when(useState.get().isRunning, attr("disabled")),
                                text("Start"),
                                on("click", c -> {
                                        State.initialState().start().newTetramino().ifPresent(ns -> useState.accept(ns));
-                                       timer.set(c.scheduleAtFixedRate(() -> {
-                                           final State s = useState.get();
-                                           s.tryMoveDown().ifPresentOrElse(ns -> {
-                                              useState.accept(ns);
-                                           }, () -> {
-                                               s.newTetramino().ifPresentOrElse(ns -> useState.accept(ns), () -> {
-                                                   timer.get().cancel(false);
-                                                   useState.accept(s.stop());
+                                           timer.set(c.scheduleAtFixedRate(() -> {
+                                               final State s = useState.get();
+                                               s.tryMoveDown().ifPresentOrElse(ns -> {
+                                                  useState.accept(ns);
+                                               }, () -> {
+                                                   s.newTetramino().ifPresentOrElse(ns -> useState.accept(ns), () -> {
+                                                       timer.get().cancel(false);
+                                                       useState.accept(s.stop());
+                                                   });
                                                });
-                                           });
-                                       }, 0, 1, TimeUnit.SECONDS));
+                                           }, 0, 1, TimeUnit.SECONDS));
                                })))
-                ));
+                )
+            );
 
         final var s = new JettyServer(DEFAULT_PORT,
-                                "",
-                                new App(State.initialState(),
-                                        render),
-                                Optional.of(new StaticResources(new File("src/main/java/rsp/examples/tetris"),
-                                                "/res/*")));
+                                     "",
+                                      new App(State.initialState(),
+                                              render),
+                                      Optional.of(new StaticResources(new File("src/main/java/rsp/examples/tetris"),
+                                                                     "/res/*")));
         s.start();
         s.join();
     }
