@@ -78,6 +78,10 @@ public class Html {
         return new AttributeDefinition(name, value);
     }
 
+    public static AttributeDefinition attr(String name) {
+        return new AttributeDefinition(name, name);
+    }
+
     public static StyleDefinition style(String name, String value) {
         return new StyleDefinition(name, value);
     }
