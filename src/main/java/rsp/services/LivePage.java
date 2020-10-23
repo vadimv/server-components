@@ -52,14 +52,14 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     public static <S> LivePage<S> of(HttpRequest handshakeRequest,
-                                       QualifiedSessionId qsid,
-                                       Function<HttpRequest, CompletableFuture<S>> routing,
-                                       BiFunction<String, S, String> state2route,
-                                       Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
-                                       Component<S> documentDefinition,
-                                       BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
-                                       ScheduledExecutorService scheduler,
-                                       OutMessages out) {
+                                     QualifiedSessionId qsid,
+                                     Function<HttpRequest, CompletableFuture<S>> routing,
+                                     BiFunction<String, S, String> state2route,
+                                     Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
+                                     Component<S> documentDefinition,
+                                     BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
+                                     ScheduledExecutorService scheduler,
+                                     OutMessages out) {
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
