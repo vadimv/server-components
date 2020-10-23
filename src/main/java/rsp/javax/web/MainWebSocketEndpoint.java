@@ -14,8 +14,11 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
@@ -26,17 +29,20 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     private final BiFunction<String, S, String> state2route;
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich;
+    private final Supplier<ScheduledExecutorService> schedulerSupplier;
 
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
                                  BiFunction<String, S, String> state2route,
                                  Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                  Component<S> documentDefinition,
-                                 BiFunction<String, RenderContext<S>, RenderContext<S>> enrich) {
+                                 BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
+                                 Supplier<ScheduledExecutorService> schedulerSupplier) {
         this.routing = routing;
         this.state2route = state2route;
         this.renderedPages = renderedPages;
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
+        this.schedulerSupplier = schedulerSupplier;
     }
 
     @Override
@@ -51,6 +57,7 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
                                            renderedPages,
                                            documentDefinition,
                                            enrich,
+                                           schedulerSupplier.get(),
                                            out);
         final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage(livePage);
         session.addMessageHandler(new MessageHandler.Whole<String>() {

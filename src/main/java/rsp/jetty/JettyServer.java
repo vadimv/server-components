@@ -22,6 +22,8 @@ import javax.websocket.server.HandshakeRequest;
 import javax.websocket.server.ServerEndpointConfig;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class JettyServer {
 
@@ -78,12 +80,13 @@ public class JettyServer {
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
                                                                                      app.enrichRenderContext()))),"/*");
-
+        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
                                                                                      app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrichRenderContext());
+                                                                                     app.enrichRenderContext(),
+                                                                                     () -> scheduler);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)

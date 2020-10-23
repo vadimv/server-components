@@ -58,6 +58,7 @@ public class LivePage<S> implements InMessages, Schedule {
                                        Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                        Component<S> documentDefinition,
                                        BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
+                                       ScheduledExecutorService executorService,
                                        OutMessages out) {
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
@@ -92,7 +93,6 @@ public class LivePage<S> implements InMessages, Schedule {
 
             current.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
-        final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
 
         return new LivePage<>(handshakeRequest,
                               qsid,
