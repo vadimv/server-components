@@ -3,10 +3,13 @@ package rsp.examples.hnapi;
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
+import rsp.server.StaticResources;
 import rsp.util.CollectionUtils;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -20,14 +23,16 @@ public class JettyHn {
         final HnApiService hnApi = new HnApiService();
         final var bodyRef = createRef();
         final Component<State> render = useState ->
-            html(
+            html(head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
                     body(bodyRef,
-                        div(text("Hacker News")),
-                        of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
-                                div(
-                                        span(text(story.getValue().id + " " + story.getValue().name))
-                                ))
-                          ),
+                        div(attr("class", "header"),
+                            h3(text("Hacker News"))),
+                        div(attr("class", "content"),
+                            of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
+                                    div(
+                                            a(attr("href", "#"), text(story.getValue().name))
+                                    ))
+                              )),
                         window().on("scroll", c -> {
                             final var windowProps = c.props(window());
                             final var bodyProps = c.props(bodyRef);
@@ -60,7 +65,9 @@ public class JettyHn {
                                                                                         .thenApply(r -> new State(ids.stream().mapToInt(Integer::intValue).toArray(),
                                                                                                               r.toArray(State.Story[]::new),
                                                                                                              0))),
-                                                    render));
+                                                    render),
+                                            Optional.of(new StaticResources(new File("src/main/java/rsp/examples/hnapi"),
+                                                    "/res/*")));
         server.start();
         server.join();
     }

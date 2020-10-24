@@ -1,0 +1,18 @@
+body {
+  background-color: #f6f6ef;
+  color: #34495e;
+}
+
+a {
+  color: #34495e;
+  text-decoration: none;
+}
+
+.header {
+  background-color: #ff6600;
+}
+
+
+.content {
+  background-color: #f2f3f5;
+}
