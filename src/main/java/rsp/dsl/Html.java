@@ -38,12 +38,36 @@ public class Html {
         return tag("meta", children);
     }
 
+    public static TagDefinition h1(DocumentPartDefinition... children) {
+        return tag("h1", children);
+    }
+
+    public static TagDefinition h2(DocumentPartDefinition... children) {
+        return tag("h2", children);
+    }
+
+    public static TagDefinition h3(DocumentPartDefinition... children) {
+        return tag("h3", children);
+    }
+
+    public static TagDefinition h4(DocumentPartDefinition... children) {
+        return tag("h4", children);
+    }
+
+    public static TagDefinition h5(DocumentPartDefinition... children) {
+        return tag("h5", children);
+    }
+
+    public static TagDefinition h6(DocumentPartDefinition... children) {
+        return tag("h6", children);
+    }
+
     public static TagDefinition div(DocumentPartDefinition... children) {
         return tag("div", children);
     }
 
-    public static TagDefinition aside(DocumentPartDefinition... children) {
-        return tag("aside", children);
+    public static TagDefinition a(DocumentPartDefinition... children) {
+        return tag("a", children);
     }
 
     public static TagDefinition p(DocumentPartDefinition... children) {
