@@ -30,7 +30,7 @@ public class JettyHn {
                         div(attr("class", "content"),
                             of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
                                     div(
-                                            a(attr("href", "#"), text(story.getValue().name))
+                                            a(attr("href", story.getValue().url), text(story.getValue().name))
                                     ))
                               )),
                         window().on("scroll", c -> {

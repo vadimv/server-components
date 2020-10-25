@@ -1,5 +1,10 @@
 package rsp.examples.hnapi;
 
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -16,10 +21,8 @@ import java.util.stream.Collectors;
 
 public class HnApiService {
     private static final String HACKER_NEWS_BASE_URL = "https://hacker-news.firebaseio.com/v0/";
-
-    private static final Pattern FIELD_REGEX = Pattern.compile("\"(.+?)\" *?: *?(\".+?\"|\\d+|\\[.+?\\])");
     public static final int PAGE_SIZE = 50;
-    public static ForkJoinPool EXECUTOR = new ForkJoinPool(PAGE_SIZE);
+    public static final ForkJoinPool EXECUTOR = new ForkJoinPool(PAGE_SIZE);
 
     public CompletableFuture<List<Integer>> storiesIds() {
         return CompletableFuture.supplyAsync(() -> {
@@ -56,16 +59,12 @@ public class HnApiService {
                         .collect(Collectors.toList()));
     }
 
-    private static State.Story parseStory(String storyJson) {
-        final Matcher matcher = FIELD_REGEX.matcher(storyJson);
-        final Map<String, String> fields = new HashMap<>();
-        while(matcher.find()) {
-            String name=matcher.group(1);
-            String value=matcher.group(2);
-            fields.put(name, value);
-        }
-        System.out.println("ID: " + fields.get("id") + " " + System.currentTimeMillis());
-        return new State.Story(Integer.parseInt(fields.get("id")), fields.get("title"));
+    private static State.Story parseStory(String storyJsonStr) throws ParseException {
+        final JSONParser jsonParser = new JSONParser();
+        final JSONObject storyJson = (JSONObject) jsonParser.parse(storyJsonStr);
+        return new State.Story((long) storyJson.get("id"),
+                               (String) storyJson.get("title"),
+                               (String) storyJson.get("url"));
     }
 
     private static List<Integer> parseStoriesIds(String storiesIdsJsonArray) {

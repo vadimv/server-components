@@ -12,12 +12,14 @@ public class State {
     }
 
     public static class Story {
-        public final int id;
+        public final long id;
         public final String name;
+        public final String url;
 
-        public Story(int id, String name) {
+        public Story(long id, String name, String url) {
             this.id = id;
             this.name = name;
+            this.url = url;
         }
     }
 }
