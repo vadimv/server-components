@@ -17,6 +17,9 @@ import static java.lang.Float.parseFloat;
 import static rsp.dsl.Html.*;
 import static rsp.util.ArrayUtils.concat;
 
+/**
+ *  A Hacker News API client implementation with 'infinite' scrolling
+ */
 public class JettyHn {
 
     public static void main(String[] args) throws Exception {

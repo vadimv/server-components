@@ -14,6 +14,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.Collectors;
 
+/**
+ * See https://github.com/HackerNews/API
+ */
 public class HnApiService {
     private static final String HACKER_NEWS_BASE_URL = "https://hacker-news.firebaseio.com/v0/";
     public static final int PAGE_SIZE = 50;
