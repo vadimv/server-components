@@ -90,6 +90,22 @@ public class Html {
         return tag("button", children);
     }
 
+    public static TagDefinition table(DocumentPartDefinition... children) {
+        return tag("table", children);
+    }
+
+    public static TagDefinition th(DocumentPartDefinition... children) {
+        return tag("th", children);
+    }
+
+    public static TagDefinition tr(DocumentPartDefinition... children) {
+        return tag("tr", children);
+    }
+
+    public static TagDefinition td(DocumentPartDefinition... children) {
+        return tag("td", children);
+    }
+
     public static TextDefinition text(String text) {
         return new TextDefinition(text);
     }
