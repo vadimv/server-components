@@ -3,6 +3,7 @@ package rsp.examples.hnapi;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import rsp.util.StreamUtils;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -47,15 +48,10 @@ public class HnApiService {
     }
 
     public CompletableFuture<List<State.Story>> stories(List<Integer> storiesIds) {
-        return sequence(storiesIds.stream().map(id -> story(id)).collect(Collectors.toList()));
+        return StreamUtils.sequence(storiesIds.stream().map(id -> story(id)).collect(Collectors.toList()));
     }
 
-    private static<T> CompletableFuture<List<T>> sequence(List<CompletableFuture<T>> listOfCompletableFutures) {
-        return CompletableFuture.allOf(listOfCompletableFutures.toArray(CompletableFuture[]::new))
-                .thenApply(v -> listOfCompletableFutures.stream()
-                        .map(CompletableFuture::join)
-                        .collect(Collectors.toList()));
-    }
+
 
     private static State.Story parseStory(String storyJsonStr) throws ParseException {
         final JSONParser jsonParser = new JSONParser();

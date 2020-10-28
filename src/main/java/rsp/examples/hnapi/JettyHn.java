@@ -4,7 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
-import rsp.util.CollectionUtils;
+import rsp.util.StreamUtils;
 
 import java.io.File;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ public class JettyHn {
                         div(attr("class", "header"),
                             h3(text("Hacker News"))),
                         div(attr("class", "content"),
-                            of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
+                            of(StreamUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
                                     div(
                                             a(attr("href", story.getValue().url), text(story.getValue().name))
                                     ))

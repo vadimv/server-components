@@ -1,17 +1,21 @@
 package rsp.examples.components.entities;
 
+import java.util.Set;
+
 public class Book {
     public final long id;
-    public final String name;
-    public final Author[] authors;
+    public final String title;
+    public final String description;
+    public final Set<Author> authors;
 
-    public Book(long id, String name, Author[] authors) {
+    public Book(long id, String title, String description, Set<Author> authors) {
         this.id = id;
-        this.name = name;
+        this.title = title;
+        this.description = description;
         this.authors = authors;
     }
 
-    public Book(long id, String name) {
-        this(id, name, new Author[] {});
+    public Book(long id, String title, String description) {
+        this(id, title, description, Set.of());
     }
 }

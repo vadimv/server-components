@@ -17,7 +17,9 @@ interface AuthorsBooksService {
 
     CompletableFuture<Optional<Author>> unAssign(Author author, Book book);
 
+    CompletableFuture<Optional<Book>> getBook(long id);
+
     CompletableFuture<List<Book>> books();
 
-    CompletableFuture<Book> createBook(String name);
+    CompletableFuture<Book> createBook(String title, String desc, Author... authors);
 }

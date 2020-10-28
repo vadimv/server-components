@@ -1,14 +1,15 @@
 package rsp.util;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 
-public class CollectionUtils {
-    private CollectionUtils() {
-    }
+public class StreamUtils {
 
     /**
      * Converts an {@link java.util.Iterator} to {@link java.util.stream.Stream}.
@@ -16,6 +17,20 @@ public class CollectionUtils {
     public static <T> Stream<T> iterate(Iterator<? extends T> iterator) {
         int characteristics = Spliterator.ORDERED | Spliterator.IMMUTABLE;
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, characteristics), false);
+    }
+
+    /**
+     * Zips two streams. The resulting stream is truncated to the shorter of the two input streams.
+     */
+    public static <L, R, T> Stream<T> zip(Stream<L> leftStream, Stream<R> rightStream, BiFunction<L, R, T> combiner) {
+        Spliterator<L> lefts = leftStream.spliterator();
+        Spliterator<R> rights = rightStream.spliterator();
+        return StreamSupport.stream(new Spliterators.AbstractSpliterator<T>(Long.min(lefts.estimateSize(), rights.estimateSize()), lefts.characteristics() & rights.characteristics()) {
+            @Override
+            public boolean tryAdvance(Consumer<? super T> action) {
+                return lefts.tryAdvance(left->rights.tryAdvance(right->action.accept(combiner.apply(left, right))));
+            }
+        }, leftStream.isParallel() || rightStream.isParallel());
     }
 
     /**
@@ -44,5 +59,15 @@ public class CollectionUtils {
      */
     public static <T, R> Stream<R> mapWithIndex(Stream<? extends T> stream, BiFunction<Integer, ? super T, ? extends R> mapper) {
         return zipWithIndex(stream).map(entry -> mapper.apply(entry.getKey(), entry.getValue()));
+    }
+
+    /**
+     * Converts a list of CompletableFuture to a CompletableFuture of a list
+     */
+    public static<T> CompletableFuture<List<T>> sequence(List<CompletableFuture<T>> listOfCompletableFutures) {
+        return CompletableFuture.allOf(listOfCompletableFutures.toArray(CompletableFuture[]::new))
+                .thenApply(v -> listOfCompletableFutures.stream()
+                                                        .map(CompletableFuture::join)
+                                                        .collect(Collectors.toList()));
     }
 }

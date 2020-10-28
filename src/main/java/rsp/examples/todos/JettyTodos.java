@@ -4,7 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.dsl.RefDefinition;
 import rsp.jetty.JettyServer;
-import rsp.util.CollectionUtils;
+import rsp.util.StreamUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +26,7 @@ public class JettyTodos {
                            div(text("TODO tracker"),
                            div(style("height", "250px"),
                                style("overflow", "scroll"),
-                               of(CollectionUtils.zipWithIndex(Arrays.stream(useState.get().todos)).map(todo ->
+                               of(StreamUtils.zipWithIndex(Arrays.stream(useState.get().todos)).map(todo ->
                                        div(input(attr("type", "checkbox"),
                                                  when(todo.getValue().done, attr("checked", "checked")),
                                                  attr("autocomplete", "off"), /* reset the checkbox on Firefox reload current page */
