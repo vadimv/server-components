@@ -95,6 +95,10 @@ public class Html {
         return tag("table", children);
     }
 
+    public static TagDefinition tbody(DocumentPartDefinition... children) {
+        return tag("tbody", children);
+    }
+
     public static TagDefinition th(DocumentPartDefinition... children) {
         return tag("th", children);
     }
@@ -133,6 +137,10 @@ public class Html {
 
     public static SequenceDefinition of(Supplier<DocumentPartDefinition> itemSupplier) {
         return new SequenceDefinition(new DocumentPartDefinition[] { itemSupplier.get() });
+    }
+
+    public static DocumentPartDefinition of(CompletableFuture<? extends DocumentPartDefinition> itemSupplier) {
+        return itemSupplier.join();
     }
 
     public static DocumentPartDefinition when(boolean condition, DocumentPartDefinition then) {
@@ -175,20 +183,6 @@ public class Html {
             @Override
             public S get() {
                 return supplier.get();
-            }
-        };
-    }
-
-    public static <S> UseState<S> useState(CompletableFuture<S> supplierCompletableFuture) {
-        return new UseState<S>() {
-            @Override
-            public void accept(S s) {
-                //no-op
-            }
-
-            @Override
-            public S get() {
-                return supplierCompletableFuture.join();
             }
         };
     }

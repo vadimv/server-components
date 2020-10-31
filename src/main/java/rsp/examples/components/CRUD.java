@@ -23,19 +23,19 @@ public class CRUD {
     public static void main(String[] args) throws Exception {
         final SimpleAuthorsBooksService authorsBooksService = new SimpleAuthorsBooksService();
         AuthorsBooksServiceStubInit.init(authorsBooksService);
-        final State state = new State();
         final Component<State> render = s ->
                 html(body(
-                        GridComponent.component.of(useState(authorsBooksService.books().thenCompose(books ->
-                                CompletableFuture.completedFuture(
-                                        new GridComponent.GridState(books.stream().map(b ->
-                                            new GridComponent.Row(
-                                                    new GridComponent.Cell(b.id),
-                                                    new GridComponent.Cell(b.title),
-                                                    new GridComponent.Cell(b.authors.stream().map(a -> a.toString()).collect(Collectors.toList()))
-                                                    )).toArray(GridComponent.Row[]::new),
-                                                                0,
-                                                                new HashSet<>())))))
+                        of(authorsBooksService.books().thenApply(books ->
+                                                new GridComponent.GridState(books.stream().map(b ->
+                                                        new GridComponent.Row(
+                                                                new GridComponent.Cell(b.id),
+                                                                new GridComponent.Cell(b.title),
+                                                                new GridComponent.Cell(b.authors.stream().map(a -> a.toString()).collect(Collectors.toList()))
+                                                        )).toArray(GridComponent.Row[]::new),
+                                                        0,
+                                                        new HashSet<>())).thenApply(gridState ->
+                                                            GridComponent.component.of(useState(() -> gridState))))
+
         ));
 
         final var s = new JettyServer(DEFAULT_PORT,

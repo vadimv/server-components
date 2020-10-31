@@ -12,13 +12,15 @@ public class GridComponent {
 
     public static final Component<GridState> component = state ->
             div(
-                    table(of(Arrays.stream(state.get().rows).map(row -> tr(
-                            td(input(attr("type", "checkbox"),
-                                     when(state.get().selectedRows.contains(row), attr("checked", "checked")),
-                                     attr("autocomplete", "off"),
-                                    on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
-                            of(Arrays.stream(row.cells).map(field -> td(text(field))))
-                        ))))
+                    table(
+                            tbody(
+                                of(Arrays.stream(state.get().rows).map(row -> tr(
+                                td(input(attr("type", "checkbox"),
+                                         when(state.get().selectedRows.contains(row), attr("checked", "checked")),
+                                         attr("autocomplete", "off"),
+                                        on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
+                                of(Arrays.stream(row.cells).map(field -> td(text(field))))
+                        )))))
             );
 
     public static class Cell<T> {
