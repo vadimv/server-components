@@ -3,15 +3,11 @@ package rsp.examples.components;
 import rsp.App;
 import rsp.Component;
 import rsp.examples.components.entities.AuthorsBooksServiceStubInit;
-import rsp.examples.components.entities.Book;
 import rsp.examples.components.entities.SimpleAuthorsBooksService;
 import rsp.examples.components.grid.GridComponent;
 import rsp.jetty.JettyServer;
-import rsp.server.HttpRequest;
 
 import java.util.HashSet;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
