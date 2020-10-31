@@ -45,13 +45,13 @@ public class App<S> {
     }
 
 
-    public final BiFunction<String, RenderContext<S>, RenderContext<S>> enrichRenderContext() {
+    public final BiFunction<String, RenderContext, RenderContext> enrichRenderContext() {
         return (sessionId, ctx) ->
-                new EnrichingXhtmlContext<>(ctx,
-                                            sessionId,
-                                            "/",
-                                            DefaultConnectionLostWidget.HTML,
-                                            config.heartbeatIntervalMs);
+                new EnrichingXhtmlContext(ctx,
+                                          sessionId,
+                                        "/",
+                                         DefaultConnectionLostWidget.HTML,
+                                         config.heartbeatIntervalMs);
     }
 
 }

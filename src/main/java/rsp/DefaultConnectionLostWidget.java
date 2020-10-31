@@ -1,5 +1,6 @@
 package rsp;
 
+import rsp.dom.DomTreeRenderContext;
 import rsp.dsl.TagDefinition;
 import rsp.dsl.Html;
 
@@ -8,7 +9,7 @@ public class DefaultConnectionLostWidget {
     public static final String HTML;
 
     static {
-        final RenderContext rc = new XhtmlRenderContext(TextPrettyPrinting.NO_PRETTY_PRINTING, "");
+        final DomTreeRenderContext rc = new DomTreeRenderContext();
         widget().accept(rc);
         HTML = rc.toString();
     }

@@ -68,22 +68,7 @@ public class MainHttpServlet<S>  extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
- /*       UseState<S> useState = storage.get(stateSessionKey(request));
-        if (useState == null) {
-            useState = useStateFunction.apply(request);
-        }
-
-        final XhtmlRenderContext<S> currentContext = renderComponents(useState);
-        final EventContext<S> eventData = new EventContext<>(request, useState);
-        currentContext.events.stream().filter(e -> e.eventType.equals("onSubmit")).forEach(e -> e.eventHandler.accept(eventData));
-
-        storage.put(stateSessionKey(request), useState);
-
-        final XhtmlRenderContext<S> newContext = renderComponents(useState);
-
-        setHeaders(response);
-        write(response, newContext.toString());*/
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
     }
 
 

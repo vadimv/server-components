@@ -4,7 +4,7 @@ import rsp.dsl.EventDefinition;
 
 import java.util.function.Consumer;
 
-public class DelegatingRenderContext<S> implements RenderContext<S> {
+public class DelegatingRenderContext implements RenderContext {
 
     private final RenderContext[] contexts;
 

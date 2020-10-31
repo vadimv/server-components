@@ -28,13 +28,13 @@ public class PageRendering<S> {
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final BiFunction<String, S, String> state2route;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich;
+    private final BiFunction<String, RenderContext, RenderContext> enrich;
 
     public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
                          BiFunction<String, S, String> state2route,
                          Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          Component<S> documentDefinition,
-                         BiFunction<String, RenderContext<S>, RenderContext<S>> enrich) {
+                         BiFunction<String, RenderContext, RenderContext> enrich) {
         this.routing = routing;
         this.state2route = state2route;
         this.renderedPages = pagesStorage;
@@ -84,16 +84,14 @@ public class PageRendering<S> {
                 final String sessionId = randomStringGenerator.newString();
                 final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-                final XhtmlRenderContext<S> newCtx = new XhtmlRenderContext<>(TextPrettyPrinting.NO_PRETTY_PRINTING, "<!DOCTYPE html>");
-                final DomTreeRenderContext<S> domTreeContext = new DomTreeRenderContext<>();
-                documentDefinition.of(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrich.apply(sessionId, newCtx),
-                                                                                                                enrich.apply(sessionId, domTreeContext)));
+                final DomTreeRenderContext domTreeContext = new DomTreeRenderContext();
+                documentDefinition.of(new ReadOnly<>(initialState)).accept(new DelegatingRenderContext(enrich.apply(sessionId, domTreeContext)));
 
                 renderedPages.put(pageId, new RenderedPage<S>(initialState, domTreeContext.root));
 
                 return new HttpResponse(200,
                                         headers(deviceId),
-                                        newCtx.toString());
+                                        domTreeContext.toString());
             });
         } catch (Throwable ex) {
             return CompletableFuture.failedFuture(ex);

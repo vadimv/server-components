@@ -5,9 +5,9 @@ import rsp.dsl.RefDefinition;
 
 import java.util.function.Consumer;
 
-public class EnrichingXhtmlContext<S> implements RenderContext<S> {
+public class EnrichingXhtmlContext implements RenderContext {
 
-    private final RenderContext<S> context;
+    private final RenderContext context;
     private final String sessionId;
     private final String path;
     private final String connectionLostWidget;
@@ -15,7 +15,7 @@ public class EnrichingXhtmlContext<S> implements RenderContext<S> {
 
     private boolean headWasOpened = false;
 
-    public EnrichingXhtmlContext(RenderContext<S> context,
+    public EnrichingXhtmlContext(RenderContext context,
                                  String sessionId,
                                  String path,
                                  String connectionLostWidget,

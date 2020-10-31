@@ -28,14 +28,14 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final BiFunction<String, S, String> state2route;
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
-    private final BiFunction<String, RenderContext<S>, RenderContext<S>> enrich;
+    private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
 
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
                                  BiFunction<String, S, String> state2route,
                                  Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                  Component<S> documentDefinition,
-                                 BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
+                                 BiFunction<String, RenderContext, RenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier) {
         this.routing = routing;
         this.state2route = state2route;

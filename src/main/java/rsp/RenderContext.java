@@ -4,7 +4,7 @@ import rsp.dsl.EventDefinition;
 
 import java.util.function.Consumer;
 
-public interface RenderContext<S> {
+public interface RenderContext {
     void openNode(XmlNs xmlns, String name);
     void closeNode(String name);
     void setAttr(XmlNs xmlNs, String name, String value);

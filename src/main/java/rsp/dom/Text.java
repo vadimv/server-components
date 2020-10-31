@@ -22,4 +22,9 @@ public class Text implements Node {
         return Collections.EMPTY_LIST;
     }
 
+    @Override
+    public void appendString(StringBuilder sb) {
+        sb.append(text);
+    }
+
 }

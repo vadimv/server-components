@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class DomTreeRenderContext<S> implements RenderContext<S> {
+public class DomTreeRenderContext implements RenderContext {
 
     public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
     public final ConcurrentHashMap<Ref, Path> refs = new ConcurrentHashMap();
@@ -68,6 +68,15 @@ public class DomTreeRenderContext<S> implements RenderContext<S> {
         refs.put(ref, tagsStack.peek().path);
     }
 
+    @Override
+    public String toString() {
+        if (root == null) {
+            throw new IllegalStateException("DOM tree not initialized");
+        }
+        final StringBuilder sb = new StringBuilder("<!DOCTYPE html>");
+        root.appendString(sb);
+        return sb.toString();
+    }
 }
 
 

@@ -57,14 +57,14 @@ public class LivePage<S> implements InMessages, Schedule {
                                      BiFunction<String, S, String> state2route,
                                      Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                      Component<S> documentDefinition,
-                                     BiFunction<String, RenderContext<S>, RenderContext<S>> enrich,
+                                     BiFunction<String, RenderContext, RenderContext> enrich,
                                      ScheduledExecutorService scheduler,
                                      OutMessages out) {
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
         final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
-            final DomTreeRenderContext<S> newContext = new DomTreeRenderContext<>();
+            final DomTreeRenderContext newContext = new DomTreeRenderContext();
             documentDefinition.of(self).accept(enrich.apply(qsid.sessionId, newContext));
 
             // calculate diff between currentContext and newContext
