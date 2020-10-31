@@ -1,4 +1,4 @@
-package rsp.examples.components;
+package rsp.examples.crud;
 
 public class State {
 

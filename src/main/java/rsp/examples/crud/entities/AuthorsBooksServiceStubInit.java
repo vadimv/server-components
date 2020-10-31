@@ -1,14 +1,11 @@
-package rsp.examples.components.entities;
+package rsp.examples.crud.entities;
 
 import rsp.util.StreamUtils;
 import rsp.util.Tuple2;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 

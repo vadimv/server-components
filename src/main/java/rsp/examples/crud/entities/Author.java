@@ -1,4 +1,4 @@
-package rsp.examples.components.entities;
+package rsp.examples.crud.entities;
 
 import java.util.Set;
 

@@ -2,8 +2,8 @@ package rsp.examples;
 
 import org.junit.Assert;
 import org.junit.Test;
-import rsp.examples.components.entities.AuthorsBooksServiceStubInit;
-import rsp.examples.components.entities.SimpleAuthorsBooksService;
+import rsp.examples.crud.entities.AuthorsBooksServiceStubInit;
+import rsp.examples.crud.entities.SimpleAuthorsBooksService;
 
 public class AuthorsBooksServiceTest {
     @Test

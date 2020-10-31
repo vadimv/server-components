@@ -1,10 +1,10 @@
-package rsp.examples.components;
+package rsp.examples.crud;
 
 import rsp.App;
 import rsp.Component;
-import rsp.examples.components.entities.AuthorsBooksServiceStubInit;
-import rsp.examples.components.entities.SimpleAuthorsBooksService;
-import rsp.examples.components.grid.GridComponent;
+import rsp.examples.crud.entities.AuthorsBooksServiceStubInit;
+import rsp.examples.crud.entities.SimpleAuthorsBooksService;
+import rsp.examples.crud.components.GridComponent;
 import rsp.jetty.JettyServer;
 
 import java.util.HashSet;

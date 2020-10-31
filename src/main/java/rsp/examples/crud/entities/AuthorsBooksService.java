@@ -1,6 +1,5 @@
-package rsp.examples.components.entities;
+package rsp.examples.crud.entities;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;

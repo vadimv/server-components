@@ -1,4 +1,4 @@
-package rsp.examples.components.grid;
+package rsp.examples.crud.components;
 
 import rsp.Component;
 
