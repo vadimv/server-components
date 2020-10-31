@@ -34,7 +34,8 @@ public class CRUD {
                                                         )).toArray(GridComponent.Row[]::new),
                                                         0,
                                                         new HashSet<>())).thenApply(gridState ->
-                                                            GridComponent.component.of(useState(() -> gridState))))
+                                                            GridComponent.component.of(useState(() -> gridState)))
+                                                                         .exceptionally(t -> div(text("Exception:" + t.getMessage()))))
 
         ));
 
