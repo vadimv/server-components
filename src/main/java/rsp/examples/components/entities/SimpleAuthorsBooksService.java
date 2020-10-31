@@ -11,7 +11,7 @@ public class SimpleAuthorsBooksService implements AuthorsBooksService {
     private final Map<Long, Book> books = new HashMap<>();
 
     @Override
-    public CompletableFuture<List<Author>> students() {
+    public CompletableFuture<List<Author>> authors() {
         return CompletableFuture.completedFuture(new ArrayList<>(authors.values()));
     }
 

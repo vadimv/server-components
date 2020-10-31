@@ -7,7 +7,7 @@ import java.util.concurrent.CompletableFuture;
 
 interface AuthorsBooksService {
 
-    CompletableFuture<List<Author>> students();
+    CompletableFuture<List<Author>> authors();
 
     CompletableFuture<Author> createAuthor(Name name);
 
