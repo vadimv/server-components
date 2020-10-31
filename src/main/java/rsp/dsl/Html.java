@@ -4,6 +4,7 @@ import rsp.Event;
 import rsp.EventContext;
 import rsp.state.UseState;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -174,6 +175,20 @@ public class Html {
             @Override
             public S get() {
                 return supplier.get();
+            }
+        };
+    }
+
+    public static <S> UseState<S> useState(CompletableFuture<S> supplierCompletableFuture) {
+        return new UseState<S>() {
+            @Override
+            public void accept(S s) {
+                //no-op
+            }
+
+            @Override
+            public S get() {
+                return supplierCompletableFuture.join();
             }
         };
     }

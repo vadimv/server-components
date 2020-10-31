@@ -16,4 +16,9 @@ public class Author {
     public Author(long id, Name name) {
         this(id, name, Set.of());
     }
+
+    @Override
+    public String toString() {
+        return name.toString();
+    }
 }
