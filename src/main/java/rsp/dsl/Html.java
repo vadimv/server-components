@@ -27,8 +27,8 @@ public class Html {
         return tag("head", children);
     }
 
-    public static  TagDefinition title(String title) {
-        return tag("title", text(title));
+    public static  TagDefinition title(String s) {
+        return tag("title", text(s));
     }
 
     public static TagDefinition link(AttributeDefinition... children) {
@@ -67,6 +67,10 @@ public class Html {
         return tag("div", children);
     }
 
+    public static TagDefinition div(String s) {
+        return div(text(s));
+    }
+
     public static TagDefinition a(DocumentPartDefinition... children) {
         return tag("a", children);
     }
@@ -75,8 +79,16 @@ public class Html {
         return tag("p", children);
     }
 
+    public static TagDefinition p(String s) {
+        return p(text(s));
+    }
+
     public static TagDefinition span(DocumentPartDefinition... children) {
         return tag("span", children);
+    }
+
+    public static TagDefinition span(String s) {
+        return span(text(s));
     }
 
     public static TagDefinition form(DocumentPartDefinition... children) {
@@ -111,12 +123,16 @@ public class Html {
         return tag("td", children);
     }
 
-    public static TextDefinition text(String text) {
-        return new TextDefinition(text);
+    public static TagDefinition td(String s) {
+        return td(text(s));
     }
 
-    public static TextDefinition text(Object text) {
-        return new TextDefinition(text.toString());
+    public static TextDefinition text(String s) {
+        return new TextDefinition(s);
+    }
+
+    public static TextDefinition text(Object obj) {
+        return new TextDefinition(obj.toString());
     }
 
     public static AttributeDefinition attr(String name, String value) {

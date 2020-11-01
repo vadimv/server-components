@@ -8,7 +8,7 @@ import java.util.Set;
 
 import static rsp.dsl.Html.*;
 
-public class GridComponent {
+public class Grid {
 
     public static final Component<GridState> component = state ->
             div(

@@ -4,7 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.examples.crud.entities.AuthorsBooksServiceStubInit;
 import rsp.examples.crud.entities.SimpleAuthorsBooksService;
-import rsp.examples.crud.components.GridComponent;
+import rsp.examples.crud.components.Grid;
 import rsp.jetty.JettyServer;
 
 import java.util.HashSet;
@@ -22,16 +22,17 @@ public class CRUD {
         final Component<State> render = s ->
                 html(body(
                         of(authorsBooksService.books().thenApply(books ->
-                                                new GridComponent.GridState(books.stream().map(b ->
-                                                        new GridComponent.Row(
-                                                                new GridComponent.Cell(b.id),
-                                                                new GridComponent.Cell(b.title),
-                                                                new GridComponent.Cell(b.authors.stream().map(a -> a.toString()).collect(Collectors.toList()))
-                                                        )).toArray(GridComponent.Row[]::new),
+                                                new Grid.GridState(books.stream().map(b ->
+                                                        new Grid.Row(
+                                                                new Grid.Cell(b.id),
+                                                                new Grid.Cell(b.title),
+                                                                new Grid.Cell(b.authors.stream().map(a -> a.toString()).collect(Collectors.toList()))
+                                                        )).toArray(Grid.Row[]::new),
                                                         0,
                                                         new HashSet<>())).thenApply(gridState ->
-                                                            GridComponent.component.of(useState(() -> gridState)))
-                                                                         .exceptionally(t -> div(text("Exception:" + t.getMessage()))))
+                                                                                Grid.component.of(useState(() -> gridState)))
+                                                                         .exceptionally(t ->
+                                                                                 div("Exception:" + t.getMessage())))
 
         ));
 
