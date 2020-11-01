@@ -27,8 +27,8 @@ public class Html {
         return tag("head", children);
     }
 
-    public static  TagDefinition title(String s) {
-        return tag("title", text(s));
+    public static  TagDefinition title(String text) {
+        return tag("title", text(text));
     }
 
     public static TagDefinition link(AttributeDefinition... children) {
@@ -67,8 +67,8 @@ public class Html {
         return tag("div", children);
     }
 
-    public static TagDefinition div(String s) {
-        return div(text(s));
+    public static TagDefinition div(String text) {
+        return div(text(text));
     }
 
     public static TagDefinition a(DocumentPartDefinition... children) {
@@ -79,16 +79,16 @@ public class Html {
         return tag("p", children);
     }
 
-    public static TagDefinition p(String s) {
-        return p(text(s));
+    public static TagDefinition p(String text) {
+        return p(text(text));
     }
 
     public static TagDefinition span(DocumentPartDefinition... children) {
         return tag("span", children);
     }
 
-    public static TagDefinition span(String s) {
-        return span(text(s));
+    public static TagDefinition span(String text) {
+        return span(text(text));
     }
 
     public static TagDefinition form(DocumentPartDefinition... children) {
@@ -115,8 +115,8 @@ public class Html {
         return tag("li", children);
     }
 
-    public static TagDefinition li(String s) {
-        return li(text(s));
+    public static TagDefinition li(String text) {
+        return li(text(text));
     }
 
     public static TagDefinition table(DocumentPartDefinition... children) {
@@ -139,12 +139,12 @@ public class Html {
         return tag("td", children);
     }
 
-    public static TagDefinition td(String s) {
-        return td(text(s));
+    public static TagDefinition td(String text) {
+        return td(text(text));
     }
 
-    public static TextDefinition text(String s) {
-        return new TextDefinition(s);
+    public static TextDefinition text(String text) {
+        return new TextDefinition(text);
     }
 
     public static TextDefinition text(Object obj) {
