@@ -103,6 +103,22 @@ public class Html {
         return tag("button", children);
     }
 
+    public static TagDefinition ul(DocumentPartDefinition... children) {
+        return tag("ul", children);
+    }
+
+    public static TagDefinition ol(DocumentPartDefinition... children) {
+        return tag("ol", children);
+    }
+
+    public static TagDefinition li(DocumentPartDefinition... children) {
+        return tag("li", children);
+    }
+
+    public static TagDefinition li(String s) {
+        return li(text(s));
+    }
+
     public static TagDefinition table(DocumentPartDefinition... children) {
         return tag("table", children);
     }
