@@ -75,6 +75,10 @@ public class Html {
         return tag("a", children);
     }
 
+    public static TagDefinition a(String href, String text) {
+        return a(attr("href", href), text(text));
+    }
+
     public static TagDefinition p(DocumentPartDefinition... children) {
         return tag("p", children);
     }

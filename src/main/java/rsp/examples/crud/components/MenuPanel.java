@@ -9,8 +9,8 @@ public class MenuPanel {
     public static final Component<MenuPanelState> component = state ->
             div(
                 ul(
-                    li("first"),
-                    li("second")
+                    li(a("#first", "first")),
+                    li(a("#second", "second"))
             ));
 
     public static class MenuPanelState {
