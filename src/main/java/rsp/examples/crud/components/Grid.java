@@ -1,6 +1,9 @@
 package rsp.examples.crud.components;
 
 import rsp.Component;
+import rsp.dsl.DocumentPartDefinition;
+import rsp.dsl.Html;
+import rsp.state.UseState;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -8,20 +11,23 @@ import java.util.Set;
 
 import static rsp.dsl.Html.*;
 
-public class Grid {
+public class Grid implements Component<Grid.GridState> {
 
-    public static final Component<GridState> component = state ->
-            div(
-                    table(
-                            tbody(
-                                of(Arrays.stream(state.get().rows).map(row -> tr(
-                                td(input(attr("type", "checkbox"),
-                                         when(state.get().selectedRows.contains(row), attr("checked", "checked")),
-                                         attr("autocomplete", "off"),
-                                        on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
-                                of(Arrays.stream(row.cells).map(field -> td(text(field))))
-                        )))))
-            );
+
+    @Override
+    public DocumentPartDefinition of(UseState<GridState> state) {
+        return div(
+                table(
+                        tbody(
+                                Html.of(Arrays.stream(state.get().rows).map(row -> tr(
+                                        td(input(attr("type", "checkbox"),
+                                                when(state.get().selectedRows.contains(row), attr("checked", "checked")),
+                                                attr("autocomplete", "off"),
+                                                on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
+                                        Html.of(Arrays.stream(row.cells).map(field -> td(text(field))))
+                                )))))
+        );
+    }
 
     public static class Cell<T> {
         private final T data;

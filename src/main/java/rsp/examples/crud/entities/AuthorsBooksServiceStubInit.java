@@ -5,6 +5,7 @@ import rsp.util.Tuple2;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -20,18 +21,18 @@ public class AuthorsBooksServiceStubInit {
     /**
      * A book could be written either by a single author or by a group of authors
      */
-    public static AuthorsBooksService init(AuthorsBooksService authorsBooksService) {
+    public static void init(SimpleAuthorsEntityService authorsService, SimpleBooksEntityService booksService) {
         final var authorsNames = Arrays.stream(firstNames).flatMap(fn ->
                 Arrays.stream(secondNames).map(sn -> new Name(fn, sn)));
         final var booksTitles = Arrays.stream(bookTitleAdjectives).flatMap(adj ->
                 Arrays.stream(bookTitleSubjects).map(subj -> adj + " " + subj));
 
         // Add authors to the repository
-        final var createdAuthors =  authorsNames.map(name -> authorsBooksService.createAuthor(name))
+        final var createdAuthors =  authorsNames.map(name -> authorsService.create(new Author(name)))
                                                                            .collect(Collectors.toList());
 
         StreamUtils.sequence(createdAuthors).thenAccept(authorsList -> {
-            final List<Long> authorsIds = authorsList.stream().map(a -> a.id).collect(Collectors.toList());
+            final List<Long> authorsIds = authorsList.stream().map(a -> a.get().key).collect(Collectors.toList());
 
             //The infinite stream of authors ids with either 1 or AUTHORS_GROUP_SIZE authors of for a book
             final Stream<List<Long>> groupedAuthorsIds = Stream.iterate(new Tuple2<>(0, List.<Long>of()),
@@ -44,15 +45,14 @@ public class AuthorsBooksServiceStubInit {
 
             // Add books to the repository
             StreamUtils.zip(booksTitles, groupedAuthorsIds, (title, ids) -> new Tuple2<>(title, ids)).forEach(i -> {
-                StreamUtils.sequence(i._2.stream().map(aId -> authorsBooksService.getAuthor(aId)).collect(Collectors.toList()))
+                StreamUtils.sequence(i._2.stream().map(aId -> authorsService.getOne(aId)).collect(Collectors.toList()))
                         .thenAccept(a -> {
-                            final Author[] bookAuthors = a.stream().filter(opt -> opt.isPresent()).map(opt -> opt.get()).toArray(Author[]::new);
-                            authorsBooksService.createBook(i._1, "desc", bookAuthors);
+                            final Set<KeyedEntity<Long,Author>> bookAuthors = a.stream().filter(opt -> opt.isPresent()).map(opt -> opt.get()).collect(Collectors.toSet());
+                            booksService.create(new Book(i._1, "desc", bookAuthors));
                         });
 
             });
         });
 
-        return authorsBooksService;
     }
 }

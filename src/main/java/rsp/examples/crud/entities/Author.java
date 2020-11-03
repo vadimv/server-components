@@ -3,18 +3,16 @@ package rsp.examples.crud.entities;
 import java.util.Set;
 
 public class Author {
-    public final long id;
     public final Name name;
-    public final Set<Book> books;
+    public final Set<KeyedEntity<Long, Book>> books;
 
-    public Author(long id, Name name, Set<Book> books) {
-        this.id = id;
+    public Author(Name name, Set<KeyedEntity<Long, Book>> books) {
         this.name = name;
         this.books = books;
     }
 
-    public Author(long id, Name name) {
-        this(id, name, Set.of());
+    public Author(Name name) {
+        this(name, Set.of());
     }
 
     @Override
