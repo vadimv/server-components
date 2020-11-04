@@ -21,7 +21,7 @@ public class AuthorsBooksServiceStubInit {
     /**
      * A book could be written either by a single author or by a group of authors
      */
-    public static void init(SimpleAuthorsEntityService authorsService, SimpleBooksEntityService booksService) {
+    public static void init(EntityService<Long, Author> authorsService, EntityService<Long, Book> booksService) {
         final var authorsNames = Arrays.stream(firstNames).flatMap(fn ->
                 Arrays.stream(secondNames).map(sn -> new Name(fn, sn)));
         final var booksTitles = Arrays.stream(bookTitleAdjectives).flatMap(adj ->
