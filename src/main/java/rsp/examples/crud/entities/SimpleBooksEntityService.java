@@ -43,7 +43,7 @@ public class SimpleBooksEntityService implements EntityService<Long, Book> {
         if (a == null) {
             return CompletableFuture.completedFuture(Optional.empty());
         } else {
-            books.put(updatedKeyedEntity.key, updatedKeyedEntity.entity);
+            books.put(updatedKeyedEntity.key, updatedKeyedEntity.data);
             return CompletableFuture.completedFuture(Optional.of(updatedKeyedEntity));
         }
     }

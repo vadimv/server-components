@@ -43,7 +43,7 @@ public class SimpleAuthorsEntityService implements EntityService<Long, Author> {
         if (a == null) {
             return CompletableFuture.completedFuture(Optional.empty());
         } else {
-            authors.put(updatedKeyedEntity.key, updatedKeyedEntity.entity);
+            authors.put(updatedKeyedEntity.key, updatedKeyedEntity.data);
             return CompletableFuture.completedFuture(Optional.of(updatedKeyedEntity));
         }
     }

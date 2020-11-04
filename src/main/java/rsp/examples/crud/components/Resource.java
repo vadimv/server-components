@@ -8,13 +8,15 @@ import rsp.state.UseState;
 
 import static rsp.dsl.Html.*;
 
-public class Resource implements Component<State> {
+public class Resource<K, T> implements Component<State> {
 
     public final String name;
+    public final EntityService<K, T> entityService;
     private final Component<Grid.GridState> listComponent;
 
-    public Resource(String name, Component<Grid.GridState> listComponent) {
+    public Resource(String name, EntityService<K, T> entityService, Component<Grid.GridState> listComponent) {
         this.name = name;
+        this.entityService = entityService;
         this.listComponent = listComponent;
     }
 
@@ -25,4 +27,5 @@ public class Resource implements Component<State> {
                 when(us.get().viewName.equals("list"), listComponent.of(useState(() -> us.get().list)))
         );
     }
+
 }

@@ -1,5 +1,6 @@
 package rsp.examples.crud.components;
 
+import rsp.App;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
@@ -7,24 +8,43 @@ import rsp.examples.crud.State;
 import rsp.state.UseState;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
-public class Admin implements Component<State> {
-    private final Resource[] resources;
+public class Admin {
+    private Resource<?, ?>[] resources;
     public Admin(Resource... resources) {
         this.resources = resources;
     }
 
-    @Override
-    public DocumentPartDefinition of(UseState<State> useState) {
-        return html(
+    public App<State> app() {
+        return new App<State>(request -> {
+            for (Resource<?, ?> resource : resources) {
+                if (request.path.contains(resource.name)) {
+                    return resource.entityService.getList(0,10)
+                            .thenApply(entities ->
+                                new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
+                                                    0,
+                                                    new HashSet<>())).
+                            thenApply(gridState -> new State("books", "list", gridState));
+                }
+            }
+            return CompletableFuture.completedFuture(new State("null", "null", null));
+        }, component());
+    }
+
+    private Component<State> component() {
+        return s -> html(
                 body(
-                        MenuPanel.component.of(useState(() -> new MenuPanel.MenuPanelState())),
+                        MenuPanel.component.of(useState(() -> new MenuPanel.MenuPanelState(Arrays.stream(resources).map(r ->
+                                r.name).collect(Collectors.toList())))),
 
-                        Html.of(Arrays.stream(resources).filter(resource -> resource.name.equals(useState.get().entityName))
-                                                        .map(resource -> resource.of(useState))
+                        Html.of(Arrays.stream(resources).filter(resource -> resource.name.equals(s.get().entityName))
+                                .map(resource -> resource.of(s))
 
-                )));
+                        )));
     }
 }

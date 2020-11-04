@@ -38,7 +38,7 @@ public class JettyServer {
 
     public JettyServer(int port, String basePath, App app, Optional<StaticResources> staticResources, int maxThreads) {
         this.port = port;
-        this.basePath = basePath;
+        this.basePath = Objects.requireNonNull(basePath);
         this.app = Objects.requireNonNull(app);
         this.staticResources = Objects.requireNonNull(staticResources);
         this.maxThreads = maxThreads;
