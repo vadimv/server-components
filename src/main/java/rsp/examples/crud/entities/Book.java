@@ -1,5 +1,6 @@
 package rsp.examples.crud.entities;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class Book {
@@ -15,5 +16,11 @@ public class Book {
 
     public Book(long id, String title, String description) {
         this(title, description, Set.of());
+    }
+
+    public Book addAuthor(KeyedEntity<Long, Author> author) {
+        final var a = new HashSet<>(authors);
+        a.add(author);
+        return new Book(title, description, a);
     }
 }

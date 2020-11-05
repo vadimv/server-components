@@ -21,7 +21,7 @@ public class Diff {
 
     private static void diff(Tag c, Tag w, Path path, ChangesPerformer changesPerformer) {
         if (!c.name.equals(w.name)) {
-            changesPerformer.remove(path);
+            changesPerformer.remove(path.parent().get(), path);
             create((Tag)w, path, changesPerformer);
         } else {
             diffStyles(c.styles, w.styles, path, changesPerformer);
@@ -68,17 +68,17 @@ public class Diff {
                 if (nc instanceof Tag && nw instanceof Tag) {
                     diff((Tag)nc, (Tag)nw, p, performer);
                 } else if (nw instanceof Tag) {
-                    performer.remove(path);
+                    performer.remove(path.parent().get(), path);
                     create(((Tag) nw), path, performer);
                 } else if (nc instanceof Tag) {
-                    performer.remove(path);
+                    performer.remove(path.parent().get(), path);
                     performer.createText(path.parent().get(), path, ((Text)nw).text);
                 } else if (!((Text)nc).text.equals(((Text)nw).text)) {
                     performer.createText(path.parent().get(), path, ((Text)nw).text);
                 }
             } else if (c.hasNext()) {
                 c.next();
-                performer.remove(path);
+                performer.remove(path.parent().get(), path);
             } else {
                 final Node nw = w.next();
                 create((Tag)nw, p, performer);

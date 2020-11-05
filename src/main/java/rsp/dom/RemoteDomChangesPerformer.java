@@ -20,8 +20,8 @@ public class RemoteDomChangesPerformer implements ChangesPerformer {
     }
 
     @Override
-    public void remove(Path path) {
-        commands.add(new Remove(path));
+    public void remove(Path parentPath, Path path) {
+        commands.add(new Remove(parentPath, path));
     }
 
     @Override
@@ -67,8 +67,10 @@ public class RemoteDomChangesPerformer implements ChangesPerformer {
     }
 
     public static class Remove implements DomChange {
+        public final Path parentPath;
         public final Path path;
-        public Remove(Path path) {
+        public Remove(Path parentPath, Path path) {
+            this.parentPath = parentPath;
             this.path = path;
         }
     }

@@ -102,8 +102,8 @@ public class DiffTests {
         }
 
         @Override
-        public void remove(Path id) {
-            sb.append("-T:" + id + " ");
+        public void remove(Path parentId, Path id) {
+            sb.append("-T:" + parentId + " " + id + " ");
         }
 
         @Override

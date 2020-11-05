@@ -98,13 +98,13 @@ public class SerializeKorolevOutMessages implements OutMessages {
     private String modifyDomMessageBody(DomChange domChange) {
         if (domChange instanceof RemoveAttr) {
             final RemoveAttr c = (RemoveAttr)domChange;
-            return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), false);
+            return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), true);
         } else if (domChange instanceof RemoveStyle) {
             final RemoveStyle c = (RemoveStyle)domChange;
             return joinString(REMOVE_STYLE, quote(c.path), quote(escape(c.name)), false);
         } else if (domChange instanceof Remove) {
             final Remove c = (Remove)domChange;
-            return joinString(REMOVE, quote(c.path));
+            return joinString(REMOVE, quote(c.parentPath), quote(c.path));
         } else if (domChange instanceof SetAttr) {
             final SetAttr c = (SetAttr)domChange;
             return joinString(SET_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), quote(c.value), c.isProperty);

@@ -14,4 +14,8 @@ public class State {
         this.viewName = viewName;
         this.list = list;
     }
+
+    public State updateGridState(Grid.GridState gs) {
+        return new State(entityName, viewName, gs);
+    }
 }

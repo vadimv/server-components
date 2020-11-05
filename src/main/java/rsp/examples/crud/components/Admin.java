@@ -29,7 +29,7 @@ public class Admin {
                                 new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
                                                     0,
                                                     new HashSet<>())).
-                            thenApply(gridState -> new State("books", "list", gridState));
+                            thenApply(gridState -> new State(resource.name, "list", gridState));
                 }
             }
             return CompletableFuture.completedFuture(new State("null", "null", null));

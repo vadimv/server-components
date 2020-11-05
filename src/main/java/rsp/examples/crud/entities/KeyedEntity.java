@@ -24,7 +24,7 @@ public class KeyedEntity<K, T> {
         final Field[] fields = data.getClass().getFields();
         final Grid.Cell[] cells =  Arrays.stream(fields).filter(f -> Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()))
                 .map(f -> readField(f, data)).toArray(Grid.Cell[]::new);
-        return new Grid.Row(cells);
+        return new Grid.Row(key, cells);
     }
 
     private Grid.Cell readField(Field f, T data) {

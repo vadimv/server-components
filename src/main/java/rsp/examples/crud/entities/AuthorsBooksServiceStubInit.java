@@ -4,6 +4,7 @@ import rsp.util.StreamUtils;
 import rsp.util.Tuple2;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,7 +49,9 @@ public class AuthorsBooksServiceStubInit {
                 StreamUtils.sequence(i._2.stream().map(aId -> authorsService.getOne(aId)).collect(Collectors.toList()))
                         .thenAccept(a -> {
                             final Set<KeyedEntity<Long,Author>> bookAuthors = a.stream().filter(opt -> opt.isPresent()).map(opt -> opt.get()).collect(Collectors.toSet());
-                            booksService.create(new Book(i._1, "desc", bookAuthors));
+                            final var book = new Book(i._1, "desc", bookAuthors);
+                            booksService.create(book);
+
                         });
 
             });

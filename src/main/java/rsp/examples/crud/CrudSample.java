@@ -11,8 +11,9 @@ public class CrudSample {
     public static final int DEFAULT_PORT = 8080;
     
     public static void main(String[] args) throws Exception {
-        final EntityService<Long, Author> authorsService = new SimpleAuthorsEntityService();
-        final EntityService<Long, Book> booksService = new SimpleBooksEntityService();
+        final SimpleDb db = new SimpleDb();
+        final EntityService<Long, Author> authorsService = db.authorsService();
+        final EntityService<Long, Book> booksService = db.booksService();
 
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 
