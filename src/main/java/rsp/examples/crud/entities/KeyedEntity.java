@@ -5,7 +5,6 @@ import rsp.examples.crud.components.Grid;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.stream.Collectors;
 
 public class KeyedEntity<K, T> {
     public final K key;
@@ -29,7 +28,7 @@ public class KeyedEntity<K, T> {
 
     private Grid.Cell readField(Field f, T data) {
         try {
-            return new Grid.Cell(f.get(data));
+            return new Grid.Cell(f.getName(), f.get(data));
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }

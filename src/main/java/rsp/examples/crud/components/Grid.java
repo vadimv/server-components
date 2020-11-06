@@ -9,11 +9,17 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import static rsp.dsl.Html.*;
 
 public class Grid implements Component<Grid.GridState> {
 
+    private final FieldComponent[] fieldsComponents;
+
+    public Grid(FieldComponent... fieldsComponents) {
+        this.fieldsComponents = fieldsComponents;
+    }
 
     @Override
     public DocumentPartDefinition of(UseState<GridState> state) {
@@ -22,18 +28,39 @@ public class Grid implements Component<Grid.GridState> {
                         tbody(
                                 Html.of(Arrays.stream(state.get().rows).map(row -> tr(
                                         td(input(attr("type", "checkbox"),
-                                                when(state.get().selectedRows.contains(row), attr("checked")),
-                                                attr("autocomplete", "off"),
-                                                on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
-                                        Html.of(Arrays.stream(row.cells).map(field -> td(text(field))))
-                                )))))
-        );
+                                                 when(state.get().selectedRows.contains(row), attr("checked")),
+                                                 attr("autocomplete", "off"),
+                                                 on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
+                                        Html.of(Arrays.stream(fieldsComponents).map(component ->
+                                                td(renderFieldComponent(row, component))
+
+                                        )))
+                                )))));
     }
 
-    public static class Cell<T> {
-        private final T data;
+    private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {
+        return component instanceof EditButton ? component.of(useState(() -> new Cell("rowKey", row.key)))
+                : component.of(useState(() -> forComponent(row.cells, component)));
+    }
 
-        public Cell(T data) {
+    private Cell forComponent(Cell[] cells, FieldComponent fieldComponent) {
+        for (Cell cell : cells) {
+            if (cell.fieldName.equals(fieldComponent.get())) {
+                return cell;
+            }
+        }
+        return new Cell("null", "Field not found");
+
+    }
+
+    public interface FieldComponent extends Component<Grid.Cell>, Supplier<String> {}
+
+    public static class Cell<T> {
+        public final String fieldName;
+        public final T data;
+
+        public Cell(String fieldName, T data) {
+            this.fieldName = fieldName;
             this.data = data;
         }
 
