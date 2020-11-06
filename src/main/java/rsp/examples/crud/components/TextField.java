@@ -15,7 +15,7 @@ public class TextField implements Grid.FieldComponent {
     }
 
     @Override
-    public DocumentPartDefinition of(UseState<Grid.Cell> useState) {
+    public DocumentPartDefinition render(UseState<Grid.Cell> useState) {
         return text(useState.get());
     }
 

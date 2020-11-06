@@ -5,5 +5,5 @@ import rsp.state.UseState;
 
 @FunctionalInterface
 public interface  Component<S> {
-    DocumentPartDefinition of(UseState<S> useState);
+    DocumentPartDefinition render(UseState<S> useState);
 }

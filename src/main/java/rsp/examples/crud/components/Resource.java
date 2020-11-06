@@ -26,7 +26,7 @@ public class Resource<K, T> implements Component<State> {
     }
 
     @Override
-    public DocumentPartDefinition of(UseState<State> us) {
+    public DocumentPartDefinition render(UseState<State> us) {
 
         return div(
                 button(attr("type", "button"),
@@ -46,7 +46,7 @@ public class Resource<K, T> implements Component<State> {
 
 
                             })),
-                when(us.get().viewName.equals("list"), listComponent.of(useState(() -> us.get().list,
+                when(us.get().viewName.equals("list"), listComponent.render(useState(() -> us.get().list,
                                                                         gridState -> {us.accept(us.get().updateGridState(gridState));})))
         );
     }

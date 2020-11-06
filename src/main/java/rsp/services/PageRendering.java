@@ -85,7 +85,7 @@ public class PageRendering<S> {
                 final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
                 final DomTreeRenderContext domTreeContext = new DomTreeRenderContext();
-                documentDefinition.of(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
+                documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
 
                 renderedPages.put(pageId, new RenderedPage<S>(initialState, domTreeContext.root));
 

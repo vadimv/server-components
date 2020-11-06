@@ -65,7 +65,7 @@ public class LivePage<S> implements InMessages, Schedule {
                                                                            new HashMap<>()));
         final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
             final DomTreeRenderContext newContext = new DomTreeRenderContext();
-            documentDefinition.of(self).accept(enrich.apply(qsid.sessionId, newContext));
+            documentDefinition.render(self).accept(enrich.apply(qsid.sessionId, newContext));
 
             // calculate diff between currentContext and newContext
             final var currentRoot = current.get().domRoot;

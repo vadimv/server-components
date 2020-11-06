@@ -22,7 +22,7 @@ public class Grid implements Component<Grid.GridState> {
     }
 
     @Override
-    public DocumentPartDefinition of(UseState<GridState> state) {
+    public DocumentPartDefinition render(UseState<GridState> state) {
         return div(
                 table(
                         tbody(
@@ -39,8 +39,8 @@ public class Grid implements Component<Grid.GridState> {
     }
 
     private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {
-        return component instanceof EditButton ? component.of(useState(() -> new Cell("rowKey", row.key)))
-                : component.of(useState(() -> forComponent(row.cells, component)));
+        return component instanceof EditButton ? component.render(useState(() -> new Cell("rowKey", row.key)))
+                : component.render(useState(() -> forComponent(row.cells, component)));
     }
 
     private Cell forComponent(Cell[] cells, FieldComponent fieldComponent) {

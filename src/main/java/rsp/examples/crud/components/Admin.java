@@ -2,10 +2,8 @@ package rsp.examples.crud.components;
 
 import rsp.App;
 import rsp.Component;
-import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
 import rsp.examples.crud.State;
-import rsp.state.UseState;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -39,11 +37,11 @@ public class Admin {
     private Component<State> component() {
         return s -> html(
                 body(
-                        MenuPanel.component.of(useState(() -> new MenuPanel.MenuPanelState(Arrays.stream(resources).map(r ->
+                        MenuPanel.component.render(useState(() -> new MenuPanel.MenuPanelState(Arrays.stream(resources).map(r ->
                                 r.name).collect(Collectors.toList())))),
 
                         Html.of(Arrays.stream(resources).filter(resource -> resource.name.equals(s.get().entityName))
-                                .map(resource -> resource.of(s))
+                                .map(resource -> resource.render(s))
 
                         )));
     }

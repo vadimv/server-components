@@ -18,7 +18,7 @@ public class JettyBasic {
         final int p = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
 
         final Component<State> render = state ->
-                html(body(subComponent.of(useState(() -> state.get().i, s -> state.accept(new State(s)))),
+                html(body(subComponent.render(useState(() -> state.get().i, s -> state.accept(new State(s)))),
                            div(span(text("+1")),
                                on("click",
                                   d -> { state.accept(new State(state.get().i + 1));})),
