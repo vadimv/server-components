@@ -63,8 +63,7 @@ export class Korolev {
     this.eventData = [];
 
     this.historyHandler = (/** @type {Event} */ event) => {
-      if (event.state === null) callback(CallbackType.HISTORY, this.initialPath);
-      else callback(CallbackType.HISTORY, event.state);
+      callback(CallbackType.HISTORY, window.location.pathname + window.location.hash);
     };
 
     window.vId = '0';
