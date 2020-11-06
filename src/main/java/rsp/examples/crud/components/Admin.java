@@ -37,12 +37,12 @@ public class Admin {
     private Component<State> component() {
         return s -> html(
                 body(
-                        MenuPanel.component.render(useState(() -> new MenuPanel.MenuPanelState(Arrays.stream(resources).map(r ->
-                                r.name).collect(Collectors.toList())))),
+                        new MenuPanel().render(useState(() ->
+                                new MenuPanel.MenuPanelState(Arrays.stream(resources).map(r ->
+                                    r.name).collect(Collectors.toList())))),
 
-                        Html.of(Arrays.stream(resources).filter(resource -> resource.name.equals(s.get().entityName))
-                                .map(resource -> resource.render(s))
-
+                        Html.of(Arrays.stream(resources).filter(resource ->
+                                resource.name.equals(s.get().entityName)).map(resource -> resource.render(s))
                         )));
     }
 }

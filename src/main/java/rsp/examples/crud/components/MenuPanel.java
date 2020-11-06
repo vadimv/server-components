@@ -1,19 +1,23 @@
 package rsp.examples.crud.components;
 
 import rsp.Component;
+import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
+import rsp.state.UseState;
 
 import java.util.List;
 
 import static rsp.dsl.Html.*;
 
-public class MenuPanel {
+public class MenuPanel implements Component<MenuPanel.MenuPanelState> {
 
-    public static final Component<MenuPanelState> component = state ->
-            div(
-                ul(
-                    Html.of(state.get().names.stream().map(name -> li(a("#" + name, name)))
-            )));
+    @Override
+    public DocumentPartDefinition render(UseState<MenuPanelState> state) {
+        return div(
+                    ul(
+                        Html.of(state.get().names.stream().map(name -> li(a("#" + name, name)))
+                    )));
+    }
 
     public static class MenuPanelState {
         public final List<String> names;
