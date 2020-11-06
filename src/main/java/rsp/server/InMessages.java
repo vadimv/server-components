@@ -11,4 +11,6 @@ public interface InMessages {
     void domEvent(int renderNumber, Path path, String eventType, Function<String, Optional<String>> eventObject);
 
     void evalJsResponse(int descriptorId, String value);
+
+    void historyEvent(String path, String hash);
 }

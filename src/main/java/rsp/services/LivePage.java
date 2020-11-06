@@ -172,6 +172,11 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
+    public void historyEvent(String path, String hash) {
+        System.out.println("urlEvent path:" + path + " hash=" + hash);
+    }
+
+    @Override
     public void domEvent(int renderNumber, Path path, String eventType, Function<String, Optional<String>> eventObject) {
         synchronized (this) {
             Path eventElementPath = path;

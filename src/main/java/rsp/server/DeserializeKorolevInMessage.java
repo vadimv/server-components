@@ -35,6 +35,7 @@ public class DeserializeKorolevInMessage {
                 case DOM_EVENT: parseDomEvent((String) messageJson.get(1), (JSONObject) messageJson.get(2)); break;
                 case EXTRACT_PROPERTY_RESPONSE: parseExtractPropertyResponse((String) messageJson.get(1)); break;
                 case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1)); break;
+                case HISTORY: parseHistoryEvent((String) messageJson.get(1)); break;
                 case HEARTBEAT: heartBeat(); break;
             }
         } catch (ParseException e) {
@@ -60,6 +61,11 @@ public class DeserializeKorolevInMessage {
                             Path.of(tokens[1]),
                             tokens[2],
                             name -> Optional.ofNullable((String)eventObject.get(name)));
+    }
+
+    private void parseHistoryEvent(String str) {
+        final String[] tokens = str.split("#");
+        inMessages.historyEvent(tokens[0], tokens.length > 1 ? tokens[1] : "");
     }
 
     private void heartBeat() {
