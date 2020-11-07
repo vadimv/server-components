@@ -26,10 +26,10 @@ public class Admin {
                                 new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
                                                     0,
                                                     new HashSet<>())).
-                            thenApply(gridState -> new State(resource.name, "list", gridState));
+                            thenApply(gridState -> new State(resource.name, Views.LIST, gridState));
                 }
             }
-            return CompletableFuture.completedFuture(new State("null", "null", null)); //TODO
+            return CompletableFuture.completedFuture(new State("null", Views.ERROR, null)); //TODO
         }, component());
     }
 
@@ -47,25 +47,29 @@ public class Admin {
                         )));
     }
 
+    public enum Views {
+        LIST, EDIT, CREATE, ERROR
+    }
+
     public static class State {
         public final String entityName;
-        public final String viewName;
+        public final Views view;
         public final Grid.GridState list;
 
         public State(String entityName,
-                     String viewName,
+                     Views view,
                      Grid.GridState list) {
             this.entityName = entityName;
-            this.viewName = viewName;
+            this.view = view;
             this.list = list;
         }
 
         public State updateGridState(Grid.GridState gs) {
-            return new State(entityName, viewName, gs);
+            return new State(entityName, view, gs);
         }
 
-        public State updateViewName(String vn) {
-            return new State(entityName, vn, list);
+        public State updateViewName(Views v) {
+            return new State(entityName, v, list);
         }
     }
 }
