@@ -2,7 +2,7 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.examples.crud.entities.EntityService;
+import rsp.examples.crud.entities.services.EntityService;
 import rsp.state.UseState;
 import rsp.util.StreamUtils;
 
@@ -17,11 +17,16 @@ public class Resource<K, T> implements Component<Admin.State> {
     public final String name;
     public final EntityService<K, T> entityService;
     private final Component<Grid.GridState> listComponent;
+    private final Component<Edit.State> editComponent;
 
-    public Resource(String name, EntityService<K, T> entityService, Component<Grid.GridState> listComponent) {
+    public Resource(String name,
+                    EntityService<K, T> entityService,
+                    Component<Grid.GridState> listComponent,
+                    Component<Edit.State> editComponent) {
         this.name = name;
         this.entityService = entityService;
         this.listComponent = listComponent;
+        this.editComponent = editComponent;
     }
 
     @Override
@@ -45,8 +50,12 @@ public class Resource<K, T> implements Component<Admin.State> {
 
 
                             })),
-                when(us.get().view.contains(Admin.Views.LIST), listComponent.render(useState(() -> us.get().list,
-                                                                        gridState -> {us.accept(us.get().updateGridState(gridState));})))
+                when(us.get().view.contains(Admin.Views.LIST),
+                     listComponent.render(useState(() -> us.get().list,
+                                                   gridState -> us.accept(us.get().updateGridState(gridState)))))
+             /*   when(us.get().view.contains(Admin.Views.EDIT),
+                        editComponent.render(useState(() -> us.get().list,
+                                gridState -> us.accept(us.get().updateGridState(gridState)))))*/
         );
     }
 

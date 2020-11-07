@@ -2,6 +2,8 @@ package rsp.examples.crud;
 
 import rsp.examples.crud.components.*;
 import rsp.examples.crud.entities.*;
+import rsp.examples.crud.entities.services.EntityService;
+import rsp.examples.crud.entities.services.SimpleDb;
 import rsp.jetty.JettyServer;
 
 public class CrudSample {
@@ -19,10 +21,12 @@ public class CrudSample {
                                                       authorsService,
                                                       new Grid(new TextField("name"),
                                                                new TextField("books"),
-                                                               new EditButton())),
+                                                               new EditButton()),
+                                                      new Edit()),
                                       new Resource<>("books",
                                                      booksService,
-                                                     new Grid(new TextField("title"))));
+                                                     new Grid(new TextField("title")),
+                                                     new Edit()));
 
         final var s = new JettyServer(DEFAULT_PORT,
                               "",

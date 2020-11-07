@@ -1,10 +1,10 @@
 package rsp.examples.crud.entities;
 
+import rsp.examples.crud.entities.services.EntityService;
 import rsp.util.StreamUtils;
 import rsp.util.Tuple2;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
