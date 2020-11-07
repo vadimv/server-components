@@ -3,17 +3,17 @@ package rsp.examples.crud.components;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
+import rsp.examples.crud.state.Cell;
+import rsp.examples.crud.state.Row;
+import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
 
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import static rsp.dsl.Html.*;
 
-public class Grid implements Component<Grid.GridState> {
+public class Grid<K> implements Component<Table<K>> {
 
     private final FieldComponent[] fieldsComponents;
 
@@ -22,7 +22,7 @@ public class Grid implements Component<Grid.GridState> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<GridState> state) {
+    public DocumentPartDefinition render(UseState<Table<K>> state) {
         return div(
                 table(
                         tbody(
@@ -53,68 +53,6 @@ public class Grid implements Component<Grid.GridState> {
 
     }
 
-    public interface FieldComponent extends Component<Grid.Cell>, Supplier<String> {}
+    public interface FieldComponent extends Component<Cell>, Supplier<String> {}
 
-    public static class Cell<T> {
-        public final String fieldName;
-        public final T data;
-
-        public Cell(String fieldName, T data) {
-            this.fieldName = fieldName;
-            this.data = data;
-        }
-
-        @Override
-        public String toString() {
-            return data.toString();
-        }
-    }
-
-
-    public static class Row<K> {
-        public final K key;
-        public final Cell[] cells;
-
-        public Row(K key, Cell... cells) {
-            this.key = Objects.requireNonNull(key);
-            this.cells = cells;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Row row = (Row) o;
-            return key.equals(row.key);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(key);
-        }
-    }
-
-    public static class GridState<K> {
-        public final Row[] rows;
-        public final Set<Row<K>> selectedRows;
-
-        public GridState(Row[] rows, Set<Row<K>> selectedRows) {
-            this.rows = rows;
-            this.selectedRows = selectedRows;
-        }
-
-        public static GridState empty() {
-            return new GridState(new Row[] {}, Set.of());
-        }
-
-        public GridState toggleRowSelection(Row<K> row) {
-            final Set<Row> sr = new HashSet<>(selectedRows);
-            if (selectedRows.contains(row)) {
-                sr.remove(row);
-            } else {
-                sr.add(row);
-            }
-            return new GridState(rows, sr);
-        }
-    }
 }

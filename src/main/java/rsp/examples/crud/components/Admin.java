@@ -3,6 +3,8 @@ package rsp.examples.crud.components;
 import rsp.App;
 import rsp.Component;
 import rsp.dsl.Html;
+import rsp.examples.crud.state.Row;
+import rsp.examples.crud.state.Table;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -24,14 +26,14 @@ public class Admin {
                 if (request.path.contains(resource.name)) {
                     return resource.entityService.getList(0,10)
                             .thenApply(entities ->
-                                new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
+                                new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),
                                                     new HashSet<>())).
                             thenApply(gridState -> new State(resource.name, Set.of(Views.LIST), gridState));
                 }
             }
             return CompletableFuture.completedFuture(new State("",
                                                                Set.of(Views.ERROR),
-                                                               Grid.GridState.empty()));
+                                                               Table.empty()));
         }, component());
     }
 
@@ -56,17 +58,17 @@ public class Admin {
     public static class State {
         public final String entityName;
         public final Set<Views> view;
-        public final Grid.GridState list;
+        public final Table list;
 
         public State(String entityName,
                      Set<Views> view,
-                     Grid.GridState list) {
+                     Table list) {
             this.entityName = entityName;
             this.view = view;
             this.list = list;
         }
 
-        public State updateGridState(Grid.GridState gs) {
+        public State updateGridState(Table gs) {
             return new State(entityName, view, gs);
         }
     }

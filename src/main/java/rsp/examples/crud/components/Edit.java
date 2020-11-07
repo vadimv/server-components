@@ -2,22 +2,24 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
+import rsp.examples.crud.state.Row;
 import rsp.state.UseState;
 
 import static rsp.dsl.Html.div;
 
-public class Edit implements Component<Edit.State> {
+public class Edit<K> implements Component<Edit.State<K>> {
 
     public Edit() {
     }
 
+
     @Override
-    public DocumentPartDefinition render(UseState<State> useState) {
+    public DocumentPartDefinition render(UseState<State<K>> useState) {
         return div("Edit component");
     }
 
     public static class State<K> {
-        Grid.Row<K> editRow;
+        Row<K> editRow;
         public State() {
         }
     }

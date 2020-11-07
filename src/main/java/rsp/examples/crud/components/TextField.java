@@ -1,6 +1,7 @@
 package rsp.examples.crud.components;
 
 import rsp.dsl.DocumentPartDefinition;
+import rsp.examples.crud.state.Cell;
 import rsp.state.UseState;
 
 import java.util.Objects;
@@ -15,7 +16,7 @@ public class TextField implements Grid.FieldComponent {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<Grid.Cell> useState) {
+    public DocumentPartDefinition render(UseState<Cell> useState) {
         return text(useState.get());
     }
 

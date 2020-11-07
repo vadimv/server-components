@@ -3,6 +3,8 @@ package rsp.examples.crud.components;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.entities.services.EntityService;
+import rsp.examples.crud.state.Row;
+import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
 import rsp.util.StreamUtils;
 
@@ -16,12 +18,12 @@ public class Resource<K, T> implements Component<Admin.State> {
 
     public final String name;
     public final EntityService<K, T> entityService;
-    private final Component<Grid.GridState> listComponent;
+    private final Component<Table<K>> listComponent;
     private final Component<Edit.State> editComponent;
 
     public Resource(String name,
                     EntityService<K, T> entityService,
-                    Component<Grid.GridState> listComponent,
+                    Component<Table<K>> listComponent,
                     Component<Edit.State> editComponent) {
         this.name = name;
         this.entityService = entityService;
@@ -37,12 +39,12 @@ public class Resource<K, T> implements Component<Admin.State> {
                         when(us.get().list.selectedRows.size() == 0, attr("disabled")),
                         text("Delete"),
                         on("click", ctx -> {
-                                final Set<Grid.Row<K>> rows = us.get().list.selectedRows;
+                                final Set<Row<K>> rows = us.get().list.selectedRows;
                                 StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.key))
                                            .collect(Collectors.toList()))
                                            .thenAccept(l -> {
                                                  entityService.getList(0, 25).thenAccept(entities -> {
-                                                        us.accept(us.get().updateGridState(new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
+                                                        us.accept(us.get().updateGridState(new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),
                                                                  new HashSet<>())));
                                                  });
                                              });

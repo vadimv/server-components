@@ -1,6 +1,8 @@
 package rsp.examples.crud.entities;
 
 import rsp.examples.crud.components.Grid;
+import rsp.examples.crud.state.Cell;
+import rsp.examples.crud.state.Row;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -19,16 +21,16 @@ public class KeyedEntity<K, T> {
         return new KeyedEntity<>(key, updatedData);
     }
 
-    public Grid.Row toRow() {
+    public Row toRow() {
         final Field[] fields = data.getClass().getFields();
-        final Grid.Cell[] cells =  Arrays.stream(fields).filter(f -> Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()))
-                .map(f -> readField(f, data)).toArray(Grid.Cell[]::new);
-        return new Grid.Row(key, cells);
+        final Cell[] cells =  Arrays.stream(fields).filter(f -> Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()))
+                .map(f -> readField(f, data)).toArray(Cell[]::new);
+        return new Row(key, cells);
     }
 
-    private Grid.Cell readField(Field f, T data) {
+    private Cell readField(Field f, T data) {
         try {
-            return new Grid.Cell(f.getName(), f.get(data));
+            return new Cell(f.getName(), f.get(data));
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
