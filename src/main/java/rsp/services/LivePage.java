@@ -1,5 +1,6 @@
 package rsp.services;
 
+import afu.org.checkerframework.checker.oigj.qual.O;
 import rsp.*;
 import rsp.dom.*;
 import rsp.server.HttpRequest;
@@ -172,11 +173,6 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void historyEvent(String path, String hash) {
-        System.out.println("urlEvent path:" + path + " hash=" + hash);
-    }
-
-    @Override
     public void domEvent(int renderNumber, Path path, String eventType, Function<String, Optional<String>> eventObject) {
         synchronized (this) {
             Path eventElementPath = path;
@@ -184,11 +180,11 @@ public class LivePage<S> implements InMessages, Schedule {
                 final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
                     final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                        registeredEventHandlers,
-                                                                        ref -> currentPageSnapshot.get().refs.get(ref),
-                                                                        eventObject,
-                                                                        this,
-                                                                        out);
+                            registeredEventHandlers,
+                            ref -> currentPageSnapshot.get().refs.get(ref),
+                            eventObject,
+                            this,
+                            out);
                     event.eventHandler.accept(eventContext);
                     break;
                 } else {

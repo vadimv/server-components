@@ -90,8 +90,10 @@ export class Korolev {
         var result = {};
         if (eventType == 'keydown') {
             result.keyCode = '' + e.keyCode;
+        } else if (eventType == 'popstate') {
+            result.path = window.location.pathname;
+            result.hash = window.location.hash;
         }
-
         return result;
       }
 
@@ -110,7 +112,7 @@ export class Korolev {
       this.rootListeners.push({ 'listener': listener, 'type': name });
     };
 
-    window.addEventListener('popstate', this.historyHandler);
+    //window.addEventListener('popstate', this.historyHandler);
   }
 
   swapElementInRegistry(a, b) {
