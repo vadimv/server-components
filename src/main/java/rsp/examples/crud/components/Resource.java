@@ -43,7 +43,6 @@ public class Resource<K, T> implements Component<Admin.State> {
                                            .thenAccept(l -> {
                                                  entityService.getList(0, 25).thenAccept(entities -> {
                                                         us.accept(us.get().updateGridState(new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
-                                                                0,
                                                                  new HashSet<>())));
                                                  });
                                              });

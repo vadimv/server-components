@@ -96,17 +96,15 @@ public class Grid implements Component<Grid.GridState> {
 
     public static class GridState<K> {
         public final Row[] rows;
-        public final int keyRowIndex;
         public final Set<Row<K>> selectedRows;
 
-        public GridState(Row[] rows, int keyRowIndex, Set<Row<K>> selectedRows) {
+        public GridState(Row[] rows, Set<Row<K>> selectedRows) {
             this.rows = rows;
-            this.keyRowIndex = keyRowIndex;
             this.selectedRows = selectedRows;
         }
 
         public static GridState empty() {
-            return new GridState(new Row[] {}, 0, Set.of());
+            return new GridState(new Row[] {}, Set.of());
         }
 
         public GridState toggleRowSelection(Row<K> row) {
@@ -116,7 +114,7 @@ public class Grid implements Component<Grid.GridState> {
             } else {
                 sr.add(row);
             }
-            return new GridState(rows, keyRowIndex, sr);
+            return new GridState(rows, sr);
         }
     }
 }

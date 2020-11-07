@@ -25,7 +25,6 @@ public class Admin {
                     return resource.entityService.getList(0,10)
                             .thenApply(entities ->
                                 new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
-                                                    0,
                                                     new HashSet<>())).
                             thenApply(gridState -> new State(resource.name, Set.of(Views.LIST), gridState));
                 }

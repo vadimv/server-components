@@ -16,7 +16,9 @@ public class Edit implements Component<Edit.State> {
         return div("Edit component");
     }
 
-    public static class State {
-
+    public static class State<K> {
+        Grid.Row<K> editRow;
+        public State() {
+        }
     }
 }
