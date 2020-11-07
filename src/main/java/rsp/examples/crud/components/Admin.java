@@ -48,10 +48,10 @@ public class Admin {
     }
 
     public static class State {
-
         public final String entityName;
         public final String viewName;
         public final Grid.GridState list;
+
         public State(String entityName,
                      String viewName,
                      Grid.GridState list) {
