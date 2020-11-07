@@ -105,6 +105,10 @@ public class Grid implements Component<Grid.GridState> {
             this.selectedRows = selectedRows;
         }
 
+        public static GridState empty() {
+            return new GridState(new Row[] {}, 0, Set.of());
+        }
+
         public GridState toggleRowSelection(Row<K> row) {
             final Set<Row> sr = new HashSet<>(selectedRows);
             if (selectedRows.contains(row)) {

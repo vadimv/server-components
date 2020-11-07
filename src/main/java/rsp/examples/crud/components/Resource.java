@@ -45,7 +45,7 @@ public class Resource<K, T> implements Component<Admin.State> {
 
 
                             })),
-                when(us.get().view.equals("list"), listComponent.render(useState(() -> us.get().list,
+                when(us.get().view.contains(Admin.Views.LIST), listComponent.render(useState(() -> us.get().list,
                                                                         gridState -> {us.accept(us.get().updateGridState(gridState));})))
         );
     }

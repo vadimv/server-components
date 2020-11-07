@@ -6,6 +6,7 @@ import rsp.dsl.Html;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -26,10 +27,12 @@ public class Admin {
                                 new Grid.GridState(entities.stream().map(b -> b.toRow()).toArray(Grid.Row[]::new),
                                                     0,
                                                     new HashSet<>())).
-                            thenApply(gridState -> new State(resource.name, Views.LIST, gridState));
+                            thenApply(gridState -> new State(resource.name, Set.of(Views.LIST), gridState));
                 }
             }
-            return CompletableFuture.completedFuture(new State("null", Views.ERROR, null)); //TODO
+            return CompletableFuture.completedFuture(new State("",
+                                                               Set.of(Views.ERROR),
+                                                               Grid.GridState.empty()));
         }, component());
     }
 
@@ -53,11 +56,11 @@ public class Admin {
 
     public static class State {
         public final String entityName;
-        public final Views view;
+        public final Set<Views> view;
         public final Grid.GridState list;
 
         public State(String entityName,
-                     Views view,
+                     Set<Views> view,
                      Grid.GridState list) {
             this.entityName = entityName;
             this.view = view;
@@ -66,10 +69,6 @@ public class Admin {
 
         public State updateGridState(Grid.GridState gs) {
             return new State(entityName, view, gs);
-        }
-
-        public State updateViewName(Views v) {
-            return new State(entityName, v, list);
         }
     }
 }
