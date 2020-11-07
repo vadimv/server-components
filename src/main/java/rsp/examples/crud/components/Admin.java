@@ -3,7 +3,6 @@ package rsp.examples.crud.components;
 import rsp.App;
 import rsp.Component;
 import rsp.dsl.Html;
-import rsp.examples.crud.State;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,13 +29,15 @@ public class Admin {
                             thenApply(gridState -> new State(resource.name, "list", gridState));
                 }
             }
-            return CompletableFuture.completedFuture(new State("null", "null", null));
+            return CompletableFuture.completedFuture(new State("null", "null", null)); //TODO
         }, component());
     }
 
     private Component<State> component() {
         return s -> html(
-                body(
+                body(window().on("popstate", ctx -> {
+                            s.accept(s.get());
+                        }),
                         new MenuPanel().render(useState(() ->
                                 new MenuPanel.MenuPanelState(Arrays.stream(resources).map(r ->
                                     r.name).collect(Collectors.toList())))),
@@ -44,5 +45,27 @@ public class Admin {
                         Html.of(Arrays.stream(resources).filter(resource ->
                                 resource.name.equals(s.get().entityName)).map(resource -> resource.render(s))
                         )));
+    }
+
+    public static class State {
+
+        public final String entityName;
+        public final String viewName;
+        public final Grid.GridState list;
+        public State(String entityName,
+                     String viewName,
+                     Grid.GridState list) {
+            this.entityName = entityName;
+            this.viewName = viewName;
+            this.list = list;
+        }
+
+        public State updateGridState(Grid.GridState gs) {
+            return new State(entityName, viewName, gs);
+        }
+
+        public State updateViewName(String vn) {
+            return new State(entityName, vn, list);
+        }
     }
 }

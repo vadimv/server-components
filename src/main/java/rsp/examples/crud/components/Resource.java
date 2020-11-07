@@ -2,7 +2,6 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.examples.crud.State;
 import rsp.examples.crud.entities.EntityService;
 import rsp.state.UseState;
 import rsp.util.StreamUtils;
@@ -13,7 +12,7 @@ import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
-public class Resource<K, T> implements Component<State> {
+public class Resource<K, T> implements Component<Admin.State> {
 
     public final String name;
     public final EntityService<K, T> entityService;
@@ -26,7 +25,7 @@ public class Resource<K, T> implements Component<State> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<State> us) {
+    public DocumentPartDefinition render(UseState<Admin.State> us) {
 
         return div(
                 button(attr("type", "button"),
