@@ -22,7 +22,7 @@ public class CrudSample {
                                                       new Grid<>(new TextField("name"),
                                                                  new TextField("books"),
                                                                  new EditButton()),
-                                                      new EditForm<>()),
+                                                      new EditForm<>(new TextInput("name"))),
                                       new Resource<>("books",
                                                      booksService,
                                                      new Grid<>(new TextField("title")),

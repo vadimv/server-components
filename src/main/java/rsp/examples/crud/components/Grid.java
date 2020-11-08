@@ -9,7 +9,6 @@ import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
 
 import java.util.Arrays;
-import java.util.function.Supplier;
 
 import static rsp.dsl.Html.*;
 
@@ -31,7 +30,7 @@ public class Grid<K> implements Component<Table<K>> {
                                                  when(state.get().selectedRows.contains(row), () -> attr("checked")),
                                                  attr("autocomplete", "off"),
                                                  on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
-                                        Html.of(Arrays.stream(fieldsComponents).map(component ->
+                                        of(Arrays.stream(fieldsComponents).map(component ->
                                                 td(renderFieldComponent(row, component))
 
                                         )))
@@ -40,19 +39,8 @@ public class Grid<K> implements Component<Table<K>> {
 
     private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {
         return component instanceof EditButton ? component.render(useState(() -> new Cell("rowKey", row.key)))
-                : component.render(useState(() -> forComponent(row.cells, component)));
+                : component.render(useState(() -> FieldComponent.cellForComponent(row.cells, component)));
     }
 
-    private Cell forComponent(Cell[] cells, FieldComponent fieldComponent) {
-        for (Cell cell : cells) {
-            if (cell.fieldName.equals(fieldComponent.get())) {
-                return cell;
-            }
-        }
-        return new Cell("null", "Field not found");
-
-    }
-
-    public interface FieldComponent extends Component<Cell>, Supplier<String> {}
 
 }

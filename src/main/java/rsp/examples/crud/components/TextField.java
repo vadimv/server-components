@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import static rsp.dsl.Html.text;
 
-public class TextField implements Grid.FieldComponent {
+public class TextField implements FieldComponent {
     private final String fieldName;
 
     public TextField(String fieldName) {
