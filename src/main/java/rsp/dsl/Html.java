@@ -179,8 +179,8 @@ public class Html {
         return itemSupplier.join();
     }
 
-    public static DocumentPartDefinition when(boolean condition, DocumentPartDefinition then) {
-        return condition ? then : new EmptyDefinition();
+    public static DocumentPartDefinition when(boolean condition, Supplier<DocumentPartDefinition> then) {
+        return condition ? then.get() : new EmptyDefinition();
     }
 
     public static EventDefinition on(String eventType, Consumer<EventContext> handler) {

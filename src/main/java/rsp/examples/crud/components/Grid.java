@@ -28,7 +28,7 @@ public class Grid<K> implements Component<Table<K>> {
                         tbody(
                                 Html.of(Arrays.stream(state.get().rows).map(row -> tr(
                                         td(input(attr("type", "checkbox"),
-                                                 when(state.get().selectedRows.contains(row), attr("checked")),
+                                                 when(state.get().selectedRows.contains(row), () -> attr("checked")),
                                                  attr("autocomplete", "off"),
                                                  on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
                                         Html.of(Arrays.stream(fieldsComponents).map(component ->

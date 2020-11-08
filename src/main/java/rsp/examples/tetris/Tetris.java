@@ -40,7 +40,7 @@ public class Tetris {
                     div(attr("class", "sidebar"),
                         span(text("Score: " + useState.get().score())),
                         button(attr("type", "button"),
-                               when(useState.get().isRunning, attr("disabled")),
+                               when(useState.get().isRunning, () -> attr("disabled")),
                                text("Start"),
                                on("click", c -> {
                                        State.initialState().start().newTetramino().ifPresent(ns -> useState.accept(ns));

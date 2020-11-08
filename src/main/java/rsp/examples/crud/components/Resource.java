@@ -9,22 +9,23 @@ import rsp.state.UseState;
 import rsp.util.StreamUtils;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
-public class Resource<K, T> implements Component<Admin.State> {
+public class Resource<T> implements Component<Admin.State> {
 
     public final String name;
-    public final EntityService<K, T> entityService;
-    private final Component<Table<K>> listComponent;
-    private final Component<Edit.State> editComponent;
+    public final EntityService<String, T> entityService;
+    private final Component<Table<String>> listComponent;
+    private final Component<Optional<Row<String>>> editComponent;
 
     public Resource(String name,
-                    EntityService<K, T> entityService,
-                    Component<Table<K>> listComponent,
-                    Component<Edit.State> editComponent) {
+                    EntityService<String, T> entityService,
+                    Component<Table<String>> listComponent,
+                    Component<Optional<Row<String>>> editComponent) {
         this.name = name;
         this.entityService = entityService;
         this.listComponent = listComponent;
@@ -34,12 +35,16 @@ public class Resource<K, T> implements Component<Admin.State> {
     @Override
     public DocumentPartDefinition render(UseState<Admin.State> us) {
 
-        return div(
+        return div(window().on("popstate", ctx -> {
+            ctx.eventObject().apply("hash").ifPresent(h ->
+                entityService.getOne(h.substring(1)).thenAccept(keo ->
+                        us.accept(us.get().updateEdit(keo.map(ke -> ke.toRow())))));
+                }),
                 button(attr("type", "button"),
-                        when(us.get().list.selectedRows.size() == 0, attr("disabled")),
+                        when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
                         text("Delete"),
                         on("click", ctx -> {
-                                final Set<Row<K>> rows = us.get().list.selectedRows;
+                                final Set<Row<String>> rows = us.get().list.selectedRows;
                                 StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.key))
                                            .collect(Collectors.toList()))
                                            .thenAccept(l -> {
@@ -52,11 +57,10 @@ public class Resource<K, T> implements Component<Admin.State> {
 
                             })),
                 when(us.get().view.contains(Admin.Views.LIST),
-                     listComponent.render(useState(() -> us.get().list,
-                                                   gridState -> us.accept(us.get().updateGridState(gridState)))))
-             /*   when(us.get().view.contains(Admin.Views.EDIT),
-                        editComponent.render(useState(() -> us.get().list,
-                                gridState -> us.accept(us.get().updateGridState(gridState)))))*/
+                        () -> listComponent.render(useState(() -> us.get().list,
+                                                   gridState -> us.accept(us.get().updateGridState(gridState))))),
+                when(us.get().edit.isPresent(),
+                        () -> editComponent.render(useState(() -> us.get().edit)))
         );
     }
 

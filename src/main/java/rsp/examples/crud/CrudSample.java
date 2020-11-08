@@ -12,8 +12,8 @@ public class CrudSample {
     
     public static void main(String[] args) throws Exception {
         final SimpleDb db = new SimpleDb();
-        final EntityService<Long, Author> authorsService = db.authorsService();
-        final EntityService<Long, Book> booksService = db.booksService();
+        final EntityService<String, Author> authorsService = db.authorsService();
+        final EntityService<String, Book> booksService = db.booksService();
 
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 

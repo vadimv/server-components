@@ -6,19 +6,15 @@ import java.util.Set;
 public class Book {
     public final String title;
     public final String description;
-    public final Set<KeyedEntity<Long, Author>> authors;
+    public final Set<KeyedEntity<String, Author>> authors;
 
-    public Book(String title, String description, Set<KeyedEntity<Long, Author>>  authors) {
+    public Book(String title, String description, Set<KeyedEntity<String, Author>>  authors) {
         this.title = title;
         this.description = description;
         this.authors = authors;
     }
 
-    public Book(long id, String title, String description) {
-        this(title, description, Set.of());
-    }
-
-    public Book addAuthor(KeyedEntity<Long, Author> author) {
+    public Book addAuthor(KeyedEntity<String, Author> author) {
         final var a = new HashSet<>(authors);
         a.add(author);
         return new Book(title, description, a);

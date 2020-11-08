@@ -5,9 +5,9 @@ import java.util.Set;
 
 public class Author {
     public final Name name;
-    public final Set<KeyedEntity<Long, Book>> books;
+    public final Set<KeyedEntity<String, Book>> books;
 
-    public Author(Name name, Set<KeyedEntity<Long, Book>> books) {
+    public Author(Name name, Set<KeyedEntity<String, Book>> books) {
         this.name = name;
         this.books = books;
     }
@@ -21,7 +21,7 @@ public class Author {
         return name.toString();
     }
 
-    public Author addBook(KeyedEntity<Long, Book> book) {
+    public Author addBook(KeyedEntity<String, Book> book) {
         final var b = new HashSet<>(books);
         b.add(book);
         return new Author(name, b);
