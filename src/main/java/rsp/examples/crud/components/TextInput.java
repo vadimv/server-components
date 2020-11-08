@@ -19,7 +19,7 @@ public class TextInput<T> implements FieldComponent {
     public DocumentPartDefinition render(UseState<Cell> useState) {
         return div(span(useState.get().fieldName + ":"),
                    input(attr("type", "text"),
-                         attr("value", useState.get().data.toString())));
+                         prop("value", useState.get().data.toString())));
     }
 
     @Override

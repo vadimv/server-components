@@ -27,9 +27,9 @@ public class DelegatingRenderContext implements RenderContext {
     }
 
     @Override
-    public void setAttr(XmlNs xmlNs, String name, String value) {
+    public void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty) {
         for (RenderContext rc: contexts) {
-            rc.setAttr(xmlNs, name, value);
+            rc.setAttr(xmlNs, name, value, isProperty);
         }
     }
 

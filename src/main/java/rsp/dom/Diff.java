@@ -39,7 +39,7 @@ public class Diff {
         });
         w.removeAll(ca);
         w.forEach(attribute -> {
-            performer.setAttr(path, XmlNs.html, attribute.name, attribute.value);
+            performer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
         });
     }
 
@@ -99,7 +99,7 @@ public class Diff {
                     changesPerformer.setStyle(p, style.name, style.value);
                 }
                 for (Attribute attribute: newTag.attributes) {
-                    changesPerformer.setAttr(p, XmlNs.html, attribute.name, attribute.value);
+                    changesPerformer.setAttr(p, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
                 }
             } else if (child instanceof Text) {
                 final Text text = (Text) child;

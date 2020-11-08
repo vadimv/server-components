@@ -77,7 +77,7 @@ public class DiffTests {
         Tag tree1 = new Tag(path, XmlNs.html, "div");
 
         Tag tree2 = new Tag(path, XmlNs.html, "div");
-        tree2.addAttribute("attr1", "value1");
+        tree2.addAttribute("attr1", "value1", true);
         final TestChangesPerformer cp = new TestChangesPerformer();
         final Diff diff = new Diff(Optional.of(tree1), tree2,  cp);
         diff.run();
@@ -107,7 +107,7 @@ public class DiffTests {
         }
 
         @Override
-        public void setAttr(Path id, XmlNs xmlNs, String name, String value) {
+        public void setAttr(Path id, XmlNs xmlNs, String name, String value, boolean isProperty) {
             sb.append("+A:" + id + "," + name + "," + value );
         }
 

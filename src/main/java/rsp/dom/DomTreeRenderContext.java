@@ -39,8 +39,8 @@ public class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public void setAttr(XmlNs xmlNs, String name, String value) {
-        tagsStack.peek().addAttribute(name, value);
+    public void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty) {
+        tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
     @Override

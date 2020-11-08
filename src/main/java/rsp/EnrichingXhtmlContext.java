@@ -62,14 +62,14 @@ public class EnrichingXhtmlContext implements RenderContext {
         context.closeNode("script");
 
         context.openNode(XmlNs.html, "script");
-        context.setAttr(XmlNs.html, "src", "/static/korolev-client.min.js");
-        context.setAttr(XmlNs.html, "defer", "");
+        context.setAttr(XmlNs.html, "src", "/static/korolev-client.min.js", false);
+        context.setAttr(XmlNs.html, "defer", "", true);
         context.closeNode("script");
     }
 
     @Override
-    public void setAttr(XmlNs xmlNs, String name, String value) {
-        context.setAttr(xmlNs, name, value);
+    public void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty) {
+        context.setAttr(xmlNs, name, value, isProperty);
     }
 
     @Override

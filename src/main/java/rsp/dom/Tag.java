@@ -26,8 +26,8 @@ public class Tag implements Node {
         children.add(node);
     }
 
-    public void addAttribute(String name, String value) {
-        attributes.add(new Attribute(name, value));
+    public void addAttribute(String name, String value, boolean isProperty) {
+        attributes.add(new Attribute(name, value, isProperty));
     }
 
     public void addStyle(String name, String value) {

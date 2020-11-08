@@ -4,6 +4,7 @@ import rsp.Event;
 import rsp.EventContext;
 import rsp.state.UseState;
 
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -155,12 +156,27 @@ public class Html {
         return new TextDefinition(obj.toString());
     }
 
+    public static AttributeDefinition attr(String name, String value, boolean isProperty) {
+        return new AttributeDefinition(name, value, isProperty);
+    }
+
     public static AttributeDefinition attr(String name, String value) {
-        return new AttributeDefinition(name, value);
+        return attr(name, value, isPropertyByDefault(name));
     }
 
     public static AttributeDefinition attr(String name) {
-        return new AttributeDefinition(name, name);
+        return new AttributeDefinition(name, name, isPropertyByDefault(name));
+    }
+    // TODO verify all this property names
+    private final static String[] DEFAULT_PROPERTIES_NAMES = { "autofocus", "autoplay", "async", "checked", "controls", "defer", "disabled",
+                                                               "hidden", "loop", "multiple", "open", "readonly", "required", "scoped", "selected", "value" };
+
+    private static boolean isPropertyByDefault(String name) {
+        return Arrays.asList(DEFAULT_PROPERTIES_NAMES).contains(name);
+    }
+
+    public static AttributeDefinition prop(String name, String value) {
+        return new AttributeDefinition(name, value, true);
     }
 
     public static StyleDefinition style(String name, String value) {
