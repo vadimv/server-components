@@ -176,7 +176,7 @@ public class Html {
     }
 
     public static AttributeDefinition prop(String name, String value) {
-        return new AttributeDefinition(name, value, true);
+        return attr(name, value, true);
     }
 
     public static StyleDefinition style(String name, String value) {
