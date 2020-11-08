@@ -23,12 +23,14 @@ public class EditForm<K> implements Component<Optional<Row<K>>> {
     @Override
     public DocumentPartDefinition render(UseState<Optional<Row<K>>> useState) {
         return div(span("Edit component:" + useState.get().get().key),
-                form(of(Arrays.stream(fieldsComponents).map(component ->
+                //form(
+                        of(Arrays.stream(fieldsComponents).map(component ->
                                         div(renderFieldComponent(useState.get().get(), component)))),
-                     button(text("OK")),
-                               on("submit", c -> {
+                     button(on("click", c -> {
                                    System.out.println("submit");
-                    })));
+                    }), text("OK")),
+                     button(on("click", ctx -> useState.accept(Optional.empty())),
+                             text("Cancel")))   ;
     }
 
     private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {

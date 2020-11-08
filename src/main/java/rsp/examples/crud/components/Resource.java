@@ -60,7 +60,9 @@ public class Resource<T> implements Component<Admin.State> {
                         () -> listComponent.render(useState(() -> us.get().list,
                                                    gridState -> us.accept(us.get().updateGridState(gridState))))),
                 when(us.get().edit.isPresent(),
-                        () -> editComponent.render(useState(() -> us.get().edit)))
+                        () -> editComponent.render(useState(() -> us.get().edit,
+                                                            s -> s.ifPresentOrElse(r -> {},
+                                                                                  () -> us.accept(us.get().updateEdit(Optional.empty()))))))
         );
     }
 

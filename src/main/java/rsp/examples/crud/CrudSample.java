@@ -25,8 +25,9 @@ public class CrudSample {
                                                       new EditForm<>(new TextInput("name"))),
                                       new Resource<>("books",
                                                      booksService,
-                                                     new Grid<>(new TextField("title")),
-                                                     new EditForm<>()));
+                                                     new Grid<>(new TextField("title"),
+                                                                new EditButton()),
+                                                     new EditForm<>(new TextInput("title"))));
 
         final var s = new JettyServer(DEFAULT_PORT,
                               "",
