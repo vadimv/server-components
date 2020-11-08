@@ -19,14 +19,14 @@ public class CrudSample {
 
         final Admin admin = new Admin(new Resource<>("authors",
                                                       authorsService,
-                                                      new Grid(new TextField("name"),
-                                                               new TextField("books"),
-                                                               new EditButton()),
-                                                      new Edit()),
+                                                      new Grid<>(new TextField("name"),
+                                                                 new TextField("books"),
+                                                                 new EditButton()),
+                                                      new EditForm<>()),
                                       new Resource<>("books",
                                                      booksService,
-                                                     new Grid(new TextField("title")),
-                                                     new Edit()));
+                                                     new Grid<>(new TextField("title")),
+                                                     new EditForm<>()));
 
         final var s = new JettyServer(DEFAULT_PORT,
                               "",
