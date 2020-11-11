@@ -1,5 +1,6 @@
 package rsp.examples.crud.components;
 
+import org.checkerframework.checker.units.qual.C;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.state.Cell;
@@ -7,9 +8,8 @@ import rsp.examples.crud.state.Row;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.lang.reflect.Field;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
@@ -30,7 +30,7 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
                            var values= Arrays.stream(fieldsComponents).map(f -> new Tuple2<>(f, c.eventObject().apply(f.fieldName)))
                                                            .filter(t -> t._2.isPresent())
                                                            .map(t -> new Tuple2<>(t._1.fieldName, t._2.get()))
-                                                           .collect(Collectors.toList());
+                                                           .collect(Collectors.toMap(t -> t._1, t -> t._2));
                            final Class clazz = useState.get().get().clazz;
 
                            useState.accept(formDataToState(clazz, useState.get().get(), values));
@@ -47,9 +47,24 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
                              text("Cancel"))))  ;
     }
 
-    private Optional<Row<K,T>> formDataToState(Class entityClass, Row<K, T> previous, List<Tuple2<String, String>> values) {
-
-        return Optional.of(null);
+    private Optional<Row<K,T>> formDataToState(Class entityClass, Row<K, T> previous, Map<String, String> values) {
+        final List<Cell> cells = new ArrayList<>();
+        for (Cell cell: previous.cells) {
+            try {
+                final Field field = entityClass.getField(cell.fieldName);
+                // works for String only
+                if (field.getType().equals(String.class)) {
+                    final String newValue = values.get(cell.fieldName);
+                    cells.add(new Cell(cell.fieldName, newValue != null ? newValue : cell.data));
+                } else {
+                    cells.add(new Cell(cell.fieldName, cell.data));
+                }
+            } catch (NoSuchFieldException e) {
+                // Normally should not happen
+                throw new IllegalStateException(e);
+            }
+        }
+        return Optional.of(new Row<>(previous.key, entityClass, cells.toArray(new Cell[0])));
     }
 
     private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {
