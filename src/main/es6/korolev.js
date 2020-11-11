@@ -93,6 +93,11 @@ export class Korolev {
         } else if (eventType == 'popstate') {
             result.path = window.location.pathname;
             result.hash = window.location.hash;
+        } else if (eventType == 'submit') {
+            var formData = new FormData(e.target);
+            formData.forEach(function(value, key) {
+                result[key] = value;
+            });
         }
         return result;
       }
