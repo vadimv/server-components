@@ -19,13 +19,13 @@ public class Resource<T> implements Component<Admin.State> {
 
     public final String name;
     public final EntityService<String, T> entityService;
-    private final Component<Table<String>> listComponent;
-    private final Component<Optional<Row<String>>> editComponent;
+    private final Component<Table<String, T>> listComponent;
+    private final Component<Optional<Row<String, T>>> editComponent;
 
     public Resource(String name,
                     EntityService<String, T> entityService,
-                    Component<Table<String>> listComponent,
-                    Component<Optional<Row<String>>> editComponent) {
+                    Component<Table<String, T>> listComponent,
+                    Component<Optional<Row<String, T>>> editComponent) {
         this.name = name;
         this.entityService = entityService;
         this.listComponent = listComponent;
@@ -44,7 +44,7 @@ public class Resource<T> implements Component<Admin.State> {
                         when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
                         text("Delete"),
                         on("click", ctx -> {
-                                final Set<Row<String>> rows = us.get().list.selectedRows;
+                                final Set<Row<String, T>> rows = us.get().list.selectedRows;
                                 StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.key))
                                            .collect(Collectors.toList()))
                                            .thenAccept(l -> {
@@ -61,7 +61,9 @@ public class Resource<T> implements Component<Admin.State> {
                                                    gridState -> us.accept(us.get().updateGridState(gridState))))),
                 when(us.get().edit.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,
-                                                            s -> s.ifPresentOrElse(r -> {},
+                                                            s -> s.ifPresentOrElse(r -> {
+
+                                                                    },
                                                                                   () -> us.accept(us.get().updateEdit(Optional.empty()))))))
         );
     }

@@ -5,13 +5,16 @@ import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.state.Cell;
 import rsp.examples.crud.state.Row;
 import rsp.state.UseState;
+import rsp.util.Tuple2;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
-public class EditForm<K> implements Component<Optional<Row<K>>> {
+public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
 
     private final TextInput[] fieldsComponents;
 
@@ -21,16 +24,32 @@ public class EditForm<K> implements Component<Optional<Row<K>>> {
 
 
     @Override
-    public DocumentPartDefinition render(UseState<Optional<Row<K>>> useState) {
+    public DocumentPartDefinition render(UseState<Optional<Row<K,T>>> useState) {
         return div(span("Edit component:" + useState.get().get().key),
-                //form(
+                form(on("submit", c -> {
+                           var values= Arrays.stream(fieldsComponents).map(f -> new Tuple2<>(f, c.eventObject().apply(f.fieldName)))
+                                                           .filter(t -> t._2.isPresent())
+                                                           .map(t -> new Tuple2<>(t._1.fieldName, t._2.get()))
+                                                           .collect(Collectors.toList());
+                           final Class clazz = useState.get().get().clazz;
+
+                           useState.accept(formDataToState(clazz, useState.get().get(), values));
+                            // 1. read form fields to a Row
+                            // 2. validate using fieldComponents, if any is invalid update state
+                            // 3. if all are valid accept
+                            System.out.println("submited:" + values);
+                        }),
                         of(Arrays.stream(fieldsComponents).map(component ->
                                         div(renderFieldComponent(useState.get().get(), component)))),
-                     button(on("click", c -> {
-                                   System.out.println("submit");
-                    }), text("OK")),
-                     button(on("click", ctx -> useState.accept(Optional.empty())),
-                             text("Cancel")))   ;
+                     button(attr("type", "submit"), text("Ok")),
+                     button(attr("type", "button"),
+                             on("click", ctx -> useState.accept(Optional.empty())),
+                             text("Cancel"))))  ;
+    }
+
+    private Optional<Row<K,T>> formDataToState(Class entityClass, Row<K, T> previous, List<Tuple2<String, String>> values) {
+
+        return Optional.of(null);
     }
 
     private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {

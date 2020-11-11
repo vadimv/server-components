@@ -12,7 +12,7 @@ import java.util.Arrays;
 
 import static rsp.dsl.Html.*;
 
-public class Grid<K> implements Component<Table<K>> {
+public class Grid<K, T> implements Component<Table<K, T>> {
 
     private final FieldComponent[] fieldsComponents;
 
@@ -21,7 +21,7 @@ public class Grid<K> implements Component<Table<K>> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<Table<K>> state) {
+    public DocumentPartDefinition render(UseState<Table<K, T>> state) {
         return div(
                 table(
                         tbody(

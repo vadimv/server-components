@@ -29,4 +29,12 @@ public class Tuple2<S,T> {
     public int hashCode() {
         return Objects.hash(_1, _2);
     }
+
+    @Override
+    public String toString() {
+        return "Tuple2{" +
+                "_1=" + _1 +
+                ", _2=" + _2 +
+                '}';
+    }
 }

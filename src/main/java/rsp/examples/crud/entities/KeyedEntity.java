@@ -25,7 +25,7 @@ public class KeyedEntity<K, T> {
         final Field[] fields = data.getClass().getFields();
         final Cell[] cells =  Arrays.stream(fields).filter(f -> Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()))
                 .map(f -> readField(f, data)).toArray(Cell[]::new);
-        return new Row(key, cells);
+        return new Row(key, data.getClass(), cells);
     }
 
     private Cell readField(Field f, T data) {

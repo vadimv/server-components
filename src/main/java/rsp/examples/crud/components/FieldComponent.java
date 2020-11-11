@@ -16,4 +16,5 @@ public interface FieldComponent extends Component<Cell>, Supplier<String> {
         return new Cell("null", "Field not found");
 
     }
+
 }

@@ -1,15 +1,16 @@
 package rsp.examples.crud.state;
 
-import rsp.examples.crud.components.Grid;
 
 import java.util.Objects;
 
-public class Row<K> {
+public class Row<K,T> {
     public final K key;
+    public final Class<T> clazz;
     public final Cell[] cells;
 
-    public Row(K key, Cell... cells) {
+    public Row(K key, Class<T> clazz, Cell... cells) {
         this.key = Objects.requireNonNull(key);
+        this.clazz = clazz;
         this.cells = cells;
     }
 
