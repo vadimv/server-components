@@ -22,13 +22,14 @@ public class CrudSample {
                                                       new Grid<>(new TextField("name"),
                                                                  new TextField("books"),
                                                                  new EditButton()),
-                                                      new EditForm<>(new TextInput("name",
-                                                                                    new RequiredValidation()))),
+                                                      new EditForm<>(new TextInput<>("name",
+                                                                                       s -> Name.of(s),
+                                                                                       new RequiredValidation()))),
                                       new Resource<>("books",
                                                      booksService,
                                                      new Grid<>(new TextField("title"),
                                                                 new EditButton()),
-                                                     new EditForm<>(new TextInput("title"))));
+                                                     new EditForm<>(new TextInput<>("title", s -> s))));
 
         final var s = new JettyServer(DEFAULT_PORT,
                               "",

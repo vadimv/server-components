@@ -4,11 +4,11 @@ import rsp.examples.crud.components.Grid;
 
 import java.util.Objects;
 
-public class Cell<T> {
+public class Cell {
     public final String fieldName;
-    public final T data;
+    public final Object data;
 
-    public Cell(String fieldName, T data) {
+    public Cell(String fieldName, Object data) {
         this.fieldName = Objects.requireNonNull(fieldName);
         this.data = Objects.requireNonNull(data);
     }

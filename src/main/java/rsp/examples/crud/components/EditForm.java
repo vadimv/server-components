@@ -1,6 +1,5 @@
 package rsp.examples.crud.components;
 
-import org.checkerframework.checker.units.qual.C;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.state.Cell;
@@ -8,7 +7,6 @@ import rsp.examples.crud.state.Row;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
 
-import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -47,22 +45,13 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
                              text("Cancel"))))  ;
     }
 
-    private Optional<Row<K,T>> formDataToState(Class entityClass, Row<K, T> previous, Map<String, String> values) {
+    private Optional<Row<K,T>> formDataToState(Class entityClass,
+                                               Row<K, T> previous,
+                                               Map<String, String> values) {
         final List<Cell> cells = new ArrayList<>();
         for (Cell cell: previous.cells) {
-            try {
-                final Field field = entityClass.getField(cell.fieldName);
-                // works for String only
-                if (field.getType().equals(String.class)) {
-                    final String newValue = values.get(cell.fieldName);
-                    cells.add(new Cell(cell.fieldName, newValue != null ? newValue : cell.data));
-                } else {
-                    cells.add(new Cell(cell.fieldName, cell.data));
-                }
-            } catch (NoSuchFieldException e) {
-                // Normally should not happen
-                throw new IllegalStateException(e);
-            }
+            final String newValue = values.get(cell.fieldName);
+            cells.add(new Cell(cell.fieldName, newValue != null ? parse(cell.fieldName, newValue) : cell.data));
         }
         return Optional.of(new Row<>(previous.key, entityClass, cells.toArray(new Cell[0])));
     }
@@ -70,5 +59,18 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
     private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {
         return component instanceof EditButton ? component.render(useState(() -> new Cell("rowKey", row.key)))
                 : component.render(useState(() -> FieldComponent.cellForComponent(row.cells, component)));
+    }
+
+    private Object parse(String fieldName, String str) {
+        return fieldComponent(fieldName).conversion.apply(str);
+    }
+
+    private TextInput fieldComponent(String fieldName) {
+        for (TextInput fc : fieldsComponents) {
+            if (fc.fieldName.equals(fieldName)) {
+                return fc;
+            }
+        }
+        throw new IllegalStateException("Component not found for field: " + fieldName);
     }
 }

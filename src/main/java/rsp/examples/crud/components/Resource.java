@@ -2,6 +2,7 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
+import rsp.examples.crud.entities.KeyedEntity;
 import rsp.examples.crud.entities.services.EntityService;
 import rsp.examples.crud.state.Row;
 import rsp.examples.crud.state.Table;
@@ -62,10 +63,14 @@ public class Resource<T> implements Component<Admin.State> {
                 when(us.get().edit.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,
                                                             s -> s.ifPresentOrElse(r -> {
-
+                                                                        entityService.update(new KeyedEntity<>(r.key, r.toEntity()))
+                                                                                     .thenCompose(u -> entityService.getList(0, 0))
+                                                                                     .thenAccept(entities ->
+                                                                                             us.accept(us.get().updateList(new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),
+                                                                                                                                       new HashSet<>()))
+                                                                                                               .updateEdit(Optional.empty())));
                                                                     },
-                                                                                  () -> us.accept(us.get().updateEdit(Optional.empty()))))))
-        );
+                                                                    () -> us.accept(us.get().updateEdit(Optional.empty())))))));
     }
 
 }

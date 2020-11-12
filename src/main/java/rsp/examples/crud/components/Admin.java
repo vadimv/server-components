@@ -78,5 +78,9 @@ public class Admin {
         public State updateEdit(Optional e) {
             return new State(entityName, view, list, e);
         }
+
+        public State updateList(Table l) {
+            return new State(entityName, view, l, edit);
+        }
     }
 }

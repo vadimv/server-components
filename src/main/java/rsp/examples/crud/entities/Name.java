@@ -9,6 +9,11 @@ public class Name {
         this.secondName = secondName;
     }
 
+    public static Name of(String str) {
+        final String[] tokens = str.split(" ");
+        return new Name(tokens[0], tokens.length > 1 ? tokens[1] : "");
+    }
+
     @Override
     public String toString() {
         return firstName + " " + secondName;

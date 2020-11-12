@@ -13,10 +13,12 @@ import static rsp.dsl.Html.*;
 public class TextInput<T> implements FieldComponent {
 
     public final String fieldName;
+    public final Function<String, T> conversion;
     public final Function<String, Optional<String>>[] validations;
 
-    public TextInput(String fieldName, Function<String, Optional<String>>... validations) {
+    public TextInput(String fieldName, Function<String, T> conversion, Function<String, Optional<String>>... validations) {
         this.fieldName = fieldName;
+        this.conversion = conversion;
         this.validations = validations;
     }
 
