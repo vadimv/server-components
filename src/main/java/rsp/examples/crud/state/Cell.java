@@ -1,7 +1,5 @@
 package rsp.examples.crud.state;
 
-import rsp.examples.crud.components.Grid;
-
 import java.util.Objects;
 
 public class Cell {
