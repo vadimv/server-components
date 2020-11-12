@@ -91,6 +91,11 @@
             <artifactId>closure-compiler</artifactId>
             <version>v20200614</version>
         </dependency>
+        <dependency>
+            <groupId>org.objenesis</groupId>
+            <artifactId>objenesis</artifactId>
+            <version>3.1</version>
+        </dependency>
     </dependencies>
 
 
