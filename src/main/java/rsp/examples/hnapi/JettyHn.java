@@ -33,6 +33,7 @@ public class JettyHn {
                         div(attr("class", "content"),
                             of(StreamUtils.zipWithIndex(Arrays.stream(useState.get().stories)).map(story ->
                                     div(
+                                            span((story.getKey() + 1) + ". "),
                                             a(attr("href", story.getValue().url), text(story.getValue().name))
                                     ))
                               )),
