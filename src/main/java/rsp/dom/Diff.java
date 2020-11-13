@@ -68,17 +68,17 @@ public class Diff {
                 if (nc instanceof Tag && nw instanceof Tag) {
                     diff((Tag)nc, (Tag)nw, p, performer);
                 } else if (nw instanceof Tag) {
-                    performer.remove(path.parent().get(), path);
+                    performer.remove(nc.path().parent().get(), nc.path());
                     create(((Tag) nw), path, performer);
                 } else if (nc instanceof Tag) {
-                    performer.remove(path.parent().get(), path);
+                    performer.remove(nc.path().parent().get(), nc.path());
                     performer.createText(path.parent().get(), path, ((Text)nw).text);
                 } else if (!((Text)nc).text.equals(((Text)nw).text)) {
                     performer.createText(path.parent().get(), path, ((Text)nw).text);
                 }
             } else if (c.hasNext()) {
-                c.next();
-                performer.remove(path.parent().get(), path);
+                final Node nc = c.next();
+                performer.remove(nc.path().parent().get(), nc.path());
             } else {
                 final Node nw = w.next();
                 create((Tag)nw, p, performer);
@@ -103,7 +103,7 @@ public class Diff {
                 }
             } else if (child instanceof Text) {
                 final Text text = (Text) child;
-                changesPerformer.createText(tag.path, p, text.text);
+                changesPerformer.createText(path, p, text.text);
             }
             p = p.incSibling();
         }
