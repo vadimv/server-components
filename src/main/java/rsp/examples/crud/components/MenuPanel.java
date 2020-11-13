@@ -15,7 +15,7 @@ public class MenuPanel implements Component<MenuPanel.MenuPanelState> {
     public DocumentPartDefinition render(UseState<MenuPanelState> state) {
         return div(
                     ul(
-                        Html.of(state.get().names.stream().map(name -> li(a("#" + name, name)))
+                        Html.of(state.get().names.stream().map(name -> li(a("/" + name, name)))
                     )));
     }
 
