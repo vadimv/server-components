@@ -1,6 +1,5 @@
 package rsp.examples.crud.state;
 
-
 import org.objenesis.Objenesis;
 import org.objenesis.ObjenesisStd;
 
