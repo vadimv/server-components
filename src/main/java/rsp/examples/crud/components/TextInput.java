@@ -45,11 +45,6 @@ public class TextInput<T> implements InputComponent<String, T> {
     }
 
     @Override
-    public Function<T, String> conversionTo() {
-        return null;
-    }
-
-    @Override
     public Function<String, Optional<String>>[] validations() {
         return new Function[0];
     }
