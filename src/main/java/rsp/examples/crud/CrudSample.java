@@ -21,12 +21,8 @@ public class CrudSample {
                                                       authorsService,
                                                       new Grid<>(new TextField<>("name"),
                                                                  new EditButton()),
-                                                      new EditForm<>(new Conversion<>(new TextInput("name"),
-                                                                                                              s -> Name.of(s),
-                                                                                                              n -> n.toString())),
-                                                      new EditForm<>(new Conversion<>(new TextInput("name", ""),
-                                                                s -> Name.of(s),
-                                                                n -> n.toString()))));
+                                                      new EditForm<>(new TextInput<>("name", s -> Name.of(s))),
+                                                      new EditForm<>(new TextInput<>("name", "", s -> Name.of(s)))));
                 /*
                                       new Resource<Book>("books",
                                                      booksService,
