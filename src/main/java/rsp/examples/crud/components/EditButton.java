@@ -14,6 +14,6 @@ public class EditButton implements FieldComponent<String> {
 
     @Override
     public String key() {
-        return "__key__";
+        return FieldComponent.KEY_FIELD_NAME;
     }
 }

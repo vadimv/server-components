@@ -6,9 +6,10 @@ import rsp.examples.crud.state.Row;
 
 
 public interface FieldComponent<S> extends Component<S>, Keyed<String> {
+    String KEY_FIELD_NAME = "__key__";
 
     static Object dataForComponent(Row row, FieldComponent fieldComponent) {
-        if ("__key__".equals(fieldComponent.key())) return row.rowKey.toString();
+        if (KEY_FIELD_NAME.equals(fieldComponent.key())) return row.rowKey.toString();
 
         for (int i = 0; i < row.dataKeys.length; i++) {
             if (row.dataKeys[i].equals(fieldComponent.key())) {
