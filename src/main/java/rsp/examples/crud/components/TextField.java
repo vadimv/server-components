@@ -20,11 +20,9 @@ public class TextField<S> implements FieldComponent<S> {
         return text(useState.get().toString());
     }
 
-
     @Override
     public String key() {
         return fieldName;
     }
-
 
 }
