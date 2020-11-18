@@ -11,11 +11,11 @@ import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
-public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
+public class Form<K, T> implements Component<Optional<Row<K, T>>> {
 
     private final InputComponent<?, ?>[] fieldsComponents;
 
-    public EditForm(InputComponent<?, ?>... fieldsComponents) {
+    public Form(InputComponent<?, ?>... fieldsComponents) {
         this.fieldsComponents = fieldsComponents;
     }
 
