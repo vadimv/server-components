@@ -29,7 +29,7 @@ public class Admin {
                             .thenApply(entities ->
                                 new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),
                                             new HashSet<>())).
-                            thenApply(gridState -> new State(resource.name, Set.of(Views.LIST), gridState, Optional.empty()));
+                            thenApply(gridState -> new State(resource.name, Set.of(Views. LIST), gridState, Optional.empty()));
                 }
             }
             return CompletableFuture.completedFuture(new State("",

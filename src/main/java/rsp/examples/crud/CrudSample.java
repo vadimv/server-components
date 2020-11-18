@@ -17,20 +17,24 @@ public class CrudSample {
 
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 
-        final Admin admin = new Admin(new Resource<>("authors",
+        final Admin admin = new Admin(new Resource<Author>("authors",
                                                       authorsService,
-                                                      new Grid<>(new TextField("name"),
-                                                                 new TextField("books"),
+                                                      new Grid<>(new TextField<Name>("name", name -> name.toString()),
                                                                  new EditButton()),
-                                                      new EditForm<>(new TextInput<>("name",
-                                                                                       s -> Name.of(s),
-                                                                                       new RequiredValidation()))),
-                                      new Resource<>("books",
+                                                      new EditForm<>(new Conversion<>(new TextInput("name"),
+                                                                                                              s -> Name.of(s),
+                                                                                                              n -> n.toString())),
+                                                      new EditForm<>(new Conversion<>(new TextInput("name", ""),
+                                                                s -> Name.of(s),
+                                                                n -> n.toString()))));
+                /*
+                                      new Resource<Book>("books",
                                                      booksService,
                                                      new Grid<>(new TextField("title"),
                                                                 new EditButton()),
-                                                     new EditForm<>(new TextInput<>("title", s -> s))));
-
+                                                     new EditForm<>(new TextInput<>("title", s -> s)),
+                                                     new EditForm<String, Book>(new InitialValue<>(new TextInput<>("title", s -> s), "")))));
+*/
         final var s = new JettyServer(DEFAULT_PORT,
                               "",
                                       admin.app());

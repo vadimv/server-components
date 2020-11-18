@@ -14,9 +14,9 @@ import static rsp.dsl.Html.*;
 
 public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
 
-    private final TextInput[] fieldsComponents;
+    private final InputComponent<?, ?>[] fieldsComponents;
 
-    public EditForm(TextInput... fieldsComponents) {
+    public EditForm(InputComponent<?, ?>... fieldsComponents) {
         this.fieldsComponents = fieldsComponents;
     }
 
@@ -25,17 +25,17 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
     public DocumentPartDefinition render(UseState<Optional<Row<K,T>>> useState) {
         return div(span("Edit component:" + useState.get().get().key),
                 form(on("submit", c -> {
-                           var values= Arrays.stream(fieldsComponents).map(f -> new Tuple2<>(f, c.eventObject().apply(f.fieldName)))
+                           var formValues= Arrays.stream(fieldsComponents).map(f -> new Tuple2<>(f, c.eventObject().apply(f.key())))
                                                            .filter(t -> t._2.isPresent())
-                                                           .map(t -> new Tuple2<>(t._1.fieldName, t._2.get()))
+                                                           .map(t -> new Tuple2<>(t._1.key(), t._2.get()))
                                                            .collect(Collectors.toMap(t -> t._1, t -> t._2));
                            final Class clazz = useState.get().get().clazz;
 
-                           useState.accept(formDataToState(clazz, useState.get().get(), values));
+                           useState.accept(formDataToState(clazz, useState.get().get(), formValues));
                             // 1. read form fields to a Row
                             // 2. validate using fieldComponents, if any is invalid update state
                             // 3. if all are valid accept
-                            System.out.println("submited:" + values);
+                            System.out.println("submited:" + formValues);
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
                                         div(renderFieldComponent(useState.get().get(), component)))),
@@ -56,18 +56,17 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
         return Optional.of(new Row<>(previous.key, entityClass, cells.toArray(new Cell[0])));
     }
 
-    private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {
-        return component instanceof EditButton ? component.render(useState(() -> new Cell("rowKey", row.key)))
-                : component.render(useState(() -> FieldComponent.cellForComponent(row.cells, component)));
+    private DocumentPartDefinition renderFieldComponent(Row<K, T> row, FieldComponent component) {
+        return component.render(useState(() -> FieldComponent.cellForComponent(row, component).data));
     }
 
     private Object parse(String fieldName, String str) {
-        return fieldComponent(fieldName).conversion.apply(str);
+        return fieldComponent(fieldName).conversionFrom().apply(str);
     }
 
-    private TextInput fieldComponent(String fieldName) {
-        for (TextInput fc : fieldsComponents) {
-            if (fc.fieldName.equals(fieldName)) {
+    private InputComponent fieldComponent(String fieldName) {
+        for (InputComponent fc : fieldsComponents) {
+            if (fc.key().equals(fieldName)) {
                 return fc;
             }
         }

@@ -8,13 +8,9 @@ import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.rmi.RemoteException;
+import java.io.*;
 import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 
 public class MainHttpServlet<S>  extends HttpServlet {
     public static final int DEFAULT_BUFFER_SIZE = 8192;
@@ -34,7 +30,9 @@ public class MainHttpServlet<S>  extends HttpServlet {
 
             pageRendering.httpGet(req).handle((resp, ex) -> {
                     if (ex != null) {
-                        return new HttpResponse(500, Collections.emptyList(), ex.getMessage());
+                        return new HttpResponse(500,
+                                                      Collections.emptyList(),
+                                                      exceptionDetails(ex));
                     } else {
                         return resp;
                     }
@@ -45,6 +43,21 @@ public class MainHttpServlet<S>  extends HttpServlet {
             });
 
         });
+    }
+
+    private static String exceptionDetails(Throwable ex) {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("500 Internal server error\n");
+        sb.append("Exception: " + ex.getMessage() + "\n");
+        sb.append(stackTrace(ex));
+        return sb.toString();
+    }
+
+    private static String stackTrace(Throwable ex) {
+        final StringWriter sw = new StringWriter();
+        final PrintWriter pw = new PrintWriter(sw);
+        ex.printStackTrace(pw);
+        return sw.toString();
     }
 
     private void setServletResponse(HttpResponse resp, HttpServletResponse response) {

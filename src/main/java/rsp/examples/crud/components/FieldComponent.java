@@ -1,18 +1,22 @@
 package rsp.examples.crud.components;
 
 import rsp.Component;
+import rsp.examples.crud.entities.Keyed;
 import rsp.examples.crud.state.Cell;
+import rsp.examples.crud.state.Row;
 
-import java.util.function.Supplier;
 
-public interface FieldComponent extends Component<Cell>, Supplier<String> {
+public interface FieldComponent<S> extends Component<S>, Keyed<String> {
 
-    static Cell cellForComponent(Cell[] cells, FieldComponent fieldComponent) {
-        for (Cell cell : cells) {
-            if (cell.fieldName.equals(fieldComponent.get())) {
+    static Cell cellForComponent(Row row, FieldComponent fieldComponent) {
+        if ("__key__".equals(fieldComponent.key())) return new Cell(row.key.toString(), row.key.toString());
+
+        for (Cell cell : row.cells) {
+            if (cell.fieldName.equals(fieldComponent.key())) {
                 return cell;
             }
         }
+
         return new Cell("null", "Field not found");
 
     }

@@ -6,15 +6,15 @@ import rsp.state.UseState;
 
 import static rsp.dsl.Html.a;
 
-public class EditButton implements FieldComponent {
+public class EditButton implements FieldComponent<String> {
 
     @Override
-    public DocumentPartDefinition render(UseState<Cell> useState) {
-        return a("#" + useState.get().data, "Edit");
+    public DocumentPartDefinition render(UseState<String> useState) {
+        return a("#" + useState.get(), "Edit");
     }
 
     @Override
-    public String get() {
-        return "";
+    public String key() {
+        return "__key__";
     }
 }

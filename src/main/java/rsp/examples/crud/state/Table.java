@@ -5,10 +5,10 @@ import java.util.Objects;
 import java.util.Set;
 
 public class Table<K, T> {
-    public final Row[] rows;
+    public final Row<K, T>[] rows;
     public final Set<Row<K, T>> selectedRows;
 
-    public Table(Row[] rows, Set<Row<K, T>> selectedRows) {
+    public Table(Row<K, T>[] rows, Set<Row<K, T>> selectedRows) {
         this.rows = Objects.requireNonNull(rows);
         this.selectedRows = Objects.requireNonNull(selectedRows);
     }

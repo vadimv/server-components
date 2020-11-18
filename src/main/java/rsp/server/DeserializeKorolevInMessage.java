@@ -37,8 +37,8 @@ public class DeserializeKorolevInMessage {
                 case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1)); break;
                 case HEARTBEAT: heartBeat(); break;
             }
-        } catch (ParseException e) {
-            throw new RuntimeException("Error parsing an incoming message: " + message);
+        } catch (Throwable e) {
+            e.printStackTrace();
         }
     }
 

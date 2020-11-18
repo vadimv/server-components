@@ -3,7 +3,6 @@ package rsp.examples.crud.components;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
-import rsp.examples.crud.state.Cell;
 import rsp.examples.crud.state.Row;
 import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
@@ -14,9 +13,9 @@ import static rsp.dsl.Html.*;
 
 public class Grid<K, T> implements Component<Table<K, T>> {
 
-    private final FieldComponent[] fieldsComponents;
+    private final FieldComponent<?>[] fieldsComponents;
 
-    public Grid(FieldComponent... fieldsComponents) {
+    public Grid(FieldComponent<?>... fieldsComponents) {
         this.fieldsComponents = fieldsComponents;
     }
 
@@ -37,9 +36,8 @@ public class Grid<K, T> implements Component<Table<K, T>> {
                                 )))));
     }
 
-    private DocumentPartDefinition renderFieldComponent(Row row, FieldComponent component) {
-        return component instanceof EditButton ? component.render(useState(() -> new Cell("rowKey", row.key)))
-                : component.render(useState(() -> FieldComponent.cellForComponent(row.cells, component)));
+    private DocumentPartDefinition renderFieldComponent(Row<K, T> row, FieldComponent component) {
+        return component.render(useState(() -> FieldComponent.cellForComponent(row, component).data));
     }
 
 
