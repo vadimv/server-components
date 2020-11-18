@@ -2,7 +2,6 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.examples.crud.state.Cell;
 import rsp.examples.crud.state.Row;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
@@ -23,7 +22,7 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
 
     @Override
     public DocumentPartDefinition render(UseState<Optional<Row<K,T>>> useState) {
-        return div(span("Edit component:" + useState.get().get().key),
+        return div(span("Edit component:" + useState.get().get().rowKey),
                 form(on("submit", c -> {
                            var formValues= Arrays.stream(fieldsComponents).map(f -> new Tuple2<>(f, c.eventObject().apply(f.key())))
                                                            .filter(t -> t._2.isPresent())
@@ -46,18 +45,18 @@ public class EditForm<K, T> implements Component<Optional<Row<K, T>>> {
     }
 
     private Optional<Row<K,T>> formDataToState(Class entityClass,
-                                               Row<K, T> previous,
+                                               Row<K, T> oldRow,
                                                Map<String, String> values) {
-        final List<Cell> cells = new ArrayList<>();
-        for (Cell cell: previous.cells) {
-            final String newValue = values.get(cell.fieldName);
-            cells.add(new Cell(cell.fieldName, newValue != null ? parse(cell.fieldName, newValue) : cell.data));
+        final Object[] newData = new Object[oldRow.data.length];
+        for (int i = 0; i < oldRow.data.length;i++) {
+            final String newValue = values.get(oldRow.dataKeys[i]);
+            newData[i] = newValue != null ? parse(oldRow.dataKeys[i], newValue) : oldRow.data[i];
         }
-        return Optional.of(new Row<>(previous.key, entityClass, cells.toArray(new Cell[0])));
+        return Optional.of(new Row<>(oldRow.rowKey, entityClass, oldRow.dataKeys, newData));
     }
 
     private DocumentPartDefinition renderFieldComponent(Row<K, T> row, FieldComponent component) {
-        return component.render(useState(() -> FieldComponent.cellForComponent(row, component).data));
+        return component.render(useState(() -> FieldComponent.dataForComponent(row, component)));
     }
 
     private Object parse(String fieldName, String str) {

@@ -2,23 +2,20 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.examples.crud.entities.Keyed;
-import rsp.examples.crud.state.Cell;
 import rsp.examples.crud.state.Row;
 
 
 public interface FieldComponent<S> extends Component<S>, Keyed<String> {
 
-    static Cell cellForComponent(Row row, FieldComponent fieldComponent) {
-        if ("__key__".equals(fieldComponent.key())) return new Cell(row.key.toString(), row.key.toString());
+    static Object dataForComponent(Row row, FieldComponent fieldComponent) {
+        if ("__key__".equals(fieldComponent.key())) return row.rowKey.toString();
 
-        for (Cell cell : row.cells) {
-            if (cell.fieldName.equals(fieldComponent.key())) {
-                return cell;
+        for (int i = 0; i < row.dataKeys.length; i++) {
+            if (row.dataKeys[i].equals(fieldComponent.key())) {
+                return row.data[i];
             }
         }
-
-        return new Cell("null", "Field not found");
-
+        throw new IllegalStateException("Data for " + fieldComponent + " not found in " + row);
     }
 
 }

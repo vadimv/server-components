@@ -8,14 +8,17 @@ import java.lang.reflect.Field;
 import java.util.Objects;
 
 public class Row<K,T> {
-    public final K key;
+    public final K rowKey;
     public final Class<T> clazz;
-    public final Cell[] cells;
+    public final String[] dataKeys;
+    public final Object[] data;
 
-    public Row(K key, Class<T> clazz, Cell... cells) {
-        this.key = Objects.requireNonNull(key);
-        this.clazz = clazz;
-        this.cells = cells;
+    public Row(K rowKey, Class<T> clazz, String[] dataKeys, Object[] data) {
+        this.rowKey = Objects.requireNonNull(rowKey);
+        this.clazz = Objects.requireNonNull(clazz);
+        this.dataKeys = Objects.requireNonNull(dataKeys);
+        this.data = Objects.requireNonNull(data);
+        if (this.dataKeys.length != this.data.length) throw new IllegalStateException("Keys length not equals to data length");
     }
 
     @Override
@@ -23,22 +26,22 @@ public class Row<K,T> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Row row = (Row) o;
-        return key.equals(row.key);
+        return rowKey.equals(row.rowKey);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key);
+        return Objects.hash(rowKey);
     }
 
     public T toEntity() {
         final Objenesis objenesis = new ObjenesisStd();
         final T obj = objenesis.newInstance(clazz);
-        for (Cell cell: cells) {
+        for (int i = 0; i < data.length; i++) {
             try {
-                final Field declaredField = clazz.getDeclaredField(cell.fieldName);
+                final Field declaredField = clazz.getDeclaredField(dataKeys[i]);
                 declaredField.setAccessible(true);
-                declaredField.set(obj, cell.data);
+                declaredField.set(obj, data[i]);
                 declaredField.setAccessible(false);
             } catch (IllegalAccessException | NoSuchFieldException e) {
                 throw new RuntimeException(e);
@@ -46,4 +49,5 @@ public class Row<K,T> {
         }
         return obj;
     }
+
 }

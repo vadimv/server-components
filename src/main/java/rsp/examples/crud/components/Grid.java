@@ -37,7 +37,7 @@ public class Grid<K, T> implements Component<Table<K, T>> {
     }
 
     private DocumentPartDefinition renderFieldComponent(Row<K, T> row, FieldComponent component) {
-        return component.render(useState(() -> FieldComponent.cellForComponent(row, component).data));
+        return component.render(useState(() -> FieldComponent.dataForComponent(row, component)));
     }
 
 

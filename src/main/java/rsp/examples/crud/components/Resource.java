@@ -55,7 +55,7 @@ public class Resource<T> implements Component<Admin.State> {
                             text("Delete"),
                             on("click", ctx -> {
                                     final Set<Row<String, T>> rows = us.get().list.selectedRows;
-                                    StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.key))
+                                    StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.rowKey))
                                                .collect(Collectors.toList()))
                                                .thenAccept(l -> {
                                                      entityService.getList(0, 25).thenAccept(entities -> {
@@ -72,7 +72,7 @@ public class Resource<T> implements Component<Admin.State> {
                 when(us.get().edit.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,
                                                             s -> s.ifPresentOrElse(r -> {
-                            entityService.update(new KeyedEntity<>(r.key, r.toEntity()))
+                            entityService.update(new KeyedEntity<>(r.rowKey, r.toEntity()))
                                          .thenCompose(u -> entityService.getList(0, 0))
                                          .thenAccept(entities ->
                                                  us.accept(us.get().updateList(new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),

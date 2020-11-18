@@ -1,12 +1,12 @@
 package rsp.examples.crud.entities;
 
-import rsp.examples.crud.components.Grid;
-import rsp.examples.crud.state.Cell;
 import rsp.examples.crud.state.Row;
+import rsp.util.Tuple2;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.stream.Stream;
 
 public class KeyedEntity<K, T> {
     public final K key;
@@ -22,15 +22,18 @@ public class KeyedEntity<K, T> {
     }
 
     public Row toRow() {
-        final Field[] fields = data.getClass().getFields();
-        final Cell[] cells =  Arrays.stream(fields).filter(f -> Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()))
-                .map(f -> readField(f, data)).toArray(Cell[]::new);
-        return new Row(key, data.getClass(), cells);
+        final Stream<Field> fields = Arrays.stream(data.getClass().getFields()).filter(f ->
+                Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()));
+        final Tuple2[] keyedData = fields.map(f -> readField(f, data)).toArray(Tuple2[]::new);
+        return new Row(key,
+                       data.getClass(),
+                       Arrays.stream(keyedData).map(t -> t._1).toArray(String[]::new),
+                       Arrays.stream(keyedData).map(t -> t._2).toArray(Object[]::new));
     }
 
-    private Cell readField(Field f, T data) {
+    private Tuple2 readField(Field f, T data) {
         try {
-            return new Cell(f.getName(), f.get(data));
+            return new Tuple2(f.getName(), f.get(data));
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
