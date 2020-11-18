@@ -19,7 +19,7 @@ public class CrudSample {
 
         final Admin admin = new Admin(new Resource<Author>("authors",
                                                       authorsService,
-                                                      new Grid<>(new TextField<Name>("name", name -> name.toString()),
+                                                      new Grid<>(new TextField<>("name"),
                                                                  new EditButton()),
                                                       new EditForm<>(new Conversion<>(new TextInput("name"),
                                                                                                               s -> Name.of(s),

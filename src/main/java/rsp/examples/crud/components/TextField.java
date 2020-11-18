@@ -10,16 +10,14 @@ import static rsp.dsl.Html.text;
 
 public class TextField<S> implements FieldComponent<S> {
     private final String fieldName;
-    private final Function<S, String> conversion;
 
-    public TextField(String fieldName, Function<S, String> conversion) {
+    public TextField(String fieldName) {
         this.fieldName = Objects.requireNonNull(fieldName);
-        this.conversion = Objects.requireNonNull(conversion);
     }
 
     @Override
     public DocumentPartDefinition render(UseState<S> useState) {
-        return text(conversion.apply(useState.get()));
+        return text(useState.get().toString());
     }
 
 
