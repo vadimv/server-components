@@ -4,7 +4,6 @@ import rsp.dsl.DocumentPartDefinition;
 import rsp.state.UseState;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 import static rsp.dsl.Html.text;
 
