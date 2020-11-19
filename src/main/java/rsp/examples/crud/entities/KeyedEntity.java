@@ -21,7 +21,7 @@ public class KeyedEntity<K, T> {
         return new KeyedEntity<>(key, updatedData);
     }
 
-    public Row toRow() {
+    public Row<?,?> toRow() {
         final Stream<Field> fields = Arrays.stream(data.getClass().getFields()).filter(f ->
                 Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()));
         final Tuple2[] keyedData = fields.map(f -> readField(f, data)).toArray(Tuple2[]::new);

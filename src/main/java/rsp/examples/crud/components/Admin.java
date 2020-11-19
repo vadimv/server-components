@@ -71,15 +71,15 @@ public class Admin {
             this.edit = edit;
         }
 
-        public State updateGridState(Table gs) {
+        public State updateGridState(Table<?, ?> gs) {
             return new State(entityName, view, gs, edit);
         }
 
-        public State updateEdit(Optional e) {
+        public State updateEdit(Optional<Row<?, ?>> e) {
             return new State(entityName, view, list, e);
         }
 
-        public State updateList(Table l) {
+        public State updateList(Table<?, ?> l) {
             return new State(entityName, view, l, edit);
         }
     }

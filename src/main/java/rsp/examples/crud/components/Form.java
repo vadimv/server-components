@@ -28,13 +28,13 @@ public class Form<K, T> implements Component<Optional<Row<K, T>>> {
                                                            .filter(t -> t._2.isPresent())
                                                            .map(t -> new Tuple2<>(t._1.key(), t._2.get()))
                                                            .collect(Collectors.toMap(t -> t._1, t -> t._2));
-                           final Class clazz = useState.get().get().clazz;
+                           final Class<?> clazz = useState.get().get().clazz;
 
                            useState.accept(formDataToState(clazz, useState.get().get(), formValues));
                             // 1. read form fields to a Row
                             // 2. validate using fieldComponents, if any is invalid update state
                             // 3. if all are valid accept
-                            System.out.println("submited:" + formValues);
+                            System.out.println("submitted:" + formValues);
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
                                         div(renderFieldComponent(useState.get().get(), component)))),
