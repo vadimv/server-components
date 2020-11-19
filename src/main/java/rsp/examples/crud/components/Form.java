@@ -24,7 +24,8 @@ public class Form<K, T> implements Component<Optional<Row<K, T>>> {
     public DocumentPartDefinition render(UseState<Optional<Row<K,T>>> useState) {
         return div(span("Edit component:" + useState.get().get().rowKey),
                 form(on("submit", c -> {
-                   final Map<String, String> formValues= Arrays.stream(fieldsComponents).map(f -> new Tuple2<>(f, c.eventObject().apply(f.key())))
+                   final Map<String, String> formValues = Arrays.stream(fieldsComponents)
+                                                   .map(f -> new Tuple2<>(f, c.eventObject().apply(f.key())))
                                                    .filter(t -> t._2.isPresent())
                                                    .map(t -> new Tuple2<>(t._1.key(), t._2.get()))
                                                    .collect(Collectors.toMap(t -> t._1, t -> t._2));
