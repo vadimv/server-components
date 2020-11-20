@@ -12,24 +12,24 @@ import rsp.util.StreamUtils;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
-public class Resource<T> implements Component<Admin.State> {
+public class Resource<T> implements Component<Resource.State> {
 
     public final String name;
     public final EntityService<String, T> entityService;
+
     private final Component<Table<String, T>> listComponent;
-    private final Component<Optional<Row<String, T>>> editComponent;
-    private final Component<Optional<Row<String, T>>> createComponent;
+    private final Component<Form.State<T>> editComponent;
+    private final Component<Form.State<T>> createComponent;
 
     public Resource(String name,
                     EntityService<String, T> entityService,
                     Component<Table<String, T>> listComponent,
-                    Component<Optional<Row<String, T>>> editComponent,
-                    Component<Optional<Row<String, T>>> createComponent) {
+                    Component<Form.State<T>> editComponent,
+                    Component<Form.State<T>> createComponent) {
         this.name = name;
         this.entityService = entityService;
         this.listComponent = listComponent;
@@ -38,8 +38,7 @@ public class Resource<T> implements Component<Admin.State> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<Admin.State> us) {
-
+    public DocumentPartDefinition render(UseState<State> us) {
         return div(window().on("popstate", ctx -> {
             ctx.eventObject().apply("hash").ifPresent(h ->
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
@@ -66,12 +65,12 @@ public class Resource<T> implements Component<Admin.State> {
 
 
                                 }))),
-                when(us.get().view.contains(Admin.Views.LIST),
+                when(us.get().view.contains(ViewType.LIST),
                         () -> listComponent.render(useState(() -> us.get().list,
                                                    gridState -> us.accept(us.get().updateGridState(gridState))))),
-                when(us.get().edit.isPresent(),
+                when(us.get().edit.row.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,
-                                                            s -> s.ifPresentOrElse(r -> {
+                                                            s -> s.row.ifPresentOrElse(r -> {
                             entityService.update(new KeyedEntity<>(r.rowKey, r.toEntity()))
                                          .thenCompose(u -> entityService.getList(0, 0))
                                          .thenAccept(entities ->
@@ -80,6 +79,36 @@ public class Resource<T> implements Component<Admin.State> {
                                                                    .updateEdit(Optional.empty())));
                                                                 },
                                                                     () -> us.accept(us.get().updateEdit(Optional.empty())))))));
+    }
+
+    public enum ViewType {
+        LIST, EDIT, CREATE, ERROR
+    }
+
+    public static class State {
+        public final Set<ViewType> view;
+        public final Table list;
+        public final Form.State edit;
+
+        public State(Set<ViewType> view,
+                     Table list,
+                     Form.State edit) {
+            this.view = view;
+            this.list = list;
+            this.edit = edit;
+        }
+
+        public State updateGridState(Table<?, ?> gs) {
+            return new State(view, gs, edit);
+        }
+
+        public State updateEdit(Optional<Row<?, ?>> e) {
+            return new State(view, list, new Form.State(e));
+        }
+
+        public State updateList(Table<?, ?> l) {
+            return new State(view, l, edit);
+        }
     }
 
 }

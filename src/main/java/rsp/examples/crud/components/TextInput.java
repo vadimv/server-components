@@ -27,11 +27,11 @@ public class TextInput<T> implements InputComponent<String, T> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<T> useState) {
+    public DocumentPartDefinition render(UseState<String> useState) {
         return div(
                    input(attr("type", "text"),
                          attr("name", fieldName),
-                         prop("value", initialValue.orElse(useState.get().toString()))));
+                         prop("value", initialValue.orElse(useState.get()))));
     }
 
     @Override

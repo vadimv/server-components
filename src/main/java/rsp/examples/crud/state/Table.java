@@ -14,16 +14,16 @@ public class Table<K, T> {
     }
 
     public static <K, T> Table<K, T> empty() {
-        return new Table(new Row[] {}, Set.of());
+        return new Table<>(new Row[] {}, Set.of());
     }
 
-    public Table toggleRowSelection(Row<K, T> row) {
-        final Set<Row> sr = new HashSet<>(selectedRows);
+    public Table<K, T> toggleRowSelection(Row<K, T> row) {
+        final Set<Row<K, T>> sr = new HashSet<>(selectedRows);
         if (selectedRows.contains(row)) {
             sr.remove(row);
         } else {
             sr.add(row);
         }
-        return new Table(rows, sr);
+        return new Table<>(rows, sr);
     }
 }
