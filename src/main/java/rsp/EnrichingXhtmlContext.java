@@ -1,7 +1,6 @@
 package rsp;
 
 import rsp.dsl.EventDefinition;
-import rsp.dsl.RefDefinition;
 
 import java.util.function.Consumer;
 
@@ -29,13 +28,13 @@ public class EnrichingXhtmlContext implements RenderContext {
 
     @Override
     public void openNode(XmlNs xmlNs, String name) {
-        if (!headWasOpened && name == "body" && xmlNs == XmlNs.html) {
+        if (!headWasOpened && name.equals("body") && xmlNs.equals(XmlNs.html)) {
             // No <head> have opened above
             // it means a programmer didn't include head() in the page
             context.openNode(XmlNs.html, "head");
             upgradeHead();
             context.closeNode("head");
-        } else if (xmlNs == XmlNs.html && name == "head") {
+        } else if (xmlNs.equals(XmlNs.html) && name.equals("head")) {
             headWasOpened = true;
         }
         context.openNode(xmlNs, name);
@@ -43,7 +42,7 @@ public class EnrichingXhtmlContext implements RenderContext {
 
     @Override
     public void closeNode(String name) {
-        if (headWasOpened && name == "head") {
+        if (headWasOpened && name.equals("head")) {
             upgradeHead();
         }
         context.closeNode(name);
