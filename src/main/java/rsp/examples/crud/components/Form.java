@@ -37,11 +37,11 @@ public class Form<T> implements Component<Form.State<T>> {
                                     .collect(Collectors.toMap(t -> t._1, t -> t._2));
                             // 2. validate using fieldComponents, if any is invalid update state
                             // 3. if all are valid accept
-                            useState.accept(formDataToState(row, formValues));
+                            useState.accept(new Form.State<T>(useState.get().clazz, Optional.of(newEntity(row, formValues)), Collections.EMPTY_MAP));
                             System.out.println("submitted:" + formValues);
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
-                                div(renderFieldComponent(row, component)))),
+                                div(component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()))))),
                         button(attr("type", "submit"), text("Ok")),
                         button(attr("type", "button"),
                                 on("click", ctx -> useState.accept(new State<>(useState.get().clazz, Optional.empty(), Collections.EMPTY_MAP))),
@@ -50,8 +50,8 @@ public class Form<T> implements Component<Form.State<T>> {
                 .orElse(div(span("Create")));
     }
 
-    private Form.State<T> formDataToState(KeyedEntity<String, T> oldRow,
-                                          Map<String, String> values) {
+    private KeyedEntity<String, T> newEntity(KeyedEntity<String, T> oldRow,
+                                                        Map<String, String> values) {
         final Objenesis objenesis = new ObjenesisStd();
         final Class<T> clazz = (Class<T>) oldRow.data.getClass();
         final T obj = (T) objenesis.newInstance(clazz);
@@ -59,25 +59,21 @@ public class Form<T> implements Component<Form.State<T>> {
             for (String fieldName : oldRow.dataFieldsNames()) {
                 final Field declaredField = clazz.getDeclaredField(fieldName);
                 declaredField.setAccessible(true);
-                final String newValue = values.get(fieldName);
-                declaredField.set(obj, newValue != null ? fieldComponent(fieldName).conversionFrom().apply(newValue) : oldRow.field(fieldName).get());
+                final String newFieldValue = values.get(fieldName);
+                declaredField.set(obj, newFieldValue != null ? fieldComponentOf(fieldName).conversionFrom().apply(newFieldValue) : oldRow.field(fieldName).get());
                 declaredField.setAccessible(false);
             }
         } catch (Exception ex) {
             throw new RuntimeException(ex);
         }
-        return new State<>(clazz, Optional.of(new KeyedEntity<>(oldRow.key, obj)), Collections.EMPTY_MAP);
+        return new KeyedEntity<>(oldRow.key, obj);
     }
 
     private DocumentPartDefinition renderFieldComponent(KeyedEntity<String, T> row, FieldComponent<String> component) {
         return component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()));
     }
 
-/*    private Object parse(String fieldName, String str) {
-        return fieldComponent(fieldName).conversionFrom().apply(str);
-    }*/
-
-    private InputComponent fieldComponent(String fieldName) {
+    private InputComponent fieldComponentOf(String fieldName) {
         for (InputComponent fc : fieldsComponents) {
             if (fc.key().equals(fieldName)) {
                 return fc;
