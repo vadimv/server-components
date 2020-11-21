@@ -69,10 +69,6 @@ public class Form<T> implements Component<Form.State<T>> {
         return new KeyedEntity<>(oldRow.key, obj);
     }
 
-    private DocumentPartDefinition renderFieldComponent(KeyedEntity<String, T> row, FieldComponent<String> component) {
-        return component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()));
-    }
-
     private InputComponent fieldComponentOf(String fieldName) {
         for (InputComponent fc : fieldsComponents) {
             if (fc.key().equals(fieldName)) {
