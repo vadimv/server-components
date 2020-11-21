@@ -1,12 +1,12 @@
 package rsp.examples.crud.entities;
 
-import rsp.examples.crud.state.Row;
+import afu.org.checkerframework.checker.oigj.qual.O;
 import rsp.util.Tuple2;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
-import java.util.stream.Stream;
+import java.util.Optional;
 
 public class KeyedEntity<K, T> {
     public final K key;
@@ -21,14 +21,19 @@ public class KeyedEntity<K, T> {
         return new KeyedEntity<>(key, updatedData);
     }
 
-    public Row<?,?> toRow() {
-        final Stream<Field> fields = Arrays.stream(data.getClass().getFields()).filter(f ->
-                Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers()));
-        final Tuple2[] keyedData = fields.map(f -> readField(f, data)).toArray(Tuple2[]::new);
-        return new Row(key,
-                       data.getClass(),
-                       Arrays.stream(keyedData).map(t -> t._1).toArray(String[]::new),
-                       Arrays.stream(keyedData).map(t -> t._2).toArray(Object[]::new));
+    public String[] dataFieldsNames() {
+        return Arrays.stream(data.getClass().getFields()).filter(f ->
+                Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers())).map(f -> f.getName()).toArray(String[]::new);
+    }
+
+    public Optional<?> field(String fieldName) {
+        try {
+            return Optional.of(data.getClass().getField(fieldName).get(data));
+        } catch (NoSuchFieldException ex) {
+            return Optional.empty();
+        } catch (IllegalAccessException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     private Tuple2 readField(Field f, T data) {

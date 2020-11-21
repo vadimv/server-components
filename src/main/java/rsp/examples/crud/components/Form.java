@@ -1,11 +1,14 @@
 package rsp.examples.crud.components;
 
+import org.objenesis.Objenesis;
+import org.objenesis.ObjenesisStd;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.examples.crud.state.Row;
+import rsp.examples.crud.entities.KeyedEntity;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
 
+import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,7 +27,7 @@ public class Form<T> implements Component<Form.State<T>> {
     @Override
     public DocumentPartDefinition render(UseState<Form.State<T>> useState) {
         return useState.get().row.map(row ->
-            div(span("Edit: " + row.rowKey),
+            div(span("Edit: " + row.key),
                 form(on("submit", c -> {
                             // 1. read form fields to a Row
                             final Map<String, String> formValues = Arrays.stream(fieldsComponents)
@@ -34,7 +37,7 @@ public class Form<T> implements Component<Form.State<T>> {
                                     .collect(Collectors.toMap(t -> t._1, t -> t._2));
                             // 2. validate using fieldComponents, if any is invalid update state
                             // 3. if all are valid accept
-                            useState.accept(formDataToState(row.clazz, row, formValues));
+                            useState.accept(formDataToState(row, formValues));
                             System.out.println("submitted:" + formValues);
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
@@ -47,24 +50,32 @@ public class Form<T> implements Component<Form.State<T>> {
                 .orElse(div(span("Create")));
     }
 
-    private Form.State<T> formDataToState(Class entityClass,
-                                               Row<String, T> oldRow,
-                                               Map<String, String> values) {
-        final Object[] newData = new Object[oldRow.data.length];
-        for (int i = 0; i < oldRow.data.length;i++) {
-            final String newValue = values.get(oldRow.dataKeys[i]);
-            newData[i] = newValue != null ? parse(oldRow.dataKeys[i], newValue) : oldRow.data[i];
+    private Form.State<T> formDataToState(KeyedEntity<String, T> oldRow,
+                                          Map<String, String> values) {
+        final Objenesis objenesis = new ObjenesisStd();
+        final Class<T> clazz = (Class<T>) oldRow.data.getClass();
+        final T obj = (T) objenesis.newInstance(clazz);
+        try {
+            for (String fieldName : oldRow.dataFieldsNames()) {
+                final Field declaredField = clazz.getDeclaredField(fieldName);
+                declaredField.setAccessible(true);
+                final String newValue = values.get(fieldName);
+                declaredField.set(obj, newValue != null ? fieldComponent(fieldName).conversionFrom().apply(newValue) : oldRow.field(fieldName).get());
+                declaredField.setAccessible(false);
+            }
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         }
-        return new State<>(entityClass, Optional.of(new Row<>(oldRow.rowKey, entityClass, oldRow.dataKeys, newData)), Collections.EMPTY_MAP);
+        return new State<>(clazz, Optional.of(new KeyedEntity<>(oldRow.key, obj)), Collections.EMPTY_MAP);
     }
 
-    private DocumentPartDefinition renderFieldComponent(Row<String, T> row, FieldComponent<String> component) {
-        return component.render(useState(() -> FieldComponent.dataForComponent(row, component).toString()));
+    private DocumentPartDefinition renderFieldComponent(KeyedEntity<String, T> row, FieldComponent<String> component) {
+        return component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()));
     }
 
-    private Object parse(String fieldName, String str) {
+/*    private Object parse(String fieldName, String str) {
         return fieldComponent(fieldName).conversionFrom().apply(str);
-    }
+    }*/
 
     private InputComponent fieldComponent(String fieldName) {
         for (InputComponent fc : fieldsComponents) {
@@ -77,18 +88,18 @@ public class Form<T> implements Component<Form.State<T>> {
 
     public static class State<T> {
         public final Class<T> clazz;
-        public final Optional<Row<String, T>> row;
+        public final Optional<KeyedEntity<String, T>> row;
         public final Map<String, String> validationErrors;
 
         public State(Class<T> clazz) {
             this(clazz, Optional.empty(), Collections.EMPTY_MAP);
         }
 
-        public State(Class<T> clazz, Optional<Row<String, T>> row) {
+        public State(Class<T> clazz, Optional<KeyedEntity<String, T>> row) {
             this(clazz, row, Collections.EMPTY_MAP);
         }
 
-        public State(Class<T> clazz, Optional<Row<String, T>> row, Map<String, String> validationErrors) {
+        public State(Class<T> clazz, Optional<KeyedEntity<String, T>> row, Map<String, String> validationErrors) {
             this.clazz = clazz;
             this.row = row;
             this.validationErrors = validationErrors;

@@ -4,7 +4,6 @@ import rsp.App;
 import rsp.Component;
 import rsp.dsl.Html;
 import rsp.examples.crud.entities.KeyedEntity;
-import rsp.examples.crud.state.Row;
 import rsp.examples.crud.state.Table;
 
 import java.util.Arrays;
@@ -28,7 +27,7 @@ public class Admin {
                 if (request.path.contains(resource.name)) {
                     return resource.entityService.getList(0,10)
                             .thenApply(entities ->
-                                new Table<>(entities.stream().map(KeyedEntity::toRow).toArray(Row[]::new),
+                                new Table<>(entities.toArray(new KeyedEntity[0]),
                                             new HashSet<>())).
                             thenApply(gridState -> new State(resource.name, new Resource.State(Set.of(Resource.ViewType.LIST),
                                                                                                gridState,

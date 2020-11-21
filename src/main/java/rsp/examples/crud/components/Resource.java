@@ -4,7 +4,6 @@ import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.entities.KeyedEntity;
 import rsp.examples.crud.entities.services.EntityService;
-import rsp.examples.crud.state.Row;
 import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
 import rsp.util.StreamUtils;
@@ -45,7 +44,7 @@ public class Resource<T> implements Component<Resource.State> {
         return div(window().on("popstate", ctx -> {
             ctx.eventObject().apply("hash").ifPresent(h ->
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().withEdit(clazz, keo.map(ke -> ke.toRow())))).join());
+                        us.accept(us.get().withEdit(clazz, keo.map(ke -> ke)))).join());
                 }),
                 div(button(attr("type", "button"),
                            text("Create"),
@@ -56,13 +55,13 @@ public class Resource<T> implements Component<Resource.State> {
                             when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
                             text("Delete"),
                             on("click", ctx -> {
-                                    final Set<Row<String, T>> rows = us.get().list.selectedRows;
-                                    StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.rowKey))
+                                    final Set<KeyedEntity<String, T>> rows = us.get().list.selectedRows;
+                                    StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.key))
                                                .collect(Collectors.toList()))
                                                .thenAccept(l -> {
                                                      entityService.getList(0, 25).thenAccept(entities -> {
-                                                            us.accept(us.get().updateGridState(new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),
-                                                                     new HashSet<>())));
+                                                            us.accept(us.get().updateGridState(new Table<>(entities.toArray(new KeyedEntity[0]),
+                                                                                               new HashSet<>())));
                                                      });
                                                  });
 
@@ -78,10 +77,10 @@ public class Resource<T> implements Component<Resource.State> {
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.row.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,
                                                             s -> s.row.ifPresentOrElse(r -> {
-                            entityService.update(new KeyedEntity<>(r.rowKey, r.toEntity()))
+                            entityService.update(r)
                                          .thenCompose(u -> entityService.getList(0, 0))
                                          .thenAccept(entities ->
-                                                 us.accept(us.get().updateList(new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),
+                                                 us.accept(us.get().updateList(new Table<>(entities.toArray(new KeyedEntity[0]),
                                                                                            new HashSet<>()))
                                                                    .withEdit(clazz, Optional.empty())));
                                                                 },
@@ -109,7 +108,7 @@ public class Resource<T> implements Component<Resource.State> {
             return new State(view, gs, edit);
         }
 
-        public State withEdit(Class<?> clazz, Optional<Row<?, ?>> e) {
+        public State withEdit(Class<?> clazz, Optional<KeyedEntity<?, ?>> e) {
             return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Form.State(clazz, e));
         }
 

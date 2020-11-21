@@ -3,7 +3,7 @@ package rsp.examples.crud.components;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
-import rsp.examples.crud.state.Row;
+import rsp.examples.crud.entities.KeyedEntity;
 import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
 
@@ -36,8 +36,8 @@ public class Grid<K, T> implements Component<Table<K, T>> {
                                 )))));
     }
 
-    private DocumentPartDefinition renderFieldComponent(Row<K, T> row, FieldComponent component) {
-        return component.render(useState(() -> FieldComponent.dataForComponent(row, component)));
+    private DocumentPartDefinition renderFieldComponent(KeyedEntity<K, T> row, FieldComponent component) {
+        return component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()));
     }
 
 
