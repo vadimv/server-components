@@ -51,7 +51,7 @@ public class Form<T> implements Component<Form.State<T>> {
     }
 
     private KeyedEntity<String, T> newEntity(KeyedEntity<String, T> oldRow,
-                                                        Map<String, String> values) {
+                                             Map<String, String> values) {
         final Objenesis objenesis = new ObjenesisStd();
         final Class<T> clazz = (Class<T>) oldRow.data.getClass();
         final T obj = (T) objenesis.newInstance(clazz);
