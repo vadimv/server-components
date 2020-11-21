@@ -4,7 +4,6 @@ import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.entities.KeyedEntity;
 import rsp.examples.crud.entities.services.EntityService;
-import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
 import rsp.util.StreamUtils;
 
@@ -21,14 +20,14 @@ public class Resource<T> implements Component<Resource.State> {
     public final String name;
     public final EntityService<String, T> entityService;
 
-    private final Component<Table<String, T>> listComponent;
+    private final Component<Grid.Table<String, T>> listComponent;
     private final Component<Form.State<T>> editComponent;
     private final Component<Form.State<T>> createComponent;
 
     public Resource(Class<T> clazz,
                     String name,
                     EntityService<String, T> entityService,
-                    Component<Table<String, T>> listComponent,
+                    Component<Grid.Table<String, T>> listComponent,
                     Component<Form.State<T>> editComponent,
                     Component<Form.State<T>> createComponent) {
         this.clazz = clazz;
@@ -60,7 +59,7 @@ public class Resource<T> implements Component<Resource.State> {
                                                .collect(Collectors.toList()))
                                                .thenAccept(l -> {
                                                      entityService.getList(0, 25).thenAccept(entities -> {
-                                                            us.accept(us.get().updateGridState(new Table<>(entities.toArray(new KeyedEntity[0]),
+                                                            us.accept(us.get().updateGridState(new Grid.Table<>(entities.toArray(new KeyedEntity[0]),
                                                                                                new HashSet<>())));
                                                      });
                                                  });
@@ -80,8 +79,8 @@ public class Resource<T> implements Component<Resource.State> {
                             entityService.update(r)
                                          .thenCompose(u -> entityService.getList(0, 0))
                                          .thenAccept(entities ->
-                                                 us.accept(us.get().updateList(new Table<>(entities.toArray(new KeyedEntity[0]),
-                                                                                           new HashSet<>()))
+                                                 us.accept(us.get().updateList(new Grid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                                                                new HashSet<>()))
                                                                    .withEdit(clazz, Optional.empty())));
                                                                 },
                                                                     () -> us.accept(us.get().withEdit(clazz, Optional.empty())))))));
@@ -93,18 +92,18 @@ public class Resource<T> implements Component<Resource.State> {
 
     public static class State {
         public final Set<ViewType> view;
-        public final Table list;
+        public final Grid.Table list;
         public final Form.State edit;
 
         public State(Set<ViewType> view,
-                     Table list,
+                     Grid.Table list,
                      Form.State edit) {
             this.view = view;
             this.list = list;
             this.edit = edit;
         }
 
-        public State updateGridState(Table<?, ?> gs) {
+        public State updateGridState(Grid.Table<?, ?> gs) {
             return new State(view, gs, edit);
         }
 
@@ -116,7 +115,7 @@ public class Resource<T> implements Component<Resource.State> {
             return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new Form.State(clazz));
         }
 
-        public State updateList(Table<?, ?> l) {
+        public State updateList(Grid.Table<?, ?> l) {
             return new State(view, l, edit);
         }
     }

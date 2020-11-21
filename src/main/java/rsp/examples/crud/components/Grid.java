@@ -4,14 +4,16 @@ import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
 import rsp.examples.crud.entities.KeyedEntity;
-import rsp.examples.crud.state.Table;
 import rsp.state.UseState;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 import static rsp.dsl.Html.*;
 
-public class Grid<K, T> implements Component<Table<K, T>> {
+public class Grid<K, T> implements Component<Grid.Table<K, T>> {
 
     private final FieldComponent<?>[] fieldsComponents;
 
@@ -20,7 +22,7 @@ public class Grid<K, T> implements Component<Table<K, T>> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<Table<K, T>> state) {
+    public DocumentPartDefinition render(UseState<Grid.Table<K, T>> state) {
         return div(
                 table(
                         tbody(
@@ -40,5 +42,27 @@ public class Grid<K, T> implements Component<Table<K, T>> {
         return component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()));
     }
 
+    public static class Table<K, T> {
+        public final KeyedEntity<K, T>[] rows;
+        public final Set<KeyedEntity<K, T>> selectedRows;
 
+        public Table(KeyedEntity<K, T>[] rows, Set<KeyedEntity<K, T>> selectedRows) {
+            this.rows = Objects.requireNonNull(rows);
+            this.selectedRows = Objects.requireNonNull(selectedRows);
+        }
+
+        public static <K, T> Table<K, T> empty() {
+            return new Table<>(new KeyedEntity[] {}, Set.of());
+        }
+
+        public Table<K, T> toggleRowSelection(KeyedEntity<K, T> row) {
+            final Set<KeyedEntity<K, T>> sr = new HashSet<>(selectedRows);
+            if (selectedRows.contains(row)) {
+                sr.remove(row);
+            } else {
+                sr.add(row);
+            }
+            return new Table<>(rows, sr);
+        }
+    }
 }
