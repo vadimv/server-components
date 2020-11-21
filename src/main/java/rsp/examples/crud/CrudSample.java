@@ -17,12 +17,13 @@ public class CrudSample {
 
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 
-        final Admin admin = new Admin(new Resource<Author>("authors",
-                                                      authorsService,
-                                                      new Grid<>(new TextField<>("name"),
-                                                                 new EditButton()),
-                                                      new Form<>(new TextInput<>("name", s -> Name.of(s))),
-                                                      new Form<>(new TextInput<>("name", "", s -> Name.of(s)))));
+        final Admin admin = new Admin(new Resource<>(Author.class,
+                                                     "authors",
+                                                     authorsService,
+                                                     new Grid<>(new TextField<>("name"),
+                                                                new EditButton()),
+                                                     new Form<>(new TextInput<>("name", s -> Name.of(s))),
+                                                     new Form<>(new TextInput<>("name", "", s -> Name.of(s)))));
                 /*
                                       new Resource<Book>("books",
                                                      booksService,

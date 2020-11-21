@@ -18,6 +18,7 @@ import static rsp.dsl.Html.*;
 
 public class Resource<T> implements Component<Resource.State> {
 
+    public final Class<T> clazz;
     public final String name;
     public final EntityService<String, T> entityService;
 
@@ -25,11 +26,13 @@ public class Resource<T> implements Component<Resource.State> {
     private final Component<Form.State<T>> editComponent;
     private final Component<Form.State<T>> createComponent;
 
-    public Resource(String name,
+    public Resource(Class<T> clazz,
+                    String name,
                     EntityService<String, T> entityService,
                     Component<Table<String, T>> listComponent,
                     Component<Form.State<T>> editComponent,
                     Component<Form.State<T>> createComponent) {
+        this.clazz = clazz;
         this.name = name;
         this.entityService = entityService;
         this.listComponent = listComponent;
@@ -38,16 +41,16 @@ public class Resource<T> implements Component<Resource.State> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<State> us) {
+    public DocumentPartDefinition render(UseState<Resource.State> us) {
         return div(window().on("popstate", ctx -> {
             ctx.eventObject().apply("hash").ifPresent(h ->
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().updateEdit(keo.map(ke -> ke.toRow())))).join());
+                        us.accept(us.get().withEdit(clazz, keo.map(ke -> ke.toRow())))).join());
                 }),
                 div(button(attr("type", "button"),
                            text("Create"),
                            on("click", ctx -> {
-                               //us.accept(us.get().updateEdit());
+                               us.accept(us.get().withCreate(clazz));
                            })),
                     button(attr("type", "button"),
                             when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
@@ -68,7 +71,11 @@ public class Resource<T> implements Component<Resource.State> {
                 when(us.get().view.contains(ViewType.LIST),
                         () -> listComponent.render(useState(() -> us.get().list,
                                                    gridState -> us.accept(us.get().updateGridState(gridState))))),
-                when(us.get().edit.row.isPresent(),
+
+                when(us.get().view.contains(ViewType.CREATE),
+                        () -> createComponent.render(useState(() -> new Form.State<>(clazz)))),
+
+                when(us.get().view.contains(ViewType.EDIT) && us.get().edit.row.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,
                                                             s -> s.row.ifPresentOrElse(r -> {
                             entityService.update(new KeyedEntity<>(r.rowKey, r.toEntity()))
@@ -76,9 +83,9 @@ public class Resource<T> implements Component<Resource.State> {
                                          .thenAccept(entities ->
                                                  us.accept(us.get().updateList(new Table<>(entities.stream().map(b -> b.toRow()).toArray(Row[]::new),
                                                                                            new HashSet<>()))
-                                                                   .updateEdit(Optional.empty())));
+                                                                   .withEdit(clazz, Optional.empty())));
                                                                 },
-                                                                    () -> us.accept(us.get().updateEdit(Optional.empty())))))));
+                                                                    () -> us.accept(us.get().withEdit(clazz, Optional.empty())))))));
     }
 
     public enum ViewType {
@@ -102,8 +109,12 @@ public class Resource<T> implements Component<Resource.State> {
             return new State(view, gs, edit);
         }
 
-        public State updateEdit(Optional<Row<?, ?>> e) {
-            return new State(view, list, new Form.State(e));
+        public State withEdit(Class<?> clazz, Optional<Row<?, ?>> e) {
+            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Form.State(clazz, e));
+        }
+
+        public State withCreate(Class<?> clazz) {
+            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new Form.State(clazz));
         }
 
         public State updateList(Table<?, ?> l) {

@@ -15,6 +15,7 @@ public class Form<T> implements Component<Form.State<T>> {
 
     private final InputComponent<String, ?>[] fieldsComponents;
 
+    @SafeVarargs
     public Form(InputComponent<String, ?>... fieldsComponents) {
         this.fieldsComponents = fieldsComponents;
     }
@@ -22,28 +23,28 @@ public class Form<T> implements Component<Form.State<T>> {
 
     @Override
     public DocumentPartDefinition render(UseState<Form.State<T>> useState) {
-        return div(span("Edit component:" + useState.get().row.get().rowKey),
+        return useState.get().row.map(row ->
+            div(span("Edit: " + row.rowKey),
                 form(on("submit", c -> {
-                    // 1. read form fields to a Row
-                    final Map<String, String> formValues = Arrays.stream(fieldsComponents)
-                                                   .map(f -> new Tuple2<>(f, c.eventObject().apply(f.key())))
-                                                   .filter(t -> t._2.isPresent())
-                                                   .map(t -> new Tuple2<>(t._1.key(), t._2.get()))
-                                                   .collect(Collectors.toMap(t -> t._1, t -> t._2));
-                   final Class<?> clazz = useState.get().row.get().clazz;
+                            // 1. read form fields to a Row
+                            final Map<String, String> formValues = Arrays.stream(fieldsComponents)
+                                    .map(f -> new Tuple2<>(f, c.eventObject().apply(f.key())))
+                                    .filter(t -> t._2.isPresent())
+                                    .map(t -> new Tuple2<>(t._1.key(), t._2.get()))
+                                    .collect(Collectors.toMap(t -> t._1, t -> t._2));
+                            // 2. validate using fieldComponents, if any is invalid update state
+                            // 3. if all are valid accept
+                            useState.accept(formDataToState(row.clazz, row, formValues));
+                            System.out.println("submitted:" + formValues);
+                        }),
+                        of(Arrays.stream(fieldsComponents).map(component ->
+                                div(renderFieldComponent(row, component)))),
+                        button(attr("type", "submit"), text("Ok")),
+                        button(attr("type", "button"),
+                                on("click", ctx -> useState.accept(new State<>(useState.get().clazz, Optional.empty(), Collections.EMPTY_MAP))),
+                                text("Cancel")))))
 
-
-                    // 2. validate using fieldComponents, if any is invalid update state
-                    // 3. if all are valid accept
-                    useState.accept(formDataToState(clazz, useState.get().row.get(), formValues));
-                    System.out.println("submitted:" + formValues);
-                }),
-                of(Arrays.stream(fieldsComponents).map(component ->
-                                div(renderFieldComponent(useState.get().row.get(), component)))),
-             button(attr("type", "submit"), text("Ok")),
-             button(attr("type", "button"),
-                     on("click", ctx -> useState.accept(new State<>(Optional.empty(), Collections.EMPTY_MAP))),
-                     text("Cancel"))));
+                .orElse(div(span("Create")));
     }
 
     private Form.State<T> formDataToState(Class entityClass,
@@ -54,7 +55,7 @@ public class Form<T> implements Component<Form.State<T>> {
             final String newValue = values.get(oldRow.dataKeys[i]);
             newData[i] = newValue != null ? parse(oldRow.dataKeys[i], newValue) : oldRow.data[i];
         }
-        return new State<>(Optional.of(new Row<>(oldRow.rowKey, entityClass, oldRow.dataKeys, newData)), Collections.EMPTY_MAP);
+        return new State<>(entityClass, Optional.of(new Row<>(oldRow.rowKey, entityClass, oldRow.dataKeys, newData)), Collections.EMPTY_MAP);
     }
 
     private DocumentPartDefinition renderFieldComponent(Row<String, T> row, FieldComponent<String> component) {
@@ -75,18 +76,20 @@ public class Form<T> implements Component<Form.State<T>> {
     }
 
     public static class State<T> {
+        public final Class<T> clazz;
         public final Optional<Row<String, T>> row;
         public final Map<String, String> validationErrors;
 
-        public State() {
-            this(Optional.empty(), Collections.EMPTY_MAP);
+        public State(Class<T> clazz) {
+            this(clazz, Optional.empty(), Collections.EMPTY_MAP);
         }
 
-        public State(Optional<Row<String, T>> row) {
-            this(row, Collections.EMPTY_MAP);
+        public State(Class<T> clazz, Optional<Row<String, T>> row) {
+            this(clazz, row, Collections.EMPTY_MAP);
         }
 
-        public State(Optional<Row<String, T>> row, Map<String, String> validationErrors) {
+        public State(Class<T> clazz, Optional<Row<String, T>> row, Map<String, String> validationErrors) {
+            this.clazz = clazz;
             this.row = row;
             this.validationErrors = validationErrors;
         }

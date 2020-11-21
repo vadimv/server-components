@@ -17,7 +17,7 @@ import static rsp.dsl.Html.*;
 
 public class Admin {
     private final Resource<?>[] resources;
-    
+
     public Admin(Resource<?>... resources) {
         this.resources = resources;
     }
@@ -32,14 +32,17 @@ public class Admin {
                                             new HashSet<>())).
                             thenApply(gridState -> new State(resource.name, new Resource.State(Set.of(Resource.ViewType.LIST),
                                                                                                gridState,
-                                                                                               new Form.State<>())));
+                                                                                               new Form.State<>(resource.clazz))));
                 }
             }
-            return CompletableFuture.completedFuture(new State("",
+            return CompletableFuture.completedFuture(new Admin.State("",
                                                                new Resource.State(Set.of(Resource.ViewType.ERROR),
                                                                                   Table.empty(),
-                                                                                  new Form.State<>())));
+                                                                                  new Form.State<>(ErrorEntity.class))));
         }, component());
+    }
+
+    private static class ErrorEntity {
     }
 
     private Component<Admin.State> component() {
