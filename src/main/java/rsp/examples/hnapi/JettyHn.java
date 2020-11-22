@@ -4,6 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
+import rsp.util.Log;
 import rsp.util.StreamUtils;
 
 import java.io.File;
@@ -69,7 +70,8 @@ public class JettyHn {
                                                                                         .thenApply(r -> new State(ids.stream().mapToInt(Integer::intValue).toArray(),
                                                                                                               r.toArray(State.Story[]::new),
                                                                                                              0))),
-                                                    render),
+                                                    render,
+                                                    Log.DEFAULT),
                                             Optional.of(new StaticResources(new File("src/main/java/rsp/examples/hnapi"),
                                                     "/res/*")));
         server.start();

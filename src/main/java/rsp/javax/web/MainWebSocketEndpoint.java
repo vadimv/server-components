@@ -31,19 +31,22 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
+    private final Log.Reporting log;
 
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
                                  BiFunction<String, S, String> state2route,
                                  Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                  Component<S> documentDefinition,
                                  BiFunction<String, RenderContext, RenderContext> enrich,
-                                 Supplier<ScheduledExecutorService> schedulerSupplier) {
+                                 Supplier<ScheduledExecutorService> schedulerSupplier,
+                                 Log.Reporting log) {
         this.routing = routing;
         this.state2route = state2route;
         this.renderedPages = renderedPages;
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
         this.schedulerSupplier = schedulerSupplier;
+        this.log = log;
     }
 
     @Override
@@ -59,12 +62,13 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
                                            documentDefinition,
                                            enrich,
                                            schedulerSupplier.get(),
-                                           out);
-        final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage(livePage);
+                                           out,
+                                           log);
+        final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage(livePage, log);
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override
             public void onMessage(String s) {
-                Log.DEFAULT.trace(l -> l.log(s));
+                log.trace(l -> l.log(s));
                 in.parse(s);
             }
         });
@@ -83,14 +87,13 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onClose(Session session, CloseReason closeReason) {
         shutdown(session);
-        System.out.println("Closed: " + closeReason.getReasonPhrase());
+        log.info(l -> l.log("Web socket closed " + closeReason.getReasonPhrase()));
     }
 
     @Override
     public void onError(Session session, Throwable thr) {
         shutdown(session);
-        System.out.println("Error:" + thr.getLocalizedMessage());
-        thr.printStackTrace();
+        log.error(l -> l.log("Web socket error:" + thr.getLocalizedMessage(), thr));
     }
 
     private void shutdown(Session session) {

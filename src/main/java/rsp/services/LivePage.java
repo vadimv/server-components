@@ -8,6 +8,7 @@ import rsp.server.InMessages;
 import rsp.server.OutMessages;
 import rsp.state.MutableState;
 import rsp.state.UseState;
+import rsp.util.Log;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -31,6 +32,7 @@ public class LivePage<S> implements InMessages, Schedule {
     private final UseState<Snapshot> currentPageSnapshot;
     private final ScheduledExecutorService scheduledExecutorService;
     private final OutMessages out;
+    private final Log.Reporting log;
 
     public LivePage(HttpRequest handshakeRequest,
                     QualifiedSessionId qsid,
@@ -40,7 +42,8 @@ public class LivePage<S> implements InMessages, Schedule {
                     UseState<S> stateHandler,
                     UseState<Snapshot> current,
                     ScheduledExecutorService scheduledExecutorService,
-                    OutMessages out) {
+                    OutMessages out,
+                    Log.Reporting log) {
         this.handshakeRequest = handshakeRequest;
         this.qsid = qsid;
         this.routing = routing;
@@ -50,6 +53,7 @@ public class LivePage<S> implements InMessages, Schedule {
         this.currentPageSnapshot = current;
         this.scheduledExecutorService = scheduledExecutorService;
         this.out = out;
+        this.log = log;
     }
 
     public static <S> LivePage<S> of(HttpRequest handshakeRequest,
@@ -60,7 +64,8 @@ public class LivePage<S> implements InMessages, Schedule {
                                      Component<S> documentDefinition,
                                      BiFunction<String, RenderContext, RenderContext> enrich,
                                      ScheduledExecutorService scheduler,
-                                     OutMessages out) {
+                                     OutMessages out,
+                                     Log.Reporting log) {
         final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
@@ -103,10 +108,12 @@ public class LivePage<S> implements InMessages, Schedule {
                               useState,
                               current,
                               scheduler,
-                              out);
+                              out,
+                              log);
     }
 
     public void start() {
+        log.info(l -> l.log("Live Page start:" + this));
         synchronized (this) {
             final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
             if (page == null) {
@@ -138,6 +145,7 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     public void shutdown() {
+        log.info(l -> l.log("Live Page shutdown:" + this));
         // Invoke this page's post shutdown events
         currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
             if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
@@ -154,7 +162,7 @@ public class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public void extractProperty(int descriptorId, String value) {
-        System.out.println("extractProperty:" + descriptorId + " value=" + value);
+        log.debug(l -> l.log("extractProperty:" + descriptorId + " value=" + value));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
@@ -164,7 +172,7 @@ public class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public void evalJsResponse(int descriptorId, String value) {
-        System.out.println("evalJsResponse:" + descriptorId + " value=" + value);
+        log.debug(l -> l.log("evalJsResponse:" + descriptorId + " value=" + value));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);

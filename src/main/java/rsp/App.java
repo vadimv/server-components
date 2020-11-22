@@ -2,6 +2,7 @@ package rsp;
 
 import rsp.server.HttpRequest;
 import rsp.services.PageRendering;
+import rsp.util.Log;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -17,31 +18,38 @@ public class App<S> {
     public final BiFunction<String, S, String> state2path;
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
     public final Component<S> rootComponent;
+    public final Log.Reporting log;
 
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
                BiFunction<String, S, String> state2path,
-               Component<S> rootComponent) {
+               Component<S> rootComponent,
+               Log.Reporting log) {
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
         this.rootComponent = rootComponent;
+        this.log = log;
     }
 
     public App(Function<HttpRequest, CompletableFuture<S>> routes,
-               Component<S> rootComponent) {
+               Component<S> rootComponent,
+               Log.Reporting log) {
         this(AppConfig.DEFAULT,
              routes,
              (currentPath, s) -> currentPath,
-             rootComponent);
+             rootComponent,
+             log);
     }
 
     public App(S initialState,
-               Component<S> rootComponent) {
+               Component<S> rootComponent,
+               Log.Reporting log) {
         this(AppConfig.DEFAULT,
              request -> CompletableFuture.completedFuture(initialState),
              (currentPath, s) -> currentPath,
-             rootComponent);
+             rootComponent,
+             log);
     }
 
 

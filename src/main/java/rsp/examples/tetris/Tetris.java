@@ -4,6 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
+import rsp.util.Log;
 
 import java.io.File;
 import java.nio.CharBuffer;
@@ -62,7 +63,8 @@ public class Tetris {
         final var s = new JettyServer(DEFAULT_PORT,
                                      "",
                                       new App(State.initialState(),
-                                              render),
+                                              render,
+                                              Log.DEFAULT),
                                       Optional.of(new StaticResources(new File("src/main/java/rsp/examples/tetris"),
                                                                      "/res/*")));
         s.start();

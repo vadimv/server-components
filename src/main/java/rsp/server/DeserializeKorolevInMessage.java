@@ -4,14 +4,15 @@ package rsp.server;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import rsp.dom.Path;
+import rsp.util.Log;
 
 import java.util.Objects;
 import java.util.Optional;
 
 public class DeserializeKorolevInMessage {
     private final InMessages inMessages;
+    private final Log.Reporting log;
 
     private static final int DOM_EVENT = 0; // `$renderNum:$elementId:$eventType`
     private static final int CUSTOM_CALLBACK = 1; // `$name:arg`
@@ -21,8 +22,9 @@ public class DeserializeKorolevInMessage {
     private static final int EXTRACT_EVENT_DATA_RESPONSE = 5; // `$descriptor:$dataJson`
     private static final int HEARTBEAT = 6;
 
-    public DeserializeKorolevInMessage(InMessages inMessages) {
+    public DeserializeKorolevInMessage(InMessages inMessages, Log.Reporting log) {
         this.inMessages = inMessages;
+        this.log = log;
     }
 
     public void parse(String message) {
@@ -37,8 +39,8 @@ public class DeserializeKorolevInMessage {
                 case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1)); break;
                 case HEARTBEAT: heartBeat(); break;
             }
-        } catch (Throwable e) {
-            e.printStackTrace();
+        } catch (Throwable ex) {
+            log.error(l -> l.log("Incoming message parse error", ex));
         }
     }
 

@@ -17,8 +17,8 @@ public class MainHttpServlet<S>  extends HttpServlet {
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final PageRendering<S> pageRendering;
 
-    public MainHttpServlet(PageRendering<S> app) {
-        this.pageRendering = app;
+    public MainHttpServlet(PageRendering<S> pageRendering) {
+        this.pageRendering = pageRendering;
     }
 
     @Override
