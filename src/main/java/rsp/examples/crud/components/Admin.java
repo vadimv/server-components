@@ -27,7 +27,7 @@ public class Admin {
                     return resource.entityService.getList(0,10)
                             .thenApply(entities ->
                                 new Grid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                            new HashSet<>())).
+                                                 new HashSet<>())).
                             thenApply(gridState -> new State(resource.name, new Resource.State(Set.of(Resource.ViewType.LIST),
                                                                                                gridState,
                                                                                                new Form.State<>(resource.clazz))));
