@@ -8,7 +8,9 @@ public interface Log {
     enum Level {
         TRACE, DEBUG, INFO, WARNING, ERROR
     }
+
     void log(String message);
+
     void log(String message, Throwable cause);
 
     interface Out {
@@ -112,12 +114,12 @@ public interface Log {
 
             @Override
             public void log(String message) {
-                out.accept(format.format(Level.TRACE, message));
+                out.accept(format.format(level, message));
             }
 
             @Override
             public void log(String message, Throwable cause) {
-                out.accept(format.format(Level.TRACE, message, cause));
+                out.accept(format.format(level, message, cause));
             }
         }
     }
