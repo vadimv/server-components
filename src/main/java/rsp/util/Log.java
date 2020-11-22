@@ -42,7 +42,7 @@ public interface Log {
 
         @Override
         public String format(Level level, String message) {
-            return "[" + level.name() + "]" + message;
+            return "[" + level.name() + "] " + message;
         }
 
         @Override
