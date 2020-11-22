@@ -70,8 +70,7 @@ public class JettyHn {
                                                                                         .thenApply(r -> new State(ids.stream().mapToInt(Integer::intValue).toArray(),
                                                                                                               r.toArray(State.Story[]::new),
                                                                                                              0))),
-                                                    render,
-                                                    Log.DEFAULT),
+                                                    render),
                                             Optional.of(new StaticResources(new File("src/main/java/rsp/examples/hnapi"),
                                                     "/res/*")));
         server.start();

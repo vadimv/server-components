@@ -1,6 +1,5 @@
 package rsp.examples.crud.entities;
 
-import afu.org.checkerframework.checker.oigj.qual.O;
 import rsp.util.Tuple2;
 
 import java.lang.reflect.Field;
@@ -23,7 +22,7 @@ public class KeyedEntity<K, T> {
 
     public String[] dataFieldsNames() {
         return Arrays.stream(data.getClass().getFields()).filter(f ->
-                Modifier.isPublic(f.getModifiers()) && Modifier.isFinal(f.getModifiers())).map(f -> f.getName()).toArray(String[]::new);
+                 Modifier.isFinal(f.getModifiers())).map(f -> f.getName()).toArray(String[]::new);
     }
 
     public Optional<?> field(String fieldName) {

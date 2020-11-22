@@ -4,8 +4,6 @@ import java.util.function.Consumer;
 
 public interface Log {
 
-    Reporting DEFAULT = new Default(Level.TRACE, new SimpleFormat(), string -> System.out.println(string) );
-
     void log(String message);
 
     void log(String message, Throwable cause);
@@ -35,15 +33,14 @@ public interface Log {
         }
 
         @Override
-        public String format(Level level, String message, Throwable cause) {
+        public String format(Level level, String message, Throwable ex) {
             return "[" + level.name() + "] " + message + "\n"
-                    + cause.getMessage() + "\n"
-                    + ExceptionsUtils.stackTraceToString(cause);
+                    + ex.getMessage() + "\n"
+                    + ExceptionsUtils.stackTraceToString(ex);
         }
     }
 
     class Default implements Reporting {
-
         private final Level level;
         private final Log traceLog;
         private final Log debugLog;

@@ -87,7 +87,7 @@ public class JettyServer {
                                                                                      app.rootComponent,
                                                                                      app.enrichRenderContext(),
                                                                                      () -> scheduler,
-                                                                                     app.log);
+                                                                                     app.config.log);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)

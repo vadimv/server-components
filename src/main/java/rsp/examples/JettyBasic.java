@@ -4,6 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
+import rsp.util.Log;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -32,7 +33,8 @@ public class JettyBasic {
         };
         final var s = new JettyServer(p,
                               "",
-                                      new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)), render));
+                                      new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
+                                                render));
         s.start();
         s.join();
     }

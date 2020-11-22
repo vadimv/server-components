@@ -4,7 +4,6 @@ import rsp.App;
 import rsp.Component;
 import rsp.dsl.RefDefinition;
 import rsp.jetty.JettyServer;
-import rsp.util.Log;
 import rsp.util.StreamUtils;
 
 import java.util.Arrays;
@@ -50,10 +49,9 @@ public class JettyTodos {
 
         final int port = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
         final var s = new JettyServer(port,
-                                "",
+                              "",
                                       new App(initialState(),
-                                              render,
-                                              Log.DEFAULT));
+                                              render));
         s.start();
         s.join();
     }

@@ -1,6 +1,5 @@
 package rsp.services;
 
-import afu.org.checkerframework.checker.oigj.qual.O;
 import rsp.*;
 import rsp.dom.*;
 import rsp.server.HttpRequest;
@@ -113,7 +112,7 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     public void start() {
-        log.info(l -> l.log("Live Page start:" + this));
+        log.info(l -> l.log("Live Page start: " + this));
         synchronized (this) {
             final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
             if (page == null) {

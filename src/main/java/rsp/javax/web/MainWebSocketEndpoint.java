@@ -1,6 +1,8 @@
 package rsp.javax.web;
 
-import rsp.*;
+import rsp.Component;
+import rsp.QualifiedSessionId;
+import rsp.RenderContext;
 import rsp.server.DeserializeKorolevInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
@@ -15,7 +17,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -87,13 +88,13 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onClose(Session session, CloseReason closeReason) {
         shutdown(session);
-        log.info(l -> l.log("Web socket closed " + closeReason.getReasonPhrase()));
+        log.info(l -> l.log("WebSocket closed " + closeReason.getReasonPhrase()));
     }
 
     @Override
     public void onError(Session session, Throwable thr) {
         shutdown(session);
-        log.error(l -> l.log("Web socket error:" + thr.getLocalizedMessage(), thr));
+        log.error(l -> l.log("WebSocket error: " + thr.getLocalizedMessage(), thr));
     }
 
     private void shutdown(Session session) {

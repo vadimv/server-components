@@ -18,38 +18,32 @@ public class App<S> {
     public final BiFunction<String, S, String> state2path;
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
     public final Component<S> rootComponent;
-    public final Log.Reporting log;
 
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
                BiFunction<String, S, String> state2path,
-               Component<S> rootComponent,
-               Log.Reporting log) {
+               Component<S> rootComponent) {
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
         this.rootComponent = rootComponent;
-        this.log = log;
     }
 
-    public App(Function<HttpRequest, CompletableFuture<S>> routes,
-               Component<S> rootComponent,
-               Log.Reporting log) {
+    public App(Function<HttpRequest,
+               CompletableFuture<S>> routes,
+               Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
              (currentPath, s) -> currentPath,
-             rootComponent,
-             log);
+             rootComponent);
     }
 
     public App(S initialState,
-               Component<S> rootComponent,
-               Log.Reporting log) {
+               Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              request -> CompletableFuture.completedFuture(initialState),
              (currentPath, s) -> currentPath,
-             rootComponent,
-             log);
+             rootComponent);
     }
 
 
