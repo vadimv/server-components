@@ -3,6 +3,7 @@ package rsp.javax.web;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.services.PageRendering;
+import rsp.util.Log;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
@@ -49,15 +50,8 @@ public class MainHttpServlet<S>  extends HttpServlet {
         final StringBuilder sb = new StringBuilder();
         sb.append("500 Internal server error\n");
         sb.append("Exception: " + ex.getMessage() + "\n");
-        sb.append(stackTrace(ex));
+        sb.append(Log.stackTrace(ex));
         return sb.toString();
-    }
-
-    private static String stackTrace(Throwable ex) {
-        final StringWriter sw = new StringWriter();
-        final PrintWriter pw = new PrintWriter(sw);
-        ex.printStackTrace(pw);
-        return sw.toString();
     }
 
     private void setServletResponse(HttpResponse resp, HttpServletResponse response) {
