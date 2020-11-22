@@ -7,6 +7,7 @@ import rsp.server.OutMessages;
 import rsp.server.SerializeKorolevOutMessages;
 import rsp.services.LivePage;
 import rsp.services.PageRendering;
+import rsp.util.Log;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
@@ -63,7 +64,7 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override
             public void onMessage(String s) {
-                System.out.println(s);
+                Log.DEFAULT.trace(l -> l.log(s));
                 in.parse(s);
             }
         });
