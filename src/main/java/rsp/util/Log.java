@@ -6,13 +6,13 @@ public interface Log {
 
     Reporting DEFAULT = new Default(Level.TRACE, new SimpleFormat(), string -> System.out.println(string) );
 
-    enum Level {
-        TRACE, DEBUG, INFO, WARNING, ERROR
-    }
-
     void log(String message);
 
     void log(String message, Throwable cause);
+
+    enum Level {
+        TRACE, DEBUG, INFO, WARNING, ERROR
+    }
 
     interface Format {
         String format(Level level, String message);
