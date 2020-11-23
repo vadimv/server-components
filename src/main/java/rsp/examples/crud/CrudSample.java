@@ -24,7 +24,7 @@ public class CrudSample {
                                       new Resource<>(Author.class,
                                                      "authors",
                                                      authorsService,
-                                                     new Grid<>(new TextField<>("name"),
+                                                     new DataGrid<>(new TextField<>("name"),
                                                                 new EditButton()),
                                                      new Form<>(new TextInput<>("name", s -> Name.of(s))),
                                                      new Create<>(new Form<>(new TextInput<>("name", "", s -> Name.of(s))))));

@@ -26,7 +26,7 @@ public class Admin {
                 if (request.path.contains(resource.name)) {
                     return resource.entityService.getList(0,10)
                             .thenApply(entities ->
-                                new Grid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                                  new HashSet<>())).
                             thenApply(gridState -> new State(resource.name, new Resource.State(Set.of(Resource.ViewType.LIST),
                                                                                                gridState,
@@ -35,7 +35,7 @@ public class Admin {
             }
             return CompletableFuture.completedFuture(new Admin.State("",
                                                                new Resource.State(Set.of(Resource.ViewType.ERROR),
-                                                                                  Grid.Table.empty(),
+                                                                                  DataGrid.Table.empty(),
                                                                                   new Form.State<>(ErrorEntity.class))));
         }, component());
     }

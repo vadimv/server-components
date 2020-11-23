@@ -13,16 +13,16 @@ import java.util.Set;
 
 import static rsp.dsl.Html.*;
 
-public class Grid<K, T> implements Component<Grid.Table<K, T>> {
+public class DataGrid<K, T> implements Component<DataGrid.Table<K, T>> {
 
     private final FieldComponent<?>[] fieldsComponents;
 
-    public Grid(FieldComponent<?>... fieldsComponents) {
+    public DataGrid(FieldComponent<?>... fieldsComponents) {
         this.fieldsComponents = fieldsComponents;
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<Grid.Table<K, T>> state) {
+    public DocumentPartDefinition render(UseState<DataGrid.Table<K, T>> state) {
         return div(
                 table(
                         tbody(
