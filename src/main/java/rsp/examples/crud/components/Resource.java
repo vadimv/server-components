@@ -22,14 +22,14 @@ public class Resource<T> implements Component<Resource.State> {
 
     private final Component<Grid.Table<String, T>> listComponent;
     private final Component<Form.State<T>> editComponent;
-    private final Component<Form.State<T>> createComponent;
+    private final Component<Create.State<T>> createComponent;
 
     public Resource(Class<T> clazz,
                     String name,
                     EntityService<String, T> entityService,
                     Component<Grid.Table<String, T>> listComponent,
                     Component<Form.State<T>> editComponent,
-                    Component<Form.State<T>> createComponent) {
+                    Component<Create.State<T>> createComponent) {
         this.clazz = clazz;
         this.name = name;
         this.entityService = entityService;
@@ -71,7 +71,7 @@ public class Resource<T> implements Component<Resource.State> {
                                                    gridState -> us.accept(us.get().updateGridState(gridState))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
-                        () -> createComponent.render(useState(() -> new Form.State<>(clazz)))),
+                        () -> createComponent.render(useState(() -> new Create.State<>(clazz)))),
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.row.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,

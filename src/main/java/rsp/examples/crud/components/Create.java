@@ -6,7 +6,7 @@ import rsp.state.UseState;
 
 import static rsp.dsl.Html.useState;
 
-public class Create<T> implements Component<Create.State> {
+public class Create<T> implements Component<Create.State<T>> {
 
     public final Form<T> form;
     public final DefaultValue[] defaultValues;
@@ -17,15 +17,17 @@ public class Create<T> implements Component<Create.State> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<State> us) {
-        return form.render(useState(() -> null));
+    public DocumentPartDefinition render(UseState<Create.State<T>> us) {
+        return form.render(useState(() -> us.get().formState));
     }
 
-    public static class State<S> {
-        public final Form.State<S> formState;
+    public static class State<T> {
+        public final Class<T> clazz;
+        public final Form.State<T> formState;
 
-        public State(Form.State<S> formState) {
-            this.formState = formState;
+        public State(Class<T> clazz) {
+            this.clazz = clazz;
+            this.formState = new Form.State<>(clazz);
         }
     }
 }

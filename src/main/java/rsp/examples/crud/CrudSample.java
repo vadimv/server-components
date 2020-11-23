@@ -27,7 +27,7 @@ public class CrudSample {
                                                      new Grid<>(new TextField<>("name"),
                                                                 new EditButton()),
                                                      new Form<>(new TextInput<>("name", s -> Name.of(s))),
-                                                     new Form<>(new TextInput<>("name", "", s -> Name.of(s)))));
+                                                     new Create<>(new Form<>(new TextInput<>("name", "", s -> Name.of(s))))));
                 /*
                                       new Resource<Book>("books",
                                                      booksService,
