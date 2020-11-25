@@ -12,7 +12,7 @@ public class Author {
         this.books = books;
     }
 
-    public Author(Name name) {
+    public  Author(Name name) {
         this(name, Set.of());
     }
 

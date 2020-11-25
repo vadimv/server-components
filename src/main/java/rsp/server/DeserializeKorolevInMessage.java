@@ -40,7 +40,7 @@ public class DeserializeKorolevInMessage {
                 case HEARTBEAT: heartBeat(); break;
             }
         } catch (Throwable ex) {
-            log.error(l -> l.log("Incoming message parse error", ex));
+            log.error(l -> l.log("Incoming message parse exception", ex));
         }
     }
 

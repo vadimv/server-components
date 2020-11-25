@@ -35,7 +35,7 @@ public interface Log {
         @Override
         public String format(Level level, String message, Throwable ex) {
             return "[" + level.name() + "] " + message + "\n"
-                    + ex.getMessage() + "\n"
+                    + "Exception: " + ex.getMessage() + "\n"
                     + ExceptionsUtils.stackTraceToString(ex);
         }
     }

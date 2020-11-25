@@ -15,8 +15,6 @@ import java.util.stream.Collectors;
 import static rsp.dsl.Html.*;
 
 public class Resource<T> implements Component<Resource.State> {
-
-    public final Class<T> clazz;
     public final String name;
     public final EntityService<String, T> entityService;
 
@@ -24,13 +22,11 @@ public class Resource<T> implements Component<Resource.State> {
     private final Component<Form.State<T>> editComponent;
     private final Component<Create.State<T>> createComponent;
 
-    public Resource(Class<T> clazz,
-                    String name,
+    public Resource(String name,
                     EntityService<String, T> entityService,
                     Component<DataGrid.Table<String, T>> listComponent,
                     Component<Form.State<T>> editComponent,
                     Component<Create.State<T>> createComponent) {
-        this.clazz = clazz;
         this.name = name;
         this.entityService = entityService;
         this.listComponent = listComponent;
@@ -43,12 +39,12 @@ public class Resource<T> implements Component<Resource.State> {
         return div(window().on("popstate", ctx -> {
             ctx.eventObject().apply("hash").ifPresent(h ->
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().withEdit(clazz, keo.map(ke -> ke)))).join());
+                        us.accept(us.get().withEdit(keo.map(ke -> ke)))).join());
                 }),
                 div(button(attr("type", "button"),
                            text("Create"),
                            on("click", ctx -> {
-                               us.accept(us.get().withCreate(clazz));
+                               us.accept(us.get().withCreate());
                            })),
                     button(attr("type", "button"),
                             when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
@@ -71,7 +67,7 @@ public class Resource<T> implements Component<Resource.State> {
                                                    gridState -> us.accept(us.get().updateGridState(gridState))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
-                        () -> createComponent.render(useState(() -> new Create.State<>(clazz)))),
+                        () -> createComponent.render(useState(() -> new Create.State<>()))),
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.row.isPresent(),
                         () -> editComponent.render(useState(() -> us.get().edit,
@@ -81,9 +77,9 @@ public class Resource<T> implements Component<Resource.State> {
                                          .thenAccept(entities ->
                                                  us.accept(us.get().updateList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                                                                                 new HashSet<>()))
-                                                                   .withEdit(clazz, Optional.empty())));
+                                                                   .withEdit(Optional.empty())));
                                                                 },
-                                                                    () -> us.accept(us.get().withEdit(clazz, Optional.empty())))))));
+                                                                    () -> us.accept(us.get().withEdit(Optional.empty())))))));
     }
 
     public enum ViewType {
@@ -107,12 +103,12 @@ public class Resource<T> implements Component<Resource.State> {
             return new State(view, gs, edit);
         }
 
-        public State withEdit(Class<?> clazz, Optional<KeyedEntity<?, ?>> e) {
-            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Form.State(clazz, e));
+        public State withEdit(Optional<KeyedEntity<?, ?>> e) {
+            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Form.State(e));
         }
 
-        public State withCreate(Class<?> clazz) {
-            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new Form.State(clazz));
+        public State withCreate() {
+            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new Form.State());
         }
 
         public State updateList(DataGrid.Table<?, ?> l) {

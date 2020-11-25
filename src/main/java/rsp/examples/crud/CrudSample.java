@@ -4,7 +4,6 @@ import rsp.examples.crud.components.*;
 import rsp.examples.crud.entities.Author;
 import rsp.examples.crud.entities.AuthorsBooksServiceStubInit;
 import rsp.examples.crud.entities.Book;
-import rsp.examples.crud.entities.Name;
 import rsp.examples.crud.entities.services.EntityService;
 import rsp.examples.crud.entities.services.SimpleDb;
 import rsp.jetty.JettyServer;
@@ -20,14 +19,16 @@ public class CrudSample {
 
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 
-        final Admin admin = new Admin(
-                                      new Resource<>(Author.class,
-                                                     "authors",
+        final Admin admin = new Admin(new Resource<Author>("authors",
                                                      authorsService,
-                                                     new DataGrid<>(new TextField<>("name"),
-                                                                new EditButton()),
-                                                     new Form<>(new TextInput<>("name", s -> Name.of(s))),
-                                                     new Create<>(new Form<>(new TextInput<>("name", "", s -> Name.of(s))))));
+                                                     new DataGrid<Author>(new DataGrid.Header("Name", ""),
+                                                                    e -> new RowFields(e.key,
+                                                                                    new TextField<>(e.data.name),
+                                                                                    new EditButton(e.key))),
+                                                     null,
+                                                                  null));
+                                  //                   new Edit<>(d -> new Form<>(m -> d.accept(new Author(m.get("name")))), new TextInput<>("name", d.get().toString()))),
+                                  //                   new Create<>(i -> new Form<>(m -> i.accept(map2obj(m)), new TextInput<>("name", "", )))));
                 /*
                                       new Resource<Book>("books",
                                                      booksService,

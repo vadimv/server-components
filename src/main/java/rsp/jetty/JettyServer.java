@@ -79,7 +79,8 @@ public class JettyServer {
                                                                                      app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrichRenderContext()))),"/*");
+                                                                                     app.enrichRenderContext()),
+                                                               app.config.log)),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
                                                                                      app.state2path,

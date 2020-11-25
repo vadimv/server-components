@@ -233,12 +233,26 @@ public class Html {
         return new UseState<S>() {
             @Override
             public void accept(S s) {
-                //no-op
+                throw new IllegalStateException("Not allowed for a read-only UseState instance");
             }
 
             @Override
             public S get() {
                 return supplier.get();
+            }
+        };
+    }
+
+    public static UseState<Void> useState() {
+        return new UseState<>() {
+            @Override
+            public void accept(Void s) {
+                throw new IllegalStateException("Not allowed for the Void type");
+            }
+
+            @Override
+            public Void get() {
+                throw new IllegalStateException("Not allowed for the Void type");
             }
         };
     }

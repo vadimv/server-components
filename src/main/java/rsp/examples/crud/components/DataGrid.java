@@ -10,19 +10,20 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
 
-public class DataGrid<K, T> implements Component<DataGrid.Table<K, T>> {
+public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
 
-    private final FieldComponent<?>[] fieldsComponents;
+    private final Function<KeyedEntity<String,T>, RowFields> fields;
 
-    public DataGrid(FieldComponent<?>... fieldsComponents) {
-        this.fieldsComponents = fieldsComponents;
+    public DataGrid(Header header, Function<KeyedEntity<String,T>, RowFields> fields) {
+        this.fields = fields;
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<DataGrid.Table<K, T>> state) {
+    public DocumentPartDefinition render(UseState<DataGrid.Table<String, T>> state) {
         return div(
                 table(
                         tbody(
@@ -31,14 +32,12 @@ public class DataGrid<K, T> implements Component<DataGrid.Table<K, T>> {
                                                  when(state.get().selectedRows.contains(row), () -> attr("checked")),
                                                  attr("autocomplete", "off"),
                                                  on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
-                                        of(Arrays.stream(fieldsComponents).map(component ->
-                                                td(renderFieldComponent(row, component))
 
-                                        )))
+                                        fields.apply(row).render(useState()))
                                 )))));
     }
 
-    private DocumentPartDefinition renderFieldComponent(KeyedEntity<K, T> row, FieldComponent component) {
+    private DocumentPartDefinition renderFieldComponent(KeyedEntity<String, T> row, FieldComponent component) {
         return component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()));
     }
 
@@ -63,6 +62,10 @@ public class DataGrid<K, T> implements Component<DataGrid.Table<K, T>> {
                 sr.add(row);
             }
             return new Table<>(rows, sr);
+        }
+    }
+    public static class Header {
+        public Header(String... columnsHeaders) {
         }
     }
 }

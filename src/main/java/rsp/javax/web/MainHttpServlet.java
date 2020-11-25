@@ -4,6 +4,7 @@ import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.services.PageRendering;
 import rsp.util.ExceptionsUtils;
+import rsp.util.Log;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
@@ -16,9 +17,11 @@ import java.util.Optional;
 public class MainHttpServlet<S>  extends HttpServlet {
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final PageRendering<S> pageRendering;
+    private final Log.Reporting log;
 
-    public MainHttpServlet(PageRendering<S> pageRendering) {
+    public MainHttpServlet(PageRendering<S> pageRendering, Log.Reporting log) {
         this.pageRendering = pageRendering;
+        this.log = log;
     }
 
     @Override
@@ -31,6 +34,7 @@ public class MainHttpServlet<S>  extends HttpServlet {
 
             pageRendering.httpGet(req).handle((resp, ex) -> {
                     if (ex != null) {
+                        log.error(l -> l.log("Http rendering exception", ex));
                         return new HttpResponse(500,
                                                       Collections.emptyList(),
                                                       exceptionDetails(ex));

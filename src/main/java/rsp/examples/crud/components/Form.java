@@ -37,14 +37,14 @@ public class Form<T> implements Component<Form.State<T>> {
                                     .collect(Collectors.toMap(t -> t._1, t -> t._2));
                             // 2. validate using fieldComponents, if any is invalid update state
                             // 3. if all are valid accept
-                            useState.accept(new Form.State<T>(useState.get().clazz, Optional.of(newEntity(row, formValues)), Collections.EMPTY_MAP));
+                            useState.accept(new Form.State<T>(Optional.of(newEntity(row, formValues)), Collections.EMPTY_MAP));
                             System.out.println("submitted:" + formValues);
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
                                 div(component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()))))),
                         button(attr("type", "submit"), text("Ok")),
                         button(attr("type", "button"),
-                                on("click", ctx -> useState.accept(new State<>(useState.get().clazz, Optional.empty(), Collections.EMPTY_MAP))),
+                                on("click", ctx -> useState.accept(new State<>(Optional.empty(), Collections.EMPTY_MAP))),
                                 text("Cancel")))))
 
                 .orElse(div(span("Create")));
@@ -79,20 +79,18 @@ public class Form<T> implements Component<Form.State<T>> {
     }
 
     public static class State<T> {
-        public final Class<T> clazz;
         public final Optional<KeyedEntity<String, T>> row;
         public final Map<String, String> validationErrors;
 
-        public State(Class<T> clazz) {
-            this(clazz, Optional.empty(), Collections.EMPTY_MAP);
+        public State() {
+            this(Optional.empty(), Collections.EMPTY_MAP);
         }
 
-        public State(Class<T> clazz, Optional<KeyedEntity<String, T>> row) {
-            this(clazz, row, Collections.EMPTY_MAP);
+        public State(Optional<KeyedEntity<String, T>> row) {
+            this(row, Collections.EMPTY_MAP);
         }
 
-        public State(Class<T> clazz, Optional<KeyedEntity<String, T>> row, Map<String, String> validationErrors) {
-            this.clazz = clazz;
+        public State(Optional<KeyedEntity<String, T>> row, Map<String, String> validationErrors) {
             this.row = row;
             this.validationErrors = validationErrors;
         }

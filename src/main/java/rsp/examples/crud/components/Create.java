@@ -22,12 +22,10 @@ public class Create<T> implements Component<Create.State<T>> {
     }
 
     public static class State<T> {
-        public final Class<T> clazz;
         public final Form.State<T> formState;
 
-        public State(Class<T> clazz) {
-            this.clazz = clazz;
-            this.formState = new Form.State<>(clazz);
+        public State() {
+            this.formState = new Form.State<>();
         }
     }
 }
