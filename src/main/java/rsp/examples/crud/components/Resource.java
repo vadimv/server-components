@@ -39,7 +39,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
         return div(window().on("popstate", ctx -> {
             ctx.eventObject().apply("hash").ifPresent(h ->
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().withEdit(keo.get().data))).join());
+                        us.accept(us.get().withEdit(keo.get()))).join());
                 }),
                 div(button(attr("type", "button"),
                            text("Create"),
@@ -55,7 +55,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                .collect(Collectors.toList()))
                                                .thenAccept(l -> {
                                                      entityService.getList(0, 25).thenAccept(entities -> {
-                                                            us.accept(us.get().updateGridState(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                            us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                                                                                new HashSet<>())));
                                                      });
                                                  });
@@ -64,14 +64,20 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                 }))),
                 when(us.get().view.contains(ViewType.LIST),
                         () -> listComponent.render(useState(() -> us.get().list,
-                                                   gridState -> us.accept(us.get().updateGridState(gridState))))),
+                                                   gridState -> us.accept(us.get().withList(gridState))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
                         () -> createComponent.render(useState(() -> new Create.State<>()))),
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
-                        () -> editComponent.render(useState(() -> new Edit.State<>(true, us.get().edit.data),
-                                                            v -> entityService.update(new KeyedEntity<>("1", v.data.get()))))));
+                        () -> editComponent.render(useState(() -> new Edit.State<>(true, us.get().edit.current),
+                                                            v -> entityService.update(v.current.get())
+                                                                    .thenCompose(u -> entityService.getList(0, 0))
+                                                                    .thenAccept(entities ->
+                                                                    {
+                                                                        us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                                                new HashSet<>())));
+                                                                    }).join()))));
     }
 
     public enum ViewType {
@@ -91,11 +97,11 @@ public class Resource<T> implements Component<Resource.State<T>> {
             this.edit = edit;
         }
 
-        public State updateGridState(DataGrid.Table<?, ?> gs) {
-            return new State(view, gs, edit);
+        public State withList(DataGrid.Table<?, ?> gs) {
+            return new State(Set.of(ViewType.LIST), gs, edit);
         }
 
-        public State withEdit(T data) {
+        public State withEdit(KeyedEntity<String, T> data) {
             return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Edit.State<T>(true, Optional.of(data)));
         }
 

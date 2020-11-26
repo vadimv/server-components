@@ -38,7 +38,6 @@ public class Form<T> implements Component<Form.State<T>> {
                             // 3. if all are valid accept
 
                             submittedData.accept(c.eventObject());
-                            System.out.println("submitted:");
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
                                 div(component.render(useState())))),

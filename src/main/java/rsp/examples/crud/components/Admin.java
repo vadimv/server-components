@@ -40,8 +40,6 @@ public class Admin {
         }, component());
     }
 
-    private static class ErrorEntity {
-    }
 
     private Component<Admin.State> component() {
         return s -> html(
