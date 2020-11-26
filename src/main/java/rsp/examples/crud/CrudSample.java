@@ -25,9 +25,12 @@ public class CrudSample {
                                                                     e -> new RowFields(e.key,
                                                                                     new TextField<>(e.data.name),
                                                                                     new EditButton(e.key))),
-                                                     null,
+                                                     new Edit<Author>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> {
+                                                         d.accept(Author.of(v));
+                                                     }),
+                                                                                      new TextInput("name", d.get().toString()))),
                                                                   null));
-                                  //                   new Edit<>(d -> new Form<>(m -> d.accept(new Author(m.get("name")))), new TextInput<>("name", d.get().toString()))),
+
                                   //                   new Create<>(i -> new Form<>(m -> i.accept(map2obj(m)), new TextInput<>("name", "", )))));
                 /*
                                       new Resource<Book>("books",

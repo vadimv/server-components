@@ -28,15 +28,15 @@ public class Admin {
                             .thenApply(entities ->
                                 new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                                  new HashSet<>())).
-                            thenApply(gridState -> new State(resource.name, new Resource.State(Set.of(Resource.ViewType.LIST),
+                            thenApply(gridState -> new State(resource.name, new Resource.State<>(Set.of(Resource.ViewType.LIST),
                                                                                                gridState,
-                                                                                               new Form.State<>())));
+                                                                                               new Edit.State<>())));
                 }
             }
             return CompletableFuture.completedFuture(new Admin.State("",
-                                                               new Resource.State(Set.of(Resource.ViewType.ERROR),
+                                                               new Resource.State<>(Set.of(Resource.ViewType.ERROR),
                                                                                   DataGrid.Table.empty(),
-                                                                                  new Form.State<>())));
+                                                                                  new Edit.State<>())));
         }, component());
     }
 

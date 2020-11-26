@@ -14,18 +14,18 @@ import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
-public class Resource<T> implements Component<Resource.State> {
+public class Resource<T> implements Component<Resource.State<T>> {
     public final String name;
     public final EntityService<String, T> entityService;
 
     private final Component<DataGrid.Table<String, T>> listComponent;
-    private final Component<Form.State<T>> editComponent;
+    private final Edit<T> editComponent;
     private final Component<Create.State<T>> createComponent;
 
     public Resource(String name,
                     EntityService<String, T> entityService,
                     Component<DataGrid.Table<String, T>> listComponent,
-                    Component<Form.State<T>> editComponent,
+                    Edit<T> editComponent,
                     Component<Create.State<T>> createComponent) {
         this.name = name;
         this.entityService = entityService;
@@ -35,11 +35,11 @@ public class Resource<T> implements Component<Resource.State> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<Resource.State> us) {
+    public DocumentPartDefinition render(UseState<Resource.State<T>> us) {
         return div(window().on("popstate", ctx -> {
             ctx.eventObject().apply("hash").ifPresent(h ->
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().withEdit(keo.map(ke -> ke)))).join());
+                        us.accept(us.get().withEdit(keo.get().data))).join());
                 }),
                 div(button(attr("type", "button"),
                            text("Create"),
@@ -69,31 +69,23 @@ public class Resource<T> implements Component<Resource.State> {
                 when(us.get().view.contains(ViewType.CREATE),
                         () -> createComponent.render(useState(() -> new Create.State<>()))),
 
-                when(us.get().view.contains(ViewType.EDIT) && us.get().edit.row.isPresent(),
-                        () -> editComponent.render(useState(() -> us.get().edit,
-                                                            s -> s.row.ifPresentOrElse(r -> {
-                            entityService.update(r)
-                                         .thenCompose(u -> entityService.getList(0, 0))
-                                         .thenAccept(entities ->
-                                                 us.accept(us.get().updateList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                                                                new HashSet<>()))
-                                                                   .withEdit(Optional.empty())));
-                                                                },
-                                                                    () -> us.accept(us.get().withEdit(Optional.empty())))))));
+                when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
+                        () -> editComponent.render(useState(() -> new Edit.State<>(true, us.get().edit.data),
+                                                            v -> entityService.update(new KeyedEntity<>("1", v.data.get()))))));
     }
 
     public enum ViewType {
         LIST, EDIT, CREATE, ERROR
     }
 
-    public static class State {
+    public static class State<T> {
         public final Set<ViewType> view;
         public final DataGrid.Table list;
-        public final Form.State edit;
+        public final Edit.State<T> edit;
 
         public State(Set<ViewType> view,
                      DataGrid.Table list,
-                     Form.State edit) {
+                     Edit.State<T> edit) {
             this.view = view;
             this.list = list;
             this.edit = edit;
@@ -103,12 +95,12 @@ public class Resource<T> implements Component<Resource.State> {
             return new State(view, gs, edit);
         }
 
-        public State withEdit(Optional<KeyedEntity<?, ?>> e) {
-            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Form.State(e));
+        public State withEdit(T data) {
+            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Edit.State<T>(true, Optional.of(data)));
         }
 
         public State withCreate() {
-            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new Form.State());
+            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new Edit.State(true, Optional.empty()));
         }
 
         public State updateList(DataGrid.Table<?, ?> l) {

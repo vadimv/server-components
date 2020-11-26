@@ -4,7 +4,6 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public interface InputComponent<S, T> extends FieldComponent<S> {
-    Function<S, T> conversionFrom();
     Function<S, Optional<String>>[] validations();
 
     class State<S> {

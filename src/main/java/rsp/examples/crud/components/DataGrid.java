@@ -37,10 +37,6 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
                                 )))));
     }
 
-    private DocumentPartDefinition renderFieldComponent(KeyedEntity<String, T> row, FieldComponent component) {
-        return component.render(useState(() -> FieldComponent.dataForComponent(row, component).get().toString()));
-    }
-
     public static class Table<K, T> {
         public final KeyedEntity<K, T>[] rows;
         public final Set<KeyedEntity<K, T>> selectedRows;
