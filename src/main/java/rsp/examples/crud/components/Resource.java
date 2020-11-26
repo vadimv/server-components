@@ -71,13 +71,16 @@ public class Resource<T> implements Component<Resource.State<T>> {
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
                         () -> editComponent.render(useState(() -> new Edit.State<>(true, us.get().edit.current),
-                                                            v -> entityService.update(v.current.get())
+                                                            v -> v.current.ifPresentOrElse(value ->
+                                                                    entityService.update(value)
                                                                     .thenCompose(u -> entityService.getList(0, 0))
                                                                     .thenAccept(entities ->
                                                                     {
                                                                         us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                                                new HashSet<>())));
-                                                                    }).join()))));
+                                                                                                                         new HashSet<>())));
+                                                                    }).join(), () -> {
+                                                                        us.accept(us.get().withList());}
+                                                                )))));
     }
 
     public enum ViewType {
@@ -101,6 +104,10 @@ public class Resource<T> implements Component<Resource.State<T>> {
             return new State(Set.of(ViewType.LIST), gs, edit);
         }
 
+        public State withList() {
+            return new State(Set.of(ViewType.LIST), list, edit);
+        }
+
         public State withEdit(KeyedEntity<String, T> data) {
             return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Edit.State<T>(true, Optional.of(data)));
         }
@@ -112,6 +119,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
         public State updateList(DataGrid.Table<?, ?> l) {
             return new State(view, l, edit);
         }
+
     }
 
 }

@@ -220,7 +220,7 @@ public class Html {
             @Override
             public void accept(S s) {
                 consumer.accept(s);
-            }
+                }
 
             @Override
             public S get() {
