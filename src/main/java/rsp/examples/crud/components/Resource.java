@@ -75,11 +75,9 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                                     entityService.update(value)
                                                                     .thenCompose(u -> entityService.getList(0, 0))
                                                                     .thenAccept(entities ->
-                                                                    {
-                                                                        us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                                                                                         new HashSet<>())));
-                                                                    }).join(), () -> {
-                                                                        us.accept(us.get().withList());}
+                                                                            us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                                                                                             new HashSet<>())))).join(),
+                                                                                         () -> us.accept(us.get().withList())
                                                                 )))));
     }
 
