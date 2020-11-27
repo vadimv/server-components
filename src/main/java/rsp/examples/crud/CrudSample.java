@@ -8,6 +8,8 @@ import rsp.examples.crud.entities.services.EntityService;
 import rsp.examples.crud.entities.services.SimpleDb;
 import rsp.jetty.JettyServer;
 
+import java.util.Optional;
+
 public class CrudSample {
 
     public static final int DEFAULT_PORT = 8080;
@@ -26,9 +28,12 @@ public class CrudSample {
                                                                                     new TextField<>(e.data.name),
                                                                                     new EditButton(e.key))),
                                                      new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
-                                                                                new TextInput("name", d.get().toString()))),
+                                                                                new TextInput("name",
+                                                                                              d.get().toString(),
+                                                                                              s -> "".equals(s) ? Optional.of("Required value") : Optional.empty() ))),
                                                      new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
-                                                                                new TextInput("name", "")))));
+                                                                                new TextInput("name",
+                                                                                        "")))));
 
                 /*
                                       new Resource<Book>("books",

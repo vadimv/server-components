@@ -1,15 +1,14 @@
 package rsp.examples.crud.components;
 
-import org.objenesis.Objenesis;
-import org.objenesis.ObjenesisStd;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.examples.crud.entities.KeyedEntity;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
 
-import java.lang.reflect.Field;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -32,17 +31,27 @@ public class Form<T> implements Component<Form.State<T>> {
     public DocumentPartDefinition render(UseState<Form.State<T>> useState) {
         return
             div(form(on("submit", c -> {
-                            // 1. read form fields to a Row
-                            // 2. validate using fieldComponents, if any is invalid update state
-                            // 3. if all are valid accept
+                        // Validate all fieldComponents, if any is invalid update state with validation messages, if all valid accept the values
+                        final Map<String, String> topValidationErrors =
+                                Arrays.stream(fieldsComponents).map(component ->
+                                    new Tuple2<>(component.fieldName,
+                                                 c.eventObject().apply(component.fieldName).stream().flatMap(value ->
+                                                                    Arrays.stream(component.validations()).flatMap(validation ->
+                                                                              validation.apply(value).stream())).collect(Collectors.toList())))
+                                        .filter(t -> t._2.size() > 0)
+                                        .collect(Collectors.toMap(t -> t._1, t -> t._2.get(0)));
 
-                            submittedData.accept(c.eventObject());
+                            if (topValidationErrors.size() > 0) {
+                                useState.accept(useState.get().withValidationErrors(topValidationErrors));
+                            } else {
+                                submittedData.accept(c.eventObject());
+                            }
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
-                                div(component.render(useState())))),
+                                div(component.render(useState(() -> Optional.ofNullable(useState.get().validationErrors.get(component.fieldName))))))),
                         button(attr("type", "submit"), text("Ok")),
                         button(attr("type", "button"),
-                                on("click", ctx -> useState.accept(new State<>(Optional.empty(), Collections.EMPTY_MAP))),
+                                on("click", ctx -> useState.accept(new State<>(Collections.EMPTY_MAP))),
                                 text("Cancel"))));
     }
 
@@ -55,6 +64,11 @@ public class Form<T> implements Component<Form.State<T>> {
             this(Optional.empty(), Collections.EMPTY_MAP);
         }
 
+
+        public State(Map<String, String> validationErrors) {
+            this(Optional.empty(), validationErrors);
+        }
+
         public State(Optional<T> row) {
             this(row, Collections.EMPTY_MAP);
         }
@@ -62,6 +76,10 @@ public class Form<T> implements Component<Form.State<T>> {
         public State(Optional<T> row, Map<String, String> validationErrors) {
             this.row = row;
             this.validationErrors = validationErrors;
+        }
+
+        public State withValidationErrors(Map<String, String> validationErrors) {
+            return new State(this.row, validationErrors);
         }
     }
 }

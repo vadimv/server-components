@@ -23,7 +23,7 @@ public class Create<T> implements Component<Create.State<T>> {
         return div(span("Create"),
                    formFunction.apply(useState(() -> us.get().current.get(),
                                             v -> us.accept(us.get().withValue(v))))
-                                                   .render(useState(() -> new Form.State<>(us.get().current),
+                                                   .render(useState(() -> new Form.State<>(),
                                                                      v -> us.accept(new Create.State<>())))); // TODO ??
     }
 

@@ -10,8 +10,6 @@ import rsp.util.StreamUtils;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
@@ -41,7 +39,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
         return div(window().on("popstate", ctx -> {
             ctx.eventObject().apply("hash").ifPresent(h ->
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().withEdit(keo.get()))).join());
+                        us.accept(us.get().withEditData(keo.get()))).join());
                 }),
                 div(button(attr("type", "button"),
                            text("Create"),
@@ -88,15 +86,18 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
     private UseState<Edit.State<T>> editUseState(UseState<Resource.State<T>> us) {
-        return useState(() -> new Edit.State<>(true, us.get().edit.current),
-                v -> v.current.ifPresentOrElse(value ->
+        return useState(() -> us.get().edit.withActive(),
+                         v -> v.current.ifPresentOrElse(value -> {
+                                         if (v.validationErrors.isEmpty()) {
                                          entityService.update(value)
-                                        .thenCompose(u -> entityService.getList(0, 0))
-                                        .thenAccept(entities ->
-                                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                        new HashSet<>())))).join(),
-                        () -> us.accept(us.get().withList())
-                ));
+                                                      .thenCompose(u -> entityService.getList(0, 0))
+                                                      .thenAccept(entities ->
+                                                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                                        new HashSet<>())))).join();
+                                         } else {
+                                             us.accept(us.get().withEdit(v));
+                                         }},
+                        () -> us.accept(us.get().withList())));
     }
 
     public enum ViewType {
@@ -111,6 +112,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
         public State(Set<ViewType> view,
                      DataGrid.Table list,
                      Edit.State<T> edit) {
+
             this.view = view;
             this.list = list;
             this.edit = edit;
@@ -124,7 +126,11 @@ public class Resource<T> implements Component<Resource.State<T>> {
             return new State(Set.of(ViewType.LIST), list, edit);
         }
 
-        public State withEdit(KeyedEntity<String, T> data) {
+        public State withEdit(Edit.State<T> edit) {
+            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, edit);
+        }
+
+        public State withEditData(KeyedEntity<String, T> data) {
             return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Edit.State<T>(true, Optional.of(data)));
         }
 
