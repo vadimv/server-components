@@ -90,7 +90,7 @@ public interface Log {
                 || level == Level.ERROR) logConsumer.accept(errorLog);
         }
 
-        private class LogImpl implements Log {
+        private static class LogImpl implements Log {
             private final Level level;
             private final Format format;
             private final Consumer<String> out;
