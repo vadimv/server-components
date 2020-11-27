@@ -8,7 +8,7 @@ public interface Log {
     void log(String message, Throwable ex);
 
     enum Level {
-        TRACE, DEBUG, INFO, WARNING, ERROR, OFF
+        TRACE, DEBUG, INFO, WARN, ERROR, OFF
     }
 
     interface Format {
@@ -20,7 +20,7 @@ public interface Log {
         void trace(Consumer<Log> logConsumer);
         void debug(Consumer<Log> logConsumer);
         void info(Consumer<Log> logConsumer);
-        void warning(Consumer<Log> logConsumer);
+        void warn(Consumer<Log> logConsumer);
         void error(Consumer<Log> logConsumer);
     }
 
@@ -44,7 +44,7 @@ public interface Log {
         private final Log traceLog;
         private final Log debugLog;
         private final Log infoLog;
-        private final Log warningLog;
+        private final Log warnLog;
         private final Log errorLog;
 
         public Default(Level level, Format format, Consumer<String> out) {
@@ -52,7 +52,7 @@ public interface Log {
             this.traceLog = new LogImpl(Level.TRACE, format, out);
             this.debugLog = new LogImpl(Level.DEBUG, format, out);
             this.infoLog = new LogImpl(Level.INFO, format, out);
-            this.warningLog = new LogImpl(Level.WARNING, format, out);
+            this.warnLog = new LogImpl(Level.WARN, format, out);
             this.errorLog = new LogImpl(Level.ERROR, format, out);
         }
 
@@ -74,11 +74,11 @@ public interface Log {
         }
 
         @Override
-        public void warning(Consumer<Log> logConsumer) {
+        public void warn(Consumer<Log> logConsumer) {
             if (level == Level.TRACE
                 || level == Level.DEBUG
                 || level == Level.INFO
-                || level == Level.WARNING) logConsumer.accept(warningLog);
+                || level == Level.WARN) logConsumer.accept(warnLog);
         }
 
         @Override
@@ -86,7 +86,7 @@ public interface Log {
             if (level == Level.TRACE
                 || level == Level.DEBUG
                 || level == Level.INFO
-                || level == Level.WARNING
+                || level == Level.WARN
                 || level == Level.ERROR) logConsumer.accept(errorLog);
         }
 

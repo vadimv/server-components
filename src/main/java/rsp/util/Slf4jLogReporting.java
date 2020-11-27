@@ -12,7 +12,7 @@ public class Slf4jLogReporting implements Log.Reporting {
     private final Log traceLog;
     private final Log debugLog;
     private final Log infoLog;
-    private final Log warningLog;
+    private final Log warnLog;
     private final Log errorLog;
 
     public Slf4jLogReporting(String name) {
@@ -54,7 +54,7 @@ public class Slf4jLogReporting implements Log.Reporting {
             }
         };
 
-        warningLog = new Log() {
+        warnLog = new Log() {
             @Override
             public void log(String message) {
                 logger.warn(message);
@@ -95,8 +95,8 @@ public class Slf4jLogReporting implements Log.Reporting {
     }
 
     @Override
-    public void warning(Consumer<Log> logConsumer) {
-        if (logger.isWarnEnabled()) logConsumer.accept(warningLog);
+    public void warn(Consumer<Log> logConsumer) {
+        if (logger.isWarnEnabled()) logConsumer.accept(warnLog);
     }
 
     @Override
