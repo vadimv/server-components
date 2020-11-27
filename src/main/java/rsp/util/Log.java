@@ -5,11 +5,10 @@ import java.util.function.Consumer;
 public interface Log {
 
     void log(String message);
-
-    void log(String message, Throwable cause);
+    void log(String message, Throwable ex);
 
     enum Level {
-        TRACE, DEBUG, INFO, WARNING, ERROR
+        TRACE, DEBUG, INFO, WARNING, ERROR, OFF
     }
 
     interface Format {
@@ -84,7 +83,11 @@ public interface Log {
 
         @Override
         public void error(Consumer<Log> logConsumer) {
-            logConsumer.accept(errorLog);
+            if (level == Level.TRACE
+                || level == Level.DEBUG
+                || level == Level.INFO
+                || level == Level.WARNING
+                || level == Level.ERROR) logConsumer.accept(errorLog);
         }
 
         private class LogImpl implements Log {
