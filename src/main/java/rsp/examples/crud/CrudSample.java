@@ -30,7 +30,6 @@ public class CrudSample {
                                                      new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                                 new TextInput("name", "")))));
 
-                                  //                   new Create<>(i -> new Form<>(m -> i.accept(map2obj(m)), new TextInput<>("name", "", )))));
                 /*
                                       new Resource<Book>("books",
                                                      booksService,
