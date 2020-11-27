@@ -31,8 +31,7 @@ public class Form<T> implements Component<Form.State<T>> {
     @Override
     public DocumentPartDefinition render(UseState<Form.State<T>> useState) {
         return
-            div(span("Edit: "),
-                form(on("submit", c -> {
+            div(form(on("submit", c -> {
                             // 1. read form fields to a Row
                             // 2. validate using fieldComponents, if any is invalid update state
                             // 3. if all are valid accept

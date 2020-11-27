@@ -8,7 +8,7 @@ import rsp.state.UseState;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static rsp.dsl.Html.useState;
+import static rsp.dsl.Html.*;
 
 public class Edit<T> implements Component<Edit.State<T>> {
 
@@ -20,11 +20,13 @@ public class Edit<T> implements Component<Edit.State<T>> {
 
     @Override
     public DocumentPartDefinition render(UseState<Edit.State<T>> us) {
-        return formFunction.apply(useState(() -> us.get().current.get().data,
+        return div(span("Edit"),
+                   formFunction.apply(useState(() -> us.get().current.get().data,
                                             v -> us.accept(us.get().withValue(v))))
                                                    .render(useState(() -> new Form.State<>(us.get().current.map(v -> v.data)),
-                                                                     v -> us.accept(new Edit.State<>()))); // TODO ??
+                                                                     v -> us.accept(new Edit.State<>())))); // TODO ??
     }
+
 
     public static class State<T> {
         public final boolean isActive;

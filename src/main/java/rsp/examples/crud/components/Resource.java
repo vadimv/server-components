@@ -10,6 +10,8 @@ import rsp.util.StreamUtils;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
@@ -20,13 +22,13 @@ public class Resource<T> implements Component<Resource.State<T>> {
 
     private final Component<DataGrid.Table<String, T>> listComponent;
     private final Edit<T> editComponent;
-    private final Component<Create.State<T>> createComponent;
+    private final Create<T> createComponent;
 
     public Resource(String name,
                     EntityService<String, T> entityService,
                     Component<DataGrid.Table<String, T>> listComponent,
                     Edit<T> editComponent,
-                    Component<Create.State<T>> createComponent) {
+                    Create<T>  createComponent) {
         this.name = name;
         this.entityService = entityService;
         this.listComponent = listComponent;
@@ -67,18 +69,34 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                    gridState -> us.accept(us.get().withList(gridState))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
-                        () -> createComponent.render(useState(() -> new Create.State<>()))),
+                        () -> createComponent.render(createUseState(us))),
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
-                        () -> editComponent.render(useState(() -> new Edit.State<>(true, us.get().edit.current),
-                                                            v -> v.current.ifPresentOrElse(value ->
-                                                                    entityService.update(value)
-                                                                    .thenCompose(u -> entityService.getList(0, 0))
-                                                                    .thenAccept(entities ->
-                                                                            us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                                                                                             new HashSet<>())))).join(),
-                                                                                         () -> us.accept(us.get().withList())
-                                                                )))));
+                        () -> editComponent.render(editUseState(us))));
+    }
+
+    private UseState<Create.State<T>> createUseState(UseState<Resource.State<T>> us) {
+        return useState(() -> new Create.State<T>(true, Optional.empty()),
+                v -> v.current.ifPresentOrElse(value ->
+                                entityService.create(value)
+                                        .thenCompose(u -> entityService.getList(0, 0))
+                                        .thenAccept(entities ->
+                                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                        new HashSet<>())))).join(),
+                        () -> us.accept(us.get().withList())
+                ));
+    }
+
+    private UseState<Edit.State<T>> editUseState(UseState<Resource.State<T>> us) {
+        return useState(() -> new Edit.State<>(true, us.get().edit.current),
+                v -> v.current.ifPresentOrElse(value ->
+                                         entityService.update(value)
+                                        .thenCompose(u -> entityService.getList(0, 0))
+                                        .thenAccept(entities ->
+                                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                        new HashSet<>())))).join(),
+                        () -> us.accept(us.get().withList())
+                ));
     }
 
     public enum ViewType {

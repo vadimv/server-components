@@ -19,17 +19,16 @@ public class CrudSample {
 
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 
-        final Admin admin = new Admin(new Resource<Author>("authors",
+        final Admin admin = new Admin(new Resource<>("authors",
                                                      authorsService,
                                                      new DataGrid<Author>(new DataGrid.Header("Name", ""),
                                                                     e -> new RowFields(e.key,
                                                                                     new TextField<>(e.data.name),
                                                                                     new EditButton(e.key))),
-                                                     new Edit<Author>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> {
-                                                         d.accept(Author.of(v));
-                                                     }),
-                                                                                      new TextInput("name", d.get().toString()))),
-                                                                  null));
+                                                     new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
+                                                                                new TextInput("name", d.get().toString()))),
+                                                     new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
+                                                                                new TextInput("name", "")))));
 
                                   //                   new Create<>(i -> new Form<>(m -> i.accept(map2obj(m)), new TextInput<>("name", "", )))));
                 /*

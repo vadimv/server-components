@@ -2,30 +2,45 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
+import rsp.examples.crud.entities.KeyedEntity;
 import rsp.state.UseState;
 
-import static rsp.dsl.Html.useState;
+import java.util.Optional;
+import java.util.function.Function;
+
+import static rsp.dsl.Html.*;
 
 public class Create<T> implements Component<Create.State<T>> {
 
-    public final Form<T> form;
-    public final DefaultValue[] defaultValues;
-
-    public Create(Form<T> form, DefaultValue<?>... defaultValues) {
-        this.form = form;
-        this.defaultValues = defaultValues;
+    private final Function<UseState<T>, Form<T>> formFunction;
+    public Create(Function<UseState<T>, Form<T>> formFunction) {
+        this.formFunction = formFunction;
     }
+
 
     @Override
     public DocumentPartDefinition render(UseState<Create.State<T>> us) {
-        return form.render(useState(() -> us.get().formState));
+        return div(span("Create"),
+                   formFunction.apply(useState(() -> us.get().current.get(),
+                                            v -> us.accept(us.get().withValue(v))))
+                                                   .render(useState(() -> new Form.State<>(us.get().current),
+                                                                     v -> us.accept(new Create.State<>())))); // TODO ??
     }
 
     public static class State<T> {
-        public final Form.State<T> formState;
+        public final boolean isActive;
+        public final Optional<T> current;
+        public State(boolean isActive, Optional<T> data) {
+            this.isActive = isActive;
+            this.current = data;
+        }
 
         public State() {
-            this.formState = new Form.State<>();
+            this(false, Optional.empty());
+        }
+
+        public State<T> withValue(T value) {
+            return new State<T>(false, Optional.of(value));
         }
     }
 }
