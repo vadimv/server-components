@@ -65,7 +65,7 @@ public class LivePage<S> implements InMessages, Schedule {
                                      ScheduledExecutorService scheduler,
                                      OutMessages out,
                                      Log.Reporting log) {
-        final UseState<Snapshot> current = new MutableState<>(new Snapshot(Optional.empty(),
+        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot(Optional.empty(),
                                                                            new HashMap<>(),
                                                                            new HashMap<>()));
         final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
@@ -73,7 +73,7 @@ public class LivePage<S> implements InMessages, Schedule {
             documentDefinition.render(self).accept(enrich.apply(qsid.sessionId, newContext));
 
             // calculate diff between currentContext and newContext
-            final var currentRoot = current.get().domRoot;
+            final var currentRoot = currentState.get().domRoot;
             final var remoteChangePerformer = new RemoteDomChangesPerformer();
             new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
 
@@ -81,7 +81,7 @@ public class LivePage<S> implements InMessages, Schedule {
 
             // Register new event types on client
             final Set<Event> newEvents = new HashSet<>();
-            final Set<Event> oldEvents = current.get().events.values().stream().collect(Collectors.toSet());
+            final Set<Event> oldEvents = currentState.get().events.values().stream().collect(Collectors.toSet());
             for(Event event : newContext.events.values()) {
                 if(!oldEvents.contains(event)) {
                     newEvents.add(event);
@@ -96,7 +96,7 @@ public class LivePage<S> implements InMessages, Schedule {
                                 event.modifier);
                     });
 
-            current.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
+            currentState.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
 
         return new LivePage<>(handshakeRequest,
@@ -105,7 +105,7 @@ public class LivePage<S> implements InMessages, Schedule {
                               state2route,
                               renderedPages,
                               useState,
-                              current,
+                              currentState,
                               scheduler,
                               out,
                               log);
