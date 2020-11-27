@@ -21,7 +21,7 @@ public class CrudSample {
 
         final Admin admin = new Admin(new Resource<>("authors",
                                                      authorsService,
-                                                     new DataGrid<Author>(new DataGrid.Header("Name", ""),
+                                                     new DataGrid<>(new DataGrid.Header("Name", ""),
                                                                     e -> new RowFields(e.key,
                                                                                     new TextField<>(e.data.name),
                                                                                     new EditButton(e.key))),
