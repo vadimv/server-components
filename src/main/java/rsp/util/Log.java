@@ -3,7 +3,6 @@ package rsp.util;
 import java.util.function.Consumer;
 
 public interface Log {
-
     void log(String message);
     void log(String message, Throwable ex);
 
