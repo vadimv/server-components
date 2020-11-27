@@ -145,7 +145,7 @@ public class LivePage<S> implements InMessages, Schedule {
 
     public void shutdown() {
         log.info(l -> l.log("Live Page shutdown: " + this));
-        // Invoke this page's post shutdown events
+        // Invoke this page's shutdown events
         currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
             if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
                 final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
