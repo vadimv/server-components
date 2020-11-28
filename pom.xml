@@ -44,32 +44,35 @@
     </build>
 
     <properties>
-<!--        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>-->
+        <junit.version>4.12</junit.version>
         <jetty.version>9.4.31.v20200723</jetty.version>
+        <slf4j.version>1.7.30</slf4j.version>
+        <json-simple.version>1.1.1</json-simple.version>
+        <javax.websocket.version>1.1</javax.websocket.version>
+        <closure-compiler.version>v20200614</closure-compiler.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.30</version>
+            <version>${slf4j.version}</version>
         </dependency>
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
-            <version>1.1.1</version>
+            <version>${json-simple.version}</version>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
+            <version>${junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>javax.websocket</groupId>
             <artifactId>javax.websocket-api</artifactId>
-            <version>1.1</version>
+            <version>${javax.websocket.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
@@ -89,9 +92,8 @@
         <dependency>
             <groupId>com.google.javascript</groupId>
             <artifactId>closure-compiler</artifactId>
-            <version>v20200614</version>
+            <version>${closure-compiler.version}</version>
         </dependency>
     </dependencies>
-
 
 </project>
