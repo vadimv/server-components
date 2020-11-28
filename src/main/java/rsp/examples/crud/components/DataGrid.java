@@ -2,7 +2,6 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.dsl.Html;
 import rsp.examples.crud.entities.KeyedEntity;
 import rsp.state.UseState;
 

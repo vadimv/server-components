@@ -30,7 +30,8 @@ public class TextInput implements Component<Optional<String>> {
                    input(attr("type", "text"),
                          attr("name", fieldName),
                          prop("value", initialValue)),
-                   Html.of(useState.get().stream().map(validationErrorMessage -> span(text(validationErrorMessage))))
+                   Html.of(useState.get().stream().map(validationErrorMessage -> span(style("font-color", "red"),
+                                                                                      text(validationErrorMessage))))
                );
     }
 
