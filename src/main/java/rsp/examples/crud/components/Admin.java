@@ -40,11 +40,11 @@ public class Admin {
                                                                new Resource.State<>(Set.of(Resource.ViewType.ERROR),
                                                                                   DataGrid.Table.empty(),
                                                                                   new DetailsViewState<>())));
-        }, component());
+        }, appRoot());
     }
 
 
-    private Component<State> component() {
+    private Component<State> appRoot() {
         return s -> html(
                 body(
                         new MenuPanel().render(useState(() ->

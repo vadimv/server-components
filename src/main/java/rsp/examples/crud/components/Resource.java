@@ -15,6 +15,9 @@ import java.util.stream.Collectors;
 import static rsp.dsl.Html.*;
 
 public class Resource<T> implements Component<Resource.State<T>> {
+
+    public final int DEFAULT_PAGE_SIZE = 10;
+
     public final String name;
     public final String title;
     public final EntityService<String, T> entityService;
