@@ -28,10 +28,9 @@ public class Admin {
             for (Resource<?> resource : resources) {
                 if (request.path.contains(resource.name)) {
                     return resource.entityService.getList(0,10)
-                            .thenApply(entities ->
-                                new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                 new HashSet<>())).
-                            thenApply(gridState -> new State(resource.name, new Resource.State<>(Set.of(Resource.ViewType.LIST),
+                            .thenApply(entities -> new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                                                        new HashSet<>()))
+                            .thenApply(gridState -> new State(resource.name, new Resource.State<>(Set.of(Resource.ViewType.LIST),
                                                                                                gridState,
                                                                                                new DetailsViewState<>())));
                 }
