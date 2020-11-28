@@ -33,7 +33,8 @@ public class CrudSample {
                                                                                               s -> "".equals(s) ? Optional.of("Required value") : Optional.empty() ))),
                                                      new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                                 new TextInput("name",
-                                                                                        "")))));
+                                                                                      "",
+                                                                                                s -> "".equals(s) ? Optional.of("Required value") : Optional.empty())))));
 
                 /*
                                       new Resource<Book>("books",
