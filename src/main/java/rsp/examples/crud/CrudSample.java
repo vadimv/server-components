@@ -8,7 +8,6 @@ import rsp.examples.crud.entities.services.EntityService;
 import rsp.examples.crud.entities.services.SimpleDb;
 import rsp.jetty.JettyServer;
 
-import java.util.Optional;
 
 public class CrudSample {
 
@@ -30,11 +29,11 @@ public class CrudSample {
                                                      new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                                 new TextInput("name",
                                                                                               d.get().toString(),
-                                                                                              s -> "".equals(s) ? Optional.of("Required value") : Optional.empty() ))),
+                                                                                              new RequiredValidation()))),
                                                      new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                                 new TextInput("name",
                                                                                       "",
-                                                                                                s -> "".equals(s) ? Optional.of("Required value") : Optional.empty())))));
+                                                                                                new RequiredValidation())))));
 
                 /*
                                       new Resource<Book>("books",
