@@ -10,6 +10,7 @@ import rsp.util.StreamUtils;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
@@ -38,6 +39,15 @@ public class Resource<T> implements Component<Resource.State<T>> {
         this.listComponent = listComponent;
         this.editComponent = editComponent;
         this.createComponent = createComponent;
+    }
+
+    public CompletableFuture<Resource.State<T>> initialState() {
+        return entityService.getList(0,10)
+                .thenApply(entities -> new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                        new HashSet<>()))
+                .thenApply(gridState -> new Resource.State<>(Set.of(Resource.ViewType.LIST),
+                                                             gridState,
+                                                             new DetailsViewState<>()));
     }
 
     @Override
