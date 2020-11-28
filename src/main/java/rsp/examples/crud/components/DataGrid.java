@@ -16,9 +16,11 @@ import static rsp.dsl.Html.*;
 
 public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
 
+    private final Header header;
     private final Function<KeyedEntity<String,T>, RowFields> fields;
 
     public DataGrid(Header header, Function<KeyedEntity<String,T>, RowFields> fields) {
+        this.header = header;
         this.fields = fields;
     }
 
@@ -26,6 +28,7 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
     public DocumentPartDefinition render(UseState<DataGrid.Table<String, T>> state) {
         return div(
                 table(
+                        thead(tr(th(""), of(Arrays.stream(header.columnsHeaders).map(h -> th(h))))),
                         tbody(
                                 Html.of(Arrays.stream(state.get().rows).map(row -> tr(
                                         td(input(attr("type", "checkbox"),
@@ -61,7 +64,10 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
         }
     }
     public static class Header {
+        private final String[] columnsHeaders;
+
         public Header(String... columnsHeaders) {
+            this.columnsHeaders = columnsHeaders;
         }
     }
 }

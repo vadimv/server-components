@@ -128,12 +128,20 @@ public class Html {
         return tag("table", children);
     }
 
+    public static TagDefinition thead(DocumentPartDefinition... children) {
+        return tag("thead", children);
+    }
+
     public static TagDefinition tbody(DocumentPartDefinition... children) {
         return tag("tbody", children);
     }
 
     public static TagDefinition th(DocumentPartDefinition... children) {
         return tag("th", children);
+    }
+
+    public static TagDefinition th(String text) {
+        return th(text(text));
     }
 
     public static TagDefinition tr(DocumentPartDefinition... children) {
