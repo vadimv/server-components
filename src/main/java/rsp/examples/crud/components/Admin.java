@@ -15,9 +15,11 @@ import java.util.stream.Collectors;
 import static rsp.dsl.Html.*;
 
 public class Admin {
+    private final String title;
     private final Resource<?>[] resources;
 
-    public Admin(Resource<?>... resources) {
+    public Admin(String title, Resource<?>... resources) {
+        this.title = title;
         this.resources = resources;
     }
 
