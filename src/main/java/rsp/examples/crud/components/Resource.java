@@ -42,7 +42,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
     public CompletableFuture<Resource.State<T>> initialState() {
-        return entityService.getList(0,10)
+        return entityService.getList(0,DEFAULT_PAGE_SIZE)
                 .thenApply(entities -> new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                         new HashSet<>()))
                 .thenApply(gridState -> new Resource.State<>(Set.of(Resource.ViewType.LIST),
@@ -70,7 +70,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                     StreamUtils.sequence(rows.stream().map(r -> entityService.delete(r.key))
                                                .collect(Collectors.toList()))
                                                .thenAccept(l -> {
-                                                     entityService.getList(0, 25).thenAccept(entities -> {
+                                                     entityService.getList(0, DEFAULT_PAGE_SIZE).thenAccept(entities -> {
                                                             us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                                                                                new HashSet<>())));
                                                      });
@@ -97,7 +97,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
             } else if (editState.currentValue.isPresent() && editState.currentKey.isPresent()) {
                 // edit
                 entityService.update(new KeyedEntity<>(editState.currentKey.get(), editState.currentValue.get()))
-                        .thenCompose(u -> entityService.getList(0, 0))
+                        .thenCompose(u -> entityService.getList(0, DEFAULT_PAGE_SIZE))
                         .thenAccept(entities ->
                                 us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                         new HashSet<>())))).join();
@@ -105,7 +105,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
             } else if (editState.currentValue.isPresent()) {
                 // create
                 entityService.create(editState.currentValue.get())
-                        .thenCompose(u -> entityService.getList(0, 0))
+                        .thenCompose(u -> entityService.getList(0, DEFAULT_PAGE_SIZE))
                         .thenAccept(entities ->
                                 us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                         new HashSet<>())))).join();
