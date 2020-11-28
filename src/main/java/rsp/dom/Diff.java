@@ -90,17 +90,17 @@ public class Diff {
 
     private static void create(Tag tag, Path path, ChangesPerformer changesPerformer) {
         changesPerformer.create(path, tag.xmlns, tag.name);
+        for (Style style: tag.styles) {
+            changesPerformer.setStyle(path, style.name, style.value);
+        }
+        for (Attribute attribute: tag.attributes) {
+            changesPerformer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
+        }
         var p = path.incLevel();
         for (Node child:tag.children) {
             if (child instanceof Tag) {
                 final Tag newTag = (Tag) child;
                 create(newTag, p, changesPerformer);
-                for (Style style: newTag.styles) {
-                    changesPerformer.setStyle(p, style.name, style.value);
-                }
-                for (Attribute attribute: newTag.attributes) {
-                    changesPerformer.setAttr(p, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
-                }
             } else if (child instanceof Text) {
                 final Text text = (Text) child;
                 changesPerformer.createText(path, p, text.text);
