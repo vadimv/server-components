@@ -4,6 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.dsl.Html;
 import rsp.examples.crud.entities.KeyedEntity;
+import rsp.util.Tuple2;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -33,7 +34,7 @@ public class Admin {
                                                                                                new Edit.State<>())));
                 }
             }
-            return CompletableFuture.completedFuture(new Admin.State("",
+            return CompletableFuture.completedFuture(new State("",
                                                                new Resource.State<>(Set.of(Resource.ViewType.ERROR),
                                                                                   DataGrid.Table.empty(),
                                                                                   new Edit.State<>())));
@@ -41,12 +42,11 @@ public class Admin {
     }
 
 
-    private Component<Admin.State> component() {
+    private Component<State> component() {
         return s -> html(
                 body(
                         new MenuPanel().render(useState(() ->
-                                new MenuPanel.MenuPanelState(Arrays.stream(resources).map(r ->
-                                    r.name).collect(Collectors.toList())))),
+                                new MenuPanel.State(Arrays.stream(resources).map(r -> new Tuple2<>(r.name, r.title)).collect(Collectors.toList())))),
 
                         Html.of(Arrays.stream(resources).filter(resource ->
                                 resource.name.equals(s.get().entityName)).map(resource ->

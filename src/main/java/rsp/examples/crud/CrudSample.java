@@ -21,6 +21,7 @@ public class CrudSample {
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 
         final Admin admin = new Admin(new Resource<>("authors",
+                                                     "Authors",
                                                      authorsService,
                                                      new DataGrid<>(new DataGrid.Header("Name", ""),
                                                                     e -> new RowFields(e.key,

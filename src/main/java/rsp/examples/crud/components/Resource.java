@@ -16,6 +16,7 @@ import static rsp.dsl.Html.*;
 
 public class Resource<T> implements Component<Resource.State<T>> {
     public final String name;
+    public final String title;
     public final EntityService<String, T> entityService;
 
     private final Component<DataGrid.Table<String, T>> listComponent;
@@ -23,11 +24,13 @@ public class Resource<T> implements Component<Resource.State<T>> {
     private final Create<T> createComponent;
 
     public Resource(String name,
+                    String title,
                     EntityService<String, T> entityService,
                     Component<DataGrid.Table<String, T>> listComponent,
                     Edit<T> editComponent,
                     Create<T>  createComponent) {
         this.name = name;
+        this.title = title;
         this.entityService = entityService;
         this.listComponent = listComponent;
         this.editComponent = editComponent;
