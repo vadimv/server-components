@@ -88,15 +88,15 @@ public class Resource<T> implements Component<Resource.State<T>> {
     private UseState<Edit.State<T>> editUseState(UseState<Resource.State<T>> us) {
         return useState(() -> us.get().edit.withActive(),
                          v -> v.current.ifPresentOrElse(value -> {
-                                         if (v.validationErrors.isEmpty()) {
+                                     if (v.validationErrors.isEmpty()) {
                                          entityService.update(value)
                                                       .thenCompose(u -> entityService.getList(0, 0))
                                                       .thenAccept(entities ->
                                                                 us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                                                         new HashSet<>())))).join();
-                                         } else {
+                                     } else {
                                              us.accept(us.get().withEdit(v));
-                                         }},
+                                     }},
                         () -> us.accept(us.get().withList())));
     }
 
@@ -112,7 +112,6 @@ public class Resource<T> implements Component<Resource.State<T>> {
         public State(Set<ViewType> view,
                      DataGrid.Table list,
                      Edit.State<T> edit) {
-
             this.view = view;
             this.list = list;
             this.edit = edit;
