@@ -2,7 +2,6 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.dsl.Html;
 import rsp.state.UseState;
 
 import java.util.Optional;
@@ -14,8 +13,9 @@ public class TextInput implements Component<Optional<String>> {
 
     public final String fieldName;
     private final String initialValue;
-    private Function<String, Optional<String>>[] validations;
+    private final Function<String, Optional<String>>[] validations;
 
+    @SafeVarargs
     public TextInput(String fieldName,
                      String initialValue,
                      Function<String, Optional<String>>... validations) {
@@ -30,8 +30,8 @@ public class TextInput implements Component<Optional<String>> {
                    input(attr("type", "text"),
                          attr("name", fieldName),
                          prop("value", initialValue)),
-                   Html.of(useState.get().stream().map(validationErrorMessage -> span(style("font-color", "red"),
-                                                                                      text(validationErrorMessage))))
+                   of(useState.get().stream().map(validationErrorMessage -> span(style("font-color", "red"),
+                                                                                 text(validationErrorMessage))))
                );
     }
 
