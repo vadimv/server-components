@@ -3,11 +3,9 @@ package rsp.examples.crud.components;
 import rsp.App;
 import rsp.Component;
 import rsp.dsl.Html;
-import rsp.examples.crud.entities.KeyedEntity;
 import rsp.util.Tuple2;
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -32,8 +30,8 @@ public class Admin {
             }
             return CompletableFuture.completedFuture(new State("",
                                                                new Resource.State<>(Set.of(Resource.ViewType.ERROR),
-                                                                                  DataGrid.Table.empty(),
-                                                                                  new DetailsViewState<>())));
+                                                                                    DataGrid.Table.empty(),
+                                                                                    new DetailsViewState<>())));
         }, appRoot());
     }
 
