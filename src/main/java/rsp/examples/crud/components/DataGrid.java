@@ -30,7 +30,7 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
                 table(
                         thead(tr(th(""), of(Arrays.stream(header.columnsHeaders).map(h -> th(h))))),
                         tbody(
-                                Html.of(Arrays.stream(state.get().rows).map(row -> tr(
+                                of(Arrays.stream(state.get().rows).map(row -> tr(
                                         td(input(attr("type", "checkbox"),
                                                  when(state.get().selectedRows.contains(row), () -> attr("checked")),
                                                  attr("autocomplete", "off"),
