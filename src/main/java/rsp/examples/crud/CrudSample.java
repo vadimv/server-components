@@ -26,16 +26,16 @@ public class CrudSample {
                                                      authorsService,
                                                      new DataGrid<>(new DataGrid.Header("Name", ""),
                                                                     e -> new RowFields(e.key,
-                                                                                    new TextField<>(e.data.name),
-                                                                                    new EditButton(e.key))),
+                                                                                       new TextField<>(e.data.name),
+                                                                                       new EditButton(e.key))),
                                                      new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                                 new TextInput("name",
                                                                                               d.get().toString(),
                                                                                               new RequiredValidation()))),
                                                      new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
-                                                                                new TextInput("name",
-                                                                                      "",
-                                                                                                new RequiredValidation())))));
+                                                                                  new TextInput("name",
+                                                                                       "",
+                                                                                                 new RequiredValidation())))));
 
                 /*
                                       new Resource<Book>("books",
