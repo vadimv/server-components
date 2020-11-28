@@ -2,45 +2,31 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.examples.crud.entities.KeyedEntity;
 import rsp.state.UseState;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static rsp.dsl.Html.*;
 
-public class Create<T> implements Component<Create.State<T>> {
+public class Create<T> implements Component<DetailsViewState<T>> {
 
-    private final Function<UseState<T>, Form<T>> formFunction;
-    public Create(Function<UseState<T>, Form<T>> formFunction) {
+    private final Function<Consumer<T>, Form<T>> formFunction;
+    public Create(Function<Consumer<T>, Form<T>> formFunction) {
         this.formFunction = formFunction;
     }
 
 
     @Override
-    public DocumentPartDefinition render(UseState<Create.State<T>> us) {
+    public DocumentPartDefinition render(UseState<DetailsViewState<T>> us) {
         return div(span("Create"),
-                   formFunction.apply(useState(() -> us.get().current.get(),
-                                            v -> us.accept(us.get().withValue(v))))
-                                                   .render(useState(() -> new Form.State<>(),
-                                                                     v -> us.accept(new Create.State<>())))); // TODO ??
+                   formFunction.apply(useState(() -> us.get().currentValue.get(),
+                                            v -> us.accept(us.get().withValue(v).withValidationErrors(Collections.EMPTY_MAP))))
+                                                   .render(useState(() -> new Form.State<>(us.get().currentValue, us.get().validationErrors),
+                                                                     v -> us.accept(us.get().withValidationErrors(v.validationErrors)))));
     }
 
-    public static class State<T> {
-        public final boolean isActive;
-        public final Optional<T> current;
-        public State(boolean isActive, Optional<T> data) {
-            this.isActive = isActive;
-            this.current = data;
-        }
 
-        public State() {
-            this(false, Optional.empty());
-        }
-
-        public State<T> withValue(T value) {
-            return new State<T>(false, Optional.of(value));
-        }
-    }
 }

@@ -33,13 +33,13 @@ public class Admin {
                                                  new HashSet<>())).
                             thenApply(gridState -> new State(resource.name, new Resource.State<>(Set.of(Resource.ViewType.LIST),
                                                                                                gridState,
-                                                                                               new Edit.State<>())));
+                                                                                               new DetailsViewState<>())));
                 }
             }
             return CompletableFuture.completedFuture(new State("",
                                                                new Resource.State<>(Set.of(Resource.ViewType.ERROR),
                                                                                   DataGrid.Table.empty(),
-                                                                                  new Edit.State<>())));
+                                                                                  new DetailsViewState<>())));
         }, component());
     }
 

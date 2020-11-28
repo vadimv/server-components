@@ -28,7 +28,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
                     EntityService<String, T> entityService,
                     Component<DataGrid.Table<String, T>> listComponent,
                     Edit<T> editComponent,
-                    Create<T>  createComponent) {
+                    Create<T> createComponent) {
         this.name = name;
         this.title = title;
         this.entityService = entityService;
@@ -70,37 +70,36 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                    gridState -> us.accept(us.get().withList(gridState))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
-                        () -> createComponent.render(createUseState(us))),
+                        () -> createComponent.render(editUseState(us))),
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
                         () -> editComponent.render(editUseState(us))));
     }
 
-    private UseState<Create.State<T>> createUseState(UseState<Resource.State<T>> us) {
-        return useState(() -> new Create.State<T>(true, Optional.empty()),
-                v -> v.current.ifPresentOrElse(value ->
-                                entityService.create(value)
-                                        .thenCompose(u -> entityService.getList(0, 0))
-                                        .thenAccept(entities ->
-                                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                        new HashSet<>())))).join(),
-                        () -> us.accept(us.get().withList())
-                ));
-    }
-
-    private UseState<Edit.State<T>> editUseState(UseState<Resource.State<T>> us) {
+    private UseState<DetailsViewState<T>> editUseState(UseState<Resource.State<T>> us) {
         return useState(() -> us.get().edit.withActive(),
-                         v -> v.current.ifPresentOrElse(value -> {
-                                     if (v.validationErrors.isEmpty()) {
-                                         entityService.update(value)
-                                                      .thenCompose(u -> entityService.getList(0, 0))
-                                                      .thenAccept(entities ->
-                                                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                                        new HashSet<>())))).join();
-                                     } else {
-                                             us.accept(us.get().withEdit(v));
-                                     }},
-                        () -> us.accept(us.get().withList())));
+                         editState -> {
+            if (!editState.validationErrors.isEmpty()) {
+                us.accept(us.get().withEdit(editState));
+            } else if (editState.currentValue.isPresent() && editState.currentKey.isPresent()) {
+                // edit
+                entityService.update(new KeyedEntity<>(editState.currentKey.get(), editState.currentValue.get()))
+                        .thenCompose(u -> entityService.getList(0, 0))
+                        .thenAccept(entities ->
+                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                        new HashSet<>())))).join();
+
+            } else if (editState.currentValue.isPresent()) {
+                // create
+                entityService.create(editState.currentValue.get())
+                        .thenCompose(u -> entityService.getList(0, 0))
+                        .thenAccept(entities ->
+                                us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
+                                        new HashSet<>())))).join();
+            } else {
+                us.accept(us.get().withList());
+            }
+        });
     }
 
     public enum ViewType {
@@ -110,11 +109,11 @@ public class Resource<T> implements Component<Resource.State<T>> {
     public static class State<T> {
         public final Set<ViewType> view;
         public final DataGrid.Table list;
-        public final Edit.State<T> edit;
+        public final DetailsViewState<T> edit;
 
         public State(Set<ViewType> view,
                      DataGrid.Table list,
-                     Edit.State<T> edit) {
+                     DetailsViewState<T> edit) {
             this.view = view;
             this.list = list;
             this.edit = edit;
@@ -128,16 +127,16 @@ public class Resource<T> implements Component<Resource.State<T>> {
             return new State(Set.of(ViewType.LIST), list, edit);
         }
 
-        public State withEdit(Edit.State<T> edit) {
-            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, edit);
+        public State withEdit(DetailsViewState<T> edit) {
+            return new State(view, list, edit);
         }
 
         public State withEditData(KeyedEntity<String, T> data) {
-            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new Edit.State<T>(true, Optional.of(data)));
+            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new DetailsViewState<T>(true, Optional.of(data.data), Optional.of(data.key)));
         }
 
         public State withCreate() {
-            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new Edit.State(true, Optional.empty()));
+            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new DetailsViewState(true, Optional.empty(), Optional.empty()));
         }
 
         public State updateList(DataGrid.Table<?, ?> l) {
