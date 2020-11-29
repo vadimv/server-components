@@ -29,12 +29,12 @@ public class CrudSample {
                                                new Column<>("", (k, e) -> new EditButton(k))),
                                 new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                         new TextInput("name",
-                                                d.get().toString(),
-                                                new RequiredValidation()))),
+                                                        d.get().toString(),
+                                                        new RequiredValidation()))),
                                 new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
-                                        new TextInput("name",
-                                                "",
-                                                new RequiredValidation())))));
+                                                             new TextInput("name",
+                                                                    "",
+                                                                             new RequiredValidation())))));
 
                 /*
                                       new Resource<Book>("books",
