@@ -12,7 +12,6 @@ import static rsp.state.UseState.useState;
 public class RowFields implements Component<Void> {
 
     private final String key;
-    Component<?> fieldComponent;
     private final Component[] fieldComponents;
 
     public RowFields(String key, Component... fieldComponents) {
