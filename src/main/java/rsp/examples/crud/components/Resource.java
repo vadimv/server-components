@@ -25,8 +25,8 @@ public class Resource<T> implements Component<Resource.State<T>> {
     public final EntityService<String, T> entityService;
 
     private final Component<DataGrid.Table<String, T>> listComponent;
-    private final Edit<T> editComponent;
-    private final Create<T> createComponent;
+    private final Optional<Edit<T>> editComponent;
+    private final Optional<Create<T>> createComponent;
 
     public Resource(String name,
                     String title,
@@ -38,9 +38,23 @@ public class Resource<T> implements Component<Resource.State<T>> {
         this.title = title;
         this.entityService = entityService;
         this.listComponent = listComponent;
-        this.editComponent = editComponent;
-        this.createComponent = createComponent;
+        this.editComponent = Optional.of(editComponent);
+        this.createComponent = Optional.of(createComponent);
     }
+
+    public Resource(String name,
+                    String title,
+                    EntityService<String, T> entityService,
+                    Component<DataGrid.Table<String, T>> listComponent,
+                    Edit<T> editComponent) {
+        this.name = name;
+        this.title = title;
+        this.entityService = entityService;
+        this.listComponent = listComponent;
+        this.editComponent = Optional.of(editComponent);
+        this.createComponent = Optional.empty();
+    }
+
 
     public CompletableFuture<Resource.State<T>> initialState() {
         return entityService.getList(0, DEFAULT_PAGE_SIZE)
@@ -58,11 +72,11 @@ public class Resource<T> implements Component<Resource.State<T>> {
                 entityService.getOne(h.substring(1)).thenAccept(keo ->
                         us.accept(us.get().withEditData(keo.get()))).join());
                 }),
-                div(button(attr("type", "button"),
-                           text("Create"),
-                           on("click", ctx -> {
-                               us.accept(us.get().withCreate());
-                           })),
+                div(when(createComponent.isPresent(), button(attr("type", "button"),
+                                                      text("Create"),
+                                                      on("click", ctx -> {
+                                                           us.accept(us.get().withCreate());
+                                                      }))),
                     button(attr("type", "button"),
                             when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
                             text("Delete"),
@@ -82,10 +96,10 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                    gridState -> us.accept(us.get().withList(gridState))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
-                        () -> createComponent.render(detailsViewState(us))),
+                        () -> of(createComponent.map(cc -> cc.render(detailsViewState(us))).stream())),
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
-                        () -> editComponent.render(detailsViewState(us))));
+                        () -> of(editComponent.map(ec -> ec.render(detailsViewState(us))).stream())));
     }
 
     private UseState<DetailsViewState<T>> detailsViewState(UseState<Resource.State<T>> us) {
