@@ -16,28 +16,27 @@ import static rsp.state.UseState.useState;
 
 public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
 
-    private final Header header;
-    private final Function<KeyedEntity<String,T>, RowFields> fields;
+    private final Column<T>[] columns;
 
-    public DataGrid(Header header, Function<KeyedEntity<String,T>, RowFields> fields) {
-        this.header = header;
-        this.fields = fields;
+    public DataGrid(Column<T>... columns) {
+
+        this.columns = columns;
     }
 
     @Override
     public DocumentPartDefinition render(UseState<DataGrid.Table<String, T>> state) {
         return div(
                 table(
-                        thead(tr(th(""), of(Arrays.stream(header.columnsHeaders).map(h -> th(h))))),
+                        thead(tr(th(""), of(Arrays.stream(columns).map(h -> th(h.title))))),
                         tbody(
                                 of(Arrays.stream(state.get().rows).map(row -> tr(
                                         td(input(attr("type", "checkbox"),
                                                  when(state.get().selectedRows.contains(row), () -> attr("checked")),
                                                  attr("autocomplete", "off"),
                                                  on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
-
-                                        fields.apply(row).render(useState()))
-                                )))));
+                                        of(Arrays.stream(columns).map(column -> td(column.fieldComponent.apply(row.key, row.data).render(useState()))))
+                                )))))
+                );
     }
 
     public static class Table<K, T> {
