@@ -22,19 +22,19 @@ public class CrudSample {
         AuthorsBooksServiceStubInit.init(authorsService, booksService);
 
         final Admin admin = new Admin("Authors and Books",
-                new Resource<>("authors",
-                                "Authors",
-                                authorsService,
-                                new DataGrid<>(new Column<>("Name", (k, e) -> new TextField<>(e.name)),
-                                               new Column<>("", (k, e) -> new EditButton(k))),
-                                new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
-                                        new TextInput("name",
-                                                        d.get().toString(),
-                                                        new RequiredValidation()))),
-                                new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
-                                                             new TextInput("name",
-                                                                    "",
-                                                                             new RequiredValidation())))));
+                                        new Resource<>("authors",
+                                                        "Authors",
+                                                        authorsService,
+                                                        new DataGrid<>(new Column<>("Name", (k, e) -> new TextField<>(e.name)),
+                                                                       new Column<>("", (k, e) -> new EditButton(k))),
+                                                        new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
+                                                                new TextInput("name",
+                                                                                d.get().toString(),
+                                                                                new RequiredValidation()))),
+                                                        new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
+                                                                                     new TextInput("name",
+                                                                                            "",
+                                                                                                     new RequiredValidation())))));
 
                 /*
                                       new Resource<Book>("books",
