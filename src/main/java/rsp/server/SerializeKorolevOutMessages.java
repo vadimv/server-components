@@ -133,8 +133,12 @@ public class SerializeKorolevOutMessages implements OutMessages {
         messagesConsumer.accept(message);
     }
 
+    private String joinString(String[] strings) {
+        return String.join(",", strings);
+    }
+
     private String joinString(Object... objects) {
-        return String.join(",", Arrays.stream(objects).map(Object::toString).toArray(String[]::new));
+        return joinString(Arrays.stream(objects).map(Object::toString).toArray(String[]::new));
     }
 
     private String quote(Object str) {
