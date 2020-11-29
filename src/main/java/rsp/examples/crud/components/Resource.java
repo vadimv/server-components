@@ -92,6 +92,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
         return useState(() -> us.get().edit.withActive(),
                          editState -> {
             if (!editState.validationErrors.isEmpty()) {
+                // show the validation errors
                 us.accept(us.get().withEdit(editState));
             } else if (editState.currentValue.isPresent() && editState.currentKey.isPresent()) {
                 // edit
@@ -99,7 +100,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
                         .thenCompose(u -> entityService.getList(0, DEFAULT_PAGE_SIZE))
                         .thenAccept(entities ->
                                 us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                        new HashSet<>())))).join();
+                                                            new HashSet<>())))).join();
 
             } else if (editState.currentValue.isPresent()) {
                 // create
