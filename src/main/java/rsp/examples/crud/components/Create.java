@@ -10,6 +10,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static rsp.dsl.Html.*;
+import static rsp.state.UseState.useState;
 
 public class Create<T> implements Component<DetailsViewState<T>> {
 

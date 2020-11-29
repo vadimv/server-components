@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
+import static rsp.state.UseState.useState;
 
 public class Edit<T> implements Component<DetailsViewState<T>> {
 

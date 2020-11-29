@@ -14,6 +14,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
+import static rsp.state.UseState.useState;
 
 public class Form<T> implements Component<Form.State<T>> {
 

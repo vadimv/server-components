@@ -7,6 +7,7 @@ import rsp.state.UseState;
 import java.util.Arrays;
 
 import static rsp.dsl.Html.*;
+import static rsp.state.UseState.useState;
 
 public class RowFields implements Component<Void> {
 

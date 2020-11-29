@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
+import static rsp.state.UseState.useState;
 
 public class Resource<T> implements Component<Resource.State<T>> {
 
@@ -42,9 +43,9 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
     public CompletableFuture<Resource.State<T>> initialState() {
-        return entityService.getList(0,DEFAULT_PAGE_SIZE)
+        return entityService.getList(0, DEFAULT_PAGE_SIZE)
                 .thenApply(entities -> new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                        new HashSet<>()))
+                                                            new HashSet<>()))
                 .thenApply(gridState -> new Resource.State<>(Set.of(Resource.ViewType.LIST),
                                                              gridState,
                                                              new DetailsViewState<>()));
@@ -75,21 +76,19 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                                                                new HashSet<>())));
                                                      });
                                                  });
-
-
                                 }))),
                 when(us.get().view.contains(ViewType.LIST),
                         () -> listComponent.render(useState(() -> us.get().list,
                                                    gridState -> us.accept(us.get().withList(gridState))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
-                        () -> createComponent.render(editUseState(us))),
+                        () -> createComponent.render(detailsViewState(us))),
 
                 when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
-                        () -> editComponent.render(editUseState(us))));
+                        () -> editComponent.render(detailsViewState(us))));
     }
 
-    private UseState<DetailsViewState<T>> editUseState(UseState<Resource.State<T>> us) {
+    private UseState<DetailsViewState<T>> detailsViewState(UseState<Resource.State<T>> us) {
         return useState(() -> us.get().edit.withActive(),
                          editState -> {
             if (!editState.validationErrors.isEmpty()) {
