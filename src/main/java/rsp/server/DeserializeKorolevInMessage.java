@@ -46,7 +46,7 @@ public class DeserializeKorolevInMessage {
 
     private void parseExtractPropertyResponse(String str) {
         final String[] tokens = str.split(":");
-        inMessages.extractProperty(Integer.parseInt(tokens[0]), tokens.length > 2 ? tokens[2] : "");
+        inMessages.extractPropertyResponse(Integer.parseInt(tokens[0]), tokens.length > 2 ? tokens[2] : "");
     }
 
     private void parseEvalJsResponse(String str) {

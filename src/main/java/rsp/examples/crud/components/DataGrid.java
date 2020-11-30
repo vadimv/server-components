@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
 import static rsp.state.UseState.useState;
@@ -19,7 +18,6 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
     private final Column<T>[] columns;
 
     public DataGrid(Column<T>... columns) {
-
         this.columns = columns;
     }
 

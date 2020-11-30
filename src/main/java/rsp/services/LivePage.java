@@ -112,7 +112,6 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     public void start() {
-        log.info(l -> l.log("Live Page start: " + this));
         synchronized (this) {
             final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
             if (page == null) {
@@ -141,10 +140,11 @@ public class LivePage<S> implements InMessages, Schedule {
                 }
             });
         }
+        log.debug(l -> l.log("Live page started: " + this));
     }
 
     public void shutdown() {
-        log.info(l -> l.log("Live Page shutdown: " + this));
+        log.debug(l -> l.log("Live Page shutdown: " + this));
         // Invoke this page's shutdown events
         currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
             if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
@@ -160,7 +160,7 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void extractProperty(int descriptorId, String value) {
+    public void extractPropertyResponse(int descriptorId, String value) {
         log.debug(l -> l.log("extractProperty:" + descriptorId + " value=" + value));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
