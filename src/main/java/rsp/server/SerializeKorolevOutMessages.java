@@ -41,7 +41,13 @@ public class SerializeKorolevOutMessages implements OutMessages {
     private static final int  NO_EVENT_MODIFIER = 0;
     private static final int  THROTTLE_EVENT_MODIFIER = 1;
     private static final int  DEBOUNCE_EVENT_MODIFIER = 2;
-    
+
+    //SET URL LOCATION type
+    private static final int  HREF_LOCATION_TYPE = 0;
+    private static final int  PATHNAME_LOCATION_TYPE = 1;
+    private static final int  HASH_LOCATION_TYPE = 2;
+    private static final int  SEARCH_LOCATION_TYPE = 3;
+
     private final Consumer<String> messagesConsumer;
 
     public SerializeKorolevOutMessages(Consumer<String> messagesConsumer) {
@@ -93,6 +99,12 @@ public class SerializeKorolevOutMessages implements OutMessages {
                                                                 joinString(changes)));
             messagesConsumer.accept(message);
         }
+    }
+
+    @Override
+    public void setHref(String path) {
+        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(path)));
+        messagesConsumer.accept(message);
     }
 
     private String modifyDomMessageBody(DomChange domChange) {

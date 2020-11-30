@@ -52,6 +52,7 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
 
     @Override
     public void onOpen(Session session, EndpointConfig endpointConfig) {
+        log.trace(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
         final OutMessages out = new SerializeKorolevOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         LivePage<S> livePage = LivePage.of(handshakeRequest,
@@ -69,7 +70,7 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override
             public void onMessage(String s) {
-                log.trace(l -> l.log(s));
+                log.trace(l -> l.log("-> " + s));
                 in.parse(s);
             }
         });
@@ -77,8 +78,9 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
         session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
     }
 
-    private static void sendText(Session session, String text) {
+    private void sendText(Session session, String text) {
         try {
+            log.trace(l -> l.log("<- " + text));
             session.getBasicRemote().sendText(text);
         } catch (IOException ioException) {
             throw new RuntimeException(ioException);
@@ -105,8 +107,6 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
     }
 
     public static HttpRequest of(HandshakeRequest handshakeRequest) {
-        return new HttpRequest(handshakeRequest.getRequestURI().getPath(),
-                name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
-                name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)));
+        return HttpRequest.of(handshakeRequest);
     }
 }

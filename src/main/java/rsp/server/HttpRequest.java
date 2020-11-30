@@ -1,34 +1,55 @@
 package rsp.server;
 
+import rsp.javax.web.ServletUtils;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.websocket.server.HandshakeRequest;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 
 public class HttpRequest {
+    public final URI uri;
     public final String path;
     public final Function<String, Optional<String>> getParam;
     public final Function<String, Optional<String>> getHeader;
-
-    public HttpRequest(String path,
+    public final Function<String, Optional<String>> getCookie;
+    public HttpRequest(URI uri,
+                       String path,
                        Function<String, Optional<String>> param,
-                       Function<String, Optional<String>> getHeader) {
+                       Function<String, Optional<String>> getHeader,
+                       Function<String, Optional<String>> getCookie) {
+        this.uri = uri;
         this.path = path;
         this.getParam = param;
         this.getHeader = getHeader;
+        this.getCookie = getCookie;
     }
 
     public static HttpRequest of(HttpServletRequest request) {
-        return new HttpRequest(request.getPathInfo(),
-                s -> Optional.ofNullable(request.getParameter(s)),
-                h -> Optional.ofNullable(request.getHeader(h)));
+        return new HttpRequest(stringToURI(request.getRequestURI()),
+                               request.getPathInfo(),
+                               s -> Optional.ofNullable(request.getParameter(s)),
+                               h -> Optional.ofNullable(request.getHeader(h)),
+                               n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
     }
 
     public static HttpRequest of(HandshakeRequest handshakeRequest) {
-        return new HttpRequest(handshakeRequest.getRequestURI().getPath(),
-                name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
-                name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)));
+        return new HttpRequest(handshakeRequest.getRequestURI(),
+                               handshakeRequest.getRequestURI().getPath(),
+                               name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
+                               name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)),
+                               name -> Optional.empty());
+    }
+
+    private static URI stringToURI(String str) {
+        try {
+            return new URI(str);
+        } catch (URISyntaxException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     public Function<String, Optional<String>> getCookie() {

@@ -10,9 +10,10 @@ import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collections;
-import java.util.Optional;
 
 public class MainHttpServlet<S>  extends HttpServlet {
     public static final int DEFAULT_BUFFER_SIZE = 8192;
@@ -28,9 +29,7 @@ public class MainHttpServlet<S>  extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         final AsyncContext asyncContext = request.startAsync();
         asyncContext.start(() -> {
-            final HttpRequest req = new HttpRequest(request.getPathInfo(),
-                                                    s -> Optional.ofNullable(request.getParameter(s)),
-                                                    n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
+            final HttpRequest req = HttpRequest.of(request);
 
             pageRendering.httpGet(req).handle((resp, ex) -> {
                     if (ex != null) {

@@ -36,6 +36,14 @@ export const PropertyType = {
   ERROR: 4
 };
 
+/** @enum {number} */
+export const LocationType = {
+  HREF: 0,
+  PATHNAME: 1,
+  HASH: 2,
+  SEARCH: 3
+};
+
 export class Korolev {
 
   /**
@@ -360,11 +368,24 @@ export class Korolev {
   }
 
    /**
+    * @param {number} locationType
     * @param {string} path
     */
-  changePageUrl(path) {
-    if (path !== window.location.pathname)
-      window.history.pushState(path, '', path);
+  setLocation(locationType, path) {
+    switch(locationType) {
+        case LocationType.HREF:
+            window.location.href = path;
+        break;
+        case LocationType.PATHNAME:
+            window.location.pathname = path;
+        break;
+        case LocationType.HASH:
+            window.location.hash = path;
+        break;
+        case LocationType.SEARCH:
+            window.location.search = path;
+        break;
+    }
   }
 
    /**

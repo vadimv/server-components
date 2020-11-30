@@ -73,7 +73,7 @@ export class Bridge {
       case 3: k.extractProperty.apply(k, commands); break;
       case 4: k.modifyDom(commands); break;
       case 5: k.focus.apply(k, commands); break;
-      case 6: k.changePageUrl.apply(k, commands); break;
+      case 6: k.setLocation.apply(k, commands); break;
       case 7: k.uploadForm.apply(k, commands); break;
       case 8: k.reloadCss.apply(k, commands); break;
       case 9: break;
