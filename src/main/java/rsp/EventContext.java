@@ -48,6 +48,10 @@ public class EventContext {
         return resultHandler;
     }
 
+    public void setHref(String path) {
+        out.setHref(path);
+    }
+
     private Path of(Ref ref) {
         return ref instanceof WindowDefinition ? Path.DOCUMENT : pathLookup.apply(ref);
     }
