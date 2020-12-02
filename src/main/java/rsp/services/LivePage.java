@@ -239,7 +239,7 @@ public class LivePage<S> implements InMessages, Schedule {
         return resultHandler;
     }
 
-    public void setHref(String path) {
+    private void setHref(String path) {
         out.setHref(path);
     }
 
