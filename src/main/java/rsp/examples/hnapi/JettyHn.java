@@ -41,9 +41,9 @@ public class JettyHn {
                         window().on("scroll", c -> {
                             final var windowProps = c.props(window());
                             final var bodyProps = c.props(bodyRef);
-                            windowProps.get("innerHeight")
-                                       .thenCompose(innerHeight -> windowProps.get("pageYOffset")
-                                       .thenCompose(pageYOffset -> bodyProps.get("offsetHeight")
+                            windowProps.getString("innerHeight")
+                                       .thenCompose(innerHeight -> windowProps.getString("pageYOffset")
+                                       .thenCompose(pageYOffset -> bodyProps.getString("offsetHeight")
                                        .thenAccept(offsetHeight -> {
                                            if ((parseFloat(innerHeight) + parseFloat(pageYOffset)) >= parseFloat(offsetHeight)) {
                                                final State currentState = useState.get();

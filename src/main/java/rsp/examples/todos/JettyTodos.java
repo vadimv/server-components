@@ -42,7 +42,7 @@ public class JettyTodos {
                                 button(text("Add todo")),
                                        on("submit", c -> {
                                             var inputProps = c.props(textInputRef);
-                                            inputProps.get("value").thenApply(v -> useState.get().addTodo(v))
+                                            inputProps.getString("value").thenApply(v -> useState.get().addTodo(v))
                                                                    .thenAccept(s -> { inputProps.set("value", "");
                                                                                       useState.accept(s); });
                                 })))));

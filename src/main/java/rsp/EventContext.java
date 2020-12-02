@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -16,14 +17,14 @@ import java.util.function.Supplier;
 
 public class EventContext {
 
-    private final Map<Integer, CompletableFuture<String>> registeredEventHandlers;
+    private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers;
     private final Supplier<Integer> descriptorSupplier;
     private final Function<Object, Path> pathLookup;
     private final Function<String, Optional<String>> eventObject;
     private final Schedule executorService;
     private final OutMessages out;
     public EventContext(Supplier<Integer> descriptorSupplier,
-                        Map<Integer, CompletableFuture<String>> registeredEventHandlers,
+                        Map<Integer, CompletableFuture<Object>> registeredEventHandlers,
                         Function<Object, Path> pathLookup,
                         Function<String, Optional<String>> eventObject,
                         Schedule executorService,
@@ -40,9 +41,9 @@ public class EventContext {
         return new PropertiesHandle(ref);
     }
 
-    public CompletableFuture<String> evalJs(String js) {
+    public CompletableFuture<Object> evalJs(String js) {
         final Integer newDescriptor = descriptorSupplier.get();
-        final CompletableFuture<String> resultHandler = new CompletableFuture<>();
+        final CompletableFuture<Object> resultHandler = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, resultHandler);
         out.evalJs(newDescriptor, js);
         return resultHandler;
@@ -74,11 +75,11 @@ public class EventContext {
             this.ref = ref;
         }
 
-        public CompletableFuture<String> get(String propertyName) {
+        public CompletableFuture<Object> get(String propertyName) {
             final Integer newDescriptor = descriptorSupplier.get();
             final Path path = of(ref);
             if (path != null) {
-                final CompletableFuture<String> valueFuture = new CompletableFuture<>();
+                final CompletableFuture<Object> valueFuture = new CompletableFuture<>();
                 registeredEventHandlers.put(newDescriptor, valueFuture);
                 out.extractProperty(newDescriptor, path, propertyName);
                 return valueFuture;
@@ -86,6 +87,10 @@ public class EventContext {
                 return CompletableFuture.failedFuture(new IllegalStateException("Ref not found: " + ref));
             }
 
+        }
+
+        public CompletionStage<String> getString(String propertyName) {
+            return get(propertyName).thenApply(v -> v.toString());
         }
 
         public CompletableFuture<Void> set(String propertyName, String value) {
@@ -97,5 +102,7 @@ public class EventContext {
                 return CompletableFuture.failedFuture(new IllegalStateException("Ref not found: " + ref));
             }
         }
+
+
     }
 }

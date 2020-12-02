@@ -21,7 +21,7 @@ public class LivePage<S> implements InMessages, Schedule {
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
-    private final Map<Integer, CompletableFuture<String>> registeredEventHandlers = new ConcurrentHashMap<>();
+    private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers = new ConcurrentHashMap<>();
     private final HttpRequest handshakeRequest;
     private final QualifiedSessionId qsid;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
@@ -160,7 +160,7 @@ public class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void extractPropertyResponse(int descriptorId, String value) {
+    public void extractPropertyResponse(int descriptorId, Object value) {
         log.debug(l -> l.log("extractProperty:" + descriptorId + " value=" + value));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {

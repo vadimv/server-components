@@ -279,7 +279,7 @@ export class Korolev {
         break;
       case 'object':
         type = PropertyType.OBJECT;
-        result = JSON.stringify(value);
+        result = value;
         break;
       case 'string':
         type = PropertyType.STRING;
@@ -295,9 +295,9 @@ export class Korolev {
         break;
     }
     this.callback(
-      CallbackType.EXTRACT_PROPERTY_RESPONSE,
-      `${descriptor}:${type}:${result}`
-    );
+        CallbackType.EXTRACT_PROPERTY_RESPONSE,
+         `${descriptor}:${type}`,
+          result);
   }
 
    /**
