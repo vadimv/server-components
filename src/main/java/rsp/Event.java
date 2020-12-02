@@ -5,7 +5,7 @@ import rsp.dom.Path;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class Event<S> {
+public class Event {
     public static final Modifier NO_MODIFIER = new NoModifier();
     public final Target eventTarget;
     public final Consumer<EventContext> eventHandler;
@@ -21,7 +21,7 @@ public class Event<S> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Event<?> event = (Event<?>) o;
+        Event event = (Event) o;
         return eventTarget.equals(event.eventTarget) &&
                 modifier.equals(event.modifier);
     }
