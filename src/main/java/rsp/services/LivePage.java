@@ -2,6 +2,7 @@ package rsp.services;
 
 import rsp.*;
 import rsp.dom.*;
+import rsp.dsl.WindowDefinition;
 import rsp.server.HttpRequest;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
@@ -130,12 +131,7 @@ public class LivePage<S> implements InMessages, Schedule {
             // Invoke this page's post start events
             currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
                 if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                    final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                                                                        registeredEventHandlers,
-                                                                        ref -> currentPageSnapshot.get().refs.get(ref),
-                                                                        s -> Optional.empty(),
-                                                                        this,
-                                                                        out);
+                    final EventContext eventContext = createEventContext(s -> Optional.empty());
                     event.eventHandler.accept(eventContext);
                 }
             });
@@ -148,12 +144,7 @@ public class LivePage<S> implements InMessages, Schedule {
         // Invoke this page's shutdown events
         currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
             if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                        registeredEventHandlers,
-                        ref -> currentPageSnapshot.get().refs.get(ref),
-                        s -> Optional.empty(),
-                        this,
-                        out);
+                final EventContext eventContext = createEventContext(s -> Optional.empty());
                 event.eventHandler.accept(eventContext);
             }
         });
@@ -186,12 +177,7 @@ public class LivePage<S> implements InMessages, Schedule {
             while(eventElementPath.level() > 0) {
                 final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
-                    final EventContext eventContext = new EventContext(() -> descriptorsCounter.incrementAndGet(),
-                            registeredEventHandlers,
-                            ref -> currentPageSnapshot.get().refs.get(ref),
-                            eventObject,
-                            this,
-                            out);
+                    final EventContext eventContext = createEventContext(eventObject);
                     event.eventHandler.accept(eventContext);
                     break;
                 } else {
@@ -223,6 +209,39 @@ public class LivePage<S> implements InMessages, Schedule {
                 command.run();
             }
         }, delay, unit);
+    }
+
+    private EventContext createEventContext(Function<String, Optional<String>> eventObject) {
+        return new EventContext(registeredEventHandlers,
+                                js -> evalJs(js),
+                                ref -> createPropertiesHandle(ref),
+                                eventObject,
+                                this,
+                                href -> setHref(href));
+    }
+
+    private PropertiesHandle createPropertiesHandle(Ref ref) {
+        final Path path = resolveRef(ref);
+        if (path == null) {
+            throw new IllegalStateException("Ref not found: " + ref);
+        }
+        return new PropertiesHandle(path, () -> descriptorsCounter.incrementAndGet(), registeredEventHandlers, out);
+    }
+
+    private Path resolveRef(Ref ref) {
+        return ref instanceof WindowDefinition ? Path.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
+    }
+
+    private CompletableFuture<Object> evalJs(String js) {
+        final Integer newDescriptor = descriptorsCounter.incrementAndGet();
+        final CompletableFuture<Object> resultHandler = new CompletableFuture<>();
+        registeredEventHandlers.put(newDescriptor, resultHandler);
+        out.evalJs(newDescriptor, js);
+        return resultHandler;
+    }
+
+    public void setHref(String path) {
+        out.setHref(path);
     }
 
     private static class Snapshot {

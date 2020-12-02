@@ -1,60 +1,47 @@
 package rsp;
 
-import rsp.dom.Path;
-import rsp.dom.RemoteDomChangesPerformer;
-import rsp.dsl.WindowDefinition;
-import rsp.server.OutMessages;
+import rsp.services.PropertiesHandle;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class EventContext {
-
     private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers;
-    private final Supplier<Integer> descriptorSupplier;
-    private final Function<Object, Path> pathLookup;
+    private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
+    private final Function<String, CompletableFuture<Object>> jsEvaluation;
     private final Function<String, Optional<String>> eventObject;
     private final Schedule executorService;
-    private final OutMessages out;
-    public EventContext(Supplier<Integer> descriptorSupplier,
-                        Map<Integer, CompletableFuture<Object>> registeredEventHandlers,
-                        Function<Object, Path> pathLookup,
+    private final Consumer<String> setHref;
+
+    public EventContext(Map<Integer, CompletableFuture<Object>> registeredEventHandlers,
+                        Function<String, CompletableFuture<Object>> jsEvaluation,
+                        Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         Function<String, Optional<String>> eventObject,
                         Schedule executorService,
-                        OutMessages out) {
-        this.descriptorSupplier = descriptorSupplier;
+                        Consumer<String> setHref) {
+        this.propertiesHandleLookup = propertiesHandleLookup;
+        this.jsEvaluation = jsEvaluation;
         this.registeredEventHandlers = registeredEventHandlers;
-        this.pathLookup = pathLookup;
         this.eventObject = eventObject;
         this.executorService = executorService;
-        this.out = out;
+        this.setHref = setHref;
     }
 
     public PropertiesHandle props(Ref ref) {
-        return new PropertiesHandle(ref);
+        return propertiesHandleLookup.apply(ref);
     }
 
     public CompletableFuture<Object> evalJs(String js) {
-        final Integer newDescriptor = descriptorSupplier.get();
-        final CompletableFuture<Object> resultHandler = new CompletableFuture<>();
-        registeredEventHandlers.put(newDescriptor, resultHandler);
-        out.evalJs(newDescriptor, js);
-        return resultHandler;
+        return jsEvaluation.apply(js);
     }
 
-    public void setHref(String path) {
-        out.setHref(path);
-    }
-
-    private Path of(Ref ref) {
-        return ref instanceof WindowDefinition ? Path.DOCUMENT : pathLookup.apply(ref);
+    public void setHref(String href) {
+        setHref.accept(href);
     }
 
     public Function<String, Optional<String>> eventObject() {
@@ -67,42 +54,5 @@ public class EventContext {
 
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
         return executorService.scheduleAtFixedRate(command, delay, period, timeUnit);
-    }
-
-    public class PropertiesHandle {
-        private final Ref ref;
-        public PropertiesHandle(Ref ref) {
-            this.ref = ref;
-        }
-
-        public CompletableFuture<Object> get(String propertyName) {
-            final Integer newDescriptor = descriptorSupplier.get();
-            final Path path = of(ref);
-            if (path != null) {
-                final CompletableFuture<Object> valueFuture = new CompletableFuture<>();
-                registeredEventHandlers.put(newDescriptor, valueFuture);
-                out.extractProperty(newDescriptor, path, propertyName);
-                return valueFuture;
-            } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("Ref not found: " + ref));
-            }
-
-        }
-
-        public CompletionStage<String> getString(String propertyName) {
-            return get(propertyName).thenApply(v -> v.toString());
-        }
-
-        public CompletableFuture<Void> set(String propertyName, String value) {
-            final Path path = of(ref);
-            if (path != null) {
-                out.modifyDom(List.of(new RemoteDomChangesPerformer.SetAttr(path, XmlNs.html, propertyName, value, true)));
-                return new CompletableFuture<>();
-            } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("Ref not found: " + ref));
-            }
-        }
-
-
     }
 }
