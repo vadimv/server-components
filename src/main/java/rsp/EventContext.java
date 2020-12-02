@@ -11,22 +11,19 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class EventContext {
-    private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers;
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<Object>> jsEvaluation;
     private final Function<String, Optional<String>> eventObject;
     private final Schedule executorService;
     private final Consumer<String> setHref;
 
-    public EventContext(Map<Integer, CompletableFuture<Object>> registeredEventHandlers,
-                        Function<String, CompletableFuture<Object>> jsEvaluation,
+    public EventContext(Function<String, CompletableFuture<Object>> jsEvaluation,
                         Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         Function<String, Optional<String>> eventObject,
                         Schedule executorService,
                         Consumer<String> setHref) {
         this.propertiesHandleLookup = propertiesHandleLookup;
         this.jsEvaluation = jsEvaluation;
-        this.registeredEventHandlers = registeredEventHandlers;
         this.eventObject = eventObject;
         this.executorService = executorService;
         this.setHref = setHref;
