@@ -1,8 +1,5 @@
 package rsp.dom;
 
-import rsp.ChangesPerformer;
-import rsp.XmlNs;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArraySet;

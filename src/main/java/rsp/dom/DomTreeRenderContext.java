@@ -1,8 +1,9 @@
 package rsp.dom;
 
-import rsp.*;
 import rsp.dsl.EventDefinition;
-import rsp.dsl.RefDefinition;
+import rsp.dsl.Ref;
+import rsp.services.EventContext;
+import rsp.services.RenderContext;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

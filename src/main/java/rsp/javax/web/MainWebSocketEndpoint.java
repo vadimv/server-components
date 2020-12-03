@@ -1,8 +1,8 @@
 package rsp.javax.web;
 
 import rsp.Component;
-import rsp.QualifiedSessionId;
-import rsp.RenderContext;
+import rsp.services.QualifiedSessionId;
+import rsp.services.RenderContext;
 import rsp.server.DeserializeKorolevInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
@@ -15,7 +15,6 @@ import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;

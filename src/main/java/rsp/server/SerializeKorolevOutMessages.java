@@ -1,7 +1,7 @@
 package rsp.server;
 
-import rsp.Event;
-import rsp.XmlNs;
+import rsp.dom.Event;
+import rsp.dom.XmlNs;
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer.*;
 

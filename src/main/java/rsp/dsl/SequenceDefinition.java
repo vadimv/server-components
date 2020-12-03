@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.RenderContext;
+import rsp.services.RenderContext;
 
 class SequenceDefinition extends DocumentPartDefinition {
     public final DocumentPartDefinition[] items;

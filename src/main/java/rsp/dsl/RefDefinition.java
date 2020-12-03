@@ -1,7 +1,6 @@
 package rsp.dsl;
 
-import rsp.Ref;
-import rsp.RenderContext;
+import rsp.services.RenderContext;
 
 import java.util.Objects;
 

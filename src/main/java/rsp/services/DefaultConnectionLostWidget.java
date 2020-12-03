@@ -1,4 +1,4 @@
-package rsp;
+package rsp.services;
 
 import rsp.dom.DomTreeRenderContext;
 import rsp.dsl.TagDefinition;

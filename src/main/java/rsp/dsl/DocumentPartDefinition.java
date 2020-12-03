@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.RenderContext;
+import rsp.services.RenderContext;
 
 public abstract class DocumentPartDefinition implements Comparable<DocumentPartDefinition> {
     public final DocumentPartKind kind;

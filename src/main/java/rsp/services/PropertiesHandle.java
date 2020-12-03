@@ -1,6 +1,6 @@
 package rsp.services;
 
-import rsp.XmlNs;
+import rsp.dom.XmlNs;
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer;
 import rsp.server.OutMessages;

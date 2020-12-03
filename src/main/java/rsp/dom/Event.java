@@ -1,6 +1,6 @@
-package rsp;
+package rsp.dom;
 
-import rsp.dom.Path;
+import rsp.services.EventContext;
 
 import java.util.Objects;
 import java.util.function.Consumer;

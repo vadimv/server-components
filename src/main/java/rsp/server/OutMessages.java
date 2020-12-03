@@ -1,6 +1,6 @@
 package rsp.server;
 
-import rsp.Event;
+import rsp.dom.Event;
 import rsp.dom.Path;
 import rsp.dom.RemoteDomChangesPerformer;
 

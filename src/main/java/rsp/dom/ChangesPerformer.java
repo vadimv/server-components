@@ -1,6 +1,7 @@
-package rsp;
+package rsp.dom;
 
 import rsp.dom.Path;
+import rsp.dom.XmlNs;
 
 public interface ChangesPerformer {
     void removeAttr(Path id, XmlNs xmlNs, String name);

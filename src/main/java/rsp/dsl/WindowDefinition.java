@@ -1,8 +1,7 @@
 package rsp.dsl;
 
-import rsp.Event;
-import rsp.EventContext;
-import rsp.Ref;
+import rsp.dom.Event;
+import rsp.services.EventContext;
 
 import java.util.function.Consumer;
 

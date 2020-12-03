@@ -1,7 +1,5 @@
 package rsp.dom;
 
-import rsp.XmlNs;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArraySet;

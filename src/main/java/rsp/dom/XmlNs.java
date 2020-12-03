@@ -1,4 +1,4 @@
-package rsp;
+package rsp.dom;
 
 public class XmlNs {
 

@@ -1,6 +1,10 @@
-package rsp;
+package rsp.services;
 
+import rsp.dom.Event;
+import rsp.dom.XmlNs;
 import rsp.dsl.EventDefinition;
+import rsp.dsl.Ref;
+import rsp.services.EventContext;
 
 import java.util.function.Consumer;
 

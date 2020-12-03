@@ -1,8 +1,5 @@
 package rsp.dom;
 
-import rsp.ChangesPerformer;
-import rsp.XmlNs;
-
 import java.util.ArrayList;
 import java.util.List;
 

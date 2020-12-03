@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.RenderContext;
+import rsp.services.RenderContext;
 
 public class StyleDefinition extends DocumentPartDefinition {
     public final String name;

@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.RenderContext;
+import rsp.services.RenderContext;
 
 public class TextDefinition extends DocumentPartDefinition {
     private final String text;
