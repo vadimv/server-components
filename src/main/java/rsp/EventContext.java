@@ -2,7 +2,6 @@ package rsp;
 
 import rsp.services.PropertiesHandle;
 
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledFuture;
@@ -33,6 +32,11 @@ public class EventContext {
         return propertiesHandleLookup.apply(ref);
     }
 
+    /**
+     * Evaluates a JavaScript expression on the browser returning a result
+     * @param js code to execute
+     * @return a CompletableFuture of either a Map, String, Long, Double or Boolean according to its evaluation result JSON data type
+     */
     public CompletableFuture<Object> evalJs(String js) {
         return jsEvaluation.apply(js);
     }

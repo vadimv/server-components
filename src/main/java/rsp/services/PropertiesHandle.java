@@ -28,6 +28,11 @@ public class PropertiesHandle {
         this.out = Objects.requireNonNull(out);
     }
 
+    /**
+     * Reads a property of a DOM element
+     * @param propertyName a property name
+     * @returna CompletableFuture of either a Map, String, Long, Double or Boolean according to its evaluation result JSON data type
+     */
     public CompletableFuture<Object> get(String propertyName) {
         final Integer newDescriptor = descriptorSupplier.get();
         final CompletableFuture<Object> valueFuture = new CompletableFuture<>();

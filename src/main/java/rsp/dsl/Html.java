@@ -12,6 +12,12 @@ import java.util.stream.Stream;
 
 public class Html {
 
+    // TODO verify all this property names
+    private final static String[] DEFAULT_PROPERTIES_NAMES = {
+            "autofocus", "autoplay", "async", "checked", "controls", "defer", "disabled", "hidden", "loop",
+            "multiple", "open", "readonly", "required", "scoped", "selected", "value"
+    };
+
     private static TagDefinition tag(String name, DocumentPartDefinition... children) {
         return new TagDefinition(name, children);
     }
@@ -175,9 +181,6 @@ public class Html {
     public static AttributeDefinition attr(String name) {
         return new AttributeDefinition(name, name, isPropertyByDefault(name));
     }
-    // TODO verify all this property names
-    private final static String[] DEFAULT_PROPERTIES_NAMES = { "autofocus", "autoplay", "async", "checked", "controls", "defer", "disabled",
-                                                               "hidden", "loop", "multiple", "open", "readonly", "required", "scoped", "selected", "value" };
 
     private static boolean isPropertyByDefault(String name) {
         return Arrays.asList(DEFAULT_PROPERTIES_NAMES).contains(name);
