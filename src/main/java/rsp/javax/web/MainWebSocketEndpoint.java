@@ -54,17 +54,17 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         log.trace(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
         final OutMessages out = new SerializeKorolevOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
-        LivePage<S> livePage = LivePage.of(handshakeRequest,
-                                           new QualifiedSessionId(session.getPathParameters().get("pid"),
-                                                                  session.getPathParameters().get("sid")),
-                                           routing,
-                                           state2route,
-                                           renderedPages,
-                                           documentDefinition,
-                                           enrich,
-                                           schedulerSupplier.get(),
-                                           out,
-                                           log);
+        final LivePage<S> livePage = LivePage.of(handshakeRequest,
+                                                 new QualifiedSessionId(session.getPathParameters().get("pid"),
+                                                                        session.getPathParameters().get("sid")),
+                                                 routing,
+                                                 state2route,
+                                                 renderedPages,
+                                                 documentDefinition,
+                                                 enrich,
+                                                 schedulerSupplier.get(),
+                                                 out,
+                                                 log);
         final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage(livePage, log);
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override
