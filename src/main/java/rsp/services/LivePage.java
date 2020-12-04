@@ -1,6 +1,6 @@
 package rsp.services;
 
-import rsp.*;
+import rsp.Component;
 import rsp.dom.*;
 import rsp.dsl.Ref;
 import rsp.dsl.WindowDefinition;
@@ -16,7 +16,6 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public final class LivePage<S> implements InMessages, Schedule {
     public static final String POST_START_EVENT_TYPE = "page-start";
@@ -83,7 +82,7 @@ public final class LivePage<S> implements InMessages, Schedule {
 
             // Register new event types on client
             final Set<Event> newEvents = new HashSet<>();
-            final Set<Event> oldEvents = currentState.get().events.values().stream().collect(Collectors.toSet());
+            final Set<Event> oldEvents = new HashSet<>(currentState.get().events.values());
             for(Event event : newContext.events.values()) {
                 if(!oldEvents.contains(event)) {
                     newEvents.add(event);
