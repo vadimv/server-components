@@ -5,7 +5,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Objects;
 import java.util.Optional;
 
-public class ServletUtils {
+public final class ServletUtils {
     public static Optional<Cookie> cookie(HttpServletRequest request, String name) {
         Objects.requireNonNull(request);
         Objects.requireNonNull(name);

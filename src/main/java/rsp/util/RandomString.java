@@ -2,7 +2,7 @@ package rsp.util;
 
 import java.security.SecureRandom;
 
-public class RandomString {
+public final class RandomString {
 
     private final int length;
 

@@ -2,7 +2,7 @@ package rsp.state;
 
 import java.util.Arrays;
 
-public class MutableState<S> implements UseState<S> {
+public final class MutableState<S> implements UseState<S> {
     private final StateListener<S>[] listeners;
     private S state;
 

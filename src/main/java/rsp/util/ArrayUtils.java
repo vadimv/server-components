@@ -2,7 +2,7 @@ package rsp.util;
 
 import java.util.Arrays;
 
-public class ArrayUtils {
+public final class ArrayUtils {
 
     public static <T> T[] concat(T[] first, T[] second) {
         final T[] result = Arrays.copyOf(first, first.length + second.length);

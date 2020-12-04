@@ -18,7 +18,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class LivePage<S> implements InMessages, Schedule {
+public final class LivePage<S> implements InMessages, Schedule {
     public static final String POST_START_EVENT_TYPE = "page-start";
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 

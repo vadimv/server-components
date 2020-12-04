@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class DomTreeRenderContext implements RenderContext {
+public final class DomTreeRenderContext implements RenderContext {
 
     public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
     public final ConcurrentHashMap<Ref, Path> refs = new ConcurrentHashMap();

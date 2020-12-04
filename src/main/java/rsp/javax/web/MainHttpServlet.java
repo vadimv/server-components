@@ -15,7 +15,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 
-public class MainHttpServlet<S>  extends HttpServlet {
+public final class MainHttpServlet<S>  extends HttpServlet {
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final PageRendering<S> pageRendering;
     private final Log.Reporting log;

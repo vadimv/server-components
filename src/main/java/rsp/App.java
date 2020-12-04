@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class App<S> {
+public final class App<S> {
     public static final String WS_ENDPOINT_PATH = "/bridge/web-socket/{pid}/{sid}";
 
     public final AppConfig config;

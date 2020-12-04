@@ -21,7 +21,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class MainWebSocketEndpoint<S> extends Endpoint {
+public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 

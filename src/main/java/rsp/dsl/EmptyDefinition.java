@@ -2,7 +2,7 @@ package rsp.dsl;
 
 import rsp.services.RenderContext;
 
-class EmptyDefinition extends DocumentPartDefinition {
+final class EmptyDefinition extends DocumentPartDefinition {
 
     public EmptyDefinition() {
         super(DocumentPartKind.OTHER);

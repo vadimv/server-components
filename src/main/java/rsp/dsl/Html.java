@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class Html {
+public final class Html {
 
     // TODO verify all this property names
     private final static String[] DEFAULT_PROPERTIES_NAMES = {

@@ -2,7 +2,7 @@ package rsp.dom;
 
 import java.util.Objects;
 
-public class Attribute {
+public final class Attribute {
     public final String name;
     public final String value;
     public final boolean isProperty;

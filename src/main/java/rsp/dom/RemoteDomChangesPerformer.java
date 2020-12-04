@@ -3,7 +3,7 @@ package rsp.dom;
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoteDomChangesPerformer implements ChangesPerformer {
+public final class RemoteDomChangesPerformer implements ChangesPerformer {
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override

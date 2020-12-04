@@ -2,7 +2,7 @@ package rsp.dom;
 
 import java.util.Objects;
 
-public class Style {
+public final class Style {
     public final String name;
     public final String value;
     public Style(String name, String value) {

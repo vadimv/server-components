@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public class Diff {
+public final class Diff {
 
     private final Optional<Tag> current;
     private final Tag work;

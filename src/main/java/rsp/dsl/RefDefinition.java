@@ -4,7 +4,7 @@ import rsp.services.RenderContext;
 
 import java.util.Objects;
 
-public class RefDefinition<K> extends DocumentPartDefinition implements Ref {
+public final class RefDefinition<K> extends DocumentPartDefinition implements Ref {
 
     public RefDefinition() {
         super(DocumentPartKind.OTHER);

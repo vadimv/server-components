@@ -6,7 +6,7 @@ import rsp.dom.XmlNs;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public class TagDefinition extends DocumentPartDefinition {
+public final class TagDefinition extends DocumentPartDefinition {
     private final String name;
     private final DocumentPartDefinition[] children;
 

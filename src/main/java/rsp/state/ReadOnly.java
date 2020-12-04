@@ -1,6 +1,6 @@
 package rsp.state;
 
-public class ReadOnly<S> implements UseState<S> {
+public final class ReadOnly<S> implements UseState<S> {
 
     private final S state;
 

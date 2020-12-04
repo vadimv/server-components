@@ -2,7 +2,7 @@ package rsp.dsl;
 
 import rsp.services.RenderContext;
 
-public class StyleDefinition extends DocumentPartDefinition {
+public final class StyleDefinition extends DocumentPartDefinition {
     public final String name;
     public final String value;
 

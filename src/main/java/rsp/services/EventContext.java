@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class EventContext {
+public final class EventContext {
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<Object>> jsEvaluation;
     private final Function<String, Optional<String>> eventObject;

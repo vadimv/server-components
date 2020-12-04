@@ -12,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
-public class PropertiesHandle {
+public final class PropertiesHandle {
     private final Path path;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers;

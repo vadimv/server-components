@@ -7,7 +7,7 @@ import rsp.dsl.Ref;
 
 import java.util.function.Consumer;
 
-public class EnrichingXhtmlContext implements RenderContext {
+public final class EnrichingXhtmlContext implements RenderContext {
 
     private final RenderContext context;
     private final String sessionId;

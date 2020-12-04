@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class PageRendering<S> {
+public final class PageRendering<S> {
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 

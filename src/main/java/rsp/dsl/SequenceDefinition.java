@@ -2,7 +2,7 @@ package rsp.dsl;
 
 import rsp.services.RenderContext;
 
-class SequenceDefinition extends DocumentPartDefinition {
+final class SequenceDefinition extends DocumentPartDefinition {
     public final DocumentPartDefinition[] items;
 
     public SequenceDefinition(DocumentPartDefinition[] items) {

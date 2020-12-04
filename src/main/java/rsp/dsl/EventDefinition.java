@@ -6,7 +6,7 @@ import rsp.services.RenderContext;
 
 import java.util.function.Consumer;
 
-public class EventDefinition<S> extends DocumentPartDefinition {
+public final class EventDefinition<S> extends DocumentPartDefinition {
     public enum EventElementMode {
         FROM_CONTEXT,
         WINDOW

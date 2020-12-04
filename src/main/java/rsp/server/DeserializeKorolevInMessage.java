@@ -10,7 +10,7 @@ import rsp.util.Log;
 import java.util.Objects;
 import java.util.Optional;
 
-public class DeserializeKorolevInMessage {
+public final class DeserializeKorolevInMessage {
     private final InMessages inMessages;
     private final Log.Reporting log;
 

@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 
 import static rsp.util.JsonUtils.escape;
 
-public class SerializeKorolevOutMessages implements OutMessages {
+public final class SerializeKorolevOutMessages implements OutMessages {
     private static final int SET_RENDER_NUM = 0; // (n)
     private static final int CLEAN_ROOT = 1; // ()
     private static final int LISTEN_EVENT = 2; // (type, preventDefault)

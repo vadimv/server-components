@@ -5,7 +5,7 @@ import rsp.services.EventContext;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class Event {
+public final class Event {
     public static final Modifier NO_MODIFIER = new NoModifier();
     public final Target eventTarget;
     public final Consumer<EventContext> eventHandler;

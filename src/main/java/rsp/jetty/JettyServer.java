@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class JettyServer {
+public final class JettyServer {
 
     public static final int DEFAULT_MAX_THREADS = 50;
     public final int port;

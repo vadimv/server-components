@@ -3,7 +3,7 @@ package rsp.dsl;
 import rsp.services.RenderContext;
 import rsp.dom.XmlNs;
 
-public class AttributeDefinition extends DocumentPartDefinition {
+public final class AttributeDefinition extends DocumentPartDefinition {
     public final String name;
     public final String value;
     public final boolean isProperty;
