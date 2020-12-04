@@ -2,7 +2,7 @@ package rsp.javax.web;
 
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
-import rsp.services.PageRendering;
+import rsp.page.PageRendering;
 import rsp.util.ExceptionsUtils;
 import rsp.util.Log;
 

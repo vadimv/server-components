@@ -1,4 +1,4 @@
-package rsp.services;
+package rsp.page;
 
 import rsp.dom.Event;
 import rsp.dom.XmlNs;

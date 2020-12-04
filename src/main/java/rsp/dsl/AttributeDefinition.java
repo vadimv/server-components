@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.services.RenderContext;
+import rsp.page.RenderContext;
 import rsp.dom.XmlNs;
 
 public final class AttributeDefinition extends DocumentPartDefinition {

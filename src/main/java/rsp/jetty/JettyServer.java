@@ -15,7 +15,7 @@ import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.server.HttpRequest;
 import rsp.server.StaticResources;
-import rsp.services.PageRendering;
+import rsp.page.PageRendering;
 
 import javax.websocket.HandshakeResponse;
 import javax.websocket.server.HandshakeRequest;

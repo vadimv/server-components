@@ -1,4 +1,4 @@
-package rsp.services;
+package rsp.page;
 
 import rsp.dom.XmlNs;
 import rsp.dom.Path;

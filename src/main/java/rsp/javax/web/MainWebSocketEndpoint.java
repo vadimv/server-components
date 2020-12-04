@@ -1,14 +1,14 @@
 package rsp.javax.web;
 
 import rsp.Component;
-import rsp.services.QualifiedSessionId;
-import rsp.services.RenderContext;
+import rsp.page.QualifiedSessionId;
+import rsp.page.RenderContext;
 import rsp.server.DeserializeKorolevInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
 import rsp.server.SerializeKorolevOutMessages;
-import rsp.services.LivePage;
-import rsp.services.PageRendering;
+import rsp.page.LivePage;
+import rsp.page.PageRendering;
 import rsp.util.Log;
 
 import javax.websocket.*;

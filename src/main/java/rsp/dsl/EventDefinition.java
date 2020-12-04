@@ -1,8 +1,8 @@
 package rsp.dsl;
 
 import rsp.dom.Event;
-import rsp.services.EventContext;
-import rsp.services.RenderContext;
+import rsp.page.EventContext;
+import rsp.page.RenderContext;
 
 import java.util.function.Consumer;
 

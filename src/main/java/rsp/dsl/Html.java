@@ -1,7 +1,7 @@
 package rsp.dsl;
 
 import rsp.dom.Event;
-import rsp.services.EventContext;
+import rsp.page.EventContext;
 
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;

@@ -1,6 +1,6 @@
 package rsp.dom;
 
-import rsp.services.EventContext;
+import rsp.page.EventContext;
 
 import java.util.Objects;
 import java.util.function.Consumer;

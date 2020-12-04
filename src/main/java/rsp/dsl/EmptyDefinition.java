@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.services.RenderContext;
+import rsp.page.RenderContext;
 
 final class EmptyDefinition extends DocumentPartDefinition {
 
