@@ -122,7 +122,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                 if (!lostSessionsIds.contains(qsid)) {
                     lostSessionsIds.add(qsid);
                     log.warn(l -> l.log("Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort()));
-                    evalJs("window.location.reload()");
+                    evalJs("Korolev.reload()");
                 }
             } else {
                 renderedPages.remove(qsid);

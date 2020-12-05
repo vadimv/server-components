@@ -49,6 +49,8 @@ window.document.addEventListener("DOMContentLoaded", () => {
     window['Korolev']['swapElementInRegistry'] = (a, b) => bridge._korolev.swapElementInRegistry(a, b);
     window['Korolev']['element'] = (id) => bridge._korolev.element(id);
     window['Korolev']['invokeCallback'] = (name, arg) => bridge._korolev.invokeCustomCallback(name, arg);
+    window['Korolev']['reload'] = () => { console.log('Reloading...'); window.location.reload(); };
+
     let closeHandler = (event) => {
       bridge.destroy();
       clw.show();
