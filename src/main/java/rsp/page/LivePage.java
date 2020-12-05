@@ -118,7 +118,7 @@ public final class LivePage<S> implements InMessages, Schedule {
         synchronized (this) {
             final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
             if (page == null) {
-                log.trace(l -> l.log("Pre-rendered page not found for a SID: " + qsid));
+                log.trace(l -> l.log("Pre-rendered page not found for SID: " + qsid));
                 if (!lostSessionsIds.contains(qsid)) {
                     lostSessionsIds.add(qsid);
                     log.warn(l -> l.log("Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort()));
