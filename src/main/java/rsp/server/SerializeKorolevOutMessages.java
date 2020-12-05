@@ -47,6 +47,7 @@ public final class SerializeKorolevOutMessages implements OutMessages {
     private static final int  PATHNAME_LOCATION_TYPE = 1;
     private static final int  HASH_LOCATION_TYPE = 2;
     private static final int  SEARCH_LOCATION_TYPE = 3;
+    private static final int  PUSH_STATE_TYPE = 4;
 
     private final Consumer<String> messagesConsumer;
 
@@ -104,6 +105,12 @@ public final class SerializeKorolevOutMessages implements OutMessages {
     @Override
     public void setHref(String path) {
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(path)));
+        messagesConsumer.accept(message);
+    }
+
+    @Override
+    public void pushHistory(String path) {
+        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(path)));
         messagesConsumer.accept(message);
     }
 

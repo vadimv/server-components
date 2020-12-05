@@ -12,5 +12,6 @@ public interface OutMessages {
     void extractProperty(int descriptor, Path path, String name);
     void modifyDom(List<RemoteDomChangesPerformer.DomChange> domChange);
     void setHref(String path);
+    void pushHistory(String path);
     void evalJs(int descriptor, String js);
 }

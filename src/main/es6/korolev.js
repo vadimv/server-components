@@ -41,7 +41,8 @@ export const LocationType = {
   HREF: 0,
   PATHNAME: 1,
   HASH: 2,
-  SEARCH: 3
+  SEARCH: 3,
+  PUSH_STATE: 4
 };
 
 export class Korolev {
@@ -384,6 +385,9 @@ export class Korolev {
         break;
         case LocationType.SEARCH:
             window.location.search = path;
+        break;
+        case LocationType.PUSH_STATE:
+            window.history.pushState(path,"", path);
         break;
     }
   }

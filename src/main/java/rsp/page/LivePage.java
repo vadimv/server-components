@@ -247,11 +247,14 @@ public final class LivePage<S> implements InMessages, Schedule {
         out.setHref(path);
     }
 
+    private void pushHistory(String path) {
+        out.pushHistory(path);
+    }
+
     private static class Snapshot {
         public final Optional<Tag> domRoot;
         public final Map<Event.Target, Event> events;
         public final Map<Ref, Path> refs;
-
 
         public Snapshot(Optional<Tag> domRoot,
                         Map<Event.Target, Event> events,
