@@ -23,6 +23,8 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
     private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers = new ConcurrentHashMap<>();
+    private final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
+
     private final HttpRequest handshakeRequest;
     private final QualifiedSessionId qsid;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
@@ -116,27 +118,29 @@ public final class LivePage<S> implements InMessages, Schedule {
         synchronized (this) {
             final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
             if (page == null) {
-                routing.apply(handshakeRequest).thenAccept(state -> {
-                    stateHandler.accept(state);
-                    out.setRenderNum(0);
-                });
+                log.trace(l -> l.log("Pre-rendered page not found for a SID: " + qsid));
+                if (!lostSessionsIds.contains(qsid)) {
+                    lostSessionsIds.add(qsid);
+                    log.warn(l -> l.log("Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort()));
+                    evalJs("window.location.reload()");
+                }
             } else {
                 renderedPages.remove(qsid);
                 final var s = currentPageSnapshot.get();
                 currentPageSnapshot.accept(new Snapshot(Optional.of(page.domRoot), s.events, s.refs));
                 stateHandler.accept(page.state);
                 out.setRenderNum(0);
-            }
 
-            // Invoke this page's post start events
-            currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
-                if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                    final EventContext eventContext = createEventContext(s -> Optional.empty());
-                    event.eventHandler.accept(eventContext);
-                }
-            });
+                // Invoke this page's post start events
+                currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
+                    if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
+                        final EventContext eventContext = createEventContext(e -> Optional.empty());
+                        event.eventHandler.accept(eventContext);
+                    }
+                });
+                log.debug(l -> l.log("Live page started: " + this));
+            }
         }
-        log.debug(l -> l.log("Live page started: " + this));
     }
 
     public void shutdown() {
@@ -161,7 +165,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void evalJsResponse(int descriptorId, String value) {
+    public void evalJsResponse(int descriptorId, Object value) {
         log.debug(l -> l.log("evalJsResponse:" + descriptorId + " value=" + value));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
