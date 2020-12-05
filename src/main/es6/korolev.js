@@ -508,19 +508,18 @@ export class Korolev {
 
     if (result instanceof Promise) {
       result.then(
-        (res) => this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:0:${JSON.stringify(res)}`),
+        (res) => this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:0`, res),
         (err) => {
           console.error(`Error evaluating code ${code}`, err);
           this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:1:err}`)
         }
       );
     } else {
-      var resultString;
-      if (status === 1) resultString = result.toString();
-      else resultString = JSON.stringify(result);
+      if (status === 1) result = result.toString();
       this.callback(
         CallbackType.EVALJS_RESPONSE,
-        `${descriptor}:${status}:${resultString}`
+        `${descriptor}:${status}`,
+        result
       );
     }
   }

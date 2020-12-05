@@ -36,7 +36,8 @@ public final class DeserializeKorolevInMessage {
             switch(messageType) {
                 case DOM_EVENT: parseDomEvent((String) messageJson.get(1), (JSONObject) messageJson.get(2)); break;
                 case EXTRACT_PROPERTY_RESPONSE: parseExtractPropertyResponse((String) messageJson.get(1), messageJson.get(2)); break;
-                case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1)); break;
+                case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1),
+                                                            messageJson.size() > 2 ? messageJson.get(2) : ""); break;
                 case HEARTBEAT: heartBeat(); break;
             }
         } catch (Throwable ex) {
@@ -49,9 +50,9 @@ public final class DeserializeKorolevInMessage {
         inMessages.extractPropertyResponse(Integer.parseInt(tokens[0]), value);
     }
 
-    private void parseEvalJsResponse(String str) {
-        final String[] tokens = str.split(":");
-        inMessages.evalJsResponse(Integer.parseInt(tokens[0]), tokens.length > 2 ? tokens[2] : "");
+    private void parseEvalJsResponse(String metadata, Object value) {
+        final String[] tokens = metadata.split(":");
+        inMessages.evalJsResponse(Integer.parseInt(tokens[0]), value);
     }
 
 
