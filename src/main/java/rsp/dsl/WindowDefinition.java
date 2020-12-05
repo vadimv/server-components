@@ -1,14 +1,16 @@
 package rsp.dsl;
 
 import rsp.dom.Event;
+import rsp.dom.Path;
 import rsp.page.EventContext;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public final class WindowDefinition implements Ref {
 
     public EventDefinition on(String eventType, Consumer<EventContext> handler) {
-        return new EventDefinition(EventDefinition.EventElementMode.WINDOW, eventType, handler, Event.NO_MODIFIER);
+        return new EventDefinition(Optional.of(Path.WINDOW), eventType, handler, Event.NO_MODIFIER);
     }
 
     public Ref ref() {

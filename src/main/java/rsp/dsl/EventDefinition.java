@@ -1,28 +1,26 @@
 package rsp.dsl;
 
 import rsp.dom.Event;
+import rsp.dom.Path;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public final class EventDefinition<S> extends DocumentPartDefinition {
-    public enum EventElementMode {
-        FROM_CONTEXT,
-        WINDOW
-    }
 
-    public final EventElementMode elementMode;
+    public final Optional<Path> elementPath;
     public final String eventType;
     public final Consumer<EventContext> handler;
     public final Event.Modifier modifier;
 
-    public EventDefinition(EventElementMode elementMode,
+    public EventDefinition(Optional<Path> elementPath,
                            String eventType,
                            Consumer<EventContext> handler,
                            Event.Modifier modifier) {
         super(DocumentPartKind.OTHER);
-        this.elementMode = elementMode;
+        this.elementPath = elementPath;
         this.eventType = eventType;
         this.handler = handler;
         this.modifier = modifier;
@@ -32,7 +30,7 @@ public final class EventDefinition<S> extends DocumentPartDefinition {
                            Consumer<EventContext> handler,
                            Event.Modifier modifier) {
         super(DocumentPartKind.OTHER);
-        this.elementMode = EventElementMode.FROM_CONTEXT;
+        this.elementPath = Optional.empty();
         this.eventType = eventType;
         this.handler = handler;
         this.modifier = modifier;
@@ -40,18 +38,18 @@ public final class EventDefinition<S> extends DocumentPartDefinition {
 
     @Override
     public void accept(RenderContext renderContext) {
-        renderContext.addEvent(elementMode, eventType, handler, modifier);
+        renderContext.addEvent(elementPath, eventType, handler, modifier);
     }
 
     public EventDefinition<S> throttle(int timeFrameMs) {
-        return new EventDefinition<>(elementMode, eventType, handler, new Event.ThrottleModifier(timeFrameMs));
+        return new EventDefinition<>(elementPath, eventType, handler, new Event.ThrottleModifier(timeFrameMs));
     }
 
     public EventDefinition<S> debounce(int waitMs, boolean immediate) {
-        return new EventDefinition<>(elementMode, eventType, handler, new Event.DebounceModifier(waitMs, immediate));
+        return new EventDefinition<>(elementPath, eventType, handler, new Event.DebounceModifier(waitMs, immediate));
     }
 
     public EventDefinition<S> debounce(int waitMs) {
-        return new EventDefinition<>(elementMode, eventType, handler, new Event.DebounceModifier(waitMs, false));
+        return new EventDefinition<>(elementPath, eventType, handler, new Event.DebounceModifier(waitMs, false));
     }
 }
