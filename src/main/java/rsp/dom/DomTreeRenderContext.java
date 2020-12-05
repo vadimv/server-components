@@ -58,10 +58,11 @@ public final class DomTreeRenderContext implements RenderContext {
     public void addEvent(Optional<Path> elementPath,
                          String eventType,
                          Consumer<EventContext> eventHandler,
+                         boolean preventDefault,
                          Event.Modifier modifier) {
         final Path eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
-        events.put(eventTarget, new Event(eventTarget, eventHandler, modifier));
+        events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     @Override

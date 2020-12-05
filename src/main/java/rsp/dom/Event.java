@@ -9,11 +9,13 @@ public final class Event {
     public static final Modifier NO_MODIFIER = new NoModifier();
     public final Target eventTarget;
     public final Consumer<EventContext> eventHandler;
+    public final boolean preventDefault;
     public final Modifier modifier;
 
-    public Event(Event.Target eventTarget, Consumer<EventContext> eventHandler, Modifier modifier) {
+    public Event(Event.Target eventTarget, Consumer<EventContext> eventHandler, boolean preventDefault, Modifier modifier) {
         this.eventTarget = eventTarget;
         this.eventHandler = eventHandler;
+        this.preventDefault = preventDefault;
         this.modifier = modifier;
     }
 

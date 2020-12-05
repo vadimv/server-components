@@ -90,8 +90,9 @@ public final class EnrichingXhtmlContext implements RenderContext {
     public void addEvent(Optional<Path> elementPath,
                          String eventName,
                          Consumer<EventContext> eventHandler,
+                         boolean preventDefault,
                          Event.Modifier modifier) {
-       context.addEvent(elementPath, eventName, eventHandler, modifier);
+       context.addEvent(elementPath, eventName, eventHandler, preventDefault, modifier);
     }
 
     @Override

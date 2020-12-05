@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 public final class WindowDefinition implements Ref {
 
     public EventDefinition on(String eventType, Consumer<EventContext> handler) {
-        return new EventDefinition(Optional.of(Path.WINDOW), eventType, handler, Event.NO_MODIFIER);
+        return new EventDefinition(Optional.of(Path.WINDOW), eventType, handler, true, Event.NO_MODIFIER);
     }
 
     public Ref ref() {

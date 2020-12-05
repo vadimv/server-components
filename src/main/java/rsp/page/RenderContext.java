@@ -18,6 +18,7 @@ public interface RenderContext {
     void addEvent(Optional<Path> elementPath,
                   String eventName,
                   Consumer<EventContext> eventHandler,
+                  boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
 }

@@ -94,9 +94,9 @@ public final class LivePage<S> implements InMessages, Schedule {
                     .forEach(event -> {
                         final Event.Target eventTarget = event.eventTarget;
                         out.listenEvent(eventTarget.eventType,
-                                eventTarget.eventType.equals("submit"),
-                                eventTarget.elementPath,
-                                event.modifier);
+                                        event.preventDefault,
+                                        eventTarget.elementPath,
+                                        event.modifier);
                     });
 
             currentState.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
