@@ -113,14 +113,14 @@ export class Korolev {
 
       this.createEventModifier = (eventModifier, listener) => {
          let mArray = eventModifier.split(':');
-         if (mArray[0] === '1') {
+         if (mArray[0] === '1') { // TODO
             return throttle(listener, parseInt(mArray[1]));
-         } else if(mArray[0] === '2') {
+         } else if(mArray[0] === '2') { // TODO
             return debounce(listener, parseInt(mArray[1]), mArray[1] === 'true');
          }
       }
 
-      let modifyEvent = eventModifier && eventModifier != '0';
+      let modifyEvent = eventModifier && eventModifier != '0'; // TODO
       target.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, listener)
                                                 : listener);
       this.rootListeners.push({ 'listener': listener, 'type': name });
@@ -191,7 +191,7 @@ export class Korolev {
     let atad = data.reverse();
     let r = atad.pop.bind(atad);
     while (data.length > 0) {
-      switch (r()) {
+      switch (r()) { // TODO constants
         case 0: this.create(r(), r(), r(), r()); break;
         case 1: this.createText(r(), r(), r()); break;
         case 2: this.remove(r(), r()); break;

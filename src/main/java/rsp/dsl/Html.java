@@ -2,6 +2,7 @@ package rsp.dsl;
 
 import rsp.dom.Event;
 import rsp.page.EventContext;
+import rsp.util.ArrayUtils;
 
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
@@ -81,8 +82,8 @@ public final class Html {
         return tag("a", children);
     }
 
-    public static TagDefinition a(String href, String text) {
-        return a(attr("href", href), text(text));
+    public static TagDefinition a(String href, String text, DocumentPartDefinition... children) {
+        return a(ArrayUtils.concat(new DocumentPartDefinition[]{ attr("href", href), text(text)}, children));
     }
 
     public static TagDefinition p(DocumentPartDefinition... children) {
