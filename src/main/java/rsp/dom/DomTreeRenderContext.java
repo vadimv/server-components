@@ -23,7 +23,7 @@ public final class DomTreeRenderContext implements RenderContext {
     @Override
     public void openNode(XmlNs xmlns, String name) {
         if (root == null) {
-            root = new Tag(new Path(1), xmlns, name);
+            root = new Tag(Path.DOCUMENT, xmlns, name);
             tagsStack.push(root);
         } else {
             final Tag parent = tagsStack.peek();
