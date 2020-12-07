@@ -1,28 +1,27 @@
 package rsp.javax.web;
 
 import rsp.Component;
-import rsp.QualifiedSessionId;
-import rsp.RenderContext;
+import rsp.page.QualifiedSessionId;
+import rsp.page.RenderContext;
 import rsp.server.DeserializeKorolevInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
 import rsp.server.SerializeKorolevOutMessages;
-import rsp.services.LivePage;
-import rsp.services.PageRendering;
+import rsp.page.LivePage;
+import rsp.page.PageRendering;
 import rsp.util.Log;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class MainWebSocketEndpoint<S> extends Endpoint {
+public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
@@ -55,17 +54,17 @@ public class MainWebSocketEndpoint<S> extends Endpoint {
         log.trace(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
         final OutMessages out = new SerializeKorolevOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
-        LivePage<S> livePage = LivePage.of(handshakeRequest,
-                                           new QualifiedSessionId(session.getPathParameters().get("pid"),
-                                                                  session.getPathParameters().get("sid")),
-                                           routing,
-                                           state2route,
-                                           renderedPages,
-                                           documentDefinition,
-                                           enrich,
-                                           schedulerSupplier.get(),
-                                           out,
-                                           log);
+        final LivePage<S> livePage = LivePage.of(handshakeRequest,
+                                                 new QualifiedSessionId(session.getPathParameters().get("pid"),
+                                                                        session.getPathParameters().get("sid")),
+                                                 routing,
+                                                 state2route,
+                                                 renderedPages,
+                                                 documentDefinition,
+                                                 enrich,
+                                                 schedulerSupplier.get(),
+                                                 out,
+                                                 log);
         final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage(livePage, log);
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override

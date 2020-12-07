@@ -15,7 +15,7 @@ import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.server.HttpRequest;
 import rsp.server.StaticResources;
-import rsp.services.PageRendering;
+import rsp.page.PageRendering;
 
 import javax.websocket.HandshakeResponse;
 import javax.websocket.server.HandshakeRequest;
@@ -25,7 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class JettyServer {
+public final class JettyServer {
 
     public static final int DEFAULT_MAX_THREADS = 50;
     public final int port;

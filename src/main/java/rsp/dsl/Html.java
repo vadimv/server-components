@@ -1,8 +1,8 @@
 package rsp.dsl;
 
-import rsp.Event;
-import rsp.EventContext;
-import rsp.state.UseState;
+import rsp.dom.Event;
+import rsp.page.EventContext;
+import rsp.util.ArrayUtils;
 
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
@@ -10,7 +10,13 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class Html {
+public final class Html {
+
+    // TODO verify all this property names
+    private final static String[] DEFAULT_PROPERTIES_NAMES = {
+            "autofocus", "autoplay", "async", "checked", "controls", "defer", "disabled", "hidden", "loop",
+            "multiple", "open", "readonly", "required", "scoped", "selected", "value"
+    };
 
     private static TagDefinition tag(String name, DocumentPartDefinition... children) {
         return new TagDefinition(name, children);
@@ -76,8 +82,8 @@ public class Html {
         return tag("a", children);
     }
 
-    public static TagDefinition a(String href, String text) {
-        return a(attr("href", href), text(text));
+    public static TagDefinition a(String href, String text, DocumentPartDefinition... children) {
+        return a(ArrayUtils.concat(new DocumentPartDefinition[]{ attr("href", href), text(text)}, children));
     }
 
     public static TagDefinition p(DocumentPartDefinition... children) {
@@ -175,9 +181,6 @@ public class Html {
     public static AttributeDefinition attr(String name) {
         return new AttributeDefinition(name, name, isPropertyByDefault(name));
     }
-    // TODO verify all this property names
-    private final static String[] DEFAULT_PROPERTIES_NAMES = { "autofocus", "autoplay", "async", "checked", "controls", "defer", "disabled",
-                                                               "hidden", "loop", "multiple", "open", "readonly", "required", "scoped", "selected", "value" };
 
     private static boolean isPropertyByDefault(String name) {
         return Arrays.asList(DEFAULT_PROPERTIES_NAMES).contains(name);

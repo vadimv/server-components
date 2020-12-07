@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.function.Function;
 
-public class HttpRequest {
+public final class HttpRequest {
     public final URI uri;
     public final String path;
     public final Function<String, Optional<String>> getParam;

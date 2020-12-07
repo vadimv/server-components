@@ -41,7 +41,15 @@ export const LocationType = {
   HREF: 0,
   PATHNAME: 1,
   HASH: 2,
-  SEARCH: 3
+  SEARCH: 3,
+  PUSH_STATE: 4
+};
+
+/** @enum {number} */
+export const EventModifierType = {
+  NO_EVENT_MODIFIER: 0,
+  THROTTLE_EVENT_MODIFIER: 1,
+  DEBOUNCE_EVENT_MODIFIER: 2
 };
 
 export class Korolev {
@@ -112,16 +120,16 @@ export class Korolev {
 
       this.createEventModifier = (eventModifier, listener) => {
          let mArray = eventModifier.split(':');
-         if (mArray[0] === '1') {
+         let eventModifierType = parseInt(mArray[0]);
+         if (eventModifierType === EventModifierType.THROTTLE_EVENT_MODIFIER) {
             return throttle(listener, parseInt(mArray[1]));
-         } else if(mArray[0] === '2') {
-            return debounce(listener, parseInt(mArray[1]), mArray[1] === 'true');
+         } else if(eventModifierType === EventModifierType.DEBOUNCE_EVENT_MODIFIER) {
+            return debounce(listener, parseInt(mArray[1]), mArray[2] === 'true');
          }
       }
 
-      let modifyEvent = eventModifier && eventModifier != '0';
-      target.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, listener)
-                                                : listener);
+      let me = eventModifier && eventModifier != EventModifierType.NO_EVENT_MODIFIER.toString();
+      target.addEventListener(name, me ? this.createEventModifier(eventModifier, listener) : listener);
       this.rootListeners.push({ 'listener': listener, 'type': name });
     };
 
@@ -161,8 +169,8 @@ export class Korolev {
       }
     }
     self.root = rootNode;
-    self.els["1"] = rootNode;
-    aux("1", rootNode);
+    self.els["1"] = rootNode; // TODO
+    aux("1", rootNode);       // TODO
   }
 
   cleanRoot() {
@@ -190,7 +198,7 @@ export class Korolev {
     let atad = data.reverse();
     let r = atad.pop.bind(atad);
     while (data.length > 0) {
-      switch (r()) {
+      switch (r()) { // TODO constants
         case 0: this.create(r(), r(), r(), r()); break;
         case 1: this.createText(r(), r(), r()); break;
         case 2: this.remove(r(), r()); break;
@@ -385,6 +393,9 @@ export class Korolev {
         case LocationType.SEARCH:
             window.location.search = path;
         break;
+        case LocationType.PUSH_STATE:
+            window.history.pushState(path,"", path);
+        break;
     }
   }
 
@@ -508,19 +519,18 @@ export class Korolev {
 
     if (result instanceof Promise) {
       result.then(
-        (res) => this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:0:${JSON.stringify(res)}`),
+        (res) => this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:0`, res),
         (err) => {
           console.error(`Error evaluating code ${code}`, err);
           this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:1:err}`)
         }
       );
     } else {
-      var resultString;
-      if (status === 1) resultString = result.toString();
-      else resultString = JSON.stringify(result);
+      if (status === 1) result = result.toString();
       this.callback(
         CallbackType.EVALJS_RESPONSE,
-        `${descriptor}:${status}:${resultString}`
+        `${descriptor}:${status}`,
+        result
       );
     }
   }

@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class Id {
+public final class Id {
     public static final String SEPARATOR = "_";
 
     private int[] array;

@@ -1,7 +1,5 @@
 package rsp.dom;
 
-import rsp.ChangesPerformer;
-import rsp.XmlNs;
 import org.junit.Assert;
 import org.junit.Test;
 

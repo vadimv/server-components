@@ -1,4 +1,4 @@
-package rsp.services;
+package rsp.page;
 
 import rsp.*;
 import rsp.dom.DomTreeRenderContext;
@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class PageRendering<S> {
+public final class PageRendering<S> {
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 
@@ -91,7 +91,7 @@ public class PageRendering<S> {
 
                 return new HttpResponse(200,
                                         headers(deviceId),
-                                        domTreeContext.toString());
+                                  "<!DOCTYPE html>" + domTreeContext.toString());
             });
         } catch (Throwable ex) {
             return CompletableFuture.failedFuture(ex);

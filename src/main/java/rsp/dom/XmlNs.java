@@ -1,6 +1,6 @@
-package rsp;
+package rsp.dom;
 
-public class XmlNs {
+public final class XmlNs {
 
     public static final XmlNs xlink = new XmlNs("xlink", "http://www.w3.org/1999/xlink");
     public static final XmlNs html = new XmlNs("html", "http://www.w3.org/1999/xhtml");

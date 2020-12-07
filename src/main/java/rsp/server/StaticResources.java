@@ -2,7 +2,7 @@ package rsp.server;
 
 import java.io.File;
 
-public class StaticResources {
+public final class StaticResources {
     public final File resourcesBaseDir;
     public final String contextPath;
 

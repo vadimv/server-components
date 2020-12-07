@@ -1,4 +1,4 @@
-package rsp;
+package rsp.dsl;
 
 /**
  * An object that is not defined by its attributes, but rather by its identity.

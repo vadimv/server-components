@@ -1,7 +1,5 @@
 package rsp.dom;
 
-import rsp.XmlNs;
-
 public interface DomChangesPerformer {
     void removeAttr(Id id, XmlNs xmlNs, String name);
     void removeStyle(Id id, String name);

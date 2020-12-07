@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class JsUtils {
+public final class JsUtils {
     public static void main(String[] args) throws IOException {
         System.exit(assembleJs(new File(args[0]), new File(args[1])) == 0 ? 0 : -1);
     }

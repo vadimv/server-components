@@ -1,10 +1,10 @@
-package rsp;
+package rsp.page;
 
 import rsp.dom.DomTreeRenderContext;
 import rsp.dsl.TagDefinition;
 import rsp.dsl.Html;
 
-public class DefaultConnectionLostWidget {
+public final class DefaultConnectionLostWidget {
 
     public static final String HTML;
 

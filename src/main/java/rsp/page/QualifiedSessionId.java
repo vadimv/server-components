@@ -1,4 +1,4 @@
-package rsp;
+package rsp.page;
 
 import java.util.Objects;
 

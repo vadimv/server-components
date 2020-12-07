@@ -3,7 +3,7 @@ package rsp.util;
 
 import java.util.Objects;
 
-public class Tuple2<S,T> {
+public final class Tuple2<S,T> {
     public final S _1;
     public final T _2;
     

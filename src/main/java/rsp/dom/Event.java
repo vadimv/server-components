@@ -1,19 +1,21 @@
-package rsp;
+package rsp.dom;
 
-import rsp.dom.Path;
+import rsp.page.EventContext;
 
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class Event<S> {
+public final class Event {
     public static final Modifier NO_MODIFIER = new NoModifier();
     public final Target eventTarget;
     public final Consumer<EventContext> eventHandler;
+    public final boolean preventDefault;
     public final Modifier modifier;
 
-    public Event(Event.Target eventTarget, Consumer<EventContext> eventHandler, Modifier modifier) {
+    public Event(Event.Target eventTarget, Consumer<EventContext> eventHandler, boolean preventDefault, Modifier modifier) {
         this.eventTarget = eventTarget;
         this.eventHandler = eventHandler;
+        this.preventDefault = preventDefault;
         this.modifier = modifier;
     }
 
@@ -21,7 +23,7 @@ public class Event<S> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Event<?> event = (Event<?>) o;
+        Event event = (Event) o;
         return eventTarget.equals(event.eventTarget) &&
                 modifier.equals(event.modifier);
     }

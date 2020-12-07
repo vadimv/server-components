@@ -3,7 +3,7 @@ package rsp.dom;
 import java.util.Collections;
 import java.util.List;
 
-public class Text implements Node {
+public final class Text implements Node {
     public final Path path;
     public final String text;
 

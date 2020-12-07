@@ -1,14 +1,15 @@
 package rsp.dom;
 
-import rsp.*;
 import rsp.dsl.EventDefinition;
-import rsp.dsl.RefDefinition;
+import rsp.dsl.Ref;
+import rsp.page.EventContext;
+import rsp.page.RenderContext;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class DomTreeRenderContext implements RenderContext {
+public final class DomTreeRenderContext implements RenderContext {
 
     public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
     public final ConcurrentHashMap<Ref, Path> refs = new ConcurrentHashMap();
@@ -22,7 +23,7 @@ public class DomTreeRenderContext implements RenderContext {
     @Override
     public void openNode(XmlNs xmlns, String name) {
         if (root == null) {
-            root = new Tag(new Path(1), xmlns, name);
+            root = new Tag(Path.DOCUMENT, xmlns, name);
             tagsStack.push(root);
         } else {
             final Tag parent = tagsStack.peek();
@@ -54,13 +55,14 @@ public class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public void addEvent(EventDefinition.EventElementMode mode,
+    public void addEvent(Optional<Path> elementPath,
                          String eventType,
                          Consumer<EventContext> eventHandler,
+                         boolean preventDefault,
                          Event.Modifier modifier) {
-        final Path eventPath = mode.equals(EventDefinition.EventElementMode.WINDOW) ? Path.WINDOW : tagsStack.peek().path;
+        final Path eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
-        events.put(eventTarget, new Event(eventTarget, eventHandler, modifier));
+        events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     @Override
@@ -73,7 +75,7 @@ public class DomTreeRenderContext implements RenderContext {
         if (root == null) {
             throw new IllegalStateException("DOM tree not initialized");
         }
-        final StringBuilder sb = new StringBuilder("<!DOCTYPE html>");
+        final StringBuilder sb = new StringBuilder();
         root.appendString(sb);
         return sb.toString();
     }

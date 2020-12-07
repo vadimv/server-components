@@ -1,12 +1,9 @@
 package rsp.dom;
 
-import rsp.ChangesPerformer;
-import rsp.XmlNs;
-
 import java.util.ArrayList;
 import java.util.List;
 
-public class RemoteDomChangesPerformer implements ChangesPerformer {
+public final class RemoteDomChangesPerformer implements ChangesPerformer {
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override

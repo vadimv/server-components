@@ -1,12 +1,10 @@
 package rsp.dom;
 
-import rsp.XmlNs;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public class Tag implements Node {
+public final class Tag implements Node {
 
     public final Path path;
     public final XmlNs xmlns;

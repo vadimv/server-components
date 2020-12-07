@@ -1,11 +1,10 @@
 package rsp.dsl;
 
-import rsp.Ref;
-import rsp.RenderContext;
+import rsp.page.RenderContext;
 
 import java.util.Objects;
 
-public class RefDefinition<K> extends DocumentPartDefinition implements Ref {
+public final class RefDefinition<K> extends DocumentPartDefinition implements Ref {
 
     public RefDefinition() {
         super(DocumentPartKind.OTHER);

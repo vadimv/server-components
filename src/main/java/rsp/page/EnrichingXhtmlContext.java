@@ -1,10 +1,15 @@
-package rsp;
+package rsp.page;
 
+import rsp.dom.Event;
+import rsp.dom.Path;
+import rsp.dom.XmlNs;
 import rsp.dsl.EventDefinition;
+import rsp.dsl.Ref;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
-public class EnrichingXhtmlContext implements RenderContext {
+public final class EnrichingXhtmlContext implements RenderContext {
 
     private final RenderContext context;
     private final String sessionId;
@@ -62,7 +67,7 @@ public class EnrichingXhtmlContext implements RenderContext {
 
         context.openNode(XmlNs.html, "script");
         context.setAttr(XmlNs.html, "src", "/static/korolev-client.min.js", false);
-        context.setAttr(XmlNs.html, "defer", "", true);
+        context.setAttr(XmlNs.html, "defer", "defer", true);
         context.closeNode("script");
     }
 
@@ -82,11 +87,12 @@ public class EnrichingXhtmlContext implements RenderContext {
     }
 
     @Override
-    public void addEvent(EventDefinition.EventElementMode mode,
+    public void addEvent(Optional<Path> elementPath,
                          String eventName,
                          Consumer<EventContext> eventHandler,
+                         boolean preventDefault,
                          Event.Modifier modifier) {
-       context.addEvent(mode, eventName, eventHandler, modifier);
+       context.addEvent(elementPath, eventName, eventHandler, preventDefault, modifier);
     }
 
     @Override

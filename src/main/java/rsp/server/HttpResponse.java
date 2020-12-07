@@ -6,7 +6,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 
-public class HttpResponse {
+public final class HttpResponse {
     public final int status;
     public final List<Tuple2<String,String>> headers;
     public final InputStream bodyStream;

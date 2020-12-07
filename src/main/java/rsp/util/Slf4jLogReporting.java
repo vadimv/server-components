@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
-public class Slf4jLogReporting implements Log.Reporting {
+public final class Slf4jLogReporting implements Log.Reporting {
 
     private final Logger logger;
 

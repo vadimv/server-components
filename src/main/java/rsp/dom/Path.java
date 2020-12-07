@@ -4,7 +4,7 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class Path {
+public final class Path {
     public static final String SEPARATOR = "_";
     public static final Path DOCUMENT = Path.of("1");
     public static final Path WINDOW = Path.of("0");
