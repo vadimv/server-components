@@ -6,7 +6,7 @@ import static rsp.util.Log.DEFAULT_CONSOLE_LOG;
 
 public final class AppConfig {
 
-    public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 5000;
+    public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 10000;
     public static final int DEFAULT_WEB_SERVER_MAX_THREADS = 50;
     public static final int DEFAULT_SCHEDULER_THREAD_POOL_SIZE = 10;
 

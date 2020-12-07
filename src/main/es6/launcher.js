@@ -23,10 +23,18 @@ window['Korolev'] = {
   'invokeCallback': () => console.log("Korolev is not ready"),
   'swapElementInRegistry': () => console.log("Korolev is not ready")
 };
+var reconnect;
+// TODO
+//window.addEventListener("onbeforeunload", () => reconnect = false);
+window.onbeforeunload = function(event) {
+        console.log("onbeforeunload");
+        reconnect = false;
+}
 
 window.document.addEventListener("DOMContentLoaded", () => {
 
-  let reconnect = true
+  reconnect = true
+
   let config = window['kfg'];
   let clw = new ConnectionLostWidget(config['clw']);
   let connection = new Connection(
@@ -49,25 +57,36 @@ window.document.addEventListener("DOMContentLoaded", () => {
     window['Korolev']['swapElementInRegistry'] = (a, b) => bridge._korolev.swapElementInRegistry(a, b);
     window['Korolev']['element'] = (id) => bridge._korolev.element(id);
     window['Korolev']['invokeCallback'] = (name, arg) => bridge._korolev.invokeCustomCallback(name, arg);
-    window['Korolev']['reload'] = () => { console.log('Reloading...'); window.location.reload(); };
+    window['Korolev']['reload'] = () => {
+        console.log('Reload command');
+        reconnect = false;
+        connection.disconnect();
+        setTimeout(() => {
+            console.log("Reloading...");
+            window.location.reload();
+            }, 3000);
+    };
 
     let closeHandler = (event) => {
       bridge.destroy();
-      clw.show();
-      connection
+      if (reconnect) {
+        clw.show();
+        connection.connect();
+      }
+/*      connection
         .dispatcher
-        .removeEventListener('close', closeHandler);
+        .removeEventListener('close', closeHandler);*/
     };
     connection
       .dispatcher
       .addEventListener('close', closeHandler);
   });
 
-  connection.dispatcher.addEventListener('close', () => {
+/*  connection.dispatcher.addEventListener('close', () => {
     if (reconnect) {
       connection.connect();
     }
-  });
+  });*/
 
   connection.connect();
 });

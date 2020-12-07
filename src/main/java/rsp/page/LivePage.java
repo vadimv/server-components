@@ -21,9 +21,10 @@ public final class LivePage<S> implements InMessages, Schedule {
     public static final String POST_START_EVENT_TYPE = "page-start";
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
+    private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
+
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
     private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers = new ConcurrentHashMap<>();
-    private final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     private final HttpRequest handshakeRequest;
     private final QualifiedSessionId qsid;
@@ -119,8 +120,7 @@ public final class LivePage<S> implements InMessages, Schedule {
             final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
             if (page == null) {
                 log.trace(l -> l.log("Pre-rendered page not found for SID: " + qsid));
-                if (!lostSessionsIds.contains(qsid)) {
-                    lostSessionsIds.add(qsid);
+                if (!isKnownLostSession(qsid)) {
                     log.warn(l -> l.log("Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort()));
                     evalJs("Korolev.reload()");
                 }
@@ -156,7 +156,7 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public void extractPropertyResponse(int descriptorId, Object value) {
-        log.debug(l -> l.log("extractProperty:" + descriptorId + " value=" + value));
+        log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + valueToString(value)));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
@@ -166,12 +166,16 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public void evalJsResponse(int descriptorId, Object value) {
-        log.debug(l -> l.log("evalJsResponse:" + descriptorId + " value=" + value));
+        log.debug(l -> l.log("evalJsResponse: " + descriptorId + " value: " + valueToString(value)));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
             registeredEventHandlers.remove(descriptorId);
         }
+    }
+
+    private static String valueToString(Object value) {
+        return value instanceof String ? "\"" + value + "\"" : value.toString();
     }
 
     @Override
@@ -249,6 +253,16 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     private void pushHistory(String path) {
         out.pushHistory(path);
+    }
+
+    private static boolean isKnownLostSession(QualifiedSessionId qsid) {
+        synchronized (lostSessionsIds) {
+            if (lostSessionsIds.contains(qsid)) {
+                return true;
+            }
+            lostSessionsIds.add(qsid);
+            return false;
+        }
     }
 
     private static class Snapshot {

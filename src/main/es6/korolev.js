@@ -45,6 +45,13 @@ export const LocationType = {
   PUSH_STATE: 4
 };
 
+/** @enum {number} */
+export const EventModifierType = {
+  NO_EVENT_MODIFIER: 0,
+  THROTTLE_EVENT_MODIFIER: 1,
+  DEBOUNCE_EVENT_MODIFIER: 2
+};
+
 export class Korolev {
 
   /**
@@ -113,16 +120,16 @@ export class Korolev {
 
       this.createEventModifier = (eventModifier, listener) => {
          let mArray = eventModifier.split(':');
-         if (mArray[0] === '1') { // TODO
+         let eventModifierType = parseInt(mArray[0]);
+         if (eventModifierType === EventModifierType.THROTTLE_EVENT_MODIFIER) {
             return throttle(listener, parseInt(mArray[1]));
-         } else if(mArray[0] === '2') { // TODO
-            return debounce(listener, parseInt(mArray[1]), mArray[1] === 'true');
+         } else if(eventModifierType === EventModifierType.DEBOUNCE_EVENT_MODIFIER) {
+            return debounce(listener, parseInt(mArray[1]), mArray[2] === 'true');
          }
       }
 
-      let modifyEvent = eventModifier && eventModifier != '0'; // TODO
-      target.addEventListener(name, modifyEvent ? this.createEventModifier(eventModifier, listener)
-                                                : listener);
+      let me = eventModifier && eventModifier != EventModifierType.NO_EVENT_MODIFIER.toString();
+      target.addEventListener(name, me ? this.createEventModifier(eventModifier, listener) : listener);
       this.rootListeners.push({ 'listener': listener, 'type': name });
     };
 
@@ -162,8 +169,8 @@ export class Korolev {
       }
     }
     self.root = rootNode;
-    self.els["1"] = rootNode;
-    aux("1", rootNode);
+    self.els["1"] = rootNode; // TODO
+    aux("1", rootNode);       // TODO
   }
 
   cleanRoot() {

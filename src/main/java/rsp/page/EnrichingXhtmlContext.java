@@ -67,7 +67,7 @@ public final class EnrichingXhtmlContext implements RenderContext {
 
         context.openNode(XmlNs.html, "script");
         context.setAttr(XmlNs.html, "src", "/static/korolev-client.min.js", false);
-        context.setAttr(XmlNs.html, "defer", "", true);
+        context.setAttr(XmlNs.html, "defer", "defer", true);
         context.closeNode("script");
     }
 

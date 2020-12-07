@@ -91,7 +91,7 @@ public final class PageRendering<S> {
 
                 return new HttpResponse(200,
                                         headers(deviceId),
-                                        domTreeContext.toString());
+                                  "<!DOCTYPE html>" + domTreeContext.toString());
             });
         } catch (Throwable ex) {
             return CompletableFuture.failedFuture(ex);

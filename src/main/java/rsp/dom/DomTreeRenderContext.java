@@ -75,7 +75,7 @@ public final class DomTreeRenderContext implements RenderContext {
         if (root == null) {
             throw new IllegalStateException("DOM tree not initialized");
         }
-        final StringBuilder sb = new StringBuilder("<!DOCTYPE html>");
+        final StringBuilder sb = new StringBuilder();
         root.appendString(sb);
         return sb.toString();
     }
