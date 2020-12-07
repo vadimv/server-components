@@ -12,4 +12,8 @@ public class Column<T> {
         this.title = title;
         this.fieldComponent = fieldComponent;
     }
+
+    public Column(BiFunction<String, T, Component> fieldComponent) {
+        this("", fieldComponent);
+    }
 }
