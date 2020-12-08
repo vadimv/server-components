@@ -36,7 +36,7 @@ public final class EventDefinition<S> extends DocumentPartDefinition {
         this.elementPath = Optional.empty();
         this.eventType = eventType;
         this.handler = handler;
-        this.preventDefault = false;
+        this.preventDefault = true;
         this.modifier = modifier;
     }
 

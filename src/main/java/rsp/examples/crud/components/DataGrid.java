@@ -5,10 +5,7 @@ import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.entities.KeyedEntity;
 import rsp.state.UseState;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 import static rsp.dsl.Html.*;
 import static rsp.state.UseState.useState;
@@ -32,7 +29,8 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
                                                  when(state.get().selectedRows.contains(row), () -> attr("checked")),
                                                  attr("autocomplete", "off"),
                                                  on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
-                                        of(Arrays.stream(columns).map(column -> td(column.fieldComponent.apply(row.key, row.data).render(useState()))))
+                                        of(Arrays.stream(columns).map(column -> td(column.fieldComponent.apply(row.data)
+                                                .render(useState(() -> row.key, k -> state.accept(state.get().withEditRowKey(Optional.of(row.key))))))))
                                 )))))
                 );
     }
@@ -40,10 +38,18 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
     public static class Table<K, T> {
         public final KeyedEntity<K, T>[] rows;
         public final Set<KeyedEntity<K, T>> selectedRows;
+        public final Optional<String> editRowKey;
+
+        public Table(KeyedEntity<K, T>[] rows, Set<KeyedEntity<K, T>> selectedRows, Optional<String> editRowKey) {
+            this.rows = Objects.requireNonNull(rows);
+            this.selectedRows = Objects.requireNonNull(selectedRows);
+            this.editRowKey = editRowKey;
+        }
 
         public Table(KeyedEntity<K, T>[] rows, Set<KeyedEntity<K, T>> selectedRows) {
             this.rows = Objects.requireNonNull(rows);
             this.selectedRows = Objects.requireNonNull(selectedRows);
+            this.editRowKey = Optional.empty();
         }
 
         public static <K, T> Table<K, T> empty() {
@@ -59,12 +65,9 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
             }
             return new Table<>(rows, sr);
         }
-    }
-    public static class Header {
-        private final String[] columnsHeaders;
 
-        public Header(String... columnsHeaders) {
-            this.columnsHeaders = columnsHeaders;
+        public Table<K, T> withEditRowKey(Optional<String> rowKey) {
+            return new Table<>(this.rows, this.selectedRows, rowKey);
         }
     }
 }

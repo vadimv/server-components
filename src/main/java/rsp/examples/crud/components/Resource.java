@@ -93,7 +93,10 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                 }))),
                 when(us.get().view.contains(ViewType.LIST),
                         () -> listComponent.render(useState(() -> us.get().list,
-                                                   gridState -> us.accept(us.get().withList(gridState))))),
+                                                             gridState -> gridState.editRowKey.ifPresentOrElse(
+                                                                     editKey -> entityService.getOne(editKey).thenAccept(keo ->
+                                                                             us.accept(us.get().withEditData(keo.get()))).join(),
+                                                                                                         () -> us.accept(us.get().withList(gridState)))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
                         () -> of(createComponent.map(cc -> cc.render(detailsViewState(us))).stream())),

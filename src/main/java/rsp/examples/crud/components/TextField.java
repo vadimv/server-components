@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import static rsp.dsl.Html.text;
 
-public class TextField<T> implements Component<T> {
+public class TextField<T> implements Component<String> {
     private final T data;
 
     public TextField(T data) {
@@ -16,7 +16,7 @@ public class TextField<T> implements Component<T> {
     }
 
     @Override
-    public DocumentPartDefinition render(UseState<T> useState) {
+    public DocumentPartDefinition render(UseState<String> useState) {
         return text(data);
     }
 
