@@ -67,12 +67,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
 
     @Override
     public DocumentPartDefinition render(UseState<Resource.State<T>> us) {
-        return div(window().on("popstate", ctx -> {
-            ctx.eventObject().apply("hash").ifPresent(h ->
-                entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().withEditData(keo.get()))).join());
-                }),
-                div(when(createComponent.isPresent(), button(attr("type", "button"),
+        return div(div(when(createComponent.isPresent(), button(attr("type", "button"),
                                                       text("Create"),
                                                       on("click", ctx -> {
                                                            us.accept(us.get().withCreate());
