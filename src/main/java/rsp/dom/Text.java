@@ -17,10 +17,6 @@ public final class Text implements Node {
         return path;
     }
 
-    @Override
-    public List<Node> children() {
-        return Collections.EMPTY_LIST;
-    }
 
     @Override
     public void appendString(StringBuilder sb) {

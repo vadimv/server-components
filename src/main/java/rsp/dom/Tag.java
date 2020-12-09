@@ -37,7 +37,6 @@ public final class Tag implements Node {
         return path;
     }
 
-    @Override
     public List<Node> children() {
         return children;
     }
