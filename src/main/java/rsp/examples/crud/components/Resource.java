@@ -134,7 +134,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
     public static class State<T> {
         public final Set<ViewType> view;
         public final DataGrid.Table list;
-        public final DetailsViewState<T> edit;
+        public final DetailsViewState<T> edit; //TODO to Optional<DetailsViewState<T>> , verify DetailsViewState.isActive
 
         public State(Set<ViewType> view,
                      DataGrid.Table list,
@@ -145,7 +145,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
         }
 
         public State withList(DataGrid.Table<?, ?> gs) {
-            return new State(Set.of(ViewType.LIST), gs, edit);
+            return new State(Set.of(ViewType.LIST), gs, new DetailsViewState());
         }
 
         public State withList() {

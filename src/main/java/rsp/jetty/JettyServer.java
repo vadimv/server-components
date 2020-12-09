@@ -13,6 +13,7 @@ import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainer
 import rsp.App;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
+import rsp.page.StateToRouteDispatch;
 import rsp.server.HttpRequest;
 import rsp.server.StaticResources;
 import rsp.page.PageRendering;
@@ -76,14 +77,13 @@ public final class JettyServer {
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + basePath);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
-                                                                                     app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
                                                                                      app.enrichRenderContext()),
                                                                app.config.log)),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
-                                                                                     app.state2path,
+                                                                                     new StateToRouteDispatch(basePath, app.state2path),
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
                                                                                      app.enrichRenderContext(),

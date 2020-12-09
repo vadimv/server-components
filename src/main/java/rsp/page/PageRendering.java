@@ -26,17 +26,14 @@ public final class PageRendering<S> {
 
     private final Component<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
-    private final BiFunction<String, S, String> state2route;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
 
     public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
-                         BiFunction<String, S, String> state2route,
                          Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          Component<S> documentDefinition,
                          BiFunction<String, RenderContext, RenderContext> enrich) {
         this.routing = routing;
-        this.state2route = state2route;
         this.renderedPages = pagesStorage;
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
@@ -87,7 +84,7 @@ public final class PageRendering<S> {
                 final DomTreeRenderContext domTreeContext = new DomTreeRenderContext();
                 documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
 
-                renderedPages.put(pageId, new RenderedPage<S>(initialState, domTreeContext.root));
+                renderedPages.put(pageId, new RenderedPage<S>(request, initialState, domTreeContext.root));
 
                 return new HttpResponse(200,
                                         headers(deviceId),
@@ -110,11 +107,14 @@ public final class PageRendering<S> {
     }
 
     public static class RenderedPage<S> {
+        public final HttpRequest request;
         public final S state;
         public final Tag domRoot;
 
-        public RenderedPage(S initialState,
+        public RenderedPage(HttpRequest request,
+                            S initialState,
                             Tag domRoot) {
+            this.request = request;
             this.state = initialState;
             this.domRoot = domRoot;
         }

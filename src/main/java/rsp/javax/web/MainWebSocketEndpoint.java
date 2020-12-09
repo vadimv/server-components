@@ -1,14 +1,11 @@
 package rsp.javax.web;
 
 import rsp.Component;
-import rsp.page.QualifiedSessionId;
-import rsp.page.RenderContext;
+import rsp.page.*;
 import rsp.server.DeserializeKorolevInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
 import rsp.server.SerializeKorolevOutMessages;
-import rsp.page.LivePage;
-import rsp.page.PageRendering;
 import rsp.util.Log;
 
 import javax.websocket.*;
@@ -27,14 +24,14 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private final Component<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
-    private final BiFunction<String, S, String> state2route;
+    private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final Log.Reporting log;
 
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
-                                 BiFunction<String, S, String> state2route,
+                                 StateToRouteDispatch<S> state2route,
                                  Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                  Component<S> documentDefinition,
                                  BiFunction<String, RenderContext, RenderContext> enrich,
