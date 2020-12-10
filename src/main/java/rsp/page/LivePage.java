@@ -184,9 +184,9 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void domEvent(int renderNumber, Path path, String eventType, Function<String, Optional<String>> eventObject) {
+    public void domEvent(int renderNumber, VirtualDomPath path, String eventType, Function<String, Optional<String>> eventObject) {
         synchronized (this) {
-            Path eventElementPath = path;
+            VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
                 final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
@@ -194,7 +194,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                     event.eventHandler.accept(eventContext);
                     break;
                 } else {
-                    final Optional<Path> parentPath = eventElementPath.parent();
+                    final Optional<VirtualDomPath> parentPath = eventElementPath.parent();
                     if (parentPath.isPresent()) {
                         eventElementPath = parentPath.get();
                     } else {
@@ -233,15 +233,15 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     private PropertiesHandle createPropertiesHandle(Ref ref) {
-        final Path path = resolveRef(ref);
+        final VirtualDomPath path = resolveRef(ref);
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
         }
         return new PropertiesHandle(path, () -> descriptorsCounter.incrementAndGet(), registeredEventHandlers, out);
     }
 
-    private Path resolveRef(Ref ref) {
-        return ref instanceof WindowDefinition ? Path.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
+    private VirtualDomPath resolveRef(Ref ref) {
+        return ref instanceof WindowDefinition ? VirtualDomPath.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
     }
 
     private CompletableFuture<Object> evalJs(String js) {
@@ -274,12 +274,12 @@ public final class LivePage<S> implements InMessages, Schedule {
         public final String path;
         public final Optional<Tag> domRoot;
         public final Map<Event.Target, Event> events;
-        public final Map<Ref, Path> refs;
+        public final Map<Ref, VirtualDomPath> refs;
 
         public Snapshot(String path,
                         Optional<Tag> domRoot,
                         Map<Event.Target, Event> events,
-                        Map<Ref, Path> refs) {
+                        Map<Ref, VirtualDomPath> refs) {
             this.path = path;
             this.domRoot = domRoot;
             this.events = events;

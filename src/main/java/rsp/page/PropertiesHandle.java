@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.dom.XmlNs;
-import rsp.dom.Path;
+import rsp.dom.VirtualDomPath;
 import rsp.dom.RemoteDomChangesPerformer;
 import rsp.server.OutMessages;
 
@@ -13,12 +13,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 public final class PropertiesHandle {
-    private final Path path;
+    private final VirtualDomPath path;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers;
     private final OutMessages out;
 
-    public PropertiesHandle(Path path,
+    public PropertiesHandle(VirtualDomPath path,
                             Supplier<Integer> descriptorSupplier,
                             Map<Integer, CompletableFuture<Object>> registeredEventHandlers,
                             OutMessages out) {

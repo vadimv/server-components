@@ -1,9 +1,8 @@
 package rsp.page;
 
 import rsp.dom.Event;
-import rsp.dom.Path;
+import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
-import rsp.dsl.EventDefinition;
 import rsp.dsl.Ref;
 
 import java.util.Optional;
@@ -87,7 +86,7 @@ public final class EnrichingXhtmlContext implements RenderContext {
     }
 
     @Override
-    public void addEvent(Optional<Path> elementPath,
+    public void addEvent(Optional<VirtualDomPath> elementPath,
                          String eventName,
                          Consumer<EventContext> eventHandler,
                          boolean preventDefault,

@@ -3,7 +3,7 @@ package rsp.dom;
 
 public interface Node {
 
-     Path path();
+     VirtualDomPath path();
 
      void appendString(StringBuilder sb);
 }

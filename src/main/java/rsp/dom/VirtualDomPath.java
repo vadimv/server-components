@@ -4,38 +4,38 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public final class Path {
+public final class VirtualDomPath {
     public static final String SEPARATOR = "_";
-    public static final Path DOCUMENT = Path.of("1");
-    public static final Path WINDOW = Path.of("0");
+    public static final VirtualDomPath DOCUMENT = VirtualDomPath.of("1");
+    public static final VirtualDomPath WINDOW = VirtualDomPath.of("0");
 
     private final int[] array;
 
-    public Path(int... xs) {
+    public VirtualDomPath(int... xs) {
         array = xs;
     }
 
-    public static Path of(String path) {
-        return new Path(Arrays.stream(path.split(SEPARATOR)).mapToInt(s -> Integer.parseInt(s)).toArray());
+    public static VirtualDomPath of(String path) {
+        return new VirtualDomPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(s -> Integer.parseInt(s)).toArray());
     }
 
     public int level() {
         return array.length;
     }
 
-    public Path incLevel() {
+    public VirtualDomPath incLevel() {
         final int[] a = Arrays.copyOf(array, array.length + 1);
         a[a.length - 1] = 1;
-        return new Path(a);
+        return new VirtualDomPath(a);
     }
 
-    public Path incSibling() {
+    public VirtualDomPath incSibling() {
         final int[] a = Arrays.copyOf(array, array.length);
         a[a.length - 1]++;
-        return new Path(a);
+        return new VirtualDomPath(a);
     }
 
-    public Optional<Path> parent() {
+    public Optional<VirtualDomPath> parent() {
         if (this.equals(WINDOW)) {
             return Optional.empty();
         } else if (this.equals(DOCUMENT)) {
@@ -45,16 +45,16 @@ public final class Path {
         }
     }
 
-    public Path childNumber(int num) {
-        final Path childPath = incLevel();
+    public VirtualDomPath childNumber(int num) {
+        final VirtualDomPath childPath = incLevel();
         childPath.array[childPath.level() - 1] = num;
         return childPath;
     }
 
-    private Path take(int level) {
+    private VirtualDomPath take(int level) {
         int[] na = new int[level];
         System.arraycopy(array, 0, na, 0, level);
-        return new Path(na);
+        return new VirtualDomPath(na);
     }
 
     @Override
@@ -68,8 +68,8 @@ public final class Path {
 
     @Override
     public boolean equals(Object other) {
-        if (other instanceof Path) {
-            return Arrays.equals(array, ((Path) other).array);
+        if (other instanceof VirtualDomPath) {
+            return Arrays.equals(array, ((VirtualDomPath) other).array);
         }
         return false;
     }
