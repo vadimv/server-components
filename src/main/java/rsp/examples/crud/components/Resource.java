@@ -78,10 +78,10 @@ public class Resource<T> implements Component<Resource.State<T>> {
     @Override
     public DocumentPartDefinition render(UseState<Resource.State<T>> us) {
         return div(div(when(createComponent.isPresent(), button(attr("type", "button"),
-                                                      text("Create"),
-                                                      on("click", ctx -> {
-                                                           us.accept(us.get().withCreate());
-                                                      }))),
+                                                                text("Create"),
+                                                                on("click", ctx -> {
+                                                                     us.accept(us.get().withCreate());
+                                                                }))),
                     button(attr("type", "button"),
                             when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
                             text("Delete"),
