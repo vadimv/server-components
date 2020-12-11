@@ -12,12 +12,12 @@ import java.util.function.Function;
 
 public final class HttpRequest {
     public final URI uri;
-    public final String path;
+    public final Path path;
     public final Function<String, Optional<String>> getParam;
     public final Function<String, Optional<String>> getHeader;
     public final Function<String, Optional<String>> getCookie;
     public HttpRequest(URI uri,
-                       String path,
+                       Path path,
                        Function<String, Optional<String>> param,
                        Function<String, Optional<String>> getHeader,
                        Function<String, Optional<String>> getCookie) {
@@ -30,7 +30,7 @@ public final class HttpRequest {
 
     public static HttpRequest of(HttpServletRequest request) {
         return new HttpRequest(stringToURI(request.getRequestURI()),
-                               request.getPathInfo(),
+                               Path.of(request.getPathInfo()),
                                s -> Optional.ofNullable(request.getParameter(s)),
                                h -> Optional.ofNullable(request.getHeader(h)),
                                n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
@@ -38,7 +38,7 @@ public final class HttpRequest {
 
     public static HttpRequest of(HandshakeRequest handshakeRequest) {
         return new HttpRequest(handshakeRequest.getRequestURI(),
-                               handshakeRequest.getRequestURI().getPath(),
+                               Path.of(handshakeRequest.getRequestURI().getPath()),
                                name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
                                name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)),
                                name -> Optional.empty());

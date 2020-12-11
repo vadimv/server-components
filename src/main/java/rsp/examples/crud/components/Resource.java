@@ -56,14 +56,24 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
 
-    public CompletableFuture<Resource.State<T>> initialState() {
+    public CompletableFuture<Resource.State<T>> initialListState() {
         return entityService.getList(0, DEFAULT_PAGE_SIZE)
-                .thenApply(entities -> new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                            new HashSet<>()))
+                .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]),
+                                                                     new HashSet<>()))
                 .thenApply(gridState -> new Resource.State<>(Set.of(Resource.ViewType.LIST),
                                                              gridState,
                                                              new DetailsViewState<>()));
     }
+
+    public CompletableFuture<Resource.State<T>> initialListStateWithEdit(String key) {
+        return entityService.getList(0, DEFAULT_PAGE_SIZE)
+                .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]),
+                                                                     new HashSet<>()))
+                .thenCombine(entityService.getOne(key).thenApply(keo -> new DetailsViewState(true, keo.map(ke -> ke.data), keo.map(ke -> ke.key))),
+                        (gridState, edit) ->  new Resource.State<>(Set.of(ViewType.LIST, ViewType.EDIT), gridState, edit));
+    }
+
+
 
     @Override
     public DocumentPartDefinition render(UseState<Resource.State<T>> us) {
@@ -133,11 +143,11 @@ public class Resource<T> implements Component<Resource.State<T>> {
 
     public static class State<T> {
         public final Set<ViewType> view;
-        public final DataGrid.Table list;
+        public final DataGrid.Table<String, T> list;
         public final DetailsViewState<T> edit; //TODO to Optional<DetailsViewState<T>> , verify DetailsViewState.isActive
 
         public State(Set<ViewType> view,
-                     DataGrid.Table list,
+                     DataGrid.Table<String, T> list,
                      DetailsViewState<T> edit) {
             this.view = view;
             this.list = list;

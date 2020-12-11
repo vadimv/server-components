@@ -7,6 +7,7 @@ import rsp.dsl.WindowDefinition;
 import rsp.server.HttpRequest;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
+import rsp.server.Path;
 import rsp.state.MutableState;
 import rsp.state.UseState;
 import rsp.util.Log;
@@ -69,7 +70,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                                      ScheduledExecutorService scheduler,
                                      OutMessages out,
                                      Log.Reporting log) {
-        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot("",
+        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot(Path.EMPTY,
                                                                                 Optional.empty(),
                                                                                 new HashMap<>(),
                                                                                 new HashMap<>()));
@@ -100,10 +101,10 @@ public final class LivePage<S> implements InMessages, Schedule {
                                         eventTarget.elementPath,
                                         event.modifier);
                     });
-            final String oldPath = currentState.get().path;
-            final String newPath = state2route.stateToPath.apply(oldPath, newState);
+            final Path oldPath = currentState.get().path;
+            final Path newPath = state2route.stateToPath.apply(oldPath, newState);
             if (!newPath.equals(oldPath)) {
-                out.pushHistory(state2route.basePath + newPath);
+                out.pushHistory("/" + state2route.basePath.append(newPath).toString());
             }
             currentState.accept(new Snapshot(newPath, Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
@@ -271,12 +272,12 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     private static class Snapshot {
-        public final String path;
+        public final Path path;
         public final Optional<Tag> domRoot;
         public final Map<Event.Target, Event> events;
         public final Map<Ref, VirtualDomPath> refs;
 
-        public Snapshot(String path,
+        public Snapshot(Path path,
                         Optional<Tag> domRoot,
                         Map<Event.Target, Event> events,
                         Map<Ref, VirtualDomPath> refs) {
