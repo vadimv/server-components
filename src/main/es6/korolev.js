@@ -52,6 +52,12 @@ export const EventModifierType = {
   DEBOUNCE_EVENT_MODIFIER: 2
 };
 
+/** @enum {string} */
+export const VirtualDomPaths = {
+  WINDOW_PATH: '0',
+  DOCUMENT_PATH: '1'
+};
+
 export class Korolev {
 
   /**
@@ -82,8 +88,8 @@ export class Korolev {
       callback(CallbackType.HISTORY, window.location.pathname + window.location.hash);
     };
 
-    window.vId = '0';
-    document.vId = '1';
+    window.vId = VirtualDomPaths.WINDOW_PATH;
+    document.vId = VirtualDomPaths.DOCUMENT_PATH;
 
     this.listenRoot = (target, name, preventDefault, eventModifier) => {
       var listener = (event) => {
@@ -169,8 +175,8 @@ export class Korolev {
       }
     }
     self.root = rootNode;
-    self.els["1"] = rootNode; // TODO
-    aux("1", rootNode);       // TODO
+    self.els[VirtualDomPaths.DOCUMENT_PATH] = rootNode;
+    aux(VirtualDomPaths.DOCUMENT_PATH, rootNode);
   }
 
   cleanRoot() {

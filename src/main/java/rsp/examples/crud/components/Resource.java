@@ -56,27 +56,32 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
 
-    public CompletableFuture<Resource.State<T>> initialState() {
+    public CompletableFuture<Resource.State<T>> initialListState() {
         return entityService.getList(0, DEFAULT_PAGE_SIZE)
-                .thenApply(entities -> new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
-                                                            new HashSet<>()))
+                .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]),
+                                                                     new HashSet<>()))
                 .thenApply(gridState -> new Resource.State<>(Set.of(Resource.ViewType.LIST),
                                                              gridState,
                                                              new DetailsViewState<>()));
     }
 
+    public CompletableFuture<Resource.State<T>> initialListStateWithEdit(String key) {
+        return entityService.getList(0, DEFAULT_PAGE_SIZE)
+                .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]),
+                                                                     new HashSet<>()))
+                .thenCombine(entityService.getOne(key).thenApply(keo -> new DetailsViewState(true, keo.map(ke -> ke.data), keo.map(ke -> ke.key))),
+                        (gridState, edit) ->  new Resource.State<>(Set.of(ViewType.LIST, ViewType.EDIT), gridState, edit));
+    }
+
+
+
     @Override
     public DocumentPartDefinition render(UseState<Resource.State<T>> us) {
-        return div(window().on("popstate", ctx -> {
-            ctx.eventObject().apply("hash").ifPresent(h ->
-                entityService.getOne(h.substring(1)).thenAccept(keo ->
-                        us.accept(us.get().withEditData(keo.get()))).join());
-                }),
-                div(when(createComponent.isPresent(), button(attr("type", "button"),
-                                                      text("Create"),
-                                                      on("click", ctx -> {
-                                                           us.accept(us.get().withCreate());
-                                                      }))),
+        return div(div(when(createComponent.isPresent(), button(attr("type", "button"),
+                                                                text("Create"),
+                                                                on("click", ctx -> {
+                                                                     us.accept(us.get().withCreate());
+                                                                }))),
                     button(attr("type", "button"),
                             when(us.get().list.selectedRows.size() == 0, () -> attr("disabled")),
                             text("Delete"),
@@ -93,7 +98,10 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                 }))),
                 when(us.get().view.contains(ViewType.LIST),
                         () -> listComponent.render(useState(() -> us.get().list,
-                                                   gridState -> us.accept(us.get().withList(gridState))))),
+                                                             gridState -> gridState.editRowKey.ifPresentOrElse(
+                                                                     editKey -> entityService.getOne(editKey).thenAccept(keo ->
+                                                                             us.accept(us.get().withEditData(keo.get()))).join(),
+                                                                                                         () -> us.accept(us.get().withList(gridState)))))),
 
                 when(us.get().view.contains(ViewType.CREATE),
                         () -> of(createComponent.map(cc -> cc.render(detailsViewState(us))).stream())),
@@ -135,11 +143,11 @@ public class Resource<T> implements Component<Resource.State<T>> {
 
     public static class State<T> {
         public final Set<ViewType> view;
-        public final DataGrid.Table list;
-        public final DetailsViewState<T> edit;
+        public final DataGrid.Table<String, T> list;
+        public final DetailsViewState<T> edit; //TODO to Optional<DetailsViewState<T>> , verify DetailsViewState.isActive
 
         public State(Set<ViewType> view,
-                     DataGrid.Table list,
+                     DataGrid.Table<String, T> list,
                      DetailsViewState<T> edit) {
             this.view = view;
             this.list = list;
@@ -147,7 +155,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
         }
 
         public State withList(DataGrid.Table<?, ?> gs) {
-            return new State(Set.of(ViewType.LIST), gs, edit);
+            return new State(Set.of(ViewType.LIST), gs, new DetailsViewState());
         }
 
         public State withList() {

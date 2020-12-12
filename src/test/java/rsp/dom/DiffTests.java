@@ -6,7 +6,7 @@ import org.junit.Test;
 import java.util.Optional;
 
 public class DiffTests {
-    final Path path = new Path(1);
+    final VirtualDomPath path = new VirtualDomPath(1);
 
     @Test
     public void should_be_empty_diff_for_same_single_tags() {
@@ -90,37 +90,37 @@ public class DiffTests {
         }
 
         @Override
-        public void removeAttr(Path id, XmlNs xmlNs, String name) {
+        public void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name) {
             sb.append("-A:" + id + " ");
         }
 
         @Override
-        public void removeStyle(Path id, String name) {
+        public void removeStyle(VirtualDomPath id, String name) {
 
         }
 
         @Override
-        public void remove(Path parentId, Path id) {
+        public void remove(VirtualDomPath parentId, VirtualDomPath id) {
             sb.append("-T:" + parentId + " " + id + " ");
         }
 
         @Override
-        public void setAttr(Path id, XmlNs xmlNs, String name, String value, boolean isProperty) {
+        public void setAttr(VirtualDomPath id, XmlNs xmlNs, String name, String value, boolean isProperty) {
             sb.append("+A:" + id + "," + name + "," + value );
         }
 
         @Override
-        public void setStyle(Path id, String name, String value) {
+        public void setStyle(VirtualDomPath id, String name, String value) {
 
         }
 
         @Override
-        public void createText(Path parentId, Path id, String text) {
+        public void createText(VirtualDomPath parentId, VirtualDomPath id, String text) {
 
         }
 
         @Override
-        public void create(Path id, XmlNs xmlNs, String tag) {
+        public void create(VirtualDomPath id, XmlNs xmlNs, String tag) {
             sb.append("+T:" + id + "," + tag + " ");
         }
     }

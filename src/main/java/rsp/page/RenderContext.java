@@ -1,9 +1,8 @@
 package rsp.page;
 
 import rsp.dom.Event;
-import rsp.dom.Path;
+import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
-import rsp.dsl.EventDefinition;
 import rsp.dsl.Ref;
 
 import java.util.Optional;
@@ -15,7 +14,7 @@ public interface RenderContext {
     void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty);
     void setStyle(String name, String value);
     void addTextNode(String text);
-    void addEvent(Optional<Path> elementPath,
+    void addEvent(Optional<VirtualDomPath> elementPath,
                   String eventName,
                   Consumer<EventContext> eventHandler,
                   boolean preventDefault,

@@ -1,14 +1,11 @@
 package rsp.dom;
 
-import rsp.dom.Path;
-import rsp.dom.XmlNs;
-
 public interface ChangesPerformer {
-    void removeAttr(Path id, XmlNs xmlNs, String name);
-    void removeStyle(Path id, String name);
-    void remove(Path parentId, Path id);
-    void setAttr(Path id,  XmlNs xmlNs, String name, String value, boolean isProperty);
-    void setStyle(Path id, String name, String value);
-    void createText(Path parentId, Path id, String text);
-    void create(Path id, XmlNs xmlNs, String tag);
+    void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name);
+    void removeStyle(VirtualDomPath id, String name);
+    void remove(VirtualDomPath parentId, VirtualDomPath id);
+    void setAttr(VirtualDomPath id, XmlNs xmlNs, String name, String value, boolean isProperty);
+    void setStyle(VirtualDomPath id, String name, String value);
+    void createText(VirtualDomPath parentId, VirtualDomPath id, String text);
+    void create(VirtualDomPath id, XmlNs xmlNs, String tag);
 }

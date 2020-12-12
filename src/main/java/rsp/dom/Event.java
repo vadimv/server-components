@@ -34,13 +34,13 @@ public final class Event {
     }
 
     public static class Target {
-        public Target(String eventType, Path elementPath) {
+        public Target(String eventType, VirtualDomPath elementPath) {
             this.eventType = eventType;
             this.elementPath = elementPath;
         }
 
         public final String eventType;
-        public final Path elementPath;
+        public final VirtualDomPath elementPath;
 
         @Override
         public boolean equals(Object o) {

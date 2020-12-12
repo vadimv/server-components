@@ -6,7 +6,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Tag implements Node {
 
-    public final Path path;
+    public final VirtualDomPath path;
     public final XmlNs xmlns;
     public final String name;
 
@@ -14,7 +14,7 @@ public final class Tag implements Node {
     public final CopyOnWriteArraySet<Style> styles = new CopyOnWriteArraySet<>();
     public final List<Node> children = new ArrayList<>();
 
-    public Tag(Path path, XmlNs xmlns, String name) {
+    public Tag(VirtualDomPath path, XmlNs xmlns, String name) {
         this.path = path;
         this.xmlns = xmlns;
         this.name = name;
@@ -33,11 +33,10 @@ public final class Tag implements Node {
     }
 
     @Override
-    public Path path() {
+    public VirtualDomPath path() {
         return path;
     }
 
-    @Override
     public List<Node> children() {
         return children;
     }

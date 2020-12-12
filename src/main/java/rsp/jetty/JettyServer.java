@@ -13,7 +13,9 @@ import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainer
 import rsp.App;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
+import rsp.page.StateToRouteDispatch;
 import rsp.server.HttpRequest;
+import rsp.server.Path;
 import rsp.server.StaticResources;
 import rsp.page.PageRendering;
 
@@ -29,7 +31,7 @@ public final class JettyServer {
 
     public static final int DEFAULT_MAX_THREADS = 50;
     public final int port;
-    public final String basePath;
+    public final Path basePath;
     private final App app;
     private final Optional<StaticResources> staticResources;
     private final int maxThreads;
@@ -38,7 +40,7 @@ public final class JettyServer {
 
     public JettyServer(int port, String basePath, App app, Optional<StaticResources> staticResources, int maxThreads) {
         this.port = port;
-        this.basePath = Objects.requireNonNull(basePath);
+        this.basePath = Objects.requireNonNull(Path.of(basePath));
         this.app = Objects.requireNonNull(app);
         this.staticResources = Objects.requireNonNull(staticResources);
         this.maxThreads = maxThreads;
@@ -76,14 +78,13 @@ public final class JettyServer {
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + basePath);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
-                                                                                     app.state2path,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
                                                                                      app.enrichRenderContext()),
                                                                app.config.log)),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
-                                                                                     app.state2path,
+                                                                                     new StateToRouteDispatch(basePath, app.state2path),
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
                                                                                      app.enrichRenderContext(),

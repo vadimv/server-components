@@ -7,47 +7,47 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override
-    public void removeAttr(Path path, XmlNs xmlNs, String name) {
+    public void removeAttr(VirtualDomPath path, XmlNs xmlNs, String name) {
         commands.add(new RemoveAttr(path, xmlNs, name));
     }
 
     @Override
-    public void removeStyle(Path path, String name) {
+    public void removeStyle(VirtualDomPath path, String name) {
         commands.add(new RemoveStyle(path, name));
     }
 
     @Override
-    public void remove(Path parentPath, Path path) {
+    public void remove(VirtualDomPath parentPath, VirtualDomPath path) {
         commands.add(new Remove(parentPath, path));
     }
 
     @Override
-    public void setAttr(Path path, XmlNs xmlNs, String name, String value, boolean isProperty) {
+    public void setAttr(VirtualDomPath path, XmlNs xmlNs, String name, String value, boolean isProperty) {
         commands.add(new SetAttr(path, xmlNs, name, value, isProperty));
     }
 
     @Override
-    public void setStyle(Path path, String name, String value) {
+    public void setStyle(VirtualDomPath path, String name, String value) {
         commands.add(new SetStyle(path, name, value));
     }
 
     @Override
-    public void createText(Path parentPath, Path path, String text) {
+    public void createText(VirtualDomPath parentPath, VirtualDomPath path, String text) {
         commands.add(new CreateText(parentPath, path, text));
     }
 
     @Override
-    public void create(Path path, XmlNs xmlNs, String tag) {
+    public void create(VirtualDomPath path, XmlNs xmlNs, String tag) {
         commands.add(new Create(path, xmlNs, tag));
     }
 
     public interface DomChange {}
 
     public static final class RemoveAttr implements DomChange {
-        public final Path path;
+        public final VirtualDomPath path;
         public final XmlNs xmlNs;
         public final String name;
-        public RemoveAttr(Path path, XmlNs xmlNs, String name) {
+        public RemoveAttr(VirtualDomPath path, XmlNs xmlNs, String name) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
@@ -55,31 +55,31 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
     }
 
     public static final class RemoveStyle implements DomChange {
-        public final Path path;
+        public final VirtualDomPath path;
         public final String name;
-        public RemoveStyle(Path path, String name) {
+        public RemoveStyle(VirtualDomPath path, String name) {
             this.path = path;
             this.name = name;
         }
     }
 
     public static class Remove implements DomChange {
-        public final Path parentPath;
-        public final Path path;
-        public Remove(Path parentPath, Path path) {
+        public final VirtualDomPath parentPath;
+        public final VirtualDomPath path;
+        public Remove(VirtualDomPath parentPath, VirtualDomPath path) {
             this.parentPath = parentPath;
             this.path = path;
         }
     }
 
     public static class SetAttr implements DomChange {
-        public final Path path;
+        public final VirtualDomPath path;
         public final XmlNs xmlNs;
         public final String name;
         public final String value;
         public final boolean isProperty;
 
-        public SetAttr(Path path, XmlNs xmlNs, String name, String value, boolean isProperty) {
+        public SetAttr(VirtualDomPath path, XmlNs xmlNs, String name, String value, boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
@@ -89,10 +89,10 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
     }
 
     public static class SetStyle implements DomChange {
-        public final Path path;
+        public final VirtualDomPath path;
         public final String name;
         public final String value;
-        public SetStyle(Path path, String name, String value) {
+        public SetStyle(VirtualDomPath path, String name, String value) {
             this.path = path;
             this.name = name;
             this.value = value;
@@ -100,10 +100,10 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
     }
 
     public static class CreateText implements DomChange {
-        public final Path parentPath;
-        public final Path path;
+        public final VirtualDomPath parentPath;
+        public final VirtualDomPath path;
         public final String text;
-        public CreateText(Path parentPath, Path path, String text) {
+        public CreateText(VirtualDomPath parentPath, VirtualDomPath path, String text) {
             this.parentPath = parentPath;
             this.path = path;
             this.text = text;
@@ -111,10 +111,10 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
     }
 
     public static class Create implements DomChange {
-        public final Path path;
+        public final VirtualDomPath path;
         public final XmlNs xmlNs;
         public final String tag;
-        public Create(Path path, XmlNs xmlNs, String tag) {
+        public Create(VirtualDomPath path, XmlNs xmlNs, String tag) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.tag = tag;

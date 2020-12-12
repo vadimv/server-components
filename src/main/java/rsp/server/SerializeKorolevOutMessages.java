@@ -2,7 +2,7 @@ package rsp.server;
 
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
-import rsp.dom.Path;
+import rsp.dom.VirtualDomPath;
 import rsp.dom.RemoteDomChangesPerformer.*;
 
 import java.util.Arrays;
@@ -62,7 +62,7 @@ public final class SerializeKorolevOutMessages implements OutMessages {
     }
 
     @Override
-    public void listenEvent(String eventType, boolean preventDefault, Path path, Event.Modifier modifier) {
+    public void listenEvent(String eventType, boolean preventDefault, VirtualDomPath path, Event.Modifier modifier) {
         final String message = addSquareBrackets(joinString(LISTEN_EVENT,
                                                                     quote(escape(eventType)),
                                                                     preventDefault,
@@ -84,7 +84,7 @@ public final class SerializeKorolevOutMessages implements OutMessages {
     }
 
     @Override
-    public void extractProperty(int descriptor, Path path, String name) {
+    public void extractProperty(int descriptor, VirtualDomPath path, String name) {
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
                                                             quote(descriptor),
                                                             quote(path),

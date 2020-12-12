@@ -5,17 +5,19 @@ import rsp.dsl.DocumentPartDefinition;
 import rsp.state.UseState;
 
 import static rsp.dsl.Html.a;
+import static rsp.dsl.Html.on;
 
 public class EditButton implements Component<String> {
 
-    private final String key;
-    public EditButton(String key) {
-        this.key = key;
+
+    public EditButton() {
     }
 
     @Override
     public DocumentPartDefinition render(UseState<String> useState) {
-        return a("#" + key, "Edit");
+        return a("#", "Edit", on("click", ctx -> {
+            useState.accept(useState.get());
+        }));
     }
 
 }

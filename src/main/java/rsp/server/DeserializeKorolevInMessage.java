@@ -4,7 +4,7 @@ package rsp.server;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-import rsp.dom.Path;
+import rsp.dom.VirtualDomPath;
 import rsp.util.Log;
 
 import java.util.Objects;
@@ -60,7 +60,7 @@ public final class DeserializeKorolevInMessage {
     private void parseDomEvent(String str, JSONObject eventObject) {
         final String[] tokens = str.split(":");
         inMessages.domEvent(Integer.parseInt(tokens[0]),
-                            Path.of(tokens[1]),
+                            VirtualDomPath.of(tokens[1]),
                             tokens[2],
                             name -> Optional.ofNullable((String)eventObject.get(name)));
     }

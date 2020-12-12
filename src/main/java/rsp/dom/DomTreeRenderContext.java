@@ -1,6 +1,5 @@
 package rsp.dom;
 
-import rsp.dsl.EventDefinition;
 import rsp.dsl.Ref;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
@@ -12,7 +11,7 @@ import java.util.function.Consumer;
 public final class DomTreeRenderContext implements RenderContext {
 
     public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
-    public final ConcurrentHashMap<Ref, Path> refs = new ConcurrentHashMap();
+    public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap();
 
     public Tag root;
     private Deque<Tag> tagsStack = new ArrayDeque<>();
@@ -23,7 +22,7 @@ public final class DomTreeRenderContext implements RenderContext {
     @Override
     public void openNode(XmlNs xmlns, String name) {
         if (root == null) {
-            root = new Tag(Path.DOCUMENT, xmlns, name);
+            root = new Tag(VirtualDomPath.DOCUMENT, xmlns, name);
             tagsStack.push(root);
         } else {
             final Tag parent = tagsStack.peek();
@@ -55,12 +54,12 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public void addEvent(Optional<Path> elementPath,
+    public void addEvent(Optional<VirtualDomPath> elementPath,
                          String eventType,
                          Consumer<EventContext> eventHandler,
                          boolean preventDefault,
                          Event.Modifier modifier) {
-        final Path eventPath = elementPath.orElse(tagsStack.peek().path);
+        final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
         events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
     }

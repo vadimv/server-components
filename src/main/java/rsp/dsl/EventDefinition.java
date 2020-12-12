@@ -1,7 +1,7 @@
 package rsp.dsl;
 
 import rsp.dom.Event;
-import rsp.dom.Path;
+import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
 
@@ -10,13 +10,13 @@ import java.util.function.Consumer;
 
 public final class EventDefinition<S> extends DocumentPartDefinition {
 
-    public final Optional<Path> elementPath;
+    public final Optional<VirtualDomPath> elementPath;
     public final String eventType;
     public final Consumer<EventContext> handler;
     public final boolean preventDefault;
     public final Event.Modifier modifier;
 
-    public EventDefinition(Optional<Path> elementPath,
+    public EventDefinition(Optional<VirtualDomPath> elementPath,
                            String eventType,
                            Consumer<EventContext> handler,
                            boolean preventDefault,
@@ -36,7 +36,7 @@ public final class EventDefinition<S> extends DocumentPartDefinition {
         this.elementPath = Optional.empty();
         this.eventType = eventType;
         this.handler = handler;
-        this.preventDefault = false;
+        this.preventDefault = true;
         this.modifier = modifier;
     }
 

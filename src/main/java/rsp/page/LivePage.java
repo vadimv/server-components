@@ -7,6 +7,7 @@ import rsp.dsl.WindowDefinition;
 import rsp.server.HttpRequest;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
+import rsp.server.Path;
 import rsp.state.MutableState;
 import rsp.state.UseState;
 import rsp.util.Log;
@@ -29,7 +30,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     private final HttpRequest handshakeRequest;
     private final QualifiedSessionId qsid;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
-    private final BiFunction<String, S, String> state2route;
+    private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final UseState<S> stateHandler;
     private final UseState<Snapshot> currentPageSnapshot;
@@ -40,7 +41,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     public LivePage(HttpRequest handshakeRequest,
                     QualifiedSessionId qsid,
                     Function<HttpRequest, CompletableFuture<S>> routing,
-                    BiFunction<String, S, String> state2route,
+                    StateToRouteDispatch<S> state2route,
                     Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                     UseState<S> stateHandler,
                     UseState<Snapshot> current,
@@ -62,16 +63,17 @@ public final class LivePage<S> implements InMessages, Schedule {
     public static <S> LivePage<S> of(HttpRequest handshakeRequest,
                                      QualifiedSessionId qsid,
                                      Function<HttpRequest, CompletableFuture<S>> routing,
-                                     BiFunction<String, S, String> state2route,
+                                     StateToRouteDispatch<S> state2route,
                                      Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                      Component<S> documentDefinition,
                                      BiFunction<String, RenderContext, RenderContext> enrich,
                                      ScheduledExecutorService scheduler,
                                      OutMessages out,
                                      Log.Reporting log) {
-        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot(Optional.empty(),
-                                                                           new HashMap<>(),
-                                                                           new HashMap<>()));
+        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot(Path.EMPTY,
+                                                                                Optional.empty(),
+                                                                                new HashMap<>(),
+                                                                                new HashMap<>()));
         final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
             final DomTreeRenderContext newContext = new DomTreeRenderContext();
             documentDefinition.render(self).accept(enrich.apply(qsid.sessionId, newContext));
@@ -92,15 +94,19 @@ public final class LivePage<S> implements InMessages, Schedule {
                 }
             }
             newEvents.stream()
-                    .forEach(event -> {
+                     .forEach(event -> {
                         final Event.Target eventTarget = event.eventTarget;
                         out.listenEvent(eventTarget.eventType,
                                         event.preventDefault,
                                         eventTarget.elementPath,
                                         event.modifier);
                     });
-
-            currentState.accept(new Snapshot(Optional.of(newContext.root), newContext.events, newContext.refs));
+            final Path oldPath = currentState.get().path;
+            final Path newPath = state2route.stateToPath.apply(oldPath, newState);
+            if (!newPath.equals(oldPath)) {
+                out.pushHistory("/" + state2route.basePath.append(newPath).toString());
+            }
+            currentState.accept(new Snapshot(newPath, Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
 
         return new LivePage<>(handshakeRequest,
@@ -127,7 +133,7 @@ public final class LivePage<S> implements InMessages, Schedule {
             } else {
                 renderedPages.remove(qsid);
                 final var s = currentPageSnapshot.get();
-                currentPageSnapshot.accept(new Snapshot(Optional.of(page.domRoot), s.events, s.refs));
+                currentPageSnapshot.accept(new Snapshot(page.request.path, Optional.of(page.domRoot), s.events, s.refs));
                 stateHandler.accept(page.state);
                 out.setRenderNum(0);
 
@@ -179,9 +185,9 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void domEvent(int renderNumber, Path path, String eventType, Function<String, Optional<String>> eventObject) {
+    public void domEvent(int renderNumber, VirtualDomPath path, String eventType, Function<String, Optional<String>> eventObject) {
         synchronized (this) {
-            Path eventElementPath = path;
+            VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
                 final Event event = currentPageSnapshot.get().events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
@@ -189,7 +195,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                     event.eventHandler.accept(eventContext);
                     break;
                 } else {
-                    final Optional<Path> parentPath = eventElementPath.parent();
+                    final Optional<VirtualDomPath> parentPath = eventElementPath.parent();
                     if (parentPath.isPresent()) {
                         eventElementPath = parentPath.get();
                     } else {
@@ -228,15 +234,15 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     private PropertiesHandle createPropertiesHandle(Ref ref) {
-        final Path path = resolveRef(ref);
+        final VirtualDomPath path = resolveRef(ref);
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
         }
         return new PropertiesHandle(path, () -> descriptorsCounter.incrementAndGet(), registeredEventHandlers, out);
     }
 
-    private Path resolveRef(Ref ref) {
-        return ref instanceof WindowDefinition ? Path.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
+    private VirtualDomPath resolveRef(Ref ref) {
+        return ref instanceof WindowDefinition ? VirtualDomPath.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
     }
 
     private CompletableFuture<Object> evalJs(String js) {
@@ -266,13 +272,16 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     private static class Snapshot {
+        public final Path path;
         public final Optional<Tag> domRoot;
         public final Map<Event.Target, Event> events;
-        public final Map<Ref, Path> refs;
+        public final Map<Ref, VirtualDomPath> refs;
 
-        public Snapshot(Optional<Tag> domRoot,
+        public Snapshot(Path path,
+                        Optional<Tag> domRoot,
                         Map<Event.Target, Event> events,
-                        Map<Ref, Path> refs) {
+                        Map<Ref, VirtualDomPath> refs) {
+            this.path = path;
             this.domRoot = domRoot;
             this.events = events;
             this.refs = refs;
