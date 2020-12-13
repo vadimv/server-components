@@ -1,6 +1,6 @@
 package rsp.examples.crud.entities;
 
-import rsp.examples.crud.entities.services.EntityService;
+import rsp.examples.crud.services.EntityService;
 import rsp.util.StreamUtils;
 import rsp.util.Tuple2;
 

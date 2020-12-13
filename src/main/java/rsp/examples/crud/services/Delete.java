@@ -1,4 +1,4 @@
-package rsp.examples.crud.entities.services;
+package rsp.examples.crud.services;
 
 import rsp.examples.crud.entities.KeyedEntity;
 
