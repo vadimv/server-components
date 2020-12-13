@@ -7,6 +7,16 @@
     <groupId>reactive-server-pages</groupId>
     <artifactId>core</artifactId>
     <version>0.1-SNAPSHOT</version>
+
+    <properties>
+        <junit.version>4.12</junit.version>
+        <jetty.version>9.4.31.v20200723</jetty.version>
+        <slf4j.version>1.7.30</slf4j.version>
+        <json-simple.version>1.1.1</json-simple.version>
+        <javax.websocket.version>1.1</javax.websocket.version>
+        <closure-compiler.version>v20200614</closure-compiler.version>
+    </properties>
+
     <build>
         <plugins>
             <plugin>
@@ -42,15 +52,6 @@
             </plugin>
         </plugins>
     </build>
-
-    <properties>
-        <junit.version>4.12</junit.version>
-        <jetty.version>9.4.31.v20200723</jetty.version>
-        <slf4j.version>1.7.30</slf4j.version>
-        <json-simple.version>1.1.1</json-simple.version>
-        <javax.websocket.version>1.1</javax.websocket.version>
-        <closure-compiler.version>v20200614</closure-compiler.version>
-    </properties>
 
     <dependencies>
         <dependency>
