@@ -14,8 +14,8 @@ import static rsp.state.UseState.useState;
 
 public class Create<T> implements Component<DetailsViewState<T>> {
 
-    private final Function<Consumer<T>, Form<T>> formFunction;
-    public Create(Function<Consumer<T>, Form<T>> formFunction) {
+    private final Function<Consumer<T>, Form> formFunction;
+    public Create(Function<Consumer<T>, Form> formFunction) {
         this.formFunction = formFunction;
     }
 
@@ -25,7 +25,7 @@ public class Create<T> implements Component<DetailsViewState<T>> {
         return div(span("Create"),
                    formFunction.apply(useState(() -> us.get().currentValue.get(),
                                             v -> us.accept(us.get().withValue(v).withValidationErrors(Collections.EMPTY_MAP))))
-                                                   .render(useState(() -> new Form.State<>(us.get().currentValue, us.get().validationErrors),
+                                                   .render(useState(() -> new Form.State(us.get().validationErrors),
                                                                      v -> us.accept(us.get().withValidationErrors(v.validationErrors)))));
     }
 

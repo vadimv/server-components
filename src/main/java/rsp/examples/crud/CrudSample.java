@@ -26,11 +26,11 @@ public class CrudSample {
                                                         authorsService,
                                                         new DataGrid<>(new Column<>("Name", e -> new TextField<>(e.name)),
                                                                        new Column<>(e -> new EditButton())),
-                                                        new Edit<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
+                                                        new Edit<>(d -> new Form(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                 new TextInput("name",
                                                                                 d.get().toString(),
                                                                                 new RequiredValidation()))),
-                                                        new Create<>(d -> new Form<>(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
+                                                        new Create<>(d -> new Form(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                                      new TextInput("name",
                                                                                             "",
                                                                                                      new RequiredValidation())))));

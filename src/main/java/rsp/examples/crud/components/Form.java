@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import static rsp.dsl.Html.*;
 import static rsp.state.UseState.useState;
 
-public class Form<T> implements Component<Form.State<T>> {
+public class Form implements Component<Form.State> {
 
     private final Consumer<Function<String, Optional<String>>> submittedData;
     private final TextInput[] fieldsComponents;
@@ -29,7 +29,7 @@ public class Form<T> implements Component<Form.State<T>> {
 
 
     @Override
-    public DocumentPartDefinition render(UseState<Form.State<T>> useState) {
+    public DocumentPartDefinition render(UseState<Form.State> useState) {
         return
             div(form(on("submit", c -> {
                         // Validate all fieldComponents, if any is invalid update state with validation messages, if all valid accept the values
@@ -43,7 +43,7 @@ public class Form<T> implements Component<Form.State<T>> {
                                         .collect(Collectors.toMap(t -> t._1, t -> t._2.get(0)));
 
                             if (topValidationErrors.size() > 0) {
-                                useState.accept(useState.get().withValidationErrors(topValidationErrors));
+                                useState.accept(new Form.State(topValidationErrors));
                             } else {
                                 submittedData.accept(c.eventObject());
                             }
@@ -52,35 +52,22 @@ public class Form<T> implements Component<Form.State<T>> {
                                 div(component.render(useState(() -> Optional.ofNullable(useState.get().validationErrors.get(component.fieldName))))))),
                         button(attr("type", "submit"), text("Ok")),
                         button(attr("type", "button"),
-                                on("click", ctx -> useState.accept(new State<>(Collections.EMPTY_MAP))),
+                                on("click", ctx -> useState.accept(new State(Collections.EMPTY_MAP))),
                                 text("Cancel"))));
     }
 
 
-    public static class State<T> {
-        public final Optional<T> row;
+    public static class State {
         public final Map<String, String> validationErrors;
 
-        public State() {
-            this(Optional.empty(), Collections.EMPTY_MAP);
-        }
-
-
         public State(Map<String, String> validationErrors) {
-            this(Optional.empty(), validationErrors);
-        }
-
-        public State(Optional<T> row) {
-            this(row, Collections.EMPTY_MAP);
-        }
-
-        public State(Optional<T> row, Map<String, String> validationErrors) {
-            this.row = row;
             this.validationErrors = validationErrors;
         }
 
-        public State withValidationErrors(Map<String, String> validationErrors) {
-            return new State(this.row, validationErrors);
+
+        public State() {
+            validationErrors = Collections.EMPTY_MAP;
         }
+
     }
 }

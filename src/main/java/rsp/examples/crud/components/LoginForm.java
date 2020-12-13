@@ -2,7 +2,9 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
+import rsp.examples.crud.entities.Author;
 import rsp.state.UseState;
+import rsp.util.Tuple2;
 
 import java.util.Optional;
 
@@ -13,14 +15,13 @@ public class LoginForm implements Component<LoginForm.State> {
 
     @Override
     public DocumentPartDefinition render(UseState<State> us) {
-        return div(form(on("submit", c -> {
-                }),
-                new TextInput("login", "", s -> Optional.empty()).render(useState(() -> Optional.empty())),
-                new TextInput("password", "", s -> Optional.empty()).render(useState(() -> Optional.empty())),
-                button(attr("type", "submit"), text("Ok")),
-                button(attr("type", "button"),
-                        on("click", ctx -> {}),
-                        text("Cancel"))));
+        return div(new Form(m -> m.apply("login").flatMap(login -> m.apply("password")
+                                                   .map(password -> new Tuple2<>(login, password)))
+                                                   .ifPresent(lp -> us.accept(new State(lp._1, lp._2, false))),
+                             new TextInput("login", ""),
+                             new TextInput("password", ""))
+                          .render(useState(() -> new Form.State())),
+                   when(us.get().loginFailed, span("Login or password is not valid")));
     }
 
     public static class State {
