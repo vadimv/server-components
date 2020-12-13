@@ -4,8 +4,8 @@ import rsp.examples.crud.components.*;
 import rsp.examples.crud.entities.Author;
 import rsp.examples.crud.entities.AuthorsBooksServiceStubInit;
 import rsp.examples.crud.entities.Book;
-import rsp.examples.crud.entities.services.EntityService;
-import rsp.examples.crud.entities.services.SimpleDb;
+import rsp.examples.crud.services.EntityService;
+import rsp.examples.crud.services.SimpleDb;
 import rsp.jetty.JettyServer;
 
 
