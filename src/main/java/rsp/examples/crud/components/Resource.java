@@ -3,7 +3,7 @@ package rsp.examples.crud.components;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.entities.KeyedEntity;
-import rsp.examples.crud.entities.services.EntityService;
+import rsp.examples.crud.services.EntityService;
 import rsp.state.UseState;
 import rsp.util.StreamUtils;
 

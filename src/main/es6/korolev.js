@@ -138,8 +138,6 @@ export class Korolev {
       target.addEventListener(name, me ? this.createEventModifier(eventModifier, listener) : listener);
       this.rootListeners.push({ 'listener': listener, 'type': name });
     };
-
-    //window.addEventListener('popstate', this.historyHandler);
   }
 
   swapElementInRegistry(a, b) {
@@ -400,7 +398,7 @@ export class Korolev {
             window.location.search = path;
         break;
         case LocationType.PUSH_STATE:
-            window.history.pushState(path,"", path);
+            if (path !== window.location.pathname) window.history.pushState(path,"", path);
         break;
     }
   }

@@ -26,13 +26,11 @@ public class TextInput implements Component<Optional<String>> {
 
     @Override
     public DocumentPartDefinition render(UseState<Optional<String>> useState) {
-        return div(
-                   input(attr("type", "text"),
+        return div(input(attr("type", "text"),
                          attr("name", fieldName),
                          prop("value", initialValue)),
                    of(useState.get().stream().map(validationErrorMessage -> span(style("color", "red"),
-                                                                                 text(validationErrorMessage))))
-               );
+                                                                                 text(validationErrorMessage)))));
     }
 
     public Function<String, Optional<String>>[] validations() {
