@@ -70,12 +70,12 @@ public class Admin {
                                     resource.render(useState(() -> us.get().currentResource,
                                             v -> us.accept(us.get().withResource(v))))))))
 
-                            .orElse(div(new Login().render(useState(() -> new Login.State(),
+                            .orElse(div(new LoginForm().render(useState(() -> new LoginForm.State(),
                                                                          lfs -> { if (verifyCredentials(lfs)) us.accept(us.get().withPrincipal(new Principal("usr1")));
                                                                                      else us.accept(us.get().withoutPrincipal()); })))))));
     }
 
-    private boolean verifyCredentials(Login.State lfs) {
+    private boolean verifyCredentials(LoginForm.State lfs) {
         return "admin".equals(lfs.login) & "admin".equals(lfs.password);
     }
 

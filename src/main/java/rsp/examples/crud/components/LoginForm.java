@@ -8,7 +8,7 @@ import rsp.util.Tuple2;
 import static rsp.dsl.Html.*;
 import static rsp.state.UseState.useState;
 
-public class Login implements Component<Login.State> {
+public class LoginForm implements Component<LoginForm.State> {
 
     @Override
     public DocumentPartDefinition render(UseState<State> us) {
