@@ -34,17 +34,14 @@
                 <executions>
                     <execution>
                         <goals>
-                            <goal>exec</goal>
+                            <goal>java</goal>
                         </goals>
-                        <phase>package</phase>
+                        <phase>compile</phase>
                     </execution>
                 </executions>
                 <configuration>
-                    <executable>java</executable>
+                    <mainClass>rsp.util.JsCompiler</mainClass>
                     <arguments>
-                        <argument>-classpath</argument>
-                        <classpath/>
-                        <argument>rsp.util.JsUtils</argument>
                         <argument>./src/main/es6</argument>
                         <argument>./target/classes</argument>
                     </arguments>
