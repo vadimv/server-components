@@ -2,11 +2,8 @@ package rsp.examples.crud.components;
 
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
-import rsp.examples.crud.entities.Author;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
-
-import java.util.Optional;
 
 import static rsp.dsl.Html.*;
 import static rsp.state.UseState.useState;
