@@ -18,10 +18,10 @@ public class LoginForm implements Component<LoginForm.State> {
         return div(new Form(m -> m.apply("login").flatMap(login -> m.apply("password")
                                                    .map(password -> new Tuple2<>(login, password)))
                                                    .ifPresent(lp -> us.accept(new State(lp._1, lp._2, false))),
-                             new TextInput("login", ""),
-                             new TextInput("password", ""))
+                             new TextInput("login", "Login", us.get().login),
+                             new TextInput("password", "Password", us.get().password))
                           .render(useState(() -> new Form.State())),
-                   when(us.get().loginFailed, span("Login or password is not valid")));
+                   when(us.get().loginFailed, span("Incorrect username or password.")));
     }
 
     public static class State {
@@ -29,10 +29,16 @@ public class LoginForm implements Component<LoginForm.State> {
         public final String password;
         public final boolean loginFailed;
 
+
+
         public State(String login, String password, boolean loginFailed) {
             this.login = login;
             this.password = password;
             this.loginFailed = loginFailed;
+        }
+
+        public State() {
+            this("", "", false);
         }
     }
 }
