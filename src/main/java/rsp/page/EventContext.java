@@ -10,17 +10,20 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class EventContext {
+    private final QualifiedSessionId sessionId;
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<Object>> jsEvaluation;
     private final Function<String, Optional<String>> eventObject;
     private final Schedule executorService;
     private final Consumer<String> setHref;
 
-    public EventContext(Function<String, CompletableFuture<Object>> jsEvaluation,
+    public EventContext(QualifiedSessionId sessionId,
+                        Function<String, CompletableFuture<Object>> jsEvaluation,
                         Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         Function<String, Optional<String>> eventObject,
                         Schedule executorService,
                         Consumer<String> setHref) {
+        this.sessionId = sessionId;
         this.propertiesHandleLookup = propertiesHandleLookup;
         this.jsEvaluation = jsEvaluation;
         this.eventObject = eventObject;
@@ -45,6 +48,10 @@ public final class EventContext {
         setHref.accept(href);
     }
 
+    public QualifiedSessionId sessionId() {
+        return sessionId;
+    }
+    
     public Function<String, Optional<String>> eventObject() {
         return eventObject;
     }

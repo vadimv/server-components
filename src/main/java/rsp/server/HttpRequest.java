@@ -60,4 +60,12 @@ public final class HttpRequest {
                         .filter(pair -> pair.length == 2 && pair[0].equals(name)).findFirst()
                         .map(pair -> pair[1]));
     }
+
+    public Optional<String> deviceId() {
+        return getCookie().apply("pid"); //TODO string constant
+    }
+
+    public Optional<String> sessionId() {
+        return getCookie().apply("sid"); //TODO
+    }
 }

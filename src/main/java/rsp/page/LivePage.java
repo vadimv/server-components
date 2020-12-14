@@ -226,7 +226,8 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     private EventContext createEventContext(Function<String, Optional<String>> eventObject) {
-        return new EventContext(js -> evalJs(js),
+        return new EventContext(qsid,
+                                js -> evalJs(js),
                                 ref -> createPropertiesHandle(ref),
                                 eventObject,
                                 this,
