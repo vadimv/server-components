@@ -51,7 +51,8 @@ public final class EventContext {
     public QualifiedSessionId sessionId() {
         return sessionId;
     }
-    
+
+    // TODO maybe replace with an Object/Map
     public Function<String, Optional<String>> eventObject() {
         return eventObject;
     }
