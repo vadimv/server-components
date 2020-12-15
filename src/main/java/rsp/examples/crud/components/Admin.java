@@ -4,6 +4,7 @@ import rsp.App;
 import rsp.AppConfig;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.examples.crud.entities.Principal;
+import rsp.examples.crud.services.Auth;
 import rsp.server.Path;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
@@ -20,6 +21,8 @@ import static rsp.state.UseState.useState;
 public class Admin {
     private final String title;
     private final Resource[] resources;
+
+    private final Auth auth = new Auth();
 
     public Admin(String title, Resource<?>... resources) {
         this.title = title;
@@ -71,12 +74,9 @@ public class Admin {
                                             v -> us.accept(us.get().withResource(v))))))))
 
                             .orElse(div(new LoginForm().render(useState(() -> new LoginForm.State(),
-                                                                         lfs -> { if (verifyCredentials(lfs)) us.accept(us.get().withPrincipal(new Principal("usr1")));
-                                                                                     else us.accept(us.get().withoutPrincipal()); })))))));
-    }
-
-    private boolean verifyCredentials(LoginForm.State lfs) {
-        return "admin".equals(lfs.login) & "admin".equals(lfs.password);
+                                                                         lfs -> auth.authenticate(lfs.login, lfs.password)
+                                                                                    .thenAccept(po -> po.ifPresentOrElse(p -> us.accept(us.get().withPrincipal(p)),
+                                                                                                () -> us.accept(us.get().withoutPrincipal()))))))))));
     }
 
     public static class State {
