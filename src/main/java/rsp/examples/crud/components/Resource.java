@@ -56,21 +56,19 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
 
-    public CompletableFuture<Resource.State<T>> initialListState() {
+    public CompletableFuture<Resource.State<T>> initialListState(String name) {
         return entityService.getList(0, DEFAULT_PAGE_SIZE)
-                .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]),
-                                                                     new HashSet<>()))
-                .thenApply(gridState -> new Resource.State<>(Set.of(Resource.ViewType.LIST),
-                                                             gridState,
-                                                             new DetailsViewState<>()));
+                .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]), new HashSet<>()))
+                .thenApply(gridState -> new Resource.State<>(name, gridState, Optional.empty()));
     }
 
-    public CompletableFuture<Resource.State<T>> initialListStateWithEdit(String key) {
-        return entityService.getList(0, DEFAULT_PAGE_SIZE)
+    public CompletableFuture<Resource.State<T>> initialListStateWithEdit(String resourceName, String key) {
+            return entityService.getList(0, DEFAULT_PAGE_SIZE)
                 .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]),
                                                                      new HashSet<>()))
-                .thenCombine(entityService.getOne(key).thenApply(keo -> new DetailsViewState(true, keo.map(ke -> ke.data), keo.map(ke -> ke.key))),
-                        (gridState, edit) ->  new Resource.State<>(Set.of(ViewType.LIST, ViewType.EDIT), gridState, edit));
+                .thenCombine(entityService.getOne(key).thenApply(keo -> new DetailsViewState(keo.map(ke -> ke.data),
+                                                                                             keo.map(ke -> ke.key))),
+                        (gridState, edit) ->  new Resource.State<>(resourceName, gridState, Optional.of(edit)));
     }
 
 
@@ -96,22 +94,21 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                      });
                                                  });
                                 }))),
-                when(us.get().view.contains(ViewType.LIST),
-                        () -> listComponent.render(useState(() -> us.get().list,
+                    listComponent.render(useState(() -> us.get().list,
                                                              gridState -> gridState.editRowKey.ifPresentOrElse(
                                                                      editKey -> entityService.getOne(editKey).thenAccept(keo ->
                                                                              us.accept(us.get().withEditData(keo.get()))).join(),
-                                                                                                         () -> us.accept(us.get().withList(gridState)))))),
+                                                                                                         () -> us.accept(us.get().withList(gridState))))),
 
-                when(us.get().view.contains(ViewType.CREATE),
+                when(us.get().details.isPresent() && us.get().details.get().visible && !us.get().details.get().currentKey.isPresent(),
                         () -> of(createComponent.map(cc -> cc.render(detailsViewState(us))).stream())),
 
-                when(us.get().view.contains(ViewType.EDIT) && us.get().edit.isActive,
+                when(us.get().details.isPresent() && us.get().details.get().visible && us.get().details.get().currentKey.isPresent(),
                         () -> of(editComponent.map(ec -> ec.render(detailsViewState(us))).stream())));
     }
 
     private UseState<DetailsViewState<T>> detailsViewState(UseState<Resource.State<T>> us) {
-        return useState(() -> us.get().edit.withActive(),
+        return useState(() -> us.get().details.get(),
                          editState -> {
             if (!editState.validationErrors.isEmpty()) {
                 // show the validation errors
@@ -132,50 +129,38 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                 us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                         new HashSet<>())))).join();
             } else {
-                us.accept(us.get().withList());
+                us.accept(us.get());
             }
         });
     }
 
-    public enum ViewType {
-        LIST, EDIT, CREATE, ERROR
-    }
-
     public static class State<T> {
-        public final Set<ViewType> view;
+        public final String name;
         public final DataGrid.Table<String, T> list;
-        public final DetailsViewState<T> edit; //TODO to Optional<DetailsViewState<T>> , verify DetailsViewState.isActive
+        public final Optional<DetailsViewState<T>> details; //TODO to Optional<DetailsViewState<T>> , verify DetailsViewState.isActive
 
-        public State(Set<ViewType> view,
+        public State(String name,
                      DataGrid.Table<String, T> list,
-                     DetailsViewState<T> edit) {
-            this.view = view;
+                     Optional<DetailsViewState<T>> details) {
+            this.name = name;
             this.list = list;
-            this.edit = edit;
+            this.details = details;
         }
 
         public State withList(DataGrid.Table<?, ?> gs) {
-            return new State(Set.of(ViewType.LIST), gs, new DetailsViewState());
-        }
-
-        public State withList() {
-            return new State(Set.of(ViewType.LIST), list, edit);
+            return new State(name, gs, Optional.empty());
         }
 
         public State withEdit(DetailsViewState<T> edit) {
-            return new State(view, list, edit);
+            return new State(name, list, Optional.of(edit));
         }
 
         public State withEditData(KeyedEntity<String, T> data) {
-            return new State(Set.of(ViewType.LIST, ViewType.EDIT), list, new DetailsViewState<T>(true, Optional.of(data.data), Optional.of(data.key)));
+            return new State(name, list, Optional.of(new DetailsViewState<T>(Optional.of(data.data), Optional.of(data.key))));
         }
 
         public State withCreate() {
-            return new State(Set.of(ViewType.LIST, ViewType.CREATE), list, new DetailsViewState(true, Optional.empty(), Optional.empty()));
-        }
-
-        public State updateList(DataGrid.Table<?, ?> l) {
-            return new State(view, l, edit);
+            return new State(name, list, Optional.of(new DetailsViewState(Optional.empty(), Optional.empty())));
         }
 
     }

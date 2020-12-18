@@ -70,7 +70,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                                      ScheduledExecutorService scheduler,
                                      OutMessages out,
                                      Log.Reporting log) {
-        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot(Path.EMPTY,
+        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot(Path.EMPTY_ABSOLUTE,
                                                                                 Optional.empty(),
                                                                                 new HashMap<>(),
                                                                                 new HashMap<>()));
@@ -102,9 +102,9 @@ public final class LivePage<S> implements InMessages, Schedule {
                                         event.modifier);
                     });
             final Path oldPath = currentState.get().path;
-            final Path newPath = state2route.stateToPath.apply(oldPath, newState);
+            final Path newPath = state2route.stateToPath.apply(newState);
             if (!newPath.equals(oldPath)) {
-                out.pushHistory("/" + state2route.basePath.append(newPath).toString());
+                out.pushHistory(state2route.basePath.resolve(newPath).toString());
             }
             currentState.accept(new Snapshot(newPath, Optional.of(newContext.root), newContext.events, newContext.refs));
         }));

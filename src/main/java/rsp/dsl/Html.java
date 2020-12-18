@@ -170,6 +170,12 @@ public final class Html {
         return new TextDefinition(obj.toString());
     }
 
+
+    public static TagDefinition label(DocumentPartDefinition... children) {
+        return tag("label", children);
+    }
+
+
     public static AttributeDefinition attr(String name, String value, boolean isProperty) {
         return new AttributeDefinition(name, value, isProperty);
     }

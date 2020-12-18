@@ -1,6 +1,7 @@
 package rsp.server;
 
 import rsp.javax.web.ServletUtils;
+import rsp.page.PageRendering;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.websocket.server.HandshakeRequest;
@@ -62,10 +63,6 @@ public final class HttpRequest {
     }
 
     public Optional<String> deviceId() {
-        return getCookie().apply("pid"); //TODO string constant
-    }
-
-    public Optional<String> sessionId() {
-        return getCookie().apply("sid"); //TODO
+        return getCookie().apply(PageRendering.DEVICE_ID_COOKIE_NAME);
     }
 }

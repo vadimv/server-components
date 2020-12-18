@@ -6,11 +6,11 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class Auth {
-    public CompletableFuture<Optional<Principal>> authenticate(String login, String password) {
-        return "admin".equals(login) && "admin".equals(password) ? principal(login, password) : CompletableFuture.completedFuture(Optional.empty());
+    public CompletableFuture<Optional<Principal>> authenticate(String userName, String password) {
+        return "admin".equals(userName) && "admin".equals(password) ? principal(userName) : CompletableFuture.completedFuture(Optional.empty());
     }
 
-    private CompletableFuture<Optional<Principal>> principal(String login, String password) {
-        return CompletableFuture.completedFuture(Optional.of(new Principal(login)));
+    private CompletableFuture<Optional<Principal>> principal(String userName) {
+        return CompletableFuture.completedFuture(Optional.of(new Principal(userName)));
     }
 }

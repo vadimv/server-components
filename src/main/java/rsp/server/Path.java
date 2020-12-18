@@ -3,6 +3,7 @@ package rsp.server;
 import rsp.util.ArrayUtils;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
@@ -11,25 +12,32 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public class Path {
-    public static final Path EMPTY = new Path();
+    public static final Path EMPTY_ABSOLUTE = new Path(true);
+    public static final Path EMPTY_RELATIVE = new Path(false);
 
+    private final boolean isAbsolute;
     private final String[] elements;
 
-    public Path(String... elements) {
+    public Path(boolean isAbsolute, String... elements) {
+        this.isAbsolute = isAbsolute;
         this.elements = elements;
     }
 
     public static Path of(String str) {
-        final String[] tokens = Arrays.stream(str.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
-        return new Path(tokens);
+        final String trimmedStr = str.trim();
+        final String[] tokens = Arrays.stream(trimmedStr.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
+        return new Path(trimmedStr.startsWith("/"), tokens);
     }
 
-    public Path append(Path path) {
-        return new Path(ArrayUtils.concat(this.elements, path.elements));
+    public Path resolve(Path path) {
+        if (path.isAbsolute) {
+            return path;
+        }
+        return new Path(this.isAbsolute, ArrayUtils.concat(this.elements, path.elements));
     }
 
     public Path relativize(Path path) {
-        return new Path();// TODO
+        return new Path(false);// TODO
     }
 
     public int size() {
@@ -45,12 +53,15 @@ public class Path {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Path path = (Path) o;
-        return Arrays.equals(elements, path.elements);
+        return isAbsolute == path.isAbsolute &&
+                Arrays.equals(elements, path.elements);
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(elements);
+        int result = Objects.hash(isAbsolute);
+        result = 31 * result + Arrays.hashCode(elements);
+        return result;
     }
 
     public Stream<String> stream() {
@@ -58,7 +69,8 @@ public class Path {
     }
 
     public String toString() {
-        return String.join("/", elements);
+        final String elementsString = String.join("/", elements);
+        return isAbsolute ? "/" + elementsString : elementsString;
     }
 
     public <S> Matcher  matcher(CompletableFuture<S> defaultState) {

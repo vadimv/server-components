@@ -28,11 +28,13 @@ public class CrudSample {
                                                                        new Column<>(e -> new EditButton())),
                                                         new Edit<>(d -> new Form(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                 new TextInput("name",
+                                                                                TextInput.Type.TEXT,
                                                                                 "Name",
                                                                                 d.get().toString(),
                                                                                 new RequiredValidation()))),
                                                         new Create<>(d -> new Form(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
-                                                                                     new TextInput("name",
+                                                                                        new TextInput("name",
+                                                                                            TextInput.Type.TEXT,
                                                                                             "Name",
                                                                                             "",
                                                                                                  new RequiredValidation())))));
@@ -46,7 +48,7 @@ public class CrudSample {
                                                      new EditForm<String, Book>(new InitialValue<>(new TextInput<>("title", s -> s), "")))));
 */
         final var s = new JettyServer(DEFAULT_PORT,
-                "",
+                "/",
                 admin.app());
         s.start();
         s.join();

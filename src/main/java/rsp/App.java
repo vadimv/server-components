@@ -15,13 +15,13 @@ public final class App<S> {
 
     public final AppConfig config;
     public final Function<HttpRequest, CompletableFuture<S>> routes;
-    public final BiFunction<Path, S, Path> state2path;
+    public final Function<S, Path> state2path;
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
     public final Component<S> rootComponent;
 
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
-               BiFunction<Path, S, Path> state2path,
+               Function<S, Path> state2path,
                Component<S> rootComponent) {
         this.config = config;
         this.routes = routes;
@@ -34,7 +34,7 @@ public final class App<S> {
                Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
-             (currentPath, s) -> currentPath,
+             (s) -> Path.EMPTY_ABSOLUTE,
              rootComponent);
     }
 
@@ -42,7 +42,7 @@ public final class App<S> {
                Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              request -> CompletableFuture.completedFuture(initialState),
-             (currentPath, s) -> currentPath,
+             (s) ->  Path.EMPTY_ABSOLUTE,
              rootComponent);
     }
 
