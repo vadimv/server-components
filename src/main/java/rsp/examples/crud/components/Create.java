@@ -24,8 +24,8 @@ public class Create<T> implements Component<DetailsViewState<T>> {
         return div(span("Create"),
                    formFunction.apply(useState(() -> us.get().currentValue.get(),
                                             v -> us.accept(us.get().withValue(v).withValidationErrors(Collections.EMPTY_MAP))))
-                                                   .render(useState(() -> new Form.State(us.get().validationErrors),
-                                                                     v -> us.accept(us.get().withValidationErrors(v.validationErrors)))));
+                                                   .render(useState(() -> new Form.State(us.get().visible, us.get().validationErrors),
+                                                                     v -> us.accept(v.visible ? us.get().withValidationErrors(v.validationErrors) : us.get().hide()))));
     }
 
 

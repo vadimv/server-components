@@ -43,7 +43,7 @@ public class Form implements Component<Form.State> {
                                         .collect(Collectors.toMap(t -> t._1, t -> t._2.get(0)));
 
                             if (topValidationErrors.size() > 0) {
-                                useState.accept(new Form.State(topValidationErrors));
+                                useState.accept(new Form.State(true, topValidationErrors));
                             } else {
                                 submittedData.accept(c.eventObject());
                             }
@@ -52,22 +52,24 @@ public class Form implements Component<Form.State> {
                                 div(component.render(useState(() -> Optional.ofNullable(useState.get().validationErrors.get(component.fieldName))))))),
                         button(attr("type", "submit"), text("Ok")),
                         button(attr("type", "button"),
-                                on("click", ctx -> useState.accept(new State(Collections.EMPTY_MAP))),
+                                on("click", ctx -> useState.accept(new State(false, Collections.EMPTY_MAP))),
                                 text("Cancel"))));
     }
 
 
     public static class State {
+        public final boolean visible;
         public final Map<String, String> validationErrors;
 
-        public State(Map<String, String> validationErrors) {
+        public State(boolean visible, Map<String, String> validationErrors) {
+            this.visible = visible;
             this.validationErrors = validationErrors;
         }
 
 
-        public State() {
+    /*    public State() {
             validationErrors = Collections.EMPTY_MAP;
-        }
+        }*/
 
     }
 }
