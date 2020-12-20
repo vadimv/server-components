@@ -11,12 +11,10 @@ import static rsp.dsl.Html.*;
 import static rsp.state.UseState.useState;
 
 public class Edit<T> implements Component<DetailsViewState<T>> {
-
     private final Function<UseState<T>, Form> formFunction;
     public Edit(Function<UseState<T>, Form> formFunction) {
         this.formFunction = formFunction;
     }
-
 
     @Override
     public DocumentPartDefinition render(UseState<DetailsViewState<T>> us) {
@@ -26,6 +24,4 @@ public class Edit<T> implements Component<DetailsViewState<T>> {
                                                    .render(useState(() -> new Form.State(us.get().validationErrors),
                                                                      v -> us.accept(us.get().withValidationErrors(v.validationErrors)))));
     }
-
-
 }
