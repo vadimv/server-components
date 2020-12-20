@@ -129,7 +129,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                 us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                         new HashSet<>())))).join();
             } else {
-                us.accept(us.get());
+                us.accept(us.get().withEdit(editState));
             }
         });
     }
