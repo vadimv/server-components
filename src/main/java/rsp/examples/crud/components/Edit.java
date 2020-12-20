@@ -19,9 +19,9 @@ public class Edit<T> implements Component<DetailsViewState<T>> {
     @Override
     public DocumentPartDefinition render(UseState<DetailsViewState<T>> us) {
         return div(span("Edit"),
-                   formFunction.apply(useState(() -> us.get().currentValue.get(),
-                                            v -> us.accept(us.get().withValue(v).withValidationErrors(Collections.EMPTY_MAP))))
-                                                   .render(useState(() -> new Form.State(us.get().validationErrors),
-                                                                     v -> us.accept(us.get().withValidationErrors(v.validationErrors)))));
+                   of(us.get().currentValue.map(currentValue -> formFunction.apply(useState(() -> currentValue,
+                                                v -> us.accept(us.get().withValue(v).withValidationErrors(Collections.EMPTY_MAP))))
+                                                       .render(useState(() -> new Form.State(us.get().validationErrors),
+                                                                         v -> us.accept(us.get().withValidationErrors(v.validationErrors))))).stream()));
     }
 }
