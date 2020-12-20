@@ -129,7 +129,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                 us.accept(us.get().withList(new DataGrid.Table<>(entities.toArray(new KeyedEntity[0]),
                                         new HashSet<>())))).join();
             } else {
-                us.accept(us.get().withEdit(editState));
+                us.accept(us.get().hideDetails());
             }
         });
     }
@@ -153,6 +153,10 @@ public class Resource<T> implements Component<Resource.State<T>> {
 
         public State withEdit(DetailsViewState<T> edit) {
             return new State(name, list, Optional.of(edit));
+        }
+
+        public State hideDetails() {
+            return new State(name, list, Optional.empty());
         }
 
         public State withEditData(KeyedEntity<String, T> data) {
