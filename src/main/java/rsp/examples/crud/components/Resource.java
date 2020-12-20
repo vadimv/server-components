@@ -100,10 +100,10 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                                              us.accept(us.get().withEditData(keo.get()))).join(),
                                                                                                          () -> us.accept(us.get().withList(gridState))))),
 
-                when(us.get().details.isPresent() && us.get().details.get().visible && !us.get().details.get().currentKey.isPresent(),
+                when(us.get().details.isPresent() && !us.get().details.get().currentKey.isPresent(),
                         () -> of(createComponent.map(cc -> cc.render(detailsViewState(us))).stream())),
 
-                when(us.get().details.isPresent() && us.get().details.get().visible && us.get().details.get().currentKey.isPresent(),
+                when(us.get().details.isPresent() && us.get().details.get().currentKey.isPresent(),
                         () -> of(editComponent.map(ec -> ec.render(detailsViewState(us))).stream())));
     }
 
