@@ -83,7 +83,12 @@ public class Admin {
                                                                          .thenAccept(s -> us.accept(s)))),
                     head(title(title + us.get().currentResource.map(r -> ": " + r.title).orElse("")),
                          link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
-                    body(us.get().user.map(u -> div(new MenuPanel().render(useState(() ->
+                    body(us.get().user.map(u -> div(div(span(u.name),
+                                                        a("#", "Logout", on("click", ctx -> {
+                                                            principals.remove(ctx.sessionId().deviceId);
+                                                            us.accept(us.get().withoutPrincipal());
+                                                         }))),
+                                                    new MenuPanel().render(useState(() ->
                                         new MenuPanel.State(Arrays.stream(resources).map(r -> new Tuple2<>(r.name, r.title)).collect(Collectors.toList())))),
                                 div(of(us.get().currentResource.flatMap(r -> findResourceComponent(r)).map(p -> p._2.render(useState(() -> p._1,
                                                                                                                             v -> us.accept(us.get().withResource(Optional.of(v)))))).stream()))))
