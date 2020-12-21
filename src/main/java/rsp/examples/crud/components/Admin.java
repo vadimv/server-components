@@ -90,7 +90,6 @@ public class Admin {
                                                                                                                             v -> us.accept(us.get().withResource(Optional.of(v)))))).stream()))))
 
 
-
                                 .orElse(div(new LoginForm().render(useState(() -> new LoginForm.State(),
                                                                lfs -> auth.authenticate(lfs.userName, lfs.password)
                                                                             .thenAccept(po -> po.ifPresentOrElse(p -> lfs.deviceId.ifPresent(id -> {
