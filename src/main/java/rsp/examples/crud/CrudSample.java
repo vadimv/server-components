@@ -7,6 +7,10 @@ import rsp.examples.crud.entities.Book;
 import rsp.examples.crud.services.EntityService;
 import rsp.examples.crud.services.SimpleDb;
 import rsp.jetty.JettyServer;
+import rsp.server.StaticResources;
+
+import java.io.File;
+import java.util.Optional;
 
 
 public class CrudSample {
@@ -48,8 +52,10 @@ public class CrudSample {
                                                      new EditForm<String, Book>(new InitialValue<>(new TextInput<>("title", s -> s), "")))));
 */
         final var s = new JettyServer(DEFAULT_PORT,
-                "/",
-                admin.app());
+                                    "/",
+                                      admin.app(),
+                                      new StaticResources(new File("src/main/java/rsp/examples/crud"),
+                                                                               "/res/*"));
         s.start();
         s.join();
     }

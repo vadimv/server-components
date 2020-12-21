@@ -81,6 +81,7 @@ public class Admin {
         return html(window().on("popstate",
                                 ctx -> ctx.eventObject().apply("path").ifPresent(path -> dispatch(us.get().user, Path.of(path))
                                                                          .thenAccept(s -> us.accept(s)))),
+                    head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
                     body(
                         us.get().user.map(u -> div(new MenuPanel().render(useState(() ->
                                         new MenuPanel.State(Arrays.stream(resources).map(r -> new Tuple2<>(r.name, r.title)).collect(Collectors.toList())))),

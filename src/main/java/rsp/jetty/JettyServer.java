@@ -46,8 +46,8 @@ public final class JettyServer {
         this.maxThreads = maxThreads;
     }
 
-    public JettyServer(int port, String basePath, App app, Optional<StaticResources> staticResources) {
-        this(port, basePath, app, staticResources, app.config.webServerMaxThreads);
+    public JettyServer(int port, String basePath, App app, StaticResources staticResources) {
+        this(port, basePath, app, Optional.of(staticResources), app.config.webServerMaxThreads);
     }
 
     public JettyServer(int port, String basePath, App app) {

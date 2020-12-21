@@ -12,6 +12,7 @@ import static rsp.state.UseState.useState;
 
 public class Edit<T> implements Component<DetailsViewState<T>> {
     private final Function<UseState<T>, Form> formFunction;
+
     public Edit(Function<UseState<T>, Form> formFunction) {
         this.formFunction = formFunction;
     }

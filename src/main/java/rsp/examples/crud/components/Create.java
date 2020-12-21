@@ -13,6 +13,7 @@ import static rsp.state.UseState.useState;
 
 public class Create<T> implements Component<DetailsViewState<T>> {
     private final Function<Consumer<T>, Form> formFunction;
+
     public Create(Function<Consumer<T>, Form> formFunction) {
         this.formFunction = formFunction;
     }

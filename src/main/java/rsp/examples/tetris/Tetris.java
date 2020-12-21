@@ -63,8 +63,8 @@ public class Tetris {
                                      "",
                                       new App(State.initialState(),
                                               render),
-                                      Optional.of(new StaticResources(new File("src/main/java/rsp/examples/tetris"),
-                                                                     "/res/*")));
+                                      new StaticResources(new File("src/main/java/rsp/examples/tetris"),
+                                                                   "/res/*"));
         s.start();
         s.join();
     }

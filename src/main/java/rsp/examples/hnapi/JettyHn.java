@@ -71,8 +71,8 @@ public class JettyHn {
                                                                                                               r.toArray(State.Story[]::new),
                                                                                                              0))),
                                                     render),
-                                            Optional.of(new StaticResources(new File("src/main/java/rsp/examples/hnapi"),
-                                                    "/res/*")));
+                                                    new StaticResources(new File("src/main/java/rsp/examples/hnapi"),
+                                                                   "/res/*"));
         server.start();
         server.join();
     }
