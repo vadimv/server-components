@@ -56,19 +56,19 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
 
-    public CompletableFuture<Resource.State<T>> initialListState(String name) {
+    public CompletableFuture<Resource.State<T>> initialListState() {
         return entityService.getList(0, DEFAULT_PAGE_SIZE)
                 .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]), new HashSet<>()))
-                .thenApply(gridState -> new Resource.State<>(name, gridState, Optional.empty()));
+                .thenApply(gridState -> new Resource.State<>(name, title, gridState, Optional.empty()));
     }
 
-    public CompletableFuture<Resource.State<T>> initialListStateWithEdit(String resourceName, String key) {
+    public CompletableFuture<Resource.State<T>> initialListStateWithEdit(String key) {
             return entityService.getList(0, DEFAULT_PAGE_SIZE)
                 .thenApply(entities -> new DataGrid.Table<String, T>(entities.toArray(new KeyedEntity[0]),
                                                                      new HashSet<>()))
                 .thenCombine(entityService.getOne(key).thenApply(keo -> new DetailsViewState(keo.map(ke -> ke.data),
                                                                                              keo.map(ke -> ke.key))),
-                        (gridState, edit) ->  new Resource.State<>(resourceName, gridState, Optional.of(edit)));
+                        (gridState, edit) ->  new Resource.State<>(name, title, gridState, Optional.of(edit)));
     }
 
 
@@ -136,35 +136,38 @@ public class Resource<T> implements Component<Resource.State<T>> {
 
     public static class State<T> {
         public final String name;
+        public final String title;
         public final DataGrid.Table<String, T> list;
         public final Optional<DetailsViewState<T>> details; //TODO to Optional<DetailsViewState<T>> , verify DetailsViewState.isActive
 
         public State(String name,
+                     String title,
                      DataGrid.Table<String, T> list,
                      Optional<DetailsViewState<T>> details) {
             this.name = name;
+            this.title = title;
             this.list = list;
             this.details = details;
         }
 
         public State withList(DataGrid.Table<?, ?> gs) {
-            return new State(name, gs, Optional.empty());
+            return new State(name, title, gs, Optional.empty());
         }
 
         public State withEdit(DetailsViewState<T> edit) {
-            return new State(name, list, Optional.of(edit));
+            return new State(name, title, list, Optional.of(edit));
         }
 
         public State hideDetails() {
-            return new State(name, list, Optional.empty());
+            return new State(name, title, list, Optional.empty());
         }
 
         public State withEditData(KeyedEntity<String, T> data) {
-            return new State(name, list, Optional.of(new DetailsViewState<T>(Optional.of(data.data), Optional.of(data.key))));
+            return new State(name, title, list, Optional.of(new DetailsViewState<T>(Optional.of(data.data), Optional.of(data.key))));
         }
 
         public State withCreate() {
-            return new State(name, list, Optional.of(new DetailsViewState(Optional.empty(), Optional.empty())));
+            return new State(name, title, list, Optional.of(new DetailsViewState(Optional.empty(), Optional.empty())));
         }
 
     }

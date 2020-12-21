@@ -47,9 +47,9 @@ public class Admin {
                                                 (name) -> CompletableFuture.completedFuture(new Admin.State(Optional.empty(), Optional.empty())));
         for (Resource<?> resource : resources) {
             final Path.Matcher<State> sm = m.when((name) -> name.equals(resource.name),
-                                                  (name) -> resource.initialListState(name).thenApply(resourceState -> new State(principal, Optional.of(resourceState))))
+                                                  (name) -> resource.initialListState().thenApply(resourceState -> new State(principal, Optional.of(resourceState))))
                                             .when((name, key) -> name.equals(resource.name),
-                                                  (name, key) -> resource.initialListStateWithEdit(name, key).thenApply(resourceState -> new State(principal, Optional.of(resourceState))));
+                                                  (name, key) -> resource.initialListStateWithEdit(key).thenApply(resourceState -> new State(principal, Optional.of(resourceState))));
             if (sm.isMatch) {
                 return sm.state;
             }
@@ -81,7 +81,8 @@ public class Admin {
         return html(window().on("popstate",
                                 ctx -> ctx.eventObject().apply("path").ifPresent(path -> dispatch(us.get().user, Path.of(path))
                                                                          .thenAccept(s -> us.accept(s)))),
-                    head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
+                    head(title(title + us.get().currentResource.map(r -> ": " + r.title).orElse("")),
+                         link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
                     body(
                         us.get().user.map(u -> div(new MenuPanel().render(useState(() ->
                                         new MenuPanel.State(Arrays.stream(resources).map(r -> new Tuple2<>(r.name, r.title)).collect(Collectors.toList())))),
