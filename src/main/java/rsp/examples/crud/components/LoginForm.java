@@ -31,7 +31,7 @@ public class LoginForm implements Component<LoginForm.State> {
                                 }),
                 new TextInput("username", TextInput.Type.TEXT, "Username","").render(useState(() -> us.get().userNameValidationError)),
                 new TextInput("password", TextInput.Type.PASSWORD, "Password", "").render(useState(() -> us.get().passwordVaildationError)),
-                button(attr("type", "submit"), text("Ok")),
+                button(attr("type", "submit"), text("Login")),
                 of(us.get().loginValidationError.stream().map(lve -> span(lve)))));
     }
 
