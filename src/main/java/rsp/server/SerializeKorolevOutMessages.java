@@ -126,7 +126,7 @@ public final class SerializeKorolevOutMessages implements OutMessages {
     private String modifyDomMessageBody(DomChange domChange) {
         if (domChange instanceof RemoveAttr) {
             final RemoveAttr c = (RemoveAttr)domChange;
-            return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), true);
+            return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), c.isProperty);
         } else if (domChange instanceof RemoveStyle) {
             final RemoveStyle c = (RemoveStyle)domChange;
             return joinString(REMOVE_STYLE, quote(c.path), quote(escape(c.name)), false);

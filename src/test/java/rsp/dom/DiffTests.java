@@ -90,7 +90,7 @@ public class DiffTests {
         }
 
         @Override
-        public void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name) {
+        public void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name,  boolean isProperty) {
             sb.append("-A:" + id + " ");
         }
 

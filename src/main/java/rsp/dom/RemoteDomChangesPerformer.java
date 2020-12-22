@@ -10,8 +10,8 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override
-    public void removeAttr(VirtualDomPath path, XmlNs xmlNs, String name) {
-        commands.add(new RemoveAttr(path, xmlNs, name));
+    public void removeAttr(VirtualDomPath path, XmlNs xmlNs, String name, boolean isProperty) {
+        commands.add(new RemoveAttr(path, xmlNs, name, isProperty));
     }
 
     @Override
@@ -51,10 +51,13 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
         public final VirtualDomPath path;
         public final XmlNs xmlNs;
         public final String name;
-        public RemoveAttr(VirtualDomPath path, XmlNs xmlNs, String name) {
+        public final boolean isProperty;
+
+        public RemoveAttr(VirtualDomPath path, XmlNs xmlNs, String name, boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
+            this.isProperty = isProperty;
         }
     }
 

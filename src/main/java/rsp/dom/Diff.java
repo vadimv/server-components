@@ -32,7 +32,7 @@ public final class Diff {
         final var w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
         c.forEach(attribute ->  {
-            performer.removeAttr(path, XmlNs.html, attribute.name);
+            performer.removeAttr(path, XmlNs.html, attribute.name, attribute.isProperty);
         });
         w.removeAll(ca);
         w.forEach(attribute -> {

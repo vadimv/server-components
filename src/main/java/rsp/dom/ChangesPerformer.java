@@ -1,7 +1,7 @@
 package rsp.dom;
 
 public interface ChangesPerformer {
-    void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name);
+    void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name, boolean isProperty);
     void removeStyle(VirtualDomPath id, String name);
     void remove(VirtualDomPath parentId, VirtualDomPath id);
     void setAttr(VirtualDomPath id, XmlNs xmlNs, String name, String value, boolean isProperty);
