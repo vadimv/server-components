@@ -14,7 +14,8 @@ public class LoginForm implements Component<LoginForm.State> {
 
     @Override
     public DocumentPartDefinition render(UseState<State> us) {
-        return div(form(on("submit",
+        return div(attr("class", "login"),
+                   form(on("submit",
                             c -> {
                                 final String userName = c.eventObject().apply("username")
                                                                        .flatMap(s -> s.isBlank() ? Optional.empty() : Optional.of(s.trim()))
