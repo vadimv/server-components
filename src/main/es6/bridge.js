@@ -82,6 +82,7 @@ export class Bridge {
       case 12: k.listFiles.apply(k, commands); break;
       case 13: k.uploadFile.apply(k, commands); break;
       case 14: k.resetForm.apply(k, commands); break;
+      case 15: k.forgetEvent.apply(k, commands); break;
       default: console.error(`Procedure ${pCode} is undefined`);
     }
   }

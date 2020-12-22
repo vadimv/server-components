@@ -73,8 +73,8 @@ export class Korolev {
     this.els = {};
     /** @type {number} */
     this.renderNum = 0;
-    /** @type {Array} */
-    this.rootListeners = [];
+    /** @type {Object} */
+    this.listeners = {};
     /** @type {?function(Event)} */
     this.historyHandler = null;
     /** @type {string} */
@@ -91,7 +91,7 @@ export class Korolev {
     window.vId = VirtualDomPaths.WINDOW_PATH;
     document.vId = VirtualDomPaths.DOCUMENT_PATH;
 
-    this.listenRoot = (target, name, preventDefault, eventModifier) => {
+    this.listen = (target, name, preventDefault, eventModifier) => {
       var listener = (event) => {
         if (event.target.vId) {
           if (preventDefault) {
@@ -136,7 +136,8 @@ export class Korolev {
 
       let me = eventModifier && eventModifier != EventModifierType.NO_EVENT_MODIFIER.toString();
       target.addEventListener(name, me ? this.createEventModifier(eventModifier, listener) : listener);
-      this.rootListeners.push({ 'listener': listener, 'type': name });
+      let eventKey = target.vId + '-' + name;
+      this.listeners[eventKey] = { 'target': target, 'listener': listener, 'type': name };
     };
   }
 
@@ -146,10 +147,9 @@ export class Korolev {
   }
 
   destroy() {
-    // Remove root listeners
-    this.rootListeners.forEach((o) => this.root.removeEventListener(o.type, o.listener));
-    // Remove popstate handler
-    window.removeEventListener('popstate', this.historyHandler);
+    // Remove listeners
+    Object.keys(this.listeners).forEach((key) => this.listeners[key].target.removeEventListener(this.listeners[key].type,
+                                                                                                this.listeners[key].listener));
   }
   
   /** @param {number} n */
@@ -190,7 +190,19 @@ export class Korolev {
     */
   listenEvent(type, preventDefault, path, eventModifier) {
     let target = path === window.vId ? window : this.els[path];
-    this.listenRoot(target, type, preventDefault, eventModifier);
+    this.listen(target, type, preventDefault, eventModifier);
+  }
+
+    /**
+    * @param {string} type
+    * @param {string} path
+    */
+  forgetEvent(type, path) {
+    let target = path === window.vId ? window : this.els[path];
+    let eventKey = path + '-' + type;
+    let eventEntry = this.listeners[eventKey];
+    eventEntry.target.removeEventListener(type, eventEntry.listener);
+    delete this.listeners[eventKey];
   }
 
   /**

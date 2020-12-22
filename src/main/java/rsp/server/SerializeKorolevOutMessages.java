@@ -14,7 +14,7 @@ import static rsp.util.JsonUtils.escape;
 public final class SerializeKorolevOutMessages implements OutMessages {
     private static final int SET_RENDER_NUM = 0; // (n)
     private static final int CLEAN_ROOT = 1; // ()
-    private static final int LISTEN_EVENT = 2; // (type, preventDefault)
+    private static final int LISTEN_EVENT = 2; // (type, preventDefault, id, modifier)
     private static final int EXTRACT_PROPERTY = 3; // (descriptor, id, propertyName )
     private static final int MODIFY_DOM = 4; // (commands)
     private static final int FOCUS = 5; // (id) {
@@ -27,6 +27,7 @@ public final class SerializeKorolevOutMessages implements OutMessages {
     private static final int LIST_FILES = 12; // (id, descriptor)
     private static final int UPLOAD_FILE = 13; // (id, descriptor, fileName)
     private static final int REST_FORM = 14; // (id)
+    private static final int FORGET_EVENT = 15; // (type, id)
 
     // MODIFY_DOM commands
     private static final int  CREATE = 0; // (id, childId, xmlNs, tag)
@@ -64,10 +65,18 @@ public final class SerializeKorolevOutMessages implements OutMessages {
     @Override
     public void listenEvent(String eventType, boolean preventDefault, VirtualDomPath path, Event.Modifier modifier) {
         final String message = addSquareBrackets(joinString(LISTEN_EVENT,
-                                                                    quote(escape(eventType)),
-                                                                    preventDefault,
-                                                                    quote(path.toString()),
-                                                                    quote(modifierString(modifier))));
+                                                            quote(escape(eventType)),
+                                                            preventDefault,
+                                                            quote(path.toString()),
+                                                            quote(modifierString(modifier))));
+        messagesConsumer.accept(message);
+    }
+
+    @Override
+    public void forgetEvent(String eventType, VirtualDomPath path) {
+        final String message = addSquareBrackets(joinString(FORGET_EVENT,
+                                                            quote(escape(eventType)),
+                                                            quote(path.toString())));
         messagesConsumer.accept(message);
     }
 

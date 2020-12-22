@@ -1,9 +1,12 @@
 package rsp.dom;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class RemoteDomChangesPerformer implements ChangesPerformer {
+    public final Set<VirtualDomPath> elementsToRemove = new HashSet<>();
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override
@@ -19,6 +22,7 @@ public final class RemoteDomChangesPerformer implements ChangesPerformer {
     @Override
     public void remove(VirtualDomPath parentPath, VirtualDomPath path) {
         commands.add(new Remove(parentPath, path));
+        elementsToRemove.add(path);
     }
 
     @Override

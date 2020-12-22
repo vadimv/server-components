@@ -85,16 +85,29 @@ public final class LivePage<S> implements InMessages, Schedule {
 
             out.modifyDom(remoteChangePerformer.commands);
 
-            // Register new event types on client
-            final Set<Event> newEvents = new HashSet<>();
             final Set<Event> oldEvents = new HashSet<>(currentState.get().events.values());
-            for(Event event : newContext.events.values()) {
-                if(!oldEvents.contains(event)) {
-                    newEvents.add(event);
+            final Set<Event> newEvents = new HashSet<>(newContext.events.values());
+            // Unregister events
+            final Set<Event> eventsToRemove = new HashSet<>();
+            for(Event event : oldEvents) {
+                if(!newEvents.contains(event) && !remoteChangePerformer.elementsToRemove.contains(event.eventTarget.elementPath)) {
+                    eventsToRemove.add(event);
                 }
             }
-            newEvents.stream()
-                     .forEach(event -> {
+            eventsToRemove.forEach(event -> {
+                final Event.Target eventTarget = event.eventTarget;
+                out.forgetEvent(eventTarget.eventType,
+                                eventTarget.elementPath);
+            });
+
+            // Register new event types on client
+            final Set<Event> eventsToAdd = new HashSet<>();
+            for(Event event : newEvents) {
+                if(!oldEvents.contains(event)) {
+                    eventsToAdd.add(event);
+                }
+            }
+            eventsToAdd.forEach(event -> {
                         final Event.Target eventTarget = event.eventTarget;
                         out.listenEvent(eventTarget.eventType,
                                         event.preventDefault,
