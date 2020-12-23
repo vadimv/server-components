@@ -32,16 +32,16 @@ public class CrudSample {
                                                                        new Column<>(e -> new EditButton())),
                                                         new Edit<>(d -> new Form(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                 new TextInput("name",
-                                                                                TextInput.Type.TEXT,
-                                                                                "Name",
-                                                                                d.get().toString(),
-                                                                                new RequiredValidation()))),
+                                                                               TextInput.Type.TEXT,
+                                                                               "Name",
+                                                                               d.get().toString(),
+                                                                               new RequiredValidation()))),
                                                         new Create<>(d -> new Form(m -> m.apply("name").ifPresent(v -> d.accept(Author.of(v))),
                                                                                         new TextInput("name",
-                                                                                            TextInput.Type.TEXT,
-                                                                                            "Name",
-                                                                                            "",
-                                                                                                 new RequiredValidation())))));
+                                                                                                      TextInput.Type.TEXT,
+                                                                                                      "Name",
+                                                                                                      "",
+                                                                                                      new RequiredValidation())))));
 
                 /*
                                       new Resource<Book>("books",
