@@ -66,7 +66,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override
             public void onMessage(String s) {
-                log.trace(l -> l.log("-> " + s));
+                log.trace(l -> l.log(session.getId() + " -> " + s));
                 in.parse(s);
             }
         });
@@ -76,7 +76,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private void sendText(Session session, String text) {
         try {
-            log.trace(l -> l.log("<- " + text));
+            log.trace(l -> l.log(session.getId() + " <- " + text));
             session.getBasicRemote().sendText(text);
         } catch (IOException ioException) {
             throw new RuntimeException(ioException);
