@@ -2,13 +2,16 @@ package rsp.examples.tetris;
 
 import rsp.App;
 import rsp.Component;
+import rsp.examples.crud.entities.Principal;
 import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
 
 import java.io.File;
 import java.nio.CharBuffer;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -19,7 +22,7 @@ public class Tetris {
     public static final int DEFAULT_PORT = 8080;
 
     public static void main(String[] args) throws Exception {
-        final AtomicReference<ScheduledFuture<?>> timer = new AtomicReference();
+        final Map<String, ScheduledFuture<?>> timers = new ConcurrentHashMap<>();
         final Component<State> render = useState ->
             html(on("keydown",  c -> {
                         final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
@@ -44,13 +47,13 @@ public class Tetris {
                                text("Start"),
                                on("click", c -> {
                                        State.initialState().start().newTetramino().ifPresent(ns -> useState.accept(ns));
-                                           timer.set(c.scheduleAtFixedRate(() -> {
+                                           timers.put(c.sessionId().sessionId, c.scheduleAtFixedRate(() -> {
                                                final State s = useState.get();
                                                s.tryMoveDown().ifPresentOrElse(ns -> {
                                                   useState.accept(ns);
                                                }, () -> {
                                                    s.newTetramino().ifPresentOrElse(ns -> useState.accept(ns), () -> {
-                                                       timer.get().cancel(false);
+                                                       timers.get(c.sessionId().sessionId).cancel(false);
                                                        useState.accept(s.stop());
                                                    });
                                                });
