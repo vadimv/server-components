@@ -82,7 +82,7 @@ public class DiffTests {
         Assert.assertEquals("+A:1,attr1,value1", cp.resultAsString());
     }
 
-    static class TestChangesPerformer implements ChangesPerformer {
+    static class TestChangesPerformer implements DomChangesPerformer {
         final StringBuilder sb = new StringBuilder();
 
         public String resultAsString() {
