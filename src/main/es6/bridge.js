@@ -43,13 +43,14 @@ export class Bridge {
 
   /**
    * @param {CallbackType} type
-   * @param {string} [args]
+   * @param {string} [argsString]
+   * @param {Object} [eventObject]
    */
-  _onCallback(type, args, eventObject) {
+  _onCallback(type, argsString, eventObject) {
     let messageArr = [];
     messageArr.push(type);
-    if (args) {
-        messageArr.push(args);
+    if (argsString) {
+        messageArr.push(argsString);
     }
     if (eventObject) {
         messageArr.push(eventObject);
