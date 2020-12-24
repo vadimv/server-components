@@ -68,7 +68,7 @@ export class Korolev {
     /** @type {Object} */
     this.config = config;
     /** @type {HTMLElement} */
-    this.root = document.children[0];
+    this.root = document.documentElement;
     /** @type {Object<Element>} */
     this.els = {};
     /** @type {number} */
@@ -117,20 +117,20 @@ export class Korolev {
             result.hash = window.location.hash;
         } else if (eventType == 'submit') {
             var formData = new FormData(e.target);
-            formData.forEach(function(value, key) {
-                result[key] = value;
-            });
+            for (var pair of formData.entries()) {
+                result[pair[0]] = pair[1];
+            }
         }
         return result;
       }
 
       this.createEventModifier = (eventModifier, listener) => {
          let mArray = eventModifier.split(':');
-         let eventModifierType = parseInt(mArray[0]);
+         let eventModifierType = parseInt(mArray[0], 10);
          if (eventModifierType === EventModifierType.THROTTLE_EVENT_MODIFIER) {
-            return throttle(listener, parseInt(mArray[1]));
+            return throttle(listener, parseInt(mArray[1]), 10);
          } else if(eventModifierType === EventModifierType.DEBOUNCE_EVENT_MODIFIER) {
-            return debounce(listener, parseInt(mArray[1]), mArray[2] === 'true');
+            return debounce(listener, parseInt(mArray[1], 10), mArray[2] === 'true');
          }
       }
 
