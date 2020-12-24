@@ -117,7 +117,9 @@ export class Korolev {
             result.hash = window.location.hash;
         } else if (eventType == 'submit') {
             var formData = new FormData(e.target);
-            for (var pair of formData.entries()) {
+            /** @suppress {missingProperties} */
+            var entries = formData.entries();
+            for (var pair of entries) {
                 result[pair[0]] = pair[1];
             }
         }
@@ -148,8 +150,10 @@ export class Korolev {
 
   destroy() {
     // Remove listeners
-    Object.keys(this.listeners).forEach((key) => this.listeners[key].target.removeEventListener(this.listeners[key].type,
-                                                                                                this.listeners[key].listener));
+    if (this.listeners) {
+        Object.keys(this.listeners).forEach((key) => this.listeners[key].target.removeEventListener(this.listeners[key].type,
+                                                                                                    this.listeners[key].listener));
+    }
   }
   
   /** @param {number} n */
