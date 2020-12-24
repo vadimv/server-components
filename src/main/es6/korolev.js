@@ -79,7 +79,7 @@ export class Korolev {
     this.historyHandler = null;
     /** @type {string} */
     this.initialPath = window.location.pathname;
-    /** @type {function(CallbackType, string)} */
+    /** @type {Function} */
     this.callback = callback;
     /** @type {Array} */
     this.eventData = [];
@@ -542,7 +542,7 @@ export class Korolev {
         (res) => this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:0`, res),
         (err) => {
           console.error(`Error evaluating code ${code}`, err);
-          this.callback(CallbackType.EVALJS_RESPONSE,`${descriptor}:1:err}`)
+          this.callback(CallbackType.EVALJS_RESPONSE, `${descriptor}:1:err}`)
         }
       );
     } else {
