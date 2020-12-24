@@ -69,7 +69,7 @@ export class Korolev {
     this.config = config;
     /** @type {HTMLElement} */
     this.root = document.documentElement;
-    /** @type {Object<Element>} */
+    /** @type {Object} */
     this.els = {};
     /** @type {number} */
     this.renderNum = 0;
@@ -124,18 +124,18 @@ export class Korolev {
         return result;
       }
 
-      this.createEventModifier = (eventModifier, listener) => {
+      var createEventModifier = (eventModifier, listener) => {
          let mArray = eventModifier.split(':');
          let eventModifierType = parseInt(mArray[0], 10);
          if (eventModifierType === EventModifierType.THROTTLE_EVENT_MODIFIER) {
-            return throttle(listener, parseInt(mArray[1]), 10);
+            return throttle(listener, parseInt(mArray[1], 10));
          } else if(eventModifierType === EventModifierType.DEBOUNCE_EVENT_MODIFIER) {
             return debounce(listener, parseInt(mArray[1], 10), mArray[2] === 'true');
          }
       }
 
       let me = eventModifier && eventModifier != EventModifierType.NO_EVENT_MODIFIER.toString();
-      target.addEventListener(name, me ? this.createEventModifier(eventModifier, listener) : listener);
+      target.addEventListener(name, me ? createEventModifier(eventModifier, listener) : listener);
       let eventKey = target.vId + '-' + name;
       this.listeners[eventKey] = { 'target': target, 'listener': listener, 'type': name };
     };
