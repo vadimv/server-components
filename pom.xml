@@ -8,6 +8,14 @@
     <artifactId>core</artifactId>
     <version>0.1-SNAPSHOT</version>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/vadimv/reactive-server-pages</url>
+        </repository>
+    </distributionManagement>
+
     <properties>
         <junit.version>4.12</junit.version>
         <jetty.version>9.4.31.v20200723</jetty.version>
