@@ -19,6 +19,26 @@ import { Connection } from './connection.js';
 
 const ProtocolDebugEnabledKey = "$bridge.protocolDebugEnabled";
 
+/** @enum {number} */
+const MessageType = {
+    SET_RENDER_NUM: 0,
+    CLEAN_ROOT: 1,
+    LISTEN_EVENT: 2,
+    EXTRACT_PROPERTY: 3,
+    MODIFY_DOM: 4,
+    FOCUS: 5,
+    CHANGE_PAGE_URL: 6,
+    UPLOAD_FORM: 7,
+    RELOAD_CSS: 8,
+    KEEP_ALIVE: 9,
+    EVAL_JS: 10,
+    EXTRACT_EVENT_DATA: 11,
+    LIST_FILES: 12,
+    UPLOAD_FILE: 13,
+    REST_FORM: 14,
+    FORGET_EVENT: 15
+}
+
 var protocolDebugEnabled = window.localStorage.getItem(ProtocolDebugEnabledKey) === 'true';
 
 export class Bridge {
@@ -68,22 +88,22 @@ export class Bridge {
     let pCode = commands.shift();
     let k = this._korolev;
     switch (pCode) {
-      case 0: k.setRenderNum.apply(k, commands); break;
-      case 1: k.cleanRoot.apply(k, commands); break;
-      case 2: k.listenEvent.apply(k, commands); break;
-      case 3: k.extractProperty.apply(k, commands); break;
-      case 4: k.modifyDom(commands); break;
-      case 5: k.focus.apply(k, commands); break;
-      case 6: k.setLocation.apply(k, commands); break;
-      case 7: k.uploadForm.apply(k, commands); break;
-      case 8: k.reloadCss.apply(k, commands); break;
-      case 9: break;
-      case 10: k.evalJs.apply(k, commands); break;
-      case 11: k.extractEventData.apply(k, commands); break;
-      case 12: k.listFiles.apply(k, commands); break;
-      case 13: k.uploadFile.apply(k, commands); break;
-      case 14: k.resetForm.apply(k, commands); break;
-      case 15: k.forgetEvent.apply(k, commands); break;
+      case MessageType.SET_RENDER_NUM: k.setRenderNum.apply(k, commands); break;
+      case MessageType.CLEAN_ROOT: k.cleanRoot.apply(k, commands); break;
+      case MessageType.LISTEN_EVENT: k.listenEvent.apply(k, commands); break;
+      case MessageType.EXTRACT_PROPERTY: k.extractProperty.apply(k, commands); break;
+      case MessageType.MODIFY_DOM: k.modifyDom(commands); break;
+      case MessageType.FOCUS: k.focus.apply(k, commands); break;
+      case MessageType.CHANGE_PAGE_URL: k.setLocation.apply(k, commands); break;
+      case MessageType.UPLOAD_FORM: k.uploadForm.apply(k, commands); break;
+      case MessageType.RELOAD_CSS: k.reloadCss.apply(k, commands); break;
+      case MessageType.KEEP_ALIVE: break;
+      case MessageType.EVAL_JS: k.evalJs.apply(k, commands); break;
+      case MessageType.EXTRACT_EVENT_DATA: k.extractEventData.apply(k, commands); break;
+      case MessageType.LIST_FILES: k.listFiles.apply(k, commands); break;
+      case MessageType.UPLOAD_FILE: k.uploadFile.apply(k, commands); break;
+      case MessageType.REST_FORM: k.resetForm.apply(k, commands); break;
+      case MessageType.FORGET_EVENT: k.forgetEvent.apply(k, commands); break;
       default: console.error(`Procedure ${pCode} is undefined`);
     }
   }
