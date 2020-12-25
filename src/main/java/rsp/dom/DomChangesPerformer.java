@@ -1,6 +1,6 @@
 package rsp.dom;
 
-public interface ChangesPerformer {
+public interface DomChangesPerformer {
     void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name, boolean isProperty);
     void removeStyle(VirtualDomPath id, String name);
     void remove(VirtualDomPath parentId, VirtualDomPath id);

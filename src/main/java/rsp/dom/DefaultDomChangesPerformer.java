@@ -5,7 +5,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class RemoteDomChangesPerformer implements ChangesPerformer {
+public final class DefaultDomChangesPerformer implements DomChangesPerformer {
     public final Set<VirtualDomPath> elementsToRemove = new HashSet<>();
     public final List<DomChange> commands = new ArrayList<>();
 

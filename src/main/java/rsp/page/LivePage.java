@@ -74,23 +74,24 @@ public final class LivePage<S> implements InMessages, Schedule {
                                                                                 Optional.empty(),
                                                                                 new HashMap<>(),
                                                                                 new HashMap<>()));
+
         final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
             final DomTreeRenderContext newContext = new DomTreeRenderContext();
             documentDefinition.render(self).accept(enrich.apply(qsid.sessionId, newContext));
 
-            // calculate diff between currentContext and newContext
+            // Calculate diff between currentContext and newContext
             final var currentRoot = currentState.get().domRoot;
-            final var remoteChangePerformer = new RemoteDomChangesPerformer();
-            new Diff(currentRoot, newContext.root, remoteChangePerformer).run();
+            final var domChangePerformer = new DefaultDomChangesPerformer();
+            new Diff(currentRoot, newContext.root, domChangePerformer).run();
+            out.modifyDom(domChangePerformer.commands);
 
-            out.modifyDom(remoteChangePerformer.commands);
-
+            // Events
             final Set<Event> oldEvents = new HashSet<>(currentState.get().events.values());
             final Set<Event> newEvents = new HashSet<>(newContext.events.values());
             // Unregister events
             final Set<Event> eventsToRemove = new HashSet<>();
             for(Event event : oldEvents) {
-                if(!newEvents.contains(event) && !remoteChangePerformer.elementsToRemove.contains(event.eventTarget.elementPath)) {
+                if(!newEvents.contains(event) && !domChangePerformer.elementsToRemove.contains(event.eventTarget.elementPath)) {
                     eventsToRemove.add(event);
                 }
             }
@@ -114,11 +115,14 @@ public final class LivePage<S> implements InMessages, Schedule {
                                         eventTarget.elementPath,
                                         event.modifier);
                     });
+
+            // Browser's navigation
             final Path oldPath = currentState.get().path;
             final Path newPath = state2route.stateToPath.apply(newState);
             if (!newPath.equals(oldPath)) {
                 out.pushHistory(state2route.basePath.resolve(newPath).toString());
             }
+
             currentState.accept(new Snapshot(newPath, Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
 

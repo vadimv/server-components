@@ -2,7 +2,7 @@ package rsp.page;
 
 import rsp.dom.XmlNs;
 import rsp.dom.VirtualDomPath;
-import rsp.dom.RemoteDomChangesPerformer;
+import rsp.dom.DefaultDomChangesPerformer;
 import rsp.server.OutMessages;
 
 import java.util.List;
@@ -46,7 +46,7 @@ public final class PropertiesHandle {
     }
 
     public CompletableFuture<Void> set(String propertyName, String value) {
-        out.modifyDom(List.of(new RemoteDomChangesPerformer.SetAttr(path, XmlNs.html, propertyName, value, true)));
+        out.modifyDom(List.of(new DefaultDomChangesPerformer.SetAttr(path, XmlNs.html, propertyName, value, true)));
         return new CompletableFuture<>();
     }
 
