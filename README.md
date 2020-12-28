@@ -20,12 +20,14 @@ and [Tetris](https://github.com/vadimv/reactive-server-pages/blob/master/src/mai
 
 ## How it works
 
-A self-hosted Java server process renders initial HTML markup with a 10Kb JavaScript client-side program. 
+On an HTTP request, a self-hosted Java web server process renders initial HTML markup with a 10Kb JavaScript client-side program which establishes a web socket connection. 
 
-An application starts to listen to its events, like mouse click, which are streamed from browser to the server process. 
-The application's code processes these events and updates its internal state, which may be represented in time as a sequence of immutable snapshots. 
-A new state is rendered to a next virtual DOM tree. 
-The difference between the previous and a new virtual DOM trees used to generate commands for the browser to synchronize the new server-side virtual DOM with actual client side HTML document.
+A live page session then created on the server side, which starts to listen to the browser events, like mouse click. 
+The application handles these events and updates its internal state, generating a sequence of immutable snapshots. 
+Every new state snapshot results in its correspondent virtual DOM tree though application's rendering. 
+The difference between the current and a new virtual DOM trees is used to evoke commands like create or delete an element,
+or an attribute. These commands sent to the browser via web socket.
+On the client side these commands used to adjust the actual page's HTML document to the new server-side virtual DOM.
 
 
 ### HTML markup Java DSL
@@ -64,7 +66,7 @@ Rendering code uses its application state object provided as a state ``UseState<
   
 ### Events and State
 
-Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler to a browser event.
+Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a browser event.
 
 ```java
     a("#", "Click me", on("click", ctx -> {
