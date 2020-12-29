@@ -20,14 +20,15 @@ and [Tetris](https://github.com/vadimv/reactive-server-pages/blob/master/src/mai
 
 ## How it works
 
-On an HTTP request, a self-hosted Java web server process renders initial HTML markup with a 10Kb JavaScript client-side program which establishes a web socket connection. 
+On an HTTP request, a self-hosted Java webserver process renders initial HTML markup with a 10Kb JavaScript client-side program. 
+After the page is loaded the client program establishes a web socket connection. 
 
-A live page session then created on the server side, which starts to listen to the browser events, like mouse click. 
+A live page session is created on the server-side, which starts to listen to the browser events, like a mouse click. 
 The application handles these events and updates its internal state, generating a sequence of immutable snapshots. 
-Every new state snapshot results in its correspondent virtual DOM tree though application's rendering. 
-The difference between the current and a new virtual DOM trees is used to evoke commands like create or delete an element,
-or an attribute. These commands sent to the browser via web socket.
-On the client side these commands used to adjust the actual page's HTML document to the new server-side virtual DOM.
+Every new state snapshot results in its corresponding virtual DOM tree through the application's rendering. 
+The difference between the current and a new virtual DOM trees is used to evoke commands like creating or delete an element
+or an attribute. These commands are sent to the browser via a web socket.
+On the client-side, these commands used to adjust the actual page's HTML document to the new server-side virtual DOM.
 
 
 ### HTML markup Java DSL
