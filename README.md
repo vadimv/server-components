@@ -114,15 +114,22 @@ providing an instance of the ``UseState<S>`` class as an argument.
 ```
 An application is a top level ``Component<S>``.
 
-### Routing
+### Application's configuration
 
 TBD
+
+### Routing
+
+Initial application's state is resolved during first rendering on by a specific function,
+ provided as a parameter to the ``App`` constructor.
+ 
+Current application's state can be mapped to the browser's navigation bar string using a specific function,
+also provided as a parameter of the ``App`` constructor.
+ 
 
 ### Schedules and external events
 
 TBD
 
-### Application's configuration
 
-TBD
    
