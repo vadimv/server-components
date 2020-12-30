@@ -18,7 +18,7 @@ const MIN_RECONNECT_TIMEOUT = 200;
 const MAX_RECONNECT_TIMEOUT = 5000;
 
 /** @enum {number} */
-export const ConnectionType = {
+const ConnectionType = {
   WEB_SOCKET: 0,
   LONG_POLLING: 1 // TODO remove long polling support on client side
 };
