@@ -58,7 +58,7 @@ export const VirtualDomPaths = {
   DOCUMENT_PATH: '1'
 };
 
-export class Korolev {
+export class RSP {
 
   /**
    * @param {Object} config

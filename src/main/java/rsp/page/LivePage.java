@@ -145,7 +145,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                 log.trace(l -> l.log("Pre-rendered page not found for SID: " + qsid));
                 if (!isKnownLostSession(qsid)) {
                     log.warn(l -> l.log("Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort()));
-                    evalJs("Korolev.reload()");
+                    evalJs("RSP.reload()");
                 }
             } else {
                 renderedPages.remove(qsid);

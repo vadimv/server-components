@@ -18,10 +18,10 @@ import { Connection } from './connection.js';
 import { Bridge, setProtocolDebugEnabled } from './bridge.js';
 import { ConnectionLostWidget, getDeviceId } from './utils.js';
 
-window['Korolev'] = {
+window['RSP'] = {
   'setProtocolDebugEnabled': setProtocolDebugEnabled,
-  'invokeCallback': () => console.log("Korolev is not ready"),
-  'swapElementInRegistry': () => console.log("Korolev is not ready")
+  'invokeCallback': () => console.log("RSP is not ready"),
+  'swapElementInRegistry': () => console.log("RSP is not ready")
 };
 var reconnect;
 // TODO
@@ -44,20 +44,20 @@ window.document.addEventListener("DOMContentLoaded", () => {
     window.location
   );
 
-  window['Korolev']['disconnect'] = () => {
+  window['RSP']['disconnect'] = () => {
     reconnect = false;
     connection.disconnect();
   }
 
-  window['Korolev']['connect'] = () => connection.connect();
+  window['RSP']['connect'] = () => connection.connect();
 
   connection.dispatcher.addEventListener('open', () => {
     clw.hide();
     let bridge = new Bridge(config, connection);
-    window['Korolev']['swapElementInRegistry'] = (a, b) => bridge._korolev.swapElementInRegistry(a, b);
-    window['Korolev']['element'] = (id) => bridge._korolev.element(id);
-    window['Korolev']['invokeCallback'] = (name, arg) => bridge._korolev.invokeCustomCallback(name, arg);
-    window['Korolev']['reload'] = () => {
+    window['RSP']['swapElementInRegistry'] = (a, b) => bridge._RSP.swapElementInRegistry(a, b);
+    window['RSP']['element'] = (id) => bridge._RSP.element(id);
+    window['RSP']['invokeCallback'] = (name, arg) => bridge._RSP.invokeCustomCallback(name, arg);
+    window['RSP']['reload'] = () => {
         console.log('Reload command');
         reconnect = false;
         connection.disconnect();
