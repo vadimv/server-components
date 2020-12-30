@@ -28,7 +28,7 @@ export const CallbackType = {
 };
 
 /** @enum {number} */
-export const PropertyType = {
+const PropertyType = {
   STRING: 0,
   NUMBER: 1,
   BOOLEAN: 2,
@@ -37,7 +37,7 @@ export const PropertyType = {
 };
 
 /** @enum {number} */
-export const LocationType = {
+const LocationType = {
   HREF: 0,
   PATHNAME: 1,
   HASH: 2,
@@ -46,19 +46,19 @@ export const LocationType = {
 };
 
 /** @enum {number} */
-export const EventModifierType = {
+const EventModifierType = {
   NO_EVENT_MODIFIER: 0,
   THROTTLE_EVENT_MODIFIER: 1,
   DEBOUNCE_EVENT_MODIFIER: 2
 };
 
 /** @enum {string} */
-export const VirtualDomPaths = {
+const VirtualDomPaths = {
   WINDOW_PATH: '0',
   DOCUMENT_PATH: '1'
 };
 
-export class Korolev {
+export class RSP {
 
   /**
    * @param {Object} config

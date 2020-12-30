@@ -2,10 +2,10 @@ package rsp.javax.web;
 
 import rsp.Component;
 import rsp.page.*;
-import rsp.server.DeserializeKorolevInMessage;
+import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
-import rsp.server.SerializeKorolevOutMessages;
+import rsp.server.SerializeOutMessages;
 import rsp.util.Log;
 
 import javax.websocket.*;
@@ -49,7 +49,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onOpen(Session session, EndpointConfig endpointConfig) {
         log.trace(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
-        final OutMessages out = new SerializeKorolevOutMessages((msg) -> sendText(session, msg));
+        final OutMessages out = new SerializeOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final LivePage<S> livePage = LivePage.of(handshakeRequest,
                                                  new QualifiedSessionId(session.getPathParameters().get("pid"),
@@ -62,7 +62,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                  schedulerSupplier.get(),
                                                  out,
                                                  log);
-        final DeserializeKorolevInMessage in = new DeserializeKorolevInMessage(livePage, log);
+        final DeserializeInMessage in = new DeserializeInMessage(livePage, log);
         session.addMessageHandler(new MessageHandler.Whole<String>() {
             @Override
             public void onMessage(String s) {

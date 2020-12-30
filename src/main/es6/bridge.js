@@ -14,7 +14,7 @@
  *  limitations under the License.
  */
 
-import { Korolev, CallbackType } from './korolev.js';
+import { RSP, CallbackType } from './rsp.js';
 import { Connection } from './connection.js';
 
 const ProtocolDebugEnabledKey = "$bridge.protocolDebugEnabled";
@@ -47,8 +47,8 @@ export class Bridge {
    * @param {Connection} connection
    */
   constructor(config, connection) {
-    this._korolev = new Korolev(config, this._onCallback.bind(this));
-    this._korolev.registerRoot(document.documentElement);
+    this._RSP = new RSP(config, this._onCallback.bind(this));
+    this._RSP.registerRoot(document.documentElement);
     this._connection = connection;
     this._messageHandler = this._onMessage.bind(this);
 
@@ -86,7 +86,7 @@ export class Bridge {
       console.log('->', event.data);
     let commands = /** @type {Array} */ (JSON.parse(event.data));
     let pCode = commands.shift();
-    let k = this._korolev;
+    let k = this._RSP;
     switch (pCode) {
       case MessageType.SET_RENDER_NUM: k.setRenderNum.apply(k, commands); break;
       case MessageType.CLEAN_ROOT: k.cleanRoot.apply(k, commands); break;
@@ -111,7 +111,7 @@ export class Bridge {
   destroy() {
     clearInterval(this._intervalId);
     this._connection.dispatcher.removeEventListener("message", this._messageHandler);
-    this._korolev.destroy();
+    this._RSP.destroy();
   }
 }
 

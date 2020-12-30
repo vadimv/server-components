@@ -29,8 +29,8 @@ public final class JsCompiler {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " target directory expected");
         }
 
-        final File sourceOutputFile = new File(targetDir, "korolev-client.min.js");
-        final File sourceMapOutputFile = new File(targetDir, "korolev-client.min.js.map");
+        final File sourceOutputFile = new File(targetDir, "rsp-client.min.js");
+        final File sourceMapOutputFile = new File(targetDir, "rsp-client.min.js.map");
 
         final Compiler compiler = new Compiler();
         final List<SourceFile> externs = AbstractCommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
@@ -42,7 +42,7 @@ public final class JsCompiler {
         Files.writeString(sourceOutputFile.toPath(),
                         "(function(){"
                         + compiledJs
-                        + "}).call(this);\n//# sourceMappingURL=korolev-client.min.js.map\n");
+                        + "}).call(this);\n//# sourceMappingURL=rsp-client.min.js.map\n");
         Files.writeString(sourceMapOutputFile.toPath(), sourceMapStringBuilder.toString());
         return result;
     }
@@ -60,7 +60,7 @@ public final class JsCompiler {
             options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2015);
             options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);
             options.setSourceMapIncludeSourcesContent(true);
-            options.setSourceMapLocationMappings(List.of(new SourceMap.PrefixLocationMapping(source.getAbsolutePath(), "korolev/es6")));
+            options.setSourceMapLocationMappings(List.of(new SourceMap.PrefixLocationMapping(source.getAbsolutePath(), "RSP/es6")));
             options.setSourceMapOutputPath(sourceMapOutputFile.getName());
             options.setEnvironment(CompilerOptions.Environment.BROWSER);
 

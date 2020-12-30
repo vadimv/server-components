@@ -10,7 +10,10 @@ import rsp.util.Log;
 import java.util.Objects;
 import java.util.Optional;
 
-public final class DeserializeKorolevInMessage {
+/**
+ * The communication protocol is based on the protocol of Korolev project by Aleksey Fomkin
+ */
+public final class DeserializeInMessage {
     private final InMessages inMessages;
     private final Log.Reporting log;
 
@@ -22,7 +25,7 @@ public final class DeserializeKorolevInMessage {
     private static final int EXTRACT_EVENT_DATA_RESPONSE = 5; // `$descriptor:$dataJson`
     private static final int HEARTBEAT = 6;
 
-    public DeserializeKorolevInMessage(InMessages inMessages, Log.Reporting log) {
+    public DeserializeInMessage(InMessages inMessages, Log.Reporting log) {
         this.inMessages = inMessages;
         this.log = log;
     }
