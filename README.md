@@ -8,7 +8,7 @@ This project requires Java 11.
 
 To build the project:
 
-```
+```shell script
 
 $ mvn clean package
 
@@ -123,7 +123,7 @@ TBD
 Initial application's state is resolved during first rendering on by a specific function,
  provided as a parameter to the ``App`` constructor.
  
-Current application's state can be mapped to the browser's navigation bar string using a specific function,
+Current application's state can be mapped to the browser's navigation bar string using another specific function,
 also provided as a parameter of the ``App`` constructor.
  
 
