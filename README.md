@@ -101,6 +101,7 @@ providing an instance of the ``UseState<S>`` class as an argument.
 
     public static Component<ConfimPanelState> confirmPanelComponent(String text) {
         return us -> div(attr("class", "panel"),
+                         span(text),
                          buttonComponent("Ok").render(useState(() -> new ButtonState(), 
                                                                buttonState -> us.accept(new ConfimPanelState(true)))),
                          buttonComponent("Cancel").render(useState(() -> new ButtonState(), 
