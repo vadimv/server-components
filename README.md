@@ -65,7 +65,7 @@ and conditional rendering.
 Rendering code uses its application state object provided as a state ``UseState<S>.get()`` or an external data source. 
 
   
-### Events and State
+### Events
 
 Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a browser event.
 
@@ -74,17 +74,45 @@ Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a b
                 System.out.println("Clicked!");    
             }))
 ```
-In an RSP application a ``UseState<S>`` object provided as a parameter in an application or a component rendering code. 
-An event handler usually should change the current state using ``UseState<S>.accept(S newState)`` method.
 
 ### Components
 
-An RSP application may be is composed of components. A component is a Java class implementing ``Component<S>`` interface.
+An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
+
+In an RSP application a ``UseState<S>`` object provided as a parameter in an application or a component rendering code. 
+An event handler usually should change the current state using ``UseState<S>.accept(S newState)`` method.
+
+```java
+    public static Component<ButtonState> buttonComponent(String text) {
+        return us -> input(attr("type", "button"),
+                           attr("class", "button"),     
+                           on("click", ctx -> us.accept(new ButtonState())),
+                           text(text));
+        
+    }
+    public static class ButtonState {}
+```
+
 A parent component ``render()`` method invokes ``render()`` methods of its children components
-providing an instance ``UseState<S>`` as an argument. 
-In this way an application state is a composition of its components states.
+providing an instance of the ``UseState<S>`` class as an argument. 
 
+```java
+    import static rsp.state.UseState.useState;
 
+    public static Component<ConfimPanelState> confirmPanelComponent(String text) {
+        return us -> div(attr("class", "panel"),
+                         buttonComponent("Ok").render(useState(() -> new ButtonState(), 
+                                                               buttonState -> us.accept(new ConfimPanelState(true)))),
+                         buttonComponent("Cancel").render(useState(() -> new ButtonState(), 
+                                                                   buttonState -> us.accept(new ConfimPanelState(false))));
+        
+    }
+    public static class ConfimPanelState {
+        public final boolean confirmed;
+        public ConfimPanelState(boolean confirmed) { this.confirmed = confirmed; }
+    }
+```
+An application is a top level ``Component<S>``.
 
 ### Routing
 
