@@ -79,7 +79,6 @@ Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a b
 
 An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
 
-In an RSP application a ``UseState<S>`` object provided as a parameter in an application or a component rendering code. 
 An event handler usually should change the current state using ``UseState<S>.accept(S newState)`` method.
 
 ```java
