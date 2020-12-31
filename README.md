@@ -64,6 +64,10 @@ and conditional rendering.
 
 Rendering code uses its application state object provided as a state ``UseState<S>.get()`` or an external data source. 
 
+```java
+    ul(of(us.get().items.stream().map(item -> li(item.name))));
+```
+
   
 ### Events
 
