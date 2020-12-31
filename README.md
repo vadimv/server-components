@@ -118,6 +118,14 @@ An application is a top level ``Component<S>``.
 
 TBD
 
+
+### Logging
+To enable client-side detailed diagnostic data exchange logging, enter in the browser's console:
+
+```javascript
+  RSP.setProtocolDebugEnabled(true)
+```
+
 ### Routing
 
 Initial application's state is resolved during first rendering on by a specific function,
