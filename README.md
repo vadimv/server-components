@@ -56,7 +56,7 @@ should be written in Java code as
                h1("This is a heading"),
                div(attr("class", "par"), p("This is a paragraph"))
               ) 
-        );
+        )
 ```
 
 There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, custom logic with if branching
@@ -65,7 +65,11 @@ and conditional rendering.
 Rendering code uses its application state object provided as a state ``UseState<S>.get()`` or an external data source. 
 
 ```java
-    ul(of(us.get().items.stream().map(item -> li(item.name))));
+    ul(of(us.get().items.stream().map(item -> li(item.name))))
+```
+
+```java
+    when(us.get().showLabel, span("This is a label"))
 ```
 
   
