@@ -107,12 +107,12 @@ In the case when we need a reference to an object created on-the-fly use ``RefDe
 Another ``EventContext`` method enables access to the event's object.
 
 ```java
-    form(on("submit"), ctx -> {
-            
-         });
+    form(on("submit", ctx -> {
+            System.out.println(ctx.eventObject().apply("val").orElseThrow(() -> new IllegalStateException()));
+         }),
         input(attr("type", "text"), attr("name", "val")),
         input(attr("type", "button"), attr("value", "Submit"))
-    )   
+    )
 ```
 
 
@@ -175,7 +175,6 @@ Initial application's state is resolved during first rendering on by a specific 
         return m.result;
     }
 ```
-
 
 Current application's state can be mapped to the browser's navigation bar string using another specific function,
 also provided as a parameter of the ``App`` constructor.
