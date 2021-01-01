@@ -14,12 +14,12 @@ import java.util.stream.Collectors;
 public final class JsCompiler {
 
     public static void main(String[] args) throws IOException {
-        if (assembleJs(new File(args[0]), new File(args[1])).errors.size() > 0) {
+        if (assembleJs(new File(args[0]), new File(args[1]), args[2]).errors.size() > 0) {
             System.exit(1);
         }
     }
 
-    public static Result assembleJs(File sourceDir, File targetDir) throws IOException {
+    public static Result assembleJs(File sourceDir, File targetDir, String baseName) throws IOException {
         System.out.println("Assembling ES6 sources using Google Closure Compiler");
         if (!sourceDir.isDirectory()) {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " sources directory expected");
@@ -29,8 +29,8 @@ public final class JsCompiler {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " target directory expected");
         }
 
-        final File sourceOutputFile = new File(targetDir, "rsp-client.min.js");
-        final File sourceMapOutputFile = new File(targetDir, "rsp-client.min.js.map");
+        final File sourceOutputFile = new File(targetDir, baseName + ".min.js");
+        final File sourceMapOutputFile = new File(targetDir, baseName + ".min.js.map");
 
         final Compiler compiler = new Compiler();
         final List<SourceFile> externs = AbstractCommandLineRunner.getBuiltinExterns(CompilerOptions.Environment.BROWSER);
@@ -42,7 +42,7 @@ public final class JsCompiler {
         Files.writeString(sourceOutputFile.toPath(),
                         "(function(){"
                         + compiledJs
-                        + "}).call(this);\n//# sourceMappingURL=rsp-client.min.js.map\n");
+                        + "}).call(this);\n//# sourceMappingURL=" + baseName + ".min.js.map\n");
         Files.writeString(sourceMapOutputFile.toPath(), sourceMapStringBuilder.toString());
         return result;
     }
