@@ -167,9 +167,9 @@ Initial application's state is resolved during first rendering on by a specific 
     
     public CompletableFuture<State> route(Path path) {
         final Path.Matcher<State> m = path.matcher(CompletableFuture.completedFuture(error())) // a default match
-                                          .when((name) -> true,
+                                          .when((name) -> true,                 // /{name}
                                                 (name) -> db.getList(name).map(list -> State.of(list)))
-                                          .when((name, id) -> isNumeric(id),
+                                          .when((name, id) -> isNumeric(id),    // /{name}/{id}
                                                 (name, id) -> db.getOne(Long.parse(id)).map(instance -> State.of(instance)));
         
         return m.result;
