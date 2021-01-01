@@ -112,7 +112,8 @@ public final class JettyServer {
         handlers.addHandler(context);
 
         server.setHandler(handlers);
-        server.start();    
+        server.start();
+        app.config.log.info(l -> l.log("Server started"));
     }
     
     public void join() throws InterruptedException {

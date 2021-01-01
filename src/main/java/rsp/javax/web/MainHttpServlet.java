@@ -30,7 +30,7 @@ public final class MainHttpServlet<S>  extends HttpServlet {
         final AsyncContext asyncContext = request.startAsync();
         asyncContext.start(() -> {
             final HttpRequest req = HttpRequest.of(request);
-
+            log.trace(l -> l.log(request.getRemoteAddr() + " -> GET " + request.getRequestURL()));
             pageRendering.httpGet(req).handle((resp, ex) -> {
                     if (ex != null) {
                         log.error(l -> l.log("Http rendering exception", ex));
@@ -44,6 +44,7 @@ public final class MainHttpServlet<S>  extends HttpServlet {
             }).thenAccept(resp -> {
                 setServletResponse(resp, response);
                 asyncContext.complete();
+                log.trace(l -> l.log(request.getRemoteAddr() + " <- " + response.getStatus()));
             });
 
         });
