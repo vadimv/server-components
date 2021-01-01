@@ -48,7 +48,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     @Override
     public void onOpen(Session session, EndpointConfig endpointConfig) {
-        log.trace(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
+        log.debug(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
         final OutMessages out = new SerializeOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final LivePage<S> livePage = LivePage.of(handshakeRequest,
