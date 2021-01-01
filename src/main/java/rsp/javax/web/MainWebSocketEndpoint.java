@@ -86,7 +86,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onClose(Session session, CloseReason closeReason) {
         shutdown(session);
-        log.info(l -> l.log("WebSocket closed " + closeReason.getReasonPhrase()));
+        log.debug(l -> l.log("WebSocket closed " + closeReason.getReasonPhrase()));
     }
 
     @Override
