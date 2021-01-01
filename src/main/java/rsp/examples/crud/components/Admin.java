@@ -51,10 +51,10 @@ public class Admin {
                                             .when((name, key) -> name.equals(resource.name),
                                                   (name, key) -> resource.initialListStateWithEdit(key).thenApply(resourceState -> new State(principal, Optional.of(resourceState))));
             if (sm.isMatch) {
-                return sm.state;
+                return sm.result;
             }
         }
-        return m.state;
+        return m.result;
     }
 
     private State error() {

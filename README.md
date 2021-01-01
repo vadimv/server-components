@@ -4,7 +4,7 @@ Reactive Sever Pages (RSP) enables creating single page web applications and dyn
 
 ## Usage
 
-This project requires Java 11. 
+This project requires Java 11+. 
 
 To build the project:
 
@@ -69,6 +69,13 @@ Rendering code uses its application state object provided as a state ``UseState<
 ```
 
 ```java
+    final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
+    ...
+    // let's consider that at this moment we know the current user's Id
+    div(of(service.apply(us.get().user.id).map(str -> text(str))))
+```
+
+```java
     when(us.get().showLabel, span("This is a label"))
 ```
 
@@ -82,6 +89,32 @@ Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a b
                 System.out.println("Clicked!");    
             }))
 ```
+An ``EventContext`` object, provided as a parameter to an event's handler has a number of useful methods.  
+One of these methods allows access to client-side document elements properties values via elements references.
+
+```java
+    final RefDefinition inputRef = createRef();
+    ...
+    input(inputRef,
+          attr("type", "text")),
+    a("#", "Click me", on("click", ctx -> {
+                ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
+            }))
+```
+
+In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
+  
+Another ``EventContext`` method enables access to the event's object.
+
+```java
+    form(on("submit"), ctx -> {
+            
+         });
+        input(attr("type", "text"), attr("name", "val")),
+        input(attr("type", "button"), attr("value", "Submit"))
+    )   
+```
+
 
 ### Components
 
@@ -105,8 +138,8 @@ providing an instance of the ``UseState<S>`` class as an argument.
 
 ```java
     import static rsp.state.UseState.useState;
-
-    public static Component<ConfimPanelState> confirmPanelComponent(String text) {
+    ...
+    public static Component<ConfirmPanelState> confirmPanelComponent(String text) {
         return us -> div(attr("class", "panel"),
                          span(text),
                          buttonComponent("Ok").render(useState(() -> new ButtonState(), 
@@ -115,12 +148,47 @@ providing an instance of the ``UseState<S>`` class as an argument.
                                                                    buttonState -> us.accept(new ConfimPanelState(false))));
         
     }
-    public static class ConfimPanelState {
+    public static class ConfirmPanelState {
         public final boolean confirmed;
-        public ConfimPanelState(boolean confirmed) { this.confirmed = confirmed; }
+        public ConfirmPanelState(boolean confirmed) { this.confirmed = confirmed; }
     }
 ```
-An application is a top level ``Component<S>``.
+An application is a top-level ``Component<S>``.
+
+### Routing
+
+Initial application's state is resolved during first rendering on by a specific function,
+ provided as a parameter to the ``App`` constructor.
+
+```java
+    public CompletableFuture<State> route(HttpRequest request) {
+        return route(request.path);
+    }
+    
+    public CompletableFuture<State> route(Path path) {
+        final Path.Matcher<State> m = path.matcher(CompletableFuture.completedFuture(error())) // a default match
+                                          .when((name) -> true,
+                                                (name) -> db.getList(name).map(list -> State.of(list)))
+                                          .when((name, id) -> isNumeric(id),
+                                                (name, id) -> db.getOne(Long.parse(id)).map(instance -> State.of(instance)));
+        
+        return m.result;
+    }
+```
+
+
+Current application's state can be mapped to the browser's navigation bar string using another specific function,
+also provided as a parameter of the ``App`` constructor.
+ 
+```java
+     public static Path state2path(State state) {
+        return state.details.map(details -> new Path(state.name, Long.toString(details.id))).or(new Path(state.name));
+    }
+```
+
+### Schedules and external events
+
+TBD
 
 ### Application's configuration
 
@@ -134,18 +202,7 @@ To enable client-side detailed diagnostic data exchange logging, enter in the br
   RSP.setProtocolDebugEnabled(true)
 ```
 
-### Routing
 
-Initial application's state is resolved during first rendering on by a specific function,
- provided as a parameter to the ``App`` constructor.
- 
-Current application's state can be mapped to the browser's navigation bar string using another specific function,
-also provided as a parameter of the ``App`` constructor.
- 
-
-### Schedules and external events
-
-TBD
 
 
    

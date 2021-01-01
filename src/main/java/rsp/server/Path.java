@@ -93,12 +93,12 @@ public class Path {
         private final Path path;
 
         public final boolean isMatch;
-        public final CompletableFuture<S> state;
+        public final CompletableFuture<S> result;
 
         public Matcher(Path path, CompletableFuture<S> defaultState, boolean isMatch) {
             this.path = path;
             this.isMatch = isMatch;
-            this.state = defaultState;
+            this.result = defaultState;
         }
 
         public Matcher(Path path, CompletableFuture<S> defaultState) {
