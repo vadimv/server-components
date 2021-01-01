@@ -43,8 +43,8 @@ public final class MainHttpServlet<S>  extends HttpServlet {
 
             }).thenAccept(resp -> {
                 setServletResponse(resp, response);
-                asyncContext.complete();
                 log.trace(l -> l.log(request.getRemoteAddr() + " <- " + response.getStatus()));
+                asyncContext.complete();
             });
 
         });
