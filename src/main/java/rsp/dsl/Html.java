@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
- * A HTML tags definitions and related util functions DSL
+ * A HTML tags definitions domain-specific language and related util functions
  */
 public final class Html {
 
@@ -27,7 +27,7 @@ public final class Html {
     /**
      * An arbitrary HTML element
      * @param name an element name
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition tag(String name, DocumentPartDefinition... children) {
@@ -35,7 +35,7 @@ public final class Html {
     }
 
     /**
-     * A HTML element attribute
+     * A HTML element's attribute
      * @param name an attribute name
      * @param value an attribute value
      * @param isProperty true if this attribute should be interpreted as a property, false otherwise
@@ -46,10 +46,19 @@ public final class Html {
     }
 
     /**
-     * A HTML element attribute
+     * An element's property attribute
+     * @param name a property name
+     * @param value a property value
+     * @return a property definition
+     */
+    public static AttributeDefinition prop(String name, String value) {
+        return attr(name, value, true);
+    }
+
+    /**
+     * A HTML element's attribute
      * This attribute is interpreted as a property if its name is one of the properties by default:
      * {@value #DEFAULT_PROPERTIES_NAMES}
-     * {@link #DEFAULT_PROPERTIES_NAMES}
      * @param name an attribute name
      * @param value an attribute value
      * @return an attribute definition
@@ -87,7 +96,7 @@ public final class Html {
 
     /**
      * A HTML {@literal <html>} element, the root element of a HTML document
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition html(DocumentPartDefinition... children) {
@@ -96,7 +105,7 @@ public final class Html {
 
     /**
      * A HTML {@literal <body>} element of a HTML document
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static  TagDefinition body(DocumentPartDefinition... children) {
@@ -105,7 +114,7 @@ public final class Html {
 
     /**
      * A HTML {@literal <head>} element of a HTML document
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static  TagDefinition head(DocumentPartDefinition... children) {
@@ -141,7 +150,7 @@ public final class Html {
 
     /**
      * A HTML {@literal <h1>} element of a HTML document
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return  a tag definition
      */
     public static TagDefinition h1(DocumentPartDefinition... children) {
@@ -150,7 +159,7 @@ public final class Html {
 
     /**
      * A HTML {@literal <h2>} element of a HTML document
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return  a tag definition
      */
     public static TagDefinition h2(DocumentPartDefinition... children) {
@@ -159,8 +168,8 @@ public final class Html {
 
     /**
      * A HTML {@literal <h3>} element of a HTML document
-     * @param children descendant nodes definitions of this element
-     * @return  a tag definition
+     * @param children descendants definitions of this element
+     * @return a tag definition
      */
     public static TagDefinition h3(DocumentPartDefinition... children) {
         return tag("h3", children);
@@ -168,8 +177,8 @@ public final class Html {
 
     /**
      * A HTML {@literal <h4>} element of a HTML document
-     * @param children descendant nodes definitions of this element
-     * @return  a tag definition
+     * @param children descendants definitions of this element
+     * @return a tag definition
      */
     public static TagDefinition h4(DocumentPartDefinition... children) {
         return tag("h4", children);
@@ -177,8 +186,8 @@ public final class Html {
 
     /**
      * A HTML {@literal <h5>} element of a HTML document
-     * @param children descendant nodes definitions of this element
-     * @return  a tag definition
+     * @param children descendants definitions of this element
+     * @return a tag definition
      */
     public static TagDefinition h5(DocumentPartDefinition... children) {
         return tag("h5", children);
@@ -186,8 +195,8 @@ public final class Html {
 
     /**
      * A HTML {@literal <h6>} element of a HTML document
-     * @param children descendant nodes definitions of this element
-     * @return  a tag definition
+     * @param children descendants definitions of this element
+     * @return a tag definition
      */
     public static TagDefinition h6(DocumentPartDefinition... children) {
         return tag("h6", children);
@@ -195,8 +204,8 @@ public final class Html {
 
     /**
      * A HTML {@literal <div>} element of a HTML document
-     * @param children descendant nodes definitions of this element
-     * @return  a tag definition
+     * @param children descendants definitions of this element
+     * @return a tag definition
      */
     public static TagDefinition div(DocumentPartDefinition... children) {
         return tag("div", children);
@@ -205,7 +214,7 @@ public final class Html {
     /**
      * A HTML {@literal <div>} element of a HTML document
      * @param text text content
-     * @return  a tag definition
+     * @return a tag definition
      */
     public static TagDefinition div(String text) {
         return div(text(text));
@@ -213,9 +222,10 @@ public final class Html {
 
     /**
      * A HTML {@literal <a>} element of a HTML document
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return a tag definition
-     */    public static TagDefinition a(DocumentPartDefinition... children) {
+     */
+    public static TagDefinition a(DocumentPartDefinition... children) {
         return tag("a", children);
     }
 
@@ -223,7 +233,7 @@ public final class Html {
      * A HTML {@literal <a>}, or anchor element of a HTML document
      * @param href the URL that the hyperlink points to
      * @param text the link's destination text content
-     * @param children other descendant nodes definitions of this element
+     * @param children other descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition a(String href, String text, DocumentPartDefinition... children) {
@@ -232,85 +242,180 @@ public final class Html {
 
     /**
      * A HTML {@literal <p>} element of a HTML document
-     * @param children descendant nodes definitions of this element
+     * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition p(DocumentPartDefinition... children) {
         return tag("p", children);
     }
 
+    /**
+     * A HTML {@literal <p>} element of a HTML document
+     * @param text text content
+     * @return a tag definition
+     */
     public static TagDefinition p(String text) {
         return p(text(text));
     }
 
+    /**
+     * A HTML {@literal <span>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition span(DocumentPartDefinition... children) {
         return tag("span", children);
     }
 
+    /**
+     * A HTML {@literal <span>} element of a HTML document
+     * @param text text content
+     * @return a tag definition
+     */
     public static TagDefinition span(String text) {
         return span(text(text));
     }
 
+    /**
+     * A HTML {@literal <form>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition form(DocumentPartDefinition... children) {
         return tag("form", children);
     }
 
+    /**
+     * A HTML {@literal <input>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition input(DocumentPartDefinition... children) {
         return tag("input", children);
     }
 
+    /**
+     * A HTML {@literal <button>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition button(DocumentPartDefinition... children) {
         return tag("button", children);
     }
 
+    /**
+     * A HTML {@literal <ul>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition ul(DocumentPartDefinition... children) {
         return tag("ul", children);
     }
 
+    /**
+     * A HTML {@literal <ol>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition ol(DocumentPartDefinition... children) {
         return tag("ol", children);
     }
 
+    /**
+     * A HTML {@literal <li>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition li(DocumentPartDefinition... children) {
         return tag("li", children);
     }
 
+    /**
+     * A HTML {@literal <li>} element of a HTML document
+     * @param text text content
+     * @return a tag definition
+     */
     public static TagDefinition li(String text) {
         return li(text(text));
     }
 
+    /**
+     * A HTML {@literal <table>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition table(DocumentPartDefinition... children) {
         return tag("table", children);
     }
 
+    /**
+     * A HTML {@literal <thead>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition thead(DocumentPartDefinition... children) {
         return tag("thead", children);
     }
 
+    /**
+     * A HTML {@literal <tbody>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition tbody(DocumentPartDefinition... children) {
         return tag("tbody", children);
     }
 
+    /**
+     * A HTML {@literal <th>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition th(DocumentPartDefinition... children) {
         return tag("th", children);
     }
 
+    /**
+     * A HTML {@literal <th>} element of a HTML document
+     * @param text text content
+     * @return a tag definition
+     */
     public static TagDefinition th(String text) {
         return th(text(text));
     }
 
+    /**
+     * A HTML {@literal <tr>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition tr(DocumentPartDefinition... children) {
         return tag("tr", children);
     }
 
+    /**
+     * A HTML {@literal <td>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition td(DocumentPartDefinition... children) {
         return tag("td", children);
     }
 
+    /**
+     * A HTML {@literal <td>} element of a HTML document
+     * @param text text content
+     * @return a tag definition
+     */
     public static TagDefinition td(String text) {
         return td(text(text));
     }
 
+    /**
+     * A HTML {@literal <label>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static TagDefinition label(DocumentPartDefinition... children) {
         return tag("label", children);
     }
@@ -319,10 +424,12 @@ public final class Html {
         return DEFAULT_PROPERTIES_NAMES.contains(name);
     }
 
-    public static AttributeDefinition prop(String name, String value) {
-        return attr(name, value, true);
-    }
-
+    /**
+     * An element's inline style
+     * @param name a style's name
+     * @param value a style's value
+     * @return an inline style definition
+     */
     public static StyleDefinition style(String name, String value) {
         return new StyleDefinition(name, value);
     }
