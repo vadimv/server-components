@@ -10,6 +10,9 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * A HTML tags definitions DSL
+ */
 public final class Html {
 
     // TODO verify all this property names
