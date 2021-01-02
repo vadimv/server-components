@@ -4,7 +4,6 @@ import rsp.dom.Event;
 import rsp.page.EventContext;
 import rsp.util.ArrayUtils;
 
-import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -82,8 +81,8 @@ public final class Html {
      * @param handler an event handler
      * @return a DOM event handler definition
      */
-    public static EventDefinition on(String eventType, Consumer<EventContext> handler) {
-        return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
+    public static <S> EventDefinition<S> on(String eventType, Consumer<EventContext> handler) {
+        return new EventDefinition<>(eventType, handler, Event.NO_MODIFIER);
     }
 
     /**
@@ -480,8 +479,8 @@ public final class Html {
         return new WindowDefinition();
     }
 
-    public static RefDefinition createRef() {
-        return new RefDefinition();
+    public static <K> RefDefinition<K> createRef() {
+        return new RefDefinition<>();
     }
 
     private static boolean isPropertyByDefault(String name) {
