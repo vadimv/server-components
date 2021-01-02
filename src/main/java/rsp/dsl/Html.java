@@ -77,6 +77,26 @@ public final class Html {
     }
 
     /**
+     * A DOM event handler definition
+     * @param eventType an event name
+     * @param handler an event handler
+     * @return a DOM event handler definition
+     */
+    public static EventDefinition on(String eventType, Consumer<EventContext> handler) {
+        return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
+    }
+
+    /**
+     * An element's inline style
+     * @param name a style name
+     * @param value a style value
+     * @return an inline style definition
+     */
+    public static StyleDefinition style(String name, String value) {
+        return new StyleDefinition(name, value);
+    }
+
+    /**
      * An element's text content
      * @param text a text
      * @return a text node definition
@@ -420,30 +440,32 @@ public final class Html {
         return tag("label", children);
     }
 
-    private static boolean isPropertyByDefault(String name) {
-        return DEFAULT_PROPERTIES_NAMES.contains(name);
-    }
-
     /**
-     * An element's inline style
-     * @param name a style's name
-     * @param value a style's value
-     * @return an inline style definition
+     * Inserts a zero or more definitions
+     * @param items a {@link Stream} of definitions
+     * @return a document part definition representing a sequence of definitions
      */
-    public static StyleDefinition style(String name, String value) {
-        return new StyleDefinition(name, value);
-    }
-
     public static SequenceDefinition of(Stream<DocumentPartDefinition> items) {
         return new SequenceDefinition(items.toArray(DocumentPartDefinition[]::new));
     }
 
+    /**
+     * Inserts a definition which is a result of some code execution
+     * This functions allows to mix declarative DOM tree definitions and code fragments
+     * @param itemSupplier a code block
+     * @return a result definition
+     */
     public static SequenceDefinition of(Supplier<DocumentPartDefinition> itemSupplier) {
         return new SequenceDefinition(new DocumentPartDefinition[] { itemSupplier.get() });
     }
 
-    public static DocumentPartDefinition of(CompletableFuture<? extends DocumentPartDefinition> itemSupplier) {
-        return itemSupplier.join();
+    /**
+     * Inserts a definition which is a result of a {@link CompletableFuture} completion
+     * @param completableFutureDefinition an asynchronous computation of a definition
+     * @return a result definition
+     */
+    public static DocumentPartDefinition of(CompletableFuture<? extends DocumentPartDefinition> completableFutureDefinition) {
+        return completableFutureDefinition.join();
     }
 
     public static DocumentPartDefinition when(boolean condition, DocumentPartDefinition then) {
@@ -451,11 +473,7 @@ public final class Html {
     }
 
     public static DocumentPartDefinition when(boolean condition, Supplier<DocumentPartDefinition> then) {
-        return condition ? then.get() : new EmptyDefinition();
-    }
-
-    public static EventDefinition on(String eventType, Consumer<EventContext> handler) {
-        return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
+        return condition ? then.get() : EmptyDefinition.INSTANCE;
     }
 
     public static WindowDefinition window() {
@@ -464,5 +482,9 @@ public final class Html {
 
     public static RefDefinition createRef() {
         return new RefDefinition();
+    }
+
+    private static boolean isPropertyByDefault(String name) {
+        return DEFAULT_PROPERTIES_NAMES.contains(name);
     }
 }
