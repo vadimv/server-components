@@ -62,6 +62,9 @@
                 <version>3.2.0</version>
                 <configuration>
                     <doclint>all,-missing</doclint>
+                    <subpackages>
+                        rsp.dsl:rsp.state
+                    </subpackages>
                 </configuration>
                 <executions>
                     <execution>
