@@ -120,7 +120,7 @@ Another ``EventContext`` method enables access to the event's object.
 
 An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
 
-An event handler usually should change the current state using ``UseState<S>.accept(S newState)`` method.
+An event handler usually should provide a new state snapshot object using ``UseState<S>.accept(S newState)`` method.
 
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
