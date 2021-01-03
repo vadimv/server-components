@@ -19,6 +19,7 @@ public final class Html {
     // TODO verify all this property names
     /**
      * Attributes names which are interpreted by default as properties
+     * @see #attr(String, String) 
      */
     public final static String DEFAULT_PROPERTIES_NAMES =
         "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
@@ -96,7 +97,7 @@ public final class Html {
     }
 
     /**
-     * An element's text content
+     * An element's {@link String} content
      * @param text a text
      * @return a text node definition
      */
@@ -105,7 +106,7 @@ public final class Html {
     }
 
     /**
-     * An element's text content
+     * An element's text content, for a random input type
      * @param obj an arbitrary object to be converted to text using its {@link #toString()} method
      * @return a text node definition
      */
@@ -467,18 +468,41 @@ public final class Html {
         return completableFutureDefinition.join();
     }
 
+    /**
+     * Inserts a document part definition provided as an argument if condition is true, otherwise inserts an empty definition
+     * @param condition a condition to check
+     * @param then a definition which may be inserted
+     * @return a result definition
+     */
     public static DocumentPartDefinition when(boolean condition, DocumentPartDefinition then) {
         return when(condition, () -> then);
     }
 
+    /**
+     * A lazy form of conditional function
+     * Inserts a document part definition provided as in a {@link Supplier} if condition is true, otherwise inserts an empty definition
+     * @param condition a condition to check
+     * @param then a {@link Supplier} of a definition which may be inserted
+     * @return a result definition
+     */
     public static DocumentPartDefinition when(boolean condition, Supplier<DocumentPartDefinition> then) {
         return condition ? then.get() : EmptyDefinition.INSTANCE;
     }
 
+    /**
+     * Provides a definition of a browsers' window object
+     * @return a window object definition
+     */
     public static WindowDefinition window() {
         return new WindowDefinition();
     }
 
+    /**
+     * Creates a DOM element reference which can be used as a key for obtaining its element's properties values
+     * @see EventContext#props(Ref)
+     * @param <K>
+     * @return a reference object
+     */
     public static <K> RefDefinition<K> createRef() {
         return new RefDefinition<>();
     }
