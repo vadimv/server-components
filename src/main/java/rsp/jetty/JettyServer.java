@@ -27,9 +27,13 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
+/**
+ * An embedded Jetty server
+ * Jetty provides a servlet container and a JSR 356 WebSockets API implementation
+ */
 public final class JettyServer {
+    public static final int DEFAULT_WEB_SERVER_MAX_THREADS = 50;
 
-    public static final int DEFAULT_MAX_THREADS = 50;
     public final int port;
     public final Path basePath;
     private final App app;
@@ -38,7 +42,18 @@ public final class JettyServer {
 
     private Server server;
 
-    public JettyServer(int port, String basePath, App app, Optional<StaticResources> staticResources, int maxThreads) {
+    /**
+     * Creates an Jetty web server instance for hosting an RSP application
+     * @param port a server listening port
+     * @param basePath
+     * @param app
+     * @param staticResources
+     */
+    public JettyServer(int port,
+                       String basePath,
+                       App app,
+                       Optional<StaticResources> staticResources,
+                       int maxThreads) {
         this.port = port;
         this.basePath = Objects.requireNonNull(Path.of(basePath));
         this.app = Objects.requireNonNull(app);
@@ -46,14 +61,21 @@ public final class JettyServer {
         this.maxThreads = maxThreads;
     }
 
-    public JettyServer(int port, String basePath, App app, StaticResources staticResources) {
-        this(port, basePath, app, Optional.of(staticResources), app.config.webServerMaxThreads);
+    public JettyServer(int port,
+                       String basePath,
+                       App app,
+                       StaticResources staticResources) {
+        this(port, basePath, app, Optional.of(staticResources), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     public JettyServer(int port, String basePath, App app) {
-        this(port, basePath, app, Optional.empty(), app.config.webServerMaxThreads);
+        this(port, basePath, app, Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
+    /**
+     * Starts the server
+     * @throws Exception
+     */
     public void start() throws Exception {
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setMaxThreads(maxThreads);
