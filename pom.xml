@@ -62,7 +62,7 @@
                 <version>3.2.0</version>
                 <configuration>
                     <doclint>all,-missing</doclint>
-                    <excludePackageNames>rsp.dom:rsp.examples:rsp.javax.web:rsp.javax.page:rsp.server</excludePackageNames>
+                    <excludePackageNames>rsp.dom:rsp.examples:rsp.dom:rsp.examples.*:rsp.javax.web:rsp.javax.page:rsp.server</excludePackageNames>
                 </configuration>
                 <executions>
                     <execution>
