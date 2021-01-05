@@ -28,14 +28,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
- * An embedded Jetty server
+ * An embedded server for an RSP application,
  * Jetty provides a servlet container and a JSR 356 WebSockets API implementation
  */
 public final class JettyServer {
+    /**
+     * The Jetty server's maximum threads number by default is {@value #DEFAULT_WEB_SERVER_MAX_THREADS}
+     */
     public static final int DEFAULT_WEB_SERVER_MAX_THREADS = 50;
 
-    public final int port;
-    public final Path basePath;
+    private final int port;
+    private final Path basePath;
     private final App app;
     private final Optional<StaticResources> staticResources;
     private final int maxThreads;
@@ -44,10 +47,10 @@ public final class JettyServer {
 
     /**
      * Creates an Jetty web server instance for hosting an RSP application
-     * @param port a server listening port
-     * @param basePath
-     * @param app
-     * @param staticResources
+     * @param port a web server's listening port
+     * @param basePath a context path of the web application
+     * @param app an RSP application
+     * @param staticResources a setup object for an optional static resources handler
      */
     public JettyServer(int port,
                        String basePath,
@@ -61,6 +64,13 @@ public final class JettyServer {
         this.maxThreads = maxThreads;
     }
 
+    /**
+     * Creates an Jetty web server instance for hosting an RSP application
+     * @param port a web server's listening port
+     * @param basePath a context path of the web application
+     * @param app an RSP application
+     * @param staticResources a setup object for an optional static resources handler
+     */
     public JettyServer(int port,
                        String basePath,
                        App app,
@@ -68,13 +78,19 @@ public final class JettyServer {
         this(port, basePath, app, Optional.of(staticResources), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
+    /**
+     * Creates an Jetty web server instance for hosting an RSP application
+     * @param port a web server's listening port
+     * @param basePath a context path of the web application
+     * @param app an RSP application
+     */
     public JettyServer(int port, String basePath, App app) {
         this(port, basePath, app, Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
      * Starts the server
-     * @throws Exception
+     * @throws Exception in case when the server's start failed
      */
     public void start() throws Exception {
         final QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -137,7 +153,11 @@ public final class JettyServer {
         server.start();
         app.config.log.info(l -> l.log("Server started"));
     }
-    
+
+    /**
+     * Blocks the current thread while the server's threads are running
+     * @throws InterruptedException if any of the server's thread interrupted
+     */
     public void join() throws InterruptedException {
         server.join();
     }

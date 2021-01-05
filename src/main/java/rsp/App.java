@@ -10,14 +10,39 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * An this class is an assembly point for everything needed to set off a UI application
+ * This class object itself to be provided to a hosting web container {@link rsp.jetty.JettyServer}
+ * @param <S> the type of the applications root component's state, should be an immutable class
+ */
 public final class App<S> {
+    /**
+     * The web socket endpoint path
+     */
     public static final String WS_ENDPOINT_PATH = "/bridge/web-socket/{pid}/{sid}";
 
+    /**
+     * The application's config
+     */
     public final AppConfig config;
+
+    /**
+     * A function that dispatches an incoming HTTP request to a page's initial state
+     */
     public final Function<HttpRequest, CompletableFuture<S>> routes;
+
+    /**
+     * A function that dispatches a current state snapshot to the browser's navigation bar's path
+     */
     public final Function<S, Path> state2path;
-    public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
+
+    /**
+     * The root of the components tree
+     */
     public final Component<S> rootComponent;
+
+    public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
+
 
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,

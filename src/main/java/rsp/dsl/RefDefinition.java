@@ -4,7 +4,7 @@ import rsp.page.RenderContext;
 
 import java.util.Objects;
 
-public final class RefDefinition<K> extends DocumentPartDefinition implements Ref {
+public final class RefDefinition extends DocumentPartDefinition implements Ref {
 
     public RefDefinition() {
         super(DocumentPartKind.OTHER);
@@ -15,14 +15,14 @@ public final class RefDefinition<K> extends DocumentPartDefinition implements Re
         renderContext.addRef(this);
     }
 
-    public KeyRef<K> withKey(K key) {
+    public <K> KeyRef<K> withKey(K key) {
         return new KeyRef<K>(this, key);
     }
 
     public static class KeyRef<K> extends DocumentPartDefinition implements Ref {
-        private final RefDefinition<K> parentRef;
+        private final RefDefinition parentRef;
         private final K key;
-        public KeyRef(RefDefinition<K> parentRef, K key) {
+        public KeyRef(RefDefinition parentRef, K key) {
             super(DocumentPartKind.OTHER);
             this.parentRef = Objects.requireNonNull(parentRef);
             this.key = Objects.requireNonNull(key);

@@ -500,11 +500,10 @@ public final class Html {
     /**
      * Creates a DOM element reference which can be used as a key for obtaining its element's properties values
      * @see EventContext#props(Ref)
-     * @param <K>
      * @return a reference object
      */
-    public static <K> RefDefinition<K> createRef() {
-        return new RefDefinition<>();
+    public static RefDefinition createRef() {
+        return new RefDefinition();
     }
 
     private static boolean isPropertyByDefault(String name) {
