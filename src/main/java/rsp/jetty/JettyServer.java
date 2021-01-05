@@ -46,7 +46,7 @@ public final class JettyServer {
     private Server server;
 
     /**
-     * Creates an Jetty web server instance for hosting an RSP application
+     * Creates a Jetty web server instance for hosting an RSP application
      * @param port a web server's listening port
      * @param basePath a context path of the web application
      * @param app an RSP application
@@ -65,7 +65,7 @@ public final class JettyServer {
     }
 
     /**
-     * Creates an Jetty web server instance for hosting an RSP application
+     * Creates a Jetty web server instance for hosting an RSP application
      * @param port a web server's listening port
      * @param basePath a context path of the web application
      * @param app an RSP application
@@ -79,7 +79,7 @@ public final class JettyServer {
     }
 
     /**
-     * Creates an Jetty web server instance for hosting an RSP application
+     * Creates a Jetty web server instance for hosting an RSP application
      * @param port a web server's listening port
      * @param basePath a context path of the web application
      * @param app an RSP application

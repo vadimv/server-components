@@ -17,7 +17,7 @@ import java.util.function.Function;
  */
 public final class App<S> {
     /**
-     * The web socket endpoint path
+     * The web socket endpoint path template
      */
     public static final String WS_ENDPOINT_PATH = "/bridge/web-socket/{pid}/{sid}";
 
@@ -37,13 +37,19 @@ public final class App<S> {
     public final Function<S, Path> state2path;
 
     /**
-     * The root of the components tree
+     * A root of the components tree
      */
     public final Component<S> rootComponent;
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
-
+    /**
+     * Creates an instance of an application
+     * @param config an application config
+     * @param routes a function that dispatches an incoming HTTP request to a page's initial state
+     * @param state2path a function that dispatches a current state snapshot to the browser's navigation bar's path
+     * @param rootComponent a root of the components tree
+     */
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
                Function<S, Path> state2path,
@@ -54,6 +60,11 @@ public final class App<S> {
         this.rootComponent = rootComponent;
     }
 
+    /**
+     * Creates an instance of an application
+     * @param routes a function that dispatches an incoming HTTP request to a page's initial state
+     * @param rootComponent a root of the components tree
+     */
     public App(Function<HttpRequest,
                CompletableFuture<S>> routes,
                Component<S> rootComponent) {
@@ -63,6 +74,10 @@ public final class App<S> {
              rootComponent);
     }
 
+    /**
+     * Creates an instance of an application
+     * @param rootComponent a root of the components tree
+     */
     public App(S initialState,
                Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
