@@ -11,6 +11,7 @@ public abstract class DocumentPartDefinition implements Comparable<DocumentPartD
 
     public abstract void accept(RenderContext renderContext);
 
+    @Override
     public int compareTo(DocumentPartDefinition that) {
         return this.kind.compareTo(that.kind);
     }
