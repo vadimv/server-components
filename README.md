@@ -199,7 +199,7 @@ TBD
 By default, internally the project uses a console logger. To change log level of the default console logger, 
 set ``rsp.log.level`` system property, for example ``-Drsp.log.level=trace``.
 
-To use a Slf4j logger instead of the default console logger, provide a ``Slf4jLogReporting`` logger implementation to
+To use a Slf4j logger instead of the default console logger, provide the ``Slf4jLogReporting`` logger implementation to
 the ``AppConfig`` application configuration. 
 
 To enable client-side detailed diagnostic data exchange logging, enter in the browser's console:
