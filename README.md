@@ -188,7 +188,7 @@ The default state-to-path routing sets an empty path for any state.
 ### Schedules and external events
 
 The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
-methods allows submitting of a delayed or periodic action that can be cancelled. 
+methods allow submitting of a delayed or periodic action that can be cancelled. 
 These actions will be executed in a thread from the internal thread pool.
 
 TBD
