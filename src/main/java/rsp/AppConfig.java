@@ -2,12 +2,31 @@ package rsp;
 
 import rsp.util.Log;
 
-import static rsp.util.Log.DEFAULT_CONSOLE_LOG;
-
 /**
  * An application configuration
  */
 public final class AppConfig {
+    /**
+     * The application's internal log level system property name, {@value LOG_LEVEL_PROPERTY_NAME}, {@link Log.Level},
+     * the log level name can be provided in a lower or upper case.
+     * If log levels do not have a constant with a matching name, an {@link IllegalArgumentException} will be thrown on initialization.
+     * If no such property provided then a default log level will be used {@link #DEFAULT_LOG_LEVEL}.
+     */
+    public final static String LOG_LEVEL_PROPERTY_NAME = "rsp.log.level";
+
+    /**
+     * The default log level {@value DEFAULT_LOG_LEVEL}
+     */
+    public final static String DEFAULT_LOG_LEVEL = "TRACE";
+
+    /**
+     * A console logger used by default
+     */
+    public final static Log.Reporting DEFAULT_CONSOLE_LOG = new Log.Default(Log.Level.valueOf(System.getProperty(LOG_LEVEL_PROPERTY_NAME,
+                                                                                                                  DEFAULT_LOG_LEVEL).toUpperCase()),
+                                                                                               new Log.SimpleFormat(),
+                                                                                               string -> System.out.println(string));
+
     /**
      * The default rate of heartbeat messages from a browser to server
      */

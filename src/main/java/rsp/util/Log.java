@@ -4,8 +4,6 @@ import java.util.function.Consumer;
 
 public interface Log {
 
-   Log.Reporting DEFAULT_CONSOLE_LOG = new Log.Default(Log.Level.TRACE, new Log.SimpleFormat(), string -> System.out.println(string));
-
     void log(String message);
     void log(String message, Throwable ex);
 
