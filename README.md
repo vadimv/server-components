@@ -173,6 +173,7 @@ Initial application's state is resolved during first rendering on by a specific 
         return m.result;
     }
 ```
+The default request to state routing implementation just provides an initial state for all requests.
 
 Current application's state can be mapped to the browser's navigation bar string using another specific function,
 also provided as a parameter of the ``App`` constructor.
@@ -182,6 +183,7 @@ also provided as a parameter of the ``App`` constructor.
         return state.details.map(details -> new Path(state.name, Long.toString(details.id))).or(new Path(state.name));
     }
 ```
+The default state to path routing sets an empty path for any state.
 
 ### Schedules and external events
 
