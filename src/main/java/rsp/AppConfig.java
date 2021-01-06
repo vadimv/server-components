@@ -15,15 +15,15 @@ public final class AppConfig {
     public final static String LOG_LEVEL_PROPERTY_NAME = "rsp.log.level";
 
     /**
-     * The default log level {@value DEFAULT_LOG_LEVEL}
+     * The default log level
      */
-    public final static String DEFAULT_LOG_LEVEL = "TRACE";
+    public final static Log.Level DEFAULT_LOG_LEVEL = Log.Level.TRACE;
 
     /**
      * A console logger used by default
      */
     public final static Log.Reporting DEFAULT_CONSOLE_LOG = new Log.Default(Log.Level.valueOf(System.getProperty(LOG_LEVEL_PROPERTY_NAME,
-                                                                                                                  DEFAULT_LOG_LEVEL).toUpperCase()),
+                                                                                                                 DEFAULT_LOG_LEVEL.name()).toUpperCase()),
                                                                                                new Log.SimpleFormat(),
                                                                                                string -> System.out.println(string));
 
