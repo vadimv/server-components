@@ -57,7 +57,7 @@ public class JettyHn {
                                                                                                                 concat(currentState.stories,
                                                                                                                        newStories.toArray(State.Story[]::new)),
                                                                                                                 newPageNum));
-                                               newState.thenAccept(state -> useState.accept(state));
+                                               useState.accept(newState);
                                            }
                                        })));
                         }).debounce(500)

@@ -1,6 +1,7 @@
 package rsp.state;
 
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
 
 public final class MutableState<S> implements UseState<S> {
     private final StateListener<S>[] listeners;
@@ -32,6 +33,11 @@ public final class MutableState<S> implements UseState<S> {
         final StateListener[] a = Arrays.copyOf(listeners, listeners.length + 1);
         a[a.length - 1] = stateListener;
         return new MutableState<>(state, a);
+    }
+
+    @Override
+    public void accept(CompletableFuture<S> completableFuture) {
+        completableFuture.thenAccept(s -> accept(s));
     }
 
     public interface StateListener<S> {

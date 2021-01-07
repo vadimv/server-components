@@ -1,5 +1,7 @@
 package rsp.state;
 
+import java.util.concurrent.CompletableFuture;
+
 public final class ReadOnly<S> implements UseState<S> {
 
     private final S state;
@@ -15,6 +17,11 @@ public final class ReadOnly<S> implements UseState<S> {
 
     @Override
     public void accept(S state) {
+        throw new IllegalStateException("Set state is not allowed");
+    }
+
+    @Override
+    public void accept(CompletableFuture<S> completableFuture) {
         throw new IllegalStateException("Set state is not allowed");
     }
 }
