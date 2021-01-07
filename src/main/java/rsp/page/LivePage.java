@@ -16,9 +16,10 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
-public final class LivePage<S> implements InMessages, Schedule {
+public final class LivePage<S> implements InMessages, Schedule, Consumer<String> {
     public static final String POST_START_EVENT_TYPE = "page-start";
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
@@ -287,6 +288,11 @@ public final class LivePage<S> implements InMessages, Schedule {
             lostSessionsIds.add(qsid);
             return false;
         }
+    }
+
+    @Override
+    public void accept(String s) {
+        System.out.println("consume " + s);
     }
 
     private static class Snapshot {

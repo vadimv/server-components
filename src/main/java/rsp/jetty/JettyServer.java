@@ -127,6 +127,7 @@ public final class JettyServer {
                                                                                      app.rootComponent,
                                                                                      app.enrichRenderContext(),
                                                                                      () -> scheduler,
+                                                                                     app.listeners,
                                                                                      app.config.log);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =

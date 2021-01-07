@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -28,6 +29,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
+    private final Map<String, ? super Consumer<String>> listeners;
     private final Log.Reporting log;
 
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
@@ -36,6 +38,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                  Component<S> documentDefinition,
                                  BiFunction<String, RenderContext, RenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
+                                 Map<String, ? super  Consumer<String>> listeners,
                                  Log.Reporting log) {
         this.routing = routing;
         this.state2route = state2route;
@@ -43,6 +46,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
         this.schedulerSupplier = schedulerSupplier;
+        this.listeners = listeners;
         this.log = log;
     }
 
@@ -72,6 +76,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         });
         livePage.start();
         session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
+        listeners.put(session.getId(), livePage);
     }
 
     private void sendText(Session session, String text) {
@@ -101,6 +106,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             livePage.shutdown();
             log.debug(l -> l.log("Shutdown session: " + session.getId()));
         }
+        listeners.remove(session.getId());
     }
 
     public static HttpRequest of(HandshakeRequest handshakeRequest) {

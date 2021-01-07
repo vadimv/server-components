@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -42,6 +43,8 @@ public final class App<S> {
     public final Component<S> rootComponent;
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
+
+    public final Map<String, ? super Consumer<String>> listeners = new ConcurrentHashMap<>();
 
     /**
      * Creates an instance of an application
@@ -86,6 +89,13 @@ public final class App<S> {
              rootComponent);
     }
 
+
+    public void publish(String s) {
+        for (Map.Entry<String, ? super Consumer<String>> entry : listeners.entrySet()) {
+            final Consumer<String> consumer = (Consumer<String>) entry.getValue();
+            consumer.accept(s);
+        }
+    }
 
     public final BiFunction<String, RenderContext, RenderContext> enrichRenderContext() {
         return (sessionId, ctx) ->

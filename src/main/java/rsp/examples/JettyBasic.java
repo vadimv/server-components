@@ -6,6 +6,10 @@ import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
@@ -31,10 +35,18 @@ public class JettyBasic {
             else if (path(request, "/2")) return new State(2);
             else return new State(-1);
         };
+
+        final App<State> app = new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
+                                         render);
+        //TODO remove
+        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+        final AtomicInteger ai = new AtomicInteger();
+        scheduler.scheduleAtFixedRate(() -> {
+            app.publish(Integer.toString(ai.incrementAndGet()));
+        }, 1, 1, TimeUnit.SECONDS);
+
         final var s = new JettyServer(p,
-                              "",
-                                      new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
-                                                render));
+                              "", app);
         s.start();
         s.join();
     }
