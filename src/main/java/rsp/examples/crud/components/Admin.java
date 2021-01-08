@@ -79,8 +79,10 @@ public class Admin {
 
     private DocumentPartDefinition appRoot(UseState<Admin.State> us) {
         return html(window().on("popstate",
-                                ctx -> ctx.eventObject().apply("path").ifPresent(path -> dispatch(us.get().user, Path.of(path))
-                                                                         .thenAccept(s -> us.accept(s)))),
+                                ctx ->
+            ctx.eventObject().value("path").ifPresent(path -> dispatch(us.get().user, Path.of(path.toString()))
+                                                                         .thenAccept(s -> us.accept(s))))
+        ,
                     head(title(title + us.get().currentResource.map(r -> ": " + r.title).orElse("")),
                          link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
                     body(us.get().user.map(u -> div(div(span(u.name),

@@ -44,7 +44,7 @@ public final class App<S> {
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
-    public final Map<String, ? super Consumer<String>> listeners = new ConcurrentHashMap<>();
+    public final Map<String, Consumer<String>> listeners = new ConcurrentHashMap<>();
 
     /**
      * Creates an instance of an application
@@ -91,8 +91,8 @@ public final class App<S> {
 
 
     public void publish(String s) {
-        for (Map.Entry<String, ? super Consumer<String>> entry : listeners.entrySet()) {
-            final Consumer<String> consumer = (Consumer<String>) entry.getValue();
+        for (Map.Entry<String, Consumer<String>> entry : listeners.entrySet()) {
+            final Consumer<String> consumer = entry.getValue();
             consumer.accept(s);
         }
     }

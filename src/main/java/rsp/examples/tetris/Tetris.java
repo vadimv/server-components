@@ -25,7 +25,7 @@ public class Tetris {
         final Map<String, ScheduledFuture<?>> timers = new ConcurrentHashMap<>();
         final Component<State> render = useState ->
             html(on("keydown",  c -> {
-                        final String keyCode = c.eventObject().apply("keyCode").orElse("noKeyCode");
+                        final String keyCode = c.eventObject().value("keyCode").map(Object::toString).orElse("noKeyCode");
                         final State s = useState.get();
                         switch (keyCode) {
                             case "37": s.tryMoveLeft().ifPresent(ns -> useState.accept(ns)); break;

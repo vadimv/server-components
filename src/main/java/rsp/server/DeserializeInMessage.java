@@ -2,16 +2,16 @@ package rsp.server;
 
 
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import rsp.dom.VirtualDomPath;
 import rsp.util.Log;
+import rsp.util.json.JsonDataType;
+import rsp.util.json.JsonSimple;
 
 import java.util.Objects;
-import java.util.Optional;
 
 /**
- * The communication protocol is based on the protocol of Korolev project by Aleksey Fomkin
+ * The communication protocol is based on the protocol of the Korolev project by Aleksey Fomkin
  */
 public final class DeserializeInMessage {
     private final InMessages inMessages;
@@ -37,7 +37,7 @@ public final class DeserializeInMessage {
             final JSONArray messageJson = (JSONArray) jsonParser.parse(message);
             final int messageType = Math.toIntExact((long)messageJson.get(0));
             switch(messageType) {
-                case DOM_EVENT: parseDomEvent((String) messageJson.get(1), (JSONObject) messageJson.get(2)); break;
+                case DOM_EVENT: parseDomEvent((String) messageJson.get(1), messageJson.get(2)); break;
                 case EXTRACT_PROPERTY_RESPONSE: parseExtractPropertyResponse((String) messageJson.get(1), messageJson.get(2)); break;
                 case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1),
                                                             messageJson.size() > 2 ? messageJson.get(2) : ""); break;
@@ -50,23 +50,32 @@ public final class DeserializeInMessage {
 
     private void parseExtractPropertyResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
-        inMessages.extractPropertyResponse(Integer.parseInt(tokens[0]), value);
+        inMessages.extractPropertyResponse(Integer.parseInt(tokens[0]),
+                                           JsonSimple.convertToJsonType(value));
     }
 
     private void parseEvalJsResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
-        inMessages.evalJsResponse(Integer.parseInt(tokens[0]), value);
+        inMessages.evalJsResponse(Integer.parseInt(tokens[0]),
+                                  JsonSimple.convertToJsonType(value));
     }
 
 
+    private void parseDomEvent(String str, Object eventObject) {
+        final JsonDataType json = JsonSimple.convertToJsonType(eventObject);
+        if (json instanceof JsonDataType.Object) {
+            final String[] tokens = str.split(":");
+            inMessages.domEvent(Integer.parseInt(tokens[0]),
+                                VirtualDomPath.of(tokens[1]),
+                                tokens[2],
+                                (JsonDataType.Object) JsonSimple.convertToJsonType(eventObject));
+        } else {
+            throw new IllegalStateException("Unexpected type of an event object: " + eventObject.getClass().getName());
+        }
 
-    private void parseDomEvent(String str, JSONObject eventObject) {
-        final String[] tokens = str.split(":");
-        inMessages.domEvent(Integer.parseInt(tokens[0]),
-                            VirtualDomPath.of(tokens[1]),
-                            tokens[2],
-                            name -> Optional.ofNullable((String)eventObject.get(name)));
     }
+
+
 
     private void heartBeat() {
         // no-op

@@ -17,10 +17,12 @@ public class LoginForm implements Component<LoginForm.State> {
         return div(attr("class", "login"),
                    form(on("submit",
                             c -> {
-                                final String userName = c.eventObject().apply("username")
+                                final String userName = c.eventObject().value("username")
+                                                                       .map(v -> v.toString())
                                                                        .flatMap(s -> s.isBlank() ? Optional.empty() : Optional.of(s.trim()))
                                                                        .orElse("");
-                                final String password = c.eventObject().apply("password")
+                                final String password = c.eventObject().value("password")
+                                                                       .map(v -> v.toString())
                                                                        .flatMap(s -> s.isBlank() ? Optional.empty() : Optional.of(s.trim()))
                                                                        .orElse("");
                                 us.accept(new State(userName,

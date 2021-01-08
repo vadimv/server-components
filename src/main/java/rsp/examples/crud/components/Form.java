@@ -4,6 +4,7 @@ import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.state.UseState;
 import rsp.util.Tuple2;
+import rsp.util.json.JsonDataType;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -36,16 +37,20 @@ public class Form implements Component<Form.State> {
                         final Map<String, String> topValidationErrors =
                                 Arrays.stream(fieldsComponents).map(component ->
                                     new Tuple2<>(component.fieldName,
-                                                 c.eventObject().apply(component.fieldName).stream().flatMap(value ->
+                                                 c.eventObject().value(component.fieldName).stream().flatMap(value ->
                                                                     Arrays.stream(component.validations()).flatMap(validation ->
-                                                                              validation.apply(value).stream())).collect(Collectors.toList())))
+                                                                              validation.apply(value.toString()).stream())).collect(Collectors.toList())))
                                         .filter(t -> t._2.size() > 0)
                                         .collect(Collectors.toMap(t -> t._1, t -> t._2.get(0)));
 
                             if (topValidationErrors.size() > 0) {
                                 useState.accept(new Form.State(topValidationErrors));
                             } else {
-                                submittedData.accept(c.eventObject());
+                                submittedData.accept(name -> c.eventObject().value(name).map(v -> {
+                                    assert v instanceof JsonDataType.String;
+                                    final var o = (JsonDataType.String) v;
+                                    return o.value();
+                                }));
                             }
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->

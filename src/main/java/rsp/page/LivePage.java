@@ -11,6 +11,7 @@ import rsp.server.Path;
 import rsp.state.MutableState;
 import rsp.state.UseState;
 import rsp.util.Log;
+import rsp.util.json.JsonDataType;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -26,7 +27,7 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     private final AtomicInteger descriptorsCounter = new AtomicInteger();
-    private final Map<Integer, CompletableFuture<Object>> registeredEventHandlers = new ConcurrentHashMap<>();
+    private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new ConcurrentHashMap<>();
 
     private final HttpRequest handshakeRequest;
     private final QualifiedSessionId qsid;
@@ -158,7 +159,7 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
                 // Invoke this page's post start events
                 currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
                     if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                        final EventContext eventContext = createEventContext(e -> Optional.empty());
+                        final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
                         event.eventHandler.accept(eventContext);
                     }
                 });
@@ -172,15 +173,15 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
         // Invoke this page's shutdown events
         currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
             if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                final EventContext eventContext = createEventContext(s -> Optional.empty());
+                final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
                 event.eventHandler.accept(eventContext);
             }
         });
     }
 
     @Override
-    public void extractPropertyResponse(int descriptorId, Object value) {
-        log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + valueToString(value)));
+    public void extractPropertyResponse(int descriptorId, JsonDataType value) {
+        log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + value.toStringValue()));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
@@ -189,8 +190,8 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
     }
 
     @Override
-    public void evalJsResponse(int descriptorId, Object value) {
-        log.debug(l -> l.log("evalJsResponse: " + descriptorId + " value: " + valueToString(value)));
+    public void evalJsResponse(int descriptorId, JsonDataType value) {
+        log.debug(l -> l.log("evalJsResponse: " + descriptorId + " value: " + value.toStringValue()));
         final var cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
@@ -198,12 +199,8 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
         }
     }
 
-    private static String valueToString(Object value) {
-        return value instanceof String ? "\"" + value + "\"" : value.toString();
-    }
-
     @Override
-    public void domEvent(int renderNumber, VirtualDomPath path, String eventType, Function<String, Optional<String>> eventObject) {
+    public void domEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
         synchronized (this) {
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
@@ -243,11 +240,11 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
         }, delay, unit);
     }
 
-    private EventContext createEventContext(Function<String, Optional<String>> eventObject) {
+    private EventContext createEventContext(JsonDataType.Object eventObject) {
         return new EventContext(qsid,
                                 js -> evalJs(js),
                                 ref -> createPropertiesHandle(ref),
-                                eventObject,
+                                (JsonDataType.Object) eventObject,
                                 this,
                                 href -> setHref(href));
     }
@@ -264,9 +261,9 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
         return ref instanceof WindowDefinition ? VirtualDomPath.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
     }
 
-    private CompletableFuture<Object> evalJs(String js) {
+    private CompletableFuture<JsonDataType> evalJs(String js) {
         final Integer newDescriptor = descriptorsCounter.incrementAndGet();
-        final CompletableFuture<Object> resultHandler = new CompletableFuture<>();
+        final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, resultHandler);
         out.evalJs(newDescriptor, js);
         return resultHandler;

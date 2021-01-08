@@ -1,8 +1,8 @@
 package rsp.page;
 
 import rsp.dsl.Ref;
+import rsp.util.json.JsonDataType;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -12,15 +12,15 @@ import java.util.function.Function;
 public final class EventContext {
     private final QualifiedSessionId sessionId;
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
-    private final Function<String, CompletableFuture<Object>> jsEvaluation;
-    private final Function<String, Optional<String>> eventObject;
+    private final Function<String, CompletableFuture<JsonDataType>> jsEvaluation;
+    private final JsonDataType.Object eventObject;
     private final Schedule executorService;
     private final Consumer<String> setHref;
 
     public EventContext(QualifiedSessionId sessionId,
-                        Function<String, CompletableFuture<Object>> jsEvaluation,
+                        Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
                         Function<Ref, PropertiesHandle> propertiesHandleLookup,
-                        Function<String, Optional<String>> eventObject,
+                        JsonDataType.Object eventObject,
                         Schedule executorService,
                         Consumer<String> setHref) {
         this.sessionId = sessionId;
@@ -40,7 +40,7 @@ public final class EventContext {
      * @param js code to execute
      * @return a CompletableFuture of either a Map, String, Long, Double or Boolean according to its evaluation result JSON data type
      */
-    public CompletableFuture<Object> evalJs(String js) {
+    public CompletableFuture<JsonDataType> evalJs(String js) {
         return jsEvaluation.apply(js);
     }
 
@@ -53,7 +53,7 @@ public final class EventContext {
     }
 
     // TODO maybe replace with an Object/Map
-    public Function<String, Optional<String>> eventObject() {
+    public JsonDataType.Object eventObject() {
         return eventObject;
     }
 
