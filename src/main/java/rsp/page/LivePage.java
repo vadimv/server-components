@@ -20,7 +20,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public final class LivePage<S> implements InMessages, Schedule, Consumer<String> {
+public final class LivePage<S> implements InMessages, Schedule {
     public static final String POST_START_EVENT_TYPE = "page-start";
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
@@ -285,11 +285,6 @@ public final class LivePage<S> implements InMessages, Schedule, Consumer<String>
             lostSessionsIds.add(qsid);
             return false;
         }
-    }
-
-    @Override
-    public void accept(String s) {
-        System.out.println("consume " + s);
     }
 
     private static class Snapshot {

@@ -38,13 +38,6 @@ public class JettyBasic {
 
         final App<State> app = new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
                                          render);
-        //TODO remove
-        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
-        final AtomicInteger ai = new AtomicInteger();
-        scheduler.scheduleAtFixedRate(() -> {
-            app.publish(Integer.toString(ai.incrementAndGet()));
-        }, 1, 1, TimeUnit.SECONDS);
-
         final var s = new JettyServer(p,
                               "", app);
         s.start();

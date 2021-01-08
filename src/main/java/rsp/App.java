@@ -44,8 +44,6 @@ public final class App<S> {
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
-    public final Map<String, Consumer<String>> listeners = new ConcurrentHashMap<>();
-
     /**
      * Creates an instance of an application
      * @param config an application config
@@ -87,14 +85,6 @@ public final class App<S> {
              request -> CompletableFuture.completedFuture(initialState),
              (s) ->  Path.EMPTY_ABSOLUTE,
              rootComponent);
-    }
-
-
-    public void publish(String s) {
-        for (Map.Entry<String, Consumer<String>> entry : listeners.entrySet()) {
-            final Consumer<String> consumer = entry.getValue();
-            consumer.accept(s);
-        }
     }
 
     public final BiFunction<String, RenderContext, RenderContext> enrichRenderContext() {
