@@ -3,13 +3,18 @@ package rsp.state;
 import java.util.concurrent.CompletableFuture;
 
 /**
- *
+ * A read-only state container.
+ * An attempt to invoke write operations result in an exception.
  * @param <S> the type of the state snapshot, an immutable class
  */
 public final class ReadOnly<S> implements UseState<S> {
 
     private final S state;
 
+    /**
+     * Creates a new instance of the read-only container.
+     * @param state an initial state snapshot
+     */
     public ReadOnly(S state) {
         this.state = state;
     }
