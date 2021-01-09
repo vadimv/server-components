@@ -77,7 +77,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                                                                                 new HashMap<>(),
                                                                                 new HashMap<>()));
 
-        final UseState<S> useState = new MutableState<S>(null).addListener(((newState, self) -> {
+        final UseState<S> useState = new MutableState<S>(null, ((newState, self) -> {
             final DomTreeRenderContext newContext = new DomTreeRenderContext();
             documentDefinition.render(self).accept(enrich.apply(qsid.sessionId, newContext));
 

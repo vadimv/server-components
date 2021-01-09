@@ -2,6 +2,10 @@ package rsp.state;
 
 import java.util.concurrent.CompletableFuture;
 
+/**
+ *
+ * @param <S> the type of the state snapshot, an immutable class
+ */
 public final class ReadOnly<S> implements UseState<S> {
 
     private final S state;
