@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 public interface JsonDataType {
 
     /**
-     * A boolean JSON data type
+     * A boolean JSON data type.
      */
     final class Boolean implements JsonDataType {
         private final boolean value;
