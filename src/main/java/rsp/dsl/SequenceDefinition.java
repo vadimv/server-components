@@ -2,6 +2,8 @@ package rsp.dsl;
 
 import rsp.page.RenderContext;
 
+import java.util.Arrays;
+
 final class SequenceDefinition extends DocumentPartDefinition {
     public final DocumentPartDefinition[] items;
 
@@ -12,6 +14,6 @@ final class SequenceDefinition extends DocumentPartDefinition {
 
     @Override
     public void accept(RenderContext renderContext) {
-        throw new RuntimeException();
+        Arrays.stream(items).sorted().forEach(c -> c.accept(renderContext));
     }
 }

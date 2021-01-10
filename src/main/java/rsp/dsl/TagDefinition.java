@@ -27,8 +27,7 @@ public final class TagDefinition extends DocumentPartDefinition {
     @Override
     public void accept(RenderContext renderContext) {
         renderContext.openNode(XmlNs.html, name);
-        Arrays.stream(children).flatMap(c -> c instanceof SequenceDefinition ? Arrays.stream(((SequenceDefinition) c).items) : Stream.of(c))
-                .sorted().forEach(c -> c.accept(renderContext));
+        Arrays.stream(children).sorted().forEach(c -> c.accept(renderContext));
         renderContext.closeNode(name);
     }
 }
