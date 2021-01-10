@@ -441,7 +441,7 @@ public final class Html {
     }
 
     /**
-     * Inserts a zero or more definitions.
+     * Inserts a zero or more definitions provided as a stream.
      * @param items a {@link Stream} of definitions
      * @return a document part definition representing a sequence of definitions
      */

@@ -4,7 +4,7 @@ import rsp.page.RenderContext;
 import rsp.dom.XmlNs;
 
 /**
- * A definition of a HTML attribute.
+ * A definition of a HTML element's attribute.
  */
 public final class AttributeDefinition extends DocumentPartDefinition {
     /**
