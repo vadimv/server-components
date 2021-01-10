@@ -140,6 +140,10 @@ public interface JsonDataType {
         }
     }
 
+    /**
+     * Gives a string representation to be used in a JSON data field, quotes if needed.
+     * @return the result string
+     */
     default java.lang.String toStringValue() {
         return this.toString();
     }
