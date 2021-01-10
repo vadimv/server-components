@@ -11,6 +11,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Closure Compiler related.
+ */
 public final class JsCompiler {
 
     public static void main(String[] args) throws IOException {

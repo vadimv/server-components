@@ -3,6 +3,9 @@ package rsp.dsl;
 import rsp.page.RenderContext;
 import rsp.dom.XmlNs;
 
+/**
+ * A definition of a HTML attribute.
+ */
 public final class AttributeDefinition extends DocumentPartDefinition {
     public final String name;
     public final String value;

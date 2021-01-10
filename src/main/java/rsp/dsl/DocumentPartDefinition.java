@@ -2,6 +2,9 @@ package rsp.dsl;
 
 import rsp.page.RenderContext;
 
+/**
+ * A definition of a part of a HTML document.
+ */
 public abstract class DocumentPartDefinition implements Comparable<DocumentPartDefinition> {
     public final DocumentPartKind kind;
 
@@ -16,7 +19,11 @@ public abstract class DocumentPartDefinition implements Comparable<DocumentPartD
         return this.kind.compareTo(that.kind);
     }
 
+    /**
+     * {@link DocumentPartDefinition} subclasses natural ordering.
+     */
     public static class DocumentPartKind implements Comparable<DocumentPartKind> {
+
         public static final DocumentPartKind STYLE = new DocumentPartKind(0);
         public static final DocumentPartKind ATTR = new DocumentPartKind(1);
         public static final DocumentPartKind OTHER = new DocumentPartKind(2);
@@ -26,7 +33,6 @@ public abstract class DocumentPartDefinition implements Comparable<DocumentPartD
         public DocumentPartKind(int index) {
             this.index = index;
         }
-
 
         @Override
         public int compareTo(DocumentPartKind that) {

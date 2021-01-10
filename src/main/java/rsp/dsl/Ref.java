@@ -1,7 +1,7 @@
 package rsp.dsl;
 
 /**
- * An object that is not defined by its attributes, but rather by its identity.
+ * A Java object that is not defined by its fields, but rather by its identity.
  */
 public interface Ref {
 }
