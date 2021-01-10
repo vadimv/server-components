@@ -4,7 +4,7 @@ import rsp.page.RenderContext;
 
 import java.util.Arrays;
 
-final class SequenceDefinition extends DocumentPartDefinition {
+public final class SequenceDefinition extends DocumentPartDefinition {
     public final DocumentPartDefinition[] items;
 
     public SequenceDefinition(DocumentPartDefinition[] items) {

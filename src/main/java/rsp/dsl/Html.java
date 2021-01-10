@@ -498,7 +498,7 @@ public final class Html {
     }
 
     /**
-     * Creates a DOM element reference which can be used as a key for obtaining its element's properties values.
+     * Creates reference to a HTML element which can be used as a key for obtaining its element's properties values.
      * @see EventContext#props(Ref)
      * @return a reference object
      */

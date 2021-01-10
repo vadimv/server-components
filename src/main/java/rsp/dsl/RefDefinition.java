@@ -4,8 +4,14 @@ import rsp.page.RenderContext;
 
 import java.util.Objects;
 
+/**
+ * A reference to an element.
+ */
 public final class RefDefinition extends DocumentPartDefinition implements Ref {
 
+    /**
+     * Creates a new instance of a reference.
+     */
     public RefDefinition() {
         super(DocumentPartKind.OTHER);
     }
