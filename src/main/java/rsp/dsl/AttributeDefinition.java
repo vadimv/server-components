@@ -7,10 +7,28 @@ import rsp.dom.XmlNs;
  * A definition of a HTML attribute.
  */
 public final class AttributeDefinition extends DocumentPartDefinition {
+    /**
+     * The attribute's name.
+     */
     public final String name;
+
+    /**
+     * The attribute's value.
+     */
     public final String value;
+
+    /**
+     * Determines if this attribute is an HTML tag's property.
+     * @see Html#DEFAULT_PROPERTIES_NAMES
+     */
     public final boolean isProperty;
 
+    /**
+     * Creates a new instance of an attribute definition.
+     * @param name the attribute's name
+     * @param value the attribute's value
+     * @param isProperty true if this attribute is an HTML property and false otherwise
+     */
     public AttributeDefinition(String name, String value, boolean isProperty) {
         super(DocumentPartDefinition.DocumentPartKind.ATTR);
         this.name = name;

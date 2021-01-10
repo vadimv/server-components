@@ -8,7 +8,10 @@ import rsp.page.RenderContext;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public final class EventDefinition<S> extends DocumentPartDefinition {
+/**
+ * An event definition.
+ */
+public final class EventDefinition extends DocumentPartDefinition {
 
     public final Optional<VirtualDomPath> elementPath;
     public final String eventType;
@@ -45,15 +48,15 @@ public final class EventDefinition<S> extends DocumentPartDefinition {
         renderContext.addEvent(elementPath, eventType, handler, preventDefault, modifier);
     }
 
-    public EventDefinition<S> throttle(int timeFrameMs) {
-        return new EventDefinition<>(elementPath, eventType, handler, preventDefault, new Event.ThrottleModifier(timeFrameMs));
+    public EventDefinition throttle(int timeFrameMs) {
+        return new EventDefinition(elementPath, eventType, handler, preventDefault, new Event.ThrottleModifier(timeFrameMs));
     }
 
-    public EventDefinition<S> debounce(int waitMs, boolean immediate) {
-        return new EventDefinition<>(elementPath, eventType, handler, preventDefault, new Event.DebounceModifier(waitMs, immediate));
+    public EventDefinition debounce(int waitMs, boolean immediate) {
+        return new EventDefinition(elementPath, eventType, handler, preventDefault, new Event.DebounceModifier(waitMs, immediate));
     }
 
-    public EventDefinition<S> debounce(int waitMs) {
-        return new EventDefinition<>(elementPath, eventType, handler, preventDefault, new Event.DebounceModifier(waitMs, false));
+    public EventDefinition debounce(int waitMs) {
+        return new EventDefinition(elementPath, eventType, handler, preventDefault, new Event.DebounceModifier(waitMs, false));
     }
 }

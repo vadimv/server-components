@@ -3,12 +3,17 @@ package rsp.dsl;
 import rsp.page.RenderContext;
 
 /**
- * A definition of a part of a HTML document.
+ * Represents a building block of the domain-specific language.
+ * For example a definition of a fragment of HTML or an event or a style or something else.
  */
 public abstract class DocumentPartDefinition implements Comparable<DocumentPartDefinition> {
     public final DocumentPartKind kind;
 
-    protected DocumentPartDefinition(DocumentPartKind kind) {
+    /**
+     * Creates a new instance of a DSL document part.
+     * @param kind the definition's type defining its order on sorting
+     */
+    public DocumentPartDefinition(DocumentPartKind kind) {
         this.kind = kind;
     }
 
