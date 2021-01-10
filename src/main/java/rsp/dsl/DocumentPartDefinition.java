@@ -10,13 +10,17 @@ public abstract class DocumentPartDefinition implements Comparable<DocumentPartD
     public final DocumentPartKind kind;
 
     /**
-     * Creates a new instance of a DSL document part.
+     * The base class constructor. Creates a new instance of a definition of a document part.
      * @param kind the definition's type defining its order on sorting
      */
     public DocumentPartDefinition(DocumentPartKind kind) {
         this.kind = kind;
     }
 
+    /**
+     * An implementation of this method determines how its definition node is rendered to a virtual DOM tree.
+     * @param renderContext the renderer
+     */
     public abstract void accept(RenderContext renderContext);
 
     @Override
@@ -25,17 +29,25 @@ public abstract class DocumentPartDefinition implements Comparable<DocumentPartD
     }
 
     /**
-     * {@link DocumentPartDefinition} subclasses natural ordering.
+     * Sets {@link DocumentPartDefinition} subclasses natural ordering within its parent node definition.
      */
     public static class DocumentPartKind implements Comparable<DocumentPartKind> {
-
+        /**
+         * Styles
+         */
         public static final DocumentPartKind STYLE = new DocumentPartKind(0);
+        /**
+         * Attributes
+         */
         public static final DocumentPartKind ATTR = new DocumentPartKind(1);
+        /**
+         * All the rest
+         */
         public static final DocumentPartKind OTHER = new DocumentPartKind(2);
 
         private final int index;
 
-        public DocumentPartKind(int index) {
+        private DocumentPartKind(int index) {
             this.index = index;
         }
 

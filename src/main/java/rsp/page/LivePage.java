@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.Component;
 import rsp.dom.*;
 import rsp.dsl.Ref;
-import rsp.dsl.WindowDefinition;
+import rsp.dsl.WindowRef;
 import rsp.server.HttpRequest;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
@@ -17,7 +17,6 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class LivePage<S> implements InMessages, Schedule {
@@ -258,7 +257,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     private VirtualDomPath resolveRef(Ref ref) {
-        return ref instanceof WindowDefinition ? VirtualDomPath.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
+        return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : currentPageSnapshot.get().refs.get(ref);
     }
 
     private CompletableFuture<JsonDataType> evalJs(String js) {

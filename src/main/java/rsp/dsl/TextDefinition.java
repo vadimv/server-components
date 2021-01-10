@@ -2,9 +2,16 @@ package rsp.dsl;
 
 import rsp.page.RenderContext;
 
+/**
+ * A definition of a HTML tag text content.
+ */
 public final class TextDefinition extends DocumentPartDefinition {
     private final String text;
 
+    /**
+     * Creates a new instance of a text definition.
+     * @param text a text {@link String}
+     */
     public TextDefinition(String text) {
         super(DocumentPartDefinition.DocumentPartKind.OTHER);
         this.text = text;

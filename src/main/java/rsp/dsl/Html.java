@@ -493,8 +493,8 @@ public final class Html {
      * Provides a definition of a browsers' window object.
      * @return a window object definition
      */
-    public static WindowDefinition window() {
-        return new WindowDefinition();
+    public static WindowRef window() {
+        return new WindowRef();
     }
 
     /**
