@@ -1,11 +1,17 @@
 package rsp.util.json;
 
-
-
 import java.util.*;
 
 // TODO unit test
+/**
+ * json-simple related.
+ */
 public class JsonSimple {
+    /**
+     * Recursively converts a json-simple parsed JSON object to a {@link JsonDataType}.
+     * @param j an input object
+     * @return the conversion result
+     */
     public static JsonDataType convertToJsonType(Object j) {
         if (j == null) {
             return JsonDataType.Null.INSTANCE;
@@ -37,7 +43,7 @@ public class JsonSimple {
         } else if (j instanceof Float) {
             return new JsonDataType.Number(((Float) j));
         } else {
-            throw new IllegalStateException("Unsupported JSON data type: " + j.getClass().getName());
+            throw new IllegalStateException("Unsupported json-simple data type: " + j.getClass().getName());
         }
     }
 }
