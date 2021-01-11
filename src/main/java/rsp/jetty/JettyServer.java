@@ -13,6 +13,7 @@ import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainer
 import rsp.App;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
+import rsp.page.EnrichingXhtmlContext;
 import rsp.page.StateToRouteDispatch;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
@@ -29,11 +30,11 @@ import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * An embedded server for an RSP application,
- * Jetty provides a servlet container and a JSR 356 WebSockets API implementation
+ * Jetty provides a servlet container and a JSR 356 WebSockets API implementation.
  */
 public final class JettyServer {
     /**
-     * The Jetty server's maximum threads number by default is {@value #DEFAULT_WEB_SERVER_MAX_THREADS}
+     * The Jetty server's maximum threads number by default is {@value #DEFAULT_WEB_SERVER_MAX_THREADS}.
      */
     public static final int DEFAULT_WEB_SERVER_MAX_THREADS = 50;
 
@@ -46,7 +47,7 @@ public final class JettyServer {
     private Server server;
 
     /**
-     * Creates a Jetty web server instance for hosting an RSP application
+     * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
      * @param basePath a context path of the web application
      * @param app an RSP application
@@ -65,7 +66,7 @@ public final class JettyServer {
     }
 
     /**
-     * Creates a Jetty web server instance for hosting an RSP application
+     * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
      * @param basePath a context path of the web application
      * @param app an RSP application
@@ -79,7 +80,7 @@ public final class JettyServer {
     }
 
     /**
-     * Creates a Jetty web server instance for hosting an RSP application
+     * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
      * @param basePath a context path of the web application
      * @param app an RSP application
@@ -89,7 +90,7 @@ public final class JettyServer {
     }
 
     /**
-     * Starts the server
+     * Starts the server.
      * @throws Exception in case when the server's start failed
      */
     public void start() throws Exception {
@@ -118,19 +119,19 @@ public final class JettyServer {
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrichRenderContext()),
+                                                                                     EnrichingXhtmlContext.createFun(app.config.heartbeatIntervalMs)),
                                                                app.config.log)),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
                                                                                      new StateToRouteDispatch(basePath, app.state2path),
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     app.enrichRenderContext(),
+                                                                                     EnrichingXhtmlContext.createFun(app.config.heartbeatIntervalMs),
                                                                                      () -> scheduler,
                                                                                      app.config.log);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
-                    ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), app.WS_ENDPOINT_PATH)
+                    ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
                                                 .configurator(new ServerEndpointConfig.Configurator() {
                                                     @Override
                                                     public <T> T getEndpointInstance(Class<T> clazz) throws InstantiationException {
@@ -155,7 +156,7 @@ public final class JettyServer {
     }
 
     /**
-     * Blocks the current thread while the server's threads are running
+     * Blocks the current thread while the server's threads are running.
      * @throws InterruptedException if any of the server's thread interrupted
      */
     public void join() throws InterruptedException {

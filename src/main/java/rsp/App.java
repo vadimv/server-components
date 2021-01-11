@@ -1,55 +1,48 @@
 package rsp;
 
-import rsp.server.HttpRequest;
 import rsp.page.*;
+import rsp.server.HttpRequest;
 import rsp.server.Path;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * An this class is an assembly point for everything needed to set off a UI application
- * This class object itself to be provided to a hosting web container {@link rsp.jetty.JettyServer}
+ * An this class is an assembly point for everything needed to set off a UI application.
+ * This class object itself to be provided to a hosting web container {@link rsp.jetty.JettyServer}.
  * @param <S> the type of the applications root component's state, should be an immutable class
  */
 public final class App<S> {
     /**
-     * The web socket endpoint path template
-     */
-    public static final String WS_ENDPOINT_PATH = "/bridge/web-socket/{pid}/{sid}";
-
-    /**
-     * The application's config
+     * The application's configuration.
      */
     public final AppConfig config;
 
     /**
-     * A function that dispatches an incoming HTTP request to a page's initial state
+     * A function that dispatches an incoming HTTP request to a page's initial state.
      */
     public final Function<HttpRequest, CompletableFuture<S>> routes;
 
     /**
-     * A function that dispatches a current state snapshot to the browser's navigation bar's path
+     * A function that dispatches a current state snapshot to the browser's navigation bar's path.
      */
     public final Function<S, Path> state2path;
 
     /**
-     * A root of the components tree
+     * The root of the components tree.
      */
     public final Component<S> rootComponent;
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
     /**
-     * Creates an instance of an application
+     * Creates an instance of an application.
      * @param config an application config
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param state2path a function that dispatches a current state snapshot to the browser's navigation bar's path
-     * @param rootComponent a root of the components tree
+     * @param rootComponent the root of the components tree
      */
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
@@ -62,12 +55,11 @@ public final class App<S> {
     }
 
     /**
-     * Creates an instance of an application
+     * Creates an instance of an application with the default configuration.
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
-     * @param rootComponent a root of the components tree
+     * @param rootComponent the root of the components tree
      */
-    public App(Function<HttpRequest,
-               CompletableFuture<S>> routes,
+    public App(Function<HttpRequest, CompletableFuture<S>> routes,
                Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
@@ -76,8 +68,10 @@ public final class App<S> {
     }
 
     /**
-     * Creates an instance of an application
-     * @param rootComponent a root of the components tree
+     * Creates an instance of an application with the default config
+     * and default routing which maps any request to the initial state.
+     * @param initialState the initial state snapshot
+     * @param rootComponent the root of the components tree
      */
     public App(S initialState,
                Component<S> rootComponent) {
@@ -86,15 +80,5 @@ public final class App<S> {
              (s) ->  Path.EMPTY_ABSOLUTE,
              rootComponent);
     }
-
-    public final BiFunction<String, RenderContext, RenderContext> enrichRenderContext() {
-        return (sessionId, ctx) ->
-                new EnrichingXhtmlContext(ctx,
-                                          sessionId,
-                                        "/",
-                                         DefaultConnectionLostWidget.HTML,
-                                         config.heartbeatIntervalMs);
-    }
-
 }
 

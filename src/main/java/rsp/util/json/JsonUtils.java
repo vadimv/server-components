@@ -1,4 +1,4 @@
-package rsp.util;
+package rsp.util.json;
 
 public final class JsonUtils {
     public static String unescape(String s) {

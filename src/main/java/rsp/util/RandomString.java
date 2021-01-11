@@ -11,7 +11,7 @@ public final class RandomString {
     }
 
     private final static String ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    private SecureRandom rnd = new SecureRandom();
+    private final SecureRandom rnd = new SecureRandom();
 
     public String newString() {
         final StringBuilder sb = new StringBuilder(length);

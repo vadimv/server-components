@@ -3,7 +3,7 @@ package rsp.dsl;
 import rsp.page.RenderContext;
 
 /**
- * Represents a building block of the domain-specific language.
+ * Represents a building block, a node of the input domain-specific language definitions document.
  * For example a definition of a fragment of HTML or an event or a style or something else.
  */
 public abstract class DocumentPartDefinition implements Comparable<DocumentPartDefinition> {

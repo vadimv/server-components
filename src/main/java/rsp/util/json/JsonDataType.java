@@ -54,6 +54,10 @@ public interface JsonDataType {
     final class String implements JsonDataType {
         private final java.lang.String value;
 
+        /**
+         * Creates a new instance of a string JSON.
+         * @param value unescaped
+         */
         public String(java.lang.String value) {
             this.value = value;
         }

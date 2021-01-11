@@ -6,6 +6,7 @@ import rsp.dom.XmlNs;
 import rsp.dsl.Ref;
 
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public final class EnrichingXhtmlContext implements RenderContext {
@@ -28,6 +29,14 @@ public final class EnrichingXhtmlContext implements RenderContext {
         this.path = path;
         this.connectionLostWidget = connectionLostWidget;
         this.heartBeatInterval = heartBeatInterval;
+    }
+
+    public static final BiFunction<String, RenderContext, RenderContext> createFun(int heartbeatIntervalMs) {
+        return (sessionId, ctx) -> new EnrichingXhtmlContext(ctx,
+                                                             sessionId,
+                                                             "/",
+                                                             DefaultConnectionLostWidget.HTML,
+                                                             heartbeatIntervalMs);
     }
 
     @Override

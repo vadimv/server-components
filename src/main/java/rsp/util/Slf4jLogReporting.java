@@ -5,6 +5,9 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
+/**
+ * A Slf4j logger.
+ */
 public final class Slf4jLogReporting implements Log.Reporting {
 
     private final Logger logger;

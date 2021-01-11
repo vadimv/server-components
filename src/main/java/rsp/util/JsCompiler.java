@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Closure Compiler related.
+ * The Closure Compiler runner.
  */
 public final class JsCompiler {
 
@@ -59,15 +59,15 @@ public final class JsCompiler {
     }
 
     private static CompilerOptions options(File source, File sourceMapOutputFile) {
-            final CompilerOptions options = new CompilerOptions();
-            options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2015);
-            options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);
-            options.setSourceMapIncludeSourcesContent(true);
-            options.setSourceMapLocationMappings(List.of(new SourceMap.PrefixLocationMapping(source.getAbsolutePath(), "RSP/es6")));
-            options.setSourceMapOutputPath(sourceMapOutputFile.getName());
-            options.setEnvironment(CompilerOptions.Environment.BROWSER);
+        final CompilerOptions options = new CompilerOptions();
+        options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2015);
+        options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);
+        options.setSourceMapIncludeSourcesContent(true);
+        options.setSourceMapLocationMappings(List.of(new SourceMap.PrefixLocationMapping(source.getAbsolutePath(), "RSP/es6")));
+        options.setSourceMapOutputPath(sourceMapOutputFile.getName());
+        options.setEnvironment(CompilerOptions.Environment.BROWSER);
 
-            CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-            return options;
+        CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+        return options;
     }
 }

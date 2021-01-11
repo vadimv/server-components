@@ -3,7 +3,7 @@ package rsp;
 import rsp.util.Log;
 
 /**
- * An application configuration
+ * An application configuration.
  */
 public final class AppConfig {
     /**

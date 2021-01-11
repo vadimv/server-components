@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static rsp.util.JsonUtils.escape;
+import static rsp.util.json.JsonUtils.escape;
 
 /**
  * The communication protocol is based on the protocol of Korolev project by Aleksey Fomkin

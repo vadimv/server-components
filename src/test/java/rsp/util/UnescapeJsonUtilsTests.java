@@ -2,6 +2,7 @@ package rsp.util;
 
 import org.junit.Assert;
 import org.junit.Test;
+import rsp.util.json.JsonUtils;
 
 public final class UnescapeJsonUtilsTests {
     @Test

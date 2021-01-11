@@ -39,6 +39,9 @@ public interface Log {
         }
     }
 
+    /**
+     * A console logger.
+     */
     class Default implements Reporting {
         private final Level level;
         private final Log traceLog;
