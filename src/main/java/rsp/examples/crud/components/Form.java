@@ -15,7 +15,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
 
 public class Form implements Component<Form.State> {
 
@@ -54,7 +53,7 @@ public class Form implements Component<Form.State> {
                             }
                         }),
                         of(Arrays.stream(fieldsComponents).map(component ->
-                                div(component.render(useState(() -> Optional.ofNullable(useState.get().validationErrors.get(component.fieldName))))))),
+                                div(component.render(UseState.readOnly(() -> Optional.ofNullable(useState.get().validationErrors.get(component.fieldName))))))),
                         button(attr("type", "submit"), text("Ok")),
                         button(attr("type", "button"),
                                 on("click", ctx -> useState.accept(new State(Collections.EMPTY_MAP))),

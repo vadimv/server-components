@@ -8,7 +8,6 @@ import rsp.state.UseState;
 import java.util.*;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
 
 public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
 
@@ -30,7 +29,7 @@ public class DataGrid<T> implements Component<DataGrid.Table<String, T>> {
                                                  attr("autocomplete", "off"),
                                                  on("click", ctx -> state.accept(state.get().toggleRowSelection(row))))),
                                         of(Arrays.stream(columns).map(column -> td(column.fieldComponent.apply(row.data)
-                                                .render(useState(() -> row.key, k -> state.accept(state.get().withEditRowKey(Optional.of(row.key))))))))
+                                                .render(UseState.readWrite(() -> row.key, k -> state.accept(state.get().withEditRowKey(Optional.of(row.key))))))))
                                 )))))
                 );
     }

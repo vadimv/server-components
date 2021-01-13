@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
+import static rsp.state.UseState.readWrite;
 
 public class Create<T> implements Component<DetailsViewState<T>> {
     private final Function<Consumer<T>, Form> formFunction;
@@ -21,9 +21,9 @@ public class Create<T> implements Component<DetailsViewState<T>> {
     @Override
     public DocumentPartDefinition render(UseState<DetailsViewState<T>> us) {
         return div(span("Create"),
-                   formFunction.apply(useState(() -> us.get().currentValue.get(),
+                   formFunction.apply(readWrite(() -> us.get().currentValue.get(),
                                             v -> us.accept(us.get().withValue(v).withValidationErrors(Collections.EMPTY_MAP))))
-                                                   .render(useState(() -> new Form.State(us.get().validationErrors),
+                                                   .render(readWrite(() -> new Form.State(us.get().validationErrors),
                                                                      v -> us.accept(us.get().withValidationErrors(v.validationErrors)))));
     }
 }

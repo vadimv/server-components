@@ -4,6 +4,7 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
+import rsp.state.UseState;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
@@ -13,7 +14,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
 
 public class JettyBasic {
 
@@ -23,7 +23,7 @@ public class JettyBasic {
         final int p = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
 
         final Component<State> render = state ->
-                html(body(subComponent.render(useState(() -> state.get().i, s -> state.accept(new State(s)))),
+                html(body(subComponent.render(UseState.readWrite(() -> state.get().i, s -> state.accept(new State(s)))),
                            div(span(text("+1")),
                                on("click",
                                   d -> { state.accept(new State(state.get().i + 1));})),

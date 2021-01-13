@@ -8,7 +8,6 @@ import java.util.Collections;
 import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
 
 public class Edit<T> implements Component<DetailsViewState<T>> {
     private final Function<UseState<T>, Form> formFunction;
@@ -20,9 +19,9 @@ public class Edit<T> implements Component<DetailsViewState<T>> {
     @Override
     public DocumentPartDefinition render(UseState<DetailsViewState<T>> us) {
         return div(span("Edit"),
-                   of(us.get().currentValue.map(currentValue -> formFunction.apply(useState(() -> currentValue,
+                   of(us.get().currentValue.map(currentValue -> formFunction.apply(UseState.readWrite(() -> currentValue,
                                                 v -> us.accept(us.get().withValue(v).withValidationErrors(Collections.EMPTY_MAP))))
-                                                       .render(useState(() -> new Form.State(us.get().validationErrors),
-                                                                         v -> us.accept(us.get().withValidationErrors(v.validationErrors))))).stream()));
+                                                       .render(UseState.readWrite(() -> new Form.State(us.get().validationErrors),
+                                                                                   v -> us.accept(us.get().withValidationErrors(v.validationErrors))))).stream()));
     }
 }

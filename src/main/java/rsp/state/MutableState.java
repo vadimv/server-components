@@ -1,6 +1,7 @@
 package rsp.state;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
  *  A state snapshot container with change notifications.
@@ -29,22 +30,46 @@ public final class MutableState<S> implements UseState<S> {
         this.listeners = listeners;
     }
 
+    /**
+     * Reads the current snapshot atomically.
+     * @return the current state
+     */
     @Override
     public synchronized S get() {
         return state;
     }
 
+    /**
+     * Writes a snapshot atomically.
+     * @param s
+     */
     @Override
-    public synchronized void accept(S state) {
-        this.state = state;
+    public synchronized void accept(S s) {
+        this.state = s;
         for (StateListener<S> listener:listeners) {
-            listener.onNewState(state, this);
+            listener.onNewState(s, this);
         }
     }
 
+    /**
+     * Writes the result of a {@link CompletableFuture}.
+     * @param completableFuture a computation resulting in a write
+     */
     @Override
     public void accept(CompletableFuture<S> completableFuture) {
         completableFuture.thenAccept(s -> accept(s));
+    }
+
+    /**
+     * Performs an atomic execute and write the result operation of the provided function.
+     * @param function which result will be written to the state, should not contain any long-time computation
+     * otherwise it will block the pages events handling
+     */
+    @Override
+    public void accept(Function<S, S> function) {
+        synchronized (this) {
+            accept(function.apply(get()));
+        }
     }
 
     /**

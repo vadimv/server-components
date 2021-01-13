@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
+import static rsp.state.UseState.*;
 
 public class Admin {
     private final String title;
@@ -90,12 +90,12 @@ public class Admin {
                                                             principals.remove(ctx.sessionId().deviceId);
                                                             us.accept(us.get().withoutPrincipal());
                                                          }))),
-                                                    new MenuPanel().render(useState(() ->
+                                                    new MenuPanel().render(readOnly(() ->
                                         new MenuPanel.State(Arrays.stream(resources).map(r -> new Tuple2<>(r.name, r.title)).collect(Collectors.toList())))),
-                                div(of(us.get().currentResource.flatMap(r -> findResourceComponent(r)).map(p -> p._2.render(useState(() -> p._1,
+                                div(of(us.get().currentResource.flatMap(r -> findResourceComponent(r)).map(p -> p._2.render(readWrite(() -> p._1,
                                                                                                                             v -> us.accept(us.get().withResource(Optional.of(v)))))).stream()))))
 
-                                .orElse(div(new LoginForm().render(useState(() -> new LoginForm.State(),
+                                .orElse(div(new LoginForm().render(readWrite(() -> new LoginForm.State(),
                                                                lfs -> auth.authenticate(lfs.userName, lfs.password)
                                                                             .thenAccept(po -> po.ifPresentOrElse(p -> lfs.deviceId.ifPresent(id -> {
                                                                                 principals.put(id, p);

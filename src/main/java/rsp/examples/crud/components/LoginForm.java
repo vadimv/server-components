@@ -7,7 +7,6 @@ import rsp.state.UseState;
 import java.util.Optional;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
 
 public class LoginForm implements Component<LoginForm.State> {
 
@@ -32,8 +31,8 @@ public class LoginForm implements Component<LoginForm.State> {
                                                     Optional.empty(),
                                                     Optional.of(c.sessionId().deviceId)));
                                 }),
-                new TextInput("username", TextInput.Type.TEXT, "Username","").render(useState(() -> us.get().userNameValidationError)),
-                new TextInput("password", TextInput.Type.PASSWORD, "Password", "").render(useState(() -> us.get().passwordVaildationError)),
+                new TextInput("username", TextInput.Type.TEXT, "Username","").render(UseState.readOnly(() -> us.get().userNameValidationError)),
+                new TextInput("password", TextInput.Type.PASSWORD, "Password", "").render(UseState.readOnly(() -> us.get().passwordVaildationError)),
                 button(attr("type", "submit"), text("Login")),
                 of(us.get().loginValidationError.stream().map(lve -> span(lve)))));
     }

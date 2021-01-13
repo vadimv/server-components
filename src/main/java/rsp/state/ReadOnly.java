@@ -1,6 +1,7 @@
 package rsp.state;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 /**
  * A read-only state container.
@@ -31,6 +32,11 @@ public final class ReadOnly<S> implements UseState<S> {
 
     @Override
     public void accept(CompletableFuture<S> completableFuture) {
+        throw new IllegalStateException("Set state is not allowed");
+    }
+
+    @Override
+    public void accept(Function<S, S> function) {
         throw new IllegalStateException("Set state is not allowed");
     }
 }

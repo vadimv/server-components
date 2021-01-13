@@ -71,7 +71,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                                      ScheduledExecutorService scheduler,
                                      OutMessages out,
                                      Log.Reporting log) {
-        final UseState<Snapshot> currentState = new MutableState<>(new Snapshot(Path.EMPTY_ABSOLUTE,
+        final UseState<Snapshot> currentPageSnapshot = new MutableState<>(new Snapshot(Path.EMPTY_ABSOLUTE,
                                                                                 Optional.empty(),
                                                                                 new HashMap<>(),
                                                                                 new HashMap<>()));
@@ -81,13 +81,13 @@ public final class LivePage<S> implements InMessages, Schedule {
             documentDefinition.render(self).accept(enrich.apply(qsid.sessionId, newContext));
 
             // Calculate diff between currentContext and newContext
-            final var currentRoot = currentState.get().domRoot;
+            final var currentRoot = currentPageSnapshot.get().domRoot;
             final var domChangePerformer = new DefaultDomChangesPerformer();
             new Diff(currentRoot, newContext.root, domChangePerformer).run();
             out.modifyDom(domChangePerformer.commands);
 
             // Events
-            final Set<Event> oldEvents = new HashSet<>(currentState.get().events.values());
+            final Set<Event> oldEvents = new HashSet<>(currentPageSnapshot.get().events.values());
             final Set<Event> newEvents = new HashSet<>(newContext.events.values());
             // Unregister events
             final Set<Event> eventsToRemove = new HashSet<>();
@@ -118,13 +118,13 @@ public final class LivePage<S> implements InMessages, Schedule {
                     });
 
             // Browser's navigation
-            final Path oldPath = currentState.get().path;
+            final Path oldPath = currentPageSnapshot.get().path;
             final Path newPath = state2route.stateToPath.apply(newState);
             if (!newPath.equals(oldPath)) {
                 out.pushHistory(state2route.basePath.resolve(newPath).toString());
             }
 
-            currentState.accept(new Snapshot(newPath, Optional.of(newContext.root), newContext.events, newContext.refs));
+            currentPageSnapshot.accept(new Snapshot(newPath, Optional.of(newContext.root), newContext.events, newContext.refs));
         }));
 
         return new LivePage<>(handshakeRequest,
@@ -133,7 +133,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                               state2route,
                               renderedPages,
                               useState,
-                              currentState,
+                              currentPageSnapshot,
                               scheduler,
                               out,
                               log);

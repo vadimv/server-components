@@ -135,15 +135,15 @@ A parent component ``render()`` method invokes ``render()`` methods of its child
 providing an instance of the ``UseState<S>`` class as an argument. 
 
 ```java
-    import static rsp.state.UseState.useState;
+    import static rsp.state.UseState.readWrite;
     ...
     public static Component<ConfirmPanelState> confirmPanelComponent(String text) {
         return us -> div(attr("class", "panel"),
                          span(text),
-                         buttonComponent("Ok").render(useState(() -> new ButtonState(), 
-                                                               buttonState -> us.accept(new ConfimPanelState(true)))),
-                         buttonComponent("Cancel").render(useState(() -> new ButtonState(), 
-                                                                   buttonState -> us.accept(new ConfimPanelState(false))));
+                         buttonComponent("Ok").render(readWrite(() -> new ButtonState(), 
+                                                                buttonState -> us.accept(new ConfimPanelState(true)))),
+                         buttonComponent("Cancel").render(readWrite(() -> new ButtonState(), 
+                                                                    buttonState -> us.accept(new ConfimPanelState(false))));
         
     }
     public static class ConfirmPanelState {

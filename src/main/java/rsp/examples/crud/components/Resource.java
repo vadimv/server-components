@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
-import static rsp.state.UseState.useState;
+import static rsp.state.UseState.readWrite;
 
 public class Resource<T> implements Component<Resource.State<T>> {
 
@@ -94,7 +94,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
                                                      });
                                                  });
                                 }))),
-                    listComponent.render(useState(() -> us.get().list,
+                    listComponent.render(readWrite(() -> us.get().list,
                                                              gridState -> gridState.editRowKey.ifPresentOrElse(
                                                                      editKey -> entityService.getOne(editKey).thenAccept(keo ->
                                                                              us.accept(us.get().withEditData(keo.get()))).join(),
@@ -108,7 +108,7 @@ public class Resource<T> implements Component<Resource.State<T>> {
     }
 
     private UseState<DetailsViewState<T>> detailsViewState(UseState<Resource.State<T>> us) {
-        return useState(() -> us.get().details.get(),
+        return readWrite(() -> us.get().details.get(),
                          editState -> {
             if (!editState.validationErrors.isEmpty()) {
                 // show the validation errors
