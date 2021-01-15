@@ -11,11 +11,10 @@ import rsp.util.Log;
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -31,6 +30,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final Log.Reporting log;
+
+    private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
                                  StateToRouteDispatch<S> state2route,
@@ -53,27 +54,62 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         log.debug(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
         final OutMessages out = new SerializeOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
-        final LivePage<S> livePage = LivePage.of(handshakeRequest,
-                                                 new QualifiedSessionId(session.getPathParameters().get("pid"),
-                                                                        session.getPathParameters().get("sid")),
-                                                 routing,
-                                                 state2route,
-                                                 renderedPages,
-                                                 documentDefinition,
-                                                 enrich,
-                                                 schedulerSupplier.get(),
-                                                 out,
-                                                 log);
-        final DeserializeInMessage in = new DeserializeInMessage(livePage, log);
-        session.addMessageHandler(new MessageHandler.Whole<String>() {
-            @Override
-            public void onMessage(String s) {
-                log.trace(l -> l.log(session.getId() + " -> " + s));
-                in.parse(s);
+        final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
+                                                               session.getPathParameters().get("sid"));
+
+        final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
+        if (page == null) {
+            log.trace(l -> l.log("Pre-rendered page not found for SID: " + qsid));
+            if (!isKnownLostSession(qsid)) {
+                log.warn(l -> l.log("Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort()));
+                out.evalJs(-1, "RSP.reload()");
             }
-        });
-        livePage.start();
-        session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
+        } else {
+            renderedPages.remove(qsid);
+            final LivePage.Snapshot currentPageSnapshot = new LivePage.Snapshot(page.request.path,
+                                                                                Optional.of(page.domRoot),
+                                                                                new HashMap<>(),
+                                                                                new HashMap<>());
+
+            final LivePage.LivePageState<S> livePageState = new LivePage.LivePageState<>(currentPageSnapshot,
+                                                                                         qsid,
+                                                                                         state2route,
+                                                                                         documentDefinition,
+                                                                                         enrich,
+                                                                                         out);
+            final LivePage<S> livePage = new LivePage<S>(qsid,
+                                                         livePageState,
+                                                         schedulerSupplier.get(),
+                                                         out,
+                                                         log);
+            session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
+
+            final DeserializeInMessage in = new DeserializeInMessage(livePage, log);
+            session.addMessageHandler(new MessageHandler.Whole<String>() {
+                @Override
+                public void onMessage(String s) {
+                    log.trace(l -> l.log(session.getId() + " -> " + s));
+                    in.parse(s);
+                }
+            });
+
+            livePageState.accept(page.state);
+            out.setRenderNum(0);
+
+            // Invoke this page's post start events
+            /*currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
+                if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
+                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
+                    event.eventHandler.accept(eventContext);
+                }
+            })*/;
+            log.debug(l -> l.log("Live page started: " + this));
+        }
+
+
+
+
+
     }
 
     private void sendText(Session session, String text) {
@@ -107,5 +143,15 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     public static HttpRequest of(HandshakeRequest handshakeRequest) {
         return HttpRequest.of(handshakeRequest);
+    }
+
+    public static boolean isKnownLostSession(QualifiedSessionId qsid) {
+        synchronized (lostSessionsIds) {
+            if (lostSessionsIds.contains(qsid)) {
+                return true;
+            }
+            lostSessionsIds.add(qsid);
+            return false;
+        }
     }
 }
