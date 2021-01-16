@@ -38,7 +38,7 @@ public final class EventContext {
     /**
      * Evaluates a JavaScript expression in the browser returning a result
      * @param js code to execute
-     * @return a CompletableFuture of either a Map, String, Long, Double or Boolean according to its evaluation result JSON data type
+     * @return a CompletableFuture of the JSON data type
      */
     public CompletableFuture<JsonDataType> evalJs(String js) {
         return jsEvaluation.apply(js);
