@@ -50,13 +50,13 @@ public final class DeserializeInMessage {
 
     private void parseExtractPropertyResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
-        inMessages.extractPropertyResponse(Integer.parseInt(tokens[0]),
+        inMessages.handleExtractPropertyResponse(Integer.parseInt(tokens[0]),
                                            JsonSimple.convertToJsonType(value));
     }
 
     private void parseEvalJsResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
-        inMessages.evalJsResponse(Integer.parseInt(tokens[0]),
+        inMessages.handleEvalJsResponse(Integer.parseInt(tokens[0]),
                                   JsonSimple.convertToJsonType(value));
     }
 
@@ -65,7 +65,7 @@ public final class DeserializeInMessage {
         final JsonDataType json = JsonSimple.convertToJsonType(eventObject);
         if (json instanceof JsonDataType.Object) {
             final String[] tokens = str.split(":");
-            inMessages.domEvent(Integer.parseInt(tokens[0]),
+            inMessages.handleDomEvent(Integer.parseInt(tokens[0]),
                                 VirtualDomPath.of(tokens[1]),
                                 tokens[2],
                                 (JsonDataType.Object) JsonSimple.convertToJsonType(eventObject));

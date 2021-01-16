@@ -51,7 +51,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void extractPropertyResponse(int descriptorId, JsonDataType value) {
+    public void handleExtractPropertyResponse(int descriptorId, JsonDataType value) {
         log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + value.toStringValue()));
         final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
@@ -61,9 +61,9 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void evalJsResponse(int descriptorId, JsonDataType value) {
+    public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
         log.debug(l -> l.log("evalJsResponse: " + descriptorId + " value: " + value.toStringValue()));
-        final var cf = registeredEventHandlers.get(descriptorId);
+        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
             registeredEventHandlers.remove(descriptorId);
@@ -71,7 +71,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void domEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
+    public void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
         synchronized (this) {
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
