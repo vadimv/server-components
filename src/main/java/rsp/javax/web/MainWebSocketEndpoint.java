@@ -66,17 +66,17 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             }
         } else {
             renderedPages.remove(qsid);
-            final LivePage.Snapshot currentPageSnapshot = new LivePage.Snapshot(page.request.path,
-                                                                                Optional.of(page.domRoot),
-                                                                                new HashMap<>(),
-                                                                                new HashMap<>());
+            final Snapshot currentPageSnapshot = new Snapshot(page.request.path,
+                                                              page.domRoot,
+                                                              Map.of(),
+                                                              Map.of());
 
-            final LivePage.LivePageState<S> livePageState = new LivePage.LivePageState<>(currentPageSnapshot,
-                                                                                         qsid,
-                                                                                         state2route,
-                                                                                         documentDefinition,
-                                                                                         enrich,
-                                                                                         out);
+            final LivePageState<S> livePageState = new LivePageState<>(currentPageSnapshot,
+                                                                       qsid,
+                                                                       state2route,
+                                                                       documentDefinition,
+                                                                       enrich,
+                                                                       out);
             final LivePage<S> livePage = new LivePage<S>(qsid,
                                                          livePageState,
                                                          schedulerSupplier.get(),
@@ -105,11 +105,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             })*/;
             log.debug(l -> l.log("Live page started: " + this));
         }
-
-
-
-
-
     }
 
     private void sendText(Session session, String text) {
