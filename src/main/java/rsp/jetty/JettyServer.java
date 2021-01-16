@@ -1,13 +1,12 @@
 package rsp.jetty;
 
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.ContextHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import rsp.App;
@@ -17,6 +16,7 @@ import rsp.page.EnrichingXhtmlContext;
 import rsp.page.StateToRouteDispatch;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
+import rsp.server.SslConfiguration;
 import rsp.server.StaticResources;
 import rsp.page.PageRendering;
 
@@ -42,6 +42,7 @@ public final class JettyServer {
     private final Path basePath;
     private final App app;
     private final Optional<StaticResources> staticResources;
+    private final Optional<SslConfiguration> sslConfiguration;
     private final int maxThreads;
 
     private Server server;
@@ -51,17 +52,20 @@ public final class JettyServer {
      * @param port a web server's listening port
      * @param basePath a context path of the web application
      * @param app an RSP application
+     * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
     public JettyServer(int port,
                        String basePath,
                        App app,
                        Optional<StaticResources> staticResources,
+                       Optional<SslConfiguration> sslConfiguration,
                        int maxThreads) {
         this.port = port;
         this.basePath = Objects.requireNonNull(Path.of(basePath));
         this.app = Objects.requireNonNull(app);
         this.staticResources = Objects.requireNonNull(staticResources);
+        this.sslConfiguration = sslConfiguration;
         this.maxThreads = maxThreads;
     }
 
@@ -76,7 +80,7 @@ public final class JettyServer {
                        String basePath,
                        App app,
                        StaticResources staticResources) {
-        this(port, basePath, app, Optional.of(staticResources), DEFAULT_WEB_SERVER_MAX_THREADS);
+        this(port, basePath, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
@@ -86,7 +90,7 @@ public final class JettyServer {
      * @param app an RSP application
      */
     public JettyServer(int port, String basePath, App app) {
-        this(port, basePath, app, Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
+        this(port, basePath, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
@@ -98,10 +102,27 @@ public final class JettyServer {
         threadPool.setMaxThreads(maxThreads);
         
         server = new Server(threadPool);
-        
-        final ServerConnector connector = new ServerConnector(server);
-        connector.setPort(port);
-        server.setConnectors(new Connector[] {connector});
+
+        sslConfiguration.ifPresentOrElse(ssl -> {
+            final HttpConfiguration https = new HttpConfiguration();
+            https.addCustomizer(new SecureRequestCustomizer());
+
+            final SslContextFactory sslContextFactory = new SslContextFactory.Server();
+            sslContextFactory.setKeyStorePath(ssl.keyStorePath);
+            sslContextFactory.setKeyStorePassword(ssl.keyStorePassword);
+            sslContextFactory.setKeyManagerPassword(ssl.keyStorePassword);
+
+            final ServerConnector sslConnector = new ServerConnector(server,
+                                                                     new SslConnectionFactory(sslContextFactory, "http/1.1"),
+                                                                     new HttpConnectionFactory(https));
+            sslConnector.setPort(port);
+            server.setConnectors(new Connector[] { sslConnector });
+        },
+                                         () -> {
+            final ServerConnector connector = new ServerConnector(server);
+            connector.setPort(port);
+            server.setConnectors(new Connector[] { connector });
+        });
 
         final HandlerList handlers = new HandlerList();
         staticResources.ifPresent(sr -> {
