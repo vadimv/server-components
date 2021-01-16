@@ -52,7 +52,6 @@ public final class EventContext {
         return sessionId;
     }
 
-    // TODO maybe replace with an Object/Map
     public JsonDataType.Object eventObject() {
         return eventObject;
     }
