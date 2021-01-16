@@ -19,9 +19,9 @@ public class LivePageState<S> implements UseState<S> {
     private final OutMessages out;
 
     private S state;
-    private Snapshot snapshot;
+    private LivePagePropertiesSnapshot snapshot;
 
-    public LivePageState(Snapshot snapshot,
+    public LivePageState(LivePagePropertiesSnapshot snapshot,
                          QualifiedSessionId qsid,
                          StateToRouteDispatch<S> state2route,
                          Component<S> rootComponent,
@@ -85,7 +85,7 @@ public class LivePageState<S> implements UseState<S> {
             out.pushHistory(state2route.basePath.resolve(newPath).toString());
         }
 
-        snapshot = new Snapshot(newPath,
+        snapshot = new LivePagePropertiesSnapshot(newPath,
                                 newContext.root,
                                 Collections.unmodifiableMap(newContext.events),
                                 Collections.unmodifiableMap(newContext.refs));
@@ -106,7 +106,7 @@ public class LivePageState<S> implements UseState<S> {
         accept(function.apply(get()));
     }
 
-    public synchronized Snapshot snapshot() {
+    public synchronized LivePagePropertiesSnapshot snapshot() {
         return snapshot;
     }
 }

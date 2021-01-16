@@ -66,7 +66,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             }
         } else {
             renderedPages.remove(qsid);
-            final Snapshot currentPageSnapshot = new Snapshot(page.request.path,
+            final LivePagePropertiesSnapshot currentPageSnapshot = new LivePagePropertiesSnapshot(page.request.path,
                                                               page.domRoot,
                                                               Map.of(),
                                                               Map.of());

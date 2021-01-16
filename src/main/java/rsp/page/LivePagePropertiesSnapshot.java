@@ -7,12 +7,11 @@ import rsp.dsl.Ref;
 import rsp.server.Path;
 
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * The current attributes of a live page.
  */
-public class Snapshot {
+public class LivePagePropertiesSnapshot {
     public final Path path;
     public final Tag domRoot;
     public final Map<Event.Target, Event> events;
@@ -25,10 +24,10 @@ public class Snapshot {
      * @param events should be an immutable {@link Map}
      * @param refs should be an immutable {@link Map}
      */
-    public Snapshot(Path path,
-                    Tag domRoot,
-                    Map<Event.Target, Event> events,
-                    Map<Ref, VirtualDomPath> refs) {
+    public LivePagePropertiesSnapshot(Path path,
+                                      Tag domRoot,
+                                      Map<Event.Target, Event> events,
+                                      Map<Ref, VirtualDomPath> refs) {
         this.path = path;
         this.domRoot = domRoot;
         this.events = events;
