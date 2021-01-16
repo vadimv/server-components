@@ -12,21 +12,23 @@ import rsp.util.json.JsonDataType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 public final class LivePage<S> implements InMessages, Schedule {
     public static final String POST_START_EVENT_TYPE = "page-start";
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
-
-    private int descriptorsCounter;
-    private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
 
     private final QualifiedSessionId qsid;
     private final LivePageState<S> pageState;
     private final ScheduledExecutorService scheduledExecutorService;
     private final OutMessages out;
     private final Log.Reporting log;
+
+    private int descriptorsCounter;
+    private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
 
     public LivePage(QualifiedSessionId qsid,
                     LivePageState<S> pageState,
