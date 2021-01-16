@@ -53,26 +53,30 @@ public final class LivePage<S> implements InMessages, Schedule {
     @Override
     public void handleExtractPropertyResponse(int descriptorId, JsonDataType value) {
         log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + value.toStringValue()));
-        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
-        if (cf != null) {
-            cf.complete(value);
-            registeredEventHandlers.remove(descriptorId);
+        synchronized (pageState) {
+            final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+            if (cf != null) {
+                cf.complete(value);
+                registeredEventHandlers.remove(descriptorId);
+            }
         }
     }
 
     @Override
     public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
         log.debug(l -> l.log("evalJsResponse: " + descriptorId + " value: " + value.toStringValue()));
-        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
-        if (cf != null) {
-            cf.complete(value);
-            registeredEventHandlers.remove(descriptorId);
+        synchronized (pageState) {
+            final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+            if (cf != null) {
+                cf.complete(value);
+                registeredEventHandlers.remove(descriptorId);
+            }
         }
     }
 
     @Override
     public void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
-        synchronized (this) {
+        synchronized (pageState) {
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
                 final Event event = pageState.snapshot().events.get(new Event.Target(eventType, eventElementPath));
@@ -96,7 +100,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     @Override
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
         return scheduledExecutorService.scheduleAtFixedRate(() -> {
-            synchronized (this) {
+            synchronized (pageState) {
                 command.run();
             }
         }, initialDelay, period, unit);
@@ -105,7 +109,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     @Override
     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
         return scheduledExecutorService.schedule(() -> {
-            synchronized (this) {
+            synchronized (pageState) {
                 command.run();
             }
         }, delay, unit);
@@ -133,11 +137,13 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     public CompletableFuture<JsonDataType> evalJs(String js) {
-        final Integer newDescriptor = descriptorsCounter.incrementAndGet();
-        final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
-        registeredEventHandlers.put(newDescriptor, resultHandler);
-        out.evalJs(newDescriptor, js);
-        return resultHandler;
+        synchronized (pageState) {
+            final Integer newDescriptor = descriptorsCounter.incrementAndGet();
+            final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
+            registeredEventHandlers.put(newDescriptor, resultHandler);
+            out.evalJs(newDescriptor, js);
+            return resultHandler;
+        }
     }
 
     private void setHref(String path) {
