@@ -9,6 +9,7 @@ import rsp.server.OutMessages;
 import rsp.util.Log;
 import rsp.util.json.JsonDataType;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -18,8 +19,8 @@ public final class LivePage<S> implements InMessages, Schedule {
     public static final String POST_START_EVENT_TYPE = "page-start";
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
-    private final AtomicInteger descriptorsCounter = new AtomicInteger();
-    private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new ConcurrentHashMap<>();
+    private int descriptorsCounter;
+    private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
 
     private final QualifiedSessionId qsid;
     private final LivePageState<S> pageState;
@@ -41,13 +42,15 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     public void shutdown() {
         log.debug(l -> l.log("Live Page shutdown: " + this));
-        // Invoke this page's shutdown events
-        pageState.snapshot().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
-            if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
-                event.eventHandler.accept(eventContext);
-            }
-        });
+        synchronized (pageState) {
+            // Invoke this page's shutdown events
+            pageState.snapshot().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
+                if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
+                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
+                    event.eventHandler.accept(eventContext);
+                }
+            });
+        }
     }
 
     @Override
@@ -129,7 +132,7 @@ public final class LivePage<S> implements InMessages, Schedule {
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
         }
-        return new PropertiesHandle(path, () -> descriptorsCounter.incrementAndGet(), registeredEventHandlers, out);
+        return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, out);
     }
 
     private VirtualDomPath resolveRef(Ref ref) {
@@ -138,7 +141,7 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     public CompletableFuture<JsonDataType> evalJs(String js) {
         synchronized (pageState) {
-            final Integer newDescriptor = descriptorsCounter.incrementAndGet();
+            final int newDescriptor = ++descriptorsCounter;
             final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
             registeredEventHandlers.put(newDescriptor, resultHandler);
             out.evalJs(newDescriptor, js);
