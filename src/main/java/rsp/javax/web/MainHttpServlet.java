@@ -29,7 +29,7 @@ public final class MainHttpServlet<S>  extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) {
         final AsyncContext asyncContext = request.startAsync();
         asyncContext.start(() -> {
-            final HttpRequest req = HttpRequest.of(request);
+            final HttpRequest req = ServletUtils.httpRequest(request);
             log.trace(l -> l.log(request.getRemoteAddr() + " -> GET " + request.getRequestURL()));
             pageRendering.httpGet(req).handle((resp, ex) -> {
                     if (ex != null) {
