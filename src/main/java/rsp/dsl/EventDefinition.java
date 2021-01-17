@@ -13,6 +13,11 @@ import java.util.function.Consumer;
  */
 public final class EventDefinition extends DocumentPartDefinition {
 
+    /**
+     * This value is used when not explicitly specified for an event.
+     */
+    public static boolean PREVENT_DEFAULT_DEFAULT_VALUE = true;
+
     public final Optional<VirtualDomPath> elementPath;
     public final String eventType;
     public final Consumer<EventContext> handler;
@@ -39,7 +44,19 @@ public final class EventDefinition extends DocumentPartDefinition {
         this.elementPath = Optional.empty();
         this.eventType = eventType;
         this.handler = handler;
-        this.preventDefault = true;
+        this.preventDefault = PREVENT_DEFAULT_DEFAULT_VALUE;
+        this.modifier = modifier;
+    }
+
+    public EventDefinition(String eventType,
+                           Consumer<EventContext> handler,
+                           boolean preventDefault,
+                           Event.Modifier modifier) {
+        super(DocumentPartKind.OTHER);
+        this.elementPath = Optional.empty();
+        this.eventType = eventType;
+        this.handler = handler;
+        this.preventDefault = preventDefault;
         this.modifier = modifier;
     }
 

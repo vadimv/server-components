@@ -24,7 +24,7 @@ public class Tetris {
     public static void main(String[] args) throws Exception {
         final Map<String, ScheduledFuture<?>> timers = new ConcurrentHashMap<>();
         final Component<State> render = useState ->
-            html(on("keydown",  c -> {
+            html(on("keydown", false, c -> {
                         final String keyCode = c.eventObject().value("keyCode").map(Object::toString).orElse("noKeyCode");
                         final State s = useState.get();
                         switch (keyCode) {

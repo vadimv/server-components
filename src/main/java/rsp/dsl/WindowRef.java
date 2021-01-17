@@ -13,13 +13,25 @@ import java.util.function.Consumer;
 public final class WindowRef implements Ref {
 
     /**
-     * Registers an listener on a window object event.
+     * Registers an listener on a window object event with the 'prevent-default' property set to true
      * @param eventType a event's name
      * @param handler a code handler for this event
      * @return an event definition
      */
     public EventDefinition on(String eventType, Consumer<EventContext> handler) {
-        return new EventDefinition(Optional.of(VirtualDomPath.WINDOW), eventType, handler, true, Event.NO_MODIFIER);
+        return on(eventType, EventDefinition.PREVENT_DEFAULT_DEFAULT_VALUE, handler);
+    }
+
+    /**
+     * Registers an listener on a window object event.
+     * @param eventType a event's name
+     * @param preventDefault true if the event does not get explicitly handled,
+     *                       its default action should not be taken as it normally would be, false otherwise
+     * @param handler a code handler for this event
+     * @return an event definition
+     */
+    public EventDefinition on(String eventType, boolean preventDefault, Consumer<EventContext> handler) {
+        return new EventDefinition(Optional.of(VirtualDomPath.WINDOW), eventType, handler, preventDefault, Event.NO_MODIFIER);
     }
 
     public Ref ref() {

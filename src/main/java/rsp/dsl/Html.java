@@ -87,6 +87,18 @@ public final class Html {
     }
 
     /**
+     * A DOM event handler definition.
+     * @param eventType an event name
+     * @param preventDefault true if the event does not get explicitly handled,
+     *                        its default action should not be taken as it normally would be, false otherwise
+     * @param handler an event handler
+     * @return a DOM event handler definition
+     */
+    public static EventDefinition on(String eventType, boolean preventDefault, Consumer<EventContext> handler) {
+        return new EventDefinition(eventType, handler, preventDefault, Event.NO_MODIFIER);
+    }
+
+    /**
      * An element's inline style.
      * @param name a style name
      * @param value a style value
