@@ -41,7 +41,7 @@ public final class MutableState<S> implements UseState<S> {
 
     /**
      * Writes a snapshot atomically.
-     * @param s
+     * @param s the new state
      */
     @Override
     public synchronized void accept(S s) {

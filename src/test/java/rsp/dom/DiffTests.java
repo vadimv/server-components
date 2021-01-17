@@ -16,7 +16,6 @@ public class DiffTests {
         final Diff diff = new Diff(Optional.of(tree1), tree2, cp);
         diff.run();
         Assert.assertEquals("", cp.resultAsString());
-
     }
 
     @Test
@@ -26,7 +25,7 @@ public class DiffTests {
         final TestChangesPerformer cp = new TestChangesPerformer();
         final Diff diff = new Diff(Optional.of(tree1), tree2,  cp);
         diff.run();
-        Assert.assertEquals("-T:1 +T:1,div", cp.resultAsString());
+        Assert.assertEquals("-TAG:0:1 +TAG:1:div", cp.resultAsString());
     }
 
     @Test
@@ -38,7 +37,7 @@ public class DiffTests {
         final TestChangesPerformer cp = new TestChangesPerformer();
         final Diff diff = new Diff(Optional.of(tree1), tree2,  cp);
         diff.run();
-        Assert.assertEquals("+T:1_1,span +T:1_2,span", cp.resultAsString());
+        Assert.assertEquals("+TAG:1_1:span +TAG:1_2:span", cp.resultAsString());
 
     }
 
@@ -46,12 +45,13 @@ public class DiffTests {
     public void should_be_remove_diff_for_different_tags1() {
         Tag tree1 = new Tag(path, XmlNs.html, "div");
         tree1.addChild(new Tag(path.incLevel(), XmlNs.html, "span"));
+
         Tag tree2 = new Tag(path, XmlNs.html, "div");
         tree2.addChild(new Tag(path.incLevel(), XmlNs.html, "a"));
         final TestChangesPerformer cp = new TestChangesPerformer();
         final Diff diff = new Diff(Optional.of(tree1), tree2,  cp);
         diff.run();
-        Assert.assertEquals("-T:1_1 +T:1_1,a", cp.resultAsString());;
+        Assert.assertEquals("-TAG:1:1_1 +TAG:1_1:a", cp.resultAsString());
     }
 
     @Test
@@ -66,7 +66,7 @@ public class DiffTests {
         final TestChangesPerformer cp = new TestChangesPerformer();
         final Diff diff = new Diff(Optional.of(tree1), tree2,  cp);
         diff.run();
-        Assert.assertEquals("-T:1 +T:1,div +T:1_1,a +T:1_1_1,canvas +T:1_1_2,span", cp.resultAsString());
+        Assert.assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
 
 
@@ -79,7 +79,7 @@ public class DiffTests {
         final TestChangesPerformer cp = new TestChangesPerformer();
         final Diff diff = new Diff(Optional.of(tree1), tree2,  cp);
         diff.run();
-        Assert.assertEquals("+A:1,attr1,value1", cp.resultAsString());
+        Assert.assertEquals("+ATTR:1:attr1=value1", cp.resultAsString());
     }
 
     static class TestChangesPerformer implements DomChangesPerformer {
@@ -90,38 +90,49 @@ public class DiffTests {
         }
 
         @Override
-        public void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name,  boolean isProperty) {
-            sb.append("-A:" + id + " ");
-        }
-
-        @Override
-        public void removeStyle(VirtualDomPath id, String name) {
-
-        }
-
-        @Override
         public void remove(VirtualDomPath parentId, VirtualDomPath id) {
-            sb.append("-T:" + parentId + " " + id + " ");
-        }
-
-        @Override
-        public void setAttr(VirtualDomPath id, XmlNs xmlNs, String name, String value, boolean isProperty) {
-            sb.append("+A:" + id + "," + name + "," + value );
-        }
-
-        @Override
-        public void setStyle(VirtualDomPath id, String name, String value) {
-
-        }
-
-        @Override
-        public void createText(VirtualDomPath parentId, VirtualDomPath id, String text) {
-
+            insertDelimiter(sb);
+            sb.append("-TAG:" + parentId + ":" + id);
         }
 
         @Override
         public void create(VirtualDomPath id, XmlNs xmlNs, String tag) {
-            sb.append("+T:" + id + "," + tag + " ");
+            insertDelimiter(sb);
+            sb.append("+TAG:" + id + ":" + tag);
+        }
+
+        @Override
+        public void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name,  boolean isProperty) {
+            insertDelimiter(sb);
+            sb.append("-ATTR:" + id);
+        }
+
+        @Override
+        public void setAttr(VirtualDomPath id, XmlNs xmlNs, String name, String value, boolean isProperty) {
+            insertDelimiter(sb);
+            sb.append("+ATTR:" + id + ":" + name + "=" + value);
+        }
+
+        @Override
+        public void removeStyle(VirtualDomPath id, String name) {
+            insertDelimiter(sb);
+            sb.append("-STYLE:" + id + ":" + name);
+        }
+
+        @Override
+        public void setStyle(VirtualDomPath id, String name, String value) {
+            sb.append("+STYLE:" + id + ":" + name + "=" + value);
+            insertDelimiter(sb);
+        }
+
+        @Override
+        public void createText(VirtualDomPath parenPath, VirtualDomPath path, String text) {
+            sb.append("+TEXT:" + parenPath + ":" + path + "=" + text);
+            insertDelimiter(sb);
+        }
+
+        private void insertDelimiter(StringBuilder sb) {
+            if (sb.length() != 0) sb.append(" ");
         }
     }
 }
