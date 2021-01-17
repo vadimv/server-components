@@ -35,14 +35,15 @@ public class Tetris {
                         }
                     }),
                 head(link(attr("rel", "stylesheet"), attr("href","/res/style.css"))),
-                body(
+                body(div(attr("class", "tetris-wrapper"),
                     div(attr("class", "stage"),
                         of(Arrays.stream(useState.get().stage.cells()).flatMap(row ->
                                 CharBuffer.wrap(row).chars().mapToObj(i -> (char)i)).map(cell ->
                                     div(attr("class", "cell t" + cell))))),
                     div(attr("class", "sidebar"),
-                        span(text("Score: " + useState.get().score())),
-                        button(attr("type", "button"),
+                        div(attr("id", "score"), text("Score: " + useState.get().score())),
+                        div(attr("id", "start"),
+                            button(attr("id", "start-btn"), attr("type", "button"),
                                when(useState.get().isRunning, () -> attr("disabled")),
                                text("Start"),
                                on("click", c -> {
@@ -58,9 +59,7 @@ public class Tetris {
                                                    });
                                                });
                                            }, 0, 1, TimeUnit.SECONDS));
-                               })))
-                )
-            );
+                               })))))));
 
         final var s = new JettyServer(DEFAULT_PORT,
                                      "",
