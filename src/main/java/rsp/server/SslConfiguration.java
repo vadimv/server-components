@@ -5,7 +5,7 @@ package rsp.server;
  * For a self-signed certificate, run the Java keytool utility, for example:
  * keytool -genkey -alias sitename -keyalg RSA -keystore keystore.jks -keysize 2048
  */
-public class SslConfiguration {
+public final class SslConfiguration {
     /**
      * A path to a Java keystore file.
      */

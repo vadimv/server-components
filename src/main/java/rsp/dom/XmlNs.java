@@ -1,5 +1,7 @@
 package rsp.dom;
 
+import java.util.Objects;
+
 public final class XmlNs {
 
     public static final XmlNs xlink = new XmlNs("xlink", "http://www.w3.org/1999/xlink");
@@ -18,5 +20,19 @@ public final class XmlNs {
     @Override
     public String toString() {
         return name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        XmlNs xmlNs = (XmlNs) o;
+        return Objects.equals(name, xmlNs.name) &&
+                Objects.equals(uri, xmlNs.uri);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, uri);
     }
 }

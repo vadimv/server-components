@@ -15,18 +15,16 @@ public final class ServletUtils {
 
     public static HttpRequest httpRequest(HttpServletRequest request) {
         return new HttpRequest(stringToURI(request.getRequestURI()),
-                Path.of(request.getPathInfo()),
-                s -> Optional.ofNullable(request.getParameter(s)),
-                h -> Optional.ofNullable(request.getHeader(h)),
-                n -> ServletUtils.cookie(request, n).map(c -> c.getValue()));
+                               Path.of(request.getPathInfo()),
+                               s -> Optional.ofNullable(request.getParameter(s)),
+                               h -> Optional.ofNullable(request.getHeader(h)));
     }
 
     public static HttpRequest httpRequest(HandshakeRequest handshakeRequest) {
         return new HttpRequest(handshakeRequest.getRequestURI(),
-                Path.of(handshakeRequest.getRequestURI().getPath()),
-                name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
-                name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)),
-                name -> Optional.empty());
+                               Path.of(handshakeRequest.getRequestURI().getPath()),
+                               name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
+                               name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)));
     }
 
     private static URI stringToURI(String str) {

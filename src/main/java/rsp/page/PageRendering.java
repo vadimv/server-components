@@ -43,7 +43,7 @@ public final class PageRendering<S> {
 
     public CompletableFuture<HttpResponse> httpGet(HttpRequest request) {
         if (request.path.endsWith("favicon.ico")) {
-            return CompletableFuture.completedFuture(new HttpResponse(404, Collections.EMPTY_LIST, "No favicon.ico"));
+            return CompletableFuture.completedFuture(new HttpResponse(404, Collections.emptyList(), "No favicon.ico"));
         } else if (request.path.startsWith("static")) {
             return staticFileResponse(request.path);
         } else {
@@ -61,7 +61,7 @@ public final class PageRendering<S> {
                                                                                               fileUrl.openStream())));
                     } catch (IOException e) {
                         return Optional.of(CompletableFuture.completedFuture(new HttpResponse(500,
-                                            Collections.EMPTY_LIST,
+                                            Collections.emptyList(),
                                             "Exception on loading a static resource: "
                                                     + path
                                                     + " " + e.getMessage())));
@@ -70,7 +70,7 @@ public final class PageRendering<S> {
                     return Optional.empty();
                 }
             }).orElse(CompletableFuture.completedFuture(new HttpResponse(404,
-                                                                            Collections.EMPTY_LIST,
+                                                                            Collections.emptyList(),
                                                                             "Resource not found: " + path)));
 
     }
@@ -85,7 +85,7 @@ public final class PageRendering<S> {
                 final DomTreeRenderContext domTreeContext = new DomTreeRenderContext();
                 documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
 
-                renderedPages.put(pageId, new RenderedPage<S>(request, initialState, domTreeContext.root));
+                renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root));
 
                 return new HttpResponse(200,
                                         headers(deviceId),

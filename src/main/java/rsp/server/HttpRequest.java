@@ -12,17 +12,15 @@ public final class HttpRequest {
     public final Path path;
     public final Function<String, Optional<String>> getParam;
     public final Function<String, Optional<String>> getHeader;
-    public final Function<String, Optional<String>> getCookie;
+
     public HttpRequest(URI uri,
                        Path path,
                        Function<String, Optional<String>> param,
-                       Function<String, Optional<String>> getHeader,
-                       Function<String, Optional<String>> getCookie) {
+                       Function<String, Optional<String>> getHeader) {
         this.uri = uri;
         this.path = path;
         this.getParam = param;
         this.getHeader = getHeader;
-        this.getCookie = getCookie;
     }
 
     public Function<String, Optional<String>> getCookie() {

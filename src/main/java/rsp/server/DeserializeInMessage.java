@@ -11,7 +11,7 @@ import rsp.util.json.JsonSimple;
 import java.util.Objects;
 
 /**
- * The communication protocol is based on the protocol of the Korolev project by Aleksey Fomkin
+ * The communication protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
  */
 public final class DeserializeInMessage {
     private final InMessages inMessages;
@@ -51,13 +51,13 @@ public final class DeserializeInMessage {
     private void parseExtractPropertyResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
         inMessages.handleExtractPropertyResponse(Integer.parseInt(tokens[0]),
-                                           JsonSimple.convertToJsonType(value));
+                                                 JsonSimple.convertToJsonType(value));
     }
 
     private void parseEvalJsResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
         inMessages.handleEvalJsResponse(Integer.parseInt(tokens[0]),
-                                  JsonSimple.convertToJsonType(value));
+                                        JsonSimple.convertToJsonType(value));
     }
 
 
@@ -66,23 +66,16 @@ public final class DeserializeInMessage {
         if (json instanceof JsonDataType.Object) {
             final String[] tokens = str.split(":");
             inMessages.handleDomEvent(Integer.parseInt(tokens[0]),
-                                VirtualDomPath.of(tokens[1]),
-                                tokens[2],
-                                (JsonDataType.Object) JsonSimple.convertToJsonType(eventObject));
+                                      VirtualDomPath.of(tokens[1]),
+                                      tokens[2],
+                                      (JsonDataType.Object) JsonSimple.convertToJsonType(eventObject));
         } else {
             throw new IllegalStateException("Unexpected type of an event object: " + eventObject.getClass().getName());
         }
 
     }
 
-
-
     private void heartBeat() {
         // no-op
-    }
-
-    private static String unquote(String str) {
-        final String trimmed = str.trim();
-        return trimmed.substring(1, trimmed.length() - 1);
     }
 }

@@ -13,10 +13,10 @@ public final class Event {
     public final Modifier modifier;
 
     public Event(Event.Target eventTarget, Consumer<EventContext> eventHandler, boolean preventDefault, Modifier modifier) {
-        this.eventTarget = eventTarget;
-        this.eventHandler = eventHandler;
+        this.eventTarget = Objects.requireNonNull(eventTarget);
+        this.eventHandler = Objects.requireNonNull(eventHandler);
         this.preventDefault = preventDefault;
-        this.modifier = modifier;
+        this.modifier = Objects.requireNonNull(modifier);
     }
 
     @Override
@@ -24,19 +24,20 @@ public final class Event {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Event event = (Event) o;
-        return eventTarget.equals(event.eventTarget) &&
-                modifier.equals(event.modifier);
+        return preventDefault == event.preventDefault &&
+                Objects.equals(eventTarget, event.eventTarget) &&
+                Objects.equals(modifier, event.modifier);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(eventTarget, modifier);
+        return Objects.hash(eventTarget, preventDefault, modifier);
     }
 
-    public static class Target {
+    public static final class Target {
         public Target(String eventType, VirtualDomPath elementPath) {
-            this.eventType = eventType;
-            this.elementPath = elementPath;
+            this.eventType = Objects.requireNonNull(eventType);
+            this.elementPath = Objects.requireNonNull(elementPath);
         }
 
         public final String eventType;
@@ -46,9 +47,9 @@ public final class Event {
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            Target target = (Target) o;
-            return eventType.equals(target.eventType)
-                    && elementPath.equals(target.elementPath);
+            final Target target = (Target) o;
+            return Objects.equals(eventType, target.eventType) &&
+                   Objects.equals(elementPath, target.elementPath);
         }
 
         @Override
@@ -63,7 +64,7 @@ public final class Event {
     public static class NoModifier implements Modifier {
     }
 
-    public static class ThrottleModifier implements Modifier {
+    public static final class ThrottleModifier implements Modifier {
         public final int timeFrameMs;
 
         public ThrottleModifier(int timeFrameMs) {
@@ -84,7 +85,7 @@ public final class Event {
         }
     }
 
-    public static class DebounceModifier implements Modifier {
+    public static final class DebounceModifier implements Modifier {
         public final int waitMs;
         public final boolean immediate;
 

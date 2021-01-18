@@ -11,7 +11,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-public class Path {
+public final class Path {
     public static final Path EMPTY_ABSOLUTE = new Path(true);
     public static final Path EMPTY_RELATIVE = new Path(false);
 
@@ -133,7 +133,6 @@ public class Path {
             }
         }
 
-
         public Matcher<S> when(Match3 predicate, CompletableFuture<S> state) {
             if (path.elements.length == 3 && predicate.test(path.elements[0], path.elements[1], path.elements[2])) {
                 return new Matcher<>(path, state, true);
@@ -145,8 +144,6 @@ public class Path {
         public Matcher<S> when(Match3 predicate, Supplier<S> state) {
             return when(predicate, CompletableFuture.completedFuture(state.get()));
         }
-
-
     }
 
     @FunctionalInterface

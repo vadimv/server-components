@@ -22,6 +22,7 @@
         <java.version>11</java.version>
 
         <junit.version>4.12</junit.version>
+        <equalsverifier.version>3.5.1</equalsverifier.version>
         <jetty.version>9.4.31.v20200723</jetty.version>
         <slf4j.version>1.7.30</slf4j.version>
         <json-simple.version>1.1.1</json-simple.version>
@@ -106,6 +107,12 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>nl.jqno.equalsverifier</groupId>
+            <artifactId>equalsverifier</artifactId>
+            <version>${equalsverifier.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

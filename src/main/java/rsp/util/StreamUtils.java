@@ -15,7 +15,7 @@ public final class StreamUtils {
      * Converts an {@link java.util.Iterator} to {@link java.util.stream.Stream}.
      */
     public static <T> Stream<T> iterate(Iterator<? extends T> iterator) {
-        int characteristics = Spliterator.ORDERED | Spliterator.IMMUTABLE;
+        final int characteristics = Spliterator.ORDERED | Spliterator.IMMUTABLE;
         return StreamSupport.stream(Spliterators.spliteratorUnknownSize(iterator, characteristics), false);
     }
 
@@ -23,8 +23,8 @@ public final class StreamUtils {
      * Zips two streams. The resulting stream is truncated to the shorter of the two input streams.
      */
     public static <L, R, T> Stream<T> zip(Stream<L> leftStream, Stream<R> rightStream, BiFunction<L, R, T> combiner) {
-        Spliterator<L> lefts = leftStream.spliterator();
-        Spliterator<R> rights = rightStream.spliterator();
+        final Spliterator<L> lefts = leftStream.spliterator();
+        final Spliterator<R> rights = rightStream.spliterator();
         return StreamSupport.stream(new Spliterators.AbstractSpliterator<T>(Long.min(lefts.estimateSize(), rights.estimateSize()), lefts.characteristics() & rights.characteristics()) {
             @Override
             public boolean tryAdvance(Consumer<? super T> action) {
