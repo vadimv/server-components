@@ -4,6 +4,7 @@ package rsp.server;
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import rsp.dom.VirtualDomPath;
+import rsp.util.Either;
 import rsp.util.Log;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonSimple;
@@ -24,6 +25,11 @@ public final class DeserializeInMessage {
     private static final int EVAL_JS_RESPONSE = 4; // `$descriptor:$status:$value`
     private static final int EXTRACT_EVENT_DATA_RESPONSE = 5; // `$descriptor:$dataJson`
     private static final int HEARTBEAT = 6;
+
+    private static final int JSON_METADATA_DATA = 0;
+    private static final int JSON_METADATA_UNDEFINED = 1;
+    private static final int JSON_METADATA_FUNCTION = 2;
+    private static final int JSON_METADATA_ERROR = 3;
 
     public DeserializeInMessage(InMessages inMessages, Log.Reporting log) {
         this.inMessages = inMessages;
@@ -50,8 +56,14 @@ public final class DeserializeInMessage {
 
     private void parseExtractPropertyResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
-        inMessages.handleExtractPropertyResponse(Integer.parseInt(tokens[0]),
-                                                 JsonSimple.convertToJsonType(value));
+        final int descriptorId = Integer.parseInt(tokens[0]);
+        final int jsonMetadata = Integer.parseInt(tokens[1]);
+        final Either<Throwable, JsonDataType> result = jsonMetadata == JSON_METADATA_DATA ?
+                Either.right(JsonSimple.convertToJsonType(value))
+                :
+                Either.left(new RuntimeException("Property not found"));
+        inMessages.handleExtractPropertyResponse(descriptorId,
+                                                 result);
     }
 
     private void parseEvalJsResponse(String metadata, Object value) {
@@ -59,7 +71,6 @@ public final class DeserializeInMessage {
         inMessages.handleEvalJsResponse(Integer.parseInt(tokens[0]),
                                         JsonSimple.convertToJsonType(value));
     }
-
 
     private void parseDomEvent(String str, Object eventObject) {
         final JsonDataType json = JsonSimple.convertToJsonType(eventObject);
@@ -72,7 +83,6 @@ public final class DeserializeInMessage {
         } else {
             throw new IllegalStateException("Unexpected type of an event object: " + eventObject.getClass().getName());
         }
-
     }
 
     private void heartBeat() {

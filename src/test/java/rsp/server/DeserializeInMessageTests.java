@@ -3,6 +3,7 @@ package rsp.server;
 import org.junit.Assert;
 import org.junit.Test;
 import rsp.dom.VirtualDomPath;
+import rsp.util.Either;
 import rsp.util.Log;
 import rsp.util.json.JsonDataType;
 
@@ -18,6 +19,7 @@ public class DeserializeInMessageTests {
         final DomEvent result = (DomEvent) collector.result;
         Assert.assertEquals("click", result.eventType);
         Assert.assertEquals(VirtualDomPath.of("1_2_1_2_2_1"), result.path);
+        Assert.assertEquals(new JsonDataType.Object(),  result.eventObject);
     }
 
     @Test
@@ -29,6 +31,22 @@ public class DeserializeInMessageTests {
         Assert.assertTrue(collector.result instanceof ExtractProperty);
         final ExtractProperty result = (ExtractProperty) collector.result;
         Assert.assertEquals(1, result.descriptorId);
+        result.value.on(v -> Assert.fail(), v -> {
+            Assert.assertEquals(new JsonDataType.String("bar"), v);
+        });
+
+    }
+
+    @Test
+    public void should_deserialize_extract_missed_property() {
+        final TestInMessages collector = new TestInMessages();
+        final DeserializeInMessage p = createParser(collector);
+        p.parse("[2,\"1:2\"]");
+
+/*        Assert.assertTrue(collector.result instanceof ExtractProperty);
+        final ExtractProperty result = (ExtractProperty) collector.result;
+        Assert.assertEquals(1, result.descriptorId);
+        result.value.on(v -> {}, v -> Assert.fail());*/
     }
 
     @Test
@@ -40,6 +58,7 @@ public class DeserializeInMessageTests {
         Assert.assertTrue(collector.result instanceof JsResponse);
         final JsResponse result = (JsResponse) collector.result;
         Assert.assertEquals(1, result.descriptorId);
+        Assert.assertEquals(new JsonDataType.String("foo"), result.value);
     }
 
     private DeserializeInMessage createParser(InMessages collector) {
@@ -62,8 +81,8 @@ public class DeserializeInMessageTests {
 
     private final class ExtractProperty {
         public final int descriptorId;
-        public final JsonDataType value;
-        public ExtractProperty(int descriptorId, JsonDataType value) {
+        public final Either<Throwable, JsonDataType> value;
+        public ExtractProperty(int descriptorId, Either<Throwable, JsonDataType> value) {
             this.descriptorId = descriptorId;
             this.value = value;
         }
@@ -81,8 +100,10 @@ public class DeserializeInMessageTests {
     private final class TestInMessages implements InMessages {
         public Object result;
 
+
+
         @Override
-        public void handleExtractPropertyResponse(int descriptorId, JsonDataType value) {
+        public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> value) {
             result = new ExtractProperty(descriptorId, value);
         }
 

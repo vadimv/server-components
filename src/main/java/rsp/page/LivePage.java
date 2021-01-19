@@ -6,6 +6,7 @@ import rsp.dsl.Ref;
 import rsp.dsl.WindowRef;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
+import rsp.util.Either;
 import rsp.util.Log;
 import rsp.util.json.JsonDataType;
 
@@ -60,15 +61,27 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void handleExtractPropertyResponse(int descriptorId, JsonDataType value) {
-        log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + value.toStringValue()));
-        synchronized (pageState) {
-            final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
-            if (cf != null) {
-                cf.complete(value);
-                registeredEventHandlers.remove(descriptorId);
-            }
-        }
+    public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> result) {
+        result.on(ex -> {
+                    log.debug(l -> l.log("extractProperty: " + descriptorId + " exception: " + ex.getMessage()));
+                    synchronized (pageState) {
+                        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+                        if (cf != null) {
+                            cf.completeExceptionally(ex);
+                            registeredEventHandlers.remove(descriptorId);
+                        }
+                    }
+                },
+                 v -> {
+                     log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + v.toStringValue()));
+                     synchronized (pageState) {
+                         final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+                         if (cf != null) {
+                             cf.complete(v);
+                             registeredEventHandlers.remove(descriptorId);
+                         }
+                     }
+                 });
     }
 
     @Override

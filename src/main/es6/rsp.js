@@ -28,13 +28,13 @@ export const CallbackType = {
 };
 
 /** @enum {number} */
-const PropertyType = {
-  STRING: 0,
-  NUMBER: 1,
-  BOOLEAN: 2,
-  OBJECT: 3,
-  ERROR: 4
+const JsonMetadata = {
+  DATA: 0,
+  UNDEFINED: 1,
+  FUNCTION: 2,
+  ERROR: 3
 };
+
 
 /** @enum {number} */
 const LocationType = {
@@ -298,27 +298,15 @@ export class RSP {
     var result, type;
     switch (typeof value) {
       case 'undefined':
-        type = PropertyType.ERROR;
-        result = `${propertyName} is undefined`;
+        type = JsonMetadata.UNDEFINED;
+        result = undefined;
         break;
       case 'function':
-        type = PropertyType.ERROR;
-        result = `${propertyName} is a function`;
+        type = JsonMetadata.FUNCTION;
+        result = undefined;
         break;
-      case 'object':
-        type = PropertyType.OBJECT;
-        result = value;
-        break;
-      case 'string':
-        type = PropertyType.STRING;
-        result = value;
-        break;
-      case 'number':
-        type = PropertyType.NUMBER;
-        result = value;
-        break;
-      case 'boolean':
-        type = PropertyType.BOOLEAN;
+      default:
+        type = JsonMetadata.DATA;
         result = value;
         break;
     }
