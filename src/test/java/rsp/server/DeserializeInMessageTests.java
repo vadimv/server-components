@@ -31,7 +31,8 @@ public class DeserializeInMessageTests {
         Assert.assertTrue(collector.result instanceof ExtractProperty);
         final ExtractProperty result = (ExtractProperty) collector.result;
         Assert.assertEquals(1, result.descriptorId);
-        result.value.on(v -> Assert.fail(), v -> {
+        result.value.on(v -> Assert.fail(),
+                        v -> {
             Assert.assertEquals(new JsonDataType.String("bar"), v);
         });
 
