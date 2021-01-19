@@ -1,11 +1,12 @@
 package rsp.dom;
 
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
-
     private final Optional<Tag> current;
     private final Tag work;
     private final DomChangesPerformer performer;
@@ -28,8 +29,8 @@ public final class Diff {
     }
 
     private static void diffAttributes(CopyOnWriteArraySet<Attribute> ca, CopyOnWriteArraySet<Attribute> wa, VirtualDomPath path, DomChangesPerformer performer) {
-        final var c = new CopyOnWriteArraySet<>(ca);
-        final var w = new CopyOnWriteArraySet<>(wa);
+        final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
+        final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
         c.forEach(attribute ->  {
             performer.removeAttr(path, XmlNs.html, attribute.name, attribute.isProperty);
@@ -41,8 +42,8 @@ public final class Diff {
     }
 
     private static void diffStyles(CopyOnWriteArraySet<Style> ca, CopyOnWriteArraySet<Style> wa, VirtualDomPath path, DomChangesPerformer performer) {
-        final var c = new CopyOnWriteArraySet<>(ca);
-        final var w = new CopyOnWriteArraySet<>(wa);
+        final Set<Style> c = new CopyOnWriteArraySet<>(ca);
+        final Set<Style> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
         c.forEach(attribute ->  {
             performer.removeStyle(path, attribute.name);
@@ -54,10 +55,10 @@ public final class Diff {
     }
 
     private static void diffChildren(List<Node> cc, List<Node> wc, VirtualDomPath path, DomChangesPerformer performer) {
-        var c = cc.listIterator();
-        var w = wc.listIterator();
+        final ListIterator<Node> c = cc.listIterator();
+        final ListIterator<Node> w = wc.listIterator();
 
-        var p = path;
+        VirtualDomPath p = path;
         while(c.hasNext() || w.hasNext()) {
             if (c.hasNext() && w.hasNext()) {
                 final Node nc = c.next();
@@ -93,7 +94,7 @@ public final class Diff {
         for (Attribute attribute: tag.attributes) {
             changesPerformer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
         }
-        var p = path.incLevel();
+        VirtualDomPath p = path.incLevel();
         for (Node child:tag.children) {
             if (child instanceof Tag) {
                 final Tag newTag = (Tag) child;
