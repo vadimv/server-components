@@ -2,7 +2,7 @@ package rsp.examples.crud.entities;
 
 import rsp.examples.crud.services.EntityService;
 import rsp.util.StreamUtils;
-import rsp.util.Tuple2;
+import rsp.util.data.Tuple2;
 
 import java.util.Arrays;
 import java.util.List;

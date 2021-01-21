@@ -3,7 +3,7 @@ package rsp.server;
 import org.junit.Assert;
 import org.junit.Test;
 import rsp.dom.VirtualDomPath;
-import rsp.util.Either;
+import rsp.util.data.Either;
 import rsp.util.Log;
 import rsp.util.json.JsonDataType;
 

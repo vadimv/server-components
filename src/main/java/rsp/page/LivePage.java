@@ -6,7 +6,7 @@ import rsp.dsl.Ref;
 import rsp.dsl.WindowRef;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
-import rsp.util.Either;
+import rsp.util.data.Either;
 import rsp.util.Log;
 import rsp.util.json.JsonDataType;
 

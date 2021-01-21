@@ -1,6 +1,6 @@
 package rsp.examples.crud.entities;
 
-import rsp.util.Tuple2;
+import rsp.util.data.Tuple2;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;

@@ -3,7 +3,7 @@ package rsp.examples.crud.components;
 import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.state.UseState;
-import rsp.util.Tuple2;
+import rsp.util.data.Tuple2;
 import rsp.util.json.JsonDataType;
 
 import java.util.Arrays;

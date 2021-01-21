@@ -1,7 +1,7 @@
 package rsp.server;
 
 import rsp.dom.VirtualDomPath;
-import rsp.util.Either;
+import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
 public interface InMessages {

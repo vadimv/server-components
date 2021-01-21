@@ -1,6 +1,6 @@
 package rsp.server;
 
-import rsp.util.Tuple2;
+import rsp.util.data.Tuple2;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;

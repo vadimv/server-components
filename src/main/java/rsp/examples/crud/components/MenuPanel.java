@@ -4,7 +4,7 @@ import rsp.Component;
 import rsp.dsl.DocumentPartDefinition;
 import rsp.dsl.Html;
 import rsp.state.UseState;
-import rsp.util.Tuple2;
+import rsp.util.data.Tuple2;
 
 import java.util.List;
 

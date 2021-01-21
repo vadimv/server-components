@@ -1,9 +1,15 @@
-package rsp.util;
+package rsp.util.data;
 
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Represents a value of one of two possible types.
+ * A value is either an instance of L or R parameter type.
+ * @param <L> the left type
+ * @param <R> the right type
+ */
 public abstract class Either<L, R> {
 
     public static <L, R> Either<L, R> left(L value) {

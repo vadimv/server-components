@@ -8,7 +8,7 @@ import rsp.server.HttpResponse;
 import rsp.server.Path;
 import rsp.state.ReadOnly;
 import rsp.util.RandomString;
-import rsp.util.Tuple2;
+import rsp.util.data.Tuple2;
 
 import java.io.IOException;
 import java.net.URL;

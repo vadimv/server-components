@@ -2,6 +2,7 @@ package rsp.util;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Test;
+import rsp.util.data.Tuple2;
 
 public class Tuple2Tests {
     @Test
