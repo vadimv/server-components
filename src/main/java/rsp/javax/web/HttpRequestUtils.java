@@ -3,16 +3,18 @@ package rsp.javax.web;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
 
-import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.websocket.server.HandshakeRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Objects;
 import java.util.Optional;
 
 public final class HttpRequestUtils {
-
+    /**
+     * Creates a new instance of {@link HttpRequest} given a Servlet API HttpServletRequest
+     * @param request a HTTP Servlet request
+     * @return a HTTP request
+     */
     public static HttpRequest httpRequest(HttpServletRequest request) {
         return new HttpRequest(stringToURI(request.getRequestURI()),
                                Path.of(request.getPathInfo()),
@@ -20,6 +22,11 @@ public final class HttpRequestUtils {
                                h -> Optional.ofNullable(request.getHeader(h)));
     }
 
+    /**
+     * Creates a new instance of {@link HttpRequest} given a JSR 356 WebSocket handshake request
+     * @param handshakeRequest a WebSocket handshake request
+     * @return a HTTP request
+     */
     public static HttpRequest httpRequest(HandshakeRequest handshakeRequest) {
         return new HttpRequest(handshakeRequest.getRequestURI(),
                                Path.of(handshakeRequest.getRequestURI().getPath()),
