@@ -155,8 +155,8 @@ An application is a top-level ``Component<S>``.
 
 ### Routing
 
-Initial application's state is resolved during first rendering on by a specific function,
- provided as a parameter to the ``App`` constructor.
+Initial application's state is resolved during first rendering by a specific function,
+ provided as a parameter to the application's class ``App`` constructor.
 
 ```java
     public CompletableFuture<State> route(HttpRequest request) {

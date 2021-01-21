@@ -34,7 +34,11 @@ public class LivePageStateTests {
         final TestCollectingOutMessages out = new TestCollectingOutMessages();
         final LivePageState<State> livePageState = create(new State(0), out);
         livePageState.accept(new State(100));
-        //Assert.assertEquals(List.of(), out.commands);
+        Assert.assertEquals(List.of(new ModifyDomOutMessage(List.of(new DefaultDomChangesPerformer.CreateText(VirtualDomPath.of("1"),
+                                                                                                      VirtualDomPath.of("1_1"),
+                                                                                                      "100"))),
+                                    new PushHistoryMessage("/100")),
+                            out.commands);
     }
 
     private LivePageState<State> create(State state, OutMessages out) {
@@ -252,7 +256,9 @@ public class LivePageStateTests {
 
         @Override
         public String toString() {
-            return "ModifyDom: " + domChange;
+            return "ModifyDomOutMessage{" +
+                    "domChange=" + domChange +
+                    '}';
         }
     }
 
@@ -278,7 +284,9 @@ public class LivePageStateTests {
 
         @Override
         public String toString() {
-            return "Push-history: " + path;
+            return "PushHistoryMessage{" +
+                    "path='" + path + '\'' +
+                    '}';
         }
     }
 }

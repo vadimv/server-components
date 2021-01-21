@@ -203,6 +203,15 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         public int hashCode() {
             return Objects.hash(parentPath, path, text);
         }
+
+        @Override
+        public String toString() {
+            return "CreateText{" +
+                    "parentPath=" + parentPath +
+                    ", path=" + path +
+                    ", text='" + text + '\'' +
+                    '}';
+        }
     }
 
     public static final class Create implements DomChange {
