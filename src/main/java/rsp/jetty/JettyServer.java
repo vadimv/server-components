@@ -12,7 +12,7 @@ import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainer
 import rsp.App;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
-import rsp.javax.web.ServletUtils;
+import rsp.javax.web.HttpRequestUtils;
 import rsp.page.EnrichingXhtmlContext;
 import rsp.page.PageRendering;
 import rsp.page.StateToRouteDispatch;
@@ -164,7 +164,7 @@ public final class JettyServer {
                                                                                 HandshakeRequest req,
                                                                                 HandshakeResponse resp) {
                                                         conf.getUserProperties().put(MainWebSocketEndpoint.HANDSHAKE_REQUEST_PROPERTY_NAME,
-                                                                                     ServletUtils.httpRequest(req));
+                                                                                     HttpRequestUtils.httpRequest(req));
                                                     }
                                                 }).build();
             serverContainer.addEndpoint(config);

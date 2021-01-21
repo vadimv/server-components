@@ -137,7 +137,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     }
 
     public static HttpRequest of(HandshakeRequest handshakeRequest) {
-        return ServletUtils.httpRequest(handshakeRequest);
+        return HttpRequestUtils.httpRequest(handshakeRequest);
     }
 
     public static boolean isKnownLostSession(QualifiedSessionId qsid) {
