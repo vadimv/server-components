@@ -1,9 +1,6 @@
 package rsp.dom;
 
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
@@ -12,15 +9,20 @@ public final class Diff {
     private final DomChangesPerformer performer;
 
     public Diff(Optional<Tag> current, Tag work, DomChangesPerformer performer) {
-        this.current = current;
-        this.work = work;
-        this.performer = performer;
+        this.current = Objects.requireNonNull(current);
+        this.work = Objects.requireNonNull(work);
+        this.performer = Objects.requireNonNull(performer);
+    }
+
+    public void run() {
+        current.ifPresentOrElse(current -> diff(current, work, new VirtualDomPath(1), performer),
+                                () -> create(work, new VirtualDomPath(1), performer));
     }
 
     private static void diff(Tag c, Tag w, VirtualDomPath path, DomChangesPerformer changesPerformer) {
         if (!c.name.equals(w.name)) {
             changesPerformer.remove(path.parent().get(), path);
-            create((Tag)w, path, changesPerformer);
+            create(w, path, changesPerformer);
         } else {
             diffStyles(c.styles, w.styles, path, changesPerformer);
             diffAttributes(c.attributes, w.attributes, path, changesPerformer);
@@ -105,10 +107,5 @@ public final class Diff {
             }
             p = p.incSibling();
         }
-    }
-
-    public void run() {
-        current.ifPresentOrElse(current -> diff(current, work, new VirtualDomPath(1), performer),
-                                () -> create(work, new VirtualDomPath(1), performer));
     }
 }
