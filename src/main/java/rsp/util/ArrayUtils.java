@@ -2,6 +2,9 @@ package rsp.util;
 
 import java.util.Arrays;
 
+/**
+ * Provides utility methods for Java arrays.
+ */
 public final class ArrayUtils {
 
     /**
