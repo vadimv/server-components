@@ -6,7 +6,7 @@ import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
 import rsp.server.SerializeOutMessages;
-import rsp.util.Log;
+import rsp.util.logging.Log;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;

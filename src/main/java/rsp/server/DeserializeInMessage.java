@@ -5,7 +5,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import rsp.dom.VirtualDomPath;
 import rsp.util.data.Either;
-import rsp.util.Log;
+import rsp.util.logging.Log;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonSimple;
 

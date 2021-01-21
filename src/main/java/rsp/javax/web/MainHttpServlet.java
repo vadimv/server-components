@@ -4,7 +4,7 @@ import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.page.PageRendering;
 import rsp.util.ExceptionsUtils;
-import rsp.util.Log;
+import rsp.util.logging.Log;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;

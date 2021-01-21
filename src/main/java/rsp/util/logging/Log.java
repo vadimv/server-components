@@ -1,4 +1,6 @@
-package rsp.util;
+package rsp.util.logging;
+
+import rsp.util.ExceptionsUtils;
 
 import java.util.function.Consumer;
 

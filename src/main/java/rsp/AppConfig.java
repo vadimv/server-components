@@ -1,6 +1,6 @@
 package rsp;
 
-import rsp.util.Log;
+import rsp.util.logging.Log;
 
 /**
  * An application configuration.
