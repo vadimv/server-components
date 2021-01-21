@@ -16,7 +16,6 @@ public final class Html {
 
     private Html() {}
 
-    // TODO verify all this property names
     /**
      * Attributes names which are interpreted by default as properties.
      * @see #attr(String, String) 
