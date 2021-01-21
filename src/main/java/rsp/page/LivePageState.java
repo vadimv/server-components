@@ -45,7 +45,9 @@ public class LivePageState<S> implements UseState<S> {
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesPerformer domChangePerformer = new DefaultDomChangesPerformer();
         new Diff(Optional.of(snapshot.domRoot), newContext.root, domChangePerformer).run();
-        out.modifyDom(domChangePerformer.commands);
+        if ( domChangePerformer.commands.size() > 0) {
+            out.modifyDom(domChangePerformer.commands);
+        }
 
         // Events
         final Set<Event> oldEvents = new HashSet<>(snapshot.events.values());

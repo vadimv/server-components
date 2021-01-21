@@ -1,9 +1,6 @@
 package rsp.dom;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public final class DefaultDomChangesPerformer implements DomChangesPerformer {
     public final Set<VirtualDomPath> elementsToRemove = new HashSet<>();
@@ -59,6 +56,22 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
             this.name = name;
             this.isProperty = isProperty;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RemoveAttr that = (RemoveAttr) o;
+            return isProperty == that.isProperty &&
+                    Objects.equals(path, that.path) &&
+                    Objects.equals(xmlNs, that.xmlNs) &&
+                    Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(path, xmlNs, name, isProperty);
+        }
     }
 
     public static final class RemoveStyle implements DomChange {
@@ -68,18 +81,46 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
             this.path = path;
             this.name = name;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            RemoveStyle that = (RemoveStyle) o;
+            return Objects.equals(path, that.path) &&
+                    Objects.equals(name, that.name);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(path, name);
+        }
     }
 
-    public static class Remove implements DomChange {
+    public static final class Remove implements DomChange {
         public final VirtualDomPath parentPath;
         public final VirtualDomPath path;
         public Remove(VirtualDomPath parentPath, VirtualDomPath path) {
             this.parentPath = parentPath;
             this.path = path;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Remove remove = (Remove) o;
+            return Objects.equals(parentPath, remove.parentPath) &&
+                    Objects.equals(path, remove.path);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(parentPath, path);
+        }
     }
 
-    public static class SetAttr implements DomChange {
+    public static final class SetAttr implements DomChange {
         public final VirtualDomPath path;
         public final XmlNs xmlNs;
         public final String name;
@@ -93,9 +134,26 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
             this.value = value;
             this.isProperty = isProperty;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SetAttr setAttr = (SetAttr) o;
+            return isProperty == setAttr.isProperty &&
+                    Objects.equals(path, setAttr.path) &&
+                    Objects.equals(xmlNs, setAttr.xmlNs) &&
+                    Objects.equals(name, setAttr.name) &&
+                    Objects.equals(value, setAttr.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(path, xmlNs, name, value, isProperty);
+        }
     }
 
-    public static class SetStyle implements DomChange {
+    public static final class SetStyle implements DomChange {
         public final VirtualDomPath path;
         public final String name;
         public final String value;
@@ -104,9 +162,24 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
             this.name = name;
             this.value = value;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            SetStyle setStyle = (SetStyle) o;
+            return Objects.equals(path, setStyle.path) &&
+                    Objects.equals(name, setStyle.name) &&
+                    Objects.equals(value, setStyle.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(path, name, value);
+        }
     }
 
-    public static class CreateText implements DomChange {
+    public static final class CreateText implements DomChange {
         public final VirtualDomPath parentPath;
         public final VirtualDomPath path;
         public final String text;
@@ -115,9 +188,24 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
             this.path = path;
             this.text = text;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            CreateText that = (CreateText) o;
+            return Objects.equals(parentPath, that.parentPath) &&
+                    Objects.equals(path, that.path) &&
+                    Objects.equals(text, that.text);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(parentPath, path, text);
+        }
     }
 
-    public static class Create implements DomChange {
+    public static final class Create implements DomChange {
         public final VirtualDomPath path;
         public final XmlNs xmlNs;
         public final String tag;
@@ -125,6 +213,21 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
             this.path = path;
             this.xmlNs = xmlNs;
             this.tag = tag;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Create create = (Create) o;
+            return Objects.equals(path, create.path) &&
+                    Objects.equals(xmlNs, create.xmlNs) &&
+                    Objects.equals(tag, create.tag);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(path, xmlNs, tag);
         }
     }
 }

@@ -22,12 +22,12 @@ public final class EnrichingXhtmlContext implements RenderContext {
     public EnrichingXhtmlContext(RenderContext context,
                                  String sessionId,
                                  String path,
-                                 String connectionLostWidget,
+                                 String connectionLostWidgetHtml,
                                  int heartBeatInterval) {
         this.context = context;
         this.sessionId = sessionId;
         this.path = path;
-        this.connectionLostWidget = connectionLostWidget;
+        this.connectionLostWidget = connectionLostWidgetHtml;
         this.heartBeatInterval = heartBeatInterval;
     }
 
