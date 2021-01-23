@@ -8,6 +8,8 @@
     <artifactId>rsp</artifactId>
     <version>${revision}</version>
     <name>Reactive Server Pages (RSP)</name>
+    <description>A Java library for building real-time user interfaces and UI components.</description>
+    <url>https://github.com/vadimv/rsp</url>
 
     <properties>
         <revision>0.1-SNAPSHOT</revision>
@@ -24,6 +26,20 @@
         <closure-compiler.version>v20200614</closure-compiler.version>
     </properties>
 
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Vadim Vashkevich</name>
+            <url>https://github.com/vadimv</url>
+        </developer>
+    </developers>
+
     <distributionManagement>
         <snapshotRepository>
             <id>ossrh</id>
@@ -34,8 +50,6 @@
             <url>https://oss.sonatype.org/service/local/staging/deploy/maven2</url>
         </repository>
     </distributionManagement>
-
-
 
     <build>
         <plugins>
