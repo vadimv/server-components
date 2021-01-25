@@ -54,7 +54,7 @@
     <scm>
         <connection>scm:git:https://github.com/vadimv/rsp.git</connection>
         <developerConnection>scm:git:https://github.com/vadimv/rsp.git</developerConnection>
-        <url>https://github.com/vadimv/rsp</url>
+        <url>https://github.com/vadimv/rsp/tree/master</url>
     </scm>
 
     <build>
