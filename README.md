@@ -4,7 +4,16 @@ The Reactive Sever Pages (RSP) project enables creating single page web applicat
 
 This project requires Java 11+. 
 
-To build the project:
+Maven dependency:
+```xml
+    <dependency>
+        <groupId>io.github.vadimv</groupId>
+        <artifactId>rsp</artifactId>
+        <version>0.1</version>
+    </dependency>
+```
+
+To build the project form the sources:
 
 ```shell script
 
