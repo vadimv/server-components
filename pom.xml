@@ -12,7 +12,7 @@
     <url>https://github.com/vadimv/rsp</url>
 
     <properties>
-        <revision>0.1-SNAPSHOT</revision>
+        <revision>0.1</revision>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
