@@ -28,25 +28,16 @@
 
 .stage {
     display: grid;
-    grid-template-rows: repeat(
-        20,
-        calc(25vw / 12)
-        );
-    grid-template-columns: repeat(12, 1fr);
+    grid-template-rows: repeat(20, 20px);
+    grid-template-columns: repeat(12, 20px);
     grid-gap: 1px;
-    border: 2px solid #333;
     width: 100%;
-    max-width: 25vw;
-    background: #111;
+    max-width: 240px;
+
 }
 
 .cell {
     width: auto;
-    /* border-radius: 5px; */
-   /* border-bottom-color: rgba(${props => props.color}, 0.1);
-    border-right-color: rgba(${props => props.color}, 1);
-    border-top-color: rgba(${props => props.color}, 1);
-    border-left-color: rgba(${props => props.color}, 0.3);*/
 }
 
 .t0 {
