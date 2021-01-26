@@ -69,12 +69,13 @@ should be written in Java code as
 There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, custom logic with if branching
 and conditional rendering.
 
-Rendering code uses its application state object provided as a state ``UseState<S>.get()`` or an external data source. 
+Rendering code uses its application state object provided as a parameter ``UseState<S>.get()``:  
 
 ```java
     ul(of(us.get().items.stream().map(item -> li(item.name))))
 ```
 
+or some external data source:
 ```java
     final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
     ...
@@ -82,11 +83,11 @@ Rendering code uses its application state object provided as a state ``UseState<
     div(of(service.apply(us.get().user.id).map(str -> text(str))))
 ```
 
+This is an example of conditional rendering using a boolean field of the state object:
 ```java
     when(us.get().showLabel, span("This is a label"))
 ```
 
-  
 ### Events
 
 Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a browser event.
@@ -96,7 +97,7 @@ Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a b
                 System.out.println("Clicked!");    
             }))
 ```
-An ``EventContext`` object, provided as a parameter to an event's handler has a number of useful methods.  
+An ``EventContext`` parameter of an event's handler has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
 
 ```java
@@ -111,7 +112,7 @@ One of these methods allows access to client-side document elements properties v
 
 In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
   
-Another ``EventContext`` method enables access to the event's object.
+Another ``EventContext`` method enables access to the event's object:
 
 ```java
     form(on("submit", ctx -> {
@@ -140,7 +141,7 @@ An event handler usually should provide a new state snapshot object using ``UseS
     public static class ButtonState {}
 ```
 
-A parent component ``render()`` method invokes ``render()`` methods of its children components
+The ``render()`` method invokes ``render()`` methods of its descendant components
 providing an instance of the ``UseState<S>`` class as an argument. 
 
 ```java
@@ -160,11 +161,11 @@ providing an instance of the ``UseState<S>`` class as an argument.
         public ConfirmPanelState(boolean confirmed) { this.confirmed = confirmed; }
     }
 ```
-An application is a top-level ``Component<S>``.
+An application's top-level ``Component<S>`` is the root of its component tree.
 
 ### Routing
 
-Initial application's state is resolved during first rendering by a specific function,
+Initial application's state resolved during the first rendering by a specific function,
  provided as a parameter to the application's class ``App`` constructor.
 
 ```java
