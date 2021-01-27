@@ -90,8 +90,6 @@ should be written in Java code as
 
 Access the current application state reading a ``UseState<S>.get()`` object.
 
-
-
 There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, for addition of custom logic with if branching
 and conditional rendering.
 
@@ -119,9 +117,14 @@ Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, ha
 
 ```java
     a("#", "Click me", on("click", ctx -> {
-                System.out.println("Clicked!");    
+                System.out.println("Clicked " + s.get().counter + " times");
+                s.accept(new State(s.get().counter + 1));
             }))
+    ...
+    static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
+An event handler's code usually sets a new state snapshot object by the ``UseState<S>.accept(S newState)`` method.
+
 The event handler's ``EventContext`` parameter has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
 
@@ -130,9 +133,9 @@ One of these methods allows access to client-side document elements properties v
     ...
     input(inputRef,
           attr("type", "text")),
-    a("#", "Click me", on("click", ctx -> {
-                ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
-            }))
+          a("#", "Click me", on("click", ctx -> {
+                    ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
+          }))
 ```
 
 In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
@@ -152,8 +155,6 @@ Another ``EventContext`` method enables reading the event's object:
 ### Components
 
 An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
-
-An event handler's code usually provides a new state snapshot object by the ``UseState<S>.accept(S newState)`` method.
 
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
@@ -186,6 +187,7 @@ with an instance of the ``UseState<S>`` class as an argument.
         public ConfirmPanelState(boolean confirmed) { this.confirmed = confirmed; }
     }
 ```
+
 An application's top-level ``Component<S>`` is the root of its component tree.
 
 ### Routing
