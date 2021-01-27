@@ -2,7 +2,7 @@ The Reactive Sever Pages (RSP) project enables creating single page web applicat
 
 ## Usage
 
-This project requires Java 11+. 
+This project requires Java 11 or more recent. 
 
 Maven dependency:
 ```xml
@@ -13,7 +13,7 @@ Maven dependency:
     </dependency>
 ```
 
-To build the project form the sources:
+To build the project from the sources:
 
 ```shell script
 
@@ -27,22 +27,20 @@ and [Tetris](https://github.com/vadimv/reactive-server-pages/blob/master/src/mai
 
 ## How it works
 
-On an HTTP request, a self-hosted Java webserver process renders initial HTML markup with a 10Kb JavaScript client-side program. 
-After the page is loaded the client program establishes a web socket connection. 
+On an HTTP request, a self-hosted Java webserver process renders and sends an initial HTML page markup with a 10Kb JavaScript client-side program. 
+Later the browser loads the page, and the client program establishes a web socket connection with the server.
+ 
+As a result, the server creates a live page session and starts to listen to the future browser events, like mouse clicks.  
+The application logic handles these events and updates the application's internal state. On a state change,
+the server generates a new virtual DOM tree invoking the rendering code with this new state snapshot as an argument.
+The RSP library code calculates the difference between these new and current virtual DOM trees and uses it to generate the browser's commands. Next, the server sends these commands to the client via the web socket. 
 
-A live page session is created on the server-side, which starts to listen to the browser events, like a mouse click. 
-The application handles these events and updates its internal state, generating a sequence of immutable snapshots. 
-Every new state snapshot results in its corresponding virtual DOM tree through the application's rendering. 
-The difference between the current and a new virtual DOM trees is used to evoke commands like creating or delete an element
-or an attribute. These commands are sent to the browser via a web socket.
-On the client-side, these commands used to adjust the actual page's HTML document to the new server-side virtual DOM.
-
+Finally, The browser's JavaScript program adjusts the actual HTML document to the new server-side virtual DOM.
 
 ### HTML markup Java DSL
 
-RSP uses a Java DSL for representing HTML tags and attributes.
-
-For example, a fragment of HTML like this
+Use the Java DSL for defining an HTML page markup.
+For example, a fragment:
 
 ```html
  <html>    
@@ -58,6 +56,8 @@ For example, a fragment of HTML like this
 should be written in Java code as
 
 ```java
+    import static rsp.dsl.Html.*;
+    ...
     html(
           body(
                h1("This is a heading"),
@@ -66,38 +66,38 @@ should be written in Java code as
         )
 ```
 
-There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, custom logic with if branching
-and conditional rendering.
-
-Rendering code uses its application state object provided as a parameter ``UseState<S>.get()``:  
+Access the current application state reading a ``UseState<S>.get()`` object:  
 
 ```java
     ul(of(us.get().items.stream().map(item -> li(item.name))))
 ```
 
-or some external data source:
+or some use external data source:
 ```java
     final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
     ...
     // let's consider that at this moment we know the current user's Id
     div(of(service.apply(us.get().user.id).map(str -> text(str))))
 ```
+There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, for addition of custom logic with if branching
+and conditional rendering.
 
-This is an example of conditional rendering using a boolean field of the state object:
+This code fragment demonstrates an example of conditional rendering.
+Here, the ``span`` element will be visible or not depending on a boolean field of the state object:
 ```java
     when(us.get().showLabel, span("This is a label"))
 ```
 
 ### Events
 
-Use ``rsp.dsl.Html.on(eventType, handler)`` method to register a handler for a browser event.
+Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, handler)`` method.
 
 ```java
     a("#", "Click me", on("click", ctx -> {
                 System.out.println("Clicked!");    
             }))
 ```
-An ``EventContext`` parameter of an event's handler has a number of useful methods.  
+The event handler's ``EventContext`` parameter has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
 
 ```java
@@ -112,10 +112,11 @@ One of these methods allows access to client-side document elements properties v
 
 In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
   
-Another ``EventContext`` method enables access to the event's object:
+Another ``EventContext`` method enables reading the event's object:
 
 ```java
     form(on("submit", ctx -> {
+            // Prints the submitted form's input field value
             System.out.println(ctx.eventObject().apply("val").orElseThrow(() -> new IllegalStateException()));
          }),
         input(attr("type", "text"), attr("name", "val")),
@@ -123,12 +124,11 @@ Another ``EventContext`` method enables access to the event's object:
     )
 ```
 
-
 ### Components
 
 An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
 
-An event handler usually should provide a new state snapshot object using ``UseState<S>.accept(S newState)`` method.
+An event handler's code usually provides a new state snapshot object by the ``UseState<S>.accept(S newState)`` method.
 
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
@@ -141,8 +141,8 @@ An event handler usually should provide a new state snapshot object using ``UseS
     public static class ButtonState {}
 ```
 
-The ``render()`` method invokes ``render()`` methods of its descendant components
-providing an instance of the ``UseState<S>`` class as an argument. 
+A component's ``render()`` method invokes ``render()`` methods of its descendant components
+with an instance of the ``UseState<S>`` class as an argument. 
 
 ```java
     import static rsp.state.UseState.readWrite;
@@ -165,8 +165,8 @@ An application's top-level ``Component<S>`` is the root of its component tree.
 
 ### Routing
 
-Initial application's state resolved during the first rendering by a specific function,
- provided as a parameter to the application's class ``App`` constructor.
+To resolve an initial application state from a HTTP request during the first rendering
+create a function like that:
 
 ```java
     public CompletableFuture<State> route(HttpRequest request) {
@@ -183,9 +183,11 @@ Initial application's state resolved during the first rendering by a specific fu
         return m.result;
     }
 ```
-The default request-to-state routing implementation just provides an initial state for all requests.
 
-Current application's state can be mapped to the browser's navigation bar path using another specific function,
+Provide this function to the application's class ``App`` constructor.
+The default request-to-state routing implementation just provides an initial state for any incoming HTTP request.
+
+In a kind of opposite way, the current application's state can be mapped to the browser's navigation bar path using another function,
 also provided as a parameter of the ``App`` constructor.
  
 ```java
@@ -195,18 +197,15 @@ also provided as a parameter of the ``App`` constructor.
 ```
 The default state-to-path routing sets an empty path for any state.
 
-### Schedules and external events
+### Schedules
 
 The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
 methods allow submitting of a delayed or periodic action that can be cancelled. 
 These actions will be executed in a thread from the internal thread pool.
 
-TBD
+### Application creation and configuration
 
-### Application's configuration
-
-TBD
-
+See the ``rsp.App`` and ``rsp.AppConfig`` classes for details.
 
 ### Logging
 
