@@ -20,6 +20,28 @@ To build the project from the sources:
 $ mvn clean package
 
 ```
+### Hello World application and code examples
+
+```java
+    import rsp.App;
+    import rsp.jetty.JettyServer;
+    
+    import static rsp.dsl.Html.*;
+    
+    public class HelloWorld {
+        public static void main(String[] args) throws Exception {
+            final var app = new App<>("Hello world!",
+                                      s -> html(
+                                                body(
+                                                     p(s.get())
+                                                )
+                                      ));
+            final var server = new JettyServer(8080, "", app);
+            server.start();
+            server.join();
+        }
+    }
+```
 
 See the [TODOs](https://github.com/vadimv/reactive-server-pages/blob/master/src/main/java/rsp/examples/todos/JettyTodos.java) example,
 [Hacker News client](https://github.com/vadimv/reactive-server-pages/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
@@ -66,21 +88,24 @@ should be written in Java code as
         )
 ```
 
-Access the current application state reading a ``UseState<S>.get()`` object:  
+Access the current application state reading a ``UseState<S>.get()`` object.
+
+
+
+There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, for addition of custom logic with if branching
+and conditional rendering.
 
 ```java
     ul(of(us.get().items.stream().map(item -> li(item.name))))
 ```
 
-or some use external data source:
+or using some external data source:
 ```java
     final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
     ...
     // let's consider that at this moment we know the current user's Id
     div(of(service.apply(us.get().user.id).map(str -> text(str))))
 ```
-There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, for addition of custom logic with if branching
-and conditional rendering.
 
 This code fragment demonstrates an example of conditional rendering.
 Here, the ``span`` element will be visible or not depending on a boolean field of the state object:
@@ -203,9 +228,9 @@ The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()``
 methods allow submitting of a delayed or periodic action that can be cancelled. 
 These actions will be executed in a thread from the internal thread pool.
 
-### Application creation and configuration
+### Application configuration
 
-See the ``rsp.App`` and ``rsp.AppConfig`` classes for details.
+See the ``rsp.AppConfig`` class for details.
 
 ### Logging
 
