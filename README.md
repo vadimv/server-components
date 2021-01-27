@@ -1,4 +1,4 @@
-The Reactive Sever Pages (RSP) project enables creating single page web applications and dynamic websites in Java.
+The Reactive Server Pages (RSP) project enables creating single page web applications and dynamic websites in Java.
 
 ## Usage
 
