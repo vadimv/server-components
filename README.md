@@ -20,7 +20,7 @@ To build the project from the sources:
 $ mvn clean package
 
 ```
-### Hello World application and code examples
+### Hello World and code examples
 
 ```java
     import rsp.App;
