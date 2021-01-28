@@ -11,8 +11,9 @@ public class HelloWorld {
                                   s -> html(
                                             body(
                                                  p(s.get())
+                                                )
                                             )
-                                  ));
+                                  );
         final var server = new JettyServer(8080, "", app);
         server.start();
         server.join();

@@ -34,8 +34,9 @@ $ mvn clean package
                                       s -> html(
                                                 body(
                                                      p(s.get())
+                                                    )
                                                 )
-                                      ));
+                                      );
             final var server = new JettyServer(8080, "", app);
             server.start();
             server.join();
