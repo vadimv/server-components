@@ -1,5 +1,6 @@
 package rsp.state;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -37,6 +38,11 @@ public final class ReadOnly<S> implements UseState<S> {
 
     @Override
     public void accept(Function<S, S> function) {
+        throw new IllegalStateException("Set state is not allowed");
+    }
+
+    @Override
+    public void acceptOptional(Function<S, Optional<S>> function) {
         throw new IllegalStateException("Set state is not allowed");
     }
 }

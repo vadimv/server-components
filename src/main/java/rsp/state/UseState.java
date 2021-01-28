@@ -1,5 +1,6 @@
 package rsp.state;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -33,6 +34,11 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             public void accept(Function<S, S> f) {
                 accept(new CompletableFuture<S>().thenApply(f));
             }
+
+            @Override
+            public void acceptOptional(Function<S, Optional<S>> function) {
+                function.apply(supplier.get()).ifPresent(s -> accept(s));
+            }
         };
     }
 
@@ -57,6 +63,13 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             public void accept(Function<S, S> f) {
                 functionConsumer.accept(f);
             }
+
+            @Override
+            public void acceptOptional(Function<S, Optional<S>> function) {
+                function.apply(get()).ifPresent(s -> functionConsumer.accept(p -> s));
+            }
+
+
         };
     }
 
@@ -73,6 +86,11 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             @Override
             public void accept(Function<S, S> function) {
                 consumer.accept(function.apply(supplier.get()));
+            }
+
+            @Override
+            public void acceptOptional(Function<S, Optional<S>> function) {
+                function.apply(get()).ifPresent(s -> consumer.accept(s));
             }
 
             @Override
@@ -121,6 +139,11 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             public void accept(Function<S, S> function) {
                 throw new IllegalStateException("Not allowed for a read-only UseState instance");
             }
+
+            @Override
+            public void acceptOptional(Function<S, Optional<S>> function) {
+                throw new IllegalStateException("Not allowed for a read-only UseState instance");
+            }
         };
     }
 
@@ -149,6 +172,11 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
 
             @Override
             public void accept(Function<Void, Void> function) {
+                throw new IllegalStateException("Not allowed for the Void type");
+            }
+
+            @Override
+            public void acceptOptional(Function<Void, Optional<Void>> function) {
                 throw new IllegalStateException("Not allowed for the Void type");
             }
         };

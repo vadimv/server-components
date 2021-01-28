@@ -1,5 +1,6 @@
 package rsp.state;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -69,6 +70,13 @@ public final class MutableState<S> implements UseState<S> {
     public void accept(Function<S, S> function) {
         synchronized (this) {
             accept(function.apply(get()));
+        }
+    }
+
+    @Override
+    public void acceptOptional(Function<S, Optional<S>> function) {
+        synchronized (this) {
+            function.apply(get()).ifPresent(s -> accept(s));
         }
     }
 

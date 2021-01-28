@@ -108,6 +108,11 @@ public class LivePageState<S> implements UseState<S> {
         accept(function.apply(get()));
     }
 
+    @Override
+    public synchronized void acceptOptional(Function<S, Optional<S>> function) {
+        function.apply(state).ifPresent(s -> accept(s));
+    }
+
     public synchronized LivePagePropertiesSnapshot snapshot() {
         return snapshot;
     }
