@@ -23,7 +23,7 @@ public class Tetris {
 
     public static void main(String[] args) throws Exception {
         final Map<String, ScheduledFuture<?>> timers = new ConcurrentHashMap<>();
-        final Component<State> render = useState ->
+        final Component<State> component = useState ->
             html(on("keydown", false, c -> {
                         final String keyCode = c.eventObject().value("keyCode").map(Object::toString).orElse("noKeyCode");
                         final State s = useState.get();
@@ -47,24 +47,20 @@ public class Tetris {
                                when(useState.get().isRunning, () -> attr("disabled")),
                                text("Start"),
                                on("click", c -> {
-                                       State.initialState().start().newTetramino().ifPresent(ns -> useState.accept(ns));
-                                           timers.put(c.sessionId().sessionId, c.scheduleAtFixedRate(() -> {
-                                               final State s = useState.get();
-                                               s.tryMoveDown().ifPresentOrElse(ns -> {
-                                                  useState.accept(ns);
-                                               }, () -> {
-                                                   s.newTetramino().ifPresentOrElse(ns -> useState.accept(ns), () -> {
-                                                       timers.get(c.sessionId().sessionId).cancel(false);
-                                                       useState.accept(s.stop());
-                                                   });
-                                               });
-                                           }, 0, 1, TimeUnit.SECONDS));
+                                   State.initialState().start().newTetramino().ifPresent(ns -> useState.accept(ns));
+                                   timers.put(c.sessionId().sessionId,
+                                              c.scheduleAtFixedRate(() -> useState.acceptOptional(
+                                                      s -> s.tryMoveDown()
+                                                            .or(() -> s.newTetramino())
+                                                            .or(() -> {
+                                                               timers.get(c.sessionId().sessionId).cancel(false);
+                                                               return Optional.of(s.stop());
+                                   })), 0, 1, TimeUnit.SECONDS));
                                })))))));
-
         final var s = new JettyServer(DEFAULT_PORT,
                                      "",
                                       new App(State.initialState(),
-                                              render),
+                                              component),
                                       new StaticResources(new File("src/main/java/rsp/examples/tetris"),
                                                                    "/res/*"));
         s.start();
