@@ -1,8 +1,11 @@
-The Reactive Server Pages (RSP) project enables creating single page web applications and dynamic websites in Java.
+# Reactive Server Pages
+[![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
+
+The Reactive Server Pages (RSP) project enables creating single page applications and dynamic websites in Java.
 
 ## Usage
 
-This project requires Java 11 or more recent. 
+This project requires Java 11 or newer. 
 
 Maven dependency:
 ```xml
@@ -43,6 +46,7 @@ $ mvn clean package
         }
     }
 ```
+Run the class and connect to ``http://localhost:8080``.
 
 See the [TODOs](https://github.com/vadimv/reactive-server-pages/blob/master/src/main/java/rsp/examples/todos/JettyTodos.java) example,
 [Hacker News client](https://github.com/vadimv/reactive-server-pages/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
@@ -81,35 +85,52 @@ should be written in Java code as
 ```java
     import static rsp.dsl.Html.*;
     ...
-    html(
-          body(
-               h1("This is a heading"),
-               div(attr("class", "par"), p("This is a paragraph"))
-              ) 
-        )
+    s -> html(
+              body(
+                   h1("This is a heading"),
+                   div(attr("class", "par"), 
+                       p("This is a paragraph"),
+                       p(s.get().text)) // this is another paragraph with a text from the current state object's field
+                  ) 
+            );
 ```
 
-Access the current application state reading a ``UseState<S>.get()`` object.
-
-There are a few utility methods for rendering a Java ``Stream<S>``, ``CompletableFuture<S>``, for addition of custom logic with if branching
-and conditional rendering.
+There is the DSL utility ``of()`` function for rendering a ``Stream<S>`` of objects
 
 ```java
-    ul(of(us.get().items.stream().map(item -> li(item.name))))
+    import static rsp.dsl.Html.*;
+    ...
+    s ->
+        ul(of(s.get().items.stream().map(item -> li(item.name))))
 ```
 
-or using some external data source:
+or an overloaded variant which accepts a ``CompletableFuture<S>``:
 ```java
     final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
     ...
-    // let's consider that at this moment we know the current user's Id
-    div(of(service.apply(us.get().user.id).map(str -> text(str))))
+    s ->
+        // let's consider that at this moment we know the current user's Id
+        div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-This code fragment demonstrates an example of conditional rendering.
-Here, the ``span`` element will be visible or not depending on a boolean field of the state object:
+another one is for fragments with imperative logic, if operator branching with a ``Supplier<S>`` as the argument:
 ```java
-    when(us.get().showLabel, span("This is a label"))
+    import static rsp.dsl.Html.*;
+    ...
+    s ->
+        of(() -> {
+            if (s.get().showInfo) {
+                return p(s.get().info);
+            } else {
+                return p("none");
+            }       
+        })
+```
+
+Here, the ``span`` element will be visible or not depending on a boolean field of the state object using ``when()`` function:
+```java
+    s ->
+        when(s.get().showLabel, span("This is a label"))
 ```
 
 ### Events
@@ -117,14 +138,15 @@ Here, the ``span`` element will be visible or not depending on a boolean field o
 Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, handler)`` method.
 
 ```java
-    a("#", "Click me", on("click", ctx -> {
-                System.out.println("Clicked " + s.get().counter + " times");
-                s.accept(new State(s.get().counter + 1));
-            }))
+    s ->
+        a("#", "Click me", on("click", ctx -> {
+                    System.out.println("Clicked " + s.get().counter + " times");
+                    s.accept(new State(s.get().counter + 1));
+                }));
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
-An event handler's code usually sets a new state snapshot object by the ``UseState<S>.accept(S newState)`` method.
+An event handler's code usually sets a new state snapshot object by invoking the ``UseState<S>.accept(S newState)`` method.
 
 The event handler's ``EventContext`` parameter has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
@@ -141,17 +163,18 @@ One of these methods allows access to client-side document elements properties v
 
 In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
   
-Another ``EventContext`` method enables reading the event's object:
+The ``EventContext.eventObject()`` method enables reading the event's object as a JSON-like data structure:
 
 ```java
     form(on("submit", ctx -> {
             // Prints the submitted form's input field value
-            System.out.println(ctx.eventObject().apply("val").orElseThrow(() -> new IllegalStateException()));
+            System.out.println(ctx.eventObject());
          }),
         input(attr("type", "text"), attr("name", "val")),
         input(attr("type", "button"), attr("value", "Submit"))
     )
 ```
+RSP executes events code in synchronized on a live page instance context.
 
 ### Components
 
@@ -159,28 +182,29 @@ An RSP application is composed of components. A component is a Java class implem
 
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
-        return us -> input(attr("type", "button"),
+        return s -> input(attr("type", "button"),
                            attr("class", "button"),     
-                           on("click", ctx -> us.accept(new ButtonState())),
+                           on("click", ctx -> s.accept(new ButtonState())),
                            text(text));
         
     }
     public static class ButtonState {}
 ```
 
-A component's ``render()`` method invokes ``render()`` methods of its descendant components
-with an instance of the ``UseState<S>`` class as an argument. 
+A component's ``render()`` method normally invokes ``render()`` methods of its descendant components
+with an instance of a specific child component's``UseState<S>`` wrapper classes as an argument. 
+Use the static utility methods in ``UseState<S>`` to create these objects.  
 
 ```java
     import static rsp.state.UseState.readWrite;
     ...
     public static Component<ConfirmPanelState> confirmPanelComponent(String text) {
-        return us -> div(attr("class", "panel"),
+        return s -> div(attr("class", "panel"),
                          span(text),
                          buttonComponent("Ok").render(readWrite(() -> new ButtonState(), 
-                                                                buttonState -> us.accept(new ConfimPanelState(true)))),
+                                                                buttonState -> s.accept(new ConfimPanelState(true)))),
                          buttonComponent("Cancel").render(readWrite(() -> new ButtonState(), 
-                                                                    buttonState -> us.accept(new ConfimPanelState(false))));
+                                                                    buttonState -> s.accept(new ConfimPanelState(false))));
         
     }
     public static class ConfirmPanelState {
@@ -212,7 +236,7 @@ create a function like that:
     }
 ```
 
-Provide this function to the application's class ``App`` constructor.
+Provide a request routing function to the application's class ``App`` constructor.
 The default request-to-state routing implementation just provides an initial state for any incoming HTTP request.
 
 In a kind of opposite way, the current application's state can be mapped to the browser's navigation bar path using another function,
@@ -229,7 +253,8 @@ The default state-to-path routing sets an empty path for any state.
 
 The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
 methods allow submitting of a delayed or periodic action that can be cancelled. 
-These actions will be executed in a thread from the internal thread pool.
+These actions will be executed in a thread from the internal thread pool,
+see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
 
 ### Application configuration
 

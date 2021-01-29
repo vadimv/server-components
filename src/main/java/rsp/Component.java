@@ -10,8 +10,8 @@ import rsp.state.UseState;
 @FunctionalInterface
 public interface Component<S> {
     /**
-     * Constructs a UI tree, containing base UI elements and/or its descendant components.
-     * In this method the component's state is reflected to its presentation and events handlers which submit new state registered.
+     * Constructs a UI tree, which may contain HTML tags and/or descendant components.
+     * In this method the component's state is reflected to its UI presentation and events handlers registered.
      * @param us a read and write state accessor object
      * @return the result component's definition
      */
