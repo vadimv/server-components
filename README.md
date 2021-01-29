@@ -174,7 +174,7 @@ The ``EventContext.eventObject()`` method enables reading the event's object as 
         input(attr("type", "button"), attr("value", "Submit"))
     )
 ```
-RSP executes events code in synchronized on a live page instance context.
+RSP executes events code in a synchronized on a live page session instance context.
 
 ### Components
 
