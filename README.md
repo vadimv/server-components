@@ -48,9 +48,9 @@ $ mvn clean package
 ```
 Run the class and connect to ``http://localhost:8080``.
 
-See the [TODOs](https://github.com/vadimv/reactive-server-pages/blob/master/src/main/java/rsp/examples/todos/JettyTodos.java) example,
-[Hacker News client](https://github.com/vadimv/reactive-server-pages/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
-and [Tetris](https://github.com/vadimv/reactive-server-pages/blob/master/src/main/java/rsp/examples/tetris/Tetris.java) examples.
+See the [TODOs](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/todos/JettyTodos.java) example,
+[Hacker News client](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
+and [Tetris](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/tetris/Tetris.java) examples.
 
 ## How it works
 
