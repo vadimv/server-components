@@ -75,6 +75,7 @@ For example, a fragment:
       <h1>This is a heading</h1>
       <div class="par">
           <p>This is a paragraph</p>
+          <p>Some dynamic text</p>
       </div>
     </body>
 </html> 
@@ -113,7 +114,7 @@ or an overloaded variant which accepts a ``CompletableFuture<S>``:
         div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-another one is for fragments with imperative logic, if operator branching with a ``Supplier<S>`` as the argument:
+another one is for code fragments with imperative logic, if operator branching uses a ``Supplier<S>`` as the argument:
 ```java
     import static rsp.dsl.Html.*;
     ...
@@ -146,7 +147,7 @@ Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, ha
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
-An event handler's code usually sets a new state snapshot object by invoking the ``UseState<S>.accept(S newState)`` method.
+An event handler's code usually sets a new state snapshot object by invoking one of overloaded ``UseState<S>.accept()`` methods.
 
 The event handler's ``EventContext`` parameter has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
@@ -193,7 +194,8 @@ An RSP application is composed of components. A component is a Java class implem
 
 A component's ``render()`` method normally invokes ``render()`` methods of its descendant components
 with an instance of a specific child component's``UseState<S>`` wrapper classes as an argument. 
-Use the static utility methods in ``UseState<S>`` to create these objects.  
+Use one of static utility methods in the ``UseState`` interface like ``readWrite()``,
+``readOnly()`` or ``readWriteInCompletableFuture()`` to create these objects.  
 
 ```java
     import static rsp.state.UseState.readWrite;
