@@ -52,6 +52,8 @@ See the [TODOs](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/exam
 [Hacker News client](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
 and [Tetris](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/tetris/Tetris.java) examples.
 
+![](src/main/java/rsp/examples/tetris/tetris_sample.gif)
+
 ## How it works
 
 On an HTTP request, a self-hosted Java webserver process renders and sends an initial HTML page markup with a 10Kb JavaScript client-side program. 
