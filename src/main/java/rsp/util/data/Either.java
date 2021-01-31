@@ -12,6 +12,8 @@ import java.util.function.Function;
  */
 public abstract class Either<L, R> {
 
+    private Either() {}
+
     public static <L, R> Either<L, R> left(L value) {
         return new Left<>(Objects.requireNonNull(value));
     }
@@ -47,6 +49,26 @@ public abstract class Either<L, R> {
         public void on(Consumer<L> left, Consumer<R> right) {
             left.accept(value);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final Left<?, ?> left = (Left<?, ?>) o;
+            return Objects.equals(value, left.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
+
+        @Override
+        public String toString() {
+            return "Left{" +
+                    "value=" + value +
+                    '}';
+        }
     }
 
     private static class Right<L, R> extends Either<L, R> {
@@ -69,6 +91,26 @@ public abstract class Either<L, R> {
         @Override
         public void on(Consumer<L> left, Consumer<R> right) {
             right.accept(value);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            final Right<?, ?> right = (Right<?, ?>) o;
+            return Objects.equals(value, right.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
+
+        @Override
+        public String toString() {
+            return "Right{" +
+                    "value=" + value +
+                    '}';
         }
     }
 }
