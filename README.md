@@ -57,7 +57,7 @@ and [Tetris](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/example
 ## How it works
 
 On an HTTP request, a self-hosted Java webserver process renders and sends an initial HTML page markup with a 10Kb JavaScript client-side program. 
-Later the browser loads the page, and the client program establishes a web socket connection with the server.
+Later the browser loads the page, and the client program establishes a WebSocket connection with the server.
  
 As a result, the server creates a live page session and starts to listen to the future browser events, like mouse clicks.  
 The application logic handles these events and updates the application's internal state. On a state change,
@@ -68,7 +68,7 @@ Finally, The browser's JavaScript program adjusts the actual HTML document to th
 
 ### HTML markup Java DSL
 
-Use the Java DSL for defining an HTML page markup.
+Use the RSP Java DSL for defining an HTML page markup.
 For example, a fragment:
 
 ```html
@@ -116,7 +116,7 @@ or an overloaded variant which accepts a ``CompletableFuture<S>``:
         div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-another one is for code fragments with imperative logic, if operator branching uses a ``Supplier<S>`` as the argument:
+another one is for code fragments with imperative logic, if operator branching, uses a ``Supplier<S>`` as the argument:
 ```java
     import static rsp.dsl.Html.*;
     ...
@@ -166,7 +166,7 @@ One of these methods allows access to client-side document elements properties v
 
 In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
   
-The ``EventContext.eventObject()`` method enables reading the event's object as a JSON-like data structure:
+The ``EventContext.eventObject()`` method reads the event's object as a JSON-like data structure:
 
 ```java
     form(on("submit", ctx -> {
@@ -194,10 +194,10 @@ An RSP application is composed of components. A component is a Java class implem
     public static class ButtonState {}
 ```
 
-A component's ``render()`` method normally invokes ``render()`` methods of its descendant components
+A component's ``render()`` method invokes ``render()`` methods of its descendant components
 with an instance of a specific child component's``UseState<S>`` wrapper classes as an argument. 
-Use one of static utility methods in the ``UseState`` interface like ``readWrite()``,
-``readOnly()`` or ``readWriteInCompletableFuture()`` to create these objects.  
+Use one of static utility functions in the ``UseState`` interface like ``readWrite()``,
+``readOnly()`` or ``readWriteInCompletableFuture()`` to create these objects. 
 
 ```java
     import static rsp.state.UseState.readWrite;
@@ -241,10 +241,10 @@ create a function like that:
 ```
 
 Provide a request routing function to the application's class ``App`` constructor.
-The default request-to-state routing implementation just provides an initial state for any incoming HTTP request.
+The default request-to-state routing implementation returns an initial state for any incoming HTTP request.
 
 In a kind of opposite way, the current application's state can be mapped to the browser's navigation bar path using another function,
-also provided as a parameter of the ``App`` constructor.
+which corresponds to another parameter of the ``App`` constructor.
  
 ```java
      public static Path state2path(State state) {
@@ -266,10 +266,10 @@ See the ``rsp.AppConfig`` class for details.
 
 ### Logging
 
-By default, internally the project uses a console logger. To change log level of the default console logger, 
-set ``rsp.log.level`` system property, for example ``-Drsp.log.level=trace``.
+By default, internally, the project uses a console logger.
+Set ``rsp.log.level`` system property, for example ``-Drsp.log.level=trace`` to change it log level.
 
-To use a Slf4j logger instead of the default console logger, provide the ``Slf4jLogReporting`` logger implementation to
+To use an Slf4j logger instead of the default console logger, provide the ``Slf4jLogReporting`` logger implementation to
 the ``AppConfig`` application configuration. 
 
 To enable client-side detailed diagnostic data exchange logging, enter in the browser's console:
