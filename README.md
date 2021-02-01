@@ -221,8 +221,7 @@ An application's top-level ``Component<S>`` is the root of its component tree.
 
 ### Routing
 
-To resolve an initial application state from a HTTP request during the first rendering
-create a function like that:
+To resolve an initial application state from an HTTP request during the first rendering, create a function like that:
 
 ```java
     public CompletableFuture<State> route(HttpRequest request) {
