@@ -267,7 +267,7 @@ See the ``rsp.AppConfig`` class for details.
 ### Logging
 
 By default, internally, the project uses a console logger.
-Set ``rsp.log.level`` system property, for example ``-Drsp.log.level=trace`` to change its log level.
+Set ``rsp.log.level`` system property to change its log level, for example ``-Drsp.log.level=trace``.
 
 To use an Slf4j logger instead of the default console logger, provide the ``Slf4jLogReporting`` logger implementation to
 the ``AppConfig`` application configuration. 
