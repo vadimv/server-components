@@ -68,7 +68,7 @@ Finally, The browser's JavaScript program adjusts the actual HTML document to th
 
 ### HTML markup Java DSL
 
-Use the RSP Java DSL for defining an HTML page markup.
+Use the RSP Java domain-specific language for defining an HTML page markup.
 For example, a fragment:
 
 ```html
@@ -98,7 +98,7 @@ should be written in Java code as
             );
 ```
 
-There is the DSL utility ``of()`` function for rendering a ``Stream<S>`` of objects
+Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects
 
 ```java
     import static rsp.dsl.Html.*;
@@ -116,7 +116,7 @@ or an overloaded variant which accepts a ``CompletableFuture<S>``:
         div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-another one is for code fragments with imperative logic, if operator branching, uses a ``Supplier<S>`` as the argument:
+another one is for code fragments with imperative logic, if operator branching, gets a ``Supplier<S>`` as its argument:
 ```java
     import static rsp.dsl.Html.*;
     ...
