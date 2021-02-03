@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
- * This class is an assembly point for everything needed to set off a UI application.
+ * An assembly point for everything needed to set off a UI application.
  * This class object itself to be provided to a hosting web container {@link rsp.jetty.JettyServer}.
  * @param <S> the type of the applications root component's state, should be an immutable class
  */
