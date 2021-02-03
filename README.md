@@ -195,7 +195,7 @@ An RSP application is composed of components. A component is a Java class implem
 ```
 
 A component's ``render()`` method invokes ``render()`` methods of its descendant components
-with an instance of a specific child component's``UseState<S>`` wrapper classes as an argument. 
+with an instance of a specific child component's``UseState<S>`` wrapper class as an argument. 
 Use one of static utility functions in the ``UseState`` interface like ``readWrite()``,
 ``readOnly()`` or ``readWriteInCompletableFuture()`` to create these objects. 
 
