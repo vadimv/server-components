@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 /**
  * An assembly point for everything needed to set off a UI application.
- * This class object itself to be provided to a hosting web container {@link rsp.jetty.JettyServer}.
+ * This class object itself to be provided to a hosting web container, for example {@link rsp.jetty.JettyServer}.
  * @param <S> the type of the applications root component's state, should be an immutable class
  */
 public final class App<S> {
