@@ -159,9 +159,9 @@ One of these methods allows access to client-side document elements properties v
     ...
     input(inputRef,
           attr("type", "text")),
-          a("#", "Click me", on("click", ctx -> {
-                    ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
-          }))
+    a("#", "Click me", on("click", ctx -> {
+            ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
+    }))
 ```
 
 In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
@@ -247,6 +247,7 @@ which corresponds to another parameter of the ``App`` constructor.
  
 ```java
      public static Path state2path(State state) {
+        //  /{name}/{id} or /{name}
         return state.details.map(details -> new Path(state.name, Long.toString(details.id))).or(new Path(state.name));
     }
 ```
