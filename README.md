@@ -49,7 +49,7 @@ $ mvn clean package
 Run the class and connect to ``http://localhost:8080``.
 
 See the [TODOs](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/todos/JettyTodos.java) example,
-[Hacker News client](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
+[Hacker News client](https://github.com/vadimv/rsp-hn)
 and [Tetris](https://github.com/vadimv/rsp-tetris) examples.
 
 ![](https://github.com/vadimv/rsp-tetris/blob/main/src/main/java/rsp/tetris/tetris_sample.gif)
