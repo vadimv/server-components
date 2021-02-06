@@ -2,7 +2,6 @@ package rsp.examples.tetris;
 
 import rsp.App;
 import rsp.Component;
-import rsp.examples.crud.entities.Principal;
 import rsp.jetty.JettyServer;
 import rsp.server.StaticResources;
 
@@ -14,7 +13,6 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static rsp.dsl.Html.*;
 
