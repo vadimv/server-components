@@ -52,7 +52,7 @@ See the [TODOs](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/exam
 [Hacker News client](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
 and [Tetris](https://github.com/vadimv/rsp-tetris) examples.
 
-![](src/main/java/rsp/examples/tetris/tetris_sample.gif)
+![](https://github.com/vadimv/rsp-tetris/blob/main/src/main/java/rsp/tetris/tetris_sample.gif)
 
 ## How it works
 
