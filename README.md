@@ -50,7 +50,7 @@ Run the class and connect to ``http://localhost:8080``.
 
 See the [TODOs](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/todos/JettyTodos.java) example,
 [Hacker News client](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/hnapi/JettyHn.java)
-and [Tetris](https://github.com/vadimv/rsp/blob/master/src/main/java/rsp/examples/tetris/Tetris.java) examples.
+and [Tetris](https://github.com/vadimv/rsp-tetris) examples.
 
 ![](src/main/java/rsp/examples/tetris/tetris_sample.gif)
 
