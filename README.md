@@ -46,7 +46,7 @@ $ mvn clean package
         }
     }
 ```
-Run the class and connect to ``http://localhost:8080``.
+Run the class and connect to http://localhost:8080.
 
 See the [TODOs](https://github.com/vadimv/rsp-todo-list) example,
 [Hacker News client](https://github.com/vadimv/rsp-hn)
