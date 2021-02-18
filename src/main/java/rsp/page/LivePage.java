@@ -10,13 +10,8 @@ import rsp.util.data.Either;
 import rsp.util.logging.Log;
 import rsp.util.json.JsonDataType;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * A server-side mirror object of an open browser's page.
@@ -34,6 +29,7 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     private int descriptorsCounter;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
+    private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
 
     public LivePage(QualifiedSessionId qsid,
                     LivePageState<S> pageState,
@@ -57,6 +53,9 @@ public final class LivePage<S> implements InMessages, Schedule {
                     event.eventHandler.accept(eventContext);
                 }
             });
+            for (var timer : schedules.entrySet()) {
+                timer.getValue().cancel(true);
+            }
         }
     }
 
@@ -120,21 +119,34 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
-        return scheduledExecutorService.scheduleAtFixedRate(() -> {
+    public synchronized ScheduledFuture<?> scheduleAtFixedRate(Runnable command,
+                                                               Object key,
+                                                               long initialDelay, long period, TimeUnit unit) {
+        final ScheduledFuture<?> timer = scheduledExecutorService.scheduleAtFixedRate(() -> {
             synchronized (pageState) {
                 command.run();
             }
         }, initialDelay, period, unit);
+        schedules.put(key, timer);
+        return timer;
     }
 
     @Override
-    public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-        return scheduledExecutorService.schedule(() -> {
+    public synchronized ScheduledFuture<?> schedule(Runnable command, Object key, long delay, TimeUnit unit) {
+        final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
             synchronized (pageState) {
                 command.run();
             }
         }, delay, unit);
+        schedules.put(key, timer);
+        return timer;
+    }
+
+    @Override
+    public synchronized void cancel(Object key) {
+        final var schedule = schedules.get(key);
+        schedule.cancel(true);
+        schedules.remove(key);
     }
 
     private EventContext createEventContext(JsonDataType.Object eventObject) {

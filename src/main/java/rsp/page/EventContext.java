@@ -57,10 +57,22 @@ public final class EventContext {
     }
 
     public ScheduledFuture<?> schedule(Runnable command, int delay, TimeUnit timeUnit) {
-        return executorService.schedule(command, delay, timeUnit);
+        return executorService.schedule(command, new Object(), delay, timeUnit);
+    }
+
+    public ScheduledFuture<?> schedule(Runnable command, String name, int delay, TimeUnit timeUnit) {
+        return executorService.schedule(command, name, delay, timeUnit);
     }
 
     public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
-        return executorService.scheduleAtFixedRate(command, delay, period, timeUnit);
+        return executorService.scheduleAtFixedRate(command, new Object(), delay, period, timeUnit);
+    }
+
+    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, String name, int delay, int period, TimeUnit timeUnit) {
+        return executorService.scheduleAtFixedRate(command, name, delay, period, timeUnit);
+    }
+
+    public void cancelSchedule(String name) {
+        executorService.cancel(name);
     }
 }
