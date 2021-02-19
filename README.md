@@ -259,7 +259,7 @@ The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()``
 methods allow submitting of a delayed or periodic action that can be cancelled. 
 An optional schedule name parameter may be provided when creating a new schedule. 
 Later this name could be used for the schedule cancellation.
-These actions will be executed in a thread from the internal thread pool,
+Scheduled tasks will be executed in threads from the internal thread pool,
 see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
 
 ### Application configuration
