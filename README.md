@@ -262,6 +262,15 @@ Later this name could be used for the schedule cancellation.
 Scheduled tasks will be executed in threads from the internal thread pool,
 see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
 
+```java
+    button(attr("type", "button"),
+           text("Start"),
+           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), "timer0", 0, 1, TimeUnit.SECONDS))),
+    button(attr("type", "button"),
+               text("Stop"),
+               on("click", c -> c.cancelSchedule("timer0")))
+```
+
 ### Application configuration
 
 See the ``rsp.AppConfig`` class for details.
@@ -276,9 +285,6 @@ the ``AppConfig`` application configuration.
 
 To enable client-side detailed diagnostic data exchange logging, enter in the browser's console:
 
-```javascript
-  RSP.setProtocolDebugEnabled(true)
-```
 
 
 
