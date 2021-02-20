@@ -145,8 +145,10 @@ public final class LivePage<S> implements InMessages, Schedule {
     @Override
     public synchronized void cancel(Object key) {
         final var schedule = schedules.get(key);
-        schedule.cancel(true);
-        schedules.remove(key);
+        if (schedule != null) {
+            schedule.cancel(true);
+            schedules.remove(key);
+        }
     }
 
     private EventContext createEventContext(JsonDataType.Object eventObject) {
