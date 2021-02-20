@@ -17,7 +17,7 @@ public final class AppConfig {
     /**
      * The default log level
      */
-    public final static Log.Level DEFAULT_LOG_LEVEL = Log.Level.TRACE;
+    public final static Log.Level DEFAULT_LOG_LEVEL = Log.Level.INFO;
 
     /**
      * A console logger used by default
