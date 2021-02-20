@@ -68,7 +68,7 @@ Finally, The browser's JavaScript program adjusts the actual HTML document to th
 
 ### HTML markup Java DSL
 
-Use the RSP Java domain-specific language for defining an HTML page markup.
+Use the RSP Java internal domain-specific language for declarative definition of an HTML page markup.
 For example, a fragment:
 
 ```html
