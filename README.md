@@ -18,7 +18,7 @@ The Reactive Server Pages approach pursues simplicity for a Java developer by ab
 The development process feels more like it may be for a desktop application UI in reactive style with HTML and CSS or
 creating a React application with direct access to its backend data. 
 
-The implicit pluses are:
+The implicit bonuses are:
 - fast initial page load no matter of the application's size;
 - your code always stays on your server;
 - debugging the UI code is just debugging plain Java;
