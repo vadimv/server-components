@@ -29,7 +29,7 @@ The obstacles to deal with:
 - latency between a client and the server should be low enough to ensure a good user experience;
 - more memory and CPU resources may be required on the server;
 - as for a stateful app, for scalability some kind of sticky session management required;
-- a question of how to integrate an RSP with existing JavaScript and CSS codebase needs to be addressed. 
+- a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed. 
 
 ## Usage
 
