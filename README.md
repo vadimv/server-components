@@ -15,7 +15,7 @@ This adds even more complexity, but even without it, it is already complicated. 
 any change made on the client-side needs to be reflected on the API and the server-side.
 
 The Reactive Server Pages approach pursues simplicity for a Java developer by abstracting the browser-side whenever possible.
-The development process feels more like it may be for a desktop application UI with reactive style with HTML and CSS or
+The development process feels more like it may be for a desktop application UI in reactive style with HTML and CSS or
 creating a React application with direct access to its backend data. 
 
 The implicit pluses are:
