@@ -24,7 +24,7 @@ The implicit pluses are:
 - SEO-friendly out of the box.
     
 The obstacles to deal with:
-- may not be a good fit for application requiring very low response time, with heavy animations, etc;
+- may not be a good fit for use cases requiring very low response time, heavy animations, etc;
 - latency between a client and the server should be low enough to ensure a good user experience;
 - more server memory and CPU resources may be required on the server;
 - as for a stateful app, for scalability some kind of sticky session management required;
