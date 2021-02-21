@@ -4,7 +4,7 @@
 The Reactive Server Pages (RSP) project enables creating single page applications and dynamic websites in Java.
 
 RSP UI lives on the server-side.
-The browser sends events to the server and updates the presentation to the incoming DOM change commands.
+The browser only sends events to the server and updates the presentation to the incoming DOM change commands.
 
 ## Motivation
 
