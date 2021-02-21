@@ -26,7 +26,7 @@ The implicit pluses are:
 The obstacles to deal with:
 - may not be a good fit for use cases requiring very low response time, heavy animations, etc;
 - latency between a client and the server should be low enough to ensure a good user experience;
-- more server memory and CPU resources may be required on the server;
+- more memory and CPU resources may be required on the server;
 - as for a stateful app, for scalability some kind of sticky session management required;
 - a question of how to integrate an RSP with existing JavaScript and CSS codebase needs to be addressed. 
 
