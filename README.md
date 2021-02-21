@@ -14,7 +14,7 @@ Often, these two sides even use different programming languages and development 
 This adds even more complexity, but even without it, it is already complicated. Care should be taken separately about the server-side, API, and the client-side,
 any change made on the client-side needs to be reflected on the API and the server-side.
 
-The Reactive Server Pages approach pursues simplicity for a Java developer by abstracting the browser-side whenever possible.
+The Reactive Server Pages approach pursues simplicity for a Java developer by abstracting the client-side whenever possible.
 The development process feels more like it may be for a desktop application UI in reactive style with HTML and CSS or
 creating a React application with direct access to its backend data. 
 
