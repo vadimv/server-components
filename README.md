@@ -21,6 +21,7 @@ creating a React application with direct access to its backend data.
 The implicit pluses are:
 - fast initial page load no matter of the application's size;
 - your code always stays on your server;
+- debugging the UI code is just debugging plain Java;
 - SEO-friendly out of the box.
     
 The obstacles to deal with:
