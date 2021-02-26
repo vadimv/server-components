@@ -144,7 +144,7 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public synchronized void cancel(Object key) {
-        final var schedule = schedules.get(key);
+        final ScheduledFuture<?> schedule = schedules.get(key);
         if (schedule != null) {
             schedule.cancel(true);
             schedules.remove(key);
