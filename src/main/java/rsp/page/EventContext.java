@@ -91,10 +91,13 @@ public final class EventContext {
      * @param command the task to execute
      * @param delay the time from now to delay execution
      * @param timeUnit the time unit of the delay parameter
-     * @return a ScheduledFuture representing pending completion of the delayed task
+     * @return a timer representing pending completion of the delayed task
      */
-    public ScheduledFuture<?> schedule(Runnable command, int delay, TimeUnit timeUnit) {
-        return executorService.schedule(command, new Object(), delay, timeUnit);
+    public Timer schedule(Runnable command, int delay, TimeUnit timeUnit) {
+        final Object key = new Object();
+        return new Timer(key,
+                         executorService.schedule(command, key, delay, timeUnit),
+                         () -> executorService.cancel(key));
     }
 
     /**
@@ -103,10 +106,12 @@ public final class EventContext {
      * @param name the timer's Id
      * @param delay the time from now to delay execution
      * @param timeUnit the time unit of the delay parameter
-     * @return a ScheduledFuture representing pending completion of the delayed task
+     * @return a timer representing pending completion of the delayed task
      */
-    public ScheduledFuture<?> schedule(Runnable command, String name, int delay, TimeUnit timeUnit) {
-        return executorService.schedule(command, name, delay, timeUnit);
+    public Timer schedule(Runnable command, String name, int delay, TimeUnit timeUnit) {
+        return new Timer(name,
+                         executorService.schedule(command, new Object(), delay, timeUnit),
+                         () -> executorService.cancel(name));
     }
 
     /**
@@ -116,11 +121,15 @@ public final class EventContext {
      * @param delay the time from now to delay execution
      * @param period the period between successive executions
      * @param timeUnit the time unit of the delay parameter
-     * @return a ScheduledFuture representing pending completion of
+     * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
-        return executorService.scheduleAtFixedRate(command, new Object(), delay, period, timeUnit);
+    public Timer scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
+        final Object key = new Object();
+        return new Timer(key,
+                         executorService.scheduleAtFixedRate(command, key, delay, period, timeUnit),
+                                                             () -> executorService.cancel(key));
+
     }
 
     /**
@@ -131,11 +140,13 @@ public final class EventContext {
      * @param delay the time from now to delay execution
      * @param period the period between successive executions
      * @param timeUnit the time unit of the delay parameter
-     * @return a ScheduledFuture representing pending completion of
+     * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, String name, int delay, int period, TimeUnit timeUnit) {
-        return executorService.scheduleAtFixedRate(command, name, delay, period, timeUnit);
+    public Timer scheduleAtFixedRate(Runnable command, String name, int delay, int period, TimeUnit timeUnit) {
+        return new Timer(name,
+                         executorService.scheduleAtFixedRate(command, name, delay, period, timeUnit),
+                         () -> executorService.cancel(name));
     }
 
     /**
