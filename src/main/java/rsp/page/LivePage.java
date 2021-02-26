@@ -119,27 +119,27 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public synchronized ScheduledFuture<?> scheduleAtFixedRate(Runnable command,
-                                                               Object key,
-                                                               long initialDelay, long period, TimeUnit unit) {
+    public synchronized Timer scheduleAtFixedRate(Runnable command,
+                                                   Object key,
+                                                   long initialDelay, long period, TimeUnit unit) {
         final ScheduledFuture<?> timer = scheduledExecutorService.scheduleAtFixedRate(() -> {
             synchronized (pageState) {
                 command.run();
             }
         }, initialDelay, period, unit);
         schedules.put(key, timer);
-        return timer;
+        return new Timer(key, () -> cancel(key));
     }
 
     @Override
-    public synchronized ScheduledFuture<?> schedule(Runnable command, Object key, long delay, TimeUnit unit) {
+    public synchronized Timer schedule(Runnable command, Object key, long delay, TimeUnit unit) {
         final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
             synchronized (pageState) {
                 command.run();
             }
         }, delay, unit);
         schedules.put(key, timer);
-        return timer;
+        return new Timer(key, () -> cancel(key));
     }
 
     @Override

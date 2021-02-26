@@ -5,13 +5,13 @@ import java.util.concurrent.TimeUnit;
 
 public interface Schedule {
 
-    ScheduledFuture<?> scheduleAtFixedRate(Runnable command,
+    Timer scheduleAtFixedRate(Runnable command,
                                            Object key,
                                            long initialDelay,
                                            long period,
                                            TimeUnit unit);
 
-    ScheduledFuture<?> schedule(Runnable command,
+    Timer schedule(Runnable command,
                                 Object key,
                                 long delay, TimeUnit unit);
 

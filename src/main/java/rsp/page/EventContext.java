@@ -94,10 +94,7 @@ public final class EventContext {
      * @return a timer representing pending completion of the delayed task
      */
     public Timer schedule(Runnable command, int delay, TimeUnit timeUnit) {
-        final Object key = new Object();
-        return new Timer(key,
-                         executorService.schedule(command, key, delay, timeUnit),
-                         () -> executorService.cancel(key));
+        return executorService.schedule(command, new Object(), delay, timeUnit);
     }
 
     /**
@@ -109,9 +106,7 @@ public final class EventContext {
      * @return a timer representing pending completion of the delayed task
      */
     public Timer schedule(Runnable command, String name, int delay, TimeUnit timeUnit) {
-        return new Timer(name,
-                         executorService.schedule(command, new Object(), delay, timeUnit),
-                         () -> executorService.cancel(name));
+        return executorService.schedule(command, new Object(), delay, timeUnit);
     }
 
     /**
@@ -125,11 +120,7 @@ public final class EventContext {
      *         the series of repeated tasks
      */
     public Timer scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
-        final Object key = new Object();
-        return new Timer(key,
-                         executorService.scheduleAtFixedRate(command, key, delay, period, timeUnit),
-                                                             () -> executorService.cancel(key));
-
+        return executorService.scheduleAtFixedRate(command, new Object(), delay, period, timeUnit);
     }
 
     /**
@@ -144,9 +135,7 @@ public final class EventContext {
      *         the series of repeated tasks
      */
     public Timer scheduleAtFixedRate(Runnable command, String name, int delay, int period, TimeUnit timeUnit) {
-        return new Timer(name,
-                         executorService.scheduleAtFixedRate(command, name, delay, period, timeUnit),
-                         () -> executorService.cancel(name));
+        return executorService.scheduleAtFixedRate(command, name, delay, period, timeUnit);
     }
 
     /**
