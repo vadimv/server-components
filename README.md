@@ -1,10 +1,10 @@
-# Reactive Server Pages
+# RSP / Reactive Server Pages
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 
-The Reactive Server Pages (RSP) project enables creating single page applications and dynamic websites in Java.
+The Reactive Server Pages project enables creating single page applications and dynamic websites in Java.
 
-RSP UI lives on the server-side.
-The browser only sends events to the server and updates the presentation to the incoming DOM change commands.
+An RSP UI lives on the server-side.
+The browser only feeds events to the server and updates the presentation to the incoming DOM modification commands.
 
 ## Motivation
 
