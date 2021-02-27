@@ -292,12 +292,14 @@ Scheduled tasks will be executed in threads from the internal thread pool,
 see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
 
 ```java
+    final static TimerRef TIMER_0 = createTimerRef();
+    ...
     button(attr("type", "button"),
            text("Start"),
-           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), "timer0", 0, 1, TimeUnit.SECONDS))),
+           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
     button(attr("type", "button"),
                text("Stop"),
-               on("click", c -> c.cancelSchedule("timer0")))
+               on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
 ### Application configuration
