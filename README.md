@@ -1,30 +1,30 @@
-# RSP ⇄ Reactive Server Pages
+# RSP /// Reactive Server Pages
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 
 The Reactive Server Pages project enables creating single page applications and dynamic websites in Java.
 
-An RSP UI lives on the server-side.
-The browser only feeds events to the server and updates the presentation to the incoming DOM modification commands.
-
 ## Motivation
 
 A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API. 
-This makes a UI application effectively a two-part distributed system and therefore introduces a lot of accidental complexity.
 Often, these two sides even use different programming languages, dependency management and build tools.
-This adds even more complexity, but even without it, it is already perplexing. 
-Any change made on the client-side potentially needs to be reflected on the API and the server-side.
+This introduces a lot of accidental complexity.
+Any change made on the client-side potentially needs to be reflected on the API and the server-side. 
+Isn't it like to develop and support effectively two applications instead of one?
 
-The Reactive Server Pages approach pursues simplicity for a Java developer by abstracting the client-side as much as possible.
-The development process feels more like it may be for a desktop application UI in reactive style with HTML and CSS.
+An RSP UI lives on the server-side abstracts the client-side. 
+The browser acts more like a terminal for Unix X Window System,
+it only feeds events to the server and updates the presentation to the incoming commands.
+
+An RSP application developer's experience is more like it may be for a desktop application UI in reactive style with HTML and CSS.
 Or like creating a React application with direct access to its backend data. 
 
-The implicit bonuses are:
+Some other bonuses of this approach are:
+- coding and debugging the UI is just coding in plain Java and debugging Java;
 - fast initial page load no matter of the application's size;
 - your code always stays on your server;
-- debugging the UI code is just debugging plain Java;
 - SEO-friendly out of the box.
     
-The obstacles to deal with:
+Known concerns to deal with:
 - may be not a good fit for use cases requiring very low response time, heavy animations, etc;
 - latency between a client and the server should be low enough to ensure a good user experience;
 - more memory and CPU resources may be required on the server;
