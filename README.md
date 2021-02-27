@@ -11,7 +11,7 @@ This introduces a lot of accidental complexity.
 Any change made on the client-side potentially needs to be reflected on the API and the server-side. 
 Isn't it like to develop and support effectively two applications instead of one?
 
-An RSP UI lives on the server-side abstracts the client-side. 
+An RSP UI lives on the server-side and abstracts the client-side. 
 The browser acts more like a terminal for Unix X Window System,
 it only feeds events to the server and updates the presentation to the incoming commands.
 
