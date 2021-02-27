@@ -81,8 +81,6 @@ See the [TODOs list](https://github.com/vadimv/rsp-todo-list),
 [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
 and [Tetris](https://github.com/vadimv/rsp-tetris) examples.
 
-![](https://github.com/vadimv/rsp-tetris/blob/main/src/main/java/rsp/tetris/tetris_sample.gif)
-
 ## How it works
 
 On an HTTP request, a self-hosted Java webserver process renders and sends an initial HTML page markup with a 10Kb JavaScript client-side program. 
