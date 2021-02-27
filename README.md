@@ -1,18 +1,18 @@
 # RSP /// Reactive Server Pages
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 
-The Reactive Server Pages project enables creating single page applications and dynamic websites in Java.
+The Reactive Server Pages project enables a Java developer to create responsive single-page applications, UI components, and dynamic websites.
 
 ## Motivation
 
 A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API. 
-Often, these two sides even use different programming languages, dependency management and build tools.
+Often, these two sides even use different programming languages, dependency management, and build tools.
 This all introduces a lot of accidental complexity.
 Any change made on the client-side potentially needs to be reflected on the API and the server-side. 
-Isn't it like to develop and support effectively two applications instead of one?
+Isn't it implies developing and support effectively two applications instead of one?
 
 An RSP UI lives on the server-side and abstracts the client-side. 
-The browser acts more like a terminal for Unix X Window System,
+The browser acts more like an equivalent of a terminal for Unix X Window System,
 it only feeds events to the server and updates the presentation to the incoming commands.
 
 An RSP application developer's experience may feel similar to creating a desktop application UI in reactive style with HTML and CSS.
