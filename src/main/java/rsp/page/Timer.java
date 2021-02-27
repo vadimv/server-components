@@ -1,7 +1,5 @@
 package rsp.page;
 
-import java.util.concurrent.ScheduledFuture;
-
 public class Timer {
 
     public final Object key;

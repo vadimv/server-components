@@ -1,10 +1,11 @@
 package rsp.page;
 
-import rsp.dsl.Ref;
+import rsp.ref.ElementRef;
+import rsp.ref.Ref;
+import rsp.ref.TimerRef;
 import rsp.util.json.JsonDataType;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -49,7 +50,7 @@ public final class EventContext {
      * @param ref a reference to an element
      * @return the proxy object to read the element's properties
      */
-    public PropertiesHandle props(Ref ref) {
+    public PropertiesHandle props(ElementRef ref) {
         return propertiesHandleLookup.apply(ref);
     }
 
@@ -100,13 +101,13 @@ public final class EventContext {
     /**
      * Submits a one-shot task that becomes enabled after the given delay.
      * @param command the task to execute
-     * @param name the timer's Id
+     * @param ref the timer's Id
      * @param delay the time from now to delay execution
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of the delayed task
      */
-    public Timer schedule(Runnable command, String name, int delay, TimeUnit timeUnit) {
-        return executorService.schedule(command, new Object(), delay, timeUnit);
+    public Timer schedule(Runnable command, TimerRef ref, int delay, TimeUnit timeUnit) {
+        return executorService.schedule(command, ref, delay, timeUnit);
     }
 
     /**
@@ -127,23 +128,23 @@ public final class EventContext {
      * Submits a periodic action that becomes enabled first after the
      * given initial delay, and subsequently with the given period.
      * @param command the task to execute
-     * @param name the time from now to delay execution
+     * @param ref the timer's Id
      * @param delay the time from now to delay execution
      * @param period the period between successive executions
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public Timer scheduleAtFixedRate(Runnable command, String name, int delay, int period, TimeUnit timeUnit) {
-        return executorService.scheduleAtFixedRate(command, name, delay, period, timeUnit);
+    public Timer scheduleAtFixedRate(Runnable command, TimerRef ref, int delay, int period, TimeUnit timeUnit) {
+        return executorService.scheduleAtFixedRate(command, ref, delay, period, timeUnit);
     }
 
     /**
      * Cancels the schedule previously submitted.
      * If no schedule exists with this name, the cancel command is ignored.
-     * @param name the name of the schedule to cancel
+     * @param ref the Id of the schedule to cancel
      */
-    public void cancelSchedule(String name) {
-        executorService.cancel(name);
+    public void cancelSchedule(TimerRef ref) {
+        executorService.cancel(ref);
     }
 }

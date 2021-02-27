@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
-import rsp.dsl.Ref;
+import rsp.ref.Ref;
 import rsp.server.Path;
 
 import java.util.Map;

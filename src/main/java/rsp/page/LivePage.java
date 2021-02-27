@@ -2,8 +2,8 @@ package rsp.page;
 
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
-import rsp.dsl.Ref;
 import rsp.dsl.WindowRef;
+import rsp.ref.Ref;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
 import rsp.util.data.Either;

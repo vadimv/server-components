@@ -1,5 +1,6 @@
 package rsp.dsl;
 
+import rsp.ref.ElementRef;
 import rsp.page.RenderContext;
 
 import java.util.Objects;
@@ -7,12 +8,12 @@ import java.util.Objects;
 /**
  * A reference to an element.
  */
-public final class RefDefinition extends DocumentPartDefinition implements Ref {
+public final class ElementRefDefinition extends DocumentPartDefinition implements ElementRef {
 
     /**
      * Creates a new instance of a reference.
      */
-    public RefDefinition() {
+    public ElementRefDefinition() {
         super(DocumentPartKind.OTHER);
     }
 
@@ -25,10 +26,10 @@ public final class RefDefinition extends DocumentPartDefinition implements Ref {
         return new KeyRef<K>(this, key);
     }
 
-    public static class KeyRef<K> extends DocumentPartDefinition implements Ref {
-        private final RefDefinition parentRef;
+    public static class KeyRef<K> extends DocumentPartDefinition implements ElementRef {
+        private final ElementRefDefinition parentRef;
         private final K key;
-        public KeyRef(RefDefinition parentRef, K key) {
+        public KeyRef(ElementRefDefinition parentRef, K key) {
             super(DocumentPartKind.OTHER);
             this.parentRef = Objects.requireNonNull(parentRef);
             this.key = Objects.requireNonNull(key);

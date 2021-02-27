@@ -1,6 +1,6 @@
 package rsp.dom;
 
-import rsp.dsl.Ref;
+import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
 

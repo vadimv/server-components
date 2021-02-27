@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
-import rsp.dsl.Ref;
+import rsp.ref.Ref;
 
 import java.util.Optional;
 import java.util.function.BiFunction;

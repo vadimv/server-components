@@ -2,9 +2,12 @@ package rsp.dsl;
 
 import rsp.dom.Event;
 import rsp.page.EventContext;
+import rsp.ref.ElementRef;
+import rsp.ref.TimerRef;
 import rsp.util.ArrayUtils;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -510,11 +513,21 @@ public final class Html {
 
     /**
      * Creates reference to a HTML element which can be used as a key for obtaining its element's properties values.
-     * @see EventContext#props(Ref)
+     * @see EventContext#props(ElementRef)
      * @return a reference object
      */
-    public static RefDefinition createRef() {
-        return new RefDefinition();
+    public static ElementRef createRef() {
+        return new ElementRefDefinition();
+    }
+
+    /**
+     * Creates a reference to a schedule's timer.
+     * @see EventContext#schedule(Runnable, TimerRef, int, TimeUnit) 
+     * @see EventContext#scheduleAtFixedRate(Runnable, TimerRef, int, int, TimeUnit)
+     * @return a reference object
+     */
+    public static TimerRef createTimerRef() {
+        return new TimerRefDefinition();
     }
 
     private static boolean isPropertyByDefault(String name) {
