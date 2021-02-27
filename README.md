@@ -8,7 +8,7 @@ The browser only feeds events to the server and updates the presentation to the 
 
 ## Motivation
 
-A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of API using some protocol. 
+A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API. 
 This makes a UI application effectively a two-part distributed system and therefore introduces a lot of accidental complexity.
 Often, these two sides even use different programming languages and development stacks, dependency management, and build tools.
 This adds even more complexity, but even without it, it is already perplexing. 
