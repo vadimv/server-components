@@ -7,7 +7,7 @@ The Reactive Server Pages project enables creating single page applications and 
 
 A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API. 
 Often, these two sides even use different programming languages, dependency management and build tools.
-This introduces a lot of accidental complexity.
+This all introduces a lot of accidental complexity.
 Any change made on the client-side potentially needs to be reflected on the API and the server-side. 
 Isn't it like to develop and support effectively two applications instead of one?
 
