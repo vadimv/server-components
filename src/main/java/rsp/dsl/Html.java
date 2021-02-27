@@ -516,7 +516,7 @@ public final class Html {
      * @see EventContext#props(ElementRef)
      * @return a reference object
      */
-    public static ElementRef createRef() {
+    public static ElementRef createElementRef() {
         return new ElementRefDefinition();
     }
 

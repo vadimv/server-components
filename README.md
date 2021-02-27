@@ -184,7 +184,7 @@ The event handler's ``EventContext`` parameter has a number of useful methods.
 One of these methods allows access to client-side document elements properties values via elements references.
 
 ```java
-    final RefDefinition inputRef = createRef();
+    final ElementRef inputRef = createElementRef();
     ...
     input(inputRef,
           attr("type", "text")),
