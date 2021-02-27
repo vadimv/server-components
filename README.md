@@ -9,14 +9,14 @@ The browser only feeds events to the server and updates the presentation to the 
 ## Motivation
 
 A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of API using some protocol. 
-This makes a UI application effectively a two-part distributed system and therefore introduces a lot of inherited complexity.
+This makes a UI application effectively a two-part distributed system and therefore introduces a lot of accidental complexity.
 Often, these two sides even use different programming languages and development stacks, dependency management, and build tools.
-This adds even more complexity, but even without it, it is already complicated. 
-A change made on the client-side needs to be reflected on the API and the server-side.
+This adds even more complexity, but even without it, it is already perplexing. 
+Any change made on the client-side potentially needs to be reflected on the API and the server-side.
 
 The Reactive Server Pages approach pursues simplicity for a Java developer by abstracting the client-side whenever possible.
-The development process feels more like it may be for a desktop application UI in reactive style with HTML and CSS or
-creating a React application with direct access to its backend data. 
+The development process feels more like it may be for a desktop application UI in reactive style with HTML and CSS
+or creating a React application with direct access to its backend data. 
 
 The implicit bonuses are:
 - fast initial page load no matter of the application's size;
