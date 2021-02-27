@@ -15,7 +15,7 @@ An RSP UI lives on the server-side and abstracts the client-side.
 The browser acts more like a terminal for Unix X Window System,
 it only feeds events to the server and updates the presentation to the incoming commands.
 
-An RSP application developer's experience is more like it may be for a desktop application UI in reactive style with HTML and CSS.
+An RSP application developer's experience may feel similar to creating a desktop application UI in reactive style with HTML and CSS.
 Or like creating a React application with direct access to its backend data. 
 
 Some other bonuses of this approach are:
