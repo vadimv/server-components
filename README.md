@@ -83,15 +83,29 @@ and [Tetris](https://github.com/vadimv/rsp-tetris) examples.
 
 ## How it works
 
-On an HTTP request, a self-hosted Java webserver process renders and sends an initial HTML page markup with a 10Kb JavaScript client-side program. 
-Later the browser loads the page, and the client program establishes a WebSocket connection with the server.
- 
-As a result, the server creates a live page session and starts to listen to the future browser events, like mouse clicks.  
-The application logic handles these events and updates the application's internal state. On a state change,
-the server generates a new virtual DOM tree invoking the rendering code with this new state snapshot as an argument.
-The RSP library code calculates the difference between these new and current virtual DOM trees and uses it to generate the browser's commands. Next, the server sends these commands to the client via the web socket. 
-
-Finally, The browser's JavaScript program adjusts the actual HTML document to the new server-side virtual DOM.
+     ┌───────┐                   ┌──────┐
+     │Browser│                   │Server│
+     └───┬───┘                   └──┬───┘
+         │         HTTP GET         │    
+         │──────────────────────────>    
+         │                          │  Inital page render 
+         │    HTTP response 200     │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │    Open a WebSocket      │    
+         │──────────────────────────>    
+         │                          │  Create a new live page  
+         │   Register page events   │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │   An event on the page   │    
+         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
+         │                          │   Calculate virtual DOM diff 
+         │   Modify DOM commands    │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+     ┌───┴───┐                   ┌──┴───┐
+     │Browser│                   │Server│
+     └───────┘                   └──────┘
 
 ### HTML markup Java DSL
 
