@@ -21,7 +21,8 @@ public class TestServer {
 
     public static void run(boolean blockCurrentThread) throws Exception {
         final Component<State> render = state ->
-                html(body(subComponent.render(UseState.readWrite(() -> state.get().i, s -> state.accept(new State(s)))),
+                html(head(title("test-server-title")),
+                        body(subComponent.render(UseState.readWrite(() -> state.get().i, s -> state.accept(new State(s)))),
                            div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),
