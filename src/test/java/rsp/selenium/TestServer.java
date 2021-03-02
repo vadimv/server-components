@@ -1,4 +1,4 @@
-package rsp.examples;
+package rsp.selenium;
 
 import rsp.App;
 import rsp.Component;
@@ -11,19 +11,25 @@ import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
 
-public class JettyBasic {
+public class TestServer {
 
-    public static final int DEFAULT_PORT = 8080;
-    
+    public static final int PORT = 8085;
+
     public static void main(String[] args) throws Exception {
-        final int p = args.length > 0 ? Integer.parseInt(args[0]) : DEFAULT_PORT;
+        run(true);
+    }
 
+    public static void run(boolean blockCurrentThread) throws Exception {
         final Component<State> render = state ->
                 html(body(subComponent.render(UseState.readWrite(() -> state.get().i, s -> state.accept(new State(s)))),
-                           div(span(text("+1")),
+                           div(button(attr("type", "button"),
+                                      attr("id", "b0"),
+                                      text("+1"),
                                on("click",
-                                  d -> { state.accept(new State(state.get().i + 1));})),
-                           div(span(style("background-color", state.get().i % 2 ==0 ? "red" : "blue"), text(state.get().i)))
+                                  d -> { state.accept(new State(state.get().i + 1));}))),
+                           div(span(attr("id", "s0"),
+                                    style("background-color", state.get().i % 2 ==0 ? "red" : "blue"),
+                                    text(state.get().i)))
         ));
 
         final Function<HttpRequest, State> routes = request -> {
@@ -34,10 +40,12 @@ public class JettyBasic {
 
         final App<State> app = new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
                                          render);
-        final var s = new JettyServer(p,
+        final var s = new JettyServer(PORT,
                               "", app);
         s.start();
-        s.join();
+        if (blockCurrentThread) {
+            s.join();
+        }
     }
 
     private static boolean path(HttpRequest request, String s) {
@@ -53,6 +61,7 @@ public class JettyBasic {
     }
 
     public static final Component<Integer> subComponent = state ->
-            div(text("+10"),
+            div(attr("id", "d0"),
+                text("+10"),
                 on("click", d -> { state.accept(state.get() + 10);}));
 }
