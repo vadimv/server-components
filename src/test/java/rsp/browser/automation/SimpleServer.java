@@ -1,4 +1,4 @@
-package rsp.selenium;
+package rsp.browser.automation;
 
 import rsp.App;
 import rsp.Component;
@@ -11,7 +11,7 @@ import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
 
-public class TestServer {
+public class SimpleServer {
 
     public static final int PORT = 8085;
 
@@ -41,8 +41,7 @@ public class TestServer {
 
         final App<State> app = new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
                                          render);
-        final var s = new JettyServer(PORT,
-                              "", app);
+        final var s = new JettyServer(PORT, "", app);
         s.start();
         if (blockCurrentThread) {
             s.join();

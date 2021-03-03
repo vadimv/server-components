@@ -1,4 +1,4 @@
-package rsp.selenium;
+package rsp.browser.automation;
 
 import com.microsoft.playwright.*;
 import org.junit.Assert;
@@ -6,12 +6,16 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
-public class SimpleISmokeIT {
+@net.jcip.annotations.NotThreadSafe
+public class SmokeIT {
+
+    private static final int EXPECTED_RESPONSE_TIME_MS = 300;
 
     @Test
     public void should_pass_smoke_tests() throws Exception {
-        new TestServer().run(false);
+        new SimpleServer().run(false);
 
         final Playwright playwright = Playwright.create();
         final List<BrowserType> browserTypes = Arrays.asList(
@@ -24,8 +28,7 @@ public class SimpleISmokeIT {
             final Browser browser = browserType.launch();
             final BrowserContext context = browser.newContext();
             final Page page = context.newPage();
-            page.navigate("http://localhost:" + TestServer.PORT);
-            //page.screenshot(new Page.ScreenshotOptions().withPath(Paths.get("screenshot-" + browserType.name() + ".png")));
+            page.navigate("http://localhost:" + SimpleServer.PORT);
             validatePage(page);
         }
         playwright.close();
@@ -35,29 +38,42 @@ public class SimpleISmokeIT {
         Assert.assertEquals("test-server-title", page.title());
 
         assertCounterTextEquals(page,"-1");
-        assertCounterStyleAttributeEquals(page, "background-color:blue;");
+        assertCounterStyleAttributeEquals(page, "blue");
         waitForServer();
 
         page.click("button#b0");
         waitForServer();
         assertCounterTextEquals(page,"0");
-        assertCounterStyleAttributeEquals(page, "background-color: red;");
+        assertCounterStyleAttributeEquals(page, "red");
 
         page.click("div#d0");
         waitForServer();
         assertCounterTextEquals(page,"10");
-        assertCounterStyleAttributeEquals(page, "background-color: red;");
+        assertCounterStyleAttributeEquals(page, "red");
     }
 
     private static void assertCounterTextEquals(Page page, String expectedValue) {
         Assert.assertEquals(expectedValue, page.innerText("span#s0"));
     }
 
-    private static void assertCounterStyleAttributeEquals(Page page, String expectedValue) {
-        Assert.assertEquals(expectedValue, page.getAttribute("span#s0", "style"));
+    private static void assertCounterStyleAttributeEquals(Page page,  String expectedValue) {
+        final Optional<String> s = style(page.getAttribute("span#s0", "style"),
+                                      "background-color");
+        s.ifPresentOrElse(v -> Assert.assertEquals(expectedValue, v), () -> Assert.fail());
+    }
+
+    private static Optional<String> style(String stylesAttributeValue, String styleName) {
+        final String[] styles = stylesAttributeValue.split(";");
+        for (String style : styles) {
+            final String[] styleTokens = style.split(":");
+            if (styleName.equals(styleTokens[0].trim())) {
+                return Optional.of(styleTokens[1].trim());
+            }
+        }
+        return Optional.empty();
     }
 
     private static void waitForServer() throws InterruptedException {
-        Thread.sleep(300);
+        Thread.sleep(EXPECTED_RESPONSE_TIME_MS);
     }
 }
