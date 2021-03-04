@@ -329,6 +329,9 @@ the ``AppConfig`` application configuration.
 
 To enable client-side detailed diagnostic data exchange logging, enter in the browser's console:
 
+```javascript
+  RSP.setProtocolDebugEnabled(true)
+```
 
 
 
