@@ -1,4 +1,4 @@
 /**
- * Defines the state management classes.
+ * This package defines state management classes and interfaces.
  */
 package rsp.state;

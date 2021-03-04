@@ -1,4 +1,4 @@
 /**
- * Defines RSP base classes.
+ * Provides application-related and other essential APIs.
  */
 package rsp;

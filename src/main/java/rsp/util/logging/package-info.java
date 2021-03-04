@@ -1,4 +1,4 @@
 /**
- * Defines RSP logging support classes.
+ * Provides RSP logging support.
  */
 package rsp.util.logging;

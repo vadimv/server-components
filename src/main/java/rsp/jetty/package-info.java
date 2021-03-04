@@ -1,4 +1,4 @@
 /**
- * Defines the Jetty web server.
+ * Provides the Jetty web server.
  */
 package rsp.jetty;

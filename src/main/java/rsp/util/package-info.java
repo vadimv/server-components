@@ -1,4 +1,4 @@
 /**
- * Defines general utils.
+ * General utils.
  */
 package rsp.util;

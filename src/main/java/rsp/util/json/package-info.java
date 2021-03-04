@@ -1,4 +1,4 @@
 /**
- * Defines JSON related util classes.
+ * Provides JSON related utils.
  */
 package rsp.util.json;

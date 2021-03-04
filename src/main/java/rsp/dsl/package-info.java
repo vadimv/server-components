@@ -1,4 +1,4 @@
 /**
- * Defines the RSP markup definition's domain specific language.
+ * Provides the RSP markup definition's domain specific language.
  */
 package rsp.dsl;

@@ -1,4 +1,4 @@
 /**
- * Defines live page session classes.
+ * Provides live page session classes.
  */
 package rsp.page;
