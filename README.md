@@ -315,9 +315,12 @@ see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods o
                on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
-### Application configuration
+### Application and server's configuration
 
-See the ``rsp.AppConfig`` class for details.
+See the ``rsp.AppConfig`` class for an application configuration's details.
+
+A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters providing desired
+web context base path as well as an optional static resources' handler and TLS/SSL connection's configuration.
 
 ### Logging
 
