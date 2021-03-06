@@ -1,4 +1,4 @@
-package rsp.browser.automation;
+package rsp.browserautomation;
 
 import rsp.App;
 import rsp.Component;
@@ -15,11 +15,17 @@ public class SimpleServer {
 
     public static final int PORT = 8085;
 
+    public final JettyServer jetty;
+
+    public SimpleServer(JettyServer jetty) {
+        this.jetty = jetty;
+    }
+
     public static void main(String[] args) throws Exception {
         run(true);
     }
 
-    public static void run(boolean blockCurrentThread) throws Exception {
+    public static SimpleServer run(boolean blockCurrentThread) throws Exception {
         final Component<State> render = state ->
                 html(head(title("test-server-title")),
                         body(subComponent.render(UseState.readWrite(() -> state.get().i, s -> state.accept(new State(s)))),
@@ -41,11 +47,12 @@ public class SimpleServer {
 
         final App<State> app = new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
                                          render);
-        final var s = new JettyServer(PORT, "", app);
-        s.start();
+        final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
+        s.jetty.start();
         if (blockCurrentThread) {
-            s.join();
+            s.jetty.join();
         }
+        return s;
     }
 
     private static boolean path(HttpRequest request, String s) {
