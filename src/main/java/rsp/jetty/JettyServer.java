@@ -183,4 +183,12 @@ public final class JettyServer {
     public void join() throws InterruptedException {
         server.join();
     }
+
+    /**
+     * Stops the server.
+     * @throws Exception in case of an error
+     */
+    public void stop() throws Exception {
+        server.stop();
+    }
 }
