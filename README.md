@@ -1,7 +1,7 @@
 # RSP
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 
-The Reactive Server Pages project enables a Java developer to create responsive single-page applications, UI components, and dynamic websites
+The Reactive Server Pages project enables a Java developer to create real-time single-page applications, UI components, and dynamic websites
 with server-side rendering.
 
 ## Motivation
