@@ -36,8 +36,8 @@ public final class Tuple2<S, T> {
      * @param <T> the second element's type
      * @return a new instance
      */
-    public static <S, T> Tuple2 of(S _1, T _2) {
-        return new Tuple2(_1, _2);
+    public static <S, T> Tuple2<S, T> of(S _1, T _2) {
+        return new Tuple2<>(_1, _2);
     }
 
     @Override
