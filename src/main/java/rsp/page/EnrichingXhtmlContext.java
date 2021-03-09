@@ -31,14 +31,6 @@ public final class EnrichingXhtmlContext implements RenderContext {
         this.heartBeatInterval = heartBeatInterval;
     }
 
-    public static final BiFunction<String, RenderContext, RenderContext> createFun(int heartbeatIntervalMs) {
-        return (sessionId, ctx) -> new EnrichingXhtmlContext(ctx,
-                                                             sessionId,
-                                                             "/",
-                                                             DefaultConnectionLostWidget.HTML,
-                                                             heartbeatIntervalMs);
-    }
-
     @Override
     public void openNode(XmlNs xmlNs, String name) {
         if (!headWasOpened && name.equals("body") && xmlNs.equals(XmlNs.html)) {

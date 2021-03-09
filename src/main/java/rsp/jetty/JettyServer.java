@@ -10,12 +10,11 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import rsp.App;
+import rsp.AppConfig;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.javax.web.HttpRequestUtils;
-import rsp.page.EnrichingXhtmlContext;
-import rsp.page.PageRendering;
-import rsp.page.StateToRouteDispatch;
+import rsp.page.*;
 import rsp.server.Path;
 import rsp.server.SslConfiguration;
 import rsp.server.StaticResources;
@@ -27,6 +26,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.BiFunction;
 
 /**
  * An embedded server for an RSP application,
@@ -140,14 +140,16 @@ public final class JettyServer {
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     EnrichingXhtmlContext.createFun(app.config.heartbeatIntervalMs)),
+                                                                                     renderingContextFun(app.config.htmlHeadUpgradeMode,
+                                                                                                         app.config.heartbeatIntervalMs)),
                                                                app.config.log)),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
                                                                                      new StateToRouteDispatch(basePath, app.state2path),
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     EnrichingXhtmlContext.createFun(app.config.heartbeatIntervalMs),
+                                                                                     renderingContextFun(app.config.htmlHeadUpgradeMode,
+                                                                                                         app.config.heartbeatIntervalMs),
                                                                                      () -> scheduler,
                                                                                      app.config.log);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
@@ -190,5 +192,17 @@ public final class JettyServer {
      */
     public void stop() throws Exception {
         server.stop();
+    }
+
+    private static final BiFunction<String, RenderContext, RenderContext> renderingContextFun(AppConfig.HtmlHeadUpgradeMode htmlHeadUpgradeMode,
+                                                                                              int heartbeatIntervalMs) {
+        return AppConfig.HtmlHeadUpgradeMode.AUTO == htmlHeadUpgradeMode ?
+                (sessionId, ctx) -> new EnrichingXhtmlContext(ctx,
+                                                              sessionId,
+                                                              "/",
+                                                              DefaultConnectionLostWidget.HTML,
+                                                              heartbeatIntervalMs)
+                :
+                (sessionId, ctx) -> ctx;
     }
 }

@@ -6,6 +6,23 @@ import rsp.util.logging.Log;
  * An application configuration.
  */
 public final class AppConfig {
+
+    /**
+     * Defines if auto HTML head tag upgrade is enabled.
+     */
+    public enum HtmlHeadUpgradeMode {
+        /**
+         * The RSP scripts tags added to the document's head tag.
+         * This is the default rendering mode.
+         */
+        AUTO,
+
+        /**
+         * No HTML tags upgrade applied.
+         */
+        OFF
+    }
+
     /**
      * The application's internal log level system property name, {@value LOG_LEVEL_PROPERTY_NAME}, {@link Log.Level},
      * the log level name can be provided in a lower or upper case.
@@ -40,9 +57,15 @@ public final class AppConfig {
     /**
      * The default configuration.
      */
-    public static AppConfig DEFAULT = new AppConfig(DEFAULT_HEARTBEAT_INTERVAL_MS,
+    public static AppConfig DEFAULT = new AppConfig(HtmlHeadUpgradeMode.AUTO,
+                                                    DEFAULT_HEARTBEAT_INTERVAL_MS,
                                                     DEFAULT_SCHEDULER_THREAD_POOL_SIZE,
                                                     DEFAULT_CONSOLE_LOG);
+
+    /**
+     * The HTML rendering mode.
+     */
+    public final HtmlHeadUpgradeMode htmlHeadUpgradeMode;
 
     /**
      * The rate of heartbeat messages from a browser to server.
@@ -65,13 +88,23 @@ public final class AppConfig {
      * @param schedulerThreadPoolSize the application's scheduler thread pool size
      * @param log the application's logger
      */
-    public AppConfig(int heartbeatIntervalMs,
+    public AppConfig(HtmlHeadUpgradeMode htmlHeadUpgradeMode,
+                     int heartbeatIntervalMs,
                      int schedulerThreadPoolSize,
                      Log.Reporting log) {
+        this.htmlHeadUpgradeMode = htmlHeadUpgradeMode;
         this.heartbeatIntervalMs = heartbeatIntervalMs;
         this.schedulerThreadPoolSize = schedulerThreadPoolSize;
         this.log = log;
     }
+
+    public AppConfig htmlHeadUpgradeMode(HtmlHeadUpgradeMode htmlHeadUpgradeMode) {
+        return new AppConfig(htmlHeadUpgradeMode,
+                             this.heartbeatIntervalMs,
+                             this.schedulerThreadPoolSize,
+                             this.log);
+    }
+
 
     /**
      * Creates a new copy of the configuration with a provided heartbeat interval.
@@ -79,7 +112,8 @@ public final class AppConfig {
      * @return a new configuration object with the same field values except of the provided field
      */
     public AppConfig heartbeatIntervalMs(int heartbeatIntervalMs) {
-        return new AppConfig(heartbeatIntervalMs,
+        return new AppConfig(this.htmlHeadUpgradeMode,
+                             heartbeatIntervalMs,
                              this.schedulerThreadPoolSize,
                              this.log);
     }
@@ -90,8 +124,10 @@ public final class AppConfig {
      * @return a new configuration object with the same field values except of the provided field
      */
     public AppConfig log(Log.Reporting log) {
-        return new AppConfig(this.heartbeatIntervalMs,
+        return new AppConfig(this.htmlHeadUpgradeMode,
+                             this.heartbeatIntervalMs,
                              this.schedulerThreadPoolSize,
                              log);
     }
+
 }
