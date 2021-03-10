@@ -21,8 +21,6 @@
         <jcip-annotations.version>1.0-1</jcip-annotations.version>
         <equalsverifier.version>3.5.1</equalsverifier.version>
         <playwright.version>0.180.0</playwright.version>
-        <selenium-java.version>4.0.0-beta-1</selenium-java.version>
-        <webdrivermanager.version>4.3.1</webdrivermanager.version>
 
         <jetty.version>9.4.31.v20200723</jetty.version>
         <slf4j.version>1.7.30</slf4j.version>
@@ -243,18 +241,6 @@
             <version>${playwright.version}</version>
             <scope>test</scope>
         </dependency>
-    <dependency>
-        <groupId>org.seleniumhq.selenium</groupId>
-        <artifactId>selenium-java</artifactId>
-        <version>${selenium-java.version}</version>
-        <scope>test</scope>
-    </dependency>
-        <dependency>
-        <groupId>io.github.bonigarcia</groupId>
-        <artifactId>webdrivermanager</artifactId>
-        <version>${webdrivermanager.version}</version>
-        <scope>test</scope>
-    </dependency>
         <dependency>
             <groupId>javax.websocket</groupId>
             <artifactId>javax.websocket-api</artifactId>
