@@ -4,6 +4,34 @@
 The Reactive Server Pages project enables a Java developer to create real-time single-page applications and UI components
 with server-side HTML rendering.
 
+## How it works
+
+```
+     ┌───────┐                   ┌──────┐
+     │Browser│                   │Server│
+     └───┬───┘                   └──┬───┘
+         │         HTTP GET         │    
+         │──────────────────────────>    
+         │                          │  Inital page render 
+         │    HTTP response 200     │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │    Open a WebSocket      │    
+         │──────────────────────────>    
+         │                          │  Create a new live page  
+         │   Register page events   │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │   An event on the page   │    
+         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
+         │                          │   Calculate virtual DOM diff 
+         │   Modify DOM commands    │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+     ┌───┴───┐                   ┌──┴───┐
+     │Browser│                   │Server│
+     └───────┘                   └──────┘
+```
+
 ## Motivation
 
 A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API. 
@@ -81,33 +109,6 @@ See the [TODOs list](https://github.com/vadimv/rsp-todo-list),
 [Hacker News API client](https://github.com/vadimv/rsp-hn),
 [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
 and [Tetris](https://github.com/vadimv/rsp-tetris) examples.
-
-## How it works
-```
-     ┌───────┐                   ┌──────┐
-     │Browser│                   │Server│
-     └───┬───┘                   └──┬───┘
-         │         HTTP GET         │    
-         │──────────────────────────>    
-         │                          │  Inital page render 
-         │    HTTP response 200     │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │    Open a WebSocket      │    
-         │──────────────────────────>    
-         │                          │  Create a new live page  
-         │   Register page events   │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │   An event on the page   │    
-         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
-         │                          │   Calculate virtual DOM diff 
-         │   Modify DOM commands    │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-     ┌───┴───┐                   ┌──┴───┐
-     │Browser│                   │Server│
-     └───────┘                   └──────┘
-```
 
 ### HTML markup Java DSL
 
