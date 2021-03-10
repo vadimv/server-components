@@ -24,7 +24,7 @@ with server-side HTML rendering.
          │                          │    
          │   An event on the page   │    
          │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
-         │                          │   Calculate virtual DOM diff 
+         │                          │   Re-render, calculate virtual DOM diff 
          │   Modify DOM commands    │    
          │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
      ┌───┴───┐                   ┌──┴───┐
