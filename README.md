@@ -69,7 +69,7 @@ Maven dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>0.3</version>
+        <version>0.4</version>
     </dependency>
 ```
 
