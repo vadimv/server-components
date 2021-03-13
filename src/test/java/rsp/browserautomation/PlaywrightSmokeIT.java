@@ -35,7 +35,7 @@ public class PlaywrightSmokeIT {
             final Browser browser = browserType.launch();
             final BrowserContext context = browser.newContext();
             final Page page = context.newPage();
-
+            System.out.println("Browser type: " + browserType.name());
             validatePage(page);
         }
         playwright.close();
