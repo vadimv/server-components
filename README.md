@@ -1,7 +1,6 @@
 # RSP
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
-[![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
-
+![Maven Central](https://img.shields.io/maven-central/v/io.github.vadimv/rsp?color=yellogreen)
 The Reactive Server Pages project enables a Java developer to create real-time single-page applications and UI components
 with server-side HTML rendering.
 
