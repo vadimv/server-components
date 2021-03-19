@@ -1,35 +1,29 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
 import rsp.dom.XmlNs;
+import rsp.page.RenderContext;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 /**
  * A definition of an XML tag.
  */
-public class TagDefinition extends DocumentPartDefinition {
-    protected final XmlNs ns;
-    protected final String name;
-    protected final DocumentPartDefinition[] children;
+public final class PlainTagDefinition extends TagDefinition {
+
 
     /**
      * Creates a new instance of an XML tag's definition.
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public TagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
-        super(DocumentPartDefinition.DocumentPartKind.OTHER);
-        this.ns = ns;
-        this.name = name;
-        this.children = children;
+    public PlainTagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
+        super(ns, name, children);
     }
 
     @Override
     public void accept(RenderContext renderContext) {
         renderContext.openNode(ns, name);
         Arrays.stream(children).sorted().forEach(c -> c.accept(renderContext));
-        renderContext.closeNode(name, true);
+        renderContext.closeNode(name, false);
     }
 }

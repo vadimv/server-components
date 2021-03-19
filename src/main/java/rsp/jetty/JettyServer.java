@@ -10,7 +10,6 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import rsp.App;
-import rsp.AppConfig;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.javax.web.HttpRequestUtils;
@@ -137,19 +136,23 @@ public final class JettyServer {
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + basePath);
+        final BiFunction<String, RenderContext, RenderContext> enrichContextFun =
+                    (sessionId, ctx) -> EnrichingXhtmlContext.create(ctx,
+                                                                      sessionId,
+                                                                      "/",
+                                                                      DefaultConnectionLostWidget.HTML,
+                                                                      app.config.heartbeatIntervalMs);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     renderingContextFun(app.config.htmlHeadUpgradeMode,
-                                                                                                         app.config.heartbeatIntervalMs)),
-                                                               app.config.log)),"/*");
+                                                                                     enrichContextFun),
+                                                                   app.config.log)),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
                                                                                      new StateToRouteDispatch(basePath, app.state2path),
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,
-                                                                                     renderingContextFun(app.config.htmlHeadUpgradeMode,
-                                                                                                         app.config.heartbeatIntervalMs),
+                                                                                     enrichContextFun,
                                                                                      () -> scheduler,
                                                                                      app.config.log);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
@@ -192,17 +195,5 @@ public final class JettyServer {
      */
     public void stop() throws Exception {
         server.stop();
-    }
-
-    private static final BiFunction<String, RenderContext, RenderContext> renderingContextFun(AppConfig.HtmlHeadUpgradeMode htmlHeadUpgradeMode,
-                                                                                              int heartbeatIntervalMs) {
-        return AppConfig.HtmlHeadUpgradeMode.AUTO == htmlHeadUpgradeMode ?
-                (sessionId, ctx) -> new EnrichingXhtmlContext(ctx,
-                                                              sessionId,
-                                                              "/",
-                                                              DefaultConnectionLostWidget.HTML,
-                                                              heartbeatIntervalMs)
-                :
-                (sessionId, ctx) -> ctx;
     }
 }

@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 public interface RenderContext {
     void openNode(XmlNs xmlns, String name);
-    void closeNode(String name);
+    void closeNode(String name, boolean upgrade);
     void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty);
     void setStyle(String name, String value);
     void addTextNode(String text);

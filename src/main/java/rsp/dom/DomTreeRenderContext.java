@@ -34,7 +34,7 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public void closeNode(String name) {
+    public void closeNode(String name,  boolean upgrade) {
         tagsStack.pop();
     }
 

@@ -1,6 +1,7 @@
 package rsp.dsl;
 
 import rsp.dom.Event;
+import rsp.dom.XmlNs;
 import rsp.page.EventContext;
 import rsp.ref.ElementRef;
 import rsp.ref.TimerRef;
@@ -27,13 +28,24 @@ public final class Html {
         "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
 
     /**
+     * An XML tag.
+     * @param ns an XML namespace
+     * @param name an element name
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static TagDefinition xmlTag(XmlNs ns, String name, DocumentPartDefinition... children) {
+        return new TagDefinition(ns, name, children);
+    }
+
+    /**
      * An arbitrary HTML element.
      * @param name an element name
      * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition tag(String name, DocumentPartDefinition... children) {
-        return new TagDefinition(name, children);
+        return xmlTag(XmlNs.html, name, children);
     }
 
     /**
@@ -151,8 +163,18 @@ public final class Html {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    public static  TagDefinition head(UpgradeMode upgradeMode, DocumentPartDefinition... children) {
+        return UpgradeMode.SCRIPTS == upgradeMode ? tag("head", children)
+                : new PlainTagDefinition(XmlNs.html, "head", children);
+    }
+
+    /**
+     * A HTML {@literal <head>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
     public static  TagDefinition head(DocumentPartDefinition... children) {
-        return tag("head", children);
+        return head(UpgradeMode.SCRIPTS, children);
     }
 
     /**
@@ -532,5 +554,21 @@ public final class Html {
 
     private static boolean isPropertyByDefault(String name) {
         return DEFAULT_PROPERTIES_NAMES.contains(name);
+    }
+
+    /**
+     * Defines if auto HTML head tag upgrade is enabled.
+     */
+    public enum UpgradeMode {
+        /**
+         * The RSP scripts tags added to the document's head tag.
+         * This is the default rendering mode.
+         */
+        SCRIPTS,
+
+        /**
+         * No HTML tags upgrade applied.
+         */
+        RAW
     }
 }
