@@ -16,7 +16,8 @@ public final class HttpRequestUtils {
      * @return a HTTP request
      */
     public static HttpRequest httpRequest(HttpServletRequest request) {
-        return new HttpRequest(stringToURI(request.getRequestURI()),
+        return new HttpRequest(httpMethod(request.getMethod()),
+                               stringToURI(request.getRequestURI()),
                                Path.of(request.getPathInfo()),
                                s -> Optional.ofNullable(request.getParameter(s)),
                                h -> Optional.ofNullable(request.getHeader(h)));
@@ -28,7 +29,8 @@ public final class HttpRequestUtils {
      * @return a HTTP request
      */
     public static HttpRequest httpRequest(HandshakeRequest handshakeRequest) {
-        return new HttpRequest(handshakeRequest.getRequestURI(),
+        return new HttpRequest(HttpRequest.Methods.GET,
+                               handshakeRequest.getRequestURI(),
                                Path.of(handshakeRequest.getRequestURI().getPath()),
                                name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
                                name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)));
@@ -39,6 +41,14 @@ public final class HttpRequestUtils {
             return new URI(str);
         } catch (URISyntaxException ex) {
             throw new RuntimeException(ex);
+        }
+    }
+
+    private static HttpRequest.Methods httpMethod(String method) {
+        try {
+            return HttpRequest.Methods.valueOf(method);
+        } catch (IllegalArgumentException ex) {
+            throw new RuntimeException("Unsupported HTTP method: " + method, ex);
         }
     }
 }

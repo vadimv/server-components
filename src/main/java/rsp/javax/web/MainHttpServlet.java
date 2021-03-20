@@ -25,12 +25,21 @@ public final class MainHttpServlet<S>  extends HttpServlet {
         this.log = log;
     }
 
+   @Override
+   protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+        handleRequestAsync(request, response);
+    }
+
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+        handleRequestAsync(request, response);
+    }
+
+    private void handleRequestAsync(HttpServletRequest request, HttpServletResponse response) {
         final AsyncContext asyncContext = request.startAsync();
         asyncContext.start(() -> {
             final HttpRequest req = HttpRequestUtils.httpRequest(request);
-            log.trace(l -> l.log(request.getRemoteAddr() + " -> GET " + request.getRequestURL()));
+            log.trace(l -> l.log(request.getRemoteAddr() + " -> " + request.getMethod() + " " + request.getRequestURL()));
             pageRendering.httpGet(req).handle((resp, ex) -> {
                     if (ex != null) {
                         log.error(l -> l.log("Http rendering exception", ex));
@@ -77,10 +86,4 @@ public final class MainHttpServlet<S>  extends HttpServlet {
             target.write(buf, 0, length);
         }
     }
-
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
-    }
-
-
 }

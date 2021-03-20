@@ -476,6 +476,12 @@ public final class Html {
         return tag("label", children);
     }
 
+
+    public static TagDefinition br() {
+        return tag("br");
+    }
+
+
     /**
      * Inserts a zero or more definitions provided as a stream.
      * @param items a {@link Stream} of definitions

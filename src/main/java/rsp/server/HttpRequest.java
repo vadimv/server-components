@@ -1,5 +1,6 @@
 package rsp.server;
 
+import org.eclipse.jetty.http.HttpMethod;
 import rsp.page.PageRendering;
 
 import java.net.URI;
@@ -8,15 +9,18 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public final class HttpRequest {
+    public final Methods method;
     public final URI uri;
     public final Path path;
     public final Function<String, Optional<String>> getParam;
     public final Function<String, Optional<String>> getHeader;
 
-    public HttpRequest(URI uri,
+    public HttpRequest(HttpRequest.Methods method,
+                       URI uri,
                        Path path,
                        Function<String, Optional<String>> param,
                        Function<String, Optional<String>> getHeader) {
+        this.method = method;
         this.uri = uri;
         this.path = path;
         this.getParam = param;
@@ -34,5 +38,17 @@ public final class HttpRequest {
 
     public Optional<String> deviceId() {
         return getCookie().apply(PageRendering.DEVICE_ID_COOKIE_NAME);
+    }
+
+    public enum Methods {
+        GET,
+        HEAD,
+        POST,
+        PUT,
+        DELETE,
+        CONNECT,
+        OPTIONS,
+        TRACE,
+        PATCH
     }
 }
