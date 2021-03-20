@@ -214,12 +214,30 @@ public final class Html {
     }
 
     /**
+     * A HTML {@literal <h1>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static TagDefinition h1(String text) {
+        return h1(text(text));
+    }
+
+    /**
      * A HTML {@literal <h2>} element of a HTML document.
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
     public static TagDefinition h2(DocumentPartDefinition... children) {
         return tag("h2", children);
+    }
+
+    /**
+     * A HTML {@literal <h2>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static TagDefinition h2(String text) {
+        return h2(text(text));
     }
 
     /**
@@ -232,12 +250,30 @@ public final class Html {
     }
 
     /**
+     * A HTML {@literal <h3>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static TagDefinition h3(String text) {
+        return h3(text(text));
+    }
+
+    /**
      * A HTML {@literal <h4>} element of a HTML document
      * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition h4(DocumentPartDefinition... children) {
         return tag("h4", children);
+    }
+
+    /**
+     * A HTML {@literal <h4>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static TagDefinition h4(String text) {
+        return h4(text(text));
     }
 
     /**
@@ -250,12 +286,30 @@ public final class Html {
     }
 
     /**
+     * A HTML {@literal <h5>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static TagDefinition h5(String text) {
+        return h5(text(text));
+    }
+
+    /**
      * A HTML {@literal <h6>} element of a HTML document.
      * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition h6(DocumentPartDefinition... children) {
         return tag("h6", children);
+    }
+
+    /**
+     * A HTML {@literal <h6>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static TagDefinition h6(String text) {
+        return h6(text(text));
     }
 
     /**
