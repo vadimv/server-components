@@ -14,6 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 import static rsp.dsl.Html.*;
 
@@ -97,8 +98,11 @@ public class LivePageStateTests {
         }
 
         @Override
-        public void listenEvent(String eventType, boolean preventDefault, VirtualDomPath path, Event.Modifier modifier) {
-            commands.add(new ListenEventOutMessage(eventType, preventDefault, path, modifier));
+        public void listenEvents(List<Event> events) {
+                commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType,
+                                                                                   e.preventDefault,
+                                                                                   e.eventTarget.elementPath,
+                                                                                   e.modifier)).collect(Collectors.toList()));
         }
 
         @Override

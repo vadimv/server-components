@@ -72,13 +72,14 @@ public class LivePageState<S> implements UseState<S> {
                 eventsToAdd.add(event);
             }
         }
-        eventsToAdd.forEach(event -> {
+        out.listenEvents(new ArrayList<>(eventsToAdd));
+/*        eventsToAdd.forEach(event -> {
             final Event.Target eventTarget = event.eventTarget;
             out.listenEvent(eventTarget.eventType,
                     event.preventDefault,
                     eventTarget.elementPath,
                     event.modifier);
-        });
+        });*/
 
         // Browser's navigation
         final Path oldPath = snapshot.path;

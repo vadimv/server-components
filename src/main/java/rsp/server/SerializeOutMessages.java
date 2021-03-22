@@ -66,13 +66,16 @@ public final class SerializeOutMessages implements OutMessages {
     }
 
     @Override
-    public void listenEvent(String eventType, boolean preventDefault, VirtualDomPath path, Event.Modifier modifier) {
-        final String message = addSquareBrackets(joinString(LISTEN_EVENT,
-                                                            quote(escape(eventType)),
-                                                            preventDefault,
-                                                            quote(path.toString()),
-                                                            quote(modifierString(modifier))));
-        messagesConsumer.accept(message);
+    public void listenEvents(List<Event> events) {
+        if (events.size() > 0) {
+            final String[] changes = events.stream().map(e -> joinString(quote(e.eventTarget.eventType),
+                                                                         e.preventDefault,
+                                                                         quote(e.eventTarget.elementPath.toString()),
+                                                                         quote(modifierString(e.modifier)))).toArray(String[]::new);
+            final String message = addSquareBrackets(joinString(LISTEN_EVENT,
+                                                                joinString(changes)));
+            messagesConsumer.accept(message);
+        }
     }
 
     @Override

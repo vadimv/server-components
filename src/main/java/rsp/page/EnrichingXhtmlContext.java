@@ -46,10 +46,8 @@ public final class EnrichingXhtmlContext implements RenderContext {
             context.closeNode("head", false);
         } else if (xmlNs.equals(XmlNs.html) && name.equals("head")) {
             headWasOpened = true;
-            context.openNode(xmlNs, "head");
-        } else {
-            context.openNode(xmlNs, name);
         }
+        context.openNode(xmlNs, name);
     }
 
     @Override

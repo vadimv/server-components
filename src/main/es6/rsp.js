@@ -186,16 +186,23 @@ export class RSP {
       this.root.removeChild(this.root.children[0]);
   }
 
-   /**
-    * @param {string} type
-    * @param {boolean} preventDefault
-    * @param {string} path
-    * @param {string} eventModifier
-    */
-  listenEvent(type, preventDefault, path, eventModifier) {
-    let target = path === window.vId ? window : this.els[path];
-    this.listen(target, type, preventDefault, eventModifier);
-  }
+  /**
+   * @param {Array} data elements of the events to register
+   */
+  listenEvent(data) {
+        // Reverse data to use pop() instead of shift()
+        // pop() faster than shift()
+        let atad = data.reverse();
+        let r = atad.pop.bind(atad);
+        while (data.length > 0) {
+            let type = r();
+            let preventDefault = r();
+            let path = r();
+            let eventModifier = r();
+            let target = path === window.vId ? window : this.els[path];
+            this.listen(target, type, preventDefault, eventModifier);
+        }
+    }
 
     /**
     * @param {string} type
@@ -210,7 +217,7 @@ export class RSP {
   }
 
   /**
-   * @param {Array} data
+   * @param {Array} data modify DOM elements
    */
   modifyDom(data) {
     // Reverse data to use pop() instead of shift()

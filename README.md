@@ -231,9 +231,9 @@ An RSP application is composed of components. A component is a Java class implem
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
         return s -> input(attr("type", "button"),
-                           attr("class", "button"),     
-                           on("click", ctx -> s.accept(new ButtonState())),
-                           text(text));
+                           attr("class", "button"),
+                           attr("value", text),      
+                           on("click", ctx -> s.accept(new ButtonState())));
         
     }
     public static class ButtonState {}

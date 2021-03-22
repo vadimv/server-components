@@ -22,10 +22,11 @@ public class SerializeOutMessagesTests {
     @Test
     public void should_listen_event() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).listenEvent("click",
-                   true,
-                               VirtualDomPath.of("1_1"),
-                               new Event.DebounceModifier(100, false));
+        final Event e = new Event(new Event.Target("click", VirtualDomPath.of("1_1")),
+                                  ec -> {},
+                                  true,
+                                  new Event.DebounceModifier(100, false));
+        create(c).listenEvents(List.of(e));
         Assert.assertEquals("[2,\"click\",true,\"1_1\",\"2:100:false\"]", c.result);
     }
 

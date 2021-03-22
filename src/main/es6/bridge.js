@@ -90,7 +90,7 @@ export class Bridge {
     switch (pCode) {
       case MessageType.SET_RENDER_NUM: k.setRenderNum.apply(k, commands); break;
       case MessageType.CLEAN_ROOT: k.cleanRoot.apply(k, commands); break;
-      case MessageType.LISTEN_EVENT: k.listenEvent.apply(k, commands); break;
+      case MessageType.LISTEN_EVENT: k.listenEvent(commands); break;
       case MessageType.EXTRACT_PROPERTY: k.extractProperty.apply(k, commands); break;
       case MessageType.MODIFY_DOM: k.modifyDom(commands); break;
       case MessageType.FOCUS: k.focus.apply(k, commands); break;

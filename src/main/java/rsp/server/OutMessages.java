@@ -8,7 +8,7 @@ import java.util.List;
 
 public interface OutMessages {
     void setRenderNum(int renderNum);
-    void listenEvent(String eventType, boolean preventDefault, VirtualDomPath path, Event.Modifier modifier);
+    void listenEvents(List<Event> events);
     void forgetEvent(String eventType, VirtualDomPath elementPath);
     void extractProperty(int descriptor, VirtualDomPath path, String name);
     void modifyDom(List<DefaultDomChangesPerformer.DomChange> domChange);
