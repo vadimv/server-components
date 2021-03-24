@@ -30,7 +30,7 @@ public final class AttributeDefinition extends DocumentPartDefinition {
      * @param isProperty true if this attribute is an HTML property and false otherwise
      */
     public AttributeDefinition(String name, String value, boolean isProperty) {
-        super(DocumentPartDefinition.DocumentPartKind.ATTR);
+        super();
         this.name = name;
         this.value = value;
         this.isProperty = isProperty;

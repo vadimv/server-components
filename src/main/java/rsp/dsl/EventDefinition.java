@@ -29,7 +29,7 @@ public final class EventDefinition extends DocumentPartDefinition {
                            Consumer<EventContext> handler,
                            boolean preventDefault,
                            Event.Modifier modifier) {
-        super(DocumentPartKind.OTHER);
+        super();
         this.elementPath = elementPath;
         this.eventType = eventType;
         this.handler = handler;
@@ -40,7 +40,7 @@ public final class EventDefinition extends DocumentPartDefinition {
     public EventDefinition(String eventType,
                            Consumer<EventContext> handler,
                            Event.Modifier modifier) {
-        super(DocumentPartKind.OTHER);
+        super();
         this.elementPath = Optional.empty();
         this.eventType = eventType;
         this.handler = handler;
@@ -52,7 +52,7 @@ public final class EventDefinition extends DocumentPartDefinition {
                            Consumer<EventContext> handler,
                            boolean preventDefault,
                            Event.Modifier modifier) {
-        super(DocumentPartKind.OTHER);
+        super();
         this.elementPath = Optional.empty();
         this.eventType = eventType;
         this.handler = handler;

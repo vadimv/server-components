@@ -15,12 +15,12 @@ public final class SequenceDefinition extends DocumentPartDefinition {
      * @param items to be rendered one ofter another
      */
     public SequenceDefinition(DocumentPartDefinition[] items) {
-        super(DocumentPartDefinition.DocumentPartKind.OTHER);
+        super();
         this.items = items;
     }
 
     @Override
     public void accept(RenderContext renderContext) {
-        Arrays.stream(items).sorted().forEach(c -> c.accept(renderContext));
+        Arrays.stream(items).forEach(c -> c.accept(renderContext));
     }
 }

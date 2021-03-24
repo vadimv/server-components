@@ -20,7 +20,7 @@ public class TagDefinition extends DocumentPartDefinition {
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
     public TagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
-        super(DocumentPartDefinition.DocumentPartKind.OTHER);
+        super();
         this.ns = ns;
         this.name = name;
         this.children = children;
@@ -29,7 +29,7 @@ public class TagDefinition extends DocumentPartDefinition {
     @Override
     public void accept(RenderContext renderContext) {
         renderContext.openNode(ns, name);
-        Arrays.stream(children).sorted().forEach(c -> c.accept(renderContext));
+        Arrays.stream(children).forEach(c -> c.accept(renderContext));
         renderContext.closeNode(name, true);
     }
 }

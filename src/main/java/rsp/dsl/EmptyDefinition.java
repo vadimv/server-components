@@ -15,7 +15,7 @@ final class EmptyDefinition extends DocumentPartDefinition {
      * Creates a new instance of an empty definition.
      */
     public EmptyDefinition() {
-        super(DocumentPartKind.OTHER);
+        super();
     }
 
     @Override

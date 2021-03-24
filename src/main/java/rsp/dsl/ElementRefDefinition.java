@@ -14,7 +14,7 @@ public final class ElementRefDefinition extends DocumentPartDefinition implement
      * Creates a new instance of a reference.
      */
     public ElementRefDefinition() {
-        super(DocumentPartKind.OTHER);
+        super();
     }
 
     @Override
@@ -30,7 +30,7 @@ public final class ElementRefDefinition extends DocumentPartDefinition implement
         private final ElementRefDefinition parentRef;
         private final K key;
         public KeyRef(ElementRefDefinition parentRef, K key) {
-            super(DocumentPartKind.OTHER);
+            super();
             this.parentRef = Objects.requireNonNull(parentRef);
             this.key = Objects.requireNonNull(key);
         }

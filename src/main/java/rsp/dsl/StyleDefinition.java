@@ -21,7 +21,7 @@ public final class StyleDefinition extends DocumentPartDefinition {
      * @param value the style's value
      */
     public StyleDefinition(String name, String value) {
-        super(DocumentPartDefinition.DocumentPartKind.STYLE);
+        super();
         this.name = name;
         this.value = value;
     }

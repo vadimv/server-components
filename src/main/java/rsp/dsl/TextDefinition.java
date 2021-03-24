@@ -13,7 +13,7 @@ public final class TextDefinition extends DocumentPartDefinition {
      * @param text a text {@link String}
      */
     public TextDefinition(String text) {
-        super(DocumentPartDefinition.DocumentPartKind.OTHER);
+        super();
         this.text = text;
     }
 
