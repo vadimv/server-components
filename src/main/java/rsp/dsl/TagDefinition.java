@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 /**
  * A definition of an XML tag.
  */
-public class TagDefinition extends DocumentPartDefinition {
+public class TagDefinition implements DocumentPartDefinition {
     protected final XmlNs ns;
     protected final String name;
     protected final DocumentPartDefinition[] children;

@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /**
  * An event definition.
  */
-public final class EventDefinition extends DocumentPartDefinition {
+public final class EventDefinition implements DocumentPartDefinition {
 
     /**
      * This value is used when not explicitly specified for an event.

@@ -8,14 +8,7 @@ import java.util.Objects;
 /**
  * A reference to an element.
  */
-public final class ElementRefDefinition extends DocumentPartDefinition implements ElementRef {
-
-    /**
-     * Creates a new instance of a reference.
-     */
-    public ElementRefDefinition() {
-        super();
-    }
+public final class ElementRefDefinition implements DocumentPartDefinition, ElementRef {
 
     @Override
     public void accept(RenderContext renderContext) {
@@ -26,7 +19,7 @@ public final class ElementRefDefinition extends DocumentPartDefinition implement
         return new KeyRef<K>(this, key);
     }
 
-    public static class KeyRef<K> extends DocumentPartDefinition implements ElementRef {
+    public static class KeyRef<K> implements ElementRef, DocumentPartDefinition {
         private final ElementRefDefinition parentRef;
         private final K key;
         public KeyRef(ElementRefDefinition parentRef, K key) {

@@ -5,7 +5,7 @@ import rsp.page.RenderContext;
 /**
  * A definition of a HTML element's inline style.
  */
-public final class StyleDefinition extends DocumentPartDefinition {
+public final class StyleDefinition implements DocumentPartDefinition {
     /**
      * The style's name.
      */
