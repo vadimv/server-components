@@ -3,10 +3,14 @@ package rsp.dsl;
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
+import rsp.page.RenderContext;
 import rsp.ref.ElementRef;
 import rsp.ref.TimerRef;
 import rsp.util.ArrayUtils;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -16,16 +20,52 @@ import java.util.stream.Stream;
 /**
  * A HTML tags definitions domain-specific language and related util functions.
  */
-public final class Html {
-
-    private Html() {}
+public final class Html extends TagDefinition {
 
     /**
      * Attributes names which are interpreted by default as properties.
-     * @see #attr(String, String) 
+     * @see #attr(String, String)
      */
     public final static String DEFAULT_PROPERTIES_NAMES =
-        "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
+            "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
+
+    private final int statusCode;
+    private final Map<String, String> headers;
+
+    private Html(int statusCode, Map<String, String> headers, DocumentPartDefinition... children) {
+        super(XmlNs.html, "html", children);
+        this.statusCode = statusCode;
+        this.headers = headers;
+    }
+
+    @Override
+    public void accept(RenderContext renderContext) {
+        renderContext.setStatusCode(statusCode);
+        renderContext.setDocType("<!DOCTYPE html>");
+        super.accept(renderContext);
+    }
+
+
+    public Html statusCode(int statusCode) {
+        return new Html(statusCode, this.headers, this.children);
+    }
+
+    public Html headers(Map<String, String> headers) {
+        return new Html(this.statusCode, merge(this.headers, headers), this.children);
+    }
+
+    public Html redirect(String location) {
+        return new Html(302, merge(this.headers, Map.of("Location", location)), this.children);
+    }
+
+    /**
+     * A HTML {@literal <html>} element, the root element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Html html(DocumentPartDefinition... children) {
+        return new Html( 200, Map.of(), children);
+    }
 
     /**
      * An XML tag.
@@ -140,14 +180,6 @@ public final class Html {
         return new TextDefinition(obj.toString());
     }
 
-    /**
-     * A HTML {@literal <html>} element, the root element of a HTML document.
-     * @param children descendants definitions of this element
-     * @return a tag definition
-     */
-    public static TagDefinition html(DocumentPartDefinition... children) {
-        return tag("html", children);
-    }
 
     /**
      * A HTML {@literal <body>} element of a HTML document.
@@ -614,6 +646,12 @@ public final class Html {
 
     private static boolean isPropertyByDefault(String name) {
         return DEFAULT_PROPERTIES_NAMES.contains(name);
+    }
+
+    private static Map<String, String> merge(Map<String, String> m1, Map<String, String> m2) {
+        final Map<String, String> result = new HashMap<>(m1);
+        result.putAll(m2);
+        return result;
     }
 
     /**

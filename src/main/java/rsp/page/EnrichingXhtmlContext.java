@@ -10,8 +10,6 @@ import java.util.function.Consumer;
 
 public final class EnrichingXhtmlContext implements RenderContext {
 
-    //public static final String UPGRADABLE_HEAD_SPECIAL_TAG_NAME = "rsp-upgradable-head";
-
     private final RenderContext context;
     private final String pageInfo;
 
@@ -34,6 +32,16 @@ public final class EnrichingXhtmlContext implements RenderContext {
                 + "heartbeatInterval:" + heartBeatInterval
                 + "}";
         return new EnrichingXhtmlContext(context, cfg);
+    }
+
+    @Override
+    public void setStatusCode(int statusCode) {
+        context.setStatusCode(statusCode);
+    }
+
+    @Override
+    public void setDocType(String docType) {
+        context.setDocType(docType);
     }
 
     @Override

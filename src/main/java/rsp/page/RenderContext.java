@@ -9,6 +9,8 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface RenderContext {
+    void setStatusCode(int statusCode);
+    void setDocType(String docType);
     void openNode(XmlNs xmlns, String name);
     void closeNode(String name, boolean upgrade);
     void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty);

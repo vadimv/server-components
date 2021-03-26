@@ -85,11 +85,11 @@ public final class PageRendering<S> {
                 final DomTreeRenderContext domTreeContext = new DomTreeRenderContext();
                 documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
 
-                renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root));
+                renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
 
-                return new HttpResponse(200,
+                return new HttpResponse(domTreeContext.statusCode(),
                                         headers(deviceId),
-                                  "<!DOCTYPE html>" + domTreeContext.toString());
+                                        domTreeContext.toString());
             });
         } catch (Throwable ex) {
             return CompletableFuture.failedFuture(ex);

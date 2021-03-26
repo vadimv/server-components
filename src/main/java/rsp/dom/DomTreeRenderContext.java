@@ -13,10 +13,35 @@ public final class DomTreeRenderContext implements RenderContext {
     public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
     public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap();
 
-    public Tag root;
+    private int statusCode;
+    private String docType;
+    private Tag root;
+
     private Deque<Tag> tagsStack = new ArrayDeque<>();
 
     public DomTreeRenderContext() {
+    }
+
+    public String docType() {
+        return docType;
+    }
+
+    public Tag root() {
+        return root;
+    }
+
+    public int statusCode() {
+        return statusCode;
+    }
+
+    @Override
+    public void setStatusCode(int statusCode) {
+        this.statusCode = statusCode;
+    }
+
+    @Override
+    public void setDocType(String docType) {
+        this.docType = docType;
     }
 
     @Override
@@ -75,6 +100,9 @@ public final class DomTreeRenderContext implements RenderContext {
             throw new IllegalStateException("DOM tree not initialized");
         }
         final StringBuilder sb = new StringBuilder();
+        if (docType != null) {
+            sb.append(docType);
+        }
         root.appendString(sb);
         return sb.toString();
     }

@@ -59,7 +59,7 @@ public class LivePageStateTests {
         final DomTreeRenderContext domTreeContext = new DomTreeRenderContext();
         component.render(new ReadOnly<>(state)).accept(enrichFunction().apply(QID.sessionId, domTreeContext));
 
-        return domTreeContext.root;
+        return domTreeContext.root();
     }
 
     private static BiFunction<String, RenderContext, RenderContext> enrichFunction() {

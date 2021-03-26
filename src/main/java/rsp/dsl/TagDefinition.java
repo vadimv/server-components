@@ -20,7 +20,6 @@ public class TagDefinition implements DocumentPartDefinition {
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
     public TagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
-        super();
         this.ns = ns;
         this.name = name;
         this.children = children;
