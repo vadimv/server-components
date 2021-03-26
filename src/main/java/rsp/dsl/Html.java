@@ -10,6 +10,7 @@ import rsp.util.ArrayUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -34,12 +35,13 @@ public final class Html extends TagDefinition {
     private Html(int statusCode, Map<String, String> headers, DocumentPartDefinition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
-        this.headers = headers;
+        this.headers = Objects.requireNonNull(headers);
     }
 
     @Override
     public void accept(RenderContext renderContext) {
         renderContext.setStatusCode(statusCode);
+        renderContext.setHeaders(headers);
         renderContext.setDocType("<!DOCTYPE html>");
         super.accept(renderContext);
     }

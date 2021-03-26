@@ -14,12 +14,18 @@ public final class DomTreeRenderContext implements RenderContext {
     public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap();
 
     private int statusCode;
+    private Map<String, String> headers;
     private String docType;
     private Tag root;
 
     private Deque<Tag> tagsStack = new ArrayDeque<>();
 
+
     public DomTreeRenderContext() {
+    }
+
+    public Map<String, String> headers() {
+        return headers;
     }
 
     public String docType() {
@@ -34,9 +40,15 @@ public final class DomTreeRenderContext implements RenderContext {
         return statusCode;
     }
 
+
     @Override
     public void setStatusCode(int statusCode) {
         this.statusCode = statusCode;
+    }
+
+    @Override
+    public void setHeaders(Map<String, String> headers) {
+        this.headers = headers;
     }
 
     @Override

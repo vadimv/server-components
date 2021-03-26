@@ -5,6 +5,7 @@ import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -40,6 +41,11 @@ public final class EnrichingXhtmlContext implements RenderContext {
     }
 
     @Override
+    public void setHeaders(Map<String, String> headers) {
+        context.setHeaders(headers);
+    }
+
+    @Override
     public void setDocType(String docType) {
         context.setDocType(docType);
     }
@@ -50,7 +56,7 @@ public final class EnrichingXhtmlContext implements RenderContext {
             // No <head> have opened above
             // it means a programmer didn't include head() in the page
             context.openNode(XmlNs.html, "head");
-            upgradeHead();
+            upgradeHeadTag();
             context.closeNode("head", false);
         } else if (xmlNs.equals(XmlNs.html) && name.equals("head")) {
             headWasOpened = true;
@@ -61,12 +67,12 @@ public final class EnrichingXhtmlContext implements RenderContext {
     @Override
     public void closeNode(String name, boolean upgrade) {
         if (headWasOpened && upgrade && name.equals("head")) {
-            upgradeHead();
+            upgradeHeadTag();
         }
         context.closeNode(name, upgrade);
     }
 
-    private void upgradeHead() {
+    private void upgradeHeadTag() {
         context.openNode(XmlNs.html, "script");
         context.addTextNode(pageInfo);
         context.closeNode("script", false);

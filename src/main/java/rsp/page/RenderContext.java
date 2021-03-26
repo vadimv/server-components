@@ -5,11 +5,13 @@ import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface RenderContext {
     void setStatusCode(int statusCode);
+    void setHeaders(Map<String, String> headers);
     void setDocType(String docType);
     void openNode(XmlNs xmlns, String name);
     void closeNode(String name, boolean upgrade);

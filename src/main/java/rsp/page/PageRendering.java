@@ -12,10 +12,7 @@ import rsp.util.data.Tuple2;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -88,7 +85,7 @@ public final class PageRendering<S> {
                 renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
 
                 return new HttpResponse(domTreeContext.statusCode(),
-                                        headers(deviceId),
+                                        headers(domTreeContext.headers(), deviceId),
                                         domTreeContext.toString());
             });
         } catch (Throwable ex) {
@@ -96,14 +93,19 @@ public final class PageRendering<S> {
         }
     }
 
-    private List<Tuple2<String,String>> headers(String deviceId) {
-        return List.of(new Tuple2<>("content-type", "text/html; charset=utf-8"),
-                       new Tuple2<>("cache-control", "no-store, no-cache, must-revalidate"),
-                       new Tuple2<>("Set-Cookie", String.format("%s=%s; Path=%s; Max-Age=%d; SameSite=Lax",
+    private List<Tuple2<String,String>> headers(Map<String, String> headers, String deviceId) {
+        final List<Tuple2<String,String>> resultHeaders = new ArrayList<>();
+        for (Map.Entry<String, String> entry : headers.entrySet() ) {
+            resultHeaders.add(new Tuple2<>(entry.getKey(), entry.getValue()));
+        }
+        resultHeaders.add(new Tuple2<>("content-type", "text/html; charset=utf-8"));
+        resultHeaders.add(new Tuple2<>("cache-control", "no-store, no-cache, must-revalidate"));
+        resultHeaders.add(new Tuple2<>("Set-Cookie", String.format("%s=%s; Path=%s; Max-Age=%d; SameSite=Lax",
                                                                 DEVICE_ID_COOKIE_NAME,
                                                                 deviceId,
                                                                 "/",
                                                                 60 * 60 * 24 * 365 * 10 /* 10 years */ )));
+        return resultHeaders;
 
     }
 

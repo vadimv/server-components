@@ -4,6 +4,7 @@ import rsp.page.RenderContext;
 import rsp.dom.XmlNs;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.stream.Stream;
 
 /**
@@ -20,8 +21,8 @@ public class TagDefinition implements DocumentPartDefinition {
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
     public TagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
-        this.ns = ns;
-        this.name = name;
+        this.ns = Objects.requireNonNull(ns);
+        this.name = Objects.requireNonNull(name);
         this.children = children;
     }
 
