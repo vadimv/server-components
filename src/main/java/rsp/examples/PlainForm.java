@@ -7,7 +7,7 @@ import rsp.jetty.JettyServer;
 import static rsp.dsl.Html.*;
 
 public class PlainForm {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         final var app = new App<>("Hello world!",
                                   pages());
         final var server = new JettyServer(8080, "", app);

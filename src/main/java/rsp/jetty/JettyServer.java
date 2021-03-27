@@ -94,9 +94,8 @@ public final class JettyServer {
 
     /**
      * Starts the server.
-     * @throws Exception in case when the server's start failed
      */
-    public void start() throws Exception {
+    public void start() {
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setMaxThreads(maxThreads);
         
@@ -177,23 +176,33 @@ public final class JettyServer {
         handlers.addHandler(context);
 
         server.setHandler(handlers);
-        server.start();
+        try {
+            server.start();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
         app.config.log.info(l -> l.log("Server started, listening on port: " + port));
     }
 
     /**
      * Blocks the current thread while the server's threads are running.
-     * @throws InterruptedException if any of the server's thread interrupted
      */
-    public void join() throws InterruptedException {
-        server.join();
+    public void join() {
+        try {
+            server.join();
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 
     /**
      * Stops the server.
-     * @throws Exception in case of an error
      */
-    public void stop() throws Exception {
-        server.stop();
+    public void stop() {
+        try {
+            server.stop();
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }
