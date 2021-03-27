@@ -3,7 +3,7 @@ package rsp.dsl;
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 import rsp.ref.ElementRef;
 import rsp.ref.TimerRef;
 import rsp.util.ArrayUtils;
@@ -42,7 +42,7 @@ public final class Html extends TagDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.setStatusCode(statusCode);
         renderContext.setHeaders(headers);
         renderContext.setDocType("<!DOCTYPE html>");

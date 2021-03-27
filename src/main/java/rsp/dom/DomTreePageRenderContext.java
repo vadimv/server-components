@@ -2,13 +2,13 @@ package rsp.dom;
 
 import rsp.ref.Ref;
 import rsp.page.EventContext;
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public final class DomTreeRenderContext implements RenderContext {
+public final class DomTreePageRenderContext implements PageRenderContext {
 
     public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
     public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap();
@@ -21,7 +21,7 @@ public final class DomTreeRenderContext implements RenderContext {
     private Deque<Tag> tagsStack = new ArrayDeque<>();
 
 
-    public DomTreeRenderContext() {
+    public DomTreePageRenderContext() {
     }
 
     public Map<String, String> headers() {

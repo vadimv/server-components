@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 /**
  * A definition of a HTML element's inline style.
@@ -27,7 +27,7 @@ public final class StyleDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.setStyle(name, value);
     }
 }

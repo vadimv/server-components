@@ -1,11 +1,10 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 import rsp.dom.XmlNs;
 
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.stream.Stream;
 
 /**
  * A definition of an XML tag.
@@ -27,7 +26,7 @@ public class TagDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.openNode(ns, name);
         Arrays.stream(children).forEach(c -> c.accept(renderContext));
         renderContext.closeNode(name, true);

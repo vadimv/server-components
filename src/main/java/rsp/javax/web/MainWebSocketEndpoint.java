@@ -27,7 +27,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
-    private final BiFunction<String, RenderContext, RenderContext> enrich;
+    private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final Log.Reporting log;
 
@@ -37,7 +37,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                  StateToRouteDispatch<S> state2route,
                                  Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                  Component<S> documentDefinition,
-                                 BiFunction<String, RenderContext, RenderContext> enrich,
+                                 BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
                                  Log.Reporting log) {
         this.routing = routing;

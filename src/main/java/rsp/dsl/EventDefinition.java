@@ -3,7 +3,7 @@ package rsp.dsl;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -61,7 +61,7 @@ public final class EventDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.addEvent(elementPath, eventType, handler, preventDefault, modifier);
     }
 

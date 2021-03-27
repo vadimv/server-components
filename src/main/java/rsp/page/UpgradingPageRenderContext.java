@@ -9,30 +9,30 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public final class EnrichingXhtmlContext implements RenderContext {
+public final class UpgradingPageRenderContext implements PageRenderContext {
 
-    private final RenderContext context;
+    private final PageRenderContext context;
     private final String pageInfo;
 
     private boolean headWasOpened = false;
 
-    private EnrichingXhtmlContext(RenderContext context, String pageInfo) {
+    private UpgradingPageRenderContext(PageRenderContext context, String pageInfo) {
         this.context = context;
         this.pageInfo = pageInfo;
     }
 
-    public static EnrichingXhtmlContext create(RenderContext context,
-                                                 String sessionId,
-                                                 String path,
-                                                 String connectionLostWidgetHtml,
-                                                 int heartBeatInterval) {
+    public static UpgradingPageRenderContext create(PageRenderContext context,
+                                                    String sessionId,
+                                                    String path,
+                                                    String connectionLostWidgetHtml,
+                                                    int heartBeatInterval) {
         final String cfg = "window['kfg']={"
                 + "sid:'" + sessionId + "',"
                 + "r:'" + path + "',"
                 + "clw:'" + connectionLostWidgetHtml + "',"
                 + "heartbeatInterval:" + heartBeatInterval
                 + "}";
-        return new EnrichingXhtmlContext(context, cfg);
+        return new UpgradingPageRenderContext(context, cfg);
     }
 
     @Override

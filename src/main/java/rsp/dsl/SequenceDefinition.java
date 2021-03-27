@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 import java.util.Arrays;
 
@@ -20,7 +20,7 @@ public final class SequenceDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         Arrays.stream(items).forEach(c -> c.accept(renderContext));
     }
 }

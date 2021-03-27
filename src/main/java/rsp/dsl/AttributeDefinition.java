@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 import rsp.dom.XmlNs;
 
 /**
@@ -37,7 +37,7 @@ public final class AttributeDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
     }
 }

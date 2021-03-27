@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 /**
  * A definition of a HTML tag text content.
@@ -18,7 +18,7 @@ public final class TextDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.addTextNode(text);
     }
 }

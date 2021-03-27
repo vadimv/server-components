@@ -136,12 +136,12 @@ public final class JettyServer {
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + basePath);
-        final BiFunction<String, RenderContext, RenderContext> enrichContextFun =
-                    (sessionId, ctx) -> EnrichingXhtmlContext.create(ctx,
-                                                                      sessionId,
-                                                                      "/",
-                                                                      DefaultConnectionLostWidget.HTML,
-                                                                      app.config.heartbeatIntervalMs);
+        final BiFunction<String, PageRenderContext, PageRenderContext> enrichContextFun =
+                    (sessionId, ctx) -> UpgradingPageRenderContext.create(ctx,
+                                                                          sessionId,
+                                                                          "/",
+                                                                          DefaultConnectionLostWidget.HTML,
+                                                                          app.config.heartbeatIntervalMs);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
                                                                                      app.pagesStorage,
                                                                                      app.rootComponent,

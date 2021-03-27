@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 /**
  * The void definition, without any representation in the result DOM tree.
@@ -19,7 +19,7 @@ final class EmptyDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         // no-op
     }
 }

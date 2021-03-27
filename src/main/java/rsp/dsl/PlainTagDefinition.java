@@ -1,7 +1,7 @@
 package rsp.dsl;
 
 import rsp.dom.XmlNs;
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 import java.util.Arrays;
 
@@ -21,7 +21,7 @@ public final class PlainTagDefinition extends TagDefinition {
     }
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.openNode(ns, name);
         Arrays.stream(children).forEach(c -> c.accept(renderContext));
         renderContext.closeNode(name, false);

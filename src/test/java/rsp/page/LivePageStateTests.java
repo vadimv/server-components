@@ -56,13 +56,13 @@ public class LivePageStateTests {
     }
 
     private static Tag domRoot(Component<State> component, State state) {
-        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext();
+        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
         component.render(new ReadOnly<>(state)).accept(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.root();
     }
 
-    private static BiFunction<String, RenderContext, RenderContext> enrichFunction() {
+    private static BiFunction<String, PageRenderContext, PageRenderContext> enrichFunction() {
         return (sessionId, ctx) -> ctx;
     }
 

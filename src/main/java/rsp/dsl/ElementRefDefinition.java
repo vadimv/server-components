@@ -1,7 +1,7 @@
 package rsp.dsl;
 
 import rsp.ref.ElementRef;
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 import java.util.Objects;
 
@@ -11,7 +11,7 @@ import java.util.Objects;
 public final class ElementRefDefinition implements DocumentPartDefinition, ElementRef {
 
     @Override
-    public void accept(RenderContext renderContext) {
+    public void accept(PageRenderContext renderContext) {
         renderContext.addRef(this);
     }
 
@@ -29,7 +29,7 @@ public final class ElementRefDefinition implements DocumentPartDefinition, Eleme
         }
 
         @Override
-        public void accept(RenderContext renderContext) {
+        public void accept(PageRenderContext renderContext) {
             renderContext.addRef(this);
         }
 

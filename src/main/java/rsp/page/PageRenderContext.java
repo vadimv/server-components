@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public interface RenderContext {
+public interface PageRenderContext {
     void setStatusCode(int statusCode);
     void setHeaders(Map<String, String> headers);
     void setDocType(String docType);

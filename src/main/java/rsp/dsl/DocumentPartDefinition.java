@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.page.RenderContext;
+import rsp.page.PageRenderContext;
 
 /**
  * Represents a building block, a node of the input domain-specific language definitions document.
@@ -12,6 +12,6 @@ public interface DocumentPartDefinition {
      * An implementation of this method determines how its definition node is rendered to a virtual DOM tree.
      * @param renderContext the renderer
      */
-    void accept(RenderContext renderContext);
+    void accept(PageRenderContext renderContext);
 
 }

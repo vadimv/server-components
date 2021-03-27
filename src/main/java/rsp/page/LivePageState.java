@@ -15,7 +15,7 @@ public class LivePageState<S> implements UseState<S> {
     private final QualifiedSessionId qsid;
     private final StateToRouteDispatch<S> state2route;
     private final Component<S> rootComponent;
-    private final BiFunction<String, RenderContext, RenderContext> enrich;
+    private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final OutMessages out;
 
     private S state;
@@ -25,7 +25,7 @@ public class LivePageState<S> implements UseState<S> {
                          QualifiedSessionId qsid,
                          StateToRouteDispatch<S> state2route,
                          Component<S> rootComponent,
-                         BiFunction<String, RenderContext, RenderContext> enrich,
+                         BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                          OutMessages out) {
         this.snapshot = snapshot;
         this.qsid = qsid;
@@ -39,7 +39,7 @@ public class LivePageState<S> implements UseState<S> {
     public synchronized void accept(S newState) {
         this.state = newState;
 
-        final DomTreeRenderContext newContext = new DomTreeRenderContext();
+        final DomTreePageRenderContext newContext = new DomTreePageRenderContext();
         rootComponent.render(this).accept(enrich.apply(qsid.sessionId, newContext));
 
         // Calculate diff between currentContext and newContext
