@@ -178,7 +178,7 @@ public final class JettyServer {
 
         server.setHandler(handlers);
         server.start();
-        app.config.log.info(l -> l.log("Server started"));
+        app.config.log.info(l -> l.log("Server started, listening on port: " + port));
     }
 
     /**
