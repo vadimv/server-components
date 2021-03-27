@@ -29,6 +29,9 @@ public final class Html extends TagDefinition {
     public final static String DEFAULT_PROPERTIES_NAMES =
             "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
 
+    private static int OK_STATUS_CODE = 200;
+    private static int MOVED_TEMPORARILY_STATUS_CODE = 302;
+
     private final int statusCode;
     private final Map<String, String> headers;
 
@@ -46,17 +49,31 @@ public final class Html extends TagDefinition {
         super.accept(renderContext);
     }
 
-
+    /**
+     * Sets the HTTP status code to be rendered in the response.
+     * @param statusCode status code
+     * @return an instance with the status code
+     */
     public Html statusCode(int statusCode) {
         return new Html(statusCode, this.headers, this.children);
     }
 
+    /**
+     * Adds the HTTP headers to be rendered in the response.
+     * @param headers the map containing headers
+     * @return an instance with added headers
+     */
     public Html headers(Map<String, String> headers) {
         return new Html(this.statusCode, merge(this.headers, headers), this.children);
     }
 
+    /**
+     * Sets redirect status code and the Location header.
+     * @param location Location header for redirection
+     * @return and instance with the redirection status code and header
+     */
     public Html redirect(String location) {
-        return new Html(302, merge(this.headers, Map.of("Location", location)), this.children);
+        return new Html(MOVED_TEMPORARILY_STATUS_CODE, merge(this.headers, Map.of("Location", location)), this.children);
     }
 
     /**
@@ -65,7 +82,7 @@ public final class Html extends TagDefinition {
      * @return a tag definition
      */
     public static Html html(DocumentPartDefinition... children) {
-        return new Html( 200, Map.of(), children);
+        return new Html(OK_STATUS_CODE, Map.of(), children);
     }
 
     /**
