@@ -99,11 +99,11 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void addEvent(Optional<VirtualDomPath> elementPath,
-                         String eventName,
-                         Consumer<EventContext> eventHandler,
-                         boolean preventDefault,
-                         Event.Modifier modifier) {
+    public <S> void addEvent(Optional<VirtualDomPath> elementPath,
+                             String eventName,
+                             Consumer<EventContext<S>> eventHandler,
+                             boolean preventDefault,
+                             Event.Modifier modifier) {
        context.addEvent(elementPath, eventName, eventHandler, preventDefault, modifier);
     }
 

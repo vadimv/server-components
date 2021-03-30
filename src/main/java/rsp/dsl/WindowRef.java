@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /**
  * A reference to a browser's page window object.
  */
-public final class WindowRef implements ElementRef {
+public final class WindowRef<S> implements ElementRef {
 
     /**
      * Registers an listener on a window object event with the 'prevent-default' property set to true
@@ -19,7 +19,7 @@ public final class WindowRef implements ElementRef {
      * @param handler a code handler for this event
      * @return an event definition
      */
-    public EventDefinition on(String eventType, Consumer<EventContext> handler) {
+    public EventDefinition<S> on(String eventType, Consumer<EventContext<S>> handler) {
         return on(eventType, EventDefinition.PREVENT_DEFAULT_DEFAULT_VALUE, handler);
     }
 
@@ -31,8 +31,8 @@ public final class WindowRef implements ElementRef {
      * @param handler a code handler for this event
      * @return an event definition
      */
-    public EventDefinition on(String eventType, boolean preventDefault, Consumer<EventContext> handler) {
-        return new EventDefinition(Optional.of(VirtualDomPath.WINDOW), eventType, handler, preventDefault, Event.NO_MODIFIER);
+    public EventDefinition<S> on(String eventType, boolean preventDefault, Consumer<EventContext<S>> handler) {
+        return new EventDefinition<S>(Optional.of(VirtualDomPath.WINDOW), eventType, handler, preventDefault, Event.NO_MODIFIER);
     }
 
     public ElementRef ref() {

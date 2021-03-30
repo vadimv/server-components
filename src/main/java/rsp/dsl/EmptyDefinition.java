@@ -5,7 +5,7 @@ import rsp.page.PageRenderContext;
 /**
  * The void definition, without any representation in the result DOM tree.
  */
-final class EmptyDefinition implements DocumentPartDefinition {
+final class EmptyDefinition<S> implements DocumentPartDefinition<S> {
     /**
      * The default instance for reuse.
      */

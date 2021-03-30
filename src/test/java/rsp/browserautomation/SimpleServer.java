@@ -2,9 +2,10 @@ package rsp.browserautomation;
 
 import rsp.App;
 import rsp.Component;
+import rsp.Rendering;
+import rsp.dsl.ComponentDefinition;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
-import rsp.state.UseState;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -28,15 +29,16 @@ public class SimpleServer {
     public static SimpleServer run(boolean blockCurrentThread) throws Exception {
         final Component<State> render = state ->
                 html(head(title("test-server-title")),
-                     body(subComponent.render(UseState.readWrite(() -> state.get().i, s -> state.accept(new State(s)))),
-                           div(button(attr("type", "button"),
+                     body(rwComponent(subComponent, state.get().i, s -> new State(s)),
+                          div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),
                                on("click",
                                   d -> { state.accept(new State(state.get().i + 1));}))),
-                           div(span(attr("id", "s0"),
+                           div(span(attr("id", "s0") ,
                                     style("background-color", state.get().i % 2 ==0 ? "red" : "blue"),
-                                    text(state.get().i)))
+                                    text(state.get().i))
+                           )
         ));
 
         final Function<HttpRequest, State> routes = request -> {
@@ -67,8 +69,12 @@ public class SimpleServer {
         }
     }
 
-    public static final Component<Integer> subComponent = state ->
+    public static final Rendering<Integer> subComponent = state ->
             div(attr("id", "d0"),
                 text("+10"),
-                on("click", d -> { state.accept(state.get() + 10);}));
+                on("click", d -> { d.setState(state + 10);}));
+
+    public static <S1, S2> ComponentDefinition<S1, S2> rwComponent(Rendering<S2> component, S2 state, Function<S2, S1> f) {
+        return new ComponentDefinition<>(component, state, f);
+    }
 }

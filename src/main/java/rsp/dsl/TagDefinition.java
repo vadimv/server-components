@@ -9,17 +9,18 @@ import java.util.Objects;
 /**
  * A definition of an XML tag.
  */
-public class TagDefinition implements DocumentPartDefinition {
+public class TagDefinition<S> implements DocumentPartDefinition<S> {
     protected final XmlNs ns;
     protected final String name;
-    protected final DocumentPartDefinition[] children;
+    protected final DocumentPartDefinition<S>[] children;
 
     /**
      * Creates a new instance of an XML tag's definition.
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public TagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
+    @SafeVarargs
+    public TagDefinition(XmlNs ns, String name, DocumentPartDefinition<S>... children) {
         this.ns = Objects.requireNonNull(ns);
         this.name = Objects.requireNonNull(name);
         this.children = children;

@@ -5,14 +5,14 @@ import rsp.page.EventContext;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public final class Event {
+public final class Event<S> {
     public static final Modifier NO_MODIFIER = new NoModifier();
     public final Target eventTarget;
-    public final Consumer<EventContext> eventHandler;
+    public final Consumer<EventContext<S>> eventHandler;
     public final boolean preventDefault;
     public final Modifier modifier;
 
-    public Event(Event.Target eventTarget, Consumer<EventContext> eventHandler, boolean preventDefault, Modifier modifier) {
+    public Event(Event.Target eventTarget, Consumer<EventContext<S>> eventHandler, boolean preventDefault, Modifier modifier) {
         this.eventTarget = Objects.requireNonNull(eventTarget);
         this.eventHandler = Objects.requireNonNull(eventHandler);
         this.preventDefault = preventDefault;

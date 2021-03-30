@@ -8,7 +8,7 @@ import java.util.Arrays;
 /**
  * A definition of an XML tag.
  */
-public final class PlainTagDefinition extends TagDefinition {
+public final class PlainTagDefinition<S> extends TagDefinition<S> {
 
 
     /**
@@ -16,7 +16,7 @@ public final class PlainTagDefinition extends TagDefinition {
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public PlainTagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
+    public PlainTagDefinition(XmlNs ns, String name, DocumentPartDefinition<S>... children) {
         super(ns, name, children);
     }
 

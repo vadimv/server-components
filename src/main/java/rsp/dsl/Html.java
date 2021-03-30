@@ -20,7 +20,7 @@ import java.util.stream.Stream;
 /**
  * A HTML tags definitions domain-specific language and related util functions.
  */
-public final class Html extends TagDefinition {
+public final class Html<S> extends TagDefinition<S> {
 
     /**
      * Attributes names which are interpreted by default as properties.
@@ -29,13 +29,14 @@ public final class Html extends TagDefinition {
     public final static String DEFAULT_PROPERTIES_NAMES =
             "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
 
-    private static int OK_STATUS_CODE = 200;
-    private static int MOVED_TEMPORARILY_STATUS_CODE = 302;
+    private static final int OK_STATUS_CODE = 200;
+    private static final int MOVED_TEMPORARILY_STATUS_CODE = 302;
 
     private final int statusCode;
     private final Map<String, String> headers;
 
-    private Html(int statusCode, Map<String, String> headers, DocumentPartDefinition... children) {
+    @SafeVarargs
+    private Html(int statusCode, Map<String, String> headers, DocumentPartDefinition<S>... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
         this.headers = Objects.requireNonNull(headers);
@@ -54,8 +55,8 @@ public final class Html extends TagDefinition {
      * @param statusCode status code
      * @return an instance with the status code
      */
-    public Html statusCode(int statusCode) {
-        return new Html(statusCode, this.headers, this.children);
+    public Html<S> statusCode(int statusCode) {
+        return new Html<>(statusCode, this.headers, this.children);
     }
 
     /**
@@ -63,8 +64,8 @@ public final class Html extends TagDefinition {
      * @param headers the map containing headers
      * @return an instance with added headers
      */
-    public Html headers(Map<String, String> headers) {
-        return new Html(this.statusCode, merge(this.headers, headers), this.children);
+    public Html<S> headers(Map<String, String> headers) {
+        return new Html<>(this.statusCode, merge(this.headers, headers), this.children);
     }
 
     /**
@@ -72,8 +73,8 @@ public final class Html extends TagDefinition {
      * @param location Location header for redirection
      * @return and instance with the redirection status code and header
      */
-    public Html redirect(String location) {
-        return new Html(MOVED_TEMPORARILY_STATUS_CODE, merge(this.headers, Map.of("Location", location)), this.children);
+    public Html<S> redirect(String location) {
+        return new Html<>(MOVED_TEMPORARILY_STATUS_CODE, merge(this.headers, Map.of("Location", location)), this.children);
     }
 
     /**
@@ -81,8 +82,9 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static Html html(DocumentPartDefinition... children) {
-        return new Html(OK_STATUS_CODE, Map.of(), children);
+    @SafeVarargs
+    public static <S> Html<S> html(DocumentPartDefinition<S>... children) {
+        return new Html<>(OK_STATUS_CODE, Map.of(), children);
     }
 
     /**
@@ -92,8 +94,9 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition xmlTag(XmlNs ns, String name, DocumentPartDefinition... children) {
-        return new TagDefinition(ns, name, children);
+    @SafeVarargs
+    public static <S> TagDefinition<S> xmlTag(XmlNs ns, String name, DocumentPartDefinition<S>... children) {
+        return new TagDefinition<>(ns, name, children);
     }
 
     /**
@@ -102,7 +105,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tag(String name, DocumentPartDefinition... children) {
+    public static <S> TagDefinition<S> tag(String name, DocumentPartDefinition<S>... children) {
         return xmlTag(XmlNs.html, name, children);
     }
 
@@ -113,8 +116,8 @@ public final class Html extends TagDefinition {
      * @param isProperty true if this attribute should be interpreted as a property, false otherwise
      * @return an attribute definition
      */
-    public static AttributeDefinition attr(String name, String value, boolean isProperty) {
-        return new AttributeDefinition(name, value, isProperty);
+    public static <S> AttributeDefinition<S> attr(String name, String value, boolean isProperty) {
+        return new AttributeDefinition<>(name, value, isProperty);
     }
 
     /**
@@ -123,7 +126,7 @@ public final class Html extends TagDefinition {
      * @param value a property value
      * @return a property definition
      */
-    public static AttributeDefinition prop(String name, String value) {
+    public static <S> AttributeDefinition<S> prop(String name, String value) {
         return attr(name, value, true);
     }
 
@@ -135,7 +138,7 @@ public final class Html extends TagDefinition {
      * @param value an attribute value
      * @return an attribute definition
      */
-    public static AttributeDefinition attr(String name, String value) {
+    public static <S> AttributeDefinition<S> attr(String name, String value) {
         return attr(name, value, isPropertyByDefault(name));
     }
 
@@ -144,8 +147,8 @@ public final class Html extends TagDefinition {
      * @param name an attribute name
      * @return an attribute definition
      */
-    public static AttributeDefinition attr(String name) {
-        return new AttributeDefinition(name, name, isPropertyByDefault(name));
+    public static <S> AttributeDefinition<S> attr(String name) {
+        return new AttributeDefinition<>(name, name, isPropertyByDefault(name));
     }
 
     /**
@@ -154,7 +157,7 @@ public final class Html extends TagDefinition {
      * @param handler an event handler
      * @return a DOM event handler definition
      */
-    public static EventDefinition on(String eventType, Consumer<EventContext> handler) {
+    public static <S> EventDefinition<S> on(String eventType, Consumer<EventContext<S>> handler) {
         return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
     }
 
@@ -166,8 +169,8 @@ public final class Html extends TagDefinition {
      * @param handler an event handler
      * @return a DOM event handler definition
      */
-    public static EventDefinition on(String eventType, boolean preventDefault, Consumer<EventContext> handler) {
-        return new EventDefinition(eventType, handler, preventDefault, Event.NO_MODIFIER);
+    public static <S> EventDefinition<S> on(String eventType, boolean preventDefault, Consumer<EventContext<S>> handler) {
+        return new EventDefinition<S>(eventType, handler, preventDefault, Event.NO_MODIFIER);
     }
 
     /**
@@ -176,8 +179,8 @@ public final class Html extends TagDefinition {
      * @param value a style value
      * @return an inline style definition
      */
-    public static StyleDefinition style(String name, String value) {
-        return new StyleDefinition(name, value);
+    public static <S> StyleDefinition<S> style(String name, String value) {
+        return new StyleDefinition<>(name, value);
     }
 
     /**
@@ -185,8 +188,8 @@ public final class Html extends TagDefinition {
      * @param text a text as a {@link String}
      * @return a text node definition
      */
-    public static TextDefinition text(String text) {
-        return new TextDefinition(text);
+    public static <S> TextDefinition<S> text(String text) {
+        return new TextDefinition<>(text);
     }
 
     /**
@@ -194,8 +197,8 @@ public final class Html extends TagDefinition {
      * @param obj an arbitrary object to be converted to text using its {@link #toString()} method
      * @return a text node definition
      */
-    public static TextDefinition text(Object obj) {
-        return new TextDefinition(obj.toString());
+    public static <S>  TextDefinition<S> text(Object obj) {
+        return new TextDefinition<>(obj.toString());
     }
 
 
@@ -204,7 +207,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static  TagDefinition body(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> body(DocumentPartDefinition<S>... children) {
         return tag("body", children);
     }
 
@@ -213,7 +217,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static  TagDefinition head(UpgradeMode upgradeMode, DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> head(UpgradeMode upgradeMode, DocumentPartDefinition<S>... children) {
         return UpgradeMode.SCRIPTS == upgradeMode ? tag("head", children)
                 : new PlainTagDefinition(XmlNs.html, "head", children);
     }
@@ -223,7 +228,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static  TagDefinition head(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> head(DocumentPartDefinition<S>... children) {
         return head(UpgradeMode.SCRIPTS, children);
     }
 
@@ -232,7 +238,7 @@ public final class Html extends TagDefinition {
      * @param text a document's title text
      * @return a tag definition
      */
-    public static  TagDefinition title(String text) {
+    public static <S> TagDefinition<S> title(String text) {
         return tag("title", text(text));
     }
 
@@ -241,7 +247,8 @@ public final class Html extends TagDefinition {
      * @param children the element's attributes
      * @return a tag definition
      */
-    public static TagDefinition link(AttributeDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> link(AttributeDefinition<S>... children) {
         return tag("link", children);
     }
 
@@ -250,7 +257,8 @@ public final class Html extends TagDefinition {
      * @param children the element's attributes
      * @return a tag definition
      */
-    public static TagDefinition meta(AttributeDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> meta(AttributeDefinition<S>... children) {
         return tag("meta", children);
     }
 
@@ -259,7 +267,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
-    public static TagDefinition h1(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> h1(DocumentPartDefinition<S>... children) {
         return tag("h1", children);
     }
 
@@ -268,7 +277,7 @@ public final class Html extends TagDefinition {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h1(String text) {
+    public static <S> TagDefinition<S> h1(String text) {
         return h1(text(text));
     }
 
@@ -277,7 +286,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
-    public static TagDefinition h2(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> h2(DocumentPartDefinition<S>... children) {
         return tag("h2", children);
     }
 
@@ -286,7 +296,7 @@ public final class Html extends TagDefinition {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h2(String text) {
+    public static <S> TagDefinition<S> h2(String text) {
         return h2(text(text));
     }
 
@@ -295,7 +305,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h3(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> h3(DocumentPartDefinition<S>... children) {
         return tag("h3", children);
     }
 
@@ -304,7 +315,7 @@ public final class Html extends TagDefinition {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h3(String text) {
+    public static <S> TagDefinition<S> h3(String text) {
         return h3(text(text));
     }
 
@@ -313,7 +324,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h4(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> h4(DocumentPartDefinition<S>... children) {
         return tag("h4", children);
     }
 
@@ -322,7 +334,7 @@ public final class Html extends TagDefinition {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h4(String text) {
+    public static <S> TagDefinition<S> h4(String text) {
         return h4(text(text));
     }
 
@@ -331,7 +343,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h5(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> h5(DocumentPartDefinition<S>... children) {
         return tag("h5", children);
     }
 
@@ -340,7 +353,7 @@ public final class Html extends TagDefinition {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h5(String text) {
+    public static <S> TagDefinition<S> h5(String text) {
         return h5(text(text));
     }
 
@@ -349,7 +362,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h6(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> h6(DocumentPartDefinition<S>... children) {
         return tag("h6", children);
     }
 
@@ -358,7 +372,7 @@ public final class Html extends TagDefinition {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h6(String text) {
+    public static <S> TagDefinition<S> h6(String text) {
         return h6(text(text));
     }
 
@@ -367,7 +381,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition div(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> div(DocumentPartDefinition<S>... children) {
         return tag("div", children);
     }
 
@@ -376,7 +391,7 @@ public final class Html extends TagDefinition {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition div(String text) {
+    public static <S> TagDefinition<S> div(String text) {
         return div(text(text));
     }
 
@@ -385,7 +400,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition a(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> a(DocumentPartDefinition<S>... children) {
         return tag("a", children);
     }
 
@@ -396,7 +412,8 @@ public final class Html extends TagDefinition {
      * @param children other descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition a(String href, String text, DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> a(String href, String text, DocumentPartDefinition<S>... children) {
         return a(ArrayUtils.concat(new DocumentPartDefinition[]{ attr("href", href), text(text)}, children));
     }
 
@@ -405,7 +422,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition p(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> p(DocumentPartDefinition<S>... children) {
         return tag("p", children);
     }
 
@@ -414,7 +432,7 @@ public final class Html extends TagDefinition {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition p(String text) {
+    public static <S> TagDefinition<S> p(String text) {
         return p(text(text));
     }
 
@@ -423,7 +441,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition span(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> span(DocumentPartDefinition<S>... children) {
         return tag("span", children);
     }
 
@@ -432,7 +451,7 @@ public final class Html extends TagDefinition {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition span(String text) {
+    public static <S> TagDefinition<S> span(String text) {
         return span(text(text));
     }
 
@@ -441,7 +460,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition form(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> form(DocumentPartDefinition<S>... children) {
         return tag("form", children);
     }
 
@@ -450,7 +470,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition input(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> input(DocumentPartDefinition<S>... children) {
         return tag("input", children);
     }
 
@@ -459,7 +480,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition button(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> button(DocumentPartDefinition<S>... children) {
         return tag("button", children);
     }
 
@@ -468,7 +490,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition ul(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> ul(DocumentPartDefinition<S>... children) {
         return tag("ul", children);
     }
 
@@ -477,7 +500,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition ol(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> ol(DocumentPartDefinition<S>... children) {
         return tag("ol", children);
     }
 
@@ -486,7 +510,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition li(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> li(DocumentPartDefinition<S>... children) {
         return tag("li", children);
     }
 
@@ -495,7 +520,7 @@ public final class Html extends TagDefinition {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition li(String text) {
+    public static <S> TagDefinition<S> li(String text) {
         return li(text(text));
     }
 
@@ -504,7 +529,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition table(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> table(DocumentPartDefinition<S>... children) {
         return tag("table", children);
     }
 
@@ -513,7 +539,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition thead(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> thead(DocumentPartDefinition<S>... children) {
         return tag("thead", children);
     }
 
@@ -522,7 +549,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tbody(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> tbody(DocumentPartDefinition<S>... children) {
         return tag("tbody", children);
     }
 
@@ -531,7 +559,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition th(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> th(DocumentPartDefinition<S>... children) {
         return tag("th", children);
     }
 
@@ -540,7 +569,7 @@ public final class Html extends TagDefinition {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition th(String text) {
+    public static <S> TagDefinition<S> th(String text) {
         return th(text(text));
     }
 
@@ -549,7 +578,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tr(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> tr(DocumentPartDefinition<S>... children) {
         return tag("tr", children);
     }
 
@@ -558,7 +588,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition td(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> td(DocumentPartDefinition<S>... children) {
         return tag("td", children);
     }
 
@@ -567,7 +598,7 @@ public final class Html extends TagDefinition {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition td(String text) {
+    public static <S> TagDefinition<S> td(String text) {
         return td(text(text));
     }
 
@@ -576,12 +607,13 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition label(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static <S> TagDefinition<S> label(DocumentPartDefinition<S>... children) {
         return tag("label", children);
     }
 
 
-    public static TagDefinition br() {
+    public static <S> TagDefinition<S> br() {
         return tag("br");
     }
 
@@ -591,7 +623,7 @@ public final class Html extends TagDefinition {
      * @param items a {@link Stream} of definitions
      * @return a document part definition representing a sequence of definitions
      */
-    public static SequenceDefinition of(Stream<DocumentPartDefinition> items) {
+    public static <S> SequenceDefinition<S> of(Stream<DocumentPartDefinition<S>> items) {
         return new SequenceDefinition(items.toArray(DocumentPartDefinition[]::new));
     }
 
@@ -601,7 +633,7 @@ public final class Html extends TagDefinition {
      * @param itemSupplier a code block
      * @return a result definition
      */
-    public static SequenceDefinition of(Supplier<DocumentPartDefinition> itemSupplier) {
+    public static <S> SequenceDefinition<S> of(Supplier<DocumentPartDefinition<S>> itemSupplier) {
         return new SequenceDefinition(new DocumentPartDefinition[] { itemSupplier.get() });
     }
 
@@ -610,7 +642,7 @@ public final class Html extends TagDefinition {
      * @param completableFutureDefinition an asynchronous computation of a definition
      * @return a result definition
      */
-    public static DocumentPartDefinition of(CompletableFuture<? extends DocumentPartDefinition> completableFutureDefinition) {
+    public static <S> DocumentPartDefinition<S> of(CompletableFuture<? extends DocumentPartDefinition<S>> completableFutureDefinition) {
         return completableFutureDefinition.join();
     }
 
@@ -620,7 +652,7 @@ public final class Html extends TagDefinition {
      * @param then a definition which may be inserted
      * @return a result definition
      */
-    public static DocumentPartDefinition when(boolean condition, DocumentPartDefinition then) {
+    public static <S> DocumentPartDefinition<S> when(boolean condition, DocumentPartDefinition<S> then) {
         return when(condition, () -> then);
     }
 
@@ -631,7 +663,7 @@ public final class Html extends TagDefinition {
      * @param then a {@link Supplier} of a definition which may be inserted
      * @return a result definition
      */
-    public static DocumentPartDefinition when(boolean condition, Supplier<DocumentPartDefinition> then) {
+    public static <S> DocumentPartDefinition<S> when(boolean condition, Supplier<DocumentPartDefinition<S>> then) {
         return condition ? then.get() : EmptyDefinition.INSTANCE;
     }
 
@@ -639,8 +671,8 @@ public final class Html extends TagDefinition {
      * Provides a definition of a browsers' window object.
      * @return a window object definition
      */
-    public static WindowRef window() {
-        return new WindowRef();
+    public static <S> WindowRef<S> window() {
+        return new WindowRef<>();
     }
 
     /**

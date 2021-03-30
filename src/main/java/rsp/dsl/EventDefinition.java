@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /**
  * An event definition.
  */
-public final class EventDefinition implements DocumentPartDefinition {
+public final class EventDefinition<S> implements DocumentPartDefinition<S> {
 
     /**
      * This value is used when not explicitly specified for an event.
@@ -20,13 +20,13 @@ public final class EventDefinition implements DocumentPartDefinition {
 
     public final Optional<VirtualDomPath> elementPath;
     public final String eventType;
-    public final Consumer<EventContext> handler;
+    public final Consumer<EventContext<S>> handler;
     public final boolean preventDefault;
     public final Event.Modifier modifier;
 
     public EventDefinition(Optional<VirtualDomPath> elementPath,
                            String eventType,
-                           Consumer<EventContext> handler,
+                           Consumer<EventContext<S>> handler,
                            boolean preventDefault,
                            Event.Modifier modifier) {
         super();
@@ -38,7 +38,7 @@ public final class EventDefinition implements DocumentPartDefinition {
     }
 
     public EventDefinition(String eventType,
-                           Consumer<EventContext> handler,
+                           Consumer<EventContext<S>> handler,
                            Event.Modifier modifier) {
         super();
         this.elementPath = Optional.empty();
@@ -49,7 +49,7 @@ public final class EventDefinition implements DocumentPartDefinition {
     }
 
     public EventDefinition(String eventType,
-                           Consumer<EventContext> handler,
+                           Consumer<EventContext<S>> handler,
                            boolean preventDefault,
                            Event.Modifier modifier) {
         super();

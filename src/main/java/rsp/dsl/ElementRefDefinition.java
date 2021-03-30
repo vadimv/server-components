@@ -8,7 +8,7 @@ import java.util.Objects;
 /**
  * A reference to an element.
  */
-public final class ElementRefDefinition implements DocumentPartDefinition, ElementRef {
+public final class ElementRefDefinition<S> implements DocumentPartDefinition<S>, ElementRef {
 
     @Override
     public void accept(PageRenderContext renderContext) {

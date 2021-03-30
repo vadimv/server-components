@@ -151,8 +151,8 @@ public final class LivePage<S> implements InMessages, Schedule {
         }
     }
 
-    private EventContext createEventContext(JsonDataType.Object eventObject) {
-        return new EventContext(qsid,
+    private EventContext<S> createEventContext(JsonDataType.Object eventObject) {
+        return new EventContext<>(qsid,
                                 js -> evalJs(js),
                                 ref -> createPropertiesHandle(ref),
                                 eventObject,

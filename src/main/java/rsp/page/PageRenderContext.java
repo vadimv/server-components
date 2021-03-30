@@ -18,9 +18,9 @@ public interface PageRenderContext {
     void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty);
     void setStyle(String name, String value);
     void addTextNode(String text);
-    void addEvent(Optional<VirtualDomPath> elementPath,
+    <S> void addEvent(Optional<VirtualDomPath> elementPath,
                   String eventName,
-                  Consumer<EventContext> eventHandler,
+                  Consumer<EventContext<S>> eventHandler,
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);

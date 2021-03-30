@@ -91,11 +91,11 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void addEvent(Optional<VirtualDomPath> elementPath,
-                         String eventType,
-                         Consumer<EventContext> eventHandler,
-                         boolean preventDefault,
-                         Event.Modifier modifier) {
+    public <S> void addEvent(Optional<VirtualDomPath> elementPath,
+                             String eventType,
+                             Consumer<EventContext<S>> eventHandler,
+                             boolean preventDefault,
+                             Event.Modifier modifier) {
         final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
         events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));

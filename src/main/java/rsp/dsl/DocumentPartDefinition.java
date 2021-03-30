@@ -6,7 +6,7 @@ import rsp.page.PageRenderContext;
  * Represents a building block, a node of the input domain-specific language definitions document.
  * For example a definition of a fragment of HTML or an event or a style or something else.
  */
-public interface DocumentPartDefinition {
+public interface DocumentPartDefinition<S> {
 
     /**
      * An implementation of this method determines how its definition node is rendered to a virtual DOM tree.
