@@ -12,6 +12,7 @@ import rsp.util.json.JsonDataType;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.function.Consumer;
 
 /**
  * A server-side mirror object of an open browser's page.
@@ -49,7 +50,7 @@ public final class LivePage<S> implements InMessages, Schedule {
             // Invoke this page's shutdown events
             pageState.snapshot().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
                 if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
+                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY, s -> {});
                     event.eventHandler.accept(eventContext);
                 }
             });
@@ -102,7 +103,7 @@ public final class LivePage<S> implements InMessages, Schedule {
             while(eventElementPath.level() > 0) {
                 final Event event = pageState.snapshot().events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
-                    final EventContext eventContext = createEventContext(eventObject);
+                    final EventContext eventContext = createEventContext(eventObject, event.componentSetState);
                     event.eventHandler.accept(eventContext);
                     break;
                 } else {
@@ -151,13 +152,14 @@ public final class LivePage<S> implements InMessages, Schedule {
         }
     }
 
-    private EventContext<S> createEventContext(JsonDataType.Object eventObject) {
+    private EventContext<S> createEventContext(JsonDataType.Object eventObject, Consumer<S> setState) {
         return new EventContext<>(qsid,
                                 js -> evalJs(js),
                                 ref -> createPropertiesHandle(ref),
                                 eventObject,
                                 this,
-                                href -> setHref(href));
+                                href -> setHref(href),
+                                setState);
     }
 
     private PropertiesHandle createPropertiesHandle(Ref ref) {

@@ -8,6 +8,7 @@ import rsp.ref.Ref;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public final class UpgradingPageRenderContext implements PageRenderContext {
 
@@ -110,6 +111,16 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     @Override
     public void addRef(Ref ref) {
         context.addRef(ref);
+    }
+
+    @Override
+    public void openComponent(Function<Object, Object> componentSetState) {
+        context.openComponent(componentSetState);
+    }
+
+    @Override
+    public void closeComponent() {
+        context.closeComponent();
     }
 
     @Override

@@ -8,6 +8,7 @@ import rsp.ref.Ref;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public interface PageRenderContext {
     void setStatusCode(int statusCode);
@@ -24,4 +25,7 @@ public interface PageRenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
+    void openComponent(Function<Object, Object> componentSetState);
+    void closeComponent();
+
 }

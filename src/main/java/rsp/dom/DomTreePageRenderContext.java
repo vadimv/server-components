@@ -7,6 +7,7 @@ import rsp.page.PageRenderContext;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public final class DomTreePageRenderContext implements PageRenderContext {
 
@@ -19,9 +20,10 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     private Tag root;
 
     private Deque<Tag> tagsStack = new ArrayDeque<>();
+    private Deque<Consumer<Object>> componentsStack = new ArrayDeque<>();
 
-
-    public DomTreePageRenderContext() {
+    public DomTreePageRenderContext(Consumer<Object> initialSetState) {
+        componentsStack.push(initialSetState);
     }
 
     public Map<String, String> headers() {
@@ -98,12 +100,24 @@ public final class DomTreePageRenderContext implements PageRenderContext {
                              Event.Modifier modifier) {
         final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
-        events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
+        final Consumer<?> setState = componentsStack.peek();
+        events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier, setState));
     }
 
     @Override
     public void addRef(Ref ref) {
         refs.put(ref, tagsStack.peek().path);
+    }
+
+    @Override
+    public void openComponent(Function<Object, Object> f) {
+        final Consumer<Object> parentComponent= componentsStack.peek();
+        componentsStack.push(s -> parentComponent.accept(f.apply(s)));
+    }
+
+    @Override
+    public void closeComponent() {
+        componentsStack.pop();
     }
 
     @Override

@@ -2,6 +2,7 @@ package rsp.examples;
 
 import rsp.App;
 import rsp.Component;
+import rsp.Rendering;
 import rsp.jetty.JettyServer;
 
 import static rsp.dsl.Html.*;
@@ -15,11 +16,11 @@ public class PlainForm {
         server.join();
     }
 
-    private static Component<String> pages() {
+    private static Rendering<String> pages() {
         return s -> of(() -> html(
-                head(UpgradeMode.RAW, title("Page: " + s.get())),
+                head(UpgradeMode.RAW, title("Page: " + s)),
                 body(
-                    formComponent().render(s)
+                    //formComponent().render(s)
                 )
             )
         );

@@ -11,12 +11,17 @@ public final class Event<S> {
     public final Consumer<EventContext<S>> eventHandler;
     public final boolean preventDefault;
     public final Modifier modifier;
+    public final Consumer<S> componentSetState;
 
-    public Event(Event.Target eventTarget, Consumer<EventContext<S>> eventHandler, boolean preventDefault, Modifier modifier) {
+    public Event(Event.Target eventTarget,
+                 Consumer<EventContext<S>> eventHandler,
+                 boolean preventDefault, Modifier modifier,
+                 Consumer<S> componentSetState) {
         this.eventTarget = Objects.requireNonNull(eventTarget);
         this.eventHandler = Objects.requireNonNull(eventHandler);
         this.preventDefault = preventDefault;
         this.modifier = Objects.requireNonNull(modifier);
+        this.componentSetState = Objects.requireNonNull(componentSetState);
     }
 
     @Override

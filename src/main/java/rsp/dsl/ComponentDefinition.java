@@ -9,9 +9,9 @@ public class ComponentDefinition<S1, S2> implements DocumentPartDefinition<S1> {
 
     public final Rendering<S2> component;
     private final S2 state;
-    private final Function<S2, S1> f;
+    private final Function<Object, Object> f;
 
-    public ComponentDefinition(Rendering<S2> component, S2 state, Function<S2, S1> f) {
+    public ComponentDefinition(Rendering<S2> component, S2 state, Function<Object, Object> f) {
         this.component = component;
         this.state = state;
         this.f = f;
@@ -19,6 +19,8 @@ public class ComponentDefinition<S1, S2> implements DocumentPartDefinition<S1> {
 
     @Override
     public void accept(PageRenderContext renderContext) {
+        renderContext.openComponent(f);
         component.render(state).accept(renderContext);
+        renderContext.closeComponent();
     }
 }

@@ -25,7 +25,8 @@ public class SerializeOutMessagesTests {
         final Event e = new Event(new Event.Target("click", VirtualDomPath.of("1_1")),
                                   ec -> {},
                                   true,
-                                  new Event.DebounceModifier(100, false));
+                                  new Event.DebounceModifier(100, false),
+                                   s -> {} );
         create(c).listenEvents(List.of(e));
         Assert.assertEquals("[2,\"click\",true,\"1_1\",\"2:100:false\"]", c.result);
     }

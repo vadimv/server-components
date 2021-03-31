@@ -680,7 +680,7 @@ public final class Html<S> extends TagDefinition<S> {
      * @see EventContext#props(ElementRef)
      * @return a reference object
      */
-    public static ElementRef createElementRef() {
+    public static ElementRefDefinition createElementRef() {
         return new ElementRefDefinition();
     }
 

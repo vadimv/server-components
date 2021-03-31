@@ -27,17 +27,17 @@ public class SimpleServer {
     }
 
     public static SimpleServer run(boolean blockCurrentThread) throws Exception {
-        final Component<State> render = state ->
+        final Rendering<State> render = state ->
                 html(head(title("test-server-title")),
-                     body(rwComponent(subComponent, state.get().i, s -> new State(s)),
+                     body(rwComponent(subComponent, state.i, s -> new State(s)),
                           div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),
                                on("click",
-                                  d -> { state.accept(new State(state.get().i + 1));}))),
+                                  d -> { d.setState(new State(state.i + 1));}))),
                            div(span(attr("id", "s0") ,
-                                    style("background-color", state.get().i % 2 ==0 ? "red" : "blue"),
-                                    text(state.get().i))
+                                    style("background-color", state.i % 2 ==0 ? "red" : "blue"),
+                                    text(state.i))
                            )
         ));
 
@@ -75,6 +75,6 @@ public class SimpleServer {
                 on("click", d -> { d.setState(state + 10);}));
 
     public static <S1, S2> ComponentDefinition<S1, S2> rwComponent(Rendering<S2> component, S2 state, Function<S2, S1> f) {
-        return new ComponentDefinition<>(component, state, f);
+        return new ComponentDefinition<S1, S2>(component, state, (Function<Object, Object>) f);
     }
 }

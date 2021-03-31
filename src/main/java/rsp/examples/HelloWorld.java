@@ -10,7 +10,7 @@ public class HelloWorld {
         final var app = new App<>("Hello world!",
                                   s -> of(() -> html(
                                             body(
-                                                 p(s.get())
+                                                 p(s)
                                                 )
                                             )
                                   ));

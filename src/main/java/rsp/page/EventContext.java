@@ -21,6 +21,7 @@ public final class EventContext<S> {
     private final JsonDataType.Object eventObject;
     private final Schedule executorService;
     private final Consumer<String> setHref;
+    private final Consumer<S> setState;
 
     /**
      * Creates a new instance of an event's context.
@@ -36,13 +37,15 @@ public final class EventContext<S> {
                         Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         JsonDataType.Object eventObject,
                         Schedule executorService,
-                        Consumer<String> setHref) {
+                        Consumer<String> setHref,
+                        Consumer<S> setState) {
         this.sessionId = sessionId;
         this.propertiesHandleLookup = propertiesHandleLookup;
         this.jsEvaluation = jsEvaluation;
         this.eventObject = eventObject;
         this.executorService = executorService;
         this.setHref = setHref;
+        this.setState = setState;
     }
 
     /**
@@ -150,5 +153,9 @@ public final class EventContext<S> {
 
     public void setState(S newState) {
         System.out.println(newState);
+        setState.accept(newState);
+    }
+
+    public void setState(Function<S, S> newStateFun) {
     }
 }

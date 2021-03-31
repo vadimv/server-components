@@ -23,14 +23,14 @@ public final class PageRendering<S> {
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
-    private final Component<S> documentDefinition;
+    private final Rendering<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
     public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
                          Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         Component<S> documentDefinition,
+                         Rendering<S> documentDefinition,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
         this.routing = routing;
         this.renderedPages = pagesStorage;
@@ -79,8 +79,8 @@ public final class PageRendering<S> {
                 final String sessionId = randomStringGenerator.newString();
                 final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-                final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-                documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
+                final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(s -> {});
+                documentDefinition.render(initialState).accept(enrich.apply(sessionId, domTreeContext));
 
                 renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
 

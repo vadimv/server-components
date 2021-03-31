@@ -4,6 +4,7 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Assert;
 import org.junit.Test;
 import rsp.Component;
+import rsp.Rendering;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
@@ -43,7 +44,7 @@ public class LivePageStateTests {
     }
 
     private LivePageState<State> create(State state, OutMessages out) {
-        final Component<State> rootComponent = s -> span(s.get().toString());
+        final Rendering<State> rootComponent = s -> span(s.toString());
 
         final LivePagePropertiesSnapshot lpps = new LivePagePropertiesSnapshot(Path.of("/" + state),
                                                                                domRoot(rootComponent, state),
@@ -55,9 +56,9 @@ public class LivePageStateTests {
         return new LivePageState<>(lpps, QID, state2route, rootComponent, enrichFunction(), out);
     }
 
-    private static Tag domRoot(Component<State> component, State state) {
-        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-        component.render(new ReadOnly<>(state)).accept(enrichFunction().apply(QID.sessionId, domTreeContext));
+    private static Tag domRoot(Rendering<State> component, State state) {
+        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(s -> {});
+        component.render(state).accept(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.root();
     }
