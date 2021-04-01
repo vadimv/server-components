@@ -123,7 +123,7 @@ public final class EventContext<S> {
      * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public Timer scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
+    public Timer scheduleAtFixedRate(Consumer<S> command, int delay, int period, TimeUnit timeUnit) {
         return executorService.scheduleAtFixedRate(command, new Object(), delay, period, timeUnit);
     }
 
@@ -138,7 +138,7 @@ public final class EventContext<S> {
      * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public Timer scheduleAtFixedRate(Runnable command, TimerRef ref, int delay, int period, TimeUnit timeUnit) {
+    public Timer scheduleAtFixedRate(Consumer<S> command, TimerRef ref, int delay, int period, TimeUnit timeUnit) {
         return executorService.scheduleAtFixedRate(command, ref, delay, period, timeUnit);
     }
 
@@ -152,7 +152,6 @@ public final class EventContext<S> {
     }
 
     public void setState(S newState) {
-        System.out.println(newState);
         setState.accept(newState);
     }
 

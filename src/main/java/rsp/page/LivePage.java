@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * A server-side mirror object of an open browser's page.
  * @param <S> the application's state's type
  */
-public final class LivePage<S> implements InMessages, Schedule {
+public final class LivePage<S> implements InMessages, Schedule<S> {
     public static final String POST_START_EVENT_TYPE = "page-start";
     public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
@@ -61,7 +61,9 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> result) {
+    public void handleExtractPropertyResponse(int descriptorId,
+                                              Either<Throwable,
+                                              JsonDataType> result) {
         result.on(ex -> {
                     log.debug(l -> l.log("extractProperty: " + descriptorId + " exception: " + ex.getMessage()));
                     synchronized (pageState) {
@@ -85,7 +87,8 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
+    public void handleEvalJsResponse(int descriptorId,
+                                     JsonDataType value) {
         log.debug(l -> l.log("evalJsResponse: " + descriptorId + " value: " + value.toStringValue()));
         synchronized (pageState) {
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
@@ -97,7 +100,10 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
+    public void handleDomEvent(int renderNumber,
+                               VirtualDomPath path,
+                               String eventType,
+                               JsonDataType.Object eventObject) {
         synchronized (pageState) {
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
@@ -120,12 +126,14 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public synchronized Timer scheduleAtFixedRate(Runnable command,
-                                                   Object key,
-                                                   long initialDelay, long period, TimeUnit unit) {
+    public synchronized Timer scheduleAtFixedRate(Consumer<S> command,
+                                                  Object key,
+                                                  long initialDelay,
+                                                  long period,
+                                                  TimeUnit unit) {
         final ScheduledFuture<?> timer = scheduledExecutorService.scheduleAtFixedRate(() -> {
             synchronized (pageState) {
-                command.run();
+                command.accept(pageState.get());
             }
         }, initialDelay, period, unit);
         schedules.put(key, timer);
@@ -133,7 +141,10 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public synchronized Timer schedule(Runnable command, Object key, long delay, TimeUnit unit) {
+    public synchronized Timer schedule(Runnable command,
+                                       Object key,
+                                       long delay,
+                                       TimeUnit unit) {
         final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
             synchronized (pageState) {
                 command.run();
@@ -152,7 +163,8 @@ public final class LivePage<S> implements InMessages, Schedule {
         }
     }
 
-    private EventContext<S> createEventContext(JsonDataType.Object eventObject, Consumer<S> setState) {
+    private EventContext<S> createEventContext(JsonDataType.Object eventObject,
+                                               Consumer<S> setState) {
         return new EventContext<>(qsid,
                                 js -> evalJs(js),
                                 ref -> createPropertiesHandle(ref),
