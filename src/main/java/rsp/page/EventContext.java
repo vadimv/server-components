@@ -20,9 +20,9 @@ public final class EventContext<S> {
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<JsonDataType>> jsEvaluation;
     private final JsonDataType.Object eventObject;
-    private final Schedule executorService;
+    private final Schedule<S> executorService;
     private final Consumer<String> setHref;
-    private final Consumer<S> setState;
+    private final Consumer<S> stateConsumer;
 
     /**
      * Creates a new instance of an event's context.
@@ -37,16 +37,16 @@ public final class EventContext<S> {
                         Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
                         Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         JsonDataType.Object eventObject,
-                        Schedule executorService,
+                        Schedule<S> executorService,
                         Consumer<String> setHref,
-                        Consumer<S> setState) {
+                        Consumer<S> stateConsumer) {
         this.sessionId = sessionId;
         this.propertiesHandleLookup = propertiesHandleLookup;
         this.jsEvaluation = jsEvaluation;
         this.eventObject = eventObject;
         this.executorService = executorService;
         this.setHref = setHref;
-        this.setState = setState;
+        this.stateConsumer = stateConsumer;
     }
 
     /**
@@ -152,11 +152,28 @@ public final class EventContext<S> {
         executorService.cancel(ref);
     }
 
+    /**
+     * Sets new state and initiate re-rendering.
+     * @param newState a new state object
+     */
     public void setState(S newState) {
-        setState.accept(newState);
+        stateConsumer.accept(newState);
     }
 
+    /**
+     * Sets new state if the Optional is present and initiate re-rendering.
+     * @param newStateOptional an optional state object
+     */
     public void setState(Optional<S> newStateOptional) {
-        newStateOptional.ifPresent(newState -> setState.accept(newState));
+        newStateOptional.ifPresent(stateConsumer::accept);
+    }
+
+    /**
+     * Performs this write operation when the argument {@link CompletableFuture}
+     * completes, with its result sets new state and initiate re-rendering.
+     * @param newStateCompletableFuture a computation resulting in a write
+     */
+    public void setState(CompletableFuture<S> newStateCompletableFuture) {
+        newStateCompletableFuture.thenAccept(this::setState);
     }
 }
