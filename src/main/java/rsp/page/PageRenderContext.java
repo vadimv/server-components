@@ -26,6 +26,7 @@ public interface PageRenderContext {
                   Event.Modifier modifier);
     void addRef(Ref ref);
     void openComponent(Function<Object, Object> componentSetState);
+    void openComponent();
     void closeComponent();
 
 }

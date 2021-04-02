@@ -1,6 +1,5 @@
 package rsp.javax.web;
 
-import rsp.Component;
 import rsp.Rendering;
 import rsp.page.*;
 import rsp.server.DeserializeInMessage;

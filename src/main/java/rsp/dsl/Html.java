@@ -1,5 +1,6 @@
 package rsp.dsl;
 
+import rsp.Rendering;
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
@@ -14,6 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
@@ -64,7 +66,7 @@ public final class Html<S> extends TagDefinition<S> {
      * @param headers the map containing headers
      * @return an instance with added headers
      */
-    public Html<S> headers(Map<String, String> headers) {
+    public Html<S> addHeaders(Map<String, String> headers) {
         return new Html<>(this.statusCode, merge(this.headers, headers), this.children);
     }
 
@@ -218,19 +220,22 @@ public final class Html<S> extends TagDefinition<S> {
      * @return a tag definition
      */
     @SafeVarargs
-    public static <S> TagDefinition<S> head(UpgradeMode upgradeMode, DocumentPartDefinition<S>... children) {
-        return UpgradeMode.SCRIPTS == upgradeMode ? tag("head", children)
-                : new PlainTagDefinition(XmlNs.html, "head", children);
+    public static <S> TagDefinition<S> head(DocumentPartDefinition<S>... children) {
+        return tag("head", children);
     }
 
     /**
-     * A HTML {@literal <head>} element of a HTML document.
+     * A 'plain' HTML {@literal <head>} element of a HTML document,
+     * has not to be upgraded with the script element establishing
+     * a WebSocket connection to the server after the browser loads the page.
+     * No live page session will be created on the server in this case.
      * @param children descendants definitions of this element
+     * @param <S>
      * @return a tag definition
      */
     @SafeVarargs
-    public static <S> TagDefinition<S> head(DocumentPartDefinition<S>... children) {
-        return head(UpgradeMode.SCRIPTS, children);
+    public static <S> TagDefinition<S> headP(DocumentPartDefinition<S>... children) {
+        return new PlainTagDefinition<>(XmlNs.html, "head", children);
     }
 
     /**
@@ -686,12 +691,20 @@ public final class Html<S> extends TagDefinition<S> {
 
     /**
      * Creates a reference to a schedule's timer.
-     * @see EventContext#schedule(Runnable, TimerRef, int, TimeUnit) 
-     * @see EventContext#scheduleAtFixedRate(Runnable, TimerRef, int, int, TimeUnit)
+     * @see EventContext#schedule(Consumer, TimerRef, int, TimeUnit)
+     * @see EventContext#scheduleAtFixedRate(Consumer, int, int, TimeUnit)
      * @return a reference object
      */
     public static TimerRef createTimerRef() {
         return new TimerRefDefinition();
+    }
+
+    public static <S1, S2> ComponentDefinition<S1, S2> component(Rendering<S2> component, S2 state, Function<S2, S1> stateFun) {
+        return new ComponentDefinition<S1, S2>(component, state, (Function<Object, Object>) stateFun);
+    }
+
+    public static <S> RenderingComponentDefinition<S> component(Rendering<S> component, S state) {
+        return new RenderingComponentDefinition<S>(component, state);
     }
 
     private static boolean isPropertyByDefault(String name) {
@@ -702,21 +715,5 @@ public final class Html<S> extends TagDefinition<S> {
         final Map<String, String> result = new HashMap<>(m1);
         result.putAll(m2);
         return result;
-    }
-
-    /**
-     * Defines if auto HTML head tag upgrade is enabled.
-     */
-    public enum UpgradeMode {
-        /**
-         * The RSP scripts tags added to the document's head tag.
-         * This is the default rendering mode.
-         */
-        SCRIPTS,
-
-        /**
-         * No HTML tags upgrade applied.
-         */
-        RAW
     }
 }

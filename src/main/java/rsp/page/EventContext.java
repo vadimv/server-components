@@ -5,6 +5,7 @@ import rsp.ref.Ref;
 import rsp.ref.TimerRef;
 import rsp.util.json.JsonDataType;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -97,7 +98,7 @@ public final class EventContext<S> {
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of the delayed task
      */
-    public Timer schedule(Runnable command, int delay, TimeUnit timeUnit) {
+    public Timer schedule(Consumer<S> command, int delay, TimeUnit timeUnit) {
         return executorService.schedule(command, new Object(), delay, timeUnit);
     }
 
@@ -109,7 +110,7 @@ public final class EventContext<S> {
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of the delayed task
      */
-    public Timer schedule(Runnable command, TimerRef ref, int delay, TimeUnit timeUnit) {
+    public Timer schedule(Consumer<S> command, TimerRef ref, int delay, TimeUnit timeUnit) {
         return executorService.schedule(command, ref, delay, timeUnit);
     }
 
@@ -155,6 +156,7 @@ public final class EventContext<S> {
         setState.accept(newState);
     }
 
-    public void setState(Function<S, S> newStateFun) {
+    public void setState(Optional<S> newStateOptional) {
+        newStateOptional.ifPresent(newState -> setState.accept(newState));
     }
 }

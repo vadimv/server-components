@@ -141,13 +141,13 @@ public final class LivePage<S> implements InMessages, Schedule<S> {
     }
 
     @Override
-    public synchronized Timer schedule(Runnable command,
+    public synchronized Timer schedule(Consumer<S> command,
                                        Object key,
                                        long delay,
                                        TimeUnit unit) {
         final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
             synchronized (pageState) {
-                command.run();
+                command.accept(pageState.get());
             }
         }, delay, unit);
         schedules.put(key, timer);
@@ -166,12 +166,12 @@ public final class LivePage<S> implements InMessages, Schedule<S> {
     private EventContext<S> createEventContext(JsonDataType.Object eventObject,
                                                Consumer<S> setState) {
         return new EventContext<>(qsid,
-                                js -> evalJs(js),
-                                ref -> createPropertiesHandle(ref),
-                                eventObject,
-                                this,
-                                href -> setHref(href),
-                                setState);
+                                  js -> evalJs(js),
+                                  ref -> createPropertiesHandle(ref),
+                                  eventObject,
+                                 this,
+                                  href -> setHref(href),
+                                  setState);
     }
 
     private PropertiesHandle createPropertiesHandle(Ref ref) {

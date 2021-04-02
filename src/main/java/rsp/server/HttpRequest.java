@@ -1,6 +1,5 @@
 package rsp.server;
 
-import org.eclipse.jetty.http.HttpMethod;
 import rsp.page.PageRendering;
 
 import java.net.URI;

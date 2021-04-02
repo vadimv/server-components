@@ -116,6 +116,11 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
+    public void openComponent() {
+        componentsStack.push(s -> {});
+    }
+
+    @Override
     public void closeComponent() {
         componentsStack.pop();
     }

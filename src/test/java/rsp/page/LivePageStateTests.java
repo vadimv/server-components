@@ -3,12 +3,10 @@ package rsp.page;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Assert;
 import org.junit.Test;
-import rsp.Component;
 import rsp.Rendering;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
-import rsp.state.ReadOnly;
 
 import java.util.ArrayList;
 import java.util.Collections;

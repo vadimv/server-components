@@ -119,6 +119,11 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
+    public void openComponent() {
+        context.openComponent();
+    }
+
+    @Override
     public void closeComponent() {
         context.closeComponent();
     }

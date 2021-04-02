@@ -1,8 +1,8 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.Component;
 import rsp.Rendering;
+import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 
 import static rsp.dsl.Html.*;
@@ -18,9 +18,9 @@ public class PlainForm {
 
     private static Rendering<String> pages() {
         return s -> of(() -> html(
-                head(UpgradeMode.RAW, title("Page: " + s)),
+                headP(title("Page: " + s)),
                 body(
-                    //formComponent().render(s)
+                    Html.component(formComponent(), s, str -> str)
                 )
             )
         );
@@ -30,7 +30,7 @@ public class PlainForm {
         return  formComponent().render(s);
     }*/
 
-    private static Component<String> formComponent() {
+    private static Rendering<String> formComponent() {
         return s -> div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
@@ -44,7 +44,7 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static Component<String> formResult() {
+    private static Rendering<String> formResult() {
         return s -> div(
                 h2(text("HTML Form result")),
                 form(attr("action", "page0"), attr("method", "post"),

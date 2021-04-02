@@ -1,9 +1,8 @@
 package rsp.browserautomation;
 
 import rsp.App;
-import rsp.Component;
 import rsp.Rendering;
-import rsp.dsl.ComponentDefinition;
+import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
 
@@ -29,7 +28,7 @@ public class SimpleServer {
     public static SimpleServer run(boolean blockCurrentThread) throws Exception {
         final Rendering<State> render = state ->
                 html(head(title("test-server-title")),
-                     body(rwComponent(subComponent, state.i, s -> new State(s)),
+                     body(Html.component(subComponent, state.i, s -> new State(s)),
                           div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),
@@ -73,8 +72,4 @@ public class SimpleServer {
             div(attr("id", "d0"),
                 text("+10"),
                 on("click", d -> { d.setState(state + 10);}));
-
-    public static <S1, S2> ComponentDefinition<S1, S2> rwComponent(Rendering<S2> component, S2 state, Function<S2, S1> f) {
-        return new ComponentDefinition<S1, S2>(component, state, (Function<Object, Object>) f);
-    }
 }

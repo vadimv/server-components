@@ -7,7 +7,10 @@ public class EventTests {
 
     @Test
     public void should_comply_to_equals_hash_contract() {
-        EqualsVerifier.forClass(Event.class).withIgnoredFields("eventHandler").verify();
+        EqualsVerifier.forClass(Event.class)
+                      .withIgnoredFields("eventHandler")
+                      .withIgnoredFields("componentSetState")
+                      .verify();
     }
 
     @Test

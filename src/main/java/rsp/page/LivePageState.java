@@ -1,6 +1,5 @@
 package rsp.page;
 
-import rsp.Component;
 import rsp.Rendering;
 import rsp.dom.*;
 import rsp.server.OutMessages;
