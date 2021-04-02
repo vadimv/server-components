@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.Rendering;
+import rsp.Render;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
@@ -14,7 +14,7 @@ import java.util.function.Function;
 public class LivePageState<S> implements UseState<S> {
     private final QualifiedSessionId qsid;
     private final StateToRouteDispatch<S> state2route;
-    private final Rendering<S> rootComponent;
+    private final Render<S> rootComponent;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final OutMessages out;
 
@@ -24,7 +24,7 @@ public class LivePageState<S> implements UseState<S> {
     public LivePageState(LivePagePropertiesSnapshot snapshot,
                          QualifiedSessionId qsid,
                          StateToRouteDispatch<S> state2route,
-                         Rendering<S> rootComponent,
+                         Render<S> rootComponent,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                          OutMessages out) {
         this.snapshot = snapshot;

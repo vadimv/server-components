@@ -1,6 +1,6 @@
 package rsp.javax.web;
 
-import rsp.Rendering;
+import rsp.Render;
 import rsp.page.*;
 import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
@@ -23,7 +23,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
-    private final Rendering<S> documentDefinition;
+    private final Render<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
@@ -36,7 +36,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
                                  StateToRouteDispatch<S> state2route,
                                  Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
-                                 Rendering<S> documentDefinition,
+                                 Render<S> documentDefinition,
                                  BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
                                  Log.Reporting log) {

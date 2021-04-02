@@ -3,7 +3,7 @@ package rsp.page;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Assert;
 import org.junit.Test;
-import rsp.Rendering;
+import rsp.Render;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
@@ -42,7 +42,7 @@ public class LivePageStateTests {
     }
 
     private LivePageState<State> create(State state, OutMessages out) {
-        final Rendering<State> rootComponent = s -> span(s.toString());
+        final Render<State> rootComponent = s -> span(s.toString());
 
         final LivePagePropertiesSnapshot lpps = new LivePagePropertiesSnapshot(Path.of("/" + state),
                                                                                domRoot(rootComponent, state),
@@ -54,7 +54,7 @@ public class LivePageStateTests {
         return new LivePageState<>(lpps, QID, state2route, rootComponent, enrichFunction(), out);
     }
 
-    private static Tag domRoot(Rendering<State> component, State state) {
+    private static Tag domRoot(Render<State> component, State state) {
         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(s -> {});
         component.render(state).accept(enrichFunction().apply(QID.sessionId, domTreeContext));
 

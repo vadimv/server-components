@@ -8,7 +8,7 @@ import rsp.state.UseState;
  * @param <S> the type of the component's state, should be an immutable class
  */
 @FunctionalInterface
-public interface Rendering<S> {
+public interface Render<S> {
     /**
      * Constructs a UI tree, which may contain HTML tags and/or descendant components.
      * In this method the component's state is reflected to its UI presentation and events handlers registered.

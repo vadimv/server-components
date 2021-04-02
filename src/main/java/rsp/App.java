@@ -33,7 +33,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final Rendering<S> rootComponent;
+    public final Render<S> rootComponent;
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -47,7 +47,7 @@ public final class App<S> {
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
                Function<S, Path> state2path,
-               Rendering<S> rootComponent) {
+               Render<S> rootComponent) {
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
@@ -60,7 +60,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(Function<HttpRequest, CompletableFuture<S>> routes,
-               Rendering<S> rootComponent) {
+               Render<S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
              (s) -> Path.EMPTY_ABSOLUTE,
@@ -74,7 +74,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(S initialState,
-               Rendering<S> rootComponent) {
+               Render<S> rootComponent) {
         this(AppConfig.DEFAULT,
              request -> CompletableFuture.completedFuture(initialState),
              (s) ->  Path.EMPTY_ABSOLUTE,

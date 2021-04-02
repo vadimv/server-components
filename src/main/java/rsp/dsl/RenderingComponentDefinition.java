@@ -1,16 +1,14 @@
 package rsp.dsl;
 
-import rsp.Rendering;
+import rsp.Render;
 import rsp.page.PageRenderContext;
-
-import java.util.function.Function;
 
 public class RenderingComponentDefinition<S> implements DocumentPartDefinition<S> {
 
-    public final Rendering<S> component;
+    public final Render<S> component;
     private final S state;
 
-    public RenderingComponentDefinition(Rendering<S> component, S state) {
+    public RenderingComponentDefinition(Render<S> component, S state) {
         this.component = component;
         this.state = state;
     }

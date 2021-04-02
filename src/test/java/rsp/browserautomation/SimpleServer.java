@@ -1,7 +1,7 @@
 package rsp.browserautomation;
 
 import rsp.App;
-import rsp.Rendering;
+import rsp.Render;
 import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
@@ -26,7 +26,7 @@ public class SimpleServer {
     }
 
     public static SimpleServer run(boolean blockCurrentThread) throws Exception {
-        final Rendering<State> render = state ->
+        final Render<State> render = state ->
                 html(head(title("test-server-title")),
                      body(Html.component(subComponent, state.i, s -> new State(s)),
                           div(button(attr("type", "button"),
@@ -68,7 +68,7 @@ public class SimpleServer {
         }
     }
 
-    public static final Rendering<Integer> subComponent = state ->
+    public static final Render<Integer> subComponent = state ->
             div(attr("id", "d0"),
                 text("+10"),
                 on("click", d -> { d.setState(state + 10);}));

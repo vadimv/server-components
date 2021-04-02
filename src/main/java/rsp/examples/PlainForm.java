@@ -1,7 +1,7 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.Rendering;
+import rsp.Render;
 import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 
@@ -16,7 +16,7 @@ public class PlainForm {
         server.join();
     }
 
-    private static Rendering<String> pages() {
+    private static Render<String> pages() {
         return s -> of(() -> html(
                 headP(title("Page: " + s)),
                 body(
@@ -30,7 +30,7 @@ public class PlainForm {
         return  formComponent().render(s);
     }*/
 
-    private static Rendering<String> formComponent() {
+    private static Render<String> formComponent() {
         return s -> div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
@@ -44,7 +44,7 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static Rendering<String> formResult() {
+    private static Render<String> formResult() {
         return s -> div(
                 h2(text("HTML Form result")),
                 form(attr("action", "page0"), attr("method", "post"),

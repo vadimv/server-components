@@ -6,7 +6,6 @@ import rsp.dom.Tag;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.server.Path;
-import rsp.state.ReadOnly;
 import rsp.util.RandomString;
 import rsp.util.data.Tuple2;
 
@@ -23,14 +22,14 @@ public final class PageRendering<S> {
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
-    private final Rendering<S> documentDefinition;
+    private final Render<S> documentDefinition;
     private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
     public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
                          Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         Rendering<S> documentDefinition,
+                         Render<S> documentDefinition,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
         this.routing = routing;
         this.renderedPages = pagesStorage;

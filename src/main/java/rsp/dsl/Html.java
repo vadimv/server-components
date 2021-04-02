@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.Rendering;
+import rsp.Render;
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
@@ -699,11 +699,11 @@ public final class Html<S> extends TagDefinition<S> {
         return new TimerRefDefinition();
     }
 
-    public static <S1, S2> ComponentDefinition<S1, S2> component(Rendering<S2> component, S2 state, Function<S2, S1> stateFun) {
+    public static <S1, S2> ComponentDefinition<S1, S2> component(Render<S2> component, S2 state, Function<S2, S1> stateFun) {
         return new ComponentDefinition<S1, S2>(component, state, (Function<Object, Object>) stateFun);
     }
 
-    public static <S> RenderingComponentDefinition<S> component(Rendering<S> component, S state) {
+    public static <S> RenderingComponentDefinition<S> component(Render<S> component, S state) {
         return new RenderingComponentDefinition<S>(component, state);
     }
 
