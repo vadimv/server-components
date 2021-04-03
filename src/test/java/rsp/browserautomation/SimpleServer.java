@@ -9,6 +9,7 @@ import rsp.server.HttpRequest;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import static rsp.dsl.Components.component;
 import static rsp.dsl.Html.*;
 
 public class SimpleServer {
@@ -28,7 +29,7 @@ public class SimpleServer {
     public static SimpleServer run(boolean blockCurrentThread) throws Exception {
         final Render<State> render = state ->
                 html(head(title("test-server-title")),
-                     body(Html.component(subComponent, state.i, s -> new State(s)),
+                     body(component(subComponent, state.i, s -> new State(s)),
                           div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),

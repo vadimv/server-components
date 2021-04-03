@@ -5,6 +5,7 @@ import rsp.Render;
 import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 
+import static rsp.dsl.Components.component;
 import static rsp.dsl.Html.*;
 
 public class PlainForm {
@@ -20,7 +21,7 @@ public class PlainForm {
         return s -> of(() -> html(
                 headP(title("Page: " + s)),
                 body(
-                    Html.component(formComponent(), s, str -> str)
+                    component(formComponent(), s, str -> str)
                 )
             )
         );

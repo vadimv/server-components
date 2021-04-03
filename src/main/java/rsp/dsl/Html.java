@@ -1,26 +1,23 @@
 package rsp.dsl;
 
-import rsp.Render;
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
 import rsp.page.PageRenderContext;
 import rsp.ref.ElementRef;
-import rsp.ref.TimerRef;
 import rsp.util.ArrayUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
  * A HTML tags definitions domain-specific language and related util functions.
+ * @param <S> component's state type, an immutable class
  */
 public final class Html<S> extends TagDefinition<S> {
 
@@ -687,24 +684,6 @@ public final class Html<S> extends TagDefinition<S> {
      */
     public static ElementRefDefinition createElementRef() {
         return new ElementRefDefinition();
-    }
-
-    /**
-     * Creates a reference to a schedule's timer.
-     * @see EventContext#schedule(Consumer, TimerRef, int, TimeUnit)
-     * @see EventContext#scheduleAtFixedRate(Consumer, int, int, TimeUnit)
-     * @return a reference object
-     */
-    public static TimerRef createTimerRef() {
-        return new TimerRefDefinition();
-    }
-
-    public static <S1, S2> ComponentDefinition<S1, S2> component(Render<S2> component, S2 state, Function<S2, S1> stateFun) {
-        return new ComponentDefinition<S1, S2>(component, state, (Function<Object, Object>) stateFun);
-    }
-
-    public static <S> RenderingComponentDefinition<S> component(Render<S> component, S state) {
-        return new RenderingComponentDefinition<S>(component, state);
     }
 
     private static boolean isPropertyByDefault(String name) {

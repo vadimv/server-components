@@ -2,25 +2,25 @@ package rsp.page;
 
 /**
  * The listener interface for receiving page lifecycle events.
- * @param <S>
+ * @param <S> page state type, an immutable class
  */
 public interface PageLifeCycle<S> {
 
     /**
      * Invoked before an live page session created.
-     * @param state
+     * @param state the current state
      */
     void beforeLivePageCreated(S state);
 
     /**
      * Invoked after an live page session closed.
-     * @param state
+     * @param state the current state
      */
     void afterLivePageClosed(S state);
 
     /**
      * The default lifecycle listener implementation doing nothing.
-     * @param <S>
+     * @param <S> page state type, an immutable class
      */
     class Default<S> implements PageLifeCycle<S> {
 
