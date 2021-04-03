@@ -47,6 +47,7 @@ public final class App<S> {
      * @param config an application config
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param state2path a function that dispatches a current state snapshot to the browser's navigation bar's path
+     * @param lifeCycleEventsListener an implementation of the page lifecycle events listener
      * @param rootComponent the root of the components tree
      */
     public App(AppConfig config,
