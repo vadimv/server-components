@@ -29,6 +29,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
+    private final PageLifeCycle<S> lifeCycleEventsListener;
     private final Log.Reporting log;
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
@@ -39,6 +40,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                  Render<S> documentDefinition,
                                  BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
+                                 PageLifeCycle<S> lifeCycleEventsListener,
                                  Log.Reporting log) {
         this.routing = routing;
         this.state2route = state2route;
@@ -46,6 +48,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
         this.schedulerSupplier = schedulerSupplier;
+        this.lifeCycleEventsListener = lifeCycleEventsListener;
         this.log = log;
     }
 
@@ -77,6 +80,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                                        documentDefinition,
                                                                        enrich,
                                                                        out);
+            lifeCycleEventsListener.beforeLivePageCreated(page.state);
             final LivePage<S> livePage = new LivePage<S>(qsid,
                                                          livePageState,
                                                          schedulerSupplier.get(),
@@ -96,13 +100,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             livePageState.accept(page.state);
             out.setRenderNum(0);
 
-            // Invoke this page's post start events
-            /*currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
-                if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
-                    event.eventHandler.accept(eventContext);
-                }
-            })*/;
             log.debug(l -> l.log("Live page started: " + this));
         }
     }
@@ -132,7 +129,10 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final LivePage<S> livePage = (LivePage<S>) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
+            lifeCycleEventsListener.afterLivePageClosed(livePage.getPageState());
             log.debug(l -> l.log("Shutdown session: " + session.getId()));
+        } else {
+            log.error(l -> l.log("A saved live page is missing for the WebSocket session: " + session.getId()));
         }
     }
 

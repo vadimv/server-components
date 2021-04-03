@@ -31,6 +31,11 @@ public final class App<S> {
     public final Function<S, Path> state2path;
 
     /**
+     * An implementation of the lifecycle events listener.
+     */
+    public final PageLifeCycle<S> lifeCycleEventsListener;
+
+    /**
      * The root of the components tree.
      */
     public final Render<S> rootComponent;
@@ -47,10 +52,12 @@ public final class App<S> {
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
                Function<S, Path> state2path,
+               PageLifeCycle<S> lifeCycleEventsListener,
                Render<S> rootComponent) {
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
+        this.lifeCycleEventsListener = lifeCycleEventsListener;
         this.rootComponent = rootComponent;
     }
 
@@ -64,6 +71,7 @@ public final class App<S> {
         this(AppConfig.DEFAULT,
              routes,
              (s) -> Path.EMPTY_ABSOLUTE,
+             new PageLifeCycle.Default<>(),
              rootComponent);
     }
 
@@ -78,6 +86,7 @@ public final class App<S> {
         this(AppConfig.DEFAULT,
              request -> CompletableFuture.completedFuture(initialState),
              (s) ->  Path.EMPTY_ABSOLUTE,
+             new PageLifeCycle.Default<>(),
              rootComponent);
     }
 }

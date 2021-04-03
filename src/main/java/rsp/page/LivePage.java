@@ -19,8 +19,6 @@ import java.util.function.Consumer;
  * @param <S> the application's state's type
  */
 public final class LivePage<S> implements InMessages, Schedule<S> {
-    public static final String POST_START_EVENT_TYPE = "page-start";
-    public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
     private final QualifiedSessionId qsid;
     private final LivePageState<S> pageState;
@@ -44,16 +42,13 @@ public final class LivePage<S> implements InMessages, Schedule<S> {
         this.log = log;
     }
 
+    public S getPageState() {
+        return pageState.get();
+    }
+
     public void shutdown() {
         log.debug(l -> l.log("Live Page shutdown: " + this));
         synchronized (pageState) {
-            // Invoke this page's shutdown events
-            pageState.snapshot().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
-                if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY, s -> {});
-                    event.eventHandler.accept(eventContext);
-                }
-            });
             for (var timer : schedules.entrySet()) {
                 timer.getValue().cancel(true);
             }
