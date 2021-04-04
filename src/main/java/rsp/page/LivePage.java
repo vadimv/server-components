@@ -20,7 +20,8 @@ import java.util.function.Consumer;
  */
 public final class LivePage<S> implements InMessages, Schedule<S> {
 
-    private final QualifiedSessionId qsid;
+    public final QualifiedSessionId qsid;
+
     private final LivePageState<S> pageState;
     private final ScheduledExecutorService scheduledExecutorService;
     private final OutMessages out;

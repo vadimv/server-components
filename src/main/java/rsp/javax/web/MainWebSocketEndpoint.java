@@ -80,7 +80,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                                        documentDefinition,
                                                                        enrich,
                                                                        out);
-            lifeCycleEventsListener.beforeLivePageCreated(page.state);
+            lifeCycleEventsListener.beforeLivePageCreated(qsid, page.state);
             final LivePage<S> livePage = new LivePage<S>(qsid,
                                                          livePageState,
                                                          schedulerSupplier.get(),
@@ -129,7 +129,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final LivePage<S> livePage = (LivePage<S>) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
-            lifeCycleEventsListener.afterLivePageClosed(livePage.getPageState());
+            lifeCycleEventsListener.afterLivePageClosed(livePage.qsid, livePage.getPageState());
             log.debug(l -> l.log("Shutdown session: " + session.getId()));
         } else {
             log.error(l -> l.log("A saved live page is missing for the WebSocket session: " + session.getId()));

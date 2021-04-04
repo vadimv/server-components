@@ -8,15 +8,17 @@ public interface PageLifeCycle<S> {
 
     /**
      * Invoked before an live page session created.
+     * @param sid the qualified session Id of the page created
      * @param state the current state
      */
-    void beforeLivePageCreated(S state);
+    void beforeLivePageCreated(QualifiedSessionId sid, S state);
 
     /**
      * Invoked after an live page session closed.
+     * @param sid the qualified session Id of the page being closed
      * @param state the current state
      */
-    void afterLivePageClosed(S state);
+    void afterLivePageClosed(QualifiedSessionId sid, S state);
 
     /**
      * The default lifecycle listener implementation doing nothing.
@@ -25,12 +27,12 @@ public interface PageLifeCycle<S> {
     class Default<S> implements PageLifeCycle<S> {
 
         @Override
-        public void beforeLivePageCreated(S state) {
+        public void beforeLivePageCreated(QualifiedSessionId sid, S state) {
             //no-op
         }
 
         @Override
-        public void afterLivePageClosed(S state) {
+        public void afterLivePageClosed(QualifiedSessionId sid, S state) {
             //no-op
         }
     }
