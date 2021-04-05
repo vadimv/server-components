@@ -15,7 +15,7 @@ public final class Components {
      * @return
      */
     public static <S1, S2> ComponentDefinition<S1, S2> component(Render<S2> render, S2 state, Function<S2, S1> stateFun) {
-        return new ComponentDefinition<S1, S2>(render, state, (Function<Object, Object>) stateFun);
+        return new ComponentDefinition.Default<S1, S2>(render, state, (Function<Object, Object>) stateFun);
     }
 
     /**
@@ -26,7 +26,7 @@ public final class Components {
      * @return
      */
     public static <S> RenderingOnlyComponentDefinition<S> component(Render<S> render, S state) {
-        return new RenderingOnlyComponentDefinition<S>(render, state);
+        return new RenderingOnlyComponentDefinition.Default<S>(render, state);
     }
 
 }
