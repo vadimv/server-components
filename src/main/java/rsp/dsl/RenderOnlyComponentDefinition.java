@@ -3,7 +3,7 @@ package rsp.dsl;
 import rsp.Render;
 import rsp.page.PageRenderContext;
 
-public interface RenderingOnlyComponentDefinition<S> extends DocumentPartDefinition<S> {
+public interface RenderOnlyComponentDefinition<S> extends DocumentPartDefinition<S> {
 
     Render<S> renderer();
 
@@ -16,7 +16,7 @@ public interface RenderingOnlyComponentDefinition<S> extends DocumentPartDefinit
         renderContext.closeComponent();
     }
 
-    class Default<S> implements RenderingOnlyComponentDefinition<S> {
+    class Default<S> implements RenderOnlyComponentDefinition<S> {
         private final Render<S> renderer;
         private final S state;
 

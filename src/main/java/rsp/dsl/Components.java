@@ -25,8 +25,8 @@ public final class Components {
      * @param <S>
      * @return
      */
-    public static <S> RenderingOnlyComponentDefinition<S> component(Render<S> render, S state) {
-        return new RenderingOnlyComponentDefinition.Default<S>(render, state);
+    public static <S> RenderOnlyComponentDefinition<S> component(Render<S> render, S state) {
+        return new RenderOnlyComponentDefinition.Default<S>(render, state);
     }
 
 }
