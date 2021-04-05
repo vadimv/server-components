@@ -3,20 +3,20 @@ package rsp.dsl;
 import rsp.Render;
 import rsp.page.PageRenderContext;
 
-public abstract class RenderingOnlyComponentDefinition<S> implements DocumentPartDefinition<S> {
+public interface RenderingOnlyComponentDefinition<S> extends DocumentPartDefinition<S> {
 
-    public abstract Render<S> renderer();
+    Render<S> renderer();
 
-    public abstract S state();
+    S state();
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+     default void accept(PageRenderContext renderContext) {
         renderContext.openComponent();
         renderer().render(state()).accept(renderContext);
         renderContext.closeComponent();
     }
 
-    public static class Default<S> extends RenderingOnlyComponentDefinition<S> {
+    class Default<S> implements RenderingOnlyComponentDefinition<S> {
         private final Render<S> renderer;
         private final S state;
 

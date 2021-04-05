@@ -5,23 +5,23 @@ import rsp.page.PageRenderContext;
 
 import java.util.function.Function;
 
-public abstract class ComponentDefinition<S1, S2> implements DocumentPartDefinition<S1> {
+public interface ComponentDefinition<S1, S2> extends DocumentPartDefinition<S1> {
 
-    public abstract Render<S2> renderer();
+    Render<S2> renderer();
 
-    public abstract S2 state();
+    S2 state();
 
-    public abstract Function<Object, Object> transformation();
+    Function<Object, Object> transformation();
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    default void accept(PageRenderContext renderContext) {
         renderContext.openComponent(transformation());
         renderer().render(state()).accept(renderContext);
         renderContext.closeComponent();
     }
 
 
-    public static class Default<S1, S2> extends ComponentDefinition<S1, S2> {
+    class Default<S1, S2> implements ComponentDefinition<S1, S2> {
         private final Render<S2> component;
         private final S2 state;
         private final Function<Object, Object> transformation;
