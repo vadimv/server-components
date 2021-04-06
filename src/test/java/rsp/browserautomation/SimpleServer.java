@@ -2,14 +2,13 @@ package rsp.browserautomation;
 
 import rsp.App;
 import rsp.Render;
-import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 import rsp.server.HttpRequest;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-import static rsp.dsl.Components.component;
+import static rsp.dsl.Components.renderComponent;
 import static rsp.dsl.Html.*;
 
 public class SimpleServer {
@@ -29,7 +28,7 @@ public class SimpleServer {
     public static SimpleServer run(boolean blockCurrentThread) throws Exception {
         final Render<State> render = state ->
                 html(head(title("test-server-title")),
-                     body(component(subComponent, state.i, s -> new State(s)),
+                     body(renderComponent(subComponent, state.i, s -> new State(s)),
                           div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),

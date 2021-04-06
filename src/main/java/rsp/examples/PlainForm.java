@@ -2,10 +2,9 @@ package rsp.examples;
 
 import rsp.App;
 import rsp.Render;
-import rsp.dsl.Html;
 import rsp.jetty.JettyServer;
 
-import static rsp.dsl.Components.component;
+import static rsp.dsl.Components.renderComponent;
 import static rsp.dsl.Html.*;
 
 public class PlainForm {
@@ -21,7 +20,7 @@ public class PlainForm {
         return s -> of(() -> html(
                 headP(title("Page: " + s)),
                 body(
-                    component(formComponent(), s, str -> str)
+                    renderComponent(formComponent(), s, str -> str)
                 )
             )
         );
