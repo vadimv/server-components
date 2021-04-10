@@ -15,7 +15,7 @@ public final class Components {
      * @return
      */
     public static <S1, S2> ComponentDefinition<S1, S2> renderComponent(Render<S2> render, S2 state, Function<S2, S1> stateFun) {
-        return new ComponentDefinition.Default<S1, S2>(render, state, (Function<Object, Object>) stateFun);
+        return new ComponentDefinition.Default<S1, S2>(render, state, stateFun);
     }
 
     /**

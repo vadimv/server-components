@@ -3,6 +3,10 @@ package rsp.dsl;
 import rsp.Render;
 import rsp.page.PageRenderContext;
 
+/**
+ *
+ * @param <S> parent component state type
+ */
 public interface RenderOnlyComponentDefinition<S> extends DocumentPartDefinition<S> {
 
     Render<S> renderer();
