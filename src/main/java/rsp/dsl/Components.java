@@ -14,9 +14,9 @@ public final class Components {
      * @param <S2>
      * @return
      */
-    public static <S1, S2> ComponentDefinition<S1, S2> renderComponent(Render<S2> render, S2 state, Function<S2, S1> stateFun) {
+/*    public static <S1, S2> ComponentDefinition<S1, S2> renderComponent(Render<S2> render, S2 state, Function<S2, S1> stateFun) {
         return new ComponentDefinition.Default<S1, S2>(render, state, stateFun);
-    }
+    }*/
 
     /**
      * Creates a component.
