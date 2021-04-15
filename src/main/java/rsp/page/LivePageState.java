@@ -4,14 +4,13 @@ import rsp.Render;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
-import rsp.state.UseState;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class LivePageState<S> implements UseState<S> {
+public class LivePageState<S> {
     private final QualifiedSessionId qsid;
     private final StateToRouteDispatch<S> state2route;
     private final Render<S> rootComponent;
@@ -35,7 +34,6 @@ public class LivePageState<S> implements UseState<S> {
         this.out = out;
     }
 
-    @Override
     public synchronized void accept(S newState) {
         this.state = newState;
 
@@ -94,22 +92,18 @@ public class LivePageState<S> implements UseState<S> {
                                 Collections.unmodifiableMap(newContext.refs));
     }
 
-    @Override
     public synchronized S get() {
         return state;
     }
 
-    @Override
     public synchronized void accept(CompletableFuture<S> completableFuture) {
         completableFuture.thenAccept(s -> accept(s));
     }
 
-    @Override
     public synchronized void accept(Function<S, S> function) {
         accept(function.apply(get()));
     }
 
-    @Override
     public synchronized void acceptOptional(Function<S, Optional<S>> function) {
         function.apply(state).ifPresent(s -> accept(s));
     }

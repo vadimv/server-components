@@ -1,7 +1,6 @@
 package rsp;
 
 import rsp.dsl.DocumentPartDefinition;
-import rsp.state.UseState;
 
 /**
  * A UI component, a building block of a UI.
