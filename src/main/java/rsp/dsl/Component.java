@@ -1,7 +1,6 @@
 package rsp.dsl;
 
 import rsp.Render;
-import rsp.RenderComponent;
 
 import java.util.function.Function;
 
@@ -10,7 +9,7 @@ import java.util.function.Function;
  * @param <S1> parent component's state type
  * @param <S2> component's state type
  */
-public interface Component<S1, S2> extends RenderComponent<S1, S2> {
+public interface Component<S1, S2> {
 
     Render<S2> renderer();
 
