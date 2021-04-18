@@ -25,8 +25,9 @@ public interface PageRenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
-    void openComponent(Function<Object, Object> componentSetState);
+  /*  void openComponent(Function<Consumer<Object>, Consumer<Object>> componentSetState);*/
     void openComponent();
     void closeComponent();
 
+    <S2, S1> void openComponent(Function<Consumer<S2>, Consumer<S1>> transformation);
 }

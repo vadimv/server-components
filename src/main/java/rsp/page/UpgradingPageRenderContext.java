@@ -114,11 +114,6 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void openComponent(Function<Object, Object> componentSetState) {
-        context.openComponent(componentSetState);
-    }
-
-    @Override
     public void openComponent() {
         context.openComponent();
     }
@@ -126,6 +121,11 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     @Override
     public void closeComponent() {
         context.closeComponent();
+    }
+
+    @Override
+    public <S2, S1> void openComponent(Function<Consumer<S2>, Consumer<S1>> componentSetState) {
+        context.openComponent(componentSetState);
     }
 
     @Override

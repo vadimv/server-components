@@ -20,7 +20,7 @@ public class PlainForm {
         return s -> of(() -> html(
                 headP(title("Page: " + s.person.firstName)),
                 body(
-                    new Component.Default<>(formComponent(), State::new).render(s.person)
+                    new Component.Default<State, Person>(formComponent(), c -> cs -> {}).render(s.person)
                 )
             )
         );

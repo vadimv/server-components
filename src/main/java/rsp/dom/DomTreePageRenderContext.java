@@ -110,12 +110,6 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void openComponent(Function<Object, Object> f) {
-        final Consumer<Object> parentComponent= componentsStack.peek();
-        componentsStack.push(s -> parentComponent.accept(f.apply(s)));
-    }
-
-    @Override
     public void openComponent() {
         componentsStack.push(s -> {});
     }
@@ -123,6 +117,11 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     @Override
     public void closeComponent() {
         componentsStack.pop();
+    }
+
+    @Override
+    public <S2, S1> void openComponent(Function<Consumer<S2>, Consumer<S1>> transformation) {
+        componentsStack.push((Consumer<Object>) transformation.apply((Consumer<S2>) componentsStack.peek()));
     }
 
     @Override
