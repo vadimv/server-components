@@ -226,7 +226,6 @@ public final class Html extends TagDefinition {
      * a WebSocket connection to the server after the browser loads the page.
      * No live page session will be created on the server in this case.
      * @param children descendants definitions of this element
-     * @param
      * @return a tag definition
      */
     @SafeVarargs
