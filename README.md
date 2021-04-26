@@ -239,21 +239,19 @@ An RSP application is composed of components. A component is a Java class implem
     public static class ButtonState {}
 ```
 
-A component's ``render()`` method invokes ``render()`` methods of its descendant components
-with an instance of a specific child component's``UseState<S>`` wrapper class as an argument. 
-Use one of the static utility functions in the ``UseState`` interface like ``readWrite()``,
-``readOnly()`` or ``readWriteInCompletableFuture()`` to create these objects. 
+A component's ``render()`` method invokes ``render()`` methods of its descendant components,
+providing a state object and optionally a listener, delivering the state change from a child component
+to propagate this change to its parent state's consumer. 
 
 ```java
-    import static rsp.state.UseState.readWrite;
     ...
     public static Component<ConfirmPanelState> confirmPanelComponent(String text) {
         return s -> div(attr("class", "panel"),
                          span(text),
-                         buttonComponent("Ok").render(readWrite(() -> new ButtonState(), 
-                                                                buttonState -> s.accept(new ConfimPanelState(true)))),
-                         buttonComponent("Cancel").render(readWrite(() -> new ButtonState(), 
-                                                                    buttonState -> s.accept(new ConfimPanelState(false))));
+                         buttonComponent("Ok").render(new ButtonState(), 
+                                                      buttonState -> s.accept(new ConfimPanelState(true))),
+                         buttonComponent("Cancel").render(new ButtonState(), 
+                                                          buttonState -> s.accept(new ConfimPanelState(false)));
         
     }
     public static class ConfirmPanelState {
