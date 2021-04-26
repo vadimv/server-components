@@ -316,6 +316,12 @@ see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods o
                on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
+### Page lifecycle events listener
+
+Provide an instance of ``PageLifecycle`` interface as an optional parameter when creating an 
+application object. This parameter allows listening to the events, specifically the event before to a page creation and 
+after the page shutdown.
+
 ### Application and server's configuration
 
 See the ``rsp.AppConfig`` class for an application configuration's details.
