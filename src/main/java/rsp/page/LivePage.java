@@ -18,10 +18,8 @@ import java.util.concurrent.*;
  * @param <S> the application's state's type
  */
 public final class LivePage<S> implements InMessages, Schedule {
-    public static final String POST_START_EVENT_TYPE = "page-start";
-    public static final String POST_SHUTDOWN_EVENT_TYPE = "page-shutdown";
 
-    private final QualifiedSessionId qsid;
+    public final QualifiedSessionId qsid;
     private final LivePageState<S> pageState;
     private final ScheduledExecutorService scheduledExecutorService;
     private final OutMessages out;
@@ -43,16 +41,13 @@ public final class LivePage<S> implements InMessages, Schedule {
         this.log = log;
     }
 
+    public S getPageState() {
+        return pageState.get();
+    }
+
     public void shutdown() {
         log.debug(l -> l.log("Live Page shutdown: " + this));
         synchronized (pageState) {
-            // Invoke this page's shutdown events
-            pageState.snapshot().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
-                if (POST_SHUTDOWN_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
-                    event.eventHandler.accept(eventContext);
-                }
-            });
             for (var timer : schedules.entrySet()) {
                 timer.getValue().cancel(true);
             }

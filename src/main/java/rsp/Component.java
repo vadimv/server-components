@@ -1,7 +1,11 @@
 package rsp;
 
 import rsp.dsl.DocumentPartDefinition;
+import rsp.state.CompletableFutureConsumer;
+import rsp.state.FunctionConsumer;
 import rsp.state.UseState;
+
+import java.util.function.Consumer;
 
 /**
  * A UI component, a building block of a UI.
@@ -16,4 +20,20 @@ public interface Component<S> {
      * @return the result component's definition
      */
     DocumentPartDefinition render(UseState<S> us);
+
+    default DocumentPartDefinition render(S s) {
+        return render(UseState.readOnly(() -> s));
+    }
+
+    default DocumentPartDefinition render(S s, Consumer<S> c) {
+        return render(UseState.readWrite(() -> s, c));
+    }
+
+    default DocumentPartDefinition renderWithCompletableFuture(S s, CompletableFutureConsumer<S> c) {
+        return render(UseState.readWriteInCompletableFuture(() -> s, c));
+    }
+
+    default DocumentPartDefinition renderWithFunction(S s, FunctionConsumer<S> c) {
+        return render(UseState.readWriteInFunction(() -> s, c));
+    }
 }

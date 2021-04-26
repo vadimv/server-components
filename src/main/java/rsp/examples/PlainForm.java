@@ -17,7 +17,7 @@ public class PlainForm {
 
     private static Component<String> pages() {
         return s -> of(() -> html(
-                head(UpgradeMode.RAW, title("Page: " + s.get())),
+                headPlain(title("Page: " + s.get())),
                 body(
                     formComponent().render(s)
                 )

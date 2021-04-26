@@ -21,14 +21,14 @@ public class SimpleServer {
         this.jetty = jetty;
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         run(true);
     }
 
-    public static SimpleServer run(boolean blockCurrentThread) throws Exception {
+    public static SimpleServer run(boolean blockCurrentThread) {
         final Component<State> render = state ->
                 html(head(title("test-server-title")),
-                     body(subComponent.render(UseState.readWrite(() -> state.get().i, s -> state.accept(new State(s)))),
+                     body(subComponent.render(state.get().i, s -> state.accept(new State(s))),
                            div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),

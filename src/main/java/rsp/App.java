@@ -31,6 +31,11 @@ public final class App<S> {
     public final Function<S, Path> state2path;
 
     /**
+     * An implementation of the lifecycle events listener.
+     */
+    public final PageLifeCycle<S> lifeCycleEventsListener;
+
+    /**
      * The root of the components tree.
      */
     public final Component<S> rootComponent;
@@ -47,10 +52,12 @@ public final class App<S> {
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
                Function<S, Path> state2path,
+               PageLifeCycle<S> lifeCycleEventsListener,
                Component<S> rootComponent) {
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
+        this.lifeCycleEventsListener = lifeCycleEventsListener;
         this.rootComponent = rootComponent;
     }
 
@@ -64,6 +71,23 @@ public final class App<S> {
         this(AppConfig.DEFAULT,
              routes,
              (s) -> Path.EMPTY_ABSOLUTE,
+             new PageLifeCycle.Default<>(),
+             rootComponent);
+    }
+
+    /**
+     * Creates an instance of an application with the default config
+     * and default routing which maps any request to the initial state.
+     * @param initialState the initial state snapshot
+     * @param rootComponent the root of the components tree
+     */
+    public App(S initialState,
+               Component<S> rootComponent,
+               PageLifeCycle<S> lifeCycleEventsListener) {
+        this(AppConfig.DEFAULT,
+             request -> CompletableFuture.completedFuture(initialState),
+             (s) ->  Path.EMPTY_ABSOLUTE,
+             lifeCycleEventsListener,
              rootComponent);
     }
 
@@ -76,9 +100,10 @@ public final class App<S> {
     public App(S initialState,
                Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
-             request -> CompletableFuture.completedFuture(initialState),
-             (s) ->  Path.EMPTY_ABSOLUTE,
-             rootComponent);
+                request -> CompletableFuture.completedFuture(initialState),
+                (s) ->  Path.EMPTY_ABSOLUTE,
+                new PageLifeCycle.Default<>(),
+                rootComponent);
     }
 }
 

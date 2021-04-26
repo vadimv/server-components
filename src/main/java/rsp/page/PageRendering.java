@@ -38,7 +38,7 @@ public final class PageRendering<S> {
         this.enrich = enrich;
     }
 
-    public CompletableFuture<HttpResponse> httpGet(HttpRequest request) {
+    public CompletableFuture<HttpResponse> httpResponse(HttpRequest request) {
         if (request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.emptyList(), "No favicon.ico"));
         } else if (request.path.startsWith("static")) {

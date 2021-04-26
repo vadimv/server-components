@@ -10,15 +10,14 @@ import java.util.function.Consumer;
 
 public final class DomTreePageRenderContext implements PageRenderContext {
 
-    public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap();
-    public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap();
+    public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
+    private final Deque<Tag> tagsStack = new ArrayDeque<>();
 
     private int statusCode;
     private Map<String, String> headers;
     private String docType;
     private Tag root;
-
-    private Deque<Tag> tagsStack = new ArrayDeque<>();
 
 
     public DomTreePageRenderContext() {
@@ -39,7 +38,6 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     public int statusCode() {
         return statusCode;
     }
-
 
     @Override
     public void setStatusCode(int statusCode) {

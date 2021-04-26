@@ -5,14 +5,12 @@ import rsp.dom.XmlNs;
 import rsp.page.EventContext;
 import rsp.page.PageRenderContext;
 import rsp.ref.ElementRef;
-import rsp.ref.TimerRef;
 import rsp.util.ArrayUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -29,12 +27,13 @@ public final class Html extends TagDefinition {
     public final static String DEFAULT_PROPERTIES_NAMES =
             "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
 
-    private static int OK_STATUS_CODE = 200;
-    private static int MOVED_TEMPORARILY_STATUS_CODE = 302;
+    private static final int OK_STATUS_CODE = 200;
+    private static final int MOVED_TEMPORARILY_STATUS_CODE = 302;
 
     private final int statusCode;
     private final Map<String, String> headers;
 
+    @SafeVarargs
     private Html(int statusCode, Map<String, String> headers, DocumentPartDefinition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
@@ -63,7 +62,7 @@ public final class Html extends TagDefinition {
      * @param headers the map containing headers
      * @return an instance with added headers
      */
-    public Html headers(Map<String, String> headers) {
+    public Html addHeaders(Map<String, String> headers) {
         return new Html(this.statusCode, merge(this.headers, headers), this.children);
     }
 
@@ -81,6 +80,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static Html html(DocumentPartDefinition... children) {
         return new Html(OK_STATUS_CODE, Map.of(), children);
     }
@@ -92,6 +92,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition xmlTag(XmlNs ns, String name, DocumentPartDefinition... children) {
         return new TagDefinition(ns, name, children);
     }
@@ -204,7 +205,8 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static  TagDefinition body(DocumentPartDefinition... children) {
+    @SafeVarargs
+    public static TagDefinition body(DocumentPartDefinition... children) {
         return tag("body", children);
     }
 
@@ -213,18 +215,23 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static  TagDefinition head(UpgradeMode upgradeMode, DocumentPartDefinition... children) {
-        return UpgradeMode.SCRIPTS == upgradeMode ? tag("head", children)
-                : new PlainTagDefinition(XmlNs.html, "head", children);
+    @SafeVarargs
+    public static TagDefinition head(DocumentPartDefinition... children) {
+        return tag("head", children);
     }
 
     /**
-     * A HTML {@literal <head>} element of a HTML document.
+     * A 'plain' HTML {@literal <head>} element of a HTML document,
+     * has not to be upgraded with the script element establishing
+     * a WebSocket connection to the server after the browser loads the page.
+     * No live page session will be created on the server in this case.
      * @param children descendants definitions of this element
+     * @param
      * @return a tag definition
      */
-    public static  TagDefinition head(DocumentPartDefinition... children) {
-        return head(UpgradeMode.SCRIPTS, children);
+    @SafeVarargs
+    public static TagDefinition headPlain(DocumentPartDefinition... children) {
+        return new PlainTagDefinition(XmlNs.html, "head", children);
     }
 
     /**
@@ -232,7 +239,7 @@ public final class Html extends TagDefinition {
      * @param text a document's title text
      * @return a tag definition
      */
-    public static  TagDefinition title(String text) {
+    public static TagDefinition title(String text) {
         return tag("title", text(text));
     }
 
@@ -241,6 +248,7 @@ public final class Html extends TagDefinition {
      * @param children the element's attributes
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition link(AttributeDefinition... children) {
         return tag("link", children);
     }
@@ -250,6 +258,7 @@ public final class Html extends TagDefinition {
      * @param children the element's attributes
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition meta(AttributeDefinition... children) {
         return tag("meta", children);
     }
@@ -259,6 +268,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
+    @SafeVarargs
     public static TagDefinition h1(DocumentPartDefinition... children) {
         return tag("h1", children);
     }
@@ -277,6 +287,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
+    @SafeVarargs
     public static TagDefinition h2(DocumentPartDefinition... children) {
         return tag("h2", children);
     }
@@ -295,6 +306,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition h3(DocumentPartDefinition... children) {
         return tag("h3", children);
     }
@@ -313,6 +325,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition h4(DocumentPartDefinition... children) {
         return tag("h4", children);
     }
@@ -331,6 +344,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition h5(DocumentPartDefinition... children) {
         return tag("h5", children);
     }
@@ -349,6 +363,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition h6(DocumentPartDefinition... children) {
         return tag("h6", children);
     }
@@ -367,6 +382,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition div(DocumentPartDefinition... children) {
         return tag("div", children);
     }
@@ -385,6 +401,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition a(DocumentPartDefinition... children) {
         return tag("a", children);
     }
@@ -396,6 +413,7 @@ public final class Html extends TagDefinition {
      * @param children other descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition a(String href, String text, DocumentPartDefinition... children) {
         return a(ArrayUtils.concat(new DocumentPartDefinition[]{ attr("href", href), text(text)}, children));
     }
@@ -405,6 +423,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition p(DocumentPartDefinition... children) {
         return tag("p", children);
     }
@@ -423,6 +442,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition span(DocumentPartDefinition... children) {
         return tag("span", children);
     }
@@ -441,6 +461,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition form(DocumentPartDefinition... children) {
         return tag("form", children);
     }
@@ -450,6 +471,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition input(DocumentPartDefinition... children) {
         return tag("input", children);
     }
@@ -459,6 +481,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition button(DocumentPartDefinition... children) {
         return tag("button", children);
     }
@@ -468,6 +491,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition ul(DocumentPartDefinition... children) {
         return tag("ul", children);
     }
@@ -477,6 +501,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition ol(DocumentPartDefinition... children) {
         return tag("ol", children);
     }
@@ -486,6 +511,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition li(DocumentPartDefinition... children) {
         return tag("li", children);
     }
@@ -504,6 +530,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition table(DocumentPartDefinition... children) {
         return tag("table", children);
     }
@@ -513,6 +540,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition thead(DocumentPartDefinition... children) {
         return tag("thead", children);
     }
@@ -522,6 +550,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition tbody(DocumentPartDefinition... children) {
         return tag("tbody", children);
     }
@@ -531,6 +560,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition th(DocumentPartDefinition... children) {
         return tag("th", children);
     }
@@ -549,6 +579,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition tr(DocumentPartDefinition... children) {
         return tag("tr", children);
     }
@@ -558,6 +589,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition td(DocumentPartDefinition... children) {
         return tag("td", children);
     }
@@ -576,6 +608,7 @@ public final class Html extends TagDefinition {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
+    @SafeVarargs
     public static TagDefinition label(DocumentPartDefinition... children) {
         return tag("label", children);
     }
@@ -648,18 +681,8 @@ public final class Html extends TagDefinition {
      * @see EventContext#props(ElementRef)
      * @return a reference object
      */
-    public static ElementRef createElementRef() {
+    public static ElementRefDefinition createElementRef() {
         return new ElementRefDefinition();
-    }
-
-    /**
-     * Creates a reference to a schedule's timer.
-     * @see EventContext#schedule(Runnable, TimerRef, int, TimeUnit) 
-     * @see EventContext#scheduleAtFixedRate(Runnable, TimerRef, int, int, TimeUnit)
-     * @return a reference object
-     */
-    public static TimerRef createTimerRef() {
-        return new TimerRefDefinition();
     }
 
     private static boolean isPropertyByDefault(String name) {
@@ -670,21 +693,5 @@ public final class Html extends TagDefinition {
         final Map<String, String> result = new HashMap<>(m1);
         result.putAll(m2);
         return result;
-    }
-
-    /**
-     * Defines if auto HTML head tag upgrade is enabled.
-     */
-    public enum UpgradeMode {
-        /**
-         * The RSP scripts tags added to the document's head tag.
-         * This is the default rendering mode.
-         */
-        SCRIPTS,
-
-        /**
-         * No HTML tags upgrade applied.
-         */
-        RAW
     }
 }
