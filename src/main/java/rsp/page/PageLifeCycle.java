@@ -1,5 +1,7 @@
 package rsp.page;
 
+import rsp.state.UseState;
+
 /**
  * The listener interface for receiving page lifecycle events.
  * @param <S> page state type, an immutable class
@@ -9,9 +11,9 @@ public interface PageLifeCycle<S> {
     /**
      * Invoked before an live page session created.
      * @param sid the qualified session Id of the page created
-     * @param state the current state
+     * @param useState the accessor object for reading and writing page's state
      */
-    void beforeLivePageCreated(QualifiedSessionId sid, S state);
+    void beforeLivePageCreated(QualifiedSessionId sid, UseState<S> useState);
 
     /**
      * Invoked after an live page session closed.
@@ -27,7 +29,7 @@ public interface PageLifeCycle<S> {
     class Default<S> implements PageLifeCycle<S> {
 
         @Override
-        public void beforeLivePageCreated(QualifiedSessionId sid, S state) {
+        public void beforeLivePageCreated(QualifiedSessionId sid, UseState<S> useState) {
             //no-op
         }
 

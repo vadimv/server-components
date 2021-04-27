@@ -80,7 +80,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                                        documentDefinition,
                                                                        enrich,
                                                                        out);
-            lifeCycleEventsListener.beforeLivePageCreated(qsid, page.state);
+            lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
             final LivePage<S> livePage = new LivePage<S>(qsid,
                                                          livePageState,
                                                          schedulerSupplier.get(),
