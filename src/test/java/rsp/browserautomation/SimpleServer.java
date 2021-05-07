@@ -46,24 +46,6 @@ public class SimpleServer {
                        s -> new State(Integer.parseInt(s)).toCompletableFuture())
                 .result;
 
-        final PageLifeCycle<State> plc = new PageLifeCycle.Default<>() {
-            @Override
-            public void beforeLivePageCreated(QualifiedSessionId sid, UseState<State> useState) {
-                final Thread t = new Thread(() -> {
-                    while (true)
-                    try {
-                        Thread.sleep(2000);
-                        synchronized (useState) {
-                            useState.accept(new State(useState.get().i + 1));
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                });
-                t.start();
-            }
-        };
-
         final App<State> app = new App<>(routes,
                                          new PageLifeCycle.Default<>(),
                                          render);
@@ -73,10 +55,6 @@ public class SimpleServer {
             s.jetty.join();
         }
         return s;
-    }
-
-    private static boolean path(HttpRequest request, String s) {
-        return request.path.equals(s);
     }
 
     private static class State {
