@@ -328,6 +328,26 @@ To enable client-side detailed diagnostic data exchange logging, enter in the br
   RSP.setProtocolDebugEnabled(true)
 ```
 
+### Schedules
+
+The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
+methods allow submitting of a delayed or periodic action that can be cancelled. 
+An optional schedule name parameter may be provided when creating a new schedule. 
+Later this name could be used for the schedule cancellation.
+Scheduled tasks will be executed in threads from the internal thread pool,
+see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
+
+```java
+    final static TimerRef TIMER_0 = createTimerRef();
+    ...
+    button(attr("type", "button"),
+           text("Start"),
+           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
+    button(attr("type", "button"),
+               text("Stop"),
+               on("click", c -> c.cancelSchedule(TIMER_0)))
+```
+
 ## Usage
 
 This project requires Java 11 or newer. 
@@ -347,26 +367,6 @@ To build the project from the sources:
 
 $ mvn clean package
 
-```
-
-### Schedules
-
-The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
-methods allow submitting of a delayed or periodic action that can be cancelled. 
-An optional schedule name parameter may be provided when creating a new schedule. 
-Later this name could be used for the schedule cancellation.
-Scheduled tasks will be executed in threads from the internal thread pool,
-see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
-
-```java
-    final static TimerRef TIMER_0 = createTimerRef();
-    ...
-    button(attr("type", "button"),
-           text("Start"),
-           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
-    button(attr("type", "button"),
-               text("Stop"),
-               on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
 
