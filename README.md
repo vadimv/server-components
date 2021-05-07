@@ -61,26 +61,6 @@ Known concerns to deal with:
 - as for a stateful app, for scalability some kind of sticky session management required;
 - a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed. 
 
-## Usage
-
-This project requires Java 11 or newer. 
-
-Maven dependency:
-```xml
-    <dependency>
-        <groupId>io.github.vadimv</groupId>
-        <artifactId>rsp</artifactId>
-        <version>0.5</version>
-    </dependency>
-```
-
-To build the project from the sources:
-
-```shell script
-
-$ mvn clean package
-
-```
 ### Hello World and code examples
 
 ```java
@@ -224,44 +204,6 @@ The ``EventContext.eventObject()`` method reads the event's object as a JSON-lik
 ```
 RSP executes events code in a synchronized on a live page session instance context.
 
-### Components
-
-An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
-
-```java
-    public static Component<ButtonState> buttonComponent(String text) {
-        return s -> input(attr("type", "button"),
-                           attr("class", "button"),
-                           attr("value", text),      
-                           on("click", ctx -> s.accept(new ButtonState())));
-        
-    }
-    public static class ButtonState {}
-```
-
-A component's ``render()`` method invokes ``render()`` methods of its descendant components,
-providing a state object and optionally a listener, delivering the state change from a child component
-to propagate this change to its parent state's consumer. 
-
-```java
-    ...
-    public static Component<ConfirmPanelState> confirmPanelComponent(String text) {
-        return s -> div(attr("class", "panel"),
-                         span(text),
-                         buttonComponent("Ok").render(new ButtonState(), 
-                                                      buttonState -> s.accept(new ConfimPanelState(true))),
-                         buttonComponent("Cancel").render(new ButtonState(), 
-                                                          buttonState -> s.accept(new ConfimPanelState(false)));
-        
-    }
-    public static class ConfirmPanelState {
-        public final boolean confirmed;
-        public ConfirmPanelState(boolean confirmed) { this.confirmed = confirmed; }
-    }
-```
-
-An application's top-level ``Component<S>`` is the root of its component tree.
-
 ### Routing
 
 To resolve an initial application state from an HTTP request during the first rendering, create a function like that:
@@ -300,25 +242,44 @@ which corresponds to another parameter of the ``App`` constructor.
 ```
 The default state-to-path routing sets an empty path for any state.
 
-### Schedules
+### Components
 
-The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
-methods allow submitting of a delayed or periodic action that can be cancelled. 
-An optional schedule name parameter may be provided when creating a new schedule. 
-Later this name could be used for the schedule cancellation.
-Scheduled tasks will be executed in threads from the internal thread pool,
-see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
+An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
 
 ```java
-    final static TimerRef TIMER_0 = createTimerRef();
-    ...
-    button(attr("type", "button"),
-           text("Start"),
-           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
-    button(attr("type", "button"),
-               text("Stop"),
-               on("click", c -> c.cancelSchedule(TIMER_0)))
+    public static Component<ButtonState> buttonComponent(String text) {
+        return s -> input(attr("type", "button"),
+                           attr("class", "button"),
+                           attr("value", text),      
+                           on("click", ctx -> s.accept(new ButtonState())));
+        
+    }
+    public static class ButtonState {}
 ```
+
+A component's ``render()`` method invokes ``render()`` methods of its descendant components,
+providing a state object and optionally a listener, delivering the state change from a child component
+to propagate this change to its parent state's consumer. 
+
+```java
+    ...
+    public static Component<ConfirmPanelState> confirmPanelComponent(String text) {
+        return s -> div(attr("class", "panel"),
+                         span(text),
+                         buttonComponent("Ok").render(new ButtonState(), 
+                                                      buttonState -> s.accept(new ConfimPanelState(true))),
+                         buttonComponent("Cancel").render(new ButtonState(), 
+                                                          buttonState -> s.accept(new ConfimPanelState(false)));
+        
+    }
+    public static class ConfirmPanelState {
+        public final boolean confirmed;
+        public ConfirmPanelState(boolean confirmed) { this.confirmed = confirmed; }
+    }
+```
+
+An application's top-level ``Component<S>`` is the root of its component tree.
+
 
 ### Page lifecycle events listener
 
@@ -365,6 +326,47 @@ To enable client-side detailed diagnostic data exchange logging, enter in the br
 
 ```javascript
   RSP.setProtocolDebugEnabled(true)
+```
+
+## Usage
+
+This project requires Java 11 or newer. 
+
+Maven dependency:
+```xml
+    <dependency>
+        <groupId>io.github.vadimv</groupId>
+        <artifactId>rsp</artifactId>
+        <version>0.5</version>
+    </dependency>
+```
+
+To build the project from the sources:
+
+```shell script
+
+$ mvn clean package
+
+```
+
+### Schedules
+
+The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
+methods allow submitting of a delayed or periodic action that can be cancelled. 
+An optional schedule name parameter may be provided when creating a new schedule. 
+Later this name could be used for the schedule cancellation.
+Scheduled tasks will be executed in threads from the internal thread pool,
+see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
+
+```java
+    final static TimerRef TIMER_0 = createTimerRef();
+    ...
+    button(attr("type", "button"),
+           text("Start"),
+           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
+    button(attr("type", "button"),
+               text("Stop"),
+               on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
 
