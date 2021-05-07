@@ -157,9 +157,27 @@ another one is for code fragments with imperative logic, if operator branching, 
 
 Here, the ``span`` element will be visible or not depending on a boolean field of the state object using ``when()`` function:
 ```java
-    s ->
-        when(s.get().showLabel, span("This is a label"))
+    s -> when(s.get().showLabel, span("This is a label"))
 ```
+
+The ``head()`` creates a ``head`` element and adds a script element with the code that opens of WebSocket connection to server after the page loads.
+Also, this element is added if no head definition provided.
+Use ``plainHead()`` to render the markup with the ``head`` tag without this script resulting in a plain detached HTML page.
+
+The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers. 
+For example:
+
+```java
+    s -> html(   
+              plainHead(title("404 page not found")),
+              body(
+                   div(
+                       p("404 page not found")
+                  ) 
+                )
+            ).statusCode(404);
+```
+
 
 ### Events
 
