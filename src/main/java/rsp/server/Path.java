@@ -1,6 +1,7 @@
 package rsp.server;
 
 import rsp.util.ArrayUtils;
+import rsp.util.TriFunction;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -15,8 +16,8 @@ public final class Path {
     public static final Path EMPTY_ABSOLUTE = new Path(true);
     public static final Path EMPTY_RELATIVE = new Path(false);
 
-    private final boolean isAbsolute;
-    private final String[] elements;
+    public final boolean isAbsolute;
+    public final String[] elements;
 
     public Path(boolean isAbsolute, String... elements) {
         this.isAbsolute = isAbsolute;
@@ -73,8 +74,12 @@ public final class Path {
         return isAbsolute ? "/" + elementsString : elementsString;
     }
 
-    public <S> Matcher  matcher(CompletableFuture<S> defaultState) {
+    public <S> Matcher<S>  createMatcher(CompletableFuture<S> defaultState) {
         return new Matcher<>(this, defaultState);
+    }
+
+    public <S> Matcher<S>  createMatcher(S defaultState) {
+        return new Matcher<>(this, CompletableFuture.completedFuture(defaultState));
     }
 
     public Optional<String> last() {
@@ -89,13 +94,45 @@ public final class Path {
         return elements.length != 0 && elements[0].equals(s);
     }
 
+    /**
+     * Tests if a path matches with an empty path.
+     */
+    @FunctionalInterface
+    public interface Match0 {
+        boolean test();
+    }
+
+    /**
+     * Tests if a path with one element satisfies a condition.
+     */
+    @FunctionalInterface
+    public interface Match1 {
+        boolean test(String p0);
+    }
+
+    /**
+     * Tests if a path with two elements satisfies a condition.
+     */
+    @FunctionalInterface
+    public interface Match2 {
+        boolean test(String p0, String p1);
+    }
+
+    /**
+     * Tests if a path with three elements satisfies a condition.
+     */
+    @FunctionalInterface
+    public interface Match3 {
+        boolean test(String p0, String p1, String p2);
+    }
+
     public static class Matcher<S> {
         private final Path path;
 
         public final boolean isMatch;
         public final CompletableFuture<S> result;
 
-        public Matcher(Path path, CompletableFuture<S> defaultState, boolean isMatch) {
+        private Matcher(Path path, CompletableFuture<S> defaultState, boolean isMatch) {
             this.path = path;
             this.isMatch = isMatch;
             this.result = defaultState;
@@ -105,69 +142,43 @@ public final class Path {
             this(path, defaultState, false);
         }
 
-        public Matcher<S> whenEmpty(Supplier<S> state) {
-            return whenEmpty(CompletableFuture.completedFuture(state.get()));
-        }
-
-        public Matcher<S> whenEmpty(CompletableFuture<S> state) {
-            if (this.path.isEmpty()) {
-                return new Matcher<>(path, state, true);
+        public Matcher<S> match(Match0 predicate, Supplier<CompletableFuture<S>> state) {
+            if (!isMatch
+                && this.path.isEmpty()) {
+                return new Matcher<>(path, state.get(), true);
             } else {
                 return this;
             }
         }
 
-        public Matcher<S> when(Match1 predicate, Function<String, CompletableFuture<S>> state) {
-            if (path.elements.length == 1 && predicate.test(path.elements[0])) {
+        public Matcher<S> match(Match1 predicate, Function<String, CompletableFuture<S>> state) {
+            if (!isMatch
+                && path.elements.length == 1
+                && predicate.test(path.elements[0])) {
                 return new Matcher<>(path, state.apply(path.elements[0]), true);
             } else {
                 return this;
             }
         }
 
-        public Matcher<S> when(Match2 predicate, BiFunction<String, String, CompletableFuture<S>> state) {
-            if (path.elements.length == 2 && predicate.test(path.elements[0], path.elements[1])) {
+        public Matcher<S> match(Match2 predicate, BiFunction<String, String, CompletableFuture<S>> state) {
+            if (!isMatch
+                && path.elements.length == 2
+                && predicate.test(path.elements[0], path.elements[1])) {
                 return new Matcher<>(path, state.apply(path.elements[0], path.elements[1]), true);
             } else {
                 return this;
             }
         }
 
-        public Matcher<S> when(Match3 predicate, CompletableFuture<S> state) {
-            if (path.elements.length == 3 && predicate.test(path.elements[0], path.elements[1], path.elements[2])) {
-                return new Matcher<>(path, state, true);
+        public Matcher<S> match(Match3 predicate, TriFunction<String, String, String, CompletableFuture<S>> state) {
+            if (!isMatch
+                && path.elements.length == 3
+                && predicate.test(path.elements[0], path.elements[1], path.elements[2])) {
+                return new Matcher<>(path, state.apply(path.elements[0], path.elements[1], path.elements[2]), true);
             } else {
                 return this;
             }
         }
-
-        public Matcher<S> when(Match3 predicate, Supplier<S> state) {
-            return when(predicate, CompletableFuture.completedFuture(state.get()));
-        }
-    }
-
-    @FunctionalInterface
-    public interface Match1 {
-        boolean test(String p0);
-    }
-
-    @FunctionalInterface
-    public interface Match2 {
-        boolean test(String p0, String p1);
-    }
-
-    @FunctionalInterface
-    public interface Match3 {
-        boolean test(String p0, String p1, String p2);
-    }
-
-    @FunctionalInterface
-    public interface Match4 {
-        boolean test(String p0, String p1, String p2, String p3);
-    }
-
-    @FunctionalInterface
-    public interface Match5 {
-        boolean test(String p0, String p1, String p2, String p3, String p4);
     }
 }

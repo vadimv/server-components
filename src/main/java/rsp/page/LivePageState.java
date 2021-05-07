@@ -83,7 +83,7 @@ public class LivePageState<S> implements UseState<S> {
 
         // Browser's navigation
         final Path oldPath = snapshot.path;
-        final Path newPath = state2route.stateToPath.apply(newState);
+        final Path newPath = state2route.stateToPath.apply(newState, oldPath);
         if (!newPath.equals(oldPath)) {
             out.pushHistory(state2route.basePath.resolve(newPath).toString());
         }

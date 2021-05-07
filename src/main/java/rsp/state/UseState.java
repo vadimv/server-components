@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 
 /**
  * Represents a state snapshot read access as well as
- * various methods to write to it.
+ * methods to write to it.
  * @param <S> the type of the state snapshot, an immutable class
  */
 public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFutureConsumer<S>, FunctionConsumer<S> {

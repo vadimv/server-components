@@ -14,7 +14,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 /**
- * A server-side mirror object of an open browser's page.
+ * A server-side session object of an open browser's page.
  * @param <S> the application's state's type
  */
 public final class LivePage<S> implements InMessages, Schedule {

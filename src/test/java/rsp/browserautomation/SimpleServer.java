@@ -3,6 +3,8 @@ package rsp.browserautomation;
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
+import rsp.page.PageLifeCycle;
+import rsp.page.QualifiedSessionId;
 import rsp.server.HttpRequest;
 import rsp.state.UseState;
 
@@ -39,13 +41,31 @@ public class SimpleServer {
                                     text(state.get().i)))
         ));
 
-        final Function<HttpRequest, State> routes = request -> {
-            if (path(request, "/1")) return new State(1);
-            else if (path(request, "/2")) return new State(2);
-            else return new State(-1);
+        final Function<HttpRequest, CompletableFuture<State>> routes = request -> request.path.createMatcher(new State(-1))
+                .match(s -> request.method == HttpRequest.Methods.GET,
+                       s -> new State(Integer.parseInt(s)).toCompletableFuture())
+                .result;
+
+        final PageLifeCycle<State> plc = new PageLifeCycle.Default<>() {
+            @Override
+            public void beforeLivePageCreated(QualifiedSessionId sid, UseState<State> useState) {
+                final Thread t = new Thread(() -> {
+                    while (true)
+                    try {
+                        Thread.sleep(2000);
+                        synchronized (useState) {
+                            useState.accept(new State(useState.get().i + 1));
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                });
+                t.start();
+            }
         };
 
-        final App<State> app = new App<>(routes.andThen(v -> CompletableFuture.completedFuture(v)),
+        final App<State> app = new App<>(routes,
+                                         new PageLifeCycle.Default<>(),
                                          render);
         final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
         s.jetty.start();
@@ -64,6 +84,10 @@ public class SimpleServer {
 
         public State(int i) {
             this.i = i;
+        }
+
+        public CompletableFuture<State> toCompletableFuture() {
+            return CompletableFuture.completedFuture(this);
         }
     }
 

@@ -50,7 +50,7 @@ public class LivePageStateTests {
                                                                                Collections.emptyMap(),
                                                                                Collections.emptyMap());
 
-        final StateToRouteDispatch<State> state2route = new StateToRouteDispatch<>(Path.of(""), s -> Path.of("/" + s.value));
+        final StateToRouteDispatch<State> state2route = new StateToRouteDispatch<>(Path.of(""), (s, p) -> Path.of("/" + s.value));
 
         return new LivePageState<>(lpps, QID, state2route, rootComponent, enrichFunction(), out);
     }

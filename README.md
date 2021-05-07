@@ -70,7 +70,7 @@ Maven dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>0.4</version>
+        <version>0.5</version>
     </dependency>
 ```
 
@@ -267,15 +267,19 @@ An application's top-level ``Component<S>`` is the root of its component tree.
 To resolve an initial application state from an HTTP request during the first rendering, create a function like that:
 
 ```java
-    public CompletableFuture<State> route(HttpRequest request) {
-        return route(request.path);
+        final App<State> app = new App<>(this::routes,
+                                         new PageLifeCycle.Default<>(),
+                                         render());
+    ...
+    private CompletableFuture<State> routes(HttpRequest request) {
+        return request.method == HttpRequest.Methods.GET ? route(request.path) : State.page404();
     }
     
     public CompletableFuture<State> route(Path path) {
-        final Path.Matcher<State> m = path.matcher(CompletableFuture.completedFuture(error())) // a default match
-                                          .when((name) -> true,                 // /{name}
+        final Path.Matcher<State> m = path.createMatcher(State.page404()) // a default match
+                                          .match((name) -> true,                 // /{name}
                                                 (name) -> db.getList(name).map(list -> State.of(list)))
-                                          .when((name, id) -> isNumeric(id),    // /{name}/{id}
+                                          .match((name, id) -> isNumeric(id),    // /{name}/{id}
                                                 (name, id) -> db.getOne(Long.parse(id)).map(instance -> State.of(instance)));
         
         return m.result;
@@ -321,6 +325,26 @@ see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods o
 Provide an instance of ``PageLifecycle`` interface as an optional parameter when creating an 
 application object. This parameter allows listening to the events, specifically the event before to a page creation and 
 after the page shutdown.
+
+```java
+    final PageLifeCycle<Integer> plc = new PageLifeCycle.Default<Integer>() {
+        @Override
+        public void beforeLivePageCreated(QualifiedSessionId sid, UseState<Integer> useState) {
+            final Thread t = new Thread(() -> {
+                try {
+                    Thread.sleep(10_000);
+                    synchronized (useState) {
+                        useState.accept(useState.get() + 1);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            });
+            t.start();
+        }
+    };
+
+```
 
 ### Application and server's configuration
 

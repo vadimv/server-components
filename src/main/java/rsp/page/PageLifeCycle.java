@@ -11,7 +11,10 @@ public interface PageLifeCycle<S> {
     /**
      * Invoked before an live page session created.
      * @param sid the qualified session Id of the page created
-     * @param useState the accessor object for reading and writing page's state
+     * @param useState the accessor object for reading and writing page's state,
+     *                 use it as an intrinsic lock in a {@code synchronized} statement
+     *                 to ensure atomic read-and-write of state
+     *
      */
     void beforeLivePageCreated(QualifiedSessionId sid, UseState<S> useState);
 

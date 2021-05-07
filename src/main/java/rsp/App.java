@@ -7,6 +7,7 @@ import rsp.server.Path;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 /**
@@ -28,7 +29,7 @@ public final class App<S> {
     /**
      * A function that dispatches a current state snapshot to the browser's navigation bar's path.
      */
-    public final Function<S, Path> state2path;
+    public final BiFunction<S, Path, Path> state2path;
 
     /**
      * An implementation of the lifecycle events listener.
@@ -47,11 +48,12 @@ public final class App<S> {
      * @param config an application config
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param state2path a function that dispatches a current state snapshot to the browser's navigation bar's path
+     * @param lifeCycleEventsListener a listener for the app pages lifecycle events
      * @param rootComponent the root of the components tree
      */
     public App(AppConfig config,
                Function<HttpRequest, CompletableFuture<S>> routes,
-               Function<S, Path> state2path,
+               BiFunction<S, Path, Path> state2path,
                PageLifeCycle<S> lifeCycleEventsListener,
                Component<S> rootComponent) {
         this.config = config;
@@ -59,6 +61,22 @@ public final class App<S> {
         this.state2path = state2path;
         this.lifeCycleEventsListener = lifeCycleEventsListener;
         this.rootComponent = rootComponent;
+    }
+
+    /**
+     * Creates an instance of an application.
+     * @param routes a function that dispatches an incoming HTTP request to a page's initial state
+     * @param lifeCycleEventsListener a listener for the app pages lifecycle events
+     * @param rootComponent the root of the components tree
+     */
+    public App(Function<HttpRequest, CompletableFuture<S>> routes,
+               PageLifeCycle<S> lifeCycleEventsListener,
+               Component<S> rootComponent) {
+        this(AppConfig.DEFAULT,
+             routes,
+             (s, p) -> p,
+             lifeCycleEventsListener,
+             rootComponent);
     }
 
     /**
@@ -70,7 +88,7 @@ public final class App<S> {
                Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
-             (s) -> Path.EMPTY_ABSOLUTE,
+             (s, p) -> p,
              new PageLifeCycle.Default<>(),
              rootComponent);
     }
@@ -86,7 +104,7 @@ public final class App<S> {
                PageLifeCycle<S> lifeCycleEventsListener) {
         this(AppConfig.DEFAULT,
              request -> CompletableFuture.completedFuture(initialState),
-             (s) ->  Path.EMPTY_ABSOLUTE,
+             (s, p) ->  p,
              lifeCycleEventsListener,
              rootComponent);
     }
@@ -101,7 +119,7 @@ public final class App<S> {
                Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
                 request -> CompletableFuture.completedFuture(initialState),
-                (s) ->  Path.EMPTY_ABSOLUTE,
+                (s, p) ->  p,
                 new PageLifeCycle.Default<>(),
                 rootComponent);
     }
