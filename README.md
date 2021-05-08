@@ -122,6 +122,8 @@ should be written in Java code as
                   ) 
             );
 ```
+where lambda's parameter is the application's state read and write accessor of  ``UseState<S>`` type, 
+``S``  is an immutable class or record. The ``get()`` method reads this state object.
 
 Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects
 
@@ -145,14 +147,13 @@ another one is for code fragments with imperative logic, if operator branching, 
 ```java
     import static rsp.dsl.Html.*;
     ...
-    s ->
-        of(() -> {
-            if (s.get().showInfo) {
-                return p(s.get().info);
-            } else {
-                return p("none");
-            }       
-        })
+    s -> of(() -> {
+                     if (s.get().showInfo) {
+                         return p(s.get().info);
+                     } else {
+                         return p("none");
+                     }       
+                 })
 ```
 
 Here, the ``span`` element will be visible or not depending on a boolean field of the state object using ``when()`` function:
@@ -178,7 +179,6 @@ For example:
             ).statusCode(404);
 ```
 
-
 ### Events
 
 Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, handler)`` method.
@@ -192,7 +192,8 @@ Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, ha
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
-An event handler's code usually sets a new state snapshot object by invoking one of overloaded ``UseState<S>.accept()`` methods.
+An event handler's code usually sets a new state snapshot object by invoking one of overloaded ``UseState<S>.accept()`` methods
+of the lambda parameter state accessor.
 
 The event handler's ``EventContext`` parameter has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
