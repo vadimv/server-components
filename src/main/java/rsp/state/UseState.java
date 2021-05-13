@@ -13,6 +13,14 @@ import java.util.function.Supplier;
  */
 public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFutureConsumer<S>, FunctionConsumer<S> {
 
+    default boolean isInstanceOf(Class<? extends S> clazz) {
+        return clazz.isAssignableFrom(get().getClass());
+    }
+
+    default <T extends S> UseState<T> cast(Class<T> clazz) {
+        return readWrite(() -> (T) get(), v -> accept((T)v));
+    }
+
     static <S> UseState<S> readWriteInCompletableFuture(Supplier<S> supplier, CompletableFutureConsumer<S> completableFutureConsumer) {
         return new UseState<S>() {
             @Override

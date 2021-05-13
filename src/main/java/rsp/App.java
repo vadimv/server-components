@@ -24,7 +24,7 @@ public final class App<S> {
     /**
      * A function that dispatches an incoming HTTP request to a page's initial state.
      */
-    public final Function<HttpRequest, CompletableFuture<S>> routes;
+    public final Function<HttpRequest, CompletableFuture<? extends S>> routes;
 
     /**
      * A function that dispatches a current state snapshot to the browser's navigation bar's path.
@@ -39,7 +39,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final Component<S> rootComponent;
+    public final Component<? extends S> rootComponent;
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -52,10 +52,10 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(AppConfig config,
-               Function<HttpRequest, CompletableFuture<S>> routes,
+               Function<HttpRequest, CompletableFuture<? extends S>> routes,
                BiFunction<S, Path, Path> state2path,
                PageLifeCycle<S> lifeCycleEventsListener,
-               Component<S> rootComponent) {
+               Component<? extends S> rootComponent) {
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
@@ -69,9 +69,9 @@ public final class App<S> {
      * @param lifeCycleEventsListener a listener for the app pages lifecycle events
      * @param rootComponent the root of the components tree
      */
-    public App(Function<HttpRequest, CompletableFuture<S>> routes,
+    public App(Function<HttpRequest, CompletableFuture<? extends S>> routes,
                PageLifeCycle<S> lifeCycleEventsListener,
-               Component<S> rootComponent) {
+               Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
              (s, p) -> p,
@@ -84,8 +84,8 @@ public final class App<S> {
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param rootComponent the root of the components tree
      */
-    public App(Function<HttpRequest, CompletableFuture<S>> routes,
-               Component<S> rootComponent) {
+    public App(Function<HttpRequest, CompletableFuture<? extends S>> routes,
+               Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
              (s, p) -> p,
@@ -100,7 +100,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(S initialState,
-               Component<S> rootComponent,
+               Component<? extends S> rootComponent,
                PageLifeCycle<S> lifeCycleEventsListener) {
         this(AppConfig.DEFAULT,
              request -> CompletableFuture.completedFuture(initialState),
@@ -116,7 +116,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(S initialState,
-               Component<S> rootComponent) {
+               Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
                 request -> CompletableFuture.completedFuture(initialState),
                 (s, p) ->  p,

@@ -125,7 +125,7 @@ should be written in Java code as
 where lambda's parameter is the application's state read and write accessor of  ``UseState<S>`` type, 
 ``S``  is an immutable class or record. The ``get()`` method reads this state object.
 
-Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects
+Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects, which is useful to show for example a list, or a table rows. 
 
 ```java
     import static rsp.dsl.Html.*;

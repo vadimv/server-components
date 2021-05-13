@@ -74,14 +74,6 @@ public final class Path {
         return isAbsolute ? "/" + elementsString : elementsString;
     }
 
-    public <S> Matcher<S>  createMatcher(CompletableFuture<S> defaultState) {
-        return new Matcher<>(this, defaultState);
-    }
-
-    public <S> Matcher<S>  createMatcher(S defaultState) {
-        return new Matcher<>(this, CompletableFuture.completedFuture(defaultState));
-    }
-
     public Optional<String> last() {
         return elements.length > 0 ? Optional.of(elements[elements.length - 1]) : Optional.empty();
     }
@@ -142,6 +134,10 @@ public final class Path {
             this(path, defaultState, false);
         }
 
+        public Matcher(Path path, S defaultState) {
+            this(path, CompletableFuture.completedFuture(defaultState));
+        }
+
         public Matcher<S> match(Match0 predicate, Supplier<CompletableFuture<S>> state) {
             if (!isMatch
                 && this.path.isEmpty()) {
@@ -151,7 +147,7 @@ public final class Path {
             }
         }
 
-        public Matcher<S> match(Match1 predicate, Function<String, CompletableFuture<S>> state) {
+        public Matcher<? extends S> match(Match1 predicate, Function<String, CompletableFuture<? extends S>> state) {
             if (!isMatch
                 && path.elements.length == 1
                 && predicate.test(path.elements[0])) {

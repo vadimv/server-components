@@ -4,9 +4,8 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.page.PageLifeCycle;
-import rsp.page.QualifiedSessionId;
 import rsp.server.HttpRequest;
-import rsp.state.UseState;
+import rsp.server.Path;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -28,27 +27,43 @@ public class SimpleServer {
     }
 
     public static SimpleServer run(boolean blockCurrentThread) {
-        final Component<State> render = state ->
+        final Component<OkState> okComponent = state ->
                 html(head(title("test-server-title")),
-                     body(subComponent.render(state.get().i, s -> state.accept(new State(s))),
+                     body(subComponent.render(state.get().i, s -> state.accept(new OkState(s))),
                            div(button(attr("type", "button"),
                                       attr("id", "b0"),
                                       text("+1"),
                                on("click",
-                                  d -> { state.accept(new State(state.get().i + 1));}))),
+                                  d -> { state.accept(new OkState(state.get().i + 1));}))),
                            div(span(attr("id", "s0"),
                                     style("background-color", state.get().i % 2 ==0 ? "red" : "blue"),
                                     text(state.get().i)))
         ));
 
-        final Function<HttpRequest, CompletableFuture<State>> routes = request -> request.path.createMatcher(new State(-1))
-                .match(s -> request.method == HttpRequest.Methods.GET,
-                       s -> new State(Integer.parseInt(s)).toCompletableFuture())
-                .result;
+        final Component<NotFoundState> errorComponent =
+                state -> html(headPlain(title("Not found")),
+                              body(h1("Not found 404"))).statusCode(404);
 
-        final App<State> app = new App<>(routes,
-                                         new PageLifeCycle.Default<>(),
-                                         render);
+        final Component<? extends AppState> appComponent = s -> {
+            if (s.isInstanceOf(NotFoundState.class)) {
+                return errorComponent.render(s.cast(NotFoundState.class));
+            } else if (s.isInstanceOf(OkState.class)) {
+                return okComponent.render(s.cast(OkState.class));
+            } else {
+                // should never happen
+                throw new IllegalStateException();
+            }
+        };
+
+        final Function<HttpRequest, CompletableFuture<? extends AppState>> routes =
+                request -> new Path.Matcher<AppState>(request.path, new NotFoundState())
+                                    .match(s -> request.method == HttpRequest.Methods.GET && s.matches("-?\\d+"),
+                                           s -> new OkState(Integer.parseInt(s)).toCompletableFuture())
+                                    .result;
+
+        final App<AppState> app = new App<>(routes,
+                                            new PageLifeCycle.Default<>(),
+                                            appComponent);
         final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
         s.jetty.start();
         if (blockCurrentThread) {
@@ -57,14 +72,21 @@ public class SimpleServer {
         return s;
     }
 
-    private static class State {
+
+    interface AppState {
+    }
+
+    public static class NotFoundState implements AppState {
+    }
+
+    private static class OkState implements AppState {
         private final int i;
 
-        public State(int i) {
+        public OkState(int i) {
             this.i = i;
         }
 
-        public CompletableFuture<State> toCompletableFuture() {
+        public CompletableFuture<OkState> toCompletableFuture() {
             return CompletableFuture.completedFuture(this);
         }
     }

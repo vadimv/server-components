@@ -18,7 +18,7 @@ public class PlaywrightSmokeIT {
     private static SimpleServer server;
 
     @BeforeClass
-    public static void init() throws Exception {
+    public static void init() {
         server = SimpleServer.run(false);
     }
 
@@ -42,7 +42,7 @@ public class PlaywrightSmokeIT {
     }
 
     private void validatePage(Page page) throws InterruptedException {
-        page.navigate("http://localhost:" + SimpleServer.PORT);
+        page.navigate("http://localhost:" + SimpleServer.PORT + "/-1");
         Assert.assertEquals("test-server-title", page.title());
 
         assertElementTextEquals(page, "s0", "-1");
