@@ -51,7 +51,7 @@ public class SimpleServer {
                 return okComponent.render(s.cast(OkState.class));
             } else {
                 // should never happen
-                throw new IllegalStateException();
+                throw new IllegalStateException("Illegal state");
             }
         };
 
