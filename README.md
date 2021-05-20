@@ -118,7 +118,7 @@ should be written in Java code as
                    h1("This is a heading"),
                    div(attr("class", "par"), 
                        p("This is a paragraph"),
-                       p(s.get().text)) // this is another paragraph with a text from the current state object's field
+                       p(s.get().text)) // adds a paragraph with a text from the state object's 'text' field
                   ) 
             );
 ```
@@ -138,9 +138,8 @@ or an overloaded variant which accepts a ``CompletableFuture<S>``:
 ```java
     final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
     ...
-    s ->
-        // let's consider that at this moment we know the current user's Id
-        div(of(service.apply(s.get().user.id).map(str -> text(str))))
+         // let's consider that at this moment we know the current user's Id
+    s -> div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
 another one is for code fragments with imperative logic, if operator branching, gets a ``Supplier<S>`` as its argument:
@@ -157,14 +156,17 @@ another one is for code fragments with imperative logic, if operator branching, 
 ```
 
 Here, the ``span`` element will be visible or not depending on a boolean field of the state object using ``when()`` function:
+
 ```java
     s -> when(s.get().showLabel, span("This is a label"))
 ```
 
-The ``head()`` creates a ``head`` element and adds a script element with the code that opens of WebSocket connection to server after the page loads.
-Also, this element is added if no head definition provided.
-Use ``plainHead()`` to render the markup with the ``head`` tag without this script resulting in a plain detached HTML page.
+### Plain HTML pages
 
+The ``head()`` creates a ``head`` element and adds a script element with the code that opens of WebSocket connection to server after the page loads.
+Also, this element is added if no head definition provided. This creates a Single Page Application type page.
+
+Use ``plainHead()`` to render the markup with the ``head`` tag without this script resulting in a plain HTML page.
 The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers. 
 For example:
 
@@ -184,11 +186,10 @@ For example:
 Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, handler)`` method.
 
 ```java
-    s ->
-        a("#", "Click me", on("click", ctx -> {
-                    System.out.println("Clicked " + s.get().counter + " times");
-                    s.accept(new State(s.get().counter + 1));
-                }));
+    s -> a("#", "Click me", on("click", ctx -> {
+                System.out.println("Clicked " + s.get().counter + " times");
+                s.accept(new State(s.get().counter + 1));
+            }));
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
@@ -223,15 +224,12 @@ The ``EventContext.eventObject()`` method reads the event's object as a JSON-lik
 ```
 RSP executes events code in a synchronized on a live page session instance context.
 
-### Routing
+### Routing and path mapping
 
-To resolve an initial application state from an HTTP request during the first rendering, create a function like that:
+To resolve an initial application state from an HTTP request during the first rendering, create a routing function and
+provide it as an application's parameter:
 
 ```java
-        final App<State> app = new App<>(this::routes,
-                                         new PageLifeCycle.Default<>(),
-                                         render());
-    ...
     private CompletableFuture<State> routes(HttpRequest request) {
         return request.method == HttpRequest.Methods.GET ? route(request.path) : State.page404();
     }
@@ -245,9 +243,13 @@ To resolve an initial application state from an HTTP request during the first re
         
         return m.result;
     }
+
+    ...    
+    final App<State> app = new App<>(this::routes,
+                                     new PageLifeCycle.Default<>(),
+                                     render());
 ```
 
-Provide a request routing function to the application's class ``App`` constructor.
 The default request-to-state routing implementation returns an initial state for any incoming HTTP request.
 
 In a kind of opposite way, the current application's state can be mapped to the browser's navigation bar path using another function,
