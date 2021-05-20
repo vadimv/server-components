@@ -122,9 +122,9 @@ public final class Path {
         private final Path path;
 
         public final boolean isMatch;
-        public final CompletableFuture<S> result;
+        public final CompletableFuture<? extends S> result;
 
-        private Matcher(Path path, CompletableFuture<S> defaultState, boolean isMatch) {
+        private Matcher(Path path, CompletableFuture<? extends S> defaultState, boolean isMatch) {
             this.path = path;
             this.isMatch = isMatch;
             this.result = defaultState;
@@ -147,11 +147,11 @@ public final class Path {
             }
         }
 
-        public Matcher<? extends S> match(Match1 predicate, Function<String, CompletableFuture<? extends S>> state) {
+        public Matcher<S> match(Match1 predicate, Function<String, CompletableFuture<? extends S>> state) {
             if (!isMatch
                 && path.elements.length == 1
                 && predicate.test(path.elements[0])) {
-                return new Matcher<>(path, state.apply(path.elements[0]), true);
+                return new Matcher<S>(path, state.apply(path.elements[0]), true);
             } else {
                 return this;
             }
