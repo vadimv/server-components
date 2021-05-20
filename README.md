@@ -130,8 +130,7 @@ Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects, whic
 ```java
     import static rsp.dsl.Html.*;
     ...
-    s ->
-        ul(of(s.get().items.stream().map(item -> li(item.name))))
+    s -> ul(of(s.get().items.stream().map(item -> li(item.name))))
 ```
 
 or an overloaded variant which accepts a ``CompletableFuture<S>``:
