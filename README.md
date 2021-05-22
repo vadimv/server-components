@@ -2,8 +2,7 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-The **Reactive Server Pages (RSP)** project enables a Java developer to create real-time single-page applications and UI components
-with server-side HTML rendering.
+The **Reactive Server Pages (RSP)** enable creation of real-time single-page applications and websites in Java.
 
 ## How it works
 
@@ -122,10 +121,10 @@ should be written in Java code as
                   ) 
             );
 ```
-where lambda's parameter is the application's state read and write accessor of  ``UseState<S>`` type, 
-``S``  is an immutable class or record. The ``get()`` method reads this state object.
+where lambda's parameter is the application's state read and write accessor of  ``UseState<S>``.
+Where ``S``  is an immutable class or record. The ``get()`` method reads this state object.
 
-Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects, which is useful to show for example a list, or a table rows. 
+Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects, e.g. a list, or a table rows. 
 
 ```java
     import static rsp.dsl.Html.*;
@@ -141,7 +140,8 @@ or an overloaded variant which accepts a ``CompletableFuture<S>``:
     s -> div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-another one is for code fragments with imperative logic, if operator branching, gets a ``Supplier<S>`` as its argument:
+another overloaded variant gets a ``Supplier<S>`` as its argument.
+This version if the ``of()`` function is for code fragments with imperative logic. 
 ```java
     import static rsp.dsl.Html.*;
     ...
@@ -154,18 +154,17 @@ another one is for code fragments with imperative logic, if operator branching, 
                  })
 ```
 
-Here, the ``span`` element will be visible or not depending on a boolean field of the state object using ``when()`` function:
-
+The ``when()`` function conditionally renders an element.
 ```java
     s -> when(s.get().showLabel, span("This is a label"))
 ```
 
 ### Plain HTML pages
 
-The ``head()`` creates a ``head`` element and adds a script element with the code that opens of WebSocket connection to server after the page loads.
-Also, this element is added if no head definition provided. This creates a Single Page Application type page.
+The ``head()`` function creates an HTML ``head`` tag for a Single Page Application type page.
+This type of header contains a script, that enables WebSocket communication with the server after the page loads.
 
-Use ``plainHead()`` to render the markup with the ``head`` tag without this script resulting in a plain HTML page.
+The ``plainHead()`` renders the markup with the ``head`` tag without this script resulting in a plain HTML page.
 The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers. 
 For example:
 
@@ -182,7 +181,8 @@ For example:
 
 ### Events
 
-Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, handler)`` method.
+To respond to the browser page JavaScript events register an event handler using the ``rsp.dsl.Html.on(eventType, handler)`` method.
+Note that the handler's code actually will be executed on the server side.
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
@@ -192,8 +192,7 @@ Register a handler for a browser event using the ``rsp.dsl.Html.on(eventType, ha
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
-An event handler's code usually sets a new state snapshot object by invoking one of overloaded ``UseState<S>.accept()`` methods
-of the lambda parameter state accessor.
+An event handler's code usually sets a new global state snapshot object by invoking one of overloaded ``UseState<S>.accept()`` methods.
 
 The event handler's ``EventContext`` parameter has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
