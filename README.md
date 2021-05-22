@@ -182,7 +182,7 @@ For example:
 ### Events
 
 To respond to the browser page JavaScript events register an event handler using the ``rsp.dsl.Html.on(eventType, handler)`` method.
-Note that the handler's code actually will be executed on the server side.
+The handler's code runs on the server side.
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
