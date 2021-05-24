@@ -36,13 +36,18 @@ public class PlaywrightSmokeIT {
             final BrowserContext context = browser.newContext();
             final Page page = context.newPage();
             System.out.println("Browser type: " + browserType.name());
+            validatePageNotFound(page);
             validatePage(page);
         }
         playwright.close();
     }
 
+    private void validatePageNotFound(Page page) {
+        Assert.assertEquals(404, page.navigate("http://localhost:" + SimpleServer.PORT + "/none").status());
+    }
+
     private void validatePage(Page page) throws InterruptedException {
-        page.navigate("http://localhost:" + SimpleServer.PORT + "/-1");
+        Assert.assertEquals(200, page.navigate("http://localhost:" + SimpleServer.PORT + "/-1").status());
         Assert.assertEquals("test-server-title", page.title());
 
         assertElementTextEquals(page, "s0", "-1");

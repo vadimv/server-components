@@ -40,13 +40,13 @@ public class SimpleServer {
                                     text(state.get().i)))
         ));
 
-        final Component<NotFoundState> errorComponent =
+        final Component<NotFoundState> notFoundComponent =
                 state -> html(headPlain(title("Not found")),
                               body(h1("Not found 404"))).statusCode(404);
 
         final Component<? extends AppState> appComponent = s -> {
             if (s.isInstanceOf(NotFoundState.class)) {
-                return errorComponent.render(s.cast(NotFoundState.class));
+                return notFoundComponent.render(s.cast(NotFoundState.class));
             } else if (s.isInstanceOf(OkState.class)) {
                 return okComponent.render(s.cast(OkState.class));
             } else {
