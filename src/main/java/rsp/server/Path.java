@@ -12,6 +12,10 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+/**
+ * Represents a path.
+ * A path could be either absolute or relative.
+ */
 public final class Path {
     public static final Path EMPTY_ABSOLUTE = new Path(true);
     public static final Path EMPTY_RELATIVE = new Path(false);
@@ -19,17 +23,34 @@ public final class Path {
     public final boolean isAbsolute;
     public final String[] elements;
 
+    /**
+     * Creates a new instance of a path.
+     * @param isAbsolute true if the path is absolute, false is the path is relative
+     * @param elements the path's elements
+     */
     public Path(boolean isAbsolute, String... elements) {
         this.isAbsolute = isAbsolute;
         this.elements = elements;
     }
 
+    /**
+     * Creates a new instance of a path from a string.
+     * @param str the string with '/' separated path elements;
+     *            if starts with '/' then the path is absolute, otherwise the path is relative
+     * @return a path object
+     */
     public static Path of(String str) {
         final String trimmedStr = str.trim();
         final String[] tokens = Arrays.stream(trimmedStr.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
         return new Path(trimmedStr.startsWith("/"), tokens);
     }
 
+    /**
+     * Resolves a path to another path.
+     * If the provided path is absolute the result is this path, otherwise append its elements.
+     * @param path the path to resolve
+     * @return the result path
+     */
     public Path resolve(Path path) {
         if (path.isAbsolute) {
             return path;
@@ -41,10 +62,18 @@ public final class Path {
         return new Path(false);// TODO
     }
 
+    /**
+     * The path's elements number.
+     * @return the path's length
+     */
     public int size() {
         return elements.length;
     }
 
+    /**
+     * Checks if the path is empty or not.
+     * @return true if the path is empty, false otherwise
+     */
     public boolean isEmpty() {
         return elements.length == 0;
     }
@@ -65,6 +94,10 @@ public final class Path {
         return result;
     }
 
+    /**
+     * Converts the path to the stream of its elements
+     * @return
+     */
     public Stream<String> stream() {
         return Arrays.stream(elements);
     }
@@ -74,14 +107,28 @@ public final class Path {
         return isAbsolute ? "/" + elementsString : elementsString;
     }
 
+    /**
+     * Gets the last element of the path.
+     * @return the last element
+     */
     public Optional<String> last() {
         return elements.length > 0 ? Optional.of(elements[elements.length - 1]) : Optional.empty();
     }
 
+    /**
+     * Checks if the path's last element equals to the provided string.
+     * @param s the string to check
+     * @return true if the path ends with the element and false if it is not
+     */
     public boolean endsWith(String s) {
         return elements.length != 0 && elements[elements.length - 1].equals(s);
     }
 
+    /**
+     * Checks if the path's first element equals to the provided string.
+     * @param s the string to check
+     * @return true if the path starts with the element and false if it is not
+     */
     public boolean startsWith(String s) {
         return elements.length != 0 && elements[0].equals(s);
     }
