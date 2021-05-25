@@ -59,7 +59,7 @@ public class SimpleServer {
                 request -> new Path.Matcher<AppState>(request.path, new NotFoundState())
                                     .match(s -> request.method == HttpRequest.Methods.GET && s.matches("-?\\d+"),
                                            s -> new OkState(Integer.parseInt(s)).toCompletableFuture())
-                                    .result;
+                                    .state;
 
         final App<AppState> app = new App<>(routes,
                                             new PageLifeCycle.Default<>(),

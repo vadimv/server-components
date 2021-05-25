@@ -165,35 +165,69 @@ public final class Path {
         boolean test(String p0, String p1, String p2);
     }
 
+    /**
+     * Provides a framework for Path matching according to the path elements numbers.
+     * The match overloaded methods define the patterns and corresponded function with destructed path elements as its parameter.
+     * The match methods allow to create a chain of patterns.
+     * The first match results the state.
+     *
+     * @param <S> a state type
+     */
     public static class Matcher<S> {
         private final Path path;
+        private final boolean isMatch;
 
-        public final boolean isMatch;
-        public final CompletableFuture<? extends S> result;
+        /**
+         * The match result.
+         */
+        public final CompletableFuture<? extends S> state;
 
         private Matcher(Path path, CompletableFuture<? extends S> defaultState, boolean isMatch) {
             this.path = path;
             this.isMatch = isMatch;
-            this.result = defaultState;
+            this.state = defaultState;
         }
 
+        /**
+         * Creates a new instance of a matcher.
+         * @param path the path to match
+         * @param defaultState the result state when the path has no matches in the form of a CompletableFuture
+         */
         public Matcher(Path path, CompletableFuture<S> defaultState) {
             this(path, defaultState, false);
         }
 
+        /**
+         * Creates a new instance of a matcher.
+         * @param path the path to match
+         * @param defaultState the result state when the path has no matches
+         */
         public Matcher(Path path, S defaultState) {
             this(path, CompletableFuture.completedFuture(defaultState));
         }
 
+        /**
+         * Matches to the empty path pattern.
+         * @param predicate the condition for match, if the path matches and the predicate is true then the provided
+         *                  state is setup as the matches chain result
+         * @param state the state's supplier for this match attempt
+         * @return a next instance in the matcher's chain
+         */
         public Matcher<S> match(Match0 predicate, Supplier<CompletableFuture<S>> state) {
-            if (!isMatch
-                && this.path.isEmpty()) {
+            if (!isMatch && this.path.isEmpty()) {
                 return new Matcher<>(path, state.get(), true);
             } else {
                 return this;
             }
         }
 
+        /**
+         * Matches to a path with one element pattern.
+         * @param predicate the condition for match, if the path matches and the predicate is true then the provided
+         *                  state is setup as the matches chain result
+         * @param state the state function for this match attempt
+         * @return a next instance in the matcher's chain
+         */
         public Matcher<S> match(Match1 predicate, Function<String, CompletableFuture<? extends S>> state) {
             if (!isMatch
                 && path.elements.length == 1
@@ -204,6 +238,13 @@ public final class Path {
             }
         }
 
+        /**
+         * Matches to a path with two elements pattern.
+         * @param predicate the condition for match, if the path matches and the predicate is true then the provided
+         *                  state is setup as the matches chain result
+         * @param state the state function for this match attempt
+         * @return a next instance in the matcher's chain
+         */
         public Matcher<S> match(Match2 predicate, BiFunction<String, String, CompletableFuture<S>> state) {
             if (!isMatch
                 && path.elements.length == 2
@@ -214,6 +255,13 @@ public final class Path {
             }
         }
 
+        /**
+         * Matches to a path with three elements pattern.
+         * @param predicate the condition for match, if the path matches and the predicate is true then the provided
+         *                  state is setup as the matches chain result
+         * @param state the state function for this match attempt
+         * @return a next instance in the matcher's chain
+         */
         public Matcher<S> match(Match3 predicate, TriFunction<String, String, String, CompletableFuture<S>> state) {
             if (!isMatch
                 && path.elements.length == 3
