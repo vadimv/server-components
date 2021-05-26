@@ -7,7 +7,7 @@ with server-side HTML rendering.
 
 ### Hello World
 
-JDK version >= 11.
+Java version >= 11.
 
 Maven dependency:
 ```xml
