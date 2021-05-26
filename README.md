@@ -9,7 +9,7 @@ with server-side HTML rendering.
 
 Java version >= 11.
 
-Maven dependency:
+The Maven dependency:
 ```xml
     <dependency>
         <groupId>io.github.vadimv</groupId>
@@ -18,6 +18,7 @@ Maven dependency:
     </dependency>
 ```
 
+The *Hello World* application's code:
 ```java
     import rsp.App;
     import rsp.jetty.JettyServer;
