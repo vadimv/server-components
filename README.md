@@ -2,65 +2,21 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-The **Reactive Server Pages (RSP)** enable creation of real-time single-page applications and websites in Java.
+The Reactive Server Pages project enables a Java developer to create real-time single-page applications and UI components
+with server-side HTML rendering.
 
-## How it works
+### Hello World
 
+JDK version >= 11.
+
+Maven dependency:
+```xml
+    <dependency>
+        <groupId>io.github.vadimv</groupId>
+        <artifactId>rsp</artifactId>
+        <version>0.5</version>
+    </dependency>
 ```
-     ┌───────┐                   ┌──────┐
-     │Browser│                   │Server│
-     └───┬───┘                   └──┬───┘
-         │         HTTP GET         │    
-         │──────────────────────────>    
-         │                          │  Inital page render 
-         │    HTTP response 200     │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │    Open a WebSocket      │    
-         │──────────────────────────>    
-         │                          │  Create a new live page  
-         │   Register page events   │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │   An event on the page   │    
-         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
-         │                          │   Re-render, calculate virtual DOM diff 
-         │   Modify DOM commands    │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-     ┌───┴───┐                   ┌──┴───┐
-     │Browser│                   │Server│
-     └───────┘                   └──────┘
-```
-
-## Motivation
-
-A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API. 
-Often, these two sides even use different programming languages, dependency management, and build tools.
-This all introduces a lot of accidental complexity.
-Any change made on the client-side potentially needs to be reflected on the API and the server-side. 
-Isn't it sounds like developing and supporting effectively two applications instead of one?
-
-An RSP UI lives on the server-side and abstracts the client-side. 
-The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
-After loading an initial page HTML, it only feeds events to the server and updates the presentation to the incoming diff commands.
-
-An RSP application developer's experience may feel similar to creating a desktop application UI in reactive style with HTML and CSS.
-Or like creating a React application with direct access to its backend data. 
-
-Some other bonuses of this approach are:
-- coding and debugging the UI is just coding in plain Java and debugging Java;
-- fast initial page load no matter of the application's size;
-- your code always stays on your server;
-- SEO-friendly out of the box.
-    
-Known concerns to deal with:
-- may be not a good fit for use cases requiring very low response time, heavy animations, etc;
-- latency between a client and the server should be low enough to ensure a good user experience;
-- more memory and CPU resources may be required on the server;
-- as for a stateful app, for scalability some kind of sticky session management required;
-- a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed. 
-
-### Hello World and code examples
 
 ```java
     import rsp.App;
@@ -83,17 +39,19 @@ Known concerns to deal with:
         }
     }
 ```
-Run the class and connect to http://localhost:8080.
+Run the class and navigate to http://localhost:8080.
 
-See the [TODOs list](https://github.com/vadimv/rsp-todo-list),
-[Hacker News API client](https://github.com/vadimv/rsp-hn),
-[Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
-and [Tetris](https://github.com/vadimv/rsp-tetris) examples.
+### Code examples
+
+* [TODOs list](https://github.com/vadimv/rsp-todo-list)
+* [Hacker News API client](https://github.com/vadimv/rsp-hn)
+* [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
+* [Tetris](https://github.com/vadimv/rsp-tetris)
 
 ### HTML markup Java DSL
 
-Use the RSP Java internal domain-specific language for declarative definition of an HTML page markup.
-For example, the fragment:
+Use the RSP Java internal domain-specific language (DSL) for declarative definition of an HTML page markup.
+For example, re-write the HTML fragment below:
 
 ```html
  <html>    
@@ -107,7 +65,7 @@ For example, the fragment:
 </html> 
 ```
 
-should be written in Java code as
+in Java DSL as
 
 ```java
     import static rsp.dsl.Html.*;
@@ -121,8 +79,9 @@ should be written in Java code as
                   ) 
             );
 ```
-where lambda's parameter is the application's state read and write accessor of  ``UseState<S>``.
-Where ``S``  is an immutable class or record. The ``get()`` method reads this state object.
+where lambda's parameter ``s`` is a read-and-write accessor ``UseState<S>``.
+Where ``S`` state type is an immutable class or record representing the application state.
+Call the ``get()`` method of the accessor to read the current state.
 
 Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects, e.g. a list, or a table rows. 
 
@@ -181,8 +140,8 @@ For example:
 
 ### Events
 
-To respond to the browser page JavaScript events register an event handler using the ``rsp.dsl.Html.on(eventType, handler)`` method.
-The handler's code runs on the server side.
+Register a browser's page DOM event handler using ``on(eventType, handler)``.
+On an event the handler's runs Java code on the server side.
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
@@ -192,7 +151,8 @@ The handler's code runs on the server side.
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
-An event handler's code usually sets a new global state snapshot object by invoking one of overloaded ``UseState<S>.accept()`` methods.
+An event handler's code usually sets a new application's state snapshot by invoking one of overloaded ``UseState<S>.accept()`` methods.
+A new state triggers re-rendering the page on the server.
 
 The event handler's ``EventContext`` parameter has a number of useful methods.  
 One of these methods allows access to client-side document elements properties values via elements references.
@@ -207,7 +167,7 @@ One of these methods allows access to client-side document elements properties v
     }))
 ```
 
-In the case when we need a reference to an object created on-the-fly use ``RefDefinition.withKey()`` method.
+A reference to an object can be created on-the-fly using ``RefDefinition.withKey()`` method.
   
 The ``EventContext.eventObject()`` method reads the event's object as a JSON-like data structure:
 
@@ -220,7 +180,7 @@ The ``EventContext.eventObject()`` method reads the event's object as a JSON-lik
         input(attr("type", "button"), attr("value", "Submit"))
     )
 ```
-RSP executes events code in a synchronized on a live page session instance context.
+Events code runs in a synchronized sections on a live page session state container object.
 
 ### Routing and path mapping
 
@@ -248,7 +208,7 @@ provide it as an application's parameter:
                                      render());
 ```
 
-The default request-to-state routing implementation returns an initial state for any incoming HTTP request.
+The default request-to-state routing implementation returns a provided initial state for any incoming HTTP request.
 
 In a kind of opposite way, the current application's state can be mapped to the browser's navigation bar path using another function,
 which corresponds to another parameter of the ``App`` constructor.
@@ -263,7 +223,7 @@ The default state-to-path routing sets an empty path for any state.
 
 ### Components
 
-An RSP application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
+An application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
 
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
@@ -367,26 +327,79 @@ see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods o
                on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
-## Usage
-
-This project requires Java 11 or newer. 
-
-Maven dependency:
-```xml
-    <dependency>
-        <groupId>io.github.vadimv</groupId>
-        <artifactId>rsp</artifactId>
-        <version>0.5</version>
-    </dependency>
-```
+## How to build and run tests
 
 To build the project from the sources:
 
 ```shell script
 
 $ mvn clean package
+```
+
+To run all the tests:
+
+```shell script
+
+$ mvn clean test -Ptest-all
+```
+
+## Browser and server communications diagram
 
 ```
+     ┌───────┐                   ┌──────┐
+     │Browser│                   │Server│
+     └───┬───┘                   └──┬───┘
+         │         HTTP GET         │    
+         │──────────────────────────>    
+         │                          │  Inital page render 
+         │    HTTP response 200     │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │    Open a WebSocket      │    
+         │──────────────────────────>    
+         │                          │  Create a new live page  
+         │   Register page events   │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │   An event on the page   │    
+         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
+         │                          │   Re-render, calculate virtual DOM diff 
+         │   Modify DOM commands    │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+     ┌───┴───┐                   ┌──┴───┐
+     │Browser│                   │Server│
+     └───────┘                   └──────┘
+```
+
+## Motivation
+
+A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API.
+Often, these two sides even use different programming languages, dependency management, and build tools.
+This all introduces a lot of accidental complexity.
+Any change made on the client-side potentially needs to be reflected on the API and the server-side.
+Isn't it sounds like developing and supporting effectively two applications instead of one?
+
+An RSP UI lives on the server-side and abstracts the client-side.
+The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
+After loading an initial page HTML, it only feeds events to the server and updates the presentation to the incoming diff commands.
+
+An RSP application developer's experience may feel similar to creating a desktop application UI in reactive style with HTML and CSS.
+Or like creating a React application with direct access to its backend data.
+
+Some other bonuses of this approach are:
+- coding and debugging the UI is just coding in plain Java and debugging Java;
+- fast initial page load no matter of the application's size;
+- your code always stays on your server;
+- SEO-friendly out of the box.
+
+Known concerns to deal with:
+- may be not a good fit for use cases requiring very low response time, heavy animations, etc;
+- latency between a client and the server should be low enough to ensure a good user experience;
+- more memory and CPU resources may be required on the server;
+- as for a stateful app, for scalability some kind of sticky session management required;
+- a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed. 
+
+
 
 
 
