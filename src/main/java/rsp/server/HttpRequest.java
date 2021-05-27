@@ -39,6 +39,14 @@ public final class HttpRequest {
         return getCookie().apply(PageRendering.DEVICE_ID_COOKIE_NAME);
     }
 
+    public Optional<String> getParam(String paramName) {
+        return getParam.apply(paramName);
+    }
+
+    public Optional<String> getHeader(String headerName) {
+        return getHeader.apply(headerName);
+    }
+
     public enum Methods {
         GET,
         HEAD,
