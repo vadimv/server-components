@@ -2,8 +2,8 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-The Reactive Server Pages (RSP) project enables a Java developer to create real-time Single-page applications and UI components
-with server-side HTML rendering.
+The Reactive Server Pages (RSP) is a lightweight Java web framework. 
+RSP enables creation of real-time single-page applications and UI components with server-side HTML rendering.
 
 ### Hello World
 
@@ -126,7 +126,7 @@ There are two types of web pages:
 * Plain pages
 
 An RSP web application can contain a mix of both types. 
-For example, an admin part can be a Single-page application page, and the client facing part made of plain pages.
+For example, an admin part can be a single-page application page, and the client facing part made of plain pages.
 
 The ``head()`` function creates an HTML ``head`` tag for an SPA type page.
 This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server 
@@ -148,7 +148,7 @@ For example:
             ).statusCode(404);
 ```
 
-### Single-page application events
+### Single-page application's events
 
 Register a browser's page DOM event handler using ``on(eventType, handler)``.
 An event runs the handler's Java code on the server side.
@@ -195,8 +195,8 @@ Events code runs in a synchronized sections on a live page session state contain
 
 ### Routing and path mapping
 
-To resolve an initial application state from an HTTP request during the first rendering, create a routing function and
-provide it as an application's parameter:
+To resolve an initial application state from an HTTP request during the page's initial rendering,
+create a routing function and provide it as an application's parameter:
 
 ```java
     private CompletableFuture<State> routes(HttpRequest request) {
