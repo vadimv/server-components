@@ -2,7 +2,7 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-The Reactive Server Pages project enables a Java developer to create real-time single-page applications and UI components
+The Reactive Server Pages (RSP) project enables a Java developer to create real-time Single-page applications and UI components
 with server-side HTML rendering.
 
 ### Hello World
@@ -121,10 +121,17 @@ The ``when()`` function conditionally renders an element.
 
 ### Plain HTML pages
 
-The ``head()`` function creates an HTML ``head`` tag for a Single Page Application type page.
-This type of header contains a script, that enables WebSocket communication with the server after the page loads.
+There are two types of web pages:
+    * Single-page applications (SPA)
+    * Plain pages
 
-The ``plainHead()`` renders the markup with the ``head`` tag without this script resulting in a plain HTML page.
+An RSP web application can contain a mix of both types. 
+For example, an admin part can be a Single-page application, and the client facing part made of plain pages.
+
+The ``head()`` function creates an HTML ``head`` tag for an SPA type page.
+This type of header contains a script, that enables WebSocket communication and reacting to the browser events after the page loads.
+
+The ``plainHead()`` renders the markup with the ``head`` tag without this script resulting in a plain detached HTML page.
 The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers. 
 For example:
 
@@ -139,7 +146,7 @@ For example:
             ).statusCode(404);
 ```
 
-### Events
+### Single-page application events
 
 Register a browser's page DOM event handler using ``on(eventType, handler)``.
 On an event the handler's runs Java code on the server side.
@@ -211,7 +218,9 @@ provide it as an application's parameter:
 
 The default request-to-state routing implementation returns a provided initial state for any incoming HTTP request.
 
-In a kind of opposite way, the current application's state can be mapped to the browser's navigation bar path using another function,
+The root component or a descendant component maps the routing result state to a specific view. See [HTML markup Java DSL](#HTML markup Java DSL).
+
+For SPAs, the current application's state can be mapped to the browser's navigation bar path using another function,
 which corresponds to another parameter of the ``App`` constructor.
  
 ```java
