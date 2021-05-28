@@ -80,11 +80,11 @@ in Java DSL as
                   ) 
             );
 ```
-where lambda's parameter ``s`` is a read-and-write accessor ``UseState<S>``.
-Where ``S`` state type is an immutable class or record representing the application state.
-Call the ``get()`` method of the accessor to read the current state.
+where lambda's parameter ``s`` is a read-and-write accessor ``UseState<S>``,
+where  the ``S`` state type parameter is an immutable class or record representing the application's state.
+The ``get()`` method of the accessor reads the current state.
 
-Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects, e.g. a list, or a table rows. 
+The utility ``of()`` DSL function for renders a ``Stream<S>`` of objects, e.g. a list, or a table rows:
 
 ```java
     import static rsp.dsl.Html.*;
@@ -92,7 +92,7 @@ Use the utility ``of()`` function for rendering a ``Stream<S>`` of objects, e.g.
     s -> ul(of(s.get().items.stream().map(item -> li(item.name))))
 ```
 
-or an overloaded variant which accepts a ``CompletableFuture<S>``:
+An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
 ```java
     final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
     ...
@@ -100,7 +100,7 @@ or an overloaded variant which accepts a ``CompletableFuture<S>``:
     s -> div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-another overloaded variant gets a ``Supplier<S>`` as its argument.
+Another overloaded variant accepts a ``Supplier<S>`` as its argument.
 This version if the ``of()`` function is for code fragments with imperative logic. 
 ```java
     import static rsp.dsl.Html.*;
@@ -114,7 +114,7 @@ This version if the ``of()`` function is for code fragments with imperative logi
                  })
 ```
 
-The ``when()`` function conditionally renders an element.
+The ``when()`` DSL function conditionally renders an element:
 ```java
     s -> when(s.get().showLabel, span("This is a label"))
 ```
@@ -122,16 +122,18 @@ The ``when()`` function conditionally renders an element.
 ### Plain HTML pages
 
 There are two types of web pages:
-* Single-page applications (SPA)
+* Single-page application (SPA) pages
 * Plain pages
 
 An RSP web application can contain a mix of both types. 
-For example, an admin part can be a Single-page application, and the client facing part made of plain pages.
+For example, an admin part can be a Single-page application page, and the client facing part made of plain pages.
 
 The ``head()`` function creates an HTML ``head`` tag for an SPA type page.
-This type of header contains a script, that enables WebSocket communication and reacting to the browser events after the page loads.
+This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server 
+and enables reacting to the browser events.
 
-The ``plainHead()`` renders the markup with the ``head`` tag without this script resulting in a plain detached HTML page.
+The ``plainHead()`` renders the markup with the ``head`` tag without injecting of this script resulting in a plain detached HTML page.
+
 The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers. 
 For example:
 
@@ -149,7 +151,7 @@ For example:
 ### Single-page application events
 
 Register a browser's page DOM event handler using ``on(eventType, handler)``.
-On an event the handler's runs Java code on the server side.
+An event runs the handler's Java code on the server side.
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
@@ -159,11 +161,12 @@ On an event the handler's runs Java code on the server side.
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
-An event handler's code usually sets a new application's state snapshot by invoking one of overloaded ``UseState<S>.accept()`` methods.
-A new state triggers re-rendering the page on the server.
+An event handler's code usually sets a new application's state snapshot by invoking one of overloaded ``UseState<S>.accept()`` methods
+on the accessor, provided as a component's ``render()`` method's argument.
+A new set state triggers re-rendering the page on the server and updating the page with the result virtual DOM diff commands.
 
-The event handler's ``EventContext`` parameter has a number of useful methods.  
-One of these methods allows access to client-side document elements properties values via elements references.
+The event handler's ``EventContext`` class parameter has a number of utility methods.  
+One of these methods allows access to client-side document elements properties values by elements references.
 
 ```java
     final ElementRef inputRef = createElementRef();
@@ -175,9 +178,9 @@ One of these methods allows access to client-side document elements properties v
     }))
 ```
 
-A reference to an object can be created on-the-fly using ``RefDefinition.withKey()`` method.
+A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
   
-The ``EventContext.eventObject()`` method reads the event's object as a JSON-like data structure:
+The context's ``EventContext.eventObject()`` method reads the event's object as a JSON-like data structure:
 
 ```java
     form(on("submit", ctx -> {
@@ -216,12 +219,11 @@ provide it as an application's parameter:
                                      render());
 ```
 
-The default request-to-state routing implementation returns a provided initial state for any incoming HTTP request.
+The root component or a descendant component maps the routed result state to a specific view. 
+See [HTML markup Java DSL](#html-markup-java-dsl).
 
-The root component or a descendant component maps the routing result state to a specific view. See [HTML markup Java DSL](#html-markup-java-dsl).
-
-For SPAs, the current application's state can be mapped to the browser's navigation bar path using another function,
-which corresponds to another parameter of the ``App`` constructor.
+For SPAs, the current application's state can be mapped to the browser's navigation bar path using another function
+provided as another parameter of the ``App`` class constructor.
  
 ```java
      public static Path state2path(State state) {
@@ -229,11 +231,11 @@ which corresponds to another parameter of the ``App`` constructor.
         return state.details.map(details -> new Path(state.name, Long.toString(details.id))).or(new Path(state.name));
     }
 ```
-The default state-to-path routing sets an empty path for any state.
+If not provided explicitly, the default state-to-path routing sets an empty path for any state.
 
 ### Components
 
-An application is composed of components. A component is a Java class implementing ``Component<S>`` interface.
+Pages are composed of components. A component is a Java class implementing ``Component<S>`` interface.
 
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
@@ -247,8 +249,8 @@ An application is composed of components. A component is a Java class implementi
 ```
 
 A component's ``render()`` method invokes ``render()`` methods of its descendant components,
-providing a state object and optionally a listener, delivering the state change from a child component
-to propagate this change to its parent state's consumer. 
+providing a state object and optionally a listener. With the code in this listener the state change from a child component
+propagates to its parent state's consumer, up to the root component's context. 
 
 ```java
     ...
@@ -272,8 +274,8 @@ An application's top-level ``Component<S>`` is the root of its component tree.
 
 ### Page lifecycle events listener
 
-Provide an instance of ``PageLifecycle`` interface as an optional parameter when creating an 
-application object. This parameter allows listening to the events, specifically the event before to a page creation and 
+Provide an instance of ``PageLifecycle`` interface as an optional parameter on an application object.
+This allows listening to the page's lifecycle events, specifically the event before to a page creation and 
 after the page shutdown.
 
 ```java
