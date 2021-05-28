@@ -9,6 +9,10 @@ import java.util.concurrent.CompletableFuture;
 
 import static rsp.dsl.Html.*;
 
+/**
+ * The application state type is a String representing a full name.
+ * On empty string show the input form, otherwise show the result page.
+ */
 public class PlainForm {
     public static void main(String[] args) {
         final var app = new App<>(PlainForm::routes,
