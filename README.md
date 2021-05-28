@@ -80,9 +80,9 @@ in Java DSL as
                   ) 
             );
 ```
-where lambda's parameter ``s`` is a read-and-write accessor ``UseState<S>``,
-where  the ``S`` state type parameter is an immutable class or record representing the application's state.
-The ``get()`` method of the accessor reads the current state.
+where lambda's parameter ``s`` is a read-and-write accessor object of ``UseState<S>`` class.
+The ``S`` state type parameter is an immutable class or record representing the complete application's state.
+Use the ``get()`` method of the accessor to read the current state.
 
 The utility ``of()`` DSL function for renders a ``Stream<S>`` of objects, e.g. a list, or a table rows:
 
@@ -122,8 +122,8 @@ The ``when()`` DSL function conditionally renders an element:
 ### Plain HTML pages
 
 There are two types of web pages:
-* Single-page application (SPA) pages
-* Plain pages
+- Single-page application (SPA) pages
+- Plain pages
 
 An RSP web application can contain a mix of both types. 
 For example, an admin part can be a single-page application page, and the client facing part made of plain pages.
@@ -193,7 +193,7 @@ The context's ``EventContext.eventObject()`` method reads the event's object as 
 ```
 Events code runs in a synchronized sections on a live page session state container object.
 
-### Routing and path mapping
+### HTTP Request routing and path mapping
 
 To resolve an initial application state from an HTTP request during the page's initial rendering,
 create a routing function and provide it as an application's parameter:
@@ -233,9 +233,9 @@ provided as another parameter of the ``App`` class constructor.
 ```
 If not provided explicitly, the default state-to-path routing sets an empty path for any state.
 
-### Components
+### UI Components
 
-Pages are composed of components. A component is a Java class implementing ``Component<S>`` interface.
+Pages are composed of components. A component is a Java class which implements the ``Component<S>`` interface.
 
 ```java
     public static Component<ButtonState> buttonComponent(String text) {
@@ -339,7 +339,7 @@ see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods o
                on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
-## How to build and run tests
+### How to build the project and run tests
 
 To build the project from the sources:
 
@@ -355,7 +355,7 @@ To run all the tests:
 $ mvn clean test -Ptest-all
 ```
 
-## Browser and server communications diagram
+### Browser and server interaction diagram
 
 ```
      ┌───────┐                   ┌──────┐
