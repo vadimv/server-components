@@ -122,8 +122,8 @@ The ``when()`` function conditionally renders an element.
 ### Plain HTML pages
 
 There are two types of web pages:
-    * Single-page applications (SPA)
-    * Plain pages
+* Single-page applications (SPA)
+* Plain pages
 
 An RSP web application can contain a mix of both types. 
 For example, an admin part can be a Single-page application, and the client facing part made of plain pages.
