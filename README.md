@@ -218,7 +218,7 @@ provide it as an application's parameter:
 
 The default request-to-state routing implementation returns a provided initial state for any incoming HTTP request.
 
-The root component or a descendant component maps the routing result state to a specific view. See [HTML markup Java DSL](#HTML markup Java DSL).
+The root component or a descendant component maps the routing result state to a specific view. See [HTML markup Java DSL](#html-markup-java-dsl).
 
 For SPAs, the current application's state can be mapped to the browser's navigation bar path using another function,
 which corresponds to another parameter of the ``App`` constructor.
