@@ -272,7 +272,7 @@ propagates to its parent state's consumer, up to the root component's context.
 An application's top-level ``Component<S>`` is the root of its component tree.
 
 
-### Page lifecycle events listener
+### Page lifecycle events
 
 Provide an instance of ``PageLifecycle`` interface as an optional parameter on an application object.
 This allows listening to the page's lifecycle events, specifically the event before to a page creation and 
