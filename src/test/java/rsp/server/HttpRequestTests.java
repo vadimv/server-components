@@ -17,7 +17,7 @@ public class HttpRequestTests {
                                                     s -> Optional.empty(),
                                                     s -> Optional.of(cookieHeader));
 
-        final Optional<String> cookieValue = request.getCookie().apply("name2");
+        final Optional<String> cookieValue = request.cookie("name2");
         Assert.assertEquals(Optional.of("value2"), cookieValue);
     }
 
@@ -31,7 +31,7 @@ public class HttpRequestTests {
                                                     s -> Optional.empty(),
                                                     s -> Optional.of(cookieHeader));
 
-        final Optional<String> cookieValue = request.getCookie().apply("name4");
+        final Optional<String> cookieValue = request.cookie("name4");
         Assert.assertEquals(Optional.empty(), cookieValue);
     }
 }

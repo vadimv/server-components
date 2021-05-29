@@ -24,9 +24,9 @@ public class PlainForm {
 
     private static CompletableFuture<String> routes(HttpRequest r) {
         return r.method.equals(HttpRequest.Methods.POST) ?
-                CompletableFuture.completedFuture(r.getParam("firstname").orElseThrow()
+                CompletableFuture.completedFuture(r.param("firstname").orElseThrow()
                         + " "
-                        + r.getParam("lastname").orElseThrow())
+                        + r.param("lastname").orElseThrow())
                 : CompletableFuture.completedFuture("");
     }
 
