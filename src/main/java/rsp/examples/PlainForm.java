@@ -12,8 +12,11 @@ import java.util.concurrent.CompletableFuture;
 import static rsp.dsl.Html.*;
 
 /**
- * The application state type is a String representing a full name.
- * On empty string show the input form, otherwise show the result page.
+ * An example with plain detached pages:
+ * <ul>
+ *     <li>a page with an input form</li>
+ *     <li>a page with representation of the entered data</li>
+ * </ul>
  */
 public class PlainForm {
     public static void main(String[] args) {
