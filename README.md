@@ -85,7 +85,7 @@ This accessor is an object of the generic ``UseState<S>`` class,
 where the ``S`` type parameter defines the application immutable state type.
 Use the ``get()`` method of the accessor to read the current state.
 
-The utility ``of()`` DSL function for renders a ``Stream<S>`` of objects, e.g. a list, or a table rows:
+The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 
 ```java
     import static rsp.dsl.Html.*;
@@ -101,7 +101,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
     s -> div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-Another overloaded variant accepts a ``Supplier<S>`` as its argument.
+Another overloaded version takes a ``Supplier<S>`` as its argument.
 This version if the ``of()`` function is for code fragments with imperative logic. 
 ```java
     import static rsp.dsl.Html.*;
@@ -115,7 +115,7 @@ This version if the ``of()`` function is for code fragments with imperative logi
                  })
 ```
 
-The ``when()`` DSL function conditionally renders an element:
+The ``when()`` DSL function conditionally renders (or not) an element:
 ```java
     s -> when(s.get().showLabel, span("This is a label"))
 ```
@@ -152,7 +152,10 @@ For example:
 ### Single-page application's events
 
 Register a browser's page DOM event handler using ``on(eventType, handler)``.
-An event runs the handler's Java code on the server side.
+
+When an event occurs:
+- the page sends the event data to the server 
+- the system fires its registered event handler's Java code.
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
@@ -162,11 +165,16 @@ An event runs the handler's Java code on the server side.
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
-An event handler's code usually sets a new application's state snapshot by invoking one of overloaded ``UseState<S>.accept()`` methods
-on the accessor, provided as a component's ``render()`` method's argument.
-A new set state triggers re-rendering the page on the server and updating the page with the result virtual DOM diff commands.
+An event handler's code usually sets a new application's state snapshot, calling one of the overloaded ``UseState<S>.accept()`` methods on the application state accessor.
+
+A new set state snapshot triggers the following sequence of actions:
+- the page's virtual DOM re-rendered on the server
+- the difference between the current and the previous DOM trees is calculated  
+- the diff commands sent to the browser
+- the page's JavaScript program updates the presentation
 
 The event handler's ``EventContext`` class parameter has a number of utility methods.  
+
 One of these methods allows access to client-side document elements properties values by elements references.
 
 ```java
