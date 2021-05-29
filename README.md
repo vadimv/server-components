@@ -80,8 +80,9 @@ in Java DSL as
                   ) 
             );
 ```
-where lambda's parameter ``s`` is a read-and-write accessor object of ``UseState<S>`` class.
-The ``S`` state type parameter is an immutable class or record representing the complete application's state.
+where lambda's parameter ``s`` is a read-and-write accessor of the application state snapshot. 
+This accessor is an object of the generic ``UseState<S>`` class,
+where the ``S`` type parameter defines the application immutable state type.
 Use the ``get()`` method of the accessor to read the current state.
 
 The utility ``of()`` DSL function for renders a ``Stream<S>`` of objects, e.g. a list, or a table rows:
