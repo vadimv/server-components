@@ -175,7 +175,12 @@ public final class Path {
      */
     public static class Matcher<S> {
         private final Path path;
-        private final boolean isMatch;
+
+        /**
+         * Indicates if a match happened or not.
+         * Initially set to false, set to true in case of a match.
+         */
+        public final boolean isMatch;
 
         /**
          * The match result.
