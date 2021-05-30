@@ -101,8 +101,8 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
     s -> div(of(service.apply(s.get().user.id).map(str -> text(str))))
 ```
 
-Another overloaded version takes a ``Supplier<S>`` as its argument.
-This version if the ``of()`` function is for code fragments with imperative logic. 
+Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments
+with imperative logic.
 ```java
     import static rsp.dsl.Html.*;
     ...
