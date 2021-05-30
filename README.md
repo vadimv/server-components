@@ -151,11 +151,7 @@ For example:
 
 ### Single-page application's events
 
-Register a browser's page DOM event handler using ``on(eventType, handler)``.
-
-When an event occurs:
-- the page sends the event data to the server 
-- the system fires its registered event handler's Java code.
+Register a browser's page DOM event handler using ``on(eventType, handler)``:
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
@@ -165,6 +161,10 @@ When an event occurs:
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
+When an event occurs:
+- the page sends the event data to the server
+- the system fires its registered event handler's Java code.
+
 An event handler's code usually sets a new application's state snapshot, calling one of the overloaded ``UseState<S>.accept()`` methods on the application state accessor.
 
 A new set state snapshot triggers the following sequence of actions:
