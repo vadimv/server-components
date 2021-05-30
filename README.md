@@ -80,7 +80,7 @@ in Java DSL as
                   ) 
             );
 ```
-where lambda's parameter ``s`` is a read-and-write accessor of the application state snapshot. 
+where lambda's parameter ``s`` is a read-and-write accessor of the application's state snapshot. 
 This accessor is an object of the generic ``UseState<S>`` class,
 where the ``S`` type parameter defines the application immutable state type.
 Use the ``get()`` method of the accessor to read the current state.
@@ -213,13 +213,13 @@ create a routing function and provide it as an application's parameter:
     }
     
     public CompletableFuture<State> route(Path path) {
-        final Path.Matcher<State> m = path.createMatcher(State.page404()) // a default match
+        final Path.Matcher<State> m = new Path.Matcher(path, State.page404())    // a default match
                                           .match((name) -> true,                 // /{name}
-                                                (name) -> db.getList(name).map(list -> State.of(list)))
+                                                 (name) -> db.getList(name).map(list -> State.of(list)))
                                           .match((name, id) -> isNumeric(id),    // /{name}/{id}
-                                                (name, id) -> db.getOne(Long.parse(id)).map(instance -> State.of(instance)));
+                                                 (name, id) -> db.getOne(Long.parse(id)).map(instance -> State.of(instance)));
         
-        return m.result;
+        return m.state;
     }
 
     ...    
