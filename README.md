@@ -2,8 +2,8 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-The Reactive Server Pages (RSP) is a lightweight Java web framework. 
-RSP enables creation of real-time single-page applications and UI components with server-side HTML rendering.
+The Reactive Server Pages (RSP) is a lightweight Java server-state web framework. 
+RSP enables creation of real-time single-page applications and plain HTML webpages.
 
 ### Hello World
 
@@ -394,7 +394,7 @@ $ mvn clean test -Ptest-all
 
 ## Motivation
 
-A common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API.
+The common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API.
 Often, these two sides even use different programming languages, dependency management, and build tools.
 This all introduces a lot of accidental complexity.
 Any change made on the client-side potentially needs to be reflected on the API and the server-side.
