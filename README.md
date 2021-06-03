@@ -258,8 +258,9 @@ Pages are composed of components. A component is a Java class which implements t
 ```
 
 A component's ``render()`` method invokes ``render()`` methods of its descendant components,
-providing a state object and optionally a listener. With the code in this listener the state change from a child component
-propagates to its parent state's consumer, up to the root component's context. 
+providing a component's state object and a listener.
+The listener's code propagates the state change from a child component to its parent state's consumer,
+up to the root component's context. 
 
 ```java
     ...
@@ -283,9 +284,10 @@ An application's top-level ``Component<S>`` is the root of its component tree.
 
 ### Page lifecycle events
 
-Provide an instance of ``PageLifecycle`` interface as an optional parameter on an application object.
-This allows listening to the page's lifecycle events, specifically the event before to a page creation and 
-after the page shutdown.
+Provide an instance of ``PageLifecycle`` interface as a parameter on an application's constructor.
+This allows to listen to the page's lifecycle events:
+- before the page is created 
+- after the page is closed
 
 ```java
     final PageLifeCycle<Integer> plc = new PageLifeCycle.Default<Integer>() {
@@ -317,7 +319,7 @@ as well as an optional static resources' handler and a TLS/SSL connection's conf
 ### Logging
 
 By default, internally, the project uses a console logger.
-Set ``rsp.log.level`` system property to change its log level, for example ``-Drsp.log.level=trace``.
+Set the ``rsp.log.level`` system property to change the application's log level, for example ``-Drsp.log.level=trace``.
 
 To use an Slf4j logger instead of the default console logger, provide the ``Slf4jLogReporting`` logger implementation to
 the ``AppConfig`` application configuration. 
@@ -332,13 +334,13 @@ To enable client-side detailed diagnostic data exchange logging, enter in the br
 
 The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
 methods allow submitting of a delayed or periodic action that can be cancelled. 
-An optional schedule name parameter may be provided when creating a new schedule. 
-Later this name could be used for the schedule cancellation.
+A timer reference parameter may be provided when creating a new schedule. 
+Later this reference could be used for the schedule cancellation.
 Scheduled tasks will be executed in threads from the internal thread pool,
 see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
 
 ```java
-    final static TimerRef TIMER_0 = createTimerRef();
+    final static TimerRef TIMER_0 = TimerRef.createTimerRef();
     ...
     button(attr("type", "button"),
            text("Start"),
