@@ -151,7 +151,7 @@ For example:
 
 ### Single-page application's events
 
-Register a browser's page DOM event handler using ``on(eventType, handler)``:
+Register a browser's page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag:
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
