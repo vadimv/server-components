@@ -203,7 +203,7 @@ Events code runs in a synchronized sections on a live page session state contain
 
 ### HTTP Request routing and path mapping
 
-To resolve an initial application state from an HTTP request during the page's initial rendering,
+To resolve an initial application's state from an HTTP request during the page's initial rendering,
 create a routing function and provide it as an application's parameter:
 
 ```java
@@ -227,7 +227,7 @@ create a routing function and provide it as an application's parameter:
                                      render());
 ```
 
-The root component or a descendant component maps the routed result state to a specific view. 
+The root component or a descendant component maps a routed result state to a specific view. 
 See [HTML markup Java DSL](#html-markup-java-dsl).
 
 For SPAs, the current application's state can be mapped to the browser's navigation bar path using another function
@@ -257,7 +257,7 @@ Pages are composed of components. A component is a Java class which implements t
 ```
 
 A component's ``render()`` method invokes ``render()`` methods of its descendant components,
-providing a component's state object and a listener.
+providing a descendant's component's state object, which normally is a part of the application's state tree and a listener.
 The listener's code propagates the state change from a child component to its parent state's consumer,
 up to the root component's context. 
 
@@ -283,7 +283,7 @@ An application's top-level ``Component<S>`` is the root of its component tree.
 
 ### Page lifecycle events
 
-Provide an instance of ``PageLifecycle`` interface as a parameter on an application's constructor.
+Provide an implementation of the ``PageLifecycle`` interface as a parameter on an application's constructor.
 This allows to listen to the page's lifecycle events:
 - before the page is created 
 - after the page is closed
