@@ -55,13 +55,14 @@ Use the RSP Java internal domain-specific language (DSL) for declarative definit
 For example, re-write the HTML fragment below:
 
 ```html
- <html>    
+<!DOCTYPE html>
+<html>    
     <body>
-      <h1>This is a heading</h1>
-      <div class="par">
-          <p>This is a paragraph</p>
-          <p>Some dynamic text</p>
-      </div>
+        <h1>This is a heading</h1>
+        <div class="par">
+            <p>This is a paragraph</p>
+            <p>Some dynamic text</p>
+        </div>
     </body>
 </html> 
 ```
@@ -80,13 +81,11 @@ in Java DSL as
                   ) 
             );
 ```
-where lambda's parameter ``s`` is a read-and-write accessor of the application's state snapshot. 
-This accessor is an object of the generic ``UseState<S>`` class,
-where the ``S`` type parameter defines the application's immutable state type.
-Use the ``get()`` method of the accessor to read the current state.
+- HTML tags are represented by methods from the ``rsp.dsl.Html`` class, e.g. ``<div></div>``  translates to ``div()``
+- HTML attributes are represented by the ``rsp.dsl.Html.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
+- The lambda parameter's ``s.get()`` method reads the current state snapshot
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
-
 ```java
     import static rsp.dsl.Html.*;
     ...
