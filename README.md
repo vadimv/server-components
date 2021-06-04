@@ -81,7 +81,7 @@ in Java DSL as
                   ) 
             );
 ```
-- HTML tags are represented by methods from the ``rsp.dsl.Html`` class, e.g. ``<div></div>``  translates to ``div()``
+- HTML tags are represented by the ``rsp.dsl.Html`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.dsl.Html.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
 - The lambda parameter's ``s.get()`` method reads the current state snapshot
 
