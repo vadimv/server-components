@@ -190,7 +190,7 @@ A reference to an object also can be created on-the-fly using ``RefDefinition.wi
 
 There is the special window() reference for the window object.
 
-The ``window().on()`` method registers a page's window event handler:
+The ``window().on(eventType, handler)`` method registers a page's window event handler:
 
 ```java
     html(window().on("click", ctx -> {
