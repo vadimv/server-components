@@ -187,7 +187,33 @@ One of these methods allows access to client-side document elements properties v
 ```
 
 A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
-  
+
+There is the special window() reference for the window object.
+
+window().on() method registers a page's window event handler:
+
+```java
+    html(window().on("click", ctx -> {
+            System.out.println("window clicked");
+        }),
+        ...
+        )
+```
+
+Some types of browser events, like a mouse move, may fire a lot of invocations. 
+Sending all these notifications on the network and processing them on the server side may cause the system's overload.
+To filter the events before sending use the following event object's methods:
+- ``throttle(int timeFrameMs)``
+- ``debounce(int waitMs, boolean immediate)``
+
+```java
+    html(window().on("scroll", ctx -> {
+            System.out.println("window scroll event");
+        }).throttle(500),
+        ...
+        )
+```
+
 The context's ``EventContext.eventObject()`` method reads the event's object as a JSON-like data structure:
 
 ```java
