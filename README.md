@@ -122,8 +122,8 @@ The ``when()`` DSL function conditionally renders (or not) an element:
 ### Plain HTML pages
 
 There are two types of web pages:
-- Single-page application (SPA) pages
-- Plain pages
+- Single-page application (SPA) connected pages
+- Plain detached pages
 
 An RSP web application can contain a mix of both types. 
 For example, an admin part can be a single-page application page, and the client facing part made of plain pages.
@@ -188,9 +188,9 @@ One of these methods allows access to client-side document elements properties v
 
 A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
 
-There is the special window() reference for the window object.
+There is the special ``window()`` reference for the page's window object.
 
-The ``window().on(eventType, handler)`` method registers a page's window event handler:
+The ``window().on(eventType, handler)`` method registers a window event handler:
 
 ```java
     html(window().on("click", ctx -> {
@@ -201,14 +201,14 @@ The ``window().on(eventType, handler)`` method registers a page's window event h
 ```
 
 Some types of browser events, like a mouse move, may fire a lot of invocations. 
-Sending all these notifications on the network and processing them on the server side may cause the system's overload.
+Sending all these notifications over the network and processing them on the server side may cause the system's overload.
 To filter the events before sending use the following event object's methods:
 - ``throttle(int timeFrameMs)``
 - ``debounce(int waitMs, boolean immediate)``
 
 ```java
     html(window().on("scroll", ctx -> {
-            System.out.println("window scroll event");
+            System.out.println("A throtteld page scroll event");
         }).throttle(500),
         ...
         )
@@ -230,19 +230,19 @@ Events code runs in a synchronized sections on a live page session state contain
 ### HTTP Request routing and path mapping
 
 To resolve an initial application's state from an HTTP request during the page's initial rendering,
-create a routing function and provide it as an application's parameter:
+create a routing function and provide it as an application's constructor parameter:
 
 ```java
     private CompletableFuture<State> routes(HttpRequest request) {
         return request.method == HttpRequest.Methods.GET ? route(request.path) : State.page404();
     }
     
-    public CompletableFuture<State> route(Path path) {
+    private CompletableFuture<State> route(Path path) {
         final Path.Matcher<State> m = new Path.Matcher(path, State.page404())    // a default match
                                           .match((name) -> true,                 // /{name}
                                                  (name) -> db.getList(name).map(list -> State.of(list)))
-                                          .match((name, id) -> isNumeric(id),    // /{name}/{id}
-                                                 (name, id) -> db.getOne(Long.parse(id)).map(instance -> State.of(instance)));
+                                          .match((name, id) -> isNumeric(id),    // /{name}/{id}, where id is a number
+                                                 (name, id) -> db.getInstance(Long.parse(id)).map(instance -> State.of(instance)));
         
         return m.state;
     }
@@ -333,6 +333,8 @@ This allows to listen to the page's lifecycle events:
     };
 
 ```
+Add these listeners, for example, when you need to subscribe to some messages stream on a page live session creation
+and unsubscribing when the page closes.
 
 ### Application and server's configuration
 
@@ -362,7 +364,8 @@ methods allow submitting of a delayed or periodic action that can be cancelled.
 A timer reference parameter may be provided when creating a new schedule. 
 Later this reference could be used for the schedule cancellation.
 Scheduled tasks will be executed in threads from the internal thread pool,
-see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting lambdas.
+see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting
+lambdas as parameters.
 
 ```java
     final static TimerRef TIMER_0 = TimerRef.createTimerRef();
