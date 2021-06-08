@@ -126,7 +126,7 @@ public final class EventDefinition implements DocumentPartDefinition {
 
     /**
      * Creates a new modified instance with the debounce events filter.
-     * The debounce filter controls events being triggered successively and, if the interval between two sequential occurrences is less than the provided interval,
+     * The debounce filter controls events being triggered successively and, if the interval between two sequential occurrences is less than the provided interval.
      * The first event propagation can be enabled or not by the method's parameter.
      * This process is repeated until it finds a pause greater than or equal to the provided interval.
      * Only the last event before the pause will be fired, ignoring all the previous ones.
