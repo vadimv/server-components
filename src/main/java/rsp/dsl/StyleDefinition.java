@@ -10,6 +10,7 @@ public final class StyleDefinition implements DocumentPartDefinition {
      * The style's name.
      */
     public final String name;
+
     /**
      * The style's value.
      */

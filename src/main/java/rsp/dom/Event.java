@@ -5,8 +5,12 @@ import rsp.page.EventContext;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * Represents a page event.
+ */
 public final class Event {
     public static final Modifier NO_MODIFIER = new NoModifier();
+
     public final Target eventTarget;
     public final Consumer<EventContext> eventHandler;
     public final boolean preventDefault;
@@ -99,8 +103,7 @@ public final class Event {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             DebounceModifier that = (DebounceModifier) o;
-            return waitMs == that.waitMs &&
-                    immediate == that.immediate;
+            return waitMs == that.waitMs && immediate == that.immediate;
         }
 
         @Override
