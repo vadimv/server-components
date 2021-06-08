@@ -1,0 +1,67 @@
+package rsp.dsl;
+
+import rsp.dom.XmlNs;
+import rsp.page.PageRenderContext;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
+import static rsp.dsl.HttpStatusCodes.MOVED_TEMPORARILY_STATUS_CODE;
+
+/**
+ * A definition of an HTML document.
+ */
+public final class HtmlDocumentDefinition extends TagDefinition {
+
+    private final int statusCode;
+    private final Map<String, String> headers;
+
+    public HtmlDocumentDefinition(int statusCode, Map<String, String> headers, DocumentPartDefinition... children) {
+        super(XmlNs.html, "html", children);
+        this.statusCode = statusCode;
+        this.headers = Objects.requireNonNull(headers);
+    }
+
+    @Override
+    public void accept(PageRenderContext renderContext) {
+        renderContext.setStatusCode(statusCode);
+        renderContext.setHeaders(headers);
+        renderContext.setDocType("<!DOCTYPE html>");
+        super.accept(renderContext);
+    }
+
+    /**
+     * Sets the HTTP status code to be rendered in the response.
+     * @param statusCode status code
+     * @return an instance with the status code
+     */
+    public HtmlDocumentDefinition statusCode(int statusCode) {
+        return new HtmlDocumentDefinition(statusCode, this.headers, this.children);
+    }
+
+    /**
+     * Adds the HTTP headers to be rendered in the response.
+     * @param headers the map containing headers
+     * @return an instance with added headers
+     */
+    public HtmlDocumentDefinition addHeaders(Map<String, String> headers) {
+        return new HtmlDocumentDefinition(this.statusCode, mergeMaps(this.headers, headers), this.children);
+    }
+
+    /**
+     * Sets redirect status code and the Location header.
+     * @param location Location header for redirection
+     * @return and instance with the redirection status code and header
+     */
+    public HtmlDocumentDefinition redirect(String location) {
+        return new HtmlDocumentDefinition(MOVED_TEMPORARILY_STATUS_CODE,
+                                          mergeMaps(this.headers, Map.of("Location", location)), this.children);
+    }
+
+    private static Map<String, String> mergeMaps(Map<String, String> m1, Map<String, String> m2) {
+        final Map<String, String> result = new HashMap<>(m1);
+        result.putAll(m2);
+        return result;
+    }
+}
