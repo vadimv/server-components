@@ -533,7 +533,10 @@ public final class Html {
         return tag("label", children);
     }
 
-
+    /**
+     * A HTML {@literal <br/>} element of a HTML document.
+     * @return a tag definition
+     */
     public static TagDefinition br() {
         return tag("br");
     }
