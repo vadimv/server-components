@@ -44,7 +44,7 @@ public final class JettyServer {
     private final Optional<SslConfiguration> sslConfiguration;
     private final int maxThreads;
 
-    private Server server;
+    private final Server server;
 
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
@@ -66,6 +66,88 @@ public final class JettyServer {
         this.staticResources = Objects.requireNonNull(staticResources);
         this.sslConfiguration = sslConfiguration;
         this.maxThreads = maxThreads;
+
+        final QueuedThreadPool threadPool = new QueuedThreadPool();
+        threadPool.setMaxThreads(maxThreads);
+
+        server = new Server(threadPool);
+
+        sslConfiguration.ifPresentOrElse(ssl -> {
+                    final HttpConfiguration https = new HttpConfiguration();
+                    https.addCustomizer(new SecureRequestCustomizer());
+
+                    final SslContextFactory sslContextFactory = new SslContextFactory.Server();
+                    sslContextFactory.setKeyStorePath(ssl.keyStorePath);
+                    sslContextFactory.setKeyStorePassword(ssl.keyStorePassword);
+                    sslContextFactory.setKeyManagerPassword(ssl.keyStorePassword);
+
+                    final ServerConnector sslConnector = new ServerConnector(server,
+                                                                             new SslConnectionFactory(sslContextFactory, "http/1.1"),
+                                                                             new HttpConnectionFactory(https));
+                    sslConnector.setPort(port);
+                    server.setConnectors(new Connector[] { sslConnector });
+                },
+                () -> {
+                    final ServerConnector connector = new ServerConnector(server);
+                    connector.setPort(port);
+                    server.setConnectors(new Connector[] { connector });
+                });
+
+        final HandlerList handlers = new HandlerList();
+        staticResources.ifPresent(sr -> {
+            final ResourceHandler resourcesHandler = new ResourceHandler();
+            resourcesHandler.setDirectoriesListed(true);
+            resourcesHandler.setResourceBase(sr.resourcesBaseDir.getAbsolutePath());
+            final ContextHandler resourceContextHandler = new ContextHandler();
+            resourceContextHandler.setHandler(resourcesHandler);
+            resourceContextHandler.setContextPath(sr.contextPath);
+            handlers.addHandler(resourceContextHandler);
+        });
+
+        final ServletContextHandler context = new ServletContextHandler();
+        context.setContextPath("/" + basePath);
+        final BiFunction<String, PageRenderContext, PageRenderContext> enrichContextFun =
+                (sessionId, ctx) -> UpgradingPageRenderContext.create(ctx,
+                                                                      sessionId,
+                                                                      "/",
+                                                                      DefaultConnectionLostWidget.HTML,
+                                                                      app.config.heartbeatIntervalMs);
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
+                                                                                     app.pagesStorage,
+                                                                                     app.rootComponent,
+                                                                                     enrichContextFun),
+                                                                                     app.config.log)),"/*");
+        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
+        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
+                                                                                     new StateToRouteDispatch(this.basePath, app.state2path),
+                                                                                     app.pagesStorage,
+                                                                                     app.rootComponent,
+                                                                                     enrichContextFun,
+                                                                                     () -> scheduler,
+                                                                                     app.lifeCycleEventsListener,
+                                                                                     app.config.log);
+        WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
+            final ServerEndpointConfig config =
+                    ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
+                            .configurator(new ServerEndpointConfig.Configurator() {
+                                @Override
+                                public <T> T getEndpointInstance(Class<T> clazz) throws InstantiationException {
+                                    return (T)webSocketEndpoint;
+                                }
+
+                                @Override
+                                public void modifyHandshake(ServerEndpointConfig conf,
+                                                            HandshakeRequest req,
+                                                            HandshakeResponse resp) {
+                                    conf.getUserProperties().put(MainWebSocketEndpoint.HANDSHAKE_REQUEST_PROPERTY_NAME,
+                                                                 HttpRequestUtils.httpRequest(req));
+                                }
+                            }).build();
+            serverContainer.addEndpoint(config);
+        });
+        handlers.addHandler(context);
+
+        server.setHandler(handlers);
     }
 
     /**
@@ -96,90 +178,9 @@ public final class JettyServer {
      * Starts the server.
      */
     public void start() {
-        final QueuedThreadPool threadPool = new QueuedThreadPool();
-        threadPool.setMaxThreads(maxThreads);
-        
-        server = new Server(threadPool);
-
-        sslConfiguration.ifPresentOrElse(ssl -> {
-            final HttpConfiguration https = new HttpConfiguration();
-            https.addCustomizer(new SecureRequestCustomizer());
-
-            final SslContextFactory sslContextFactory = new SslContextFactory.Server();
-            sslContextFactory.setKeyStorePath(ssl.keyStorePath);
-            sslContextFactory.setKeyStorePassword(ssl.keyStorePassword);
-            sslContextFactory.setKeyManagerPassword(ssl.keyStorePassword);
-
-            final ServerConnector sslConnector = new ServerConnector(server,
-                                                                     new SslConnectionFactory(sslContextFactory, "http/1.1"),
-                                                                     new HttpConnectionFactory(https));
-            sslConnector.setPort(port);
-            server.setConnectors(new Connector[] { sslConnector });
-        },
-                                         () -> {
-            final ServerConnector connector = new ServerConnector(server);
-            connector.setPort(port);
-            server.setConnectors(new Connector[] { connector });
-        });
-
-        final HandlerList handlers = new HandlerList();
-        staticResources.ifPresent(sr -> {
-            final ResourceHandler resourcesHandler = new ResourceHandler();
-            resourcesHandler.setDirectoriesListed(true);
-            resourcesHandler.setResourceBase(sr.resourcesBaseDir.getAbsolutePath());
-            final ContextHandler resourceContextHandler = new ContextHandler();
-            resourceContextHandler.setHandler(resourcesHandler);
-            resourceContextHandler.setContextPath(sr.contextPath);
-            handlers.addHandler(resourceContextHandler);
-        });
-
-        final ServletContextHandler context = new ServletContextHandler();
-        context.setContextPath("/" + basePath);
-        final BiFunction<String, PageRenderContext, PageRenderContext> enrichContextFun =
-                    (sessionId, ctx) -> UpgradingPageRenderContext.create(ctx,
-                                                                          sessionId,
-                                                                          "/",
-                                                                          DefaultConnectionLostWidget.HTML,
-                                                                          app.config.heartbeatIntervalMs);
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
-                                                                                     app.pagesStorage,
-                                                                                     app.rootComponent,
-                                                                                     enrichContextFun),
-                                                                   app.config.log)),"/*");
-        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
-        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(app.routes,
-                                                                                     new StateToRouteDispatch(basePath, app.state2path),
-                                                                                     app.pagesStorage,
-                                                                                     app.rootComponent,
-                                                                                     enrichContextFun,
-                                                                                     () -> scheduler,
-                                                                                     app.lifeCycleEventsListener,
-                                                                                     app.config.log);
-        WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
-            final ServerEndpointConfig config =
-                    ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
-                                                .configurator(new ServerEndpointConfig.Configurator() {
-                                                    @Override
-                                                    public <T> T getEndpointInstance(Class<T> clazz) throws InstantiationException {
-                                                        return (T)webSocketEndpoint;
-                                                    }
-
-                                                    @Override
-                                                    public void modifyHandshake(ServerEndpointConfig conf,
-                                                                                HandshakeRequest req,
-                                                                                HandshakeResponse resp) {
-                                                        conf.getUserProperties().put(MainWebSocketEndpoint.HANDSHAKE_REQUEST_PROPERTY_NAME,
-                                                                                     HttpRequestUtils.httpRequest(req));
-                                                    }
-                                                }).build();
-            serverContainer.addEndpoint(config);
-        });
-        handlers.addHandler(context);
-
-        server.setHandler(handlers);
         try {
             server.start();
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
         app.config.log.info(l -> l.log("Server started, listening on port: " + port));

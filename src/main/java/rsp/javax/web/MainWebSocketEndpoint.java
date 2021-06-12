@@ -81,11 +81,11 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                                        enrich,
                                                                        out);
             lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
-            final LivePage<S> livePage = new LivePage<S>(qsid,
-                                                         livePageState,
-                                                         schedulerSupplier.get(),
-                                                         out,
-                                                         log);
+            final LivePage<S> livePage = new LivePage<>(qsid,
+                                                        livePageState,
+                                                        schedulerSupplier.get(),
+                                                        out,
+                                                        log);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
             final DeserializeInMessage in = new DeserializeInMessage(livePage, log);
