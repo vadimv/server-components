@@ -40,9 +40,7 @@ public final class JettyServer {
     private final int port;
     private final Path basePath;
     private final App app;
-    private final Optional<StaticResources> staticResources;
-    private final Optional<SslConfiguration> sslConfiguration;
-    private final int maxThreads;
+
 
     private final Server server;
 
@@ -63,9 +61,6 @@ public final class JettyServer {
         this.port = port;
         this.basePath = Objects.requireNonNull(Path.of(basePath));
         this.app = Objects.requireNonNull(app);
-        this.staticResources = Objects.requireNonNull(staticResources);
-        this.sslConfiguration = sslConfiguration;
-        this.maxThreads = maxThreads;
 
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setMaxThreads(maxThreads);
