@@ -67,7 +67,7 @@ For example, re-write the HTML fragment below:
 </html> 
 ```
 
-in Java DSL as
+in Java code as
 
 ```java
     import static rsp.dsl.Html.*;
@@ -161,7 +161,7 @@ Register a browser's page DOM event handler by adding an ``on(eventType, handler
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
 When an event occurs:
-- the page sends the event data to the server
+- the page sends the event data message to the server
 - the system fires its registered event handler's Java code.
 
 An event handler's code usually sets a new application's state snapshot, calling one of the overloaded ``UseState<S>.accept()`` methods on the application state accessor.
@@ -282,10 +282,10 @@ Pages are composed of components. A component is a Java class which implements t
     public static class ButtonState {}
 ```
 
-A component's ``render()`` method invokes ``render()`` methods of its descendant components,
-providing a descendant's component's state object, which normally is a part of the application's state tree and a listener.
-The listener's code propagates the state change from a child component to its parent state's consumer,
-up to the root component's context. 
+The ``render()`` method of a component usually invokes ``render()`` methods of its descendant components, providing as parameters: 
+- a descendant's component's state object, normally a part of the application's state object tree
+- a listener's code, a ``Consumer<S>`` implementation, which propagates the new state change from a child component to its parent,
+up to the root component's context
 
 ```java
     ...
