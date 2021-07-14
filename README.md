@@ -5,6 +5,35 @@
 The Reactive Server Pages (RSP) is a lightweight Java server-state web framework. 
 RSP enables creation of real-time single-page applications and plain HTML webpages.
 
+## Motivation
+
+The common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API.
+Often, these two sides even use different programming languages, dependency management, and build tools.
+This all introduces a lot of accidental complexity.
+Any change made on the client-side potentially needs to be reflected on the API and the server-side.
+Isn't it sounds like developing and supporting effectively two applications instead of one?
+
+An RSP UI lives on the server-side and abstracts the client-side.
+The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
+After loading an initial page HTML, it only feeds events to the server and updates the presentation to the incoming diff commands.
+
+An RSP application developer's experience may feel similar to creating a desktop application UI in reactive style with HTML and CSS.
+Or like creating a React application with direct access to its backend data.
+
+Some other bonuses of this approach are:
+- coding and debugging the UI is just coding in plain Java and debugging Java;
+- fast initial page load no matter of the application's size;
+- your code always stays on your server;
+- SEO-friendly out of the box.
+
+Known concerns to deal with:
+- may be not a good fit for use cases requiring very low response time, heavy animations, etc;
+- latency between a client and the server should be low enough to ensure a good user experience;
+- more memory and CPU resources may be required on the server;
+- as for a stateful app, for scalability some kind of sticky session management required;
+- a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed.
+
+
 ### Hello World
 
 Java version >= 11.
@@ -227,6 +256,34 @@ The context's ``EventContext.eventObject()`` method reads the event's object as 
 ```
 Events code runs in a synchronized sections on a live page session state container object.
 
+### Browser and server interaction diagram
+
+```
+     ┌───────┐                   ┌──────┐
+     │Browser│                   │Server│
+     └───┬───┘                   └──┬───┘
+         │         HTTP GET         │    
+         │──────────────────────────>    
+         │                          │  Inital page render 
+         │    HTTP response 200     │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │    Open a WebSocket      │    
+         │──────────────────────────>    
+         │                          │  Create a new live page  
+         │   Register page events   │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │   An event on the page   │    
+         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
+         │                          │   Re-render, calculate virtual DOM diff 
+         │   Modify DOM commands    │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+     ┌───┴───┐                   ┌──┴───┐
+     │Browser│                   │Server│
+     └───────┘                   └──────┘
+```
+
 ### HTTP Request routing and path mapping
 
 To resolve an initial application's state from an HTTP request during the page's initial rendering,
@@ -393,65 +450,5 @@ To run all the tests:
 
 $ mvn clean test -Ptest-all
 ```
-
-### Browser and server interaction diagram
-
-```
-     ┌───────┐                   ┌──────┐
-     │Browser│                   │Server│
-     └───┬───┘                   └──┬───┘
-         │         HTTP GET         │    
-         │──────────────────────────>    
-         │                          │  Inital page render 
-         │    HTTP response 200     │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │    Open a WebSocket      │    
-         │──────────────────────────>    
-         │                          │  Create a new live page  
-         │   Register page events   │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │   An event on the page   │    
-         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
-         │                          │   Re-render, calculate virtual DOM diff 
-         │   Modify DOM commands    │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-     ┌───┴───┐                   ┌──┴───┐
-     │Browser│                   │Server│
-     └───────┘                   └──────┘
-```
-
-## Motivation
-
-The common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API.
-Often, these two sides even use different programming languages, dependency management, and build tools.
-This all introduces a lot of accidental complexity.
-Any change made on the client-side potentially needs to be reflected on the API and the server-side.
-Isn't it sounds like developing and supporting effectively two applications instead of one?
-
-An RSP UI lives on the server-side and abstracts the client-side.
-The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
-After loading an initial page HTML, it only feeds events to the server and updates the presentation to the incoming diff commands.
-
-An RSP application developer's experience may feel similar to creating a desktop application UI in reactive style with HTML and CSS.
-Or like creating a React application with direct access to its backend data.
-
-Some other bonuses of this approach are:
-- coding and debugging the UI is just coding in plain Java and debugging Java;
-- fast initial page load no matter of the application's size;
-- your code always stays on your server;
-- SEO-friendly out of the box.
-
-Known concerns to deal with:
-- may be not a good fit for use cases requiring very low response time, heavy animations, etc;
-- latency between a client and the server should be low enough to ensure a good user experience;
-- more memory and CPU resources may be required on the server;
-- as for a stateful app, for scalability some kind of sticky session management required;
-- a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed. 
-
-
-
-
 
    
