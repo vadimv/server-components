@@ -18,7 +18,11 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
     }
 
     default <T extends S> UseState<T> cast(Class<T> clazz) {
-        return readWrite(() -> (T) get(), v -> accept((T)v));
+        if (this.isInstanceOf(clazz)) {
+            return readWrite(() -> (T) get(), v -> accept((T)v));
+        } else {
+            throw new ClassCastException("Unable cast the underlying type " + get().getClass() + " to " + clazz);
+        }
     }
 
     static <S> UseState<S> readWriteInCompletableFuture(Supplier<S> supplier, CompletableFutureConsumer<S> completableFutureConsumer) {
