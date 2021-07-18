@@ -7,20 +7,20 @@ RSP enables creation of real-time single-page applications and plain HTML webpag
 
 ## Motivation
 
-The common approach to build a web UI today is to break it to the server and client-side and connect them with some kind of remote API.
-Often, these two sides even use different programming languages, dependency management, and build tools.
-This all introduces a lot of accidental complexity.
+The common approach for a web UI today is to build the client-side with tools like React or Vue and fetch the data 
+from the backend with some kind of remote API.
+JavaScript client programming is extremely powerful, but this client-server scheme introduces a lot of complexity.
 Any change made on the client-side potentially needs to be reflected on the API and the server-side.
-Isn't it sounds like developing and supporting effectively two applications instead of one?
+A full-stack developer needs to deal with two programming languages, dependency management and build tools.
+It is effectively like developing and supporting two applications instead of one.
 
-An RSP UI lives on the server-side and abstracts the client-side.
+RSP keeps page's state on the server and abstracts the client-side.
+After loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
 The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
-After loading an initial page HTML, it only feeds events to the server and updates the presentation to the incoming diff commands.
 
-An RSP application developer's experience may feel similar to creating a desktop application UI in reactive style with HTML and CSS.
-Or like creating a React application with direct access to its backend data.
+The application developer's experience is similar to creating a React application in Java with direct access to its backend data.
 
-Some other bonuses of this approach are:
+Other bonuses of this approach are:
 - coding and debugging the UI is just coding in plain Java and debugging Java;
 - fast initial page load no matter of the application's size;
 - your code always stays on your server;
@@ -32,7 +32,6 @@ Known concerns to deal with:
 - more memory and CPU resources may be required on the server;
 - as for a stateful app, for scalability some kind of sticky session management required;
 - a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed.
-
 
 ### Hello World
 
