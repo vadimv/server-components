@@ -9,6 +9,7 @@ RSP enables creation of real-time single-page applications and plain HTML webpag
 
 The common approach for a web UI today is to build the client-side with tools like React or Vue and fetch the data 
 from the backend with some kind of remote API.
+
 JavaScript client programming is extremely powerful, but this client-server scheme introduces a lot of complexity.
 Any change made on the client-side potentially needs to be reflected on the API and the server-side.
 A full-stack developer needs to deal with two programming languages, dependency management and build tools.
