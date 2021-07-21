@@ -5,6 +5,20 @@
 The Reactive Server Pages (RSP) is a modern lightweight Java server-state web framework. 
 RSP enables creation of real-time single-page applications and plain HTML webpages.
 
+* [Project's motivation](#motivation)
+* [Hello World](#hello-world)
+* [Code examples](#code-examples)
+* [HTML markup Java DSL](#html-markup-java-dsl)
+* [Plain HTML pages](#plain-html-pages)
+* [Single-page application's events](#single-page-applications-events)
+* [Browser and server interaction diagram](#browser-and-server-interaction-diagram)
+* [HTTP Request routing and path mapping](#http-request-routing-and-path-mapping)
+* [UI Components](#ui-components)
+* [Page lifecycle events](#page-lifecycle-events)
+* [Application and server's configuration](#application-and-servers-configuration)
+* [Schedules](#schedules)
+* [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
+
 ## Motivation
 
 The common approach for a web UI today is to build the client-side with tools like React or Vue and fetch the data 
