@@ -41,7 +41,7 @@ public class SimpleServer {
 
     private static Routing<AppState> routes() {
         return new Routing<>(new NotFoundState(),
-                get("/:id(\\d+)", (id, __) -> new OkState(Integer.parseInt(id)).toCompletableFuture()));
+                             get("/:id(\\d+)", (id, __) -> new OkState(Integer.parseInt(id)).toCompletableFuture()));
     }
 
     private static Component<? extends AppState> appComponent() {
