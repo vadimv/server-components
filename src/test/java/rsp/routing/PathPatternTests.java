@@ -50,7 +50,7 @@ public class PathPatternTests {
 
     @Test
     public void should_match_path_for_pattern_with_params() {
-        Assert.assertTrue(PathPattern.of("/:p1/1/:p2").match(Path.of("/1/2/3")));
+        Assert.assertTrue(PathPattern.of("/:p1/2/:p2").match(Path.of("/1/2/3")));
     }
 
     @Test
@@ -60,7 +60,7 @@ public class PathPatternTests {
 
     @Test
     public void should_match_path_for_pattern_with_params_and_wildcards() {
-        Assert.assertTrue(PathPattern.of("/:p1/1/:p2/*").match(Path.of("/1/2/3/4/5")));
+        Assert.assertTrue(PathPattern.of("/:p1/2/:p2/*").match(Path.of("/1/2/3/4/5")));
     }
 
     @Test
