@@ -47,21 +47,21 @@ public class PlaywrightSmokeIT {
     }
 
     private void validatePage(Page page) throws InterruptedException {
-        Assert.assertEquals(200, page.navigate("http://localhost:" + SimpleServer.PORT + "/-1").status());
+        Assert.assertEquals(200, page.navigate("http://localhost:" + SimpleServer.PORT + "/1").status());
         Assert.assertEquals("test-server-title", page.title());
 
-        assertElementTextEquals(page, "s0", "-1");
+        assertElementTextEquals(page, "s0", "1");
         assertElementStyleAttributeEquals(page, "s0",  "background-color","blue");
         waitForPageResponse();
 
         clickOnElement(page,"b0");
         waitForPageResponse();
-        assertElementTextEquals(page,"s0", "0");
+        assertElementTextEquals(page,"s0", "2");
         assertElementStyleAttributeEquals(page, "s0", "background-color", "red");
 
         clickOnElement(page,"d0");
         waitForPageResponse();
-        assertElementTextEquals(page,"s0", "10");
+        assertElementTextEquals(page,"s0", "12");
         assertElementStyleAttributeEquals(page, "s0","background-color", "red");
     }
 
