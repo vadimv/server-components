@@ -64,17 +64,25 @@ public class PathPatternTests {
     }
 
     @Test
+    public void should_match_path_for_pattern_with_params_and_regex() {
+        Assert.assertTrue(PathPattern.of("/1/:p1(^\\d+$)/3").match(Path.of("/1/2/3")));
+        Assert.assertTrue(PathPattern.of("/1/:p1(^XYZ$)/3").match(Path.of("/1/XYZ/3")));
+        Assert.assertTrue(PathPattern.of("/1/:p1(^XYZ$)/3/:p2(^\\d+$)").match(Path.of("/1/XYZ/3/4")));
+    }
+
+    @Test
+    public void should_not_match_path_for_pattern_with_params_and_regex() {
+        Assert.assertFalse(PathPattern.of("/1/:p1(^\\d+$)/3").match(Path.of("/1/A/3")));
+        Assert.assertFalse(PathPattern.of("/1/:p1(^XYZ$)/3").match(Path.of("/1/XYZ0/3")));
+    }
+
+    @Test
     public void should_correctly_get_path_parameters() {
-        final PathPattern pathPattern = PathPattern.of("/:p1/2/:p2");
+        final PathPattern pathPattern = PathPattern.of("/:p1(^\\d+$)/2/:p2");
         final Path path = Path.of("/1/2/3");
         Assert.assertTrue(pathPattern.match(path));
         Assert.assertEquals(2, pathPattern.paramsIndexes.length);
         Assert.assertEquals("1", path.get(pathPattern.paramsIndexes[0]));
         Assert.assertEquals("3", path.get(pathPattern.paramsIndexes[1]));
-    }
-
-    @Test
-    public void test() {
-        System.out.println(PathPattern.parse("/1/:p1(^\\d+$)/2"));
     }
 }

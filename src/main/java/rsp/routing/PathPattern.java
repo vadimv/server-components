@@ -8,14 +8,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class PathPattern {
-
-    public final String[] patternSegments;
+    public final List<String> patternSegments;
     public final int[] paramsIndexes;
     private final Map<Integer, Pattern> regexes;
 
     private static final Pattern findRegex = Pattern.compile("\\(.*\\)");
 
-    PathPattern(String[] patternSegments, int[] paramsIndexes, Map<Integer, Pattern> regexes) {
+    PathPattern(List<String> patternSegments, int[] paramsIndexes, Map<Integer, Pattern> regexes) {
         this.patternSegments = patternSegments;
         this.paramsIndexes = paramsIndexes;
         this.regexes = regexes;
@@ -23,7 +22,7 @@ public class PathPattern {
 
     public static PathPattern of(String pattern) {
         final Tuple2<List<String>, Map<Integer, Pattern>> p = parse(pattern);
-        return new PathPattern(p._1.toArray(new String[0]), paramsIndexes(p._1), p._2);
+        return new PathPattern(p._1, paramsIndexes(p._1), p._2);
     }
 
     public static Tuple2<List<String>, Map<Integer, Pattern>> parse(String pattern) {
@@ -60,23 +59,24 @@ public class PathPattern {
     }
 
     public boolean match(Path path) {
-        if (path.isEmpty() && patternSegments.length == 0) {
+        if (path.isEmpty() && patternSegments.size() == 0) {
             return true;
         }
-        if (!path.isEmpty() && patternSegments.length == 0) {
+        if (!path.isEmpty() && patternSegments.size() == 0) {
             return false;
         }
 
         int i;
-        for(i = 0; i < path.size() && i < patternSegments.length; i++) {
-            if (!(path.get(i).equals(patternSegments[i])
-                    || isWildcard(patternSegments[i])
-                    || isParam(patternSegments[i]))) {
+        for(i = 0; i < path.size() && i < patternSegments.size(); i++) {
+            if (!(path.get(i).equals(patternSegments.get(i))
+                    || isWildcard(patternSegments.get(i))
+                    || (isParam(patternSegments.get(i))
+                        && (regexes.get(i) == null || regexes.get(i).matcher(path.get(i)).find())))) {
                 return false;
             }
         }
-        return (path.size() == patternSegments.length)
-                || (path.size() > patternSegments.length && isWildcard(patternSegments[i -1])) ;
+        return (path.size() == patternSegments.size())
+                || (path.size() > patternSegments.size() && isWildcard(patternSegments.get(i -1))) ;
     }
 
     private static boolean isParam(String str) {
