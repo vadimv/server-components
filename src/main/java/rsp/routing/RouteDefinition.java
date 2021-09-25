@@ -32,7 +32,7 @@ public final class RouteDefinition<S> {
                            String pathPattern,
                            TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
         this.httpMethod = httpMethod;
-        this.pathPattern = new PathPattern( pathPattern );
+        this.pathPattern = PathPattern.of(pathPattern);
         this.matchFun = matchFun;
     }
 
@@ -47,7 +47,7 @@ public final class RouteDefinition<S> {
     }
 
     private CompletableFuture<S> callMatchFun(HttpRequest request) {
-        final int[] pathParameterIndexes = pathPattern.paramsIndexes();
+        final int[] pathParameterIndexes = pathPattern.paramsIndexes;
         if (pathParameterIndexes.length == 0) {
             return matchFun.apply("",
                                   "",

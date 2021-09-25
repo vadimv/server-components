@@ -70,7 +70,7 @@ public class SimpleServer {
 
     private static Routing<AppState> routes() {
         return new Routing<>(new NotFoundState(),
-                             get("/:id(\\d+)", (id,req) -> new OkState(Integer.parseInt(id)).toCompletableFuture()));
+                             get("/:id(\\d+)", (id, __) -> new OkState(Integer.parseInt(id)).toCompletableFuture()));
     }
 
     interface AppState {
