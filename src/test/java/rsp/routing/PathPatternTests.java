@@ -72,4 +72,9 @@ public class PathPatternTests {
         Assert.assertEquals("1", path.get(pathPattern.paramsIndexes[0]));
         Assert.assertEquals("3", path.get(pathPattern.paramsIndexes[1]));
     }
+
+    @Test
+    public void test() {
+        System.out.println(PathPattern.parse("/1/:p1(^\\d+$)/2"));
+    }
 }
