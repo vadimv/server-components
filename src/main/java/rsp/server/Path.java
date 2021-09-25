@@ -1,15 +1,10 @@
 package rsp.server;
 
 import rsp.util.ArrayUtils;
-import rsp.util.TriFunction;
 
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 /**
