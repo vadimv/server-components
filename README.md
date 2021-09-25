@@ -6,13 +6,13 @@ The Reactive Server Pages (RSP) is a modern lightweight Java server-state web fr
 RSP enables creation of real-time single-page applications and plain HTML webpages.
 
 * [Project's motivation](#motivation)
-* [Hello World](#hello-world)
+* [Setup](#setup)
 * [Code examples](#code-examples)
 * [HTTP requests routing](#http-requests-routing)  
 * [HTML markup Java DSL](#html-markup-rendering-java-dsl)
-* [Plain HTML pages](#plain-html-pages)
 * [Single-page application](#single-page-application)
 * [Navigation bar URL path](#navigation-bar-url-path)
+* [Plain HTML pages](#plain-html-pages)
 * [UI Components](#ui-components)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Application and server's configuration](#application-and-servers-configuration)
@@ -40,7 +40,7 @@ The application developer's experience is similar to creating a React applicatio
 - your code always stays on your server;
 - SEO-friendly out of the box.
 
-### Hello World
+### Setup
 
 Java version >= 11.
 
@@ -53,32 +53,9 @@ The Maven dependency:
     </dependency>
 ```
 
-The *Hello World* application's code:
-```java
-    import rsp.App;
-    import rsp.jetty.JettyServer;
-    
-    import static rsp.dsl.Html.*;
-    
-    public class HelloWorld {
-        public static void main(String[] args) {
-            final var app = new App<>("Hello world!",
-                                      s -> html(
-                                                body(
-                                                     p(s.get())
-                                                    )
-                                                )
-                                      );
-            final var server = new JettyServer(8080, "", app);
-            server.start();
-            server.join();
-        }
-    }
-```
-Run the class and navigate to http://localhost:8080.
-
 ### Code examples
 
+* [Hello World](src/main/java/rsp/examples/HelloWorld.java)
 * [TODOs list](https://github.com/vadimv/rsp-todo-list)
 * [Hacker News API client](https://github.com/vadimv/rsp-hn)
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
@@ -86,11 +63,11 @@ Run the class and navigate to http://localhost:8080.
 
 ### HTTP requests routing
 
-An RSP application's workflow consist of two explicit phases:
-- routing an incoming request with a result of an immutable state object;
-- serializing this state object into the result HTTP response for example HTML.
+An RSP application's request-response workflow consist of two explicitly defined phases:
+- routing an incoming request with a result of a global immutable state object;
+- serializing this state object into the result HTTP response.
 
-Create a Routing object and provide it as an application's constructor parameter:
+To dispatch the incoming request, create a Routing object and provide it as an application's constructor parameter:
 
 ```java
     import static rsp.dsl.Routing.*;
@@ -101,8 +78,8 @@ Create a Routing object and provide it as an application's constructor parameter
     final var db = new Database();
     private Routing<State> route() {
         return new Routing<>(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
-                             get("/articles/:id", (id, req) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
-                             get("/users/:id", (id, req) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
+                             get("/articles/:id", (id, __) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
+                             get("/users/:id", (id, __) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
                              post("users/:id", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
     }
 ```
@@ -114,7 +91,7 @@ On the serializing phase a state object to be rendered as HTML.
 RSP provides the Java internal domain-specific language (DSL) for declarative definition of an HTML page markup
 as functions composition.
 
-For example, re-write the HTML fragment below:
+For example, to re-write the HTML fragment below:
 
 ```html
 <!DOCTYPE html>
@@ -129,7 +106,7 @@ For example, re-write the HTML fragment below:
 </html> 
 ```
 
-in Java code as
+provide the Java code:
 
 ```java
     import static rsp.dsl.Html.*;
@@ -143,6 +120,7 @@ in Java code as
                   ) 
             );
 ```
+where:
 - HTML tags are represented by the ``rsp.dsl.Html`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.dsl.Html.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
 - The lambda parameter's ``s.get()`` method reads the current state snapshot
@@ -181,38 +159,20 @@ The ``when()`` DSL function conditionally renders (or not) an element:
     s -> when(s.get().showLabel, span("This is a label"))
 ```
 
-### Plain HTML pages
+### Single-page application
 
 RSP supports two types of web pages:
 - Single-page application (SPA)
 - Plain detached pages
 
-An RSP web application can contain a mix of both types. 
+An RSP web application can contain a mix of both types.
 For example, an admin part can be a single-page application page, and the client facing part made of plain pages.
 
 The type of page to be rendered is determined by the page's head tag DSL function.
 
 The ``head()`` function creates a plain HTML page ``head`` tag for an SPA.
-This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server 
+This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server
 and enables reacting to the browser events.
-
-The ``plainHead()`` renders the markup with the ``head`` tag without injecting of this script resulting in a plain detached HTML page.
-
-The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers. 
-For example:
-
-```java
-    s -> html(   
-              plainHead(title("404 page not found")),
-              body(
-                   div(
-                       p("404 page not found")
-                  ) 
-                )
-            ).statusCode(404);
-```
-
-### Single-page application
 
 Register a browser's page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag:
 
@@ -224,6 +184,7 @@ Register a browser's page DOM event handler by adding an ``on(eventType, handler
     ...
     static class State { final int counter; State(int counter) { this.counter = counter; } }
 ```
+
 When an event occurs:
 - the page sends the event data message to the server
 - the system fires its registered event handler's Java code.
@@ -293,7 +254,7 @@ Events code runs in a synchronized sections on a live page session state contain
 
 ### Navigation bar URL path
 
-In a Single Page Application, the current state can be mapped to the browser's navigation bar path using another parameter
+During a Single Page Application session, the current app state can be mapped to the browser's navigation bar path using another parameter
 of the ``App`` class constructor.
 
 ```java
@@ -303,6 +264,25 @@ of the ``App`` class constructor.
     }
 ```
 If not provided explicitly, the default state-to-path routing sets an empty path for any state.
+
+### Plain HTML pages
+
+Using ``plainHead()`` function instead of ``head()`` renders the markup with the ``head`` tag without injecting of this script
+resulting in a plain detached HTML page.
+
+The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers.
+For example:
+
+```java
+    s -> html(   
+              plainHead(title("404 page not found")),
+              body(
+                   div(
+                       p("404 page not found")
+                  ) 
+                )
+            ).statusCode(404);
+```
 
 ### UI Components
 
