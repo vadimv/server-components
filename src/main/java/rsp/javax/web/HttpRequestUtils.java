@@ -29,7 +29,7 @@ public final class HttpRequestUtils {
      * @return a HTTP request
      */
     public static HttpRequest httpRequest(HandshakeRequest handshakeRequest) {
-        return new HttpRequest(HttpRequest.Methods.GET,
+        return new HttpRequest(HttpRequest.HttpMethod.GET,
                                handshakeRequest.getRequestURI(),
                                Path.of(handshakeRequest.getRequestURI().getPath()),
                                name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
@@ -44,9 +44,9 @@ public final class HttpRequestUtils {
         }
     }
 
-    private static HttpRequest.Methods httpMethod(String method) {
+    private static HttpRequest.HttpMethod httpMethod(String method) {
         try {
-            return HttpRequest.Methods.valueOf(method);
+            return HttpRequest.HttpMethod.valueOf(method);
         } catch (IllegalArgumentException ex) {
             throw new RuntimeException("Unsupported HTTP method: " + method, ex);
         }

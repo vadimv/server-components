@@ -4,18 +4,20 @@ import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
 import rsp.page.PageLifeCycle;
+import rsp.routing.Routing;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
+import static rsp.routing.Routing.get;
 
 public class SimpleServer {
 
     public static final int PORT = 8085;
-
     public final JettyServer jetty;
 
     public SimpleServer(JettyServer jetty) {
@@ -55,13 +57,7 @@ public class SimpleServer {
             }
         };
 
-        final Function<HttpRequest, CompletableFuture<? extends AppState>> routes =
-                request -> new Path.Matcher<AppState>(request.path, new NotFoundState())
-                                    .match(s -> request.method == HttpRequest.Methods.GET && s.matches("-?\\d+"),
-                                           s -> new OkState(Integer.parseInt(s)).toCompletableFuture())
-                                    .state;
-
-        final App<AppState> app = new App<>(routes,
+        final App<AppState> app = new App<>(routes(),
                                             new PageLifeCycle.Default<>(),
                                             appComponent);
         final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
@@ -72,6 +68,10 @@ public class SimpleServer {
         return s;
     }
 
+    private static Routing<AppState> routes() {
+        return new Routing<>(new NotFoundState(),
+                             get("/:id(\\d+)", (id,req) -> new OkState(Integer.parseInt(id)).toCompletableFuture()));
+    }
 
     interface AppState {
     }
@@ -86,7 +86,7 @@ public class SimpleServer {
             this.i = i;
         }
 
-        public CompletableFuture<OkState> toCompletableFuture() {
+        public CompletableFuture<AppState> toCompletableFuture() {
             return CompletableFuture.completedFuture(this);
         }
     }

@@ -63,6 +63,22 @@ public final class Path {
     }
 
     /**
+     * Returns the element at the specified position in this path.
+     * @param index index of the element to return
+     * @return the element at the specified position in this path
+     * @throws IllegalArgumentException if index is out of this path elements number,
+     *         or this path has zero elements
+     */
+    public String get(int index) {
+        if (index >=0 && index < elements.length)
+        {
+            return elements[index];
+        } else {
+            throw new IllegalArgumentException("Path index: " + index + " , elements number: " + elements.length);
+        }
+    }
+
+    /**
      * The path's elements number.
      * @return the path's length
      */

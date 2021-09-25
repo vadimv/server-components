@@ -11,10 +11,12 @@ public class CompletableFutureUtils {
         return new BiConsumer<>() {
             @Override
             public void accept(T result, Throwable ex) {
-                if (result != null) {
-                    whenResult.accept(result);
-                } else {
+                if (ex != null) {
                     whenException.accept(ex);
+                } else if (result == null) {
+                    whenException.accept(new NullPointerException("Completion result is null"));
+                } else {
+                    whenResult.accept(result);
                 }
             }
         };

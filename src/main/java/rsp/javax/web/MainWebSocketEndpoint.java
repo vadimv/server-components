@@ -24,7 +24,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
     private final Component<S> documentDefinition;
-    private final Function<HttpRequest, CompletableFuture<S>> routing;
     private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
@@ -34,15 +33,13 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public MainWebSocketEndpoint(Function<HttpRequest, CompletableFuture<S>> routing,
-                                 StateToRouteDispatch<S> state2route,
+    public MainWebSocketEndpoint(StateToRouteDispatch<S> state2route,
                                  Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
                                  Component<S> documentDefinition,
                                  BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
                                  PageLifeCycle<S> lifeCycleEventsListener,
                                  Log.Reporting log) {
-        this.routing = routing;
         this.state2route = state2route;
         this.renderedPages = renderedPages;
         this.documentDefinition = documentDefinition;

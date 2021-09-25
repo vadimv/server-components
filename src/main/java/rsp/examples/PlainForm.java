@@ -3,13 +3,14 @@ package rsp.examples;
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
-import rsp.server.HttpRequest;
+import rsp.routing.Routing;
 
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.dsl.Html.*;
+import static rsp.routing.Routing.post;
 
 /**
  * An example with plain detached pages:
@@ -20,7 +21,7 @@ import static rsp.dsl.Html.*;
  */
 public class PlainForm {
     public static void main(String[] args) {
-        final App<Optional<FullName>> app = new App<>(PlainForm::routes,
+        final App<Optional<FullName>> app = new App<>(routes(),
                                                       pages());
         final JettyServer server = new JettyServer(8080, "", app);
         server.start();
@@ -41,11 +42,11 @@ public class PlainForm {
         }
     }
 
-    private static CompletableFuture<Optional<FullName>> routes(HttpRequest r) {
-        return r.method.equals(HttpRequest.Methods.POST) ?
-                CompletableFuture.completedFuture(Optional.of(new FullName(r.param("firstname").orElseThrow(),
-                                                                           r.param("lastname").orElseThrow())))
-                : CompletableFuture.completedFuture(Optional.empty());
+    private static Routing<Optional<FullName>> routes() {
+        return new Routing<Optional<FullName>>(
+            post("/*",
+                  req -> CompletableFuture.completedFuture(Optional.of(new FullName(req.queryParam("firstname").orElseThrow(),
+                                                                                    req.queryParam("lastname").orElseThrow())))));
     }
 
     private static Component<Optional<FullName>> pages() {

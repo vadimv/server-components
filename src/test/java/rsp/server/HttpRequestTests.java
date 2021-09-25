@@ -11,7 +11,7 @@ public class HttpRequestTests {
     @Test
     public void should_parse_cookies_header_correctly() throws URISyntaxException {
         final String cookieHeader = "Cookie: name=value; name2=value2; name3=value3";
-        final HttpRequest request = new HttpRequest(HttpRequest.Methods.GET,
+        final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,
                                                     new URI("http://foo/bar"),
                                                     Path.EMPTY_RELATIVE,
                                                     s -> Optional.empty(),
@@ -25,7 +25,7 @@ public class HttpRequestTests {
     @Test
     public void should_parse_cookies_header_correctly_for_empty() throws URISyntaxException {
         final String cookieHeader = "Cookie: name=value; name2=value2; name3=value3";
-        final HttpRequest request = new HttpRequest(HttpRequest.Methods.GET,
+        final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,
                                                     new URI("http://foo/bar"),
                                                     Path.EMPTY_RELATIVE,
                                                     s -> Optional.empty(),

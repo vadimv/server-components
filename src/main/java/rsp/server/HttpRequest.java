@@ -11,10 +11,10 @@ import java.util.function.Function;
  * Represents an HTTP request.
  */
 public final class HttpRequest {
-    public final Methods method;
+    public final HttpMethod method;
     public final URI uri;
     public final Path path;
-    public final Function<String, Optional<String>> getParam;
+    public final Function<String, Optional<String>> getQueryParam;
     public final Function<String, Optional<String>> getHeader;
 
     /**
@@ -22,25 +22,25 @@ public final class HttpRequest {
      * @param method the HTTP verb
      * @param uri the request's URI
      * @param path the request's path
-     * @param param the function that provides access the request's parameters
+     * @param queryParam the function that provides access the request's query parameters
      * @param getHeader the function that provides access to the request's headers
      */
-    public HttpRequest(HttpRequest.Methods method,
+    public HttpRequest(HttpMethod method,
                        URI uri,
                        Path path,
-                       Function<String, Optional<String>> param,
+                       Function<String, Optional<String>> queryParam,
                        Function<String, Optional<String>> getHeader) {
         this.method = method;
         this.uri = uri;
         this.path = path;
-        this.getParam = param;
+        this.getQueryParam = queryParam;
         this.getHeader = getHeader;
     }
 
     /**
      * Gets a request's HTTP cookie by name.
      * @param cookieName the cookie name
-     * @return an optional with the cookie value or empty
+     * @return the Optional with the cookie value or the empty
      */
     public Optional<String> cookie(String cookieName) {
         return getHeader.apply("Cookie").flatMap(headerValue ->
@@ -53,19 +53,19 @@ public final class HttpRequest {
 
     /**
      * Gets an unique ID of the browser.
-     * @return an optional with the device ID value or empty
+     * @return the Optional with the device ID value or the empty
      */
     public Optional<String> deviceId() {
         return cookie(PageRendering.DEVICE_ID_COOKIE_NAME);
     }
 
     /**
-     * Gets the request's parameter by name.
-     * @param paramName the parameter's name
-     * @return an optional with the parameter's value or empty
+     * Gets the request's query parameter by name.
+     * @param name the parameter's name
+     * @return the Optional with the parameter's value or the empty
      */
-    public Optional<String> param(String paramName) {
-        return getParam.apply(paramName);
+    public Optional<String> queryParam(String name) {
+        return getQueryParam.apply(name);
     }
 
     /**
@@ -80,7 +80,7 @@ public final class HttpRequest {
     /**
      * HTTP verbs.
      */
-    public enum Methods {
+    public enum HttpMethod {
         GET,
         HEAD,
         POST,

@@ -24,11 +24,11 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Component<S> documentDefinition;
-    private final Function<HttpRequest, CompletableFuture<S>> routing;
+    private final Function<HttpRequest, Optional<CompletableFuture<S>>> routing;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
-    public PageRendering(Function<HttpRequest, CompletableFuture<S>> routing,
+    public PageRendering(Function<HttpRequest, Optional<CompletableFuture<S>>> routing,
                          Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          Component<S> documentDefinition,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
@@ -74,23 +74,26 @@ public final class PageRendering<S> {
 
     private CompletableFuture<HttpResponse> rspResponse(HttpRequest request) {
         try {
-            return routing.apply(request).thenApply(initialState -> {
-                final String deviceId = request.cookie(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
-                final String sessionId = randomStringGenerator.newString();
-                final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
-
+            final String deviceId = request.cookie(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
+            final String sessionId = randomStringGenerator.newString();
+            final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
+            renderedPages.get(pageId);
+            final var route = routing.apply(request);
+            return route.isPresent() ? route.get().thenApply(initialState -> {
                 final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
                 documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
-
                 renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
-
                 return new HttpResponse(domTreeContext.statusCode(),
                                         headers(domTreeContext.headers(), deviceId),
                                         domTreeContext.toString());
-            });
+            }) : defaultPage404();
         } catch (Throwable ex) {
             return CompletableFuture.failedFuture(ex);
         }
+    }
+
+    private CompletableFuture<HttpResponse> defaultPage404() {
+        return CompletableFuture.completedFuture(new HttpResponse(404, List.of(),"Not found"));
     }
 
     private List<Tuple2<String,String>> headers(Map<String, String> headers, String deviceId) {

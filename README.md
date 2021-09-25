@@ -8,11 +8,11 @@ RSP enables creation of real-time single-page applications and plain HTML webpag
 * [Project's motivation](#motivation)
 * [Hello World](#hello-world)
 * [Code examples](#code-examples)
-* [HTML markup Java DSL](#html-markup-java-dsl)
+* [HTTP requests routing](#http-requests-routing)  
+* [HTML markup Java DSL](#html-markup-rendering-java-dsl)
 * [Plain HTML pages](#plain-html-pages)
-* [Single-page application's events](#single-page-applications-events)
-* [Browser and server interaction diagram](#browser-and-server-interaction-diagram)
-* [HTTP Request routing and path mapping](#http-request-routing-and-path-mapping)
+* [Single-page application](#single-page-application)
+* [Navigation bar URL path](#navigation-bar-url-path)
 * [UI Components](#ui-components)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Application and server's configuration](#application-and-servers-configuration)
@@ -35,18 +35,10 @@ The browser acts more like an equivalent of a terminal for Unix X Window System,
 
 The application developer's experience is similar to creating a React application in Java with direct access to its backend data.
 
-Other bonuses of this approach are:
 - coding and debugging the UI is just coding in plain Java and debugging Java;
 - fast initial page load no matter of the application's size;
 - your code always stays on your server;
 - SEO-friendly out of the box.
-
-Known concerns to deal with:
-- may be not a good fit for use cases requiring very low response time, heavy animations, etc;
-- latency between a client and the server should be low enough to ensure a good user experience;
-- more memory and CPU resources may be required on the server;
-- as for a stateful app, for scalability some kind of sticky session management required;
-- a question of how to integrate RSP with existing JavaScript and CSS codebase needs to be addressed.
 
 ### Hello World
 
@@ -92,9 +84,36 @@ Run the class and navigate to http://localhost:8080.
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
 * [Tetris](https://github.com/vadimv/rsp-tetris)
 
-### HTML markup Java DSL
+### HTTP requests routing
 
-Use the RSP Java internal domain-specific language (DSL) for declarative definition of an HTML page markup.
+An RSP application's workflow consist of two explicit phases:
+- routing an incoming request with a result of an immutable state object;
+- serializing this state object into the result HTTP response for example HTML.
+
+Create a Routing object and provide it as an application's constructor parameter:
+
+```java
+    import static rsp.dsl.Routing.*;
+    ...
+    final App<State> app = new App<>(route(),
+                                     new PageLifeCycle.Default<>(),
+                                     render());
+    final var db = new Database();
+    private Routing<State> route() {
+        return new Routing<>(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
+                             get("/articles/:id", (id, req) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
+                             get("/users/:id", (id, req) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
+                             post("users/:id", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
+    }
+```
+
+### HTML markup rendering Java DSL
+
+On the serializing phase a state object to be rendered as HTML.
+
+RSP provides the Java internal domain-specific language (DSL) for declarative definition of an HTML page markup
+as functions composition.
+
 For example, re-write the HTML fragment below:
 
 ```html
@@ -164,14 +183,16 @@ The ``when()`` DSL function conditionally renders (or not) an element:
 
 ### Plain HTML pages
 
-There are two types of web pages:
-- Single-page application (SPA) connected pages
+RSP supports two types of web pages:
+- Single-page application (SPA)
 - Plain detached pages
 
 An RSP web application can contain a mix of both types. 
 For example, an admin part can be a single-page application page, and the client facing part made of plain pages.
 
-The ``head()`` function creates an HTML ``head`` tag for an SPA type page.
+The type of page to be rendered is determined by the page's head tag DSL function.
+
+The ``head()`` function creates a plain HTML page ``head`` tag for an SPA.
 This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server 
 and enables reacting to the browser events.
 
@@ -191,7 +212,7 @@ For example:
             ).statusCode(404);
 ```
 
-### Single-page application's events
+### Single-page application
 
 Register a browser's page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag:
 
@@ -270,66 +291,11 @@ The context's ``EventContext.eventObject()`` method reads the event's object as 
 ```
 Events code runs in a synchronized sections on a live page session state container object.
 
-### Browser and server interaction diagram
+### Navigation bar URL path
 
-```
-     ┌───────┐                   ┌──────┐
-     │Browser│                   │Server│
-     └───┬───┘                   └──┬───┘
-         │         HTTP GET         │    
-         │──────────────────────────>    
-         │                          │  Inital page render 
-         │    HTTP response 200     │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │    Open a WebSocket      │    
-         │──────────────────────────>    
-         │                          │  Create a new live page  
-         │   Register page events   │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │   An event on the page   │    
-         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
-         │                          │   Re-render, calculate virtual DOM diff 
-         │   Modify DOM commands    │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-     ┌───┴───┐                   ┌──┴───┐
-     │Browser│                   │Server│
-     └───────┘                   └──────┘
-```
+In a Single Page Application, the current state can be mapped to the browser's navigation bar path using another parameter
+of the ``App`` class constructor.
 
-### HTTP Request routing and path mapping
-
-To resolve an initial application's state from an HTTP request during the page's initial rendering,
-create a routing function and provide it as an application's constructor parameter:
-
-```java
-    private CompletableFuture<State> routes(HttpRequest request) {
-        return request.method == HttpRequest.Methods.GET ? route(request.path) : State.page404();
-    }
-    
-    private CompletableFuture<State> route(Path path) {
-        final Path.Matcher<State> m = new Path.Matcher(path, State.page404())    // a default match
-                                          .match((name) -> true,                 // /{name}
-                                                 (name) -> db.getList(name).map(list -> State.of(list)))
-                                          .match((name, id) -> isNumeric(id),    // /{name}/{id}, where id is a number
-                                                 (name, id) -> db.getInstance(Long.parse(id)).map(instance -> State.of(instance)));
-        
-        return m.state;
-    }
-
-    ...    
-    final App<State> app = new App<>(this::routes,
-                                     new PageLifeCycle.Default<>(),
-                                     render());
-```
-
-The root component or a descendant component maps a routed result state to a specific view. 
-See [HTML markup Java DSL](#html-markup-java-dsl).
-
-For SPAs, the current application's state can be mapped to the browser's navigation bar path using another function
-provided as another parameter of the ``App`` class constructor.
- 
 ```java
      public static Path state2path(State state) {
         //  /{name}/{id} or /{name}
@@ -465,4 +431,30 @@ To run all the tests:
 $ mvn clean test -Ptest-all
 ```
 
-   
+### Browser and server interaction diagram
+
+```
+     ┌───────┐                   ┌──────┐
+     │Browser│                   │Server│
+     └───┬───┘                   └──┬───┘
+         │         HTTP GET         │    
+         │──────────────────────────>    
+         │                          │  Inital page render 
+         │    HTTP response 200     │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │    Open a WebSocket      │    
+         │──────────────────────────>    
+         │                          │  Create a new live page  
+         │   Register page events   │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+         │                          │    
+         │   An event on the page   │    
+         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
+         │                          │   Re-render, calculate virtual DOM diff 
+         │   Modify DOM commands    │    
+         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
+     ┌───┴───┐                   ┌──┴───┐
+     │Browser│                   │Server│
+     └───────┘                   └──────┘
+```   

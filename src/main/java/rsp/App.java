@@ -5,6 +5,7 @@ import rsp.server.HttpRequest;
 import rsp.server.Path;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -24,7 +25,7 @@ public final class App<S> {
     /**
      * A function that dispatches an incoming HTTP request to a page's initial state.
      */
-    public final Function<HttpRequest, CompletableFuture<? extends S>> routes;
+    public final Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes;
 
     /**
      * A function that dispatches a current state snapshot to the browser's navigation bar's path.
@@ -52,7 +53,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(AppConfig config,
-               Function<HttpRequest, CompletableFuture<? extends S>> routes,
+               Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes,
                BiFunction<S, Path, Path> state2path,
                PageLifeCycle<S> lifeCycleEventsListener,
                Component<? extends S> rootComponent) {
@@ -69,7 +70,7 @@ public final class App<S> {
      * @param lifeCycleEventsListener a listener for the app pages lifecycle events
      * @param rootComponent the root of the components tree
      */
-    public App(Function<HttpRequest, CompletableFuture<? extends S>> routes,
+    public App(Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes,
                PageLifeCycle<S> lifeCycleEventsListener,
                Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
@@ -84,7 +85,7 @@ public final class App<S> {
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param rootComponent the root of the components tree
      */
-    public App(Function<HttpRequest, CompletableFuture<? extends S>> routes,
+    public App(Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes,
                Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,
@@ -103,7 +104,7 @@ public final class App<S> {
                Component<? extends S> rootComponent,
                PageLifeCycle<S> lifeCycleEventsListener) {
         this(AppConfig.DEFAULT,
-             request -> CompletableFuture.completedFuture(initialState),
+             request -> Optional.of(CompletableFuture.completedFuture(initialState)),
              (s, p) ->  p,
              lifeCycleEventsListener,
              rootComponent);
@@ -118,7 +119,7 @@ public final class App<S> {
     public App(S initialState,
                Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
-                request -> CompletableFuture.completedFuture(initialState),
+                request -> Optional.of(CompletableFuture.completedFuture(initialState)),
                 (s, p) ->  p,
                 new PageLifeCycle.Default<>(),
                 rootComponent);
