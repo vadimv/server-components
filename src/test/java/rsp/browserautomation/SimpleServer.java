@@ -29,22 +29,39 @@ public class SimpleServer {
     }
 
     public static SimpleServer run(boolean blockCurrentThread) {
+        final App<AppState> app = new App<>(routes(),
+                                            new PageLifeCycle.Default<>(),
+                                            appComponent());
+        final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
+        s.jetty.start();
+        if (blockCurrentThread) {
+            s.jetty.join();
+        }
+        return s;
+    }
+
+    private static Routing<AppState> routes() {
+        return new Routing<>(new NotFoundState(),
+                get("/:id(\\d+)", (id, __) -> new OkState(Integer.parseInt(id)).toCompletableFuture()));
+    }
+
+    private static Component<? extends AppState> appComponent() {
         final Component<OkState> okComponent = state ->
                 html(head(title("test-server-title")),
-                     body(subComponent.render(state.get().i, s -> state.accept(new OkState(s))),
-                           div(button(attr("type", "button"),
-                                      attr("id", "b0"),
-                                      text("+1"),
-                               on("click",
-                                  d -> { state.accept(new OkState(state.get().i + 1));}))),
-                           div(span(attr("id", "s0"),
-                                    style("background-color", state.get().i % 2 ==0 ? "red" : "blue"),
-                                    text(state.get().i)))
-        ));
+                        body(subComponent.render(state.get().i, s -> state.accept(new OkState(s))),
+                                div(button(attr("type", "button"),
+                                        attr("id", "b0"),
+                                        text("+1"),
+                                        on("click",
+                                                d -> { state.accept(new OkState(state.get().i + 1));}))),
+                                div(span(attr("id", "s0"),
+                                        style("background-color", state.get().i % 2 ==0 ? "red" : "blue"),
+                                        text(state.get().i)))
+                        ));
 
         final Component<NotFoundState> notFoundComponent =
                 state -> html(headPlain(title("Not found")),
-                              body(h1("Not found 404"))).statusCode(404);
+                        body(h1("Not found 404"))).statusCode(404);
 
         final Component<? extends AppState> appComponent = s -> {
             if (s.isInstanceOf(NotFoundState.class)) {
@@ -56,21 +73,7 @@ public class SimpleServer {
                 throw new IllegalStateException("Illegal state");
             }
         };
-
-        final App<AppState> app = new App<>(routes(),
-                                            new PageLifeCycle.Default<>(),
-                                            appComponent);
-        final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
-        s.jetty.start();
-        if (blockCurrentThread) {
-            s.jetty.join();
-        }
-        return s;
-    }
-
-    private static Routing<AppState> routes() {
-        return new Routing<>(new NotFoundState(),
-                             get("/:id(\\d+)", (id, __) -> new OkState(Integer.parseInt(id)).toCompletableFuture()));
+        return appComponent;
     }
 
     interface AppState {
