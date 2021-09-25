@@ -30,7 +30,6 @@ public class SimpleServer {
 
     public static SimpleServer run(boolean blockCurrentThread) {
         final App<AppState> app = new App<>(routes(),
-                                            new PageLifeCycle.Default<>(),
                                             appComponent());
         final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
         s.jetty.start();
