@@ -1,13 +1,16 @@
 package rsp.routing;
 
 import rsp.server.HttpRequest;
-import rsp.util.TriFunction;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * Defines an application's HTTP requests routing.
+ * @see RoutingDsl
+ * @param <S> the type of the applications root component's state, should be an immutable class
+ */
 public class Routing<S> implements Function<HttpRequest, Optional<CompletableFuture<? extends S>>> {
     public final Optional<S> defaultStateValue;
     public final RouteDefinition<S>[] routeDefinitions;
@@ -19,6 +22,7 @@ public class Routing<S> implements Function<HttpRequest, Optional<CompletableFut
         this.routeDefinitions = routes;
     }
 
+    @SafeVarargs
     public Routing(RouteDefinition<S>... routeDefinitions) {
         this.defaultStateValue = Optional.empty();
         this.routeDefinitions = routeDefinitions;
