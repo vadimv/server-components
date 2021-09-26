@@ -174,7 +174,7 @@ The ``head()`` function creates a plain HTML page ``head`` tag for an SPA.
 This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server
 and enables reacting to the browser events.
 
-Register a browser's page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag:
+To respond to browser events register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag:
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
