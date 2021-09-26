@@ -1,6 +1,6 @@
 package rsp.ref;
 
-import rsp.dsl.TimerRefDefinition;
+import rsp.html.TimerRefDefinition;
 
 public interface TimerRef extends Ref {
 

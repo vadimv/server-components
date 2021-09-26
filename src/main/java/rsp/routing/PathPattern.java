@@ -7,6 +7,9 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ *
+ */
 public class PathPattern {
     public final List<String> patternSegments;
     public final int[] paramsIndexes;

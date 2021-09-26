@@ -1,6 +1,6 @@
 package rsp;
 
-import rsp.dsl.DocumentPartDefinition;
+import rsp.html.DocumentPartDefinition;
 import rsp.state.CompletableFutureConsumer;
 import rsp.state.FunctionConsumer;
 import rsp.state.UseState;

@@ -1,4 +1,4 @@
-package rsp.dsl;
+package rsp.html;
 
 import rsp.dom.XmlNs;
 import rsp.page.PageRenderContext;

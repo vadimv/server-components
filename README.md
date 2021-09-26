@@ -70,7 +70,7 @@ An RSP application's request-response workflow consist of two explicitly defined
 To dispatch the incoming request, create a Routing object and provide it as an application's constructor parameter:
 
 ```java
-    import static rsp.dsl.Routing.*;
+    import static rsp.html.Routing.*;
     ...
     final App<State> app = new App<>(route(),
                                      new PageLifeCycle.Default<>(),
@@ -109,7 +109,7 @@ For example, to re-write the HTML fragment below:
 provide the Java code:
 
 ```java
-    import static rsp.dsl.Html.*;
+    import static rsp.html.Html.*;
     ...
     s -> html(
               body(
@@ -121,13 +121,13 @@ provide the Java code:
             );
 ```
 where:
-- HTML tags are represented by the ``rsp.dsl.Html`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
-- HTML attributes are represented by the ``rsp.dsl.Html.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
+- HTML tags are represented by the ``rsp.html.Html`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
+- HTML attributes are represented by the ``rsp.html.Html.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
 - The lambda parameter's ``s.get()`` method reads the current state snapshot
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 ```java
-    import static rsp.dsl.Html.*;
+    import static rsp.html.Html.*;
     ...
     s -> ul(of(s.get().items.stream().map(item -> li(item.name))))
 ```
@@ -143,7 +143,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
 Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments
 with imperative logic.
 ```java
-    import static rsp.dsl.Html.*;
+    import static rsp.html.Html.*;
     ...
     s -> of(() -> {
                      if (s.get().showInfo) {

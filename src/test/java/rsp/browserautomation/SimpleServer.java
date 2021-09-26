@@ -3,16 +3,11 @@ package rsp.browserautomation;
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
-import rsp.page.PageLifeCycle;
 import rsp.routing.Routing;
-import rsp.server.HttpRequest;
-import rsp.server.Path;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
-import static rsp.dsl.Html.*;
+import static rsp.html.Html.*;
 import static rsp.routing.Routing.get;
 
 public class SimpleServer {

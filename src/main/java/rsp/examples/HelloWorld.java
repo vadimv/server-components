@@ -3,7 +3,7 @@ package rsp.examples;
 import rsp.App;
 import rsp.jetty.JettyServer;
 
-import static rsp.dsl.Html.*;
+import static rsp.html.Html.*;
 
 /**
  * Run the class and navigate to http://localhost:8080.

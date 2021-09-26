@@ -1,8 +1,8 @@
 package rsp.page;
 
 import rsp.dom.DomTreePageRenderContext;
-import rsp.dsl.TagDefinition;
-import rsp.dsl.Html;
+import rsp.html.TagDefinition;
+import rsp.html.Html;
 
 public final class DefaultConnectionLostWidget {
 
