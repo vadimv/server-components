@@ -111,14 +111,16 @@ provide the Java code:
 ```java
     import static rsp.html.HtmlDsl.*;
     ...
-    s -> html(
-              body(
-                   h1("This is a heading"),
-                   div(attr("class", "par"), 
-                       p("This is a paragraph"),
-                       p(s.get().text)) // adds a paragraph with a text from the state object's 'text' field
-                  ) 
-            );
+    public Component<State> render() {
+        return s -> html(
+                      body(
+                           h1("This is a heading"),
+                           div(attr("class", "par"), 
+                               p("This is a paragraph"),
+                               p(s.get().text)) // adds a paragraph with a text from the state object's 'text' field
+                          ) 
+                    );
+    }
 ```
 where:
 - HTML tags are represented by the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
