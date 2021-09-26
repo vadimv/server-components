@@ -19,7 +19,7 @@ public final class AttributeDefinition implements DocumentPartDefinition {
 
     /**
      * Determines if this attribute is an HTML tag's property.
-     * @see Html#DEFAULT_PROPERTIES_NAMES
+     * @see HtmlDsl#DEFAULT_PROPERTIES_NAMES
      */
     public final boolean isProperty;
 

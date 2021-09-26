@@ -17,7 +17,7 @@ import static rsp.server.HttpStatusCodes.OK_STATUS_CODE;
 /**
  * A HTML tags definitions domain-specific language and related util functions.
  */
-public final class Html {
+public final class HtmlDsl {
 
     /**
      * Attributes names which are interpreted by default as properties.

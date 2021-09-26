@@ -9,7 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-import static rsp.html.Html.*;
+import static rsp.html.HtmlDsl.*;
 import static rsp.routing.Routing.post;
 
 /**

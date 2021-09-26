@@ -16,7 +16,7 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
-import static rsp.html.Html.*;
+import static rsp.html.HtmlDsl.*;
 
 public class LivePageStateTests {
 

@@ -7,7 +7,7 @@ import rsp.routing.Routing;
 
 import java.util.concurrent.CompletableFuture;
 
-import static rsp.html.Html.*;
+import static rsp.html.HtmlDsl.*;
 import static rsp.routing.Routing.get;
 
 public class SimpleServer {

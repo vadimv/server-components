@@ -44,8 +44,8 @@ public final class MainHttpServlet<S>  extends HttpServlet {
                 if (ex != null) {
                     log.error(l -> l.log("Http rendering exception", ex));
                     return new HttpResponse(500,
-                            Collections.emptyList(),
-                            exceptionDetails(ex));
+                                             Collections.emptyList(),
+                                             exceptionDetails(ex));
                 } else {
                     return resp;
                 }
