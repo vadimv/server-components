@@ -70,7 +70,7 @@ An RSP application's request-response workflow consist of two explicitly defined
 To dispatch the incoming request, create a Routing object and provide it as an application's constructor parameter:
 
 ```java
-    import static rsp.html.Routing.*;
+    import static rsp.html.RoutingDsl.*;
     ...
     final App<State> app = new App<>(route(),
                                      new PageLifeCycle.Default<>(),

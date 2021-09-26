@@ -8,7 +8,7 @@ import rsp.routing.Routing;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.html.HtmlDsl.*;
-import static rsp.routing.Routing.get;
+import static rsp.routing.RoutingDsl.*;
 
 public class SimpleServer {
 

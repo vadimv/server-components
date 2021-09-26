@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.html.HtmlDsl.*;
-import static rsp.routing.Routing.post;
+import static rsp.routing.RoutingDsl.*;
 
 /**
  * An example with plain detached pages:
