@@ -80,7 +80,7 @@ To dispatch the incoming request, create a Routing object and provide it as an a
         return new Routing<>(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
                              get("/articles/:id", (id, __) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
                              get("/users/:id", (id, __) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
-                             post("users/:id", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
+                             post("/users/:id", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
     }
 ```
 
