@@ -86,7 +86,7 @@ To dispatch the incoming request, create a Routing object and provide it as an a
 
 ### HTML markup rendering Java DSL
 
-On the serializing phase a state object to be rendered as HTML.
+On the rendering phase a state object to be converted to HTML.
 
 RSP provides the Java internal domain-specific language (DSL) for declarative definition of an HTML page markup
 as functions composition.
