@@ -6,8 +6,8 @@ import java.util.function.Consumer;
 
 public class CompletableFutureUtils {
 
-    public static <T> BiConsumer<? super T, ? super Throwable> complete(Consumer<? super T> whenResult,
-                                                                        Consumer<? super Throwable> whenException) {
+    public static <T> BiConsumer<? super T, ? super Throwable> consume(Consumer<? super T> whenResult,
+                                                                       Consumer<? super Throwable> whenException) {
         return new BiConsumer<>() {
             @Override
             public void accept(T result, Throwable ex) {
@@ -22,6 +22,7 @@ public class CompletableFutureUtils {
         };
     }
 
+    @SafeVarargs
     public static <T> CompletableFuture<T> either(CompletableFuture<T>... cfs) {
         final CompletableFuture<T> result = new CompletableFuture<>();
         CompletableFuture.allOf(cfs).whenComplete((v, ex) -> {
