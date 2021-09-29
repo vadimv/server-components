@@ -30,10 +30,9 @@ public class Routing<S> implements Function<HttpRequest, Optional<CompletableFut
 
     @Override
     public Optional<CompletableFuture<? extends S>> apply(HttpRequest request) {
-        for (RouteDefinition<S> routeDefinition: routeDefinitions) {
-            final Optional<CompletableFuture<? extends S>> route = routeDefinition.route().apply(request);
-            if (route.isPresent()) {
-                return route;
+        for (RouteDefinition<S> routeDefinition : routeDefinitions) {
+            if (routeDefinition.test(request)) {
+                return Optional.of(routeDefinition.route().apply(request));
             }
         }
         return Optional.empty();
