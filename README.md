@@ -72,10 +72,9 @@ To dispatch the incoming request, create a Routing object and provide it as an a
 ```java
     import static rsp.html.RoutingDsl.*;
     ...
-            final App<State> app = new App<>(route(),
-                                             render());
+    final App<State> app = new App<>(route(), render());
     ...
-    private Routing<State> route()
+    private static Routing<State> route()
         final var db = new Database();
         return concat(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
                       get("/articles/:id", (id, __) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
