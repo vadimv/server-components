@@ -3,7 +3,8 @@ package rsp.examples;
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
-import rsp.routing.Routing;
+import rsp.routing.Routes;
+import rsp.routing.RoutingDsl;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -21,7 +22,7 @@ import static rsp.routing.RoutingDsl.*;
  */
 public class PlainForm {
     public static void main(String[] args) {
-        final App<Optional<FullName>> app = new App<>(routes(),
+        final App<Optional<FullName>> app = new App<>(r(),
                                                       pages());
         final JettyServer server = new JettyServer(8080, "", app);
         server.start();
@@ -42,8 +43,8 @@ public class PlainForm {
         }
     }
 
-    private static Routing<Optional<FullName>> routes() {
-        return new Routing<Optional<FullName>>(
+    private static Routes<Optional<FullName>> r() {
+        return RoutingDsl.concat(
             post("/*",
                   req -> CompletableFuture.completedFuture(Optional.of(new FullName(req.queryParam("firstname").orElseThrow(),
                                                                                     req.queryParam("lastname").orElseThrow())))));

@@ -38,6 +38,22 @@ public final class HttpRequest {
     }
 
     /**
+     * Creates a new instance of a HTTP request.
+     * @param method the HTTP verb
+     * @param uri the request's URI
+     * @param path the request's path
+     */
+    public HttpRequest(HttpMethod method,
+                       URI uri,
+                       Path path) {
+        this.method = method;
+        this.uri = uri;
+        this.path = path;
+        this.getQueryParam = n -> Optional.empty();
+        this.getHeader = n -> Optional.empty();
+    }
+
+    /**
      * Gets a request's HTTP cookie by name.
      * @param cookieName the cookie name
      * @return the Optional with the cookie value or the empty

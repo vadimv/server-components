@@ -9,36 +9,29 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public final class RouteDefinition<S> {
+public final class RouteDefinition<S>
+        implements Route<HttpRequest, S>
+{
 
     private final Predicate<HttpRequest> predicate;
     private final Tuple2<PathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>>> matchFun;
-  /*  public RouteDefinition(HttpRequest.HttpMethod httpMethod,
-                           String pathPattern,
-                           Function<HttpRequest,
-                           CompletableFuture<S>> matchFun) {
-        this(httpMethod, pathPattern, (p1, p2, req) -> matchFun.apply(req));
-    }
 
-    public RouteDefinition(HttpRequest.HttpMethod httpMethod,
-                           String pathPattern,
-                           BiFunction<String, HttpRequest,
-                           CompletableFuture<S>> matchFun) {
-        this(httpMethod, pathPattern, (p1, p2, req) -> matchFun.apply(p1, req));
-    }
-*/
     public RouteDefinition(Predicate<HttpRequest> predicate,
                            Tuple2<PathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>>> matchFun) {
         this.predicate = predicate;
         this.matchFun = matchFun;
     }
 
-    public boolean test(HttpRequest request) {
-        return predicate.test(request);
+    @Override
+    public Optional<CompletableFuture<? extends S>> apply(HttpRequest request) {
+        if (predicate.test(request)) {
+            return Optional.of(callMatchFun(request));
+        }
+        return Optional.empty();
     }
 
-    public Function<HttpRequest, CompletableFuture<? extends S>> route() {
-        return request -> callMatchFun(request);
+    public boolean test(HttpRequest request) {
+        return predicate.test(request);
     }
 
     private CompletableFuture<S> callMatchFun(HttpRequest request) {
@@ -60,5 +53,6 @@ public final class RouteDefinition<S> {
                                       request);
         }
     }
+
 
 }

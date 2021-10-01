@@ -2,14 +2,16 @@ package rsp.routing;
 
 import rsp.server.Path;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-public final class PathRouteDefinition<S> {
+public final class PathRouteDefinition<S> implements Function<Path, Optional<CompletableFuture<? extends S>>>, Predicate<Path> {
 
-    private final PathPattern pathPattern;
-    private final BiFunction<String, String, CompletableFuture<S>> matchFun;
+    public final PathPattern pathPattern;
+    public final BiFunction<String, String, CompletableFuture<S>> matchFun;
 
     public PathRouteDefinition(PathPattern pathPattern,
                                BiFunction<String, String, CompletableFuture<S>> matchFun) {
@@ -17,12 +19,12 @@ public final class PathRouteDefinition<S> {
         this.matchFun = matchFun;
     }
 
-    public boolean test(Path path) {
-        return pathPattern.match(path);
-    }
-
-    public Function<Path, CompletableFuture<? extends S>> route() {
-        return path -> callMatchFun(path);
+    @Override
+    public Optional<CompletableFuture<? extends S>> apply(Path path) {
+        if (pathPattern.match(path)) {
+            return Optional.of(callMatchFun(path));
+        }
+        return Optional.empty();
     }
 
     private CompletableFuture<S> callMatchFun(Path path) {
@@ -42,4 +44,8 @@ public final class PathRouteDefinition<S> {
         }
     }
 
+    @Override
+    public boolean test(Path path) {
+        return pathPattern.match(path);
+    }
 }

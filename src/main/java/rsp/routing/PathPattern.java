@@ -62,7 +62,7 @@ public class PathPattern {
     }
 
     public boolean match(Path path) {
-        if (path.isEmpty() && patternSegments.size() == 0) {
+        if (path.isEmpty() && (patternSegments.size() == 0 || isWildcard(patternSegments.get(0)))) {
             return true;
         }
         if (!path.isEmpty() && patternSegments.size() == 0) {
@@ -73,8 +73,7 @@ public class PathPattern {
         for(i = 0; i < path.size() && i < patternSegments.size(); i++) {
             if (!(path.get(i).equals(patternSegments.get(i))
                     || isWildcard(patternSegments.get(i))
-                    || (isParam(patternSegments.get(i))
-                        && (regexes.get(i) == null || regexes.get(i).matcher(path.get(i)).find())))) {
+                    || (isParam(patternSegments.get(i)) && (regexes.get(i) == null || regexes.get(i).matcher(path.get(i)).find())))) {
                 return false;
             }
         }
