@@ -22,7 +22,7 @@ import java.util.function.Function;
 public class RoutingDsl {
 
     @SafeVarargs
-    public static <S> Routes<S> concat(Function<HttpRequest, Optional<CompletableFuture<? extends S>>>... routeDefinitions) {
+    public static <S> Routes<S> concat(Route<HttpRequest, S>... routeDefinitions) {
         return new Routes<>(routeDefinitions);
     }
 
@@ -31,7 +31,7 @@ public class RoutingDsl {
           return new PathRoutes<>(routeDefinitions);
     }
 
-    public static <S> Function<HttpRequest, Optional<CompletableFuture<? extends S>>> get(Function<HttpRequest, PathRoutes<S>> subRoutes) {
+    public static <S> Route<HttpRequest, S> get(Function<HttpRequest, PathRoutes<S>> subRoutes) {
         return null;
     }
 
@@ -40,38 +40,38 @@ public class RoutingDsl {
     }
 
 
-    public static <S> Function<HttpRequest, Optional<CompletableFuture<? extends S>>> get(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
+    public static <S> Route<HttpRequest, S> get(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.GET.equals(req.method) && pp.match(req.path),
                                      new Tuple2<>(pp, (p1, p2, req) -> matchFun.apply(req)));
     }
 
-    public static <S> Function<HttpRequest, Optional<CompletableFuture<? extends S>>> get(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
+    public static <S> Route<HttpRequest, S> get(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.GET.equals(req.method) && pp.match(req.path),
                                       new Tuple2<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
     }
 
-    public static <S> Function<HttpRequest, Optional<CompletableFuture<? extends S>>> get(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
+    public static <S> Route<HttpRequest, S> get(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.GET.equals(req.method) && pp.match(req.path),
                                     new Tuple2<>(pp, matchFun));
     }
 
 
-    public static <S> Function<HttpRequest, Optional<CompletableFuture<? extends S>>> post(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
+    public static <S> Route<HttpRequest, S> post(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
                 new Tuple2<>(pp, (p1, p2, req) -> matchFun.apply(req)));
     }
 
-    public static <S> Function<HttpRequest, Optional<CompletableFuture<? extends S>>> post(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
+    public static <S> Route<HttpRequest, S> post(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
                 new Tuple2<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
     }
 
-    public static <S> Function<HttpRequest, Optional<CompletableFuture<? extends S>>> post(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
+    public static <S> Route<HttpRequest, S> post(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
                 new Tuple2<>(pp, matchFun));

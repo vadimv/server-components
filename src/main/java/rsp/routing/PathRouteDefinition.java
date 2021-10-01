@@ -5,10 +5,9 @@ import rsp.server.Path;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
-public final class PathRouteDefinition<S> implements Function<Path, Optional<CompletableFuture<? extends S>>>, Predicate<Path> {
+public final class PathRouteDefinition<S> implements Route<Path, S>, Predicate<Path> {
 
     public final PathPattern pathPattern;
     public final BiFunction<String, String, CompletableFuture<S>> matchFun;

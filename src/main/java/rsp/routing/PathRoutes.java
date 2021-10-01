@@ -12,7 +12,7 @@ import java.util.function.Function;
  * @see RoutingDsl
  * @param <S> the type of the applications root component's state, should be an immutable class
  */
-public class PathRoutes<S> implements Function<Path, Optional<CompletableFuture<? extends S>>> {
+public class PathRoutes<S> implements Route<Path, S> {
     public final Optional<S> defaultStateValue;
     public final Function<Path, Optional<CompletableFuture<? extends S>>>[] routeDefinitions;
 

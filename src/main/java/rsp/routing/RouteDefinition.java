@@ -6,7 +6,6 @@ import rsp.util.data.Tuple2;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 public final class RouteDefinition<S>
