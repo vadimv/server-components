@@ -77,6 +77,10 @@ public class RoutingDsl {
                 new Tuple2<>(pp, matchFun));
     }
 
+    public static <S> Route<HttpRequest, S> otherwise(final S value) {
+        return request -> Optional.of(CompletableFuture.completedFuture(value));
+    }
+
 /*    public static <S> RouteDefinition<S> post(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
         return new RouteDefinition<>(HttpRequest.HttpMethod.POST, pathPattern, matchFun);
     }

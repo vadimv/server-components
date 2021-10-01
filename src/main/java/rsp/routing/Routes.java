@@ -12,25 +12,13 @@ import java.util.function.Function;
  * @param <S> the type of the applications root component's state, should be an immutable class
  */
 public class Routes<S> implements Route<HttpRequest, S> {
-    public final Optional<S> defaultStateValue;
     public final Function<HttpRequest, Optional<CompletableFuture<? extends S>>>[] routeDefinitions;
 
     @SafeVarargs
-    private Routes(S defaultStateValue,
-                   Function<HttpRequest, Optional<CompletableFuture<? extends S>>>... routes) {
-        this.defaultStateValue = Optional.of(defaultStateValue);
+    public Routes(Route<HttpRequest, S>... routes) {
         this.routeDefinitions = routes;
     }
 
-    @SafeVarargs
-    public Routes(Function<HttpRequest, Optional<CompletableFuture<? extends S>>>... routeDefinitions) {
-        this.defaultStateValue = Optional.empty();
-        this.routeDefinitions = routeDefinitions;
-    }
-
-    public Routes<S> notFound(S defaultStateValue) {
-        return new Routes<>(defaultStateValue, routeDefinitions);
-    }
 
     @Override
     public Optional<CompletableFuture<? extends S>> apply(HttpRequest request) {
