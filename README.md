@@ -86,10 +86,10 @@ To dispatch the incoming request, create a Routing object and provide it as an a
 If needed, extract path routing to a separate function:
 
 ```java
-    final Route<String, HttpRequest> routes = concat(get(__ -> paths()),
-                                                     otherwise(State.notFound()));
+    final Route<HttpRequest, State> routes = concat(get(__ -> paths()),
+                                                    otherwise(State.notFound()));
     
-    private static PathRoutes<String> paths() {
+    private static PathRoutes<State> paths() {
          return concat(path("/articles", db.getArticles().thenApply(articles -> State.ofArticles(articles))),
                        path("/articles/:id", id -> db.getArticle(id).thenApply(article -> State.ofArticle(article)));
     }
