@@ -32,7 +32,7 @@ public class RoutingDsl {
     }
 
     public static <S> Route<HttpRequest, S> get(Function<HttpRequest, PathRoutes<S>> subRoutes) {
-        return null;
+        return request -> request.method.equals(HttpRequest.HttpMethod.GET) ? subRoutes.apply(request).apply(request.path) : Optional.empty();
     }
 
     public static <S> PathRouteDefinition<S> path(String pathPattern, Function<String, CompletableFuture<S>> matchFun) {
