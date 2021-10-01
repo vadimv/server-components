@@ -28,7 +28,8 @@ public final class App<S> {
     public final Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes;
 
     /**
-     * A function that dispatches a current state snapshot to the browser's navigation bar's path.
+     * A function that dispatches its first argument, a current state snapshot
+     * and its second argument of the previous path to the browser's navigation bar's path.
      */
     public final BiFunction<S, Path, Path> state2path;
 

@@ -271,10 +271,12 @@ During a Single Page Application session, the current app state can be mapped to
 of the ``App`` class constructor.
 
 ```java
-     public static Path state2path(State state) {
-        //  /{name}/{id} or /{name}
+     public static Path state2path(State state, Path previousPath) {
+        //  If the details are present, set the path to /{name}/{id}
+        //  or set it to /{name}
         return state.details.map(details -> new Path(state.name, Long.toString(details.id))).or(new Path(state.name));
     }
+
 ```
 If not provided explicitly, the default state-to-path routing sets an empty path for any state.
 
