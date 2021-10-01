@@ -77,10 +77,22 @@ To dispatch the incoming request, create a Routing object and provide it as an a
     ...
     private Routing<State> route()
         final var db = new Database();
-        return new Routing<>(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
-                             get("/articles/:id", (id, __) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
-                             get("/users/:id", (id, __) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
-                             post("/users/:id(^\\d+$)", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
+        return concat(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
+                      get("/articles/:id", (id, __) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
+                      get("/users/:id", (id, __) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
+                      post("/users/:id(^\\d+$)", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
+    }
+```
+
+If needed, extract path routing to a separate function:
+
+```java
+    final Route<String, HttpRequest> routes = concat(get(__ -> paths()),
+                                                     otherwise(State.notFound()));
+    
+    private static PathRoutes<String> paths() {
+         return concat(path("/articles", db.getArticles().thenApply(articles -> State.ofArticles(articles))),
+                       path("/articles/:id", id -> db.getArticle(id).thenApply(article -> State.ofArticle(article)));
     }
 ```
 

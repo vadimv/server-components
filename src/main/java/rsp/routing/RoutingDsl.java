@@ -35,6 +35,10 @@ public class RoutingDsl {
         return request -> request.method.equals(HttpRequest.HttpMethod.GET) ? subRoutes.apply(request).apply(request.path) : Optional.empty();
     }
 
+    public static <S> PathRouteDefinition<S> path(String pathPattern, CompletableFuture<S> value) {
+        return new PathRouteDefinition<>(PathPattern.of(pathPattern), (p1, p2) -> value);
+    }
+
     public static <S> PathRouteDefinition<S> path(String pathPattern, Function<String, CompletableFuture<S>> matchFun) {
         return new PathRouteDefinition<>(PathPattern.of(pathPattern), (p1, p2) -> matchFun.apply(p1));
     }

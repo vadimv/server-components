@@ -29,17 +29,14 @@ public final class PathRouteDefinition<S> implements Route<Path, S>, Predicate<P
     private CompletableFuture<S> callMatchFun(Path path) {
         final int[] pathParameterIndexes = pathPattern.paramsIndexes;;
         if (pathParameterIndexes.length == 0) {
-            return matchFun.apply("",
-                                      "");
+            return matchFun.apply("", "");
         } else if (pathParameterIndexes.length == 1) {
             assert pathParameterIndexes[0] < path.size();
-            return matchFun.apply(path.get(pathParameterIndexes[0]),
-                                      "");
+            return matchFun.apply(path.get(pathParameterIndexes[0]), "");
         } else {
             assert pathParameterIndexes[0] < pathParameterIndexes[1];
             assert pathParameterIndexes[1] < path.size();
-            return matchFun.apply(path.get(pathParameterIndexes[0]),
-                                      path.get(pathParameterIndexes[1]));
+            return matchFun.apply(path.get(pathParameterIndexes[0]), path.get(pathParameterIndexes[1]));
         }
     }
 
