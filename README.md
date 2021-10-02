@@ -267,19 +267,17 @@ Events code runs in a synchronized sections on a live page session state contain
 
 ### Navigation bar URL path
 
-During a Single Page Application session, the current app state can be mapped to the browser's navigation bar path using another parameter
-of the ``App`` class constructor:
+During a Single Page Application session, the current app state mapping to the browser's navigation bar path can be configured using
+the ``stateToPath`` method of an ``App`` object:
 
 ```java
-     public static Path state2path(State state, Path previousPath) {
-        //  If the details are present, set the path to /{name}/{id}
-        //  or set it to /{name}
-        return state.details.map(details -> Path.absolute(state.name, Long.toString(details.id)))
-                            .or(Path.absolute(state.name));
-    }
+    final App<State> app = new App<>(route(),
+                                     pages())  //  If the details are present, set the path to /{name}/{id} or set it to /{name}
+            .stateToPath((state, prevPath) -> state.details.map(details -> Path.absolute(state.name, Long.toString(details.id)))
+                                                           .or(Path.absolute(state.name)));
 
 ```
-If not provided explicitly, the default state-to-path routing sets an empty path for any state.
+If not setup, the default state-to-path routing sets an empty path for any state.
 
 ### Plain HTML pages
 
