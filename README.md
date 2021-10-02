@@ -426,31 +426,3 @@ To run all the tests:
 
 $ mvn clean test -Ptest-all
 ```
-
-### Browser and server interaction diagram
-
-```
-     ┌───────┐                   ┌──────┐
-     │Browser│                   │Server│
-     └───┬───┘                   └──┬───┘
-         │         HTTP GET         │    
-         │──────────────────────────>    
-         │                          │  Inital page render 
-         │    HTTP response 200     │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │    Open a WebSocket      │    
-         │──────────────────────────>    
-         │                          │  Create a new live page  
-         │   Register page events   │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-         │                          │    
-         │   An event on the page   │    
-         │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─>    
-         │                          │   Re-render, calculate virtual DOM diff 
-         │   Modify DOM commands    │    
-         │<─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─     
-     ┌───┴───┐                   ┌──┴───┐
-     │Browser│                   │Server│
-     └───────┘                   └──────┘
-```   
