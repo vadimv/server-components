@@ -364,7 +364,9 @@ This allows to listen to the page's lifecycle events:
             t.start();
         }
     };
-
+    
+    final App<Optional<FullName>> app = new App<>(route(), pages()).pageLifeCycle(plc);
+    ...
 ```
 Add these listeners, for example, when you need to subscribe to some messages stream on a page live session creation
 and unsubscribing when the page closes.
