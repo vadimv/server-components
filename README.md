@@ -63,7 +63,7 @@ The Maven dependency:
 
 ### HTTP requests routing
 
-An RSP application's request-response workflow consist of two explicitly defined phases:
+An RSP application's initial page rendering request-response workflow consist of two explicitly defined phases:
 - routing an incoming request with a result of a global immutable state object;
 - serializing this state object into the result HTTP response.
 
@@ -175,7 +175,7 @@ The ``when()`` DSL function conditionally renders (or not) an element:
 ### Single-page application
 
 RSP supports two types of web pages:
-- Single-page application (SPA)
+- Single-page application (SPA) with establishing the page's live session and keeping its state on the server
 - Plain detached pages
 
 An RSP web application can contain a mix of both types.
