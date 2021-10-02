@@ -28,10 +28,6 @@ public final class RouteDefinition<S> implements Route<HttpRequest, S>
         return Optional.empty();
     }
 
-    public boolean test(HttpRequest request) {
-        return predicate.test(request);
-    }
-
     private CompletableFuture<S> callMatchFun(HttpRequest request) {
         final int[] pathParameterIndexes = matchFun._1.paramsIndexes;;
         if (pathParameterIndexes.length == 0) {
