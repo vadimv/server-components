@@ -31,10 +31,6 @@ public class RoutingDsl {
           return new PathRoutes<>(routeDefinitions);
     }
 
-    public static <S> Route<HttpRequest, S> get(Function<HttpRequest, PathRoutes<S>> subRoutes) {
-        return request -> request.method.equals(HttpRequest.HttpMethod.GET) ? subRoutes.apply(request).apply(request.path) : Optional.empty();
-    }
-
     public static <S> PathRouteDefinition<S> path(String pathPattern, CompletableFuture<S> value) {
         return new PathRouteDefinition<>(PathPattern.of(pathPattern), (p1, p2) -> value);
     }
@@ -43,6 +39,13 @@ public class RoutingDsl {
         return new PathRouteDefinition<>(PathPattern.of(pathPattern), (p1, p2) -> matchFun.apply(p1));
     }
 
+    public static <S> PathRouteDefinition<S> path(String pathPattern, BiFunction<String, String, CompletableFuture<S>> matchFun) {
+        return new PathRouteDefinition<>(PathPattern.of(pathPattern), (p1, p2) -> matchFun.apply(p1, p2));
+    }
+
+    public static <S> Route<HttpRequest, S> get(Function<HttpRequest, PathRoutes<S>> subRoutes) {
+        return request -> request.method.equals(HttpRequest.HttpMethod.GET) ? subRoutes.apply(request).apply(request.path) : Optional.empty();
+    }
 
     public static <S> Route<HttpRequest, S> get(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
@@ -84,32 +87,4 @@ public class RoutingDsl {
     public static <S> Route<HttpRequest, S> any(final S value) {
         return request -> Optional.of(CompletableFuture.completedFuture(value));
     }
-
-/*    public static <S> RouteDefinition<S> post(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
-        return new RouteDefinition<>(HttpRequest.HttpMethod.POST, pathPattern, matchFun);
-    }
-
-    public static <S> RouteDefinition<S> post(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
-        return new RouteDefinition<>(HttpRequest.HttpMethod.POST, pathPattern, matchFun);
-    }
-
-    public static <S> RouteDefinition<S> post(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
-        return new RouteDefinition<>(HttpRequest.HttpMethod.POST, pathPattern, matchFun);
-    }
-
-    public static <S> RouteDefinition<S> put(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
-        return new RouteDefinition<>(HttpRequest.HttpMethod.PUT, pathPattern, matchFun);
-    }
-
-    public static <S> RouteDefinition<S> put(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
-        return new RouteDefinition<>(HttpRequest.HttpMethod.PUT, pathPattern, matchFun);
-    }
-
-    public static <S> RouteDefinition<S> put(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
-        return new RouteDefinition<>(HttpRequest.HttpMethod.PUT, pathPattern, matchFun);
-    }
-
-    public static <S> RouteDefinition<S> route(HttpRequest.HttpMethod method, String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
-        return new RouteDefinition<>(method, pathPattern, matchFun);
-    }*/
 }
