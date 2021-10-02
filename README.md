@@ -12,8 +12,8 @@ RSP enables creation of real-time single-page applications and plain HTML webpag
 * [HTML markup Java DSL](#html-markup-rendering-java-dsl)
 * [Single-page application](#single-page-application)
 * [Navigation bar URL path](#navigation-bar-url-path)
-* [Plain HTML pages](#plain-html-pages)
 * [UI Components](#ui-components)
+* [Plain HTML pages](#plain-html-pages)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Application and server's configuration](#application-and-servers-configuration)
 * [Schedules](#schedules)
@@ -265,20 +265,6 @@ The context's ``EventContext.eventObject()`` method reads the event's object as 
 ```
 Events code runs in a synchronized sections on a live page session state container object.
 
-### Navigation bar URL path
-
-During a Single Page Application session, the current app state mapping to the browser's navigation bar path can be configured using
-the ``stateToPath`` method of an ``App`` object:
-
-```java
-    final App<State> app = new App<>(route(),
-                                     pages())  //  If the details are present, set the path to /{name}/{id} or set it to /{name}
-            .stateToPath((state, prevPath) -> state.details.map(details -> Path.absolute(state.name, Long.toString(details.id)))
-                                                           .or(Path.absolute(state.name)));
-
-```
-If not setup, the default state-to-path routing sets an empty path for any state.
-
 ### Plain HTML pages
 
 Using ``plainHead()`` function instead of ``head()`` renders the markup with the ``head`` tag without injecting of this script
@@ -337,11 +323,24 @@ up to the root component's context
 
 An application's top-level ``Component<S>`` is the root of its component tree.
 
+### Navigation bar URL path
+
+During a Single Page Application session, the current app state mapping to the browser's navigation bar path can be configured using
+the ``stateToPath`` method of an ``App`` object:
+
+```java
+    final App<State> app = new App<>(route(),
+                                     pages())  //  If the details are present, set the path to /{name}/{id} or set it to /{name}
+            .stateToPath((state, prevPath) -> state.details.map(details -> Path.absolute(state.name, Long.toString(details.id)))
+                                                           .or(Path.absolute(state.name)));
+
+```
+If not setup, the default state-to-path routing sets an empty path for any state.
 
 ### Page lifecycle events
 
 Provide an implementation of the ``PageLifecycle`` interface as a parameter on an application's constructor.
-This allows to listen to the page's lifecycle events:
+This allows to listen to the SPA page's lifecycle events:
 - before the page is created 
 - after the page is closed
 
