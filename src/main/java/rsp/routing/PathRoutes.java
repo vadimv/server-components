@@ -14,17 +14,17 @@ import java.util.function.Function;
  */
 public class PathRoutes<S> implements Route<Path, S> {
     public final Optional<S> defaultStateValue;
-    public final Function<Path, Optional<CompletableFuture<? extends S>>>[] routeDefinitions;
+    public final Route<Path, S>[] routeDefinitions;
 
     @SafeVarargs
     private PathRoutes(S defaultStateValue,
-                       Function<Path, Optional<CompletableFuture<? extends S>>>... routes) {
+                       Route<Path, S>... routes) {
         this.defaultStateValue = Optional.of(defaultStateValue);
         this.routeDefinitions = routes;
     }
 
     @SafeVarargs
-    public PathRoutes(Function<Path, Optional<CompletableFuture<? extends S>>>... routeDefinitions) {
+    public PathRoutes(Route<Path, S>... routeDefinitions) {
         this.defaultStateValue = Optional.empty();
         this.routeDefinitions = routeDefinitions;
     }

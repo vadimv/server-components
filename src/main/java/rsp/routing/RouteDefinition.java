@@ -8,8 +8,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
-public final class RouteDefinition<S>
-        implements Route<HttpRequest, S>
+public final class RouteDefinition<S> implements Route<HttpRequest, S>
 {
 
     private final Predicate<HttpRequest> predicate;
