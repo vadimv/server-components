@@ -22,7 +22,7 @@ import static rsp.routing.RoutingDsl.*;
  */
 public class PlainForm {
     public static void main(String[] args) {
-        final App<Optional<FullName>> app = new App<>(r(),
+        final App<Optional<FullName>> app = new App<>(route(),
                                                       pages());
         final JettyServer server = new JettyServer(8080, "", app);
         server.start();
@@ -43,7 +43,7 @@ public class PlainForm {
         }
     }
 
-    private static Routes<Optional<FullName>> r() {
+    private static Routes<Optional<FullName>> route() {
         return RoutingDsl.concat(
             post("/*",
                   req -> CompletableFuture.completedFuture(Optional.of(new FullName(req.queryParam("firstname").orElseThrow(),
