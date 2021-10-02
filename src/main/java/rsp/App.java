@@ -1,6 +1,7 @@
 package rsp;
 
 import rsp.page.*;
+import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
 
@@ -54,7 +55,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(AppConfig config,
-               Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes,
+               Route<HttpRequest, S> routes,
                BiFunction<S, Path, Path> state2path,
                PageLifeCycle<S> lifeCycleEventsListener,
                Component<? extends S> rootComponent) {
@@ -71,7 +72,7 @@ public final class App<S> {
      * @param lifeCycleEventsListener a listener for the app pages lifecycle events
      * @param rootComponent the root of the components tree
      */
-    public App(Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes,
+    public App(Route<HttpRequest, S> routes,
                PageLifeCycle<S> lifeCycleEventsListener,
                Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
@@ -86,7 +87,7 @@ public final class App<S> {
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param rootComponent the root of the components tree
      */
-    public App(Function<HttpRequest, Optional<CompletableFuture<? extends S>>> routes,
+    public App(Route<HttpRequest, S> routes,
                Component<? extends S> rootComponent) {
         this(AppConfig.DEFAULT,
              routes,

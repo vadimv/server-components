@@ -87,7 +87,7 @@ If needed, extract path routing to a separate function:
 
 ```java
     final Route<HttpRequest, State> routes = concat(get(__ -> paths()),
-                                                    otherwise(State.notFound()));
+                                                    any(State.pageNotFound()));
     
     private static PathRoutes<State> paths() {
          return concat(path("/articles", db.getArticles().thenApply(articles -> State.ofArticles(articles))),
@@ -268,13 +268,14 @@ Events code runs in a synchronized sections on a live page session state contain
 ### Navigation bar URL path
 
 During a Single Page Application session, the current app state can be mapped to the browser's navigation bar path using another parameter
-of the ``App`` class constructor.
+of the ``App`` class constructor:
 
 ```java
      public static Path state2path(State state, Path previousPath) {
         //  If the details are present, set the path to /{name}/{id}
         //  or set it to /{name}
-        return state.details.map(details -> new Path(state.name, Long.toString(details.id))).or(new Path(state.name));
+        return state.details.map(details -> Path.absolute(state.name, Long.toString(details.id)))
+                            .or(Path.absolute(state.name));
     }
 
 ```

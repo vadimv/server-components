@@ -29,6 +29,24 @@ public final class Path {
     }
 
     /**
+     * Creates a new instance of an absolute path from its segments.
+     * @param segments paths segments
+     * @return a path object
+     */
+    public static Path absolute(String... segments) {
+        return new Path(true, segments);
+    }
+
+    /**
+     * Creates a new instance of a relative path from its segments.
+     * @param segments paths segments
+     * @return a path object
+     */
+    public static Path relative(String... segments) {
+        return new Path(false, segments);
+    }
+
+    /**
      * Creates a new instance of a path from a string.
      * @param str the string with '/' separated path elements;
      *            if starts with '/' then the path is absolute, otherwise the path is relative

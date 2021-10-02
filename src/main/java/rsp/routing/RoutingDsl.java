@@ -81,7 +81,7 @@ public class RoutingDsl {
                 new Tuple2<>(pp, matchFun));
     }
 
-    public static <S> Route<HttpRequest, S> otherwise(final S value) {
+    public static <S> Route<HttpRequest, S> any(final S value) {
         return request -> Optional.of(CompletableFuture.completedFuture(value));
     }
 
