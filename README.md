@@ -66,7 +66,7 @@ The Maven dependency:
 
 An RSP application's initial page rendering request-response workflow consist of two explicitly defined phases:
 - routing an incoming request with a result of a global immutable state object;
-- serializing this state object into the result HTTP response.
+- rendering this state object into the result HTTP response.
 
 To dispatch the incoming request, create a Routing object and provide it as an application's constructor parameter:
 
