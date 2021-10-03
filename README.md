@@ -10,6 +10,7 @@ RSP enables creation of real-time single-page applications and plain HTML webpag
 * [Code examples](#code-examples)
 * [HTTP requests routing](#http-requests-routing)  
 * [HTML markup Java DSL](#html-markup-rendering-java-dsl)
+* [Page state model](#page-state-model)
 * [Single-page application](#single-page-application)
 * [Navigation bar URL path](#navigation-bar-url-path)
 * [UI Components](#ui-components)
@@ -170,6 +171,43 @@ with imperative logic.
 The ``when()`` DSL function conditionally renders (or not) an element:
 ```java
     s -> when(s.get().showLabel, span("This is a label"))
+```
+
+### Page state model
+
+Model an RSP application page's state as a finite state machine (FSM).
+An HTTP request routing resolves an initial state. 
+Page events, like user actions or timer events trigger state transitions.
+
+The following example shows how a page state can be modelled using records, 
+sealed interfaces and pattern matching in Java 17:
+
+```java
+    sealed interface State permits UserState, UsersState {}
+    record UserState(User user) implements State {}
+    record UsersState(List<User> users) implements State {}
+    
+    record User(long id, String name) {}
+
+    /**
+     * An event handler, makes the page's FSM transition.
+     */
+    public static void userSelected(UseState<State> s, User user) {
+        s.accept(new UserState(user));
+    }
+
+    /**
+     * The page's renderer, called by the framework as a result of a state transition.
+     */
+    static Component<State> render() {
+        return s -> switch (s.get()) {
+            case UserState  state  -> userView().render(state);
+            case UsersState state  -> usersView().render(state);
+        };
+    }
+
+    private static Component<UserState> userView() { return s -> span("User:" + s.get()); }
+    private static Component<UsersState> usersView() { return s -> span("Users list:" + s.get()); }
 ```
 
 ### Single-page application
