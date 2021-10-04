@@ -7,7 +7,7 @@ import java.util.Arrays;
 /**
  * A sequence of definitions.
  */
-public final class SequenceDefinition implements DocumentPartDefinition {
+public final class SequenceDefinition extends BaseDocumentPartDefinition {
     public final DocumentPartDefinition[] items;
 
     /**

@@ -6,7 +6,7 @@ import rsp.dom.XmlNs;
 /**
  * A definition of a HTML element's attribute.
  */
-public final class AttributeDefinition implements DocumentPartDefinition {
+public final class AttributeDefinition extends BaseDocumentPartDefinition {
     /**
      * The attribute's name.
      */

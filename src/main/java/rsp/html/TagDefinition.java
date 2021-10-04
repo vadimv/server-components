@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * A definition of an XML tag.
  */
-public class TagDefinition implements DocumentPartDefinition {
+public class TagDefinition extends BaseDocumentPartDefinition {
     protected final XmlNs ns;
     protected final String name;
     protected final DocumentPartDefinition[] children;
