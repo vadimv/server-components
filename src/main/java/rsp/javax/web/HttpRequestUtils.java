@@ -18,6 +18,7 @@ public final class HttpRequestUtils {
     public static HttpRequest httpRequest(HttpServletRequest request) {
         return new HttpRequest(httpMethod(request.getMethod()),
                                stringToURI(request.getRequestURI()),
+                               request.getRequestURL().toString(),
                                Path.of(request.getPathInfo()),
                                s -> Optional.ofNullable(request.getParameter(s)),
                                h -> Optional.ofNullable(request.getHeader(h)));
@@ -31,6 +32,7 @@ public final class HttpRequestUtils {
     public static HttpRequest httpRequest(HandshakeRequest handshakeRequest) {
         return new HttpRequest(HttpRequest.HttpMethod.GET,
                                handshakeRequest.getRequestURI(),
+                               handshakeRequest.getRequestURI().toString(),
                                Path.of(handshakeRequest.getRequestURI().getPath()),
                                name ->  Optional.ofNullable(handshakeRequest.getParameterMap().get(name)).map(val -> val.get(0)),
                                name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)));

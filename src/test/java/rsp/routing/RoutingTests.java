@@ -20,7 +20,10 @@ public class RoutingTests {
                 post("/*", req -> CompletableFuture.completedFuture("B")),
                 get("/*", req -> CompletableFuture.completedFuture("C")));
         final URI requestUri = URI.create("http://localhost");
-        final var s = r.apply(new HttpRequest(HttpRequest.HttpMethod.POST, requestUri, Path.of(requestUri.getPath())));
+        final var s = r.apply(new HttpRequest(HttpRequest.HttpMethod.POST,
+                                                                  requestUri,
+                                                                  requestUri.toString(),
+                                                                  Path.of(requestUri.getPath())));
         Assert.assertTrue(s.isPresent());
         Assert.assertEquals("B", s.get().get());
     }
@@ -32,7 +35,10 @@ public class RoutingTests {
                 get("/B", req -> CompletableFuture.completedFuture("B")),
                 get("/C", req -> CompletableFuture.completedFuture("C")));
         final URI requestUri = URI.create("http://localhost/B");
-        final var s = r.apply(new HttpRequest(HttpRequest.HttpMethod.GET, requestUri, Path.of(requestUri.getPath())));
+        final var s = r.apply(new HttpRequest(HttpRequest.HttpMethod.GET,
+                                                                                  requestUri,
+                                                                                  requestUri.toString(),
+                                                                                  Path.of(requestUri.getPath())));
         Assert.assertTrue(s.isPresent());
         Assert.assertEquals("B", s.get().get());
     }
@@ -42,7 +48,10 @@ public class RoutingTests {
         final Routes<String> r = concat(get(req -> paths()),
                                         post("/B", req -> CompletableFuture.completedFuture("C")));
         final URI requestUri = URI.create("http://localhost/B");
-        final var s = r.apply(new HttpRequest(HttpRequest.HttpMethod.GET, requestUri, Path.of(requestUri.getPath())));
+        final var s = r.apply(new HttpRequest(HttpRequest.HttpMethod.GET,
+                                                                                  requestUri,
+                                                                                  requestUri.toString(),
+                                                                                  Path.of(requestUri.getPath())));
         Assert.assertTrue(s.isPresent());
         Assert.assertEquals("A", s.get().get());
 

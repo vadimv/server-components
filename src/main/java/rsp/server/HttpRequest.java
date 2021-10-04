@@ -13,6 +13,7 @@ import java.util.function.Function;
 public final class HttpRequest {
     public final HttpMethod method;
     public final URI uri;
+    public final String url;
     public final Path path;
     public final Function<String, Optional<String>> getQueryParam;
     public final Function<String, Optional<String>> getHeader;
@@ -21,17 +22,20 @@ public final class HttpRequest {
      * Creates a new instance of a HTTP request.
      * @param method the HTTP verb
      * @param uri the request's URI
+     * @param url the request's URL
      * @param path the request's path
      * @param queryParam the function that provides access the request's query parameters
      * @param getHeader the function that provides access to the request's headers
      */
     public HttpRequest(HttpMethod method,
                        URI uri,
+                       String url,
                        Path path,
                        Function<String, Optional<String>> queryParam,
                        Function<String, Optional<String>> getHeader) {
         this.method = method;
         this.uri = uri;
+        this.url = url;
         this.path = path;
         this.getQueryParam = queryParam;
         this.getHeader = getHeader;
@@ -41,13 +45,16 @@ public final class HttpRequest {
      * Creates a new instance of a HTTP request.
      * @param method the HTTP verb
      * @param uri the request's URI
+     * @param url the request's URL
      * @param path the request's path
      */
     public HttpRequest(HttpMethod method,
                        URI uri,
+                       String url,
                        Path path) {
         this.method = method;
         this.uri = uri;
+        this.url = url;
         this.path = path;
         this.getQueryParam = n -> Optional.empty();
         this.getHeader = n -> Optional.empty();
