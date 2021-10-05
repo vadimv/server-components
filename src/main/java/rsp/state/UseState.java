@@ -17,6 +17,7 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
         return clazz.isAssignableFrom(get().getClass());
     }
 
+    @SuppressWarnings("unchecked")
     default <T extends S> UseState<T> cast(Class<T> clazz) {
         if (this.isInstanceOf(clazz)) {
             return readWrite(() -> (T) get(), v -> accept((T)v));
@@ -26,7 +27,7 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
     }
 
     static <S> UseState<S> readWriteInCompletableFuture(Supplier<S> supplier, CompletableFutureConsumer<S> completableFutureConsumer) {
-        return new UseState<S>() {
+        return new UseState<>() {
             @Override
             public void accept(S s) {
                 accept(CompletableFuture.completedFuture(s));
@@ -55,7 +56,7 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
     }
 
     static <S> UseState<S> readWriteInFunction(Supplier<S> supplier, FunctionConsumer<S> functionConsumer) {
-        return new UseState<S>() {
+        return new UseState<>() {
             @Override
             public void accept(S s) {
                 functionConsumer.accept(p -> s);

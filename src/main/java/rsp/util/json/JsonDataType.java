@@ -153,7 +153,7 @@ public interface JsonDataType {
      * A JSON object, a collection of name/value pairs.
      */
     final class Object implements JsonDataType {
-        public static final Object EMPTY = new Object(Collections.EMPTY_MAP);
+        public static final Object EMPTY = new Object(Collections.emptyMap());
 
         private final Map<java.lang.String, JsonDataType> values;
 

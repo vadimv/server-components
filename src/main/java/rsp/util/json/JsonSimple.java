@@ -17,6 +17,7 @@ public class JsonSimple {
             return JsonDataType.Null.INSTANCE;
         } else if (j instanceof org.json.simple.JSONObject) {
             final org.json.simple.JSONObject jsonObject = (org.json.simple.JSONObject) j;
+            @SuppressWarnings("unchecked")
             final Set<Map.Entry> entrySet = jsonObject.entrySet();
             final Map<String, JsonDataType> m = new HashMap<>();
             for (Map.Entry entry : entrySet) {
