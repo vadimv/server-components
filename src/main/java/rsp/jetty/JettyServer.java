@@ -21,6 +21,7 @@ import rsp.server.StaticResources;
 import javax.websocket.HandshakeResponse;
 import javax.websocket.server.HandshakeRequest;
 import javax.websocket.server.ServerEndpointConfig;
+import javax.websocket.server.ServerEndpointConfig.Configurator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -123,10 +124,16 @@ public final class JettyServer<S> {
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
-                            .configurator(new ServerEndpointConfig.Configurator() {
+                            .configurator(new Configurator() {
                                 @Override
                                 public <T> T getEndpointInstance(Class<T> clazz) throws InstantiationException {
-                                    return (T)webSocketEndpoint;
+                                    if (clazz.equals(MainWebSocketEndpoint.class)) {
+                                        @SuppressWarnings("unchecked")
+                                        final T endpoint = (T) webSocketEndpoint;
+                                        return endpoint;
+                                    }
+                                    throw new InstantiationException("Expected class " + MainWebSocketEndpoint.class
+                                                                     + " got " + clazz);
                                 }
 
                                 @Override
@@ -143,6 +150,21 @@ public final class JettyServer<S> {
 
         server.setHandler(handlers);
     }
+
+/*    private static final class ServerEndpointConfigurator extends Configurator {
+        @Override
+        public <T> T getEndpointInstance(Class<MainWebSocketEndpoint<S>> clazz) throws InstantiationException {
+            return (T)webSocketEndpoint;
+        }
+
+        @Override
+        public void modifyHandshake(ServerEndpointConfig conf,
+                                    HandshakeRequest req,
+                                    HandshakeResponse resp) {
+            conf.getUserProperties().put(MainWebSocketEndpoint.HANDSHAKE_REQUEST_PROPERTY_NAME,
+                    HttpRequestUtils.httpRequest(req));
+        }
+    }*/
 
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
