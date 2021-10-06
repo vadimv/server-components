@@ -24,7 +24,7 @@ public class PlainForm {
     public static void main(String[] args) {
         final App<Optional<FullName>> app = new App<>(route(),
                                                       pages());
-        final JettyServer server = new JettyServer(8080, "", app);
+        final var server = new JettyServer<>(8080, "", app);
         server.start();
         server.join();
     }

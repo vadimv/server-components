@@ -13,9 +13,9 @@ import static rsp.routing.RoutingDsl.*;
 public class SimpleServer {
 
     public static final int PORT = 8085;
-    public final JettyServer jetty;
+    public final JettyServer<AppState> jetty;
 
-    public SimpleServer(JettyServer jetty) {
+    public SimpleServer(JettyServer<AppState> jetty) {
         this.jetty = jetty;
     }
 
@@ -26,7 +26,7 @@ public class SimpleServer {
     public static SimpleServer run(boolean blockCurrentThread) {
         final App<AppState> app = new App<>(routes(),
                                             appComponent());
-        final SimpleServer s = new SimpleServer(new JettyServer(PORT, "", app));
+        final SimpleServer s = new SimpleServer(new JettyServer<>(PORT, "", app));
         s.jetty.start();
         if (blockCurrentThread) {
             s.jetty.join();
@@ -39,7 +39,7 @@ public class SimpleServer {
                       any(new NotFoundState()));
     }
 
-    private static Component<? extends AppState> appComponent() {
+    private static Component<AppState> appComponent() {
         final Component<OkState> okComponent = state ->
                 html(head(title("test-server-title")),
                         body(subComponent.render(state.get().i, s -> state.accept(new OkState(s))),
@@ -57,7 +57,7 @@ public class SimpleServer {
                 state -> html(headPlain(title("Not found")),
                         body(h1("Not found 404"))).statusCode(404);
 
-        final Component<? extends AppState> appComponent = s -> {
+        final Component<AppState> appComponent = s -> {
             if (s.isInstanceOf(NotFoundState.class)) {
                 return notFoundComponent.render(s.cast(NotFoundState.class));
             } else if (s.isInstanceOf(OkState.class)) {

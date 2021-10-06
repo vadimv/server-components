@@ -3,6 +3,7 @@ package rsp.page;
 import rsp.*;
 import rsp.dom.DomTreePageRenderContext;
 import rsp.dom.Tag;
+import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.server.Path;
@@ -24,11 +25,11 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Component<S> documentDefinition;
-    private final Function<HttpRequest, Optional<CompletableFuture<S>>> routing;
+    private final Route<HttpRequest, S> routing;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
-    public PageRendering(Function<HttpRequest, Optional<CompletableFuture<S>>> routing,
+    public PageRendering(Route<HttpRequest, S> routing,
                          Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          Component<S> documentDefinition,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich) {

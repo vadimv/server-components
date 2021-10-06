@@ -41,7 +41,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final Component<? extends S> rootComponent;
+    public final Component<S> rootComponent;
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -57,7 +57,7 @@ public final class App<S> {
                 BiFunction<S, Path, Path> state2path,
                 PageLifeCycle<S> lifeCycleEventsListener,
                 Route<HttpRequest, S> routes,
-                Component<? extends S> rootComponent) {
+                Component<S> rootComponent) {
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
@@ -71,7 +71,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(Route<HttpRequest, S> routes,
-               Component<? extends S> rootComponent) {
+               Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
@@ -86,7 +86,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(S initialState,
-               Component<? extends S> rootComponent) {
+               Component<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),

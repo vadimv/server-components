@@ -31,7 +31,7 @@ import java.util.function.BiFunction;
  * An embedded server for an RSP application,
  * Jetty provides a servlet container and a JSR 356 WebSockets API implementation.
  */
-public final class JettyServer {
+public final class JettyServer<S> {
     /**
      * The Jetty server's maximum threads number by default is {@value #DEFAULT_WEB_SERVER_MAX_THREADS}.
      */
@@ -39,7 +39,7 @@ public final class JettyServer {
 
     private final int port;
     private final Path basePath;
-    private final App app;
+    private final App<S> app;
 
 
     private final Server server;
@@ -54,7 +54,7 @@ public final class JettyServer {
      */
     public JettyServer(int port,
                        String basePath,
-                       App app,
+                       App<S> app,
                        Optional<StaticResources> staticResources,
                        Optional<SslConfiguration> sslConfiguration,
                        int maxThreads) {
@@ -107,19 +107,19 @@ public final class JettyServer {
                                                                       "/",
                                                                       DefaultConnectionLostWidget.HTML,
                                                                       app.config.heartbeatIntervalMs);
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering(app.routes,
-                                                                                     app.pagesStorage,
-                                                                                     app.rootComponent,
-                                                                                     enrichContextFun),
-                                                                                     app.config.log)),"/*");
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.routes,
+                                                                                       app.pagesStorage,
+                                                                                       app.rootComponent,
+                                                                                       enrichContextFun),
+                                                                                       app.config.log)),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
-        final MainWebSocketEndpoint webSocketEndpoint =  new MainWebSocketEndpoint<>(new StateToRouteDispatch(this.basePath, app.state2path),
-                                                                                     app.pagesStorage,
-                                                                                     app.rootComponent,
-                                                                                     enrichContextFun,
-                                                                                     () -> scheduler,
-                                                                                     app.lifeCycleEventsListener,
-                                                                                     app.config.log);
+        final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(new StateToRouteDispatch<>(this.basePath, app.state2path),
+                                                                                        app.pagesStorage,
+                                                                                        app.rootComponent,
+                                                                                        enrichContextFun,
+                                                                                        () -> scheduler,
+                                                                                        app.lifeCycleEventsListener,
+                                                                                        app.config.log);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
@@ -153,7 +153,7 @@ public final class JettyServer {
      */
     public JettyServer(int port,
                        String basePath,
-                       App app,
+                       App<S> app,
                        StaticResources staticResources) {
         this(port, basePath, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
@@ -164,7 +164,7 @@ public final class JettyServer {
      * @param basePath a context path of the web application
      * @param app an RSP application
      */
-    public JettyServer(int port, String basePath, App app) {
+    public JettyServer(int port, String basePath, App<S> app) {
         this(port, basePath, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
