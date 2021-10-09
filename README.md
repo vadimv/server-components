@@ -83,8 +83,16 @@ To dispatch the incoming request, create a Routing object and provide it as an a
                       post("/users/:id(^\\d+$)", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
     }
 ```
+Routes verified one by one for a matching HTTP method and path pattern. 
+Route path patterns can include zero, one or two path-variables, regexes and the wildcard symbol "*".
+These variables became available as the correspondent handler functions ``String`` parameters alongside with the request details object.
+The route's handler function should return a ``CompletableFuture`` of the page's state:
 
-If needed, extract path routing to a separate function:
+```java
+    get("/users/*", req -> CompletableFuture.completedFuture(State.ofUsers(List.of(user1, user2))))
+```
+
+If needed, extract path routing:
 
 ```java
     final Route<HttpRequest, State> routes = concat(get(__ -> paths()),
@@ -95,6 +103,14 @@ If needed, extract path routing to a separate function:
                        path("/articles/:id", id -> db.getArticle(id).thenApply(article -> State.ofArticle(article)));
     }
 ```
+
+Use ``match()`` routes to implement custom matching logic, for example:
+
+```java
+    match(req -> req.queryParam("name").isPresent(), req -> CompletableFuture.completedFuture(State.of(req.queryParam("name"))))
+```
+
+The ``any()`` route matches every request.
 
 ### HTML markup rendering Java DSL
 
