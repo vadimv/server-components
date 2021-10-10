@@ -34,20 +34,20 @@ public class RoutingDsl {
 
     public static <S> Route<Path, S> path(String pathPattern, CompletableFuture<S> value) {
         final PathPattern pp = PathPattern.of(pathPattern);
-        return new PathRouteDefinition<>(pp::match,
-                                         new PathMatchFunction<>(pp, (p1, p2) -> value));
+        return new RouteDefinition<>(pp::match,
+                                     new PathMatchFunction<>(pp, (p1, p2) -> value));
     }
 
     public static <S> Route<Path, S> path(String pathPattern, Function<String, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
-        return new PathRouteDefinition<>(pp::match,
-                                         new PathMatchFunction<>(pp, (p1, p2) -> matchFun.apply(p1)));
+        return new RouteDefinition<>(pp::match,
+                                     new PathMatchFunction<>(pp, (p1, p2) -> matchFun.apply(p1)));
     }
 
     public static <S> Route<Path, S> path(String pathPattern, BiFunction<String, String, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
-        return new PathRouteDefinition<>(pp::match,
-                                         new PathMatchFunction<>(pp, matchFun));
+        return new RouteDefinition<>(pp::match,
+                                     new PathMatchFunction<>(pp, matchFun));
     }
 
 
