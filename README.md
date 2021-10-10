@@ -6,7 +6,7 @@ The Reactive Server Pages (RSP) is a modern lightweight Java server-state web fr
 RSP enables creation of real-time single-page applications and plain HTML webpages.
 
 * [Project's motivation](#motivation)
-* [Setup](#setup)
+* [Maven](#maven)
 * [Code examples](#code-examples)
 * [HTTP requests routing](#http-requests-routing)  
 * [HTML markup Java DSL](#html-markup-rendering-java-dsl)
@@ -41,11 +41,11 @@ The application developer's experience is similar to creating a React applicatio
 - your code always stays on your server;
 - SEO-friendly out of the box.
 
-### Setup
+### Maven
 
-Java version >= 11.
+Use Java version 11 or newer.
 
-The Maven dependency:
+Add the dependency:
 ```xml
     <dependency>
         <groupId>io.github.vadimv</groupId>
@@ -92,7 +92,7 @@ The route's handler function should return a ``CompletableFuture`` of the page's
     get("/users/*", req -> CompletableFuture.completedFuture(State.ofUsers(List.of(user1, user2))))
 ```
 
-If needed, extract path routing:
+If needed, extract a paths-specific routing section:
 
 ```java
     final Route<HttpRequest, State> routes = concat(get(__ -> paths()),
@@ -104,7 +104,7 @@ If needed, extract path routing:
     }
 ```
 
-Use ``match()`` routes to implement custom matching logic, for example:
+Use ``match()`` DSL function routes to implement custom matching logic, for example:
 
 ```java
     match(req -> req.queryParam("name").isPresent(), req -> CompletableFuture.completedFuture(State.of(req.queryParam("name"))))
@@ -389,13 +389,13 @@ the ``stateToPath`` method of an ``App`` object:
                                                            .or(Path.absolute(state.name)));
 
 ```
-If not setup, the default state-to-path routing sets an empty path for any state.
+If not configured, the default state-to-path mapping sets an empty path for any state.
 
 ### Page lifecycle events
 
 Provide an implementation of the ``PageLifecycle`` interface as a parameter on an application's constructor.
 This allows to listen to the SPA page's lifecycle events:
-- before the page is created 
+- before the page is created
 - after the page is closed
 
 ```java
