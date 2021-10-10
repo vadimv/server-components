@@ -17,42 +17,41 @@ import java.util.function.Predicate;
  * The framework tries to match the HTTP request's method and path match and in case of success calls the matching function
  * to obtain a CompletableFuture with a global state object.
  *
- * @see Routes
+ * @see Route
  */
 public class RoutingDsl {
 
+    /**
+     * Concatenates routes.
+     * @param routeDefinitions routes definitions
+     * @param <S> the type of the applications root component's state, should be an immutable class
+     * @return the result route definition
+     */
     @SafeVarargs
-    public static <S> Routes<S> concat(Route<HttpRequest, S>... routeDefinitions) {
+    public static <T, S> Route<T, S> concat(Route<T, S>... routeDefinitions) {
         return new Routes<>(routeDefinitions);
     }
 
-    @SafeVarargs
-    public static <S> PathRoutes<S> concat(PathRouteDefinition<S>... routeDefinitions) {
-          return new PathRoutes<>(routeDefinitions);
-    }
-
-
-    public static <S> PathRouteDefinition<S> path(String pathPattern, CompletableFuture<S> value) {
+    public static <S> Route<Path, S> path(String pathPattern, CompletableFuture<S> value) {
         final PathPattern pp = PathPattern.of(pathPattern);
-        return new PathRouteDefinition<>(path -> pp.match(path),
+        return new PathRouteDefinition<>(pp::match,
                                          new PathMatchFunction<>(pp, (p1, p2) -> value));
     }
 
-    public static <S> PathRouteDefinition<S> path(String pathPattern, Function<String, CompletableFuture<S>> matchFun) {
+    public static <S> Route<Path, S> path(String pathPattern, Function<String, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
-        return new PathRouteDefinition<>(path -> pp.match(path),
+        return new PathRouteDefinition<>(pp::match,
                                          new PathMatchFunction<>(pp, (p1, p2) -> matchFun.apply(p1)));
     }
 
-    public static <S> PathRouteDefinition<S> path(String pathPattern, BiFunction<String, String, CompletableFuture<S>> matchFun) {
+    public static <S> Route<Path, S> path(String pathPattern, BiFunction<String, String, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
-        return new PathRouteDefinition<>(path -> pp.match(path),
-                                         new PathMatchFunction<>(pp, (p1, p2) -> matchFun.apply(p1, p2)));
+        return new PathRouteDefinition<>(pp::match,
+                                         new PathMatchFunction<>(pp, matchFun));
     }
 
 
-
-    public static <S> Route<HttpRequest, S> get(Function<HttpRequest, PathRoutes<S>> subRoutes) {
+    public static <S> Route<HttpRequest, S> get(Function<HttpRequest, Route<Path, S>> subRoutes) {
         return request -> request.method.equals(HttpRequest.HttpMethod.GET) ? subRoutes.apply(request).apply(request.path) : Optional.empty();
     }
 
@@ -65,32 +64,32 @@ public class RoutingDsl {
     public static <S> Route<HttpRequest, S> get(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.GET.equals(req.method) && pp.match(req.path),
-                                      new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
+                                     new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
     }
 
     public static <S> Route<HttpRequest, S> get(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.GET.equals(req.method) && pp.match(req.path),
-                                    new HttpRequestMatchFunction<>(pp, matchFun));
+                                     new HttpRequestMatchFunction<>(pp, matchFun));
     }
 
 
     public static <S> Route<HttpRequest, S> post(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
-                new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(req)));
+                                     new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(req)));
     }
 
     public static <S> Route<HttpRequest, S> post(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
-                new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
+                                     new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
     }
 
     public static <S> Route<HttpRequest, S> post(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
-                new HttpRequestMatchFunction<>(pp, matchFun));
+                                     new HttpRequestMatchFunction<>(pp, matchFun));
     }
 
     public static <S> Route<HttpRequest, S> put(String pathPattern, Function<HttpRequest, CompletableFuture<S>> matchFun) {
@@ -102,23 +101,18 @@ public class RoutingDsl {
     public static <S> Route<HttpRequest, S> put(String pathPattern, BiFunction<String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
-                new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
+                                     new HttpRequestMatchFunction<>(pp, (p1, p2, req) -> matchFun.apply(p1, req)));
     }
 
     public static <S> Route<HttpRequest, S> put(String pathPattern, TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(req -> HttpRequest.HttpMethod.POST.equals(req.method) && pp.match(req.path),
-                new HttpRequestMatchFunction<>(pp, matchFun));
+                                     new HttpRequestMatchFunction<>(pp, matchFun));
     }
 
 
     public static <S> Route<HttpRequest, S> match(Predicate<HttpRequest> matchPredicate, Function<HttpRequest, CompletableFuture<S>> matchFun) {
-        return new Route<>() {
-            @Override
-            public Optional<CompletableFuture<? extends S>> apply(HttpRequest httpRequest) {
-                return matchPredicate.test(httpRequest) ? Optional.of(matchFun.apply(httpRequest)) : Optional.empty();
-            }
-        };
+        return httpRequest -> matchPredicate.test(httpRequest) ? Optional.of(matchFun.apply(httpRequest)) : Optional.empty();
     }
 
     public static <S> Route<HttpRequest, S> any(final S value) {

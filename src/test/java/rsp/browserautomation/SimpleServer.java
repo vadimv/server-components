@@ -3,7 +3,8 @@ package rsp.browserautomation;
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
-import rsp.routing.Routes;
+import rsp.routing.Route;
+import rsp.server.HttpRequest;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -34,7 +35,7 @@ public class SimpleServer {
         return s;
     }
 
-    private static Routes<AppState> routes() {
+    private static Route<HttpRequest, AppState> routes() {
         return concat(get("/:id(^\\d+$)", (id, __) -> new OkState(Integer.parseInt(id)).toCompletableFuture()),
                       any(new NotFoundState()));
     }

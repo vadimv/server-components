@@ -3,8 +3,10 @@ package rsp.examples;
 import rsp.App;
 import rsp.Component;
 import rsp.jetty.JettyServer;
+import rsp.routing.Route;
 import rsp.routing.Routes;
 import rsp.routing.RoutingDsl;
+import rsp.server.HttpRequest;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -43,7 +45,7 @@ public class PlainForm {
         }
     }
 
-    private static Routes<Optional<FullName>> route() {
+    private static Route<HttpRequest, Optional<FullName>> route() {
         return RoutingDsl.concat(
             post("/*",
                   req -> CompletableFuture.completedFuture(Optional.of(new FullName(req.queryParam("firstname").orElseThrow(),
