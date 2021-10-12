@@ -83,8 +83,8 @@ To dispatch the incoming request, create a Routing object and provide it as an a
                       post("/users/:id(^\\d+$)", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
     }
 ```
-Routes verified one by one for a matching HTTP method and path pattern. 
-Route path patterns can include zero, one or two path-variables, regexes and the wildcard symbol "*".
+During a dispatch routes verified one by one for a matching HTTP method and path pattern. 
+Route path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
 These variables became available as the correspondent handler functions ``String`` parameters alongside with the request details object.
 The route's handler function should return a ``CompletableFuture`` of the page's state:
 

@@ -5,7 +5,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class RouteDefinition<T, S> implements Route<T, S>
+public final class RouteDefinition<T, S> implements Route<T, S>
 {
     private final Predicate<T> predicate;
     private final Function<T, CompletableFuture<S>> matchFun;

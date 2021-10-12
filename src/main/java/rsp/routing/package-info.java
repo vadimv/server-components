@@ -1,4 +1,4 @@
 /**
- * Defines routing API.
+ * Defines routing public API.
  */
 package rsp.routing;

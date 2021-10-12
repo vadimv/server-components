@@ -11,12 +11,12 @@ import static rsp.html.HtmlDsl.*;
 public class HelloWorld {
     public static void main(String[] args) {
         final var app = new App<>("Hello world!",
-                                  s -> of(() -> html(
+                                  s -> html(
                                             body(
                                                  p(s.get())
                                                 )
                                             )
-                                  ));
+                                  );
         final var server = new JettyServer<>(8080, "", app);
         server.start();
         server.join();

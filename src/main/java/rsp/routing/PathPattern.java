@@ -8,34 +8,41 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- *
+ * Represents a path matching pattern.
  */
-public class PathPattern {
+public final class PathPattern {
     public final List<String> patternSegments;
     public final int[] paramsIndexes;
+
     private final Map<Integer, Pattern> regexes;
 
-    private static final Pattern findRegex = Pattern.compile("\\(.*\\)");
+    private static final Pattern FIND_REGEX = Pattern.compile("\\(.*\\)");
 
-    PathPattern(List<String> patternSegments, int[] paramsIndexes, Map<Integer, Pattern> regexes) {
+    private PathPattern(List<String> patternSegments, int[] paramsIndexes, Map<Integer, Pattern> regexes) {
         this.patternSegments = patternSegments;
         this.paramsIndexes = paramsIndexes;
         this.regexes = regexes;
     }
 
+    /**
+     * Creates a new instance of a path pattern from a string.
+     *
+     * @param pattern the path pattern
+     * @return a result path pattern
+     */
     public static PathPattern of(String pattern) {
         final Tuple2<List<String>, Map<Integer, Pattern>> p = parse(pattern);
         return new PathPattern(p._1, paramsIndexes(p._1), p._2);
     }
 
-    public static Tuple2<List<String>, Map<Integer, Pattern>> parse(String pattern) {
+    private static Tuple2<List<String>, Map<Integer, Pattern>> parse(String pattern) {
         final String[] segments = Arrays.stream(pattern.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
         final List<String> l = new ArrayList<>();
         final Map<Integer, Pattern> regexMap = new HashMap<>();
         for (int i = 0; i < segments.length; i++ ) {
             final String segment = segments[i];
             if (isParam(segment)) {
-                final Matcher m = findRegex.matcher(segment);
+                final Matcher m = FIND_REGEX.matcher(segment);
                 if (m.find()) {
                     final String extractedStr = m.group(0);
                     final String r = extractedStr.substring(1, extractedStr.length() - 1);

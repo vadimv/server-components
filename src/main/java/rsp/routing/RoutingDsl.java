@@ -3,7 +3,6 @@ package rsp.routing;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
 import rsp.util.TriFunction;
-import rsp.util.data.Tuple2;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -12,14 +11,14 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Provides HTTP request routing DSL functions.
- * DSL functions define routes for an incoming request on the base of an HTTP method and an URL's path.
+ * Provides DSL functions for routing.
+ * DSL functions define routes for an incoming request on the base of an HTTP method and a URL's path.
  * The framework tries to match the HTTP request's method and path match and in case of success calls the matching function
  * to obtain a CompletableFuture with a global state object.
  *
  * @see Route
  */
-public class RoutingDsl {
+public final class RoutingDsl {
 
     /**
      * Concatenates routes.
@@ -32,11 +31,21 @@ public class RoutingDsl {
         return new Routes<>(routeDefinitions);
     }
 
+    /**
+     * Creates a path-specific route.
+     * @param pathPattern the path pattern
+     * @param value the result state
+     * @param <S> the type of the applications root component's state, should be an immutable class
+     * @return the result route definition
+     *
+     * @see PathPattern
+     */
     public static <S> Route<Path, S> path(String pathPattern, CompletableFuture<S> value) {
         final PathPattern pp = PathPattern.of(pathPattern);
         return new RouteDefinition<>(pp::match,
                                      new PathMatchFunction<>(pp, (p1, p2) -> value));
     }
+
 
     public static <S> Route<Path, S> path(String pathPattern, Function<String, CompletableFuture<S>> matchFun) {
         final PathPattern pp = PathPattern.of(pathPattern);

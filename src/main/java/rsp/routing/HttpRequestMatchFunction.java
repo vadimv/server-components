@@ -6,7 +6,7 @@ import rsp.util.TriFunction;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class HttpRequestMatchFunction<S> implements Function<HttpRequest, CompletableFuture<S>> {
+public final class HttpRequestMatchFunction<S> implements Function<HttpRequest, CompletableFuture<S>> {
 
     private final PathPattern pathPattern;
     private final TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun;

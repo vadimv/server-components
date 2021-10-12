@@ -6,7 +6,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class PathMatchFunction<S> implements Function<Path, CompletableFuture<S>> {
+public final class PathMatchFunction<S> implements Function<Path, CompletableFuture<S>> {
 
     private final PathPattern pathPattern;
     private final BiFunction<String, String, CompletableFuture<S>> matchFun;
