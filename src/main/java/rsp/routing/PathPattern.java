@@ -26,6 +26,14 @@ public final class PathPattern {
 
     /**
      * Creates a new instance of a path pattern from a string.
+     * The string can be empty or consist of explicit match segments, wildcard symbols "*" and up to two parameters definitions:
+     * A path parameter definition consists of ":", parameter name and optional regular expression in parentheses.
+     * For example:
+     *
+     * "/segment1/segment2"
+     * "/segment1/*"
+     * "/segment1/:param1/:param2"
+     * "/segment1/:param1/:param2(^\\d+$)"
      *
      * @param pattern the path pattern
      * @return a result path pattern
