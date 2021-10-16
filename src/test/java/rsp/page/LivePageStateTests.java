@@ -90,7 +90,7 @@ public class LivePageStateTests {
     }
 
     private static class TestCollectingOutMessages implements OutMessages {
-        public final List commands = new ArrayList();
+        public final List<Message> commands = new ArrayList<>();
 
         @Override
         public void setRenderNum(int renderNum) {
@@ -137,7 +137,7 @@ public class LivePageStateTests {
         }
     }
 
-    final static class SetRenderNumOutMessage {
+    final static class SetRenderNumOutMessage implements Message {
         public final int renderNum;
         SetRenderNumOutMessage(int renderNum) {
             this.renderNum = renderNum;
@@ -157,7 +157,9 @@ public class LivePageStateTests {
         }
     }
 
-    final static class ListenEventOutMessage {
+    interface Message {}
+
+    final static class ListenEventOutMessage implements Message {
         public final String eventType;
         public final boolean preventDefault;
         public final VirtualDomPath path;
@@ -187,7 +189,7 @@ public class LivePageStateTests {
         }
     }
 
-    static final class ForgetEventOutMessage {
+    static final class ForgetEventOutMessage implements Message {
         public final String eventType;
         public final VirtualDomPath elementPath;
 
@@ -211,7 +213,7 @@ public class LivePageStateTests {
         }
     }
 
-    static final class ExtractPropertyOutMessage {
+    static final class ExtractPropertyOutMessage implements Message {
         public final int descriptor;
         public final VirtualDomPath path;
         public final String name;
@@ -238,7 +240,7 @@ public class LivePageStateTests {
         }
     }
 
-    static final class ModifyDomOutMessage {
+    static final class ModifyDomOutMessage implements Message {
         public final List<DefaultDomChangesPerformer.DomChange> domChange;
 
         ModifyDomOutMessage(List<DefaultDomChangesPerformer.DomChange> domChange) {
@@ -266,7 +268,7 @@ public class LivePageStateTests {
         }
     }
 
-    static final class PushHistoryMessage {
+    static final class PushHistoryMessage implements Message {
         public final String path;
 
         public PushHistoryMessage(String path) {
