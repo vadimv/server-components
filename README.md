@@ -30,6 +30,7 @@ Any change made on the client-side potentially needs to be reflected on the API 
 The project's build requires on-boarding non-Java dependency management and build tools.
 
 RSP aims for developing the web UI in Java while keeping external dependencies to the minimum.
+
 In its case, after loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
 The page's state is maintained on the server.
 The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
