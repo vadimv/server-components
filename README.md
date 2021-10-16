@@ -22,20 +22,19 @@ RSP enables creation of real-time single-page applications and plain HTML webpag
 
 ## Motivation
 
-The common approach for a web UI today is to build the client-side with tools like React or Vue and fetch the data 
-from the backend with some kind of remote API.
+Today, it is a popular approach for a Java backend based web UI is to build the client-side with tools
+like React or Vue and fetch the data from the server with some kind of remote API.
 
-JavaScript client programming is extremely powerful, but this client-server scheme introduces a lot of complexity.
+JavaScript client programming is extremely powerful, but this scheme introduces a lot of complexity.
 Any change made on the client-side potentially needs to be reflected on the API and the server-side.
-A full-stack developer needs to deal with two programming languages, dependency management and build tools.
-It is effectively like developing and supporting two applications instead of one.
+The project's build requires on-boarding non-Java dependency management and build tools.
 
-RSP keeps page's state on the server and abstracts the client-side.
-After loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
+RSP aims for developing the web UI in Java while keeping external dependencies to the minimum.
+In its case, after loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
+The page's state is maintained on the server.
 The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
 
-The application developer's experience is similar to creating a React application in Java with direct access to its backend data.
-
+As a result:
 - coding and debugging the UI is just coding in plain Java and debugging Java;
 - fast initial page load no matter of the application's size;
 - your code always stays on your server;
@@ -237,7 +236,8 @@ For example, an admin part can be a single-page application page, and the client
 
 The type of page to be rendered is determined by the page's head tag DSL function.
 
-The ``head()`` function creates a plain HTML page ``head`` tag for an SPA.
+The ``head()`` function creates an HTML page ``head`` tag for an SPA.
+If the ``head()`` is not present in the page's markup, the simple SPA-type header is added automatically.
 This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server
 and enables reacting to the browser events.
 
