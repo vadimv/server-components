@@ -50,7 +50,7 @@ Add the dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>0.5</version>
+        <version>0.6</version>
     </dependency>
 ```
 
