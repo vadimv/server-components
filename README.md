@@ -22,7 +22,7 @@ RSP enables creation of real-time single-page applications and plain HTML webpag
 
 ## Motivation
 
-Today, it is a popular approach for a Java backend based web UI is to build the client-side with tools
+A popular approach for a Java backend based web UI is to build the client-side with tools
 like React or Vue and fetch the data from the server with some kind of remote API.
 
 JavaScript client programming is extremely powerful, but this scheme introduces a lot of complexity.
