@@ -36,7 +36,7 @@ public class SimpleServer {
     }
 
     private static Route<HttpRequest, AppState> routes() {
-        return concat(get("/:id(^\\d+$)", (id, __) -> new OkState(Integer.parseInt(id)).toCompletableFuture()),
+        return concat(get("/:id(^\\d+$)", (__, id) -> new OkState(Integer.parseInt(id)).toCompletableFuture()),
                       any(new NotFoundState()));
     }
 

@@ -78,9 +78,9 @@ To dispatch the incoming request, create a Routing object and provide it as an a
     private static Route<State> route()
         final var db = new Database();
         return concat(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
-                      get("/articles/:id", (id, __) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
-                      get("/users/:id", (id, __) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
-                      post("/users/:id(^\\d+$)", (id, req) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
+                      get("/articles/:id", (__, id) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
+                      get("/users/:id", (__, id) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
+                      post("/users/:id(^\\d+$)", (req, id) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
     }
 ```
 During a dispatch, routes verified one by one for a matching HTTP method and path pattern. 
@@ -425,10 +425,10 @@ and unsubscribing when the page closes.
 
 ### Application and server's configuration
 
-See the ``rsp.AppConfig`` class for an application configuration's details.
+Provide an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`` method of an ``App`` object.
 
-A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters providing the application's web context base path 
-as well as an optional static resources' handler and a TLS/SSL connection's configuration.
+A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters like the application's web context base path,
+an optional static resources' handler and a TLS/SSL connection's configuration.
 
 ### Logging
 

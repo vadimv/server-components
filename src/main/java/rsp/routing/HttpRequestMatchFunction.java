@@ -9,10 +9,10 @@ import java.util.function.Function;
 public final class HttpRequestMatchFunction<S> implements Function<HttpRequest, CompletableFuture<S>> {
 
     private final PathPattern pathPattern;
-    private final TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun;
+    private final TriFunction<HttpRequest, String, String, CompletableFuture<S>> matchFun;
 
     public HttpRequestMatchFunction(PathPattern pathPattern,
-                                    TriFunction<String, String, HttpRequest, CompletableFuture<S>> matchFun) {
+                                    TriFunction<HttpRequest, String, String, CompletableFuture<S>> matchFun) {
         this.pathPattern = pathPattern;
         this.matchFun = matchFun;
     }
@@ -25,20 +25,14 @@ public final class HttpRequestMatchFunction<S> implements Function<HttpRequest, 
     private CompletableFuture<S> callMatchFun(HttpRequest request) {
         final int[] pathParameterIndexes = pathPattern.paramsIndexes;
         if (pathParameterIndexes.length == 0) {
-            return matchFun.apply("",
-                    "",
-                    request);
+            return matchFun.apply(request, "", "");
         } else if (pathParameterIndexes.length == 1) {
             assert pathParameterIndexes[0] < request.path.size();
-            return matchFun.apply(request.path.get(pathParameterIndexes[0]),
-                    "",
-                    request);
+            return matchFun.apply(request, request.path.get(pathParameterIndexes[0]), "");
         } else {
             assert pathParameterIndexes[0] < pathParameterIndexes[1];
             assert pathParameterIndexes[1] < request.path.size();
-            return matchFun.apply(request.path.get(pathParameterIndexes[0]),
-                    request.path.get(pathParameterIndexes[1]),
-                    request);
+            return matchFun.apply(request, request.path.get(pathParameterIndexes[0]), request.path.get(pathParameterIndexes[1]));
         }
     }
 }
