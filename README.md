@@ -2,8 +2,7 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-The Reactive Server Pages (RSP) is a modern lightweight Java server-state web framework. 
-RSP enables creation of real-time single-page applications and plain HTML webpages.
+RSP is a modern lightweight Java server-state web framework. 
 
 * [Project's motivation](#motivation)
 * [Maven](#maven)
@@ -50,7 +49,7 @@ Add the dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>0.6</version>
+        <version>0.7</version>
     </dependency>
 ```
 
@@ -434,11 +433,11 @@ A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters li
 an optional static resources' handler and a TLS/SSL connection's configuration:
 
 ```java
-        final var staticResources = new StaticResources(new File("src/main/java/rsp/tetris"), "/res/*");
-        final var sslConfig = SslConfiguration("/keysore/path", "changeit");
-        final var server = new JettyServer(8080, "/base", app, staticResources, sslConfig);
-        server.start();
-        server.join();
+    final var staticResources = new StaticResources(new File("src/main/java/rsp/tetris"), "/res/*");
+    final var sslConfig = SslConfiguration("/keysore/path", "changeit");
+    final var server = new JettyServer(8080, "/base", app, staticResources, sslConfig);
+    server.start();
+    server.join();
 ```
 
 ### Logging
