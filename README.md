@@ -425,10 +425,21 @@ and unsubscribing when the page closes.
 
 ### Application and server's configuration
 
-Provide an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`` method of an ``App`` object.
+Provide an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`` method of an ``App`` object:
 
+```java
+    final var app = new App(routes(), rootComponent()).config(AppConfig.DEFAULT);
+```
 A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters like the application's web context base path,
-an optional static resources' handler and a TLS/SSL connection's configuration.
+an optional static resources' handler and a TLS/SSL connection's configuration:
+
+```java
+        final var staticResources = new StaticResources(new File("src/main/java/rsp/tetris"), "/res/*");
+        final var sslConfig = SslConfiguration("/keysore/path", "changeit");
+        final var server = new JettyServer(8080, "/base", app, staticResources, sslConfig);
+        server.start();
+        server.join();
+```
 
 ### Logging
 

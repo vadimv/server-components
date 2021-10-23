@@ -151,21 +151,6 @@ public final class JettyServer<S> {
         server.setHandler(handlers);
     }
 
-/*    private static final class ServerEndpointConfigurator extends Configurator {
-        @Override
-        public <T> T getEndpointInstance(Class<MainWebSocketEndpoint<S>> clazz) throws InstantiationException {
-            return (T)webSocketEndpoint;
-        }
-
-        @Override
-        public void modifyHandshake(ServerEndpointConfig conf,
-                                    HandshakeRequest req,
-                                    HandshakeResponse resp) {
-            conf.getUserProperties().put(MainWebSocketEndpoint.HANDSHAKE_REQUEST_PROPERTY_NAME,
-                    HttpRequestUtils.httpRequest(req));
-        }
-    }*/
-
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
@@ -178,6 +163,22 @@ public final class JettyServer<S> {
                        App<S> app,
                        StaticResources staticResources) {
         this(port, basePath, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
+    }
+
+    /**
+     * Creates a Jetty web server instance for hosting an RSP application.
+     * @param port a web server's listening port
+     * @param basePath a context path of the web application
+     * @param app an RSP application
+     * @param staticResources a setup object for an optional static resources handler
+     * @param sslConfiguration the server's TLS configuration
+     */
+    public JettyServer(int port,
+                       String basePath,
+                       App<S> app,
+                       StaticResources staticResources,
+                       SslConfiguration sslConfiguration) {
+        this(port, basePath, app, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
