@@ -19,7 +19,7 @@
 
 ## About
 
-RSP is a modern lightweight Java server-state web framework.
+RSP is a lightweight modern Java server-state web framework.
 
 A popular approach for a Java backend based web UI is to build the client-side with tools
 like React or Vue and fetch the data from the server with some kind of remote API.
