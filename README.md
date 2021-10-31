@@ -2,9 +2,7 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-RSP is a modern lightweight Java server-state web framework. 
-
-* [Project's motivation](#motivation)
+* [About](#about)
 * [Maven](#maven)
 * [Code examples](#code-examples)
 * [HTTP requests routing](#http-requests-routing)  
@@ -19,7 +17,9 @@ RSP is a modern lightweight Java server-state web framework.
 * [Schedules](#schedules)
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
 
-## Motivation
+## About
+
+RSP is a modern lightweight Java server-state web framework.
 
 A popular approach for a Java backend based web UI is to build the client-side with tools
 like React or Vue and fetch the data from the server with some kind of remote API.
@@ -28,13 +28,12 @@ JavaScript client programming is extremely powerful, but this scheme introduces 
 Any change made on the client-side potentially needs to be reflected on the API and the server-side.
 The project's build requires on-boarding non-Java dependency management and build tools.
 
-RSP aims for developing the web UI in Java while keeping external dependencies to the minimum.
+RSP aims for developing the web UI in Java while keeping external dependencies and JavaScript usage to the minimum.
 
-In its case, after loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
+With RSP, after loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
 The page's state is maintained on the server.
-The browser acts more like an equivalent of a terminal for Unix X Window System, a thin client.
 
-As a result:
+As the result:
 - coding and debugging the UI is just coding in plain Java and debugging Java;
 - fast initial page load no matter of the application's size;
 - your code always stays on your server;
