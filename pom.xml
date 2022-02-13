@@ -263,10 +263,13 @@
             <artifactId>jetty-servlet</artifactId>
             <version>${jetty.version}</version>
         </dependency>
+
+        <!-- build time dependency -->
         <dependency>
             <groupId>com.google.javascript</groupId>
             <artifactId>closure-compiler</artifactId>
             <version>${closure-compiler.version}</version>
+            <optional>true</optional>
         </dependency>
     </dependencies>
 
