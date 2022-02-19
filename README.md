@@ -441,13 +441,9 @@ an optional static resources' handler and a TLS/SSL connection's configuration:
 
 ### Logging
 
-By default, internally, the project uses a console logger.
-Set the ``rsp.log.level`` system property to change the application's log level, for example ``-Drsp.log.level=trace``.
+This project's uses ``System.Logger`` for server-side logging.
 
-To use an Slf4j logger instead of the default console logger, provide the ``Slf4jLogReporting`` logger implementation to
-the ``AppConfig`` application configuration. 
-
-To enable client-side detailed diagnostic data exchange logging, enter in the browser's console:
+On the client-side, to enable detailed diagnostic data exchange logging, enter in the browser console:
 
 ```javascript
   RSP.setProtocolDebugEnabled(true)
