@@ -28,11 +28,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 
+import static java.lang.System.Logger.Level.INFO;
+
 /**
  * An embedded server for an RSP application,
  * Jetty provides a servlet container and a JSR 356 WebSockets API implementation.
  */
 public final class JettyServer<S> {
+    private static final System.Logger logger = System.getLogger(JettyServer.class.getName());
+
     /**
      * The Jetty server's maximum threads number by default is {@value #DEFAULT_WEB_SERVER_MAX_THREADS}.
      */
@@ -111,16 +115,14 @@ public final class JettyServer<S> {
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.routes,
                                                                                        app.pagesStorage,
                                                                                        app.rootComponent,
-                                                                                       enrichContextFun),
-                                                                                       app.config.log)),"/*");
+                                                                                       enrichContextFun))),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(new StateToRouteDispatch<>(this.basePath, app.state2path),
                                                                                         app.pagesStorage,
                                                                                         app.rootComponent,
                                                                                         enrichContextFun,
                                                                                         () -> scheduler,
-                                                                                        app.lifeCycleEventsListener,
-                                                                                        app.config.log);
+                                                                                        app.lifeCycleEventsListener);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
@@ -200,7 +202,7 @@ public final class JettyServer<S> {
         } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
-        app.config.log.info(l -> l.log("Server started, listening on port: " + port));
+        logger.log(INFO, () -> "Server started, listening on port: " + port);
     }
 
     /**

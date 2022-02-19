@@ -7,23 +7,29 @@ import rsp.ref.Ref;
 import rsp.server.InMessages;
 import rsp.server.OutMessages;
 import rsp.util.data.Either;
-import rsp.util.logging.Log;
 import rsp.util.json.JsonDataType;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+import static java.lang.System.Logger.Level.DEBUG;
 
 /**
  * A server-side session object of an open browser's page.
  * @param <S> the application's state's type
  */
 public final class LivePage<S> implements InMessages, Schedule {
+    private static final System.Logger logger = System.getLogger(LivePage.class.getName());
 
     public final QualifiedSessionId qsid;
     private final LivePageState<S> pageState;
     private final ScheduledExecutorService scheduledExecutorService;
     private final OutMessages out;
-    private final Log.Reporting log;
 
     private int descriptorsCounter;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
@@ -32,13 +38,11 @@ public final class LivePage<S> implements InMessages, Schedule {
     public LivePage(QualifiedSessionId qsid,
                     LivePageState<S> pageState,
                     ScheduledExecutorService scheduledExecutorService,
-                    OutMessages out,
-                    Log.Reporting log) {
+                    OutMessages out) {
         this.qsid = qsid;
         this.pageState = pageState;
         this.scheduledExecutorService = scheduledExecutorService;
         this.out = out;
-        this.log = log;
     }
 
     public S getPageState() {
@@ -46,7 +50,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     public void shutdown() {
-        log.debug(l -> l.log("Live Page shutdown: " + this));
+        logger.log(DEBUG, () -> "Live Page shutdown: " + this);
         synchronized (pageState) {
             for (var timer : schedules.entrySet()) {
                 timer.getValue().cancel(true);
@@ -57,7 +61,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     @Override
     public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> result) {
         result.on(ex -> {
-                    log.debug(l -> l.log("extractProperty: " + descriptorId + " exception: " + ex.getMessage()));
+                    logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " exception: " + ex.getMessage());
                     synchronized (pageState) {
                         final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
                         if (cf != null) {
@@ -67,7 +71,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                     }
                 },
                  v -> {
-                     log.debug(l -> l.log("extractProperty: " + descriptorId + " value: " + v.toStringValue()));
+                     logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.toStringValue());
                      synchronized (pageState) {
                          final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
                          if (cf != null) {
@@ -80,7 +84,7 @@ public final class LivePage<S> implements InMessages, Schedule {
 
     @Override
     public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
-        log.debug(l -> l.log("evalJsResponse: " + descriptorId + " value: " + value.toStringValue()));
+        logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toStringValue());
         synchronized (pageState) {
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
             if (cf != null) {

@@ -4,7 +4,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import rsp.dom.VirtualDomPath;
 import rsp.util.data.Either;
-import rsp.util.logging.Log;
 import rsp.util.json.JsonDataType;
 
 public class DeserializeInMessageTests {
@@ -63,7 +62,7 @@ public class DeserializeInMessageTests {
     }
 
     private DeserializeInMessage createParser(InMessages collector) {
-        return new DeserializeInMessage(collector, new Log.Default(Log.Level.OFF, new Log.SimpleFormat(), s -> {}));
+        return new DeserializeInMessage(collector);
     }
 
     private final class DomEvent {

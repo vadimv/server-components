@@ -5,7 +5,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import rsp.dom.VirtualDomPath;
 import rsp.util.data.Either;
-import rsp.util.logging.Log;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonSimple;
 
@@ -15,8 +14,9 @@ import java.util.Objects;
  * The communication protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
  */
 public final class DeserializeInMessage {
+    private static final System.Logger logger = System.getLogger(DeserializeInMessage.class.getName());
+
     private final InMessages inMessages;
-    private final Log.Reporting log;
 
     private static final int DOM_EVENT = 0; // `$renderNum:$elementId:$eventType`
     private static final int CUSTOM_CALLBACK = 1; // `$name:arg`
@@ -31,9 +31,8 @@ public final class DeserializeInMessage {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public DeserializeInMessage(InMessages inMessages, Log.Reporting log) {
+    public DeserializeInMessage(InMessages inMessages) {
         this.inMessages = inMessages;
-        this.log = log;
     }
 
     public void parse(String message) {
@@ -50,7 +49,7 @@ public final class DeserializeInMessage {
                 case HEARTBEAT: heartBeat(); break;
             }
         } catch (Throwable ex) {
-            log.error(l -> l.log("Incoming message parse exception", ex));
+            logger.log(System.Logger.Level.ERROR, "Incoming message parse exception", ex);
         }
     }
 

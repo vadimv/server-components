@@ -6,19 +6,23 @@ import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
 import rsp.server.OutMessages;
 import rsp.server.SerializeOutMessages;
-import rsp.util.logging.Log;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static java.lang.System.Logger.Level.*;
+
 public final class MainWebSocketEndpoint<S> extends Endpoint {
+    private static final System.Logger logger = System.getLogger(MainWebSocketEndpoint.class.getName());
+
     public static final String WS_ENDPOINT_PATH = "/bridge/web-socket/{pid}/{sid}";
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
@@ -29,7 +33,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
-    private final Log.Reporting log;
+
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
@@ -38,20 +42,18 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                  Component<S> documentDefinition,
                                  BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
-                                 PageLifeCycle<S> lifeCycleEventsListener,
-                                 Log.Reporting log) {
+                                 PageLifeCycle<S> lifeCycleEventsListener) {
         this.state2route = state2route;
         this.renderedPages = renderedPages;
         this.documentDefinition = documentDefinition;
         this.enrich = enrich;
         this.schedulerSupplier = schedulerSupplier;
         this.lifeCycleEventsListener = lifeCycleEventsListener;
-        this.log = log;
     }
 
     @Override
     public void onOpen(Session session, EndpointConfig endpointConfig) {
-        log.debug(l -> l.log("Websocket endpoint opened, session: " + session.getId()));
+        logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
         final OutMessages out = new SerializeOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
@@ -59,9 +61,9 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
         final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
         if (page == null) {
-            log.trace(l -> l.log("Pre-rendered page not found for SID: " + qsid));
+            logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
             if (!isKnownLostSession(qsid)) {
-                log.warn(l -> l.log("Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort()));
+                logger.log(WARNING, () -> "Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort());
                 out.evalJs(-1, "RSP.reload()");
             }
         } else {
@@ -81,15 +83,14 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             final LivePage<S> livePage = new LivePage<>(qsid,
                                                         livePageState,
                                                         schedulerSupplier.get(),
-                                                        out,
-                                                        log);
+                                                        out);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
-            final DeserializeInMessage in = new DeserializeInMessage(livePage, log);
+            final DeserializeInMessage in = new DeserializeInMessage(livePage);
             session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
                 public void onMessage(String s) {
-                    log.trace(l -> l.log(session.getId() + " -> " + s));
+                    logger.log(TRACE, () -> session.getId() + " -> " + s);
                     in.parse(s);
                 }
             });
@@ -104,13 +105,13 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                     event.eventHandler.accept(eventContext);
                 }
             })*/;
-            log.debug(l -> l.log("Live page started: " + this));
+            logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }
 
     private void sendText(Session session, String text) {
         try {
-            log.trace(l -> l.log(session.getId() + " <- " + text));
+            logger.log(TRACE, () -> session.getId() + " <- " + text);
             session.getBasicRemote().sendText(text);
         } catch (IOException ioException) {
             throw new RuntimeException(ioException);
@@ -120,13 +121,13 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onClose(Session session, CloseReason closeReason) {
         shutdown(session);
-        log.debug(l -> l.log("WebSocket closed " + closeReason.getReasonPhrase()));
+        logger.log(DEBUG, () -> "WebSocket closed " + closeReason.getReasonPhrase());
     }
 
     @Override
     public void onError(Session session, Throwable thr) {
         shutdown(session);
-        log.error(l -> l.log("WebSocket error: " + thr.getLocalizedMessage(), thr));
+        logger.log(ERROR, () -> "WebSocket error: " + thr.getLocalizedMessage(), thr);
     }
 
     private void shutdown(Session session) {
@@ -135,7 +136,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         if (livePage != null) {
             livePage.shutdown();
             lifeCycleEventsListener.afterLivePageClosed(livePage.qsid, livePage.getPageState());
-            log.debug(l -> l.log("Shutdown session: " + session.getId()));
+            logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }
 

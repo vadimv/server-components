@@ -3,6 +3,7 @@ package rsp.page;
 import rsp.*;
 import rsp.dom.DomTreePageRenderContext;
 import rsp.dom.Tag;
+import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
@@ -18,7 +19,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import static java.lang.System.Logger.Level.TRACE;
+
 public final class PageRendering<S> {
+    private static final System.Logger logger = System.getLogger(PageRendering.class.getName());
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 
@@ -84,6 +88,8 @@ public final class PageRendering<S> {
                 final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
                 documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
                 renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
+                final String responseBody = domTreeContext.toString();
+                logger.log(TRACE, () -> "Page body: " + responseBody);
                 return new HttpResponse(domTreeContext.statusCode(),
                                         headers(domTreeContext.headers(), deviceId),
                                         domTreeContext.toString());

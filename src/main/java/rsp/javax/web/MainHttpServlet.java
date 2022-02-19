@@ -4,7 +4,6 @@ import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.page.PageRendering;
 import rsp.util.ExceptionsUtils;
-import rsp.util.logging.Log;
 
 import javax.servlet.AsyncContext;
 import javax.servlet.http.HttpServlet;
@@ -15,14 +14,17 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collections;
 
-public final class MainHttpServlet<S>  extends HttpServlet {
-    public static final int DEFAULT_BUFFER_SIZE = 8192;
-    private final PageRendering<S> pageRendering;
-    private final Log.Reporting log;
+import static java.lang.System.Logger.Level.*;
 
-    public MainHttpServlet(PageRendering<S> pageRendering, Log.Reporting log) {
+public final class MainHttpServlet<S>  extends HttpServlet {
+    private static final System.Logger logger = System.getLogger(MainHttpServlet.class.getName());
+
+    public static final int DEFAULT_BUFFER_SIZE = 8192;
+
+    private final PageRendering<S> pageRendering;
+
+    public MainHttpServlet(PageRendering<S> pageRendering) {
         this.pageRendering = pageRendering;
-        this.log = log;
     }
 
     @Override
@@ -39,10 +41,10 @@ public final class MainHttpServlet<S>  extends HttpServlet {
         final AsyncContext asyncContext = request.startAsync();
         asyncContext.start(() -> {
             final HttpRequest req = HttpRequestUtils.httpRequest(request);
-            log.trace(l -> l.log(request.getRemoteAddr() + " -> " + request.getMethod() + " " + request.getRequestURL()));
+            logger.log(TRACE, () -> request.getRemoteAddr() + " -> " + request.getMethod() + " " + request.getRequestURL());
             pageRendering.httpResponse(req).handle((resp, ex) -> {
                 if (ex != null) {
-                    log.error(l -> l.log("Http rendering exception", ex));
+                    logger.log(ERROR, "Http rendering exception", ex);
                     return new HttpResponse(500,
                                              Collections.emptyList(),
                                              exceptionDetails(ex));
@@ -52,7 +54,7 @@ public final class MainHttpServlet<S>  extends HttpServlet {
 
             }).thenAccept(resp -> {
                 setServletResponse(resp, response);
-                log.trace(l -> l.log(request.getRemoteAddr() + " <- " + response.getStatus()));
+                logger.log(TRACE, () -> request.getRemoteAddr() + " <- " + response.getStatus());
                 asyncContext.complete();
             });
 
