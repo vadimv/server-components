@@ -59,10 +59,10 @@ public class SimpleServer {
                         body(h1("Not found 404"))).statusCode(404);
 
         final Component<AppState> appComponent = s -> {
-            if (s.isInstanceOf(NotFoundState.class)) {
-                return notFoundComponent.render(s.cast(NotFoundState.class));
-            } else if (s.isInstanceOf(OkState.class)) {
-                return okComponent.render(s.cast(OkState.class));
+            if (s.get() instanceof NotFoundState) {
+                return notFoundComponent.render((NotFoundState)s.get());
+            } else if (s.get() instanceof OkState) {
+                return okComponent.render((OkState)s.get());
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
@@ -78,7 +78,7 @@ public class SimpleServer {
     }
 
     private static class OkState implements AppState {
-        private final int i;
+        public final int i;
 
         public OkState(int i) {
             this.i = i;
