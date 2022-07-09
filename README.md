@@ -112,10 +112,9 @@ The ``any()`` route matches every request.
 
 ### HTML markup rendering Java DSL
 
-On the rendering phase a state object to be converted to HTML.
-
-RSP provides the Java internal domain-specific language (DSL) for declarative definition of an HTML page markup
-as functions composition.
+RSP provides a Java internal domain-specific language (DSL). This DSL is used for declarative definition of an HTML page markup
+as functions composition. The framework converts a DSL page definition together with a provided state object to HTML
+during the rendering phase.
 
 For example, to re-write the HTML fragment below:
 
@@ -151,7 +150,7 @@ provide the Java code:
 where:
 - HTML tags are represented by the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
-- The lambda parameter's ``s.get()`` method reads the current state snapshot
+- The lambda parameter's `s`,  ``s.get()`` method reads the current state snapshot, in this example a POJO of a `State` class
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 ```java
