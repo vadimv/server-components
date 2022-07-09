@@ -239,7 +239,7 @@ If the ``head()`` is not present in the page's markup, the simple SPA-type heade
 This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server
 and enables reacting to the browser events.
 
-To respond to browser events register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag:
+To respond to browser events, register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the DSL:
 
 ```java
     s -> a("#", "Click me", on("click", ctx -> {
