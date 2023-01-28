@@ -149,6 +149,42 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
     }
 
     /**
+     * Creates a new write-only {@link UseState} wrapper instance.
+     * @param consumer a consumer of a state snapshot for a write operation
+     * @param <S> the type of the state snapshot, an immutable class
+     * @return a read-write wrapper instance
+     */
+    static <S> UseState<S> writeOnly(Consumer<S> consumer) {
+        return new UseState<>() {
+
+            @Override
+            public void accept(Function<S, S> function) {
+                throw new IllegalStateException("Not allowed for a write-only UseState instance");
+            }
+
+            @Override
+            public void acceptOptional(Function<S, Optional<S>> function) {
+                function.apply(get()).ifPresent(s -> consumer.accept(s));
+            }
+
+            @Override
+            public S get() {
+                throw new IllegalStateException("Not allowed for a write-only UseState instance");
+            }
+
+            @Override
+            public void accept(S s) {
+                consumer.accept(s);
+            }
+
+            @Override
+            public void accept(CompletableFuture<S> completableFuture) {
+                completableFuture.thenAccept(s -> consumer.accept(s));
+            }
+        };
+    }
+
+    /**
      * Creates a new {@link UseState} wrapper instance with no specific state type.
      * Throws an exception on a read, write or write using {@link CompletableFuture} attempt.
      * @return a void state wrapper instance
