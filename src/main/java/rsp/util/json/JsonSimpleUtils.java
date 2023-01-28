@@ -1,12 +1,22 @@
 package rsp.util.json;
 
+import org.json.simple.parser.ParseException;
+
 import java.util.*;
 
-// TODO unit test
 /**
  * json-simple related.
  */
-public class JsonSimple {
+public class JsonSimpleUtils {
+
+    public static JsonDataType parse(String s) {
+        try {
+            return convertToJsonType(new org.json.simple.parser.JSONParser().parse(s));
+        } catch (ParseException ex) {
+            throw new JsonDataType.JsonException("Parse exception", ex);
+        }
+    }
+
     /**
      * Recursively converts a json-simple parsed JSON object to a {@link JsonDataType}.
      * @param j an input object

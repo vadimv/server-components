@@ -6,7 +6,7 @@ import org.json.simple.parser.JSONParser;
 import rsp.dom.VirtualDomPath;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
-import rsp.util.json.JsonSimple;
+import rsp.util.json.JsonSimpleUtils;
 
 import java.util.Objects;
 
@@ -58,7 +58,7 @@ public final class DeserializeInMessage {
         final int descriptorId = Integer.parseInt(tokens[0]);
         final int jsonMetadata = Integer.parseInt(tokens[1]);
         final Either<Throwable, JsonDataType> result = jsonMetadata == JSON_METADATA_DATA ?
-                Either.right(JsonSimple.convertToJsonType(value))
+                Either.right(JsonSimpleUtils.convertToJsonType(value))
                 :
                 Either.left(new RuntimeException("Property not found"));
         inMessages.handleExtractPropertyResponse(descriptorId,
@@ -68,17 +68,17 @@ public final class DeserializeInMessage {
     private void parseEvalJsResponse(String metadata, Object value) {
         final String[] tokens = metadata.split(":");
         inMessages.handleEvalJsResponse(Integer.parseInt(tokens[0]),
-                                        JsonSimple.convertToJsonType(value));
+                                        JsonSimpleUtils.convertToJsonType(value));
     }
 
     private void parseDomEvent(String str, Object eventObject) {
-        final JsonDataType json = JsonSimple.convertToJsonType(eventObject);
+        final JsonDataType json = JsonSimpleUtils.convertToJsonType(eventObject);
         if (json instanceof JsonDataType.Object) {
             final String[] tokens = str.split(":");
             inMessages.handleDomEvent(Integer.parseInt(tokens[0]),
                                       VirtualDomPath.of(tokens[1]),
                                       tokens[2],
-                                      (JsonDataType.Object) JsonSimple.convertToJsonType(eventObject));
+                                      (JsonDataType.Object) JsonSimpleUtils.convertToJsonType(eventObject));
         } else {
             throw new IllegalStateException("Unexpected type of an event object: " + eventObject.getClass().getName());
         }

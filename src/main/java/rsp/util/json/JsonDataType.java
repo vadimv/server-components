@@ -132,7 +132,7 @@ public interface JsonDataType {
 
         @Override
         public java.lang.String toStringValue() {
-            return "\"" + toString() + "\"";
+            return "\"" + this.toString() + "\"";
         }
 
         @Override
@@ -157,7 +157,7 @@ public interface JsonDataType {
 
         private final Map<java.lang.String, JsonDataType> values;
 
-        public Object(Map<java.lang.String, JsonDataType> values) {
+        Object(Map<java.lang.String, JsonDataType> values) {
             this.values = values;
         }
 
@@ -165,8 +165,18 @@ public interface JsonDataType {
             this(Map.of());
         }
 
+        public static Object of(Map<java.lang.String, JsonDataType> values) {
+            return new Object(Map.copyOf(values));
+        }
+
         public Optional<JsonDataType> value(java.lang.String name) {
             return Optional.ofNullable(values.get(name));
+        }
+
+        public Object put(java.lang.String name, JsonDataType value) {
+            final Map<java.lang.String, JsonDataType> newValues = new HashMap<>(values);
+            newValues.put(name, value);
+            return new JsonDataType.Object(newValues);
         }
 
         public Set<java.lang.String> keys() {
@@ -178,7 +188,7 @@ public interface JsonDataType {
             return "{"
                     + java.lang.String.join(",",
                                             values.entrySet().stream().map(e -> "\"" + e.getKey()
-                                                                                     + "\": \""
+                                                                                     + "\": "
                                                                                      + e.getValue().toStringValue())
                                                              .collect(Collectors.toList()))
                     + '}';
@@ -202,21 +212,21 @@ public interface JsonDataType {
      * A JSON array, an ordered list of values.
      */
     final class Array implements JsonDataType {
-        private final JsonDataType[] items;
+        private final JsonDataType[] elements;
 
-        public Array(JsonDataType... items) {
-            this.items = items;
+        public Array(JsonDataType... elements) {
+            this.elements = elements;
         }
 
-        public JsonDataType[] items() {
-            return items;
+        public JsonDataType[] elements() {
+            return elements;
         }
 
         @Override
         public java.lang.String toString() {
             return "["
                     + java.lang.String.join(",",
-                                            Arrays.stream(items).map(JsonDataType::toStringValue).collect(Collectors.toList()))
+                                            Arrays.stream(elements).map(JsonDataType::toStringValue).collect(Collectors.toList()))
                     + ']';
         }
 
@@ -225,12 +235,12 @@ public interface JsonDataType {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final JsonDataType.Array array = (JsonDataType.Array) o;
-            return Arrays.equals(items, array.items);
+            return Arrays.equals(elements, array.elements);
         }
 
         @Override
         public int hashCode() {
-            return Arrays.hashCode(items);
+            return Arrays.hashCode(elements);
         }
     }
 
@@ -249,6 +259,36 @@ public interface JsonDataType {
 
     }
 
+    class JsonException extends RuntimeException {
+        public JsonException() {
+        }
+
+        public JsonException(java.lang.String message) {
+            super(message);
+        }
+
+        public JsonException(java.lang.String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public JsonException(Throwable cause) {
+            super(cause);
+        }
+
+        public JsonException(java.lang.String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+            super(message, cause, enableSuppression, writableStackTrace);
+        }
+    }
+
+    /**
+     * Creates a new instance of JsonDataType by parsing a string.
+     * @param string the string to parse
+     * @return the result JsonDataType object
+     */
+    static JsonDataType of(java.lang.String string) {
+        return JsonSimpleUtils.parse(string);
+    }
+
     /**
      * Gives a string representation to be used in a JSON data field, quotes if needed.
      * @return the result string
@@ -256,4 +296,46 @@ public interface JsonDataType {
     default java.lang.String toStringValue() {
         return this.toString();
     }
+
+    default Boolean asJsonBoolean() {
+        if (this instanceof Boolean) {
+            return (Boolean) this;
+        } else {
+            throw new JsonException("Unexpected JSON data type: " + this.getClass());
+        }
+    }
+
+    default Number asJsonNumber() {
+        if (this instanceof Number) {
+            return (Number) this;
+        } else {
+            throw new JsonException("Unexpected JSON data type: " + this.getClass());
+        }
+    }
+
+    default String asJsonString() {
+        if (this instanceof String) {
+            return (String) this;
+        } else {
+            throw new JsonException("Unexpected JSON data type: " + this.getClass());
+        }
+    }
+
+    default Object asJsonObject() {
+        if (this instanceof Object) {
+            return (Object) this;
+        } else {
+            throw new JsonException("Unexpected JSON data type: " + this.getClass());
+        }
+    }
+
+    default Array asJsonArray() {
+        if (this instanceof Array) {
+            return (Array) this;
+        } else {
+            throw new JsonException("Unexpected JSON data type: " + this.getClass());
+        }
+    }
+
+
 }
