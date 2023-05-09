@@ -6,14 +6,14 @@ import rsp.page.PageRenderContext;
 
 public class StatefulComponent<S> implements DocumentPartDefinition {
 
-    public final StateView<S> stateView;
+    public final UseStateComponentFunction<S> useStateComponentFunction;
 
-    public StatefulComponent(StateView<S> stateView) {
-        this.stateView = stateView;
+    public StatefulComponent(UseStateComponentFunction<S> useStateComponentFunction) {
+        this.useStateComponentFunction = useStateComponentFunction;
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         System.out.println("accept:" + this);
     }
 }

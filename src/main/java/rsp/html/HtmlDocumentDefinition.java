@@ -24,11 +24,11 @@ public final class HtmlDocumentDefinition extends TagDefinition {
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         renderContext.setStatusCode(statusCode);
         renderContext.setHeaders(headers);
         renderContext.setDocType("<!DOCTYPE html>");
-        super.accept(renderContext);
+        super.render(renderContext);
     }
 
     /**

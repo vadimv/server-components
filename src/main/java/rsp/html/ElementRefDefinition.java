@@ -11,7 +11,7 @@ import java.util.Objects;
 public final class ElementRefDefinition implements DocumentPartDefinition, ElementRef {
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         renderContext.addRef(this);
     }
 
@@ -29,7 +29,7 @@ public final class ElementRefDefinition implements DocumentPartDefinition, Eleme
         }
 
         @Override
-        public void accept(PageRenderContext renderContext) {
+        public void render(PageRenderContext renderContext) {
             renderContext.addRef(this);
         }
 

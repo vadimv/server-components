@@ -10,7 +10,7 @@ public final class DefaultConnectionLostWidget {
 
     static {
         final DomTreePageRenderContext rc = new DomTreePageRenderContext();
-        widget().accept(rc);
+        widget().render(rc);
         HTML = rc.toString();
     }
 

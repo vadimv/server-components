@@ -74,7 +74,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(Route<HttpRequest, S> routes,
-               StateView<S> rootComponent) {
+               UseStateComponentFunction<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
@@ -89,7 +89,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(S initialState,
-               StateView<S> rootComponent) {
+               UseStateComponentFunction<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),
@@ -130,8 +130,8 @@ public final class App<S> {
 
     private static class AppRootComponent<S> extends StatefulComponent<S> {
 
-        public AppRootComponent(StateView<S> stateView) {
-            super(stateView);
+        public AppRootComponent(UseStateComponentFunction<S> useStateComponentFunction) {
+            super(useStateComponentFunction);
         }
     }
 }

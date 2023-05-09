@@ -18,7 +18,7 @@ public final class TextDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         renderContext.addTextNode(text);
     }
 }

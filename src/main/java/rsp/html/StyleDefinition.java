@@ -28,7 +28,7 @@ public final class StyleDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         renderContext.setStyle(name, value);
     }
 }

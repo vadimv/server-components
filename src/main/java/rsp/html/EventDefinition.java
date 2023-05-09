@@ -108,7 +108,7 @@ public final class EventDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         renderContext.addEvent(elementPath, eventType, handler, preventDefault, modifier);
     }
 

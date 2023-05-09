@@ -12,6 +12,6 @@ public interface DocumentPartDefinition {
      * An implementation of this method determines how its definition node is rendered to a virtual DOM tree.
      * @param renderContext the renderer
      */
-    void accept(PageRenderContext renderContext);
+    void render(PageRenderContext renderContext);
 
 }

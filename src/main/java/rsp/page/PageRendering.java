@@ -7,7 +7,6 @@ import rsp.html.DocumentPartDefinition;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.server.Path;
-import rsp.state.ReadOnly;
 import rsp.util.RandomString;
 import rsp.util.data.Tuple2;
 
@@ -81,8 +80,8 @@ public final class PageRendering<S> {
             return webApplication.routes.apply(request)
                     .map(cf -> cf.thenApply(initialState ->  {
                         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-                        final DocumentPartDefinition documentPartDefinition = webApplication.rootComponent.stateView.render(initialState);
-                        documentPartDefinition.accept(enrich.apply(sessionId, domTreeContext));
+                        final DocumentPartDefinition documentPartDefinition = webApplication.rootComponent.useStateComponentFunction.apply(initialState);
+                        documentPartDefinition.render(enrich.apply(sessionId, domTreeContext));
                         renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
                         final String responseBody = domTreeContext.toString();
                         logger.log(TRACE, () -> "Page body: " + responseBody);

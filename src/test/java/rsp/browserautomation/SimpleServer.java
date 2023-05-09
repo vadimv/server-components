@@ -1,7 +1,7 @@
 package rsp.browserautomation;
 
 import rsp.App;
-import rsp.StateView;
+import rsp.UseStateComponentFunction;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
@@ -40,10 +40,10 @@ public class SimpleServer {
                       any(new NotFoundState()));
     }
 
-    private static StateView<AppState> appComponent() {
-        final StateView<OkState> okStateView = state ->
+    private static UseStateComponentFunction<AppState> appComponent() {
+        final UseStateComponentFunction<OkState> okUseStateComponentFunction = state ->
                 html(head(title("test-server-title")),
-                        body(SUB_STATE_VIEW.render(state.get().i, s -> state.accept(new OkState(s))),
+                        body(SUB_STATE_VIEW.apply(state.get().i, s -> state.accept(new OkState(s))),
                                 div(button(attr("type", "button"),
                                         attr("id", "b0"),
                                         text("+1"),
@@ -54,15 +54,15 @@ public class SimpleServer {
                                         text(state.get().i)))
                         ));
 
-        final StateView<NotFoundState> notFoundComponent =
+        final UseStateComponentFunction<NotFoundState> notFoundComponent =
                 state -> html(headPlain(title("Not found")),
                         body(h1("Not found 404"))).statusCode(404);
 
-        final StateView<AppState> appComponent = s -> {
+        final UseStateComponentFunction<AppState> appComponent = s -> {
             if (s.get() instanceof NotFoundState) {
-                return notFoundComponent.render((NotFoundState)s.get());
+                return notFoundComponent.apply((NotFoundState)s.get());
             } else if (s.get() instanceof OkState) {
-                return okStateView.render((OkState)s.get());
+                return okUseStateComponentFunction.apply((OkState)s.get());
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
@@ -89,7 +89,7 @@ public class SimpleServer {
         }
     }
 
-    public static final StateView<Integer> SUB_STATE_VIEW = state ->
+    public static final UseStateComponentFunction<Integer> SUB_STATE_VIEW = state ->
             div(attr("id", "d0"),
                 text("+10"),
                 on("click", d -> { state.accept(state.get() + 10);}));

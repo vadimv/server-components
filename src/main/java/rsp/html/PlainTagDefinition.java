@@ -21,9 +21,9 @@ public final class PlainTagDefinition extends TagDefinition {
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         renderContext.openNode(ns, name);
-        Arrays.stream(children).forEach(c -> c.accept(renderContext));
+        Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);
     }
 }

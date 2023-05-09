@@ -20,7 +20,7 @@ public final class SequenceDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
-        Arrays.stream(items).forEach(c -> c.accept(renderContext));
+    public void render(PageRenderContext renderContext) {
+        Arrays.stream(items).forEach(c -> c.render(renderContext));
     }
 }

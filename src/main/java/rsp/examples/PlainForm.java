@@ -1,7 +1,7 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.StateView;
+import rsp.UseStateComponentFunction;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.routing.RoutingDsl;
@@ -52,16 +52,16 @@ public class PlainForm {
                                                                                     req.queryParam("lastname").orElseThrow())))));
     }
 
-    private static StateView<Optional<FullName>> pages() {
+    private static UseStateComponentFunction<Optional<FullName>> pages() {
         return s -> html(
                         headPlain(title("Plain Form Pages")),
                         body(
-                            s.get().isEmpty() ? formComponent().render(s) : formResult().render(s)
+                            s.get().isEmpty() ? formComponent().apply(s) : formResult().apply(s)
                         )
         );
     }
 
-    private static StateView<Optional<FullName>> formComponent() {
+    private static UseStateComponentFunction<Optional<FullName>> formComponent() {
         return s -> div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
@@ -75,7 +75,7 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static StateView<Optional<FullName>> formResult() {
+    private static UseStateComponentFunction<Optional<FullName>> formResult() {
         return s -> div(h2(text("HTML Form result")),
                         div(p("The submitted name is " + s.get().orElseThrow())));
     }

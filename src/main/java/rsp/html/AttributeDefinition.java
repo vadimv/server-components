@@ -37,7 +37,7 @@ public final class AttributeDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void accept(PageRenderContext renderContext) {
+    public void render(PageRenderContext renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
     }
 }
