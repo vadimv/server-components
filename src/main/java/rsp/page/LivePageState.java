@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.Component;
+import rsp.StateView;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
@@ -14,7 +14,7 @@ import java.util.function.Function;
 public class LivePageState<S> implements UseState<S> {
     private final QualifiedSessionId qsid;
     private final StateToRouteDispatch<S> state2route;
-    private final Component<S> rootComponent;
+    private final StateView<S> rootStateView;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final OutMessages out;
 
@@ -24,13 +24,13 @@ public class LivePageState<S> implements UseState<S> {
     public LivePageState(LivePagePropertiesSnapshot snapshot,
                          QualifiedSessionId qsid,
                          StateToRouteDispatch<S> state2route,
-                         Component<S> rootComponent,
+                         StateView<S> rootStateView,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                          OutMessages out) {
         this.snapshot = snapshot;
         this.qsid = qsid;
         this.state2route = state2route;
-        this.rootComponent = rootComponent;
+        this.rootStateView = rootStateView;
         this.enrich = enrich;
         this.out = out;
     }
@@ -40,7 +40,7 @@ public class LivePageState<S> implements UseState<S> {
         this.state = newState;
 
         final DomTreePageRenderContext newContext = new DomTreePageRenderContext();
-        rootComponent.render(this).accept(enrich.apply(qsid.sessionId, newContext));
+        rootStateView.render(this).accept(enrich.apply(qsid.sessionId, newContext));
 
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesPerformer domChangePerformer = new DefaultDomChangesPerformer();

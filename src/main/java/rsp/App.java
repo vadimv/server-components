@@ -1,6 +1,8 @@
 package rsp;
 
-import rsp.page.*;
+import rsp.page.PageLifeCycle;
+import rsp.page.PageRendering;
+import rsp.page.QualifiedSessionId;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
@@ -41,7 +43,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final Component<S> rootComponent;
+    public final StatefulComponent<S> rootComponent;
 
     public final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -57,7 +59,8 @@ public final class App<S> {
                 BiFunction<S, Path, Path> state2path,
                 PageLifeCycle<S> lifeCycleEventsListener,
                 Route<HttpRequest, S> routes,
-                Component<S> rootComponent) {
+                StatefulComponent<S> rootComponent) {
+
         this.config = config;
         this.routes = routes;
         this.state2path = state2path;
@@ -71,12 +74,12 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(Route<HttpRequest, S> routes,
-               Component<S> rootComponent) {
+               StateView<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
              routes,
-             rootComponent);
+             new AppRootComponent<>(rootComponent));
     }
 
     /**
@@ -86,12 +89,12 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(S initialState,
-               Component<S> rootComponent) {
+               StateView<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),
              request -> Optional.of(CompletableFuture.completedFuture(initialState)),
-             rootComponent);
+             new AppRootComponent<>(rootComponent));
     }
 
     /**
@@ -100,7 +103,7 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> config(AppConfig config) {
-        return new App<>(config, this.state2path, this.lifeCycleEventsListener, this.routes, this.rootComponent);
+        return new App<S>(config, this.state2path, this.lifeCycleEventsListener, this.routes, this.rootComponent);
     }
 
     /**
@@ -109,7 +112,7 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> stateToPath(BiFunction<S, Path, Path> stateToPath) {
-        return new App<>(this.config, stateToPath, this.lifeCycleEventsListener, this.routes, this.rootComponent);
+        return new App<S>(this.config, stateToPath, this.lifeCycleEventsListener, this.routes, this.rootComponent);
     }
 
     /**
@@ -120,7 +123,16 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> pageLifeCycle(PageLifeCycle<S> lifeCycleEventsListener) {
-        return new App<>(this.config, this.state2path, lifeCycleEventsListener, this.routes, this.rootComponent);
+        return new App<S>(this.config, this.state2path, lifeCycleEventsListener, this.routes, this.rootComponent);
+    }
+
+
+
+    private static class AppRootComponent<S> extends StatefulComponent<S> {
+
+        public AppRootComponent(StateView<S> stateView) {
+            super(stateView);
+        }
     }
 }
 

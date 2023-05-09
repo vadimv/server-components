@@ -425,7 +425,7 @@ and unsubscribing when the page closes.
 Provide an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`` method of an ``App`` object:
 
 ```java
-    final var app = new App(routes(), rootComponent()).config(AppConfig.DEFAULT);
+    final var app = new App(routes(), rootStateView()).config(AppConfig.DEFAULT);
 ```
 A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters like the application's web context base path,
 an optional static resources' handler and a TLS/SSL connection's configuration:

@@ -1,10 +1,9 @@
 package rsp.page;
 
-import rsp.*;
+import rsp.App;
 import rsp.dom.DomTreePageRenderContext;
 import rsp.dom.Tag;
-import rsp.javax.web.MainWebSocketEndpoint;
-import rsp.routing.Route;
+import rsp.html.DocumentPartDefinition;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.server.Path;
@@ -17,7 +16,6 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -28,18 +26,15 @@ public final class PageRendering<S> {
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
-    private final Component<S> documentDefinition;
-    private final Route<HttpRequest, S> routing;
+    private final App<S> webApplication;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
-    public PageRendering(Route<HttpRequest, S> routing,
+    public PageRendering(App<S> webApplication,
                          Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         Component<S> documentDefinition,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
-        this.routing = routing;
+        this.webApplication = webApplication;
         this.renderedPages = pagesStorage;
-        this.documentDefinition = documentDefinition;
         this.enrich = enrich;
     }
 
@@ -82,18 +77,19 @@ public final class PageRendering<S> {
             final String deviceId = request.cookie(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
-            renderedPages.get(pageId);
-            final var route = routing.apply(request);
-            return route.isPresent() ? route.get().thenApply(initialState -> {
-                final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-                documentDefinition.render(new ReadOnly<>(initialState)).accept(enrich.apply(sessionId, domTreeContext));
-                renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
-                final String responseBody = domTreeContext.toString();
-                logger.log(TRACE, () -> "Page body: " + responseBody);
-                return new HttpResponse(domTreeContext.statusCode(),
-                                        headers(domTreeContext.headers(), deviceId),
-                                        domTreeContext.toString());
-            }) : defaultPage404();
+
+            return webApplication.routes.apply(request)
+                    .map(cf -> cf.thenApply(initialState ->  {
+                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
+                        final DocumentPartDefinition documentPartDefinition = webApplication.rootComponent.stateView.render(initialState);
+                        documentPartDefinition.accept(enrich.apply(sessionId, domTreeContext));
+                        renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
+                        final String responseBody = domTreeContext.toString();
+                        logger.log(TRACE, () -> "Page body: " + responseBody);
+                        return new HttpResponse(domTreeContext.statusCode(),
+                                                headers(domTreeContext.headers(), deviceId),
+                                                domTreeContext.toString());
+                    })).orElse(defaultPage404());
         } catch (Throwable ex) {
             return CompletableFuture.failedFuture(ex);
         }

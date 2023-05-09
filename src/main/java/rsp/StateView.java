@@ -8,13 +8,13 @@ import rsp.state.UseState;
 import java.util.function.Consumer;
 
 /**
- * A UI component, a building block of a UI.
- * @param <S> the type of the component's state, should be an immutable class
+ * A state's view representation.
+ * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface
-public interface Component<S> {
+public interface StateView<S> {
     /**
-     * Constructs a UI tree, which may contain HTML tags and/or descendant components.
+     * Constructs a UI definition from the state provided.
      * In this method the component's state is reflected to its UI presentation and events handlers registered.
      * @param us a read and write state accessor object
      * @return the result component's definition

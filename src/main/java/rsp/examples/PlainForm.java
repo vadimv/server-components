@@ -1,10 +1,9 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.Component;
+import rsp.StateView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
-import rsp.routing.Routes;
 import rsp.routing.RoutingDsl;
 import rsp.server.HttpRequest;
 
@@ -47,12 +46,13 @@ public class PlainForm {
 
     private static Route<HttpRequest, Optional<FullName>> route() {
         return RoutingDsl.concat(
+            get("/*", req -> CompletableFuture.completedFuture(Optional.empty())),
             post("/*",
                   req -> CompletableFuture.completedFuture(Optional.of(new FullName(req.queryParam("firstname").orElseThrow(),
                                                                                     req.queryParam("lastname").orElseThrow())))));
     }
 
-    private static Component<Optional<FullName>> pages() {
+    private static StateView<Optional<FullName>> pages() {
         return s -> html(
                         headPlain(title("Plain Form Pages")),
                         body(
@@ -61,7 +61,7 @@ public class PlainForm {
         );
     }
 
-    private static Component<Optional<FullName>> formComponent() {
+    private static StateView<Optional<FullName>> formComponent() {
         return s -> div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
@@ -75,7 +75,7 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static Component<Optional<FullName>> formResult() {
+    private static StateView<Optional<FullName>> formResult() {
         return s -> div(h2(text("HTML Form result")),
                         div(p("The submitted name is " + s.get().orElseThrow())));
     }
