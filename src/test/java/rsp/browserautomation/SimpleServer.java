@@ -1,7 +1,7 @@
 package rsp.browserautomation;
 
 import rsp.App;
-import rsp.UseStateComponentFunction;
+import rsp.ComponentStateFunction;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
@@ -40,29 +40,29 @@ public class SimpleServer {
                       any(new NotFoundState()));
     }
 
-    private static UseStateComponentFunction<AppState> appComponent() {
-        final UseStateComponentFunction<OkState> okUseStateComponentFunction = state ->
+    private static ComponentStateFunction<AppState> appComponent() {
+        final ComponentStateFunction<OkState> okComponentStateFunction = (sv, sc) ->
                 html(head(title("test-server-title")),
-                        body(SUB_STATE_VIEW.apply(state.get().i, s -> state.accept(new OkState(s))),
+                        body(SUB_STATE_VIEW.apply(sv.i, s -> sc.accept(new OkState(s))),
                                 div(button(attr("type", "button"),
                                         attr("id", "b0"),
                                         text("+1"),
                                         on("click",
-                                                d -> { state.accept(new OkState(state.get().i + 1));}))),
+                                                d -> { sc.accept(new OkState(sv.i + 1));}))),
                                 div(span(attr("id", "s0"),
-                                        style("background-color", state.get().i % 2 ==0 ? "red" : "blue"),
-                                        text(state.get().i)))
+                                        style("background-color", sv.i % 2 ==0 ? "red" : "blue"),
+                                        text(sv.i)))
                         ));
 
-        final UseStateComponentFunction<NotFoundState> notFoundComponent =
-                state -> html(headPlain(title("Not found")),
+        final ComponentStateFunction<NotFoundState> notFoundComponent =
+                (sv, sc) -> html(headPlain(title("Not found")),
                         body(h1("Not found 404"))).statusCode(404);
 
-        final UseStateComponentFunction<AppState> appComponent = s -> {
-            if (s.get() instanceof NotFoundState) {
-                return notFoundComponent.apply((NotFoundState)s.get());
-            } else if (s.get() instanceof OkState) {
-                return okUseStateComponentFunction.apply((OkState)s.get());
+        final ComponentStateFunction<AppState> appComponent = (sv, sc) -> {
+            if (sv instanceof NotFoundState) {
+                return notFoundComponent.apply((NotFoundState)sv);
+            } else if (sv instanceof OkState) {
+                return okComponentStateFunction.apply((OkState)sv);
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
@@ -89,8 +89,8 @@ public class SimpleServer {
         }
     }
 
-    public static final UseStateComponentFunction<Integer> SUB_STATE_VIEW = state ->
+    public static final ComponentStateFunction<Integer> SUB_STATE_VIEW = (sv, sc) ->
             div(attr("id", "d0"),
                 text("+10"),
-                on("click", d -> { state.accept(state.get() + 10);}));
+                on("click", d -> { sc.accept(sv + 10);}));
 }

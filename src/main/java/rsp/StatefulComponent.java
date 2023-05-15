@@ -6,10 +6,10 @@ import rsp.page.PageRenderContext;
 
 public class StatefulComponent<S> implements DocumentPartDefinition {
 
-    public final UseStateComponentFunction<S> useStateComponentFunction;
+    public final ComponentStateFunction<S> componentStateFunction;
 
-    public StatefulComponent(UseStateComponentFunction<S> useStateComponentFunction) {
-        this.useStateComponentFunction = useStateComponentFunction;
+    public StatefulComponent(ComponentStateFunction<S> componentStateFunction) {
+        this.componentStateFunction = componentStateFunction;
     }
 
     @Override

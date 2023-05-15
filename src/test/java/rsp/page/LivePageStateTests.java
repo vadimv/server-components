@@ -3,7 +3,7 @@ package rsp.page;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Assert;
 import org.junit.Test;
-import rsp.UseStateComponentFunction;
+import rsp.ComponentStateFunction;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
@@ -43,21 +43,21 @@ public class LivePageStateTests {
     }
 
     private LivePageState<State> create(State state, OutMessages out) {
-        final UseStateComponentFunction<State> rootUseStateComponentFunction = s -> span(s.get().toString());
+        final ComponentStateFunction<State> rootComponentStateFunction = (sv, sc) -> span(sv.toString());
 
         final LivePagePropertiesSnapshot lpps = new LivePagePropertiesSnapshot(Path.of("/" + state),
-                                                                               domRoot(rootUseStateComponentFunction, state),
+                                                                               domRoot(rootComponentStateFunction, state),
                                                                                Collections.emptyMap(),
                                                                                Collections.emptyMap());
 
         final StateToRouteDispatch<State> state2route = new StateToRouteDispatch<>(Path.of(""), (s, p) -> Path.of("/" + s.value));
 
-        return new LivePageState<>(lpps, QID, state2route, rootUseStateComponentFunction, enrichFunction(), out);
+        return new LivePageState<>(lpps, QID, state2route, rootComponentStateFunction, enrichFunction(), out);
     }
 
-    private static Tag domRoot(UseStateComponentFunction<State> component, State state) {
+    private static Tag domRoot(ComponentStateFunction<State> component, State state) {
         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-        component.apply(new ReadOnly<>(state)).render(enrichFunction().apply(QID.sessionId, domTreeContext));
+        component.apply(state).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.root();
     }

@@ -11,9 +11,9 @@ import static rsp.html.HtmlDsl.*;
 public class HelloWorld {
     public static void main(String[] args) {
         final var app = new App<>("Hello world!",
-                                  s -> html(
+                                   (sv, sc) -> html(
                                             body(
-                                                 p(s.get())
+                                                 p(sv)
                                                 )
                                             )
                                   );

@@ -80,7 +80,7 @@ public final class PageRendering<S> {
             return webApplication.routes.apply(request)
                     .map(cf -> cf.thenApply(initialState ->  {
                         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-                        final DocumentPartDefinition documentPartDefinition = webApplication.rootComponent.useStateComponentFunction.apply(initialState);
+                        final DocumentPartDefinition documentPartDefinition = webApplication.rootComponent.componentStateFunction.apply(initialState);
                         documentPartDefinition.render(enrich.apply(sessionId, domTreeContext));
                         renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
                         final String responseBody = domTreeContext.toString();

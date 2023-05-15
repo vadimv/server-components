@@ -1,7 +1,7 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.UseStateComponentFunction;
+import rsp.ComponentStateFunction;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.routing.RoutingDsl;
@@ -52,17 +52,17 @@ public class PlainForm {
                                                                                     req.queryParam("lastname").orElseThrow())))));
     }
 
-    private static UseStateComponentFunction<Optional<FullName>> pages() {
-        return s -> html(
+    private static ComponentStateFunction<Optional<FullName>> pages() {
+        return (sv, sc) -> html(
                         headPlain(title("Plain Form Pages")),
                         body(
-                            s.get().isEmpty() ? formComponent().apply(s) : formResult().apply(s)
+                            sv.isEmpty() ? formComponent().apply(sv) : formResult().apply(sv)
                         )
         );
     }
 
-    private static UseStateComponentFunction<Optional<FullName>> formComponent() {
-        return s -> div(
+    private static ComponentStateFunction<Optional<FullName>> formComponent() {
+        return (sv, sc) -> div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
                 label(attr("for", "firstname"), text("First name:")),
@@ -75,8 +75,8 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static UseStateComponentFunction<Optional<FullName>> formResult() {
-        return s -> div(h2(text("HTML Form result")),
-                        div(p("The submitted name is " + s.get().orElseThrow())));
+    private static ComponentStateFunction<Optional<FullName>> formResult() {
+        return (sv, sc) -> div(h2(text("HTML Form result")),
+                        div(p("The submitted name is " + sv.orElseThrow())));
     }
 }

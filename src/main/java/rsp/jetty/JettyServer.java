@@ -118,7 +118,7 @@ public final class JettyServer<S> {
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(new StateToRouteDispatch<>(this.basePath, app.state2path),
                                                                                         app.pagesStorage,
-                                                                                        app.rootComponent.useStateComponentFunction,
+                                                                                        app.rootComponent.componentStateFunction,
                                                                                         enrichContextFun,
                                                                                         () -> scheduler,
                                                                                         app.lifeCycleEventsListener);

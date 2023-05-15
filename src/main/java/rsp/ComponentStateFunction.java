@@ -12,7 +12,7 @@ import java.util.function.Consumer;
  * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface
-public interface UseStateComponentFunction<S> {
+public interface ComponentStateFunction<S> {
 
     /**
      * Constructs a UI definition from the state provided.
@@ -20,21 +20,11 @@ public interface UseStateComponentFunction<S> {
      * @param us a read and write state accessor object
      * @return the result component's definition
      */
-    DocumentPartDefinition apply(UseState<S> us);
+
+    DocumentPartDefinition apply(S s, Consumer<S> c);
 
     default DocumentPartDefinition apply(S s) {
-        return apply(UseState.readOnly(() -> s));
+        return apply(s, v -> {});
     }
 
-    default DocumentPartDefinition apply(S s, Consumer<S> c) {
-        return apply(UseState.readWrite(() -> s, c));
-    }
-
-    default DocumentPartDefinition applyCompletableFuture(S s, CompletableFutureConsumer<S> c) {
-        return apply(UseState.readWriteInCompletableFuture(() -> s, c));
-    }
-
-    default DocumentPartDefinition apply(S s, FunctionConsumer<S> c) {
-        return apply(UseState.readWriteInFunction(() -> s, c));
-    }
 }
