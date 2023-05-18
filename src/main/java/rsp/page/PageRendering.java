@@ -2,7 +2,6 @@ package rsp.page;
 
 import rsp.App;
 import rsp.dom.DomTreePageRenderContext;
-import rsp.dom.Tag;
 import rsp.html.DocumentPartDefinition;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
@@ -26,11 +25,11 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final App<S> webApplication;
-    private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
+    private final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
     public PageRendering(App<S> webApplication,
-                         Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
+                         Map<QualifiedSessionId, LivePageSnapshot<S>> pagesStorage,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
         this.webApplication = webApplication;
         this.renderedPages = pagesStorage;
@@ -82,7 +81,11 @@ public final class PageRendering<S> {
                         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
                         final DocumentPartDefinition documentPartDefinition = webApplication.rootComponent.componentStateFunction.apply(initialState);
                         documentPartDefinition.render(enrich.apply(sessionId, domTreeContext));
-                        renderedPages.put(pageId, new RenderedPage<>(request, initialState, domTreeContext.root()));
+                        renderedPages.put(pageId, new LivePageSnapshot(initialState,
+                                                                       request.path,
+                                                                       domTreeContext.root(),
+                                                                       Map.of(),
+                                                                       Map.of()));
                         final String responseBody = domTreeContext.toString();
                         logger.log(TRACE, () -> "Page body: " + responseBody);
                         return new HttpResponse(domTreeContext.statusCode(),
@@ -113,19 +116,4 @@ public final class PageRendering<S> {
         return resultHeaders;
 
     }
-
-    public static class RenderedPage<S> {
-        public final HttpRequest request;
-        public final S state;
-        public final Tag domRoot;
-
-        public RenderedPage(HttpRequest request,
-                            S initialState,
-                            Tag domRoot) {
-            this.request = request;
-            this.state = initialState;
-            this.domRoot = domRoot;
-        }
-    }
-
 }

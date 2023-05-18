@@ -7,7 +7,6 @@ import rsp.ComponentStateFunction;
 import rsp.dom.*;
 import rsp.server.OutMessages;
 import rsp.server.Path;
-import rsp.state.ReadOnly;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,10 +44,11 @@ public class LivePageStateTests {
     private LivePageState<State> create(State state, OutMessages out) {
         final ComponentStateFunction<State> rootComponentStateFunction = (sv, sc) -> span(sv.toString());
 
-        final LivePagePropertiesSnapshot lpps = new LivePagePropertiesSnapshot(Path.of("/" + state),
-                                                                               domRoot(rootComponentStateFunction, state),
-                                                                               Collections.emptyMap(),
-                                                                               Collections.emptyMap());
+        final LivePageSnapshot<State> lpps = new LivePageSnapshot<>(state,
+                                                                    Path.of("/" + state),
+                                                                    domRoot(rootComponentStateFunction, state),
+                                                                    Collections.emptyMap(),
+                                                                    Collections.emptyMap());
 
         final StateToRouteDispatch<State> state2route = new StateToRouteDispatch<>(Path.of(""), (s, p) -> Path.of("/" + s.value));
 

@@ -17,11 +17,11 @@ public interface ComponentStateFunction<S> {
     /**
      * Constructs a UI definition from the state provided.
      * In this method the component's state is reflected to its UI presentation and events handlers registered.
-     * @param us a read and write state accessor object
+     * @param sv the current state object
+     * @param sc the state Consumer object
      * @return the result component's definition
      */
-
-    DocumentPartDefinition apply(S s, Consumer<S> c);
+    DocumentPartDefinition apply(S sv, Consumer<S> sc);
 
     default DocumentPartDefinition apply(S s) {
         return apply(s, v -> {});

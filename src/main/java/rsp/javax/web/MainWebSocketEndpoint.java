@@ -29,7 +29,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private final ComponentStateFunction<S> documentDefinition;
     private final StateToRouteDispatch<S> state2route;
-    private final Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages;
+    private final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
@@ -38,7 +38,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     public MainWebSocketEndpoint(StateToRouteDispatch<S> state2route,
-                                 Map<QualifiedSessionId, PageRendering.RenderedPage<S>> renderedPages,
+                                 Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages,
                                  ComponentStateFunction<S> documentDefinition,
                                  BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
@@ -59,8 +59,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
 
-        final PageRendering.RenderedPage<S> page = renderedPages.get(qsid);
-        if (page == null) {
+        final LivePageSnapshot<S> currentPageSnapshot = renderedPages.get(qsid);
+        if (currentPageSnapshot == null) {
             logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
             if (!isKnownLostSession(qsid)) {
                 logger.log(WARNING, () -> "Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort());
@@ -68,10 +68,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             }
         } else {
             renderedPages.remove(qsid);
-            final LivePagePropertiesSnapshot currentPageSnapshot = new LivePagePropertiesSnapshot(page.request.path,
-                                                              page.domRoot,
-                                                              Map.of(),
-                                                              Map.of());
 
             final LivePageState<S> livePageState = new LivePageState<>(currentPageSnapshot,
                                                                        qsid,
@@ -95,16 +91,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 }
             });
 
-            livePageState.accept(page.state);
+            livePageState.accept(currentPageSnapshot.state);
             out.setRenderNum(0);
-
-            // Invoke this page's post start events
-            /*currentPageSnapshot.get().events.values().forEach(event -> { // TODO should these events to be ordered by its elements paths?
-                if (POST_START_EVENT_TYPE.equals(event.eventTarget.eventType)) {
-                    final EventContext eventContext = createEventContext(JsonDataType.Object.EMPTY);
-                    event.eventHandler.accept(eventContext);
-                }
-            })*/;
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }

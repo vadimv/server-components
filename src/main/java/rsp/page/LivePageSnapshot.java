@@ -11,23 +11,26 @@ import java.util.Map;
 /**
  * The current attributes of a live page.
  */
-public class LivePagePropertiesSnapshot {
+public class LivePageSnapshot<S> {
+    public final S state;
     public final Path path;
     public final Tag domRoot;
     public final Map<Event.Target, Event> events;
     public final Map<Ref, VirtualDomPath> refs;
 
     /**
-     * Creates a new instance of an attributes snapshot.
+     * Creates a new instance of a snapshot.
      * @param path the current path
      * @param domRoot the current DOM tree root
      * @param events should be an immutable {@link Map}
      * @param refs should be an immutable {@link Map}
      */
-    public LivePagePropertiesSnapshot(Path path,
-                                      Tag domRoot,
-                                      Map<Event.Target, Event> events,
-                                      Map<Ref, VirtualDomPath> refs) {
+    public LivePageSnapshot(S state,
+                            Path path,
+                            Tag domRoot,
+                            Map<Event.Target, Event> events,
+                            Map<Ref, VirtualDomPath> refs) {
+        this.state = state;
         this.path = path;
         this.domRoot = domRoot;
         this.events = events;
