@@ -45,9 +45,6 @@ public final class LivePage<S> implements InMessages, Schedule {
         this.out = out;
     }
 
-    public S getPageState() {
-        return pageState.get();
-    }
 
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);

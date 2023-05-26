@@ -25,7 +25,7 @@ public class LivePageStateTests {
     public void should_generate_update_commands_for_same_state() {
         final TestCollectingOutMessages out = new TestCollectingOutMessages();
         final LivePageState<State> livePageState = create(new State(0), out);
-        livePageState.accept(new State(0));
+        livePageState.run();//(new State(0));
         Assert.assertEquals(List.of(), out.commands);
     }
 
@@ -33,7 +33,7 @@ public class LivePageStateTests {
     public void should_generate_update_commands_for_new_state() {
         final TestCollectingOutMessages out = new TestCollectingOutMessages();
         final LivePageState<State> livePageState = create(new State(0), out);
-        livePageState.accept(new State(100));
+        livePageState.run();//.accept(new State(100));
         Assert.assertEquals(List.of(new ModifyDomOutMessage(List.of(new DefaultDomChangesPerformer.CreateText(VirtualDomPath.of("1"),
                                                                                                       VirtualDomPath.of("1_1"),
                                                                                                       "100"))),
@@ -44,7 +44,8 @@ public class LivePageStateTests {
     private LivePageState<State> create(State state, OutMessages out) {
         final ComponentStateFunction<State> rootComponentStateFunction = (sv, sc) -> span(sv.toString());
 
-        final LivePageSnapshot<State> lpps = new LivePageSnapshot<>(state,
+        final LivePageSnapshot<State> lpps = new LivePageSnapshot<>(null,
+                                                                    null,
                                                                     Path.of("/" + state),
                                                                     domRoot(rootComponentStateFunction, state),
                                                                     Collections.emptyMap(),
@@ -52,12 +53,12 @@ public class LivePageStateTests {
 
         final StateToRouteDispatch<State> state2route = new StateToRouteDispatch<>(Path.of(""), (s, p) -> Path.of("/" + s.value));
 
-        return new LivePageState<>(lpps, QID, state2route, rootComponentStateFunction, enrichFunction(), out);
+        return new LivePageState<>(QID, lpps, state2route, enrichFunction(), out);
     }
 
     private static Tag domRoot(ComponentStateFunction<State> component, State state) {
-        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-        component.apply(state).render(enrichFunction().apply(QID.sessionId, domTreeContext));
+        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(null);
+        component.apply(state, s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.root();
     }

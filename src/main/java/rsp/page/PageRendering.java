@@ -1,8 +1,9 @@
 package rsp.page;
 
-import rsp.App;
+import rsp.StatefulComponent;
 import rsp.dom.DomTreePageRenderContext;
 import rsp.html.DocumentPartDefinition;
+import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.server.Path;
@@ -14,6 +15,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -24,14 +26,18 @@ public final class PageRendering<S> {
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
-    private final App<S> webApplication;
+    private final Route<HttpRequest, S> routes;
+    private final Function<S, StatefulComponent<S>> rootComponent;
+
     private final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
-    public PageRendering(App<S> webApplication,
+    public PageRendering(Route<HttpRequest, S> routes,
+                         final Function<S, StatefulComponent<S>> rootComponent,
                          Map<QualifiedSessionId, LivePageSnapshot<S>> pagesStorage,
                          BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
-        this.webApplication = webApplication;
+        this.routes = routes;
+        this.rootComponent = rootComponent;
         this.renderedPages = pagesStorage;
         this.enrich = enrich;
     }
@@ -76,16 +82,19 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            return webApplication.routes.apply(request)
-                    .map(cf -> cf.thenApply(initialState ->  {
-                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext();
-                        final DocumentPartDefinition documentPartDefinition = webApplication.rootComponent.componentStateFunction.apply(initialState);
-                        documentPartDefinition.render(enrich.apply(sessionId, domTreeContext));
-                        renderedPages.put(pageId, new LivePageSnapshot(initialState,
-                                                                       request.path,
-                                                                       domTreeContext.root(),
-                                                                       Map.of(),
-                                                                       Map.of()));
+            return routes.apply(request)
+                    .map(cf -> cf.thenApply(rootState ->  {
+                        final StateNotificationListener componentsStateNotificationListener = new StateNotificationListener();
+                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(componentsStateNotificationListener);
+                        final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
+                        final StatefulComponent<S> component = rootComponent.apply(rootState);
+                        component.render(enrichedDomTreeContext);
+                        renderedPages.put(pageId, new LivePageSnapshot<>(component,
+                                                                         componentsStateNotificationListener,
+                                                                         request.path,
+                                                                         domTreeContext.root(),
+                                                                         domTreeContext.events,
+                                                                         domTreeContext.refs));
                         final String responseBody = domTreeContext.toString();
                         logger.log(TRACE, () -> "Page body: " + responseBody);
                         return new HttpResponse(domTreeContext.statusCode(),

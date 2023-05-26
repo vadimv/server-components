@@ -1,5 +1,6 @@
 package rsp.dom;
 
+import rsp.page.StateNotificationListener;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.PageRenderContext;
@@ -9,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public final class DomTreePageRenderContext implements PageRenderContext {
-
+    private final StateNotificationListener componentsStateNotificationListener;
     public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap<>();
     public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
@@ -20,7 +21,10 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     private Tag root;
 
 
-    public DomTreePageRenderContext() {
+
+
+    public DomTreePageRenderContext(StateNotificationListener componentsStateNotificationListener) {
+        this.componentsStateNotificationListener = componentsStateNotificationListener;
     }
 
     public Map<String, String> headers() {
@@ -102,6 +106,11 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     @Override
     public void addRef(Ref ref) {
         refs.put(ref, tagsStack.peek().path);
+    }
+
+    @Override
+    public StateNotificationListener getStateNotificationListener() {
+        return componentsStateNotificationListener;
     }
 
     @Override

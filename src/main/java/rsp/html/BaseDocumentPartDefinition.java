@@ -11,7 +11,7 @@ public abstract class BaseDocumentPartDefinition implements DocumentPartDefiniti
 
     @Override
     public String toString() {
-        final PageRenderContext pageRenderContext = new DomTreePageRenderContext();
+        final PageRenderContext pageRenderContext = new DomTreePageRenderContext(null);
         render(pageRenderContext);
         return pageRenderContext.toString();
     }

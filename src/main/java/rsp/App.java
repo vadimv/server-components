@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * An assembly point for everything needed to set off a UI application.
@@ -44,7 +45,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final StatefulComponent<S> rootComponent;
+    public final Function<S, StatefulComponent<S>> rootComponent;
 
     public final Map<QualifiedSessionId, LivePageSnapshot<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -60,7 +61,7 @@ public final class App<S> {
                 BiFunction<S, Path, Path> state2path,
                 PageLifeCycle<S> lifeCycleEventsListener,
                 Route<HttpRequest, S> routes,
-                StatefulComponent<S> rootComponent) {
+                Function<S, StatefulComponent<S>> rootComponent) {
 
         this.config = config;
         this.routes = routes;
@@ -80,7 +81,7 @@ public final class App<S> {
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
              routes,
-             new AppRootComponent<>(rootComponent));
+             s -> new StatefulComponent<>(s, rootComponent));
     }
 
     /**
@@ -95,7 +96,7 @@ public final class App<S> {
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),
              request -> Optional.of(CompletableFuture.completedFuture(initialState)),
-             new AppRootComponent<>(rootComponent));
+             s -> new StatefulComponent<>(s, rootComponent));
     }
 
     /**
@@ -125,15 +126,6 @@ public final class App<S> {
      */
     public App<S> pageLifeCycle(PageLifeCycle<S> lifeCycleEventsListener) {
         return new App<S>(this.config, this.state2path, lifeCycleEventsListener, this.routes, this.rootComponent);
-    }
-
-
-
-    private static class AppRootComponent<S> extends StatefulComponent<S> {
-
-        public AppRootComponent(ComponentStateFunction<S> componentStateFunction) {
-            super(componentStateFunction);
-        }
     }
 }
 

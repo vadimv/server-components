@@ -23,8 +23,8 @@ public interface ComponentStateFunction<S> {
      */
     DocumentPartDefinition apply(S sv, Consumer<S> sc);
 
-    default DocumentPartDefinition apply(S s) {
+    /*default DocumentPartDefinition apply(S s) {
         return apply(s, v -> {});
-    }
+    }*/
 
 }

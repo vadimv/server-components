@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.StatefulComponent;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
@@ -110,6 +111,11 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     @Override
     public void addRef(Ref ref) {
         context.addRef(ref);
+    }
+
+    @Override
+    public StateNotificationListener getStateNotificationListener() {
+        return context.getStateNotificationListener();
     }
 
     @Override

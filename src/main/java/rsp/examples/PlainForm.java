@@ -56,7 +56,7 @@ public class PlainForm {
         return (sv, sc) -> html(
                         headPlain(title("Plain Form Pages")),
                         body(
-                            sv.isEmpty() ? formComponent().apply(sv) : formResult().apply(sv)
+                            sv.isEmpty() ? formComponent().apply(sv, sc) : formResult().apply(sv, sc)
                         )
         );
     }

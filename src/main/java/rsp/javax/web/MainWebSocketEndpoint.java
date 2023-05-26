@@ -1,6 +1,5 @@
 package rsp.javax.web;
 
-import rsp.ComponentStateFunction;
 import rsp.page.*;
 import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
@@ -10,13 +9,11 @@ import rsp.server.SerializeOutMessages;
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static java.lang.System.Logger.Level.*;
 
@@ -27,7 +24,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
-    private final ComponentStateFunction<S> documentDefinition;
     private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
@@ -39,13 +35,11 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     public MainWebSocketEndpoint(StateToRouteDispatch<S> state2route,
                                  Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages,
-                                 ComponentStateFunction<S> documentDefinition,
                                  BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  Supplier<ScheduledExecutorService> schedulerSupplier,
                                  PageLifeCycle<S> lifeCycleEventsListener) {
         this.state2route = state2route;
         this.renderedPages = renderedPages;
-        this.documentDefinition = documentDefinition;
         this.enrich = enrich;
         this.schedulerSupplier = schedulerSupplier;
         this.lifeCycleEventsListener = lifeCycleEventsListener;
@@ -59,7 +53,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
 
-        final LivePageSnapshot<S> currentPageSnapshot = renderedPages.get(qsid);
+        final LivePageSnapshot<S> currentPageSnapshot = renderedPages.remove(qsid);
         if (currentPageSnapshot == null) {
             logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
             if (!isKnownLostSession(qsid)) {
@@ -67,15 +61,13 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 out.evalJs(-1, "RSP.reload()");
             }
         } else {
-            renderedPages.remove(qsid);
-
-            final LivePageState<S> livePageState = new LivePageState<>(currentPageSnapshot,
-                                                                       qsid,
+            final LivePageState<S> livePageState = new LivePageState<>(qsid,
+                                                                       currentPageSnapshot,
                                                                        state2route,
-                                                                       documentDefinition,
                                                                        enrich,
                                                                        out);
-            lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
+            currentPageSnapshot.componentsStateNotificationListener.setListener(livePageState);
+            //lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
             final LivePage<S> livePage = new LivePage<>(qsid,
                                                         livePageState,
                                                         schedulerSupplier.get(),
@@ -91,8 +83,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 }
             });
 
-            livePageState.accept(currentPageSnapshot.state);
             out.setRenderNum(0);
+            out.listenEvents(currentPageSnapshot.events.values().stream().collect(Collectors.toList()));
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }
@@ -123,7 +115,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final LivePage<S> livePage = (LivePage<S>) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
-            lifeCycleEventsListener.afterLivePageClosed(livePage.qsid, livePage.getPageState());
+            //lifeCycleEventsListener.afterLivePageClosed(livePage.qsid, livePage.getPageState());
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }

@@ -112,13 +112,13 @@ public final class JettyServer<S> {
                                                                       "/",
                                                                       DefaultConnectionLostWidget.HTML,
                                                                       app.config.heartbeatIntervalMs);
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app,
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.routes,
+                                                                                     app.rootComponent,
                                                                                      app.pagesStorage,
                                                                                      enrichContextFun))),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(new StateToRouteDispatch<>(this.basePath, app.state2path),
                                                                                         app.pagesStorage,
-                                                                                        app.rootComponent.componentStateFunction,
                                                                                         enrichContextFun,
                                                                                         () -> scheduler,
                                                                                         app.lifeCycleEventsListener);

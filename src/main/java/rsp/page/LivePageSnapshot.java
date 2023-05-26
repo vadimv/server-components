@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.StatefulComponent;
 import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
@@ -12,7 +13,8 @@ import java.util.Map;
  * The current attributes of a live page.
  */
 public class LivePageSnapshot<S> {
-    public final S state;
+    public final StatefulComponent<S> rootComponent;
+    public final StateNotificationListener componentsStateNotificationListener;
     public final Path path;
     public final Tag domRoot;
     public final Map<Event.Target, Event> events;
@@ -25,12 +27,14 @@ public class LivePageSnapshot<S> {
      * @param events should be an immutable {@link Map}
      * @param refs should be an immutable {@link Map}
      */
-    public LivePageSnapshot(S state,
+    public LivePageSnapshot(StatefulComponent<S> rootComponent,
+                            StateNotificationListener componentsStateNotificationListener,
                             Path path,
                             Tag domRoot,
                             Map<Event.Target, Event> events,
                             Map<Ref, VirtualDomPath> refs) {
-        this.state = state;
+        this.rootComponent = rootComponent;
+        this.componentsStateNotificationListener = componentsStateNotificationListener;
         this.path = path;
         this.domRoot = domRoot;
         this.events = events;

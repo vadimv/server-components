@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.StatefulComponent;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
@@ -24,4 +25,5 @@ public interface PageRenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
+    StateNotificationListener getStateNotificationListener();
 }

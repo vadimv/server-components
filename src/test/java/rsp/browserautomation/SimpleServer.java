@@ -60,9 +60,9 @@ public class SimpleServer {
 
         final ComponentStateFunction<AppState> appComponent = (sv, sc) -> {
             if (sv instanceof NotFoundState) {
-                return notFoundComponent.apply((NotFoundState)sv);
+                return notFoundComponent.apply((NotFoundState)sv, s -> {});
             } else if (sv instanceof OkState) {
-                return okComponentStateFunction.apply((OkState)sv);
+                return okComponentStateFunction.apply((OkState)sv, s -> sc.accept(s));
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
