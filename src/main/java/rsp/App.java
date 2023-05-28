@@ -2,7 +2,6 @@ package rsp;
 
 import rsp.page.LivePageSnapshot;
 import rsp.page.PageLifeCycle;
-import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
@@ -76,7 +75,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(Route<HttpRequest, S> routes,
-               ComponentStateFunction<S> rootComponent) {
+               CreateViewFunction<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
@@ -91,7 +90,7 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(S initialState,
-               ComponentStateFunction<S> rootComponent) {
+               CreateViewFunction<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),

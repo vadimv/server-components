@@ -12,7 +12,7 @@ import java.util.function.Consumer;
  * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface
-public interface ComponentStateFunction<S> {
+public interface CreateViewFunction<S> {
 
     /**
      * Constructs a UI definition from the state provided.

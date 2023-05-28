@@ -1,7 +1,7 @@
 package rsp.browserautomation;
 
 import rsp.App;
-import rsp.ComponentStateFunction;
+import rsp.CreateViewFunction;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
@@ -40,8 +40,8 @@ public class SimpleServer {
                       any(new NotFoundState()));
     }
 
-    private static ComponentStateFunction<AppState> appComponent() {
-        final ComponentStateFunction<OkState> okComponentStateFunction = (sv, sc) ->
+    private static CreateViewFunction<AppState> appComponent() {
+        final CreateViewFunction<OkState> okCreateViewFunction = (sv, sc) ->
                 html(head(title("test-server-title")),
                         body(SUB_STATE_VIEW.apply(sv.i, s -> sc.accept(new OkState(s))),
                                 div(button(attr("type", "button"),
@@ -54,15 +54,15 @@ public class SimpleServer {
                                         text(sv.i)))
                         ));
 
-        final ComponentStateFunction<NotFoundState> notFoundComponent =
+        final CreateViewFunction<NotFoundState> notFoundComponent =
                 (sv, sc) -> html(headPlain(title("Not found")),
                         body(h1("Not found 404"))).statusCode(404);
 
-        final ComponentStateFunction<AppState> appComponent = (sv, sc) -> {
+        final CreateViewFunction<AppState> appComponent = (sv, sc) -> {
             if (sv instanceof NotFoundState) {
                 return notFoundComponent.apply((NotFoundState)sv, s -> {});
             } else if (sv instanceof OkState) {
-                return okComponentStateFunction.apply((OkState)sv, s -> sc.accept(s));
+                return okCreateViewFunction.apply((OkState)sv, s -> sc.accept(s));
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
@@ -89,7 +89,7 @@ public class SimpleServer {
         }
     }
 
-    public static final ComponentStateFunction<Integer> SUB_STATE_VIEW = (sv, sc) ->
+    public static final CreateViewFunction<Integer> SUB_STATE_VIEW = (sv, sc) ->
             div(attr("id", "d0"),
                 text("+10"),
                 on("click", d -> { sc.accept(sv + 10);}));

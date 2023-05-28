@@ -1,8 +1,6 @@
 package rsp.page;
 
-import rsp.ComponentStateFunction;
 import rsp.dom.*;
-import rsp.html.DocumentPartDefinition;
 import rsp.server.OutMessages;
 import rsp.server.Path;
 

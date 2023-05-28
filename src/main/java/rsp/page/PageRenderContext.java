@@ -1,6 +1,5 @@
 package rsp.page;
 
-import rsp.StatefulComponent;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
