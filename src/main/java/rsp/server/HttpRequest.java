@@ -27,12 +27,12 @@ public final class HttpRequest {
      * @param queryParam the function that provides access the request's query parameters
      * @param getHeader the function that provides access to the request's headers
      */
-    public HttpRequest(HttpMethod method,
-                       URI uri,
-                       String url,
-                       Path path,
-                       Function<String, Optional<String>> queryParam,
-                       Function<String, Optional<String>> getHeader) {
+    public HttpRequest(final HttpMethod method,
+                       final URI uri,
+                       final String url,
+                       final Path path,
+                       final Function<String, Optional<String>> queryParam,
+                       final Function<String, Optional<String>> getHeader) {
         this.method = method;
         this.uri = uri;
         this.url = url;
@@ -48,10 +48,10 @@ public final class HttpRequest {
      * @param url the request's URL
      * @param path the request's path
      */
-    public HttpRequest(HttpMethod method,
-                       URI uri,
-                       String url,
-                       Path path) {
+    public HttpRequest(final HttpMethod method,
+                       final URI uri,
+                       final String url,
+                       final Path path) {
         this.method = method;
         this.uri = uri;
         this.url = url;
@@ -65,7 +65,7 @@ public final class HttpRequest {
      * @param cookieName the cookie name
      * @return the Optional with the cookie value or the empty
      */
-    public Optional<String> cookie(String cookieName) {
+    public Optional<String> cookie(final String cookieName) {
         return getHeader.apply("Cookie").flatMap(headerValue ->
                 Arrays.stream(headerValue.split(";"))
                       .map(String::trim)
@@ -87,7 +87,7 @@ public final class HttpRequest {
      * @param name the parameter's name
      * @return the Optional with the parameter's value or the empty
      */
-    public Optional<String> queryParam(String name) {
+    public Optional<String> queryParam(final String name) {
         return getQueryParam.apply(name);
     }
 
@@ -96,7 +96,7 @@ public final class HttpRequest {
      * @param headerName the header's name
      * @return an optional with the header's value or empty
      */
-    public Optional<String> header(String headerName) {
+    public Optional<String> header(final String headerName) {
         return getHeader.apply(headerName);
     }
 

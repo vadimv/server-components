@@ -16,7 +16,7 @@ public final class Event {
     public final boolean preventDefault;
     public final Modifier modifier;
 
-    public Event(Event.Target eventTarget, Consumer<EventContext> eventHandler, boolean preventDefault, Modifier modifier) {
+    public Event(final Event.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
         this.eventTarget = Objects.requireNonNull(eventTarget);
         this.eventHandler = Objects.requireNonNull(eventHandler);
         this.preventDefault = preventDefault;
@@ -24,10 +24,10 @@ public final class Event {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Event event = (Event) o;
+        final Event event = (Event) o;
         return preventDefault == event.preventDefault &&
                 Objects.equals(eventTarget, event.eventTarget) &&
                 Objects.equals(modifier, event.modifier);
@@ -39,7 +39,7 @@ public final class Event {
     }
 
     public static final class Target {
-        public Target(String eventType, VirtualDomPath elementPath) {
+        public Target(final String eventType, final VirtualDomPath elementPath) {
             this.eventType = Objects.requireNonNull(eventType);
             this.elementPath = Objects.requireNonNull(elementPath);
         }
@@ -48,7 +48,7 @@ public final class Event {
         public final VirtualDomPath elementPath;
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final Target target = (Target) o;
@@ -65,21 +65,21 @@ public final class Event {
     public interface Modifier {
     }
 
-    public static class NoModifier implements Modifier {
+    public static final class NoModifier implements Modifier {
     }
 
     public static final class ThrottleModifier implements Modifier {
         public final int timeFrameMs;
 
-        public ThrottleModifier(int timeFrameMs) {
+        public ThrottleModifier(final int timeFrameMs) {
             this.timeFrameMs = timeFrameMs;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ThrottleModifier that = (ThrottleModifier) o;
+            final ThrottleModifier that = (ThrottleModifier) o;
             return timeFrameMs == that.timeFrameMs;
         }
 
@@ -93,16 +93,16 @@ public final class Event {
         public final int waitMs;
         public final boolean immediate;
 
-        public DebounceModifier(int waitMs, boolean immediate) {
+        public DebounceModifier(final int waitMs, final boolean immediate) {
             this.waitMs = waitMs;
             this.immediate = immediate;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            DebounceModifier that = (DebounceModifier) o;
+            final DebounceModifier that = (DebounceModifier) o;
             return waitMs == that.waitMs && immediate == that.immediate;
         }
 

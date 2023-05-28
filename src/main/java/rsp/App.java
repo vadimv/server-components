@@ -56,11 +56,11 @@ public final class App<S> {
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param rootComponent the root of the components tree
      */
-    private App(AppConfig config,
-                BiFunction<S, Path, Path> state2path,
-                PageLifeCycle<S> lifeCycleEventsListener,
-                Route<HttpRequest, S> routes,
-                Function<S, StatefulComponent<S>> rootComponent) {
+    private App(final AppConfig config,
+                final BiFunction<S, Path, Path> state2path,
+                final PageLifeCycle<S> lifeCycleEventsListener,
+                final Route<HttpRequest, S> routes,
+                final Function<S, StatefulComponent<S>> rootComponent) {
 
         this.config = config;
         this.routes = routes;
@@ -74,8 +74,8 @@ public final class App<S> {
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
      * @param rootComponent the root of the components tree
      */
-    public App(Route<HttpRequest, S> routes,
-               CreateViewFunction<S> rootComponent) {
+    public App(final Route<HttpRequest, S> routes,
+               final CreateViewFunction<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
@@ -89,8 +89,8 @@ public final class App<S> {
      * @param initialState the initial state snapshot
      * @param rootComponent the root of the components tree
      */
-    public App(S initialState,
-               CreateViewFunction<S> rootComponent) {
+    public App(final S initialState,
+               final CreateViewFunction<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),
@@ -103,7 +103,7 @@ public final class App<S> {
      * @param config an application config
      * @return a new application object with the same field values except of the provided field
      */
-    public App<S> config(AppConfig config) {
+    public App<S> config(final AppConfig config) {
         return new App<S>(config, this.state2path, this.lifeCycleEventsListener, this.routes, this.rootComponent);
     }
 
@@ -112,7 +112,7 @@ public final class App<S> {
      * @param stateToPath a function that dispatches a current state snapshot to the browser's navigation bar's path
      * @return a new application object with the same field values except of the provided field
      */
-    public App<S> stateToPath(BiFunction<S, Path, Path> stateToPath) {
+    public App<S> stateToPath(final BiFunction<S, Path, Path> stateToPath) {
         return new App<S>(this.config, stateToPath, this.lifeCycleEventsListener, this.routes, this.rootComponent);
     }
 
@@ -123,7 +123,7 @@ public final class App<S> {
      * @param lifeCycleEventsListener the listener interface for receiving page lifecycle events.
      * @return a new application object with the same field values except of the provided field
      */
-    public App<S> pageLifeCycle(PageLifeCycle<S> lifeCycleEventsListener) {
+    public App<S> pageLifeCycle(final PageLifeCycle<S> lifeCycleEventsListener) {
         return new App<S>(this.config, this.state2path, lifeCycleEventsListener, this.routes, this.rootComponent);
     }
 }

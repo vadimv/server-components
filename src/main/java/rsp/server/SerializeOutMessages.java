@@ -55,18 +55,18 @@ public final class SerializeOutMessages implements OutMessages {
 
     private final Consumer<String> messagesConsumer;
 
-    public SerializeOutMessages(Consumer<String> messagesConsumer) {
+    public SerializeOutMessages(final Consumer<String> messagesConsumer) {
         this.messagesConsumer = messagesConsumer;
     }
 
     @Override
-    public void setRenderNum(int renderNum) {
+    public void setRenderNum(final int renderNum) {
         final String message = addSquareBrackets(joinString(SET_RENDER_NUM, renderNum));
         messagesConsumer.accept(message);
     }
 
     @Override
-    public void listenEvents(List<Event> events) {
+    public void listenEvents(final List<Event> events) {
         if (events.size() > 0) {
             final String[] changes = events.stream().map(e -> joinString(quote(e.eventTarget.eventType),
                                                                          e.preventDefault,
@@ -79,14 +79,14 @@ public final class SerializeOutMessages implements OutMessages {
     }
 
     @Override
-    public void forgetEvent(String eventType, VirtualDomPath path) {
+    public void forgetEvent(final String eventType, final VirtualDomPath path) {
         final String message = addSquareBrackets(joinString(FORGET_EVENT,
                                                             quote(escape(eventType)),
                                                             quote(path.toString())));
         messagesConsumer.accept(message);
     }
 
-    private static String modifierString(Event.Modifier eventModifier) {
+    private static String modifierString(final Event.Modifier eventModifier) {
         if (eventModifier instanceof Event.ThrottleModifier) {
             final Event.ThrottleModifier m = (Event.ThrottleModifier) eventModifier;
             return THROTTLE_EVENT_MODIFIER + ":" +  m.timeFrameMs;
@@ -99,7 +99,7 @@ public final class SerializeOutMessages implements OutMessages {
     }
 
     @Override
-    public void extractProperty(int descriptor, VirtualDomPath path, String name) {
+    public void extractProperty(final int descriptor, final VirtualDomPath path, final String name) {
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
                                                             quote(descriptor),
                                                             quote(path),
@@ -108,7 +108,7 @@ public final class SerializeOutMessages implements OutMessages {
     }
 
     @Override
-    public void modifyDom(List<DomChange> domChanges) {
+    public void modifyDom(final List<DomChange> domChanges) {
         if (domChanges.size() > 0) {
             final String[] changes = domChanges.stream().map(this::modifyDomMessageBody).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(MODIFY_DOM,
@@ -118,18 +118,18 @@ public final class SerializeOutMessages implements OutMessages {
     }
 
     @Override
-    public void setHref(String path) {
+    public void setHref(final String path) {
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(path)));
         messagesConsumer.accept(message);
     }
 
     @Override
-    public void pushHistory(String path) {
+    public void pushHistory(final String path) {
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(path)));
         messagesConsumer.accept(message);
     }
 
-    private String modifyDomMessageBody(DomChange domChange) {
+    private String modifyDomMessageBody(final DomChange domChange) {
         if (domChange instanceof RemoveAttr) {
             final RemoveAttr c = (RemoveAttr)domChange;
             return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), c.isProperty);
@@ -157,29 +157,29 @@ public final class SerializeOutMessages implements OutMessages {
         }
     }
 
-    private String xmlNsString(XmlNs xmlNs) {
+    private String xmlNsString(final XmlNs xmlNs) {
         return xmlNs.uri.equals(XmlNs.html.uri) ? "0" : quote(xmlNs.toString());
     }
 
     @Override
-    public void evalJs(int descriptor, String js) {
+    public void evalJs(final int descriptor, final String js) {
         final String message = addSquareBrackets(joinString(EVAL_JS, descriptor, quote(js)));
         messagesConsumer.accept(message);
     }
 
-    private String joinString(String[] strings) {
+    private String joinString(final String[] strings) {
         return String.join(",", strings);
     }
 
-    private String joinString(Object... objects) {
+    private String joinString(final Object... objects) {
         return joinString(Arrays.stream(objects).map(Object::toString).toArray(String[]::new));
     }
 
-    private String quote(Object str) {
+    private String quote(final Object str) {
         return "\"" + str + "\"";
     }
 
-    private String addSquareBrackets(String str) {
+    private String addSquareBrackets(final String str) {
         return "["+ str + "]";
     }
 }

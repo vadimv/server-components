@@ -32,17 +32,17 @@ public final class PageRendering<S> {
     private final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
-    public PageRendering(Route<HttpRequest, S> routes,
+    public PageRendering(final Route<HttpRequest, S> routes,
                          final Function<S, StatefulComponent<S>> rootComponent,
-                         Map<QualifiedSessionId, LivePageSnapshot<S>> pagesStorage,
-                         BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
+                         final Map<QualifiedSessionId, LivePageSnapshot<S>> pagesStorage,
+                         final BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
         this.routes = routes;
         this.rootComponent = rootComponent;
         this.renderedPages = pagesStorage;
         this.enrich = enrich;
     }
 
-    public CompletableFuture<HttpResponse> httpResponse(HttpRequest request) {
+    public CompletableFuture<HttpResponse> httpResponse(final HttpRequest request) {
         if (request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.emptyList(), "No favicon.ico"));
         } else if (request.path.startsWith("static")) {
@@ -52,7 +52,7 @@ public final class PageRendering<S> {
         }
     }
 
-    private CompletableFuture<HttpResponse> staticFileResponse(Path path) {
+    private CompletableFuture<HttpResponse> staticFileResponse(final Path path) {
             return path.last().flatMap(fileName -> {
                 final URL fileUrl =  this.getClass().getResource("/" + fileName);
                 if (fileUrl != null) {
@@ -60,7 +60,7 @@ public final class PageRendering<S> {
                         return Optional.of(CompletableFuture.completedFuture(new HttpResponse(200,
                                                                                               Collections.emptyList(),
                                                                                               fileUrl.openStream())));
-                    } catch (IOException e) {
+                    } catch (final IOException e) {
                         return Optional.of(CompletableFuture.completedFuture(new HttpResponse(500,
                                             Collections.emptyList(),
                                             "Exception on loading a static resource: "
@@ -76,7 +76,7 @@ public final class PageRendering<S> {
 
     }
 
-    private CompletableFuture<HttpResponse> rspResponse(HttpRequest request) {
+    private CompletableFuture<HttpResponse> rspResponse(final HttpRequest request) {
         try {
             final String deviceId = request.cookie(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();
@@ -101,7 +101,7 @@ public final class PageRendering<S> {
                                                 headers(domTreeContext.headers(), deviceId),
                                                 domTreeContext.toString());
                     })).orElse(defaultPage404());
-        } catch (Throwable ex) {
+        } catch (final Throwable ex) {
             return CompletableFuture.failedFuture(ex);
         }
     }
@@ -110,9 +110,9 @@ public final class PageRendering<S> {
         return CompletableFuture.completedFuture(new HttpResponse(404, List.of(),"Not found"));
     }
 
-    private List<Tuple2<String,String>> headers(Map<String, String> headers, String deviceId) {
+    private List<Tuple2<String,String>> headers(final Map<String, String> headers, final String deviceId) {
         final List<Tuple2<String,String>> resultHeaders = new ArrayList<>();
-        for (Map.Entry<String, String> entry : headers.entrySet() ) {
+        for (final Map.Entry<String, String> entry : headers.entrySet() ) {
             resultHeaders.add(new Tuple2<>(entry.getKey(), entry.getValue()));
         }
         resultHeaders.add(new Tuple2<>("content-type", "text/html; charset=utf-8"));

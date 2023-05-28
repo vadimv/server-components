@@ -27,12 +27,12 @@ public class LivePageSnapshot<S> {
      * @param events should be an immutable {@link Map}
      * @param refs should be an immutable {@link Map}
      */
-    public LivePageSnapshot(StatefulComponent<S> rootComponent,
-                            StateNotificationListener componentsStateNotificationListener,
-                            Path path,
-                            Tag domRoot,
-                            Map<Event.Target, Event> events,
-                            Map<Ref, VirtualDomPath> refs) {
+    public LivePageSnapshot(final StatefulComponent<S> rootComponent,
+                            final StateNotificationListener componentsStateNotificationListener,
+                            final Path path,
+                            final Tag domRoot,
+                            final Map<Event.Target, Event> events,
+                            final Map<Ref, VirtualDomPath> refs) {
         this.rootComponent = rootComponent;
         this.componentsStateNotificationListener = componentsStateNotificationListener;
         this.path = path;

@@ -21,14 +21,14 @@ public final class StyleDefinition extends BaseDocumentPartDefinition {
      * @param name the style's name
      * @param value the style's value
      */
-    public StyleDefinition(String name, String value) {
+    public StyleDefinition(final String name, final String value) {
         super();
         this.name = name;
         this.value = value;
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         renderContext.setStyle(name, value);
     }
 }

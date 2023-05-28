@@ -6,11 +6,11 @@ import java.util.function.Consumer;
 
 public class CompletableFutureUtils {
 
-    public static <T> BiConsumer<? super T, ? super Throwable> consume(Consumer<? super T> whenResult,
-                                                                       Consumer<? super Throwable> whenException) {
+    public static <T> BiConsumer<? super T, ? super Throwable> consume(final Consumer<? super T> whenResult,
+                                                                       final Consumer<? super Throwable> whenException) {
         return new BiConsumer<>() {
             @Override
-            public void accept(T result, Throwable ex) {
+            public void accept(final T result, final Throwable ex) {
                 if (ex != null) {
                     whenException.accept(ex);
                 } else if (result == null) {
@@ -23,11 +23,11 @@ public class CompletableFutureUtils {
     }
 
     @SafeVarargs
-    public static <T> CompletableFuture<T> either(CompletableFuture<T>... cfs) {
+    public static <T> CompletableFuture<T> either(final CompletableFuture<T>... cfs) {
         final CompletableFuture<T> result = new CompletableFuture<>();
         CompletableFuture.allOf(cfs).whenComplete((v, ex) -> {
             boolean allCompletedExceptionally = true;
-            for (CompletableFuture<T> cf : cfs) {
+            for (final CompletableFuture<T> cf : cfs) {
                 allCompletedExceptionally &= cf.isCompletedExceptionally();
             }
             if (allCompletedExceptionally) {
@@ -35,7 +35,7 @@ public class CompletableFutureUtils {
             }
         });
         if (!result.isCompletedExceptionally()) {
-            for (CompletableFuture<T> f : cfs) {
+            for (final CompletableFuture<T> f : cfs) {
                 f.thenAccept(result::complete);
             }
         }

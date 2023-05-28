@@ -8,7 +8,7 @@ public final class Diff {
     private final Tag work;
     private final DomChangesPerformer performer;
 
-    public Diff(Optional<Tag> current, Tag work, DomChangesPerformer performer) {
+    public Diff(final Optional<Tag> current, final Tag work, final DomChangesPerformer performer) {
         this.current = Objects.requireNonNull(current);
         this.work = Objects.requireNonNull(work);
         this.performer = Objects.requireNonNull(performer);
@@ -19,7 +19,7 @@ public final class Diff {
                                 () -> create(work, new VirtualDomPath(1), performer));
     }
 
-    private static void diff(Tag c, Tag w, VirtualDomPath path, DomChangesPerformer changesPerformer) {
+    private static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesPerformer changesPerformer) {
         if (!c.name.equals(w.name)) {
             changesPerformer.remove(path.parent().get(), path);
             create(w, path, changesPerformer);
@@ -30,7 +30,10 @@ public final class Diff {
         }
     }
 
-    private static void diffAttributes(CopyOnWriteArraySet<Attribute> ca, CopyOnWriteArraySet<Attribute> wa, VirtualDomPath path, DomChangesPerformer performer) {
+    private static void diffAttributes(final CopyOnWriteArraySet<Attribute> ca,
+                                       final CopyOnWriteArraySet<Attribute> wa,
+                                       final VirtualDomPath path,
+                                       final DomChangesPerformer performer) {
         final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
         final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
@@ -43,7 +46,10 @@ public final class Diff {
         });
     }
 
-    private static void diffStyles(CopyOnWriteArraySet<Style> ca, CopyOnWriteArraySet<Style> wa, VirtualDomPath path, DomChangesPerformer performer) {
+    private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
+                                   final CopyOnWriteArraySet<Style> wa,
+                                   final VirtualDomPath path,
+                                   final DomChangesPerformer performer) {
         final Set<Style> c = new CopyOnWriteArraySet<>(ca);
         final Set<Style> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
@@ -56,7 +62,7 @@ public final class Diff {
         });
     }
 
-    private static void diffChildren(List<Node> cc, List<Node> wc, VirtualDomPath path, DomChangesPerformer performer) {
+    private static void diffChildren(final List<Node> cc, final List<Node> wc, final VirtualDomPath path, final DomChangesPerformer performer) {
         final ListIterator<Node> c = cc.listIterator();
         final ListIterator<Node> w = wc.listIterator();
 
@@ -88,16 +94,16 @@ public final class Diff {
 
     }
 
-    private static void create(Tag tag, VirtualDomPath path, DomChangesPerformer changesPerformer) {
+    private static void create(final Tag tag, final VirtualDomPath path, final DomChangesPerformer changesPerformer) {
         changesPerformer.create(path, tag.xmlns, tag.name);
-        for (Style style: tag.styles) {
+        for (final Style style: tag.styles) {
             changesPerformer.setStyle(path, style.name, style.value);
         }
-        for (Attribute attribute: tag.attributes) {
+        for (final Attribute attribute: tag.attributes) {
             changesPerformer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
         }
         VirtualDomPath p = path.incLevel();
-        for (Node child:tag.children) {
+        for (final Node child:tag.children) {
             if (child instanceof Tag) {
                 final Tag newTag = (Tag) child;
                 create(newTag, p, changesPerformer);

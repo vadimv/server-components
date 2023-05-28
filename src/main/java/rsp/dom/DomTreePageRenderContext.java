@@ -23,7 +23,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
 
 
 
-    public DomTreePageRenderContext(StateNotificationListener componentsStateNotificationListener) {
+    public DomTreePageRenderContext(final StateNotificationListener componentsStateNotificationListener) {
         this.componentsStateNotificationListener = componentsStateNotificationListener;
     }
 
@@ -44,22 +44,22 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void setStatusCode(int statusCode) {
+    public void setStatusCode(final int statusCode) {
         this.statusCode = statusCode;
     }
 
     @Override
-    public void setHeaders(Map<String, String> headers) {
+    public void setHeaders(final Map<String, String> headers) {
         this.headers = headers;
     }
 
     @Override
-    public void setDocType(String docType) {
+    public void setDocType(final String docType) {
         this.docType = docType;
     }
 
     @Override
-    public void openNode(XmlNs xmlns, String name) {
+    public void openNode(final XmlNs xmlns, final String name) {
         if (root == null) {
             root = new Tag(VirtualDomPath.DOCUMENT, xmlns, name);
             tagsStack.push(root);
@@ -73,38 +73,38 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void closeNode(String name,  boolean upgrade) {
+    public void closeNode(final String name, final boolean upgrade) {
         tagsStack.pop();
     }
 
     @Override
-    public void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty) {
+    public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
     @Override
-    public void setStyle(String name, String value) {
+    public void setStyle(final String name, final String value) {
         tagsStack.peek().addStyle(name, value);
     }
 
     @Override
-    public void addTextNode(String text) {
+    public void addTextNode(final String text) {
         tagsStack.peek().addChild(new Text(tagsStack.peek().path, text));
     }
 
     @Override
-    public void addEvent(Optional<VirtualDomPath> elementPath,
-                         String eventType,
-                         Consumer<EventContext> eventHandler,
-                         boolean preventDefault,
-                         Event.Modifier modifier) {
+    public void addEvent(final Optional<VirtualDomPath> elementPath,
+                         final String eventType,
+                         final Consumer<EventContext> eventHandler,
+                         final boolean preventDefault,
+                         final Event.Modifier modifier) {
         final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
         events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     @Override
-    public void addRef(Ref ref) {
+    public void addRef(final Ref ref) {
         refs.put(ref, tagsStack.peek().path);
     }
 

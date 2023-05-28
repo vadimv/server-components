@@ -12,13 +12,13 @@ public final class Routes<T, S> implements Route<T, S> {
     public final Route<T, S>[] routeDefinitions;
 
     @SafeVarargs
-    public Routes(Route<T, S>... routes) {
+    public Routes(final Route<T, S>... routes) {
         this.routeDefinitions = routes;
     }
 
     @Override
-    public Optional<CompletableFuture<? extends S>> apply(T request) {
-        for (Route<T, S> routeDefinition : routeDefinitions) {
+    public Optional<CompletableFuture<? extends S>> apply(final T request) {
+        for (final Route<T, S> routeDefinition : routeDefinitions) {
             final Optional<CompletableFuture<? extends S>> result = routeDefinition.apply(request);
             if (result.isPresent()) {
                 return result;

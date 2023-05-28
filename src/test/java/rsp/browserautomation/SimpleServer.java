@@ -16,15 +16,15 @@ public class SimpleServer {
     public static final int PORT = 8085;
     public final JettyServer<AppState> jetty;
 
-    public SimpleServer(JettyServer<AppState> jetty) {
+    public SimpleServer(final JettyServer<AppState> jetty) {
         this.jetty = jetty;
     }
 
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         run(true);
     }
 
-    public static SimpleServer run(boolean blockCurrentThread) {
+    public static SimpleServer run(final boolean blockCurrentThread) {
         final App<AppState> app = new App<>(routes(),
                                             appComponent());
         final SimpleServer s = new SimpleServer(new JettyServer<>(PORT, "", app));
@@ -80,7 +80,7 @@ public class SimpleServer {
     private static class OkState implements AppState {
         public final int i;
 
-        public OkState(int i) {
+        public OkState(final int i) {
             this.i = i;
         }
 

@@ -11,18 +11,18 @@ public final class HttpRequestMatchFunction<S> implements Function<HttpRequest, 
     private final PathPattern pathPattern;
     private final TriFunction<HttpRequest, String, String, CompletableFuture<S>> matchFun;
 
-    public HttpRequestMatchFunction(PathPattern pathPattern,
-                                    TriFunction<HttpRequest, String, String, CompletableFuture<S>> matchFun) {
+    public HttpRequestMatchFunction(final PathPattern pathPattern,
+                                    final TriFunction<HttpRequest, String, String, CompletableFuture<S>> matchFun) {
         this.pathPattern = pathPattern;
         this.matchFun = matchFun;
     }
 
     @Override
-    public CompletableFuture<S> apply(HttpRequest httpRequest) {
+    public CompletableFuture<S> apply(final HttpRequest httpRequest) {
         return callMatchFun(httpRequest);
     }
 
-    private CompletableFuture<S> callMatchFun(HttpRequest request) {
+    private CompletableFuture<S> callMatchFun(final HttpRequest request) {
         final int[] pathParameterIndexes = pathPattern.paramsIndexes;
         if (pathParameterIndexes.length == 0) {
             return matchFun.apply(request, "", "");

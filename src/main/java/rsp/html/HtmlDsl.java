@@ -32,7 +32,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static HtmlDocumentDefinition html(DocumentPartDefinition... children) {
+    public static HtmlDocumentDefinition html(final DocumentPartDefinition... children) {
         return new HtmlDocumentDefinition(OK_STATUS_CODE, Map.of(), children);
     }
 
@@ -43,7 +43,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition xmlTag(XmlNs ns, String name, DocumentPartDefinition... children) {
+    public static TagDefinition xmlTag(final XmlNs ns, final String name, final DocumentPartDefinition... children) {
         return new TagDefinition(ns, name, children);
     }
 
@@ -53,7 +53,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tag(String name, DocumentPartDefinition... children) {
+    public static TagDefinition tag(final String name, final DocumentPartDefinition... children) {
         return xmlTag(XmlNs.html, name, children);
     }
 
@@ -64,7 +64,7 @@ public final class HtmlDsl {
      * @param isProperty true if this attribute should be interpreted as a property, false otherwise
      * @return an attribute definition
      */
-    public static AttributeDefinition attr(String name, String value, boolean isProperty) {
+    public static AttributeDefinition attr(final String name, final String value, final boolean isProperty) {
         return new AttributeDefinition(name, value, isProperty);
     }
 
@@ -74,7 +74,7 @@ public final class HtmlDsl {
      * @param value a property value
      * @return a property definition
      */
-    public static AttributeDefinition prop(String name, String value) {
+    public static AttributeDefinition prop(final String name, final String value) {
         return attr(name, value, true);
     }
 
@@ -86,7 +86,7 @@ public final class HtmlDsl {
      * @param value an attribute value
      * @return an attribute definition
      */
-    public static AttributeDefinition attr(String name, String value) {
+    public static AttributeDefinition attr(final String name, final String value) {
         return attr(name, value, isPropertyByDefault(name));
     }
 
@@ -95,7 +95,7 @@ public final class HtmlDsl {
      * @param name an attribute name
      * @return an attribute definition
      */
-    public static AttributeDefinition attr(String name) {
+    public static AttributeDefinition attr(final String name) {
         return new AttributeDefinition(name, name, isPropertyByDefault(name));
     }
 
@@ -105,7 +105,7 @@ public final class HtmlDsl {
      * @param handler an event handler
      * @return a DOM event handler definition
      */
-    public static EventDefinition on(String eventType, Consumer<EventContext> handler) {
+    public static EventDefinition on(final String eventType, final Consumer<EventContext> handler) {
         return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
     }
 
@@ -117,7 +117,7 @@ public final class HtmlDsl {
      * @param handler an event handler
      * @return a DOM event handler definition
      */
-    public static EventDefinition on(String eventType, boolean preventDefault, Consumer<EventContext> handler) {
+    public static EventDefinition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
         return new EventDefinition(eventType, handler, preventDefault, Event.NO_MODIFIER);
     }
 
@@ -127,7 +127,7 @@ public final class HtmlDsl {
      * @param value a style value
      * @return an inline style definition
      */
-    public static StyleDefinition style(String name, String value) {
+    public static StyleDefinition style(final String name, final String value) {
         return new StyleDefinition(name, value);
     }
 
@@ -136,7 +136,7 @@ public final class HtmlDsl {
      * @param text a text as a {@link String}
      * @return a text node definition
      */
-    public static TextDefinition text(String text) {
+    public static TextDefinition text(final String text) {
         return new TextDefinition(text);
     }
 
@@ -145,7 +145,7 @@ public final class HtmlDsl {
      * @param obj an arbitrary object to be converted to text using its {@link #toString()} method
      * @return a text node definition
      */
-    public static TextDefinition text(Object obj) {
+    public static TextDefinition text(final Object obj) {
         return new TextDefinition(obj.toString());
     }
 
@@ -155,7 +155,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition body(DocumentPartDefinition... children) {
+    public static TagDefinition body(final DocumentPartDefinition... children) {
         return tag("body", children);
     }
 
@@ -164,7 +164,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition head(DocumentPartDefinition... children) {
+    public static TagDefinition head(final DocumentPartDefinition... children) {
         return tag("head", children);
     }
 
@@ -176,7 +176,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition headPlain(DocumentPartDefinition... children) {
+    public static TagDefinition headPlain(final DocumentPartDefinition... children) {
         return new PlainTagDefinition(XmlNs.html, "head", children);
     }
 
@@ -185,7 +185,7 @@ public final class HtmlDsl {
      * @param text a document's title text
      * @return a tag definition
      */
-    public static TagDefinition title(String text) {
+    public static TagDefinition title(final String text) {
         return tag("title", text(text));
     }
 
@@ -194,7 +194,7 @@ public final class HtmlDsl {
      * @param children the element's attributes
      * @return a tag definition
      */
-    public static TagDefinition link(AttributeDefinition... children) {
+    public static TagDefinition link(final AttributeDefinition... children) {
         return tag("link", children);
     }
 
@@ -203,7 +203,7 @@ public final class HtmlDsl {
      * @param children the element's attributes
      * @return a tag definition
      */
-    public static TagDefinition meta(AttributeDefinition... children) {
+    public static TagDefinition meta(final AttributeDefinition... children) {
         return tag("meta", children);
     }
 
@@ -212,7 +212,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
-    public static TagDefinition h1(DocumentPartDefinition... children) {
+    public static TagDefinition h1(final DocumentPartDefinition... children) {
         return tag("h1", children);
     }
 
@@ -221,7 +221,7 @@ public final class HtmlDsl {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h1(String text) {
+    public static TagDefinition h1(final String text) {
         return h1(text(text));
     }
 
@@ -230,7 +230,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
-    public static TagDefinition h2(DocumentPartDefinition... children) {
+    public static TagDefinition h2(final DocumentPartDefinition... children) {
         return tag("h2", children);
     }
 
@@ -239,7 +239,7 @@ public final class HtmlDsl {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h2(String text) {
+    public static TagDefinition h2(final String text) {
         return h2(text(text));
     }
 
@@ -248,7 +248,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h3(DocumentPartDefinition... children) {
+    public static TagDefinition h3(final DocumentPartDefinition... children) {
         return tag("h3", children);
     }
 
@@ -257,7 +257,7 @@ public final class HtmlDsl {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h3(String text) {
+    public static TagDefinition h3(final String text) {
         return h3(text(text));
     }
 
@@ -266,7 +266,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h4(DocumentPartDefinition... children) {
+    public static TagDefinition h4(final DocumentPartDefinition... children) {
         return tag("h4", children);
     }
 
@@ -275,7 +275,7 @@ public final class HtmlDsl {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h4(String text) {
+    public static TagDefinition h4(final String text) {
         return h4(text(text));
     }
 
@@ -284,7 +284,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h5(DocumentPartDefinition... children) {
+    public static TagDefinition h5(final DocumentPartDefinition... children) {
         return tag("h5", children);
     }
 
@@ -293,7 +293,7 @@ public final class HtmlDsl {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h5(String text) {
+    public static TagDefinition h5(final String text) {
         return h5(text(text));
     }
 
@@ -302,7 +302,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h6(DocumentPartDefinition... children) {
+    public static TagDefinition h6(final DocumentPartDefinition... children) {
         return tag("h6", children);
     }
 
@@ -311,7 +311,7 @@ public final class HtmlDsl {
      * @param text the element's text content
      * @return  a tag definition
      */
-    public static TagDefinition h6(String text) {
+    public static TagDefinition h6(final String text) {
         return h6(text(text));
     }
 
@@ -320,7 +320,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition div(DocumentPartDefinition... children) {
+    public static TagDefinition div(final DocumentPartDefinition... children) {
         return tag("div", children);
     }
 
@@ -329,7 +329,7 @@ public final class HtmlDsl {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition div(String text) {
+    public static TagDefinition div(final String text) {
         return div(text(text));
     }
 
@@ -338,7 +338,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition a(DocumentPartDefinition... children) {
+    public static TagDefinition a(final DocumentPartDefinition... children) {
         return tag("a", children);
     }
 
@@ -349,7 +349,7 @@ public final class HtmlDsl {
      * @param children other descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition a(String href, String text, DocumentPartDefinition... children) {
+    public static TagDefinition a(final String href, final String text, final DocumentPartDefinition... children) {
         return a(ArrayUtils.concat(new DocumentPartDefinition[]{ attr("href", href), text(text)}, children));
     }
 
@@ -358,7 +358,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition p(DocumentPartDefinition... children) {
+    public static TagDefinition p(final DocumentPartDefinition... children) {
         return tag("p", children);
     }
 
@@ -367,7 +367,7 @@ public final class HtmlDsl {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition p(String text) {
+    public static TagDefinition p(final String text) {
         return p(text(text));
     }
 
@@ -376,7 +376,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition span(DocumentPartDefinition... children) {
+    public static TagDefinition span(final DocumentPartDefinition... children) {
         return tag("span", children);
     }
 
@@ -385,7 +385,7 @@ public final class HtmlDsl {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition span(String text) {
+    public static TagDefinition span(final String text) {
         return span(text(text));
     }
 
@@ -394,7 +394,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition form(DocumentPartDefinition... children) {
+    public static TagDefinition form(final DocumentPartDefinition... children) {
         return tag("form", children);
     }
 
@@ -403,7 +403,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition input(DocumentPartDefinition... children) {
+    public static TagDefinition input(final DocumentPartDefinition... children) {
         return tag("input", children);
     }
 
@@ -412,7 +412,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition button(DocumentPartDefinition... children) {
+    public static TagDefinition button(final DocumentPartDefinition... children) {
         return tag("button", children);
     }
 
@@ -421,7 +421,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition ul(DocumentPartDefinition... children) {
+    public static TagDefinition ul(final DocumentPartDefinition... children) {
         return tag("ul", children);
     }
 
@@ -430,7 +430,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition ol(DocumentPartDefinition... children) {
+    public static TagDefinition ol(final DocumentPartDefinition... children) {
         return tag("ol", children);
     }
 
@@ -439,7 +439,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition li(DocumentPartDefinition... children) {
+    public static TagDefinition li(final DocumentPartDefinition... children) {
         return tag("li", children);
     }
 
@@ -448,7 +448,7 @@ public final class HtmlDsl {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition li(String text) {
+    public static TagDefinition li(final String text) {
         return li(text(text));
     }
 
@@ -457,7 +457,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition table(DocumentPartDefinition... children) {
+    public static TagDefinition table(final DocumentPartDefinition... children) {
         return tag("table", children);
     }
 
@@ -466,7 +466,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition thead(DocumentPartDefinition... children) {
+    public static TagDefinition thead(final DocumentPartDefinition... children) {
         return tag("thead", children);
     }
 
@@ -475,7 +475,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tbody(DocumentPartDefinition... children) {
+    public static TagDefinition tbody(final DocumentPartDefinition... children) {
         return tag("tbody", children);
     }
 
@@ -484,7 +484,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition th(DocumentPartDefinition... children) {
+    public static TagDefinition th(final DocumentPartDefinition... children) {
         return tag("th", children);
     }
 
@@ -493,7 +493,7 @@ public final class HtmlDsl {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition th(String text) {
+    public static TagDefinition th(final String text) {
         return th(text(text));
     }
 
@@ -502,7 +502,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tr(DocumentPartDefinition... children) {
+    public static TagDefinition tr(final DocumentPartDefinition... children) {
         return tag("tr", children);
     }
 
@@ -511,7 +511,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition td(DocumentPartDefinition... children) {
+    public static TagDefinition td(final DocumentPartDefinition... children) {
         return tag("td", children);
     }
 
@@ -520,7 +520,7 @@ public final class HtmlDsl {
      * @param text text content
      * @return a tag definition
      */
-    public static TagDefinition td(String text) {
+    public static TagDefinition td(final String text) {
         return td(text(text));
     }
 
@@ -529,7 +529,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition label(DocumentPartDefinition... children) {
+    public static TagDefinition label(final DocumentPartDefinition... children) {
         return tag("label", children);
     }
 
@@ -547,7 +547,7 @@ public final class HtmlDsl {
      * @param items a {@link Stream} of definitions
      * @return a document part definition representing a sequence of definitions
      */
-    public static SequenceDefinition of(Stream<DocumentPartDefinition> items) {
+    public static SequenceDefinition of(final Stream<DocumentPartDefinition> items) {
         return new SequenceDefinition(items.toArray(DocumentPartDefinition[]::new));
     }
 
@@ -557,7 +557,7 @@ public final class HtmlDsl {
      * @param itemSupplier a code block
      * @return a result definition
      */
-    public static SequenceDefinition of(Supplier<DocumentPartDefinition> itemSupplier) {
+    public static SequenceDefinition of(final Supplier<DocumentPartDefinition> itemSupplier) {
         return new SequenceDefinition(new DocumentPartDefinition[] { itemSupplier.get() });
     }
 
@@ -566,7 +566,7 @@ public final class HtmlDsl {
      * @param completableFutureDefinition an asynchronous computation of a definition
      * @return a result definition
      */
-    public static DocumentPartDefinition of(CompletableFuture<? extends DocumentPartDefinition> completableFutureDefinition) {
+    public static DocumentPartDefinition of(final CompletableFuture<? extends DocumentPartDefinition> completableFutureDefinition) {
         return completableFutureDefinition.join();
     }
 
@@ -576,7 +576,7 @@ public final class HtmlDsl {
      * @param then a definition which may be inserted
      * @return a result definition
      */
-    public static DocumentPartDefinition when(boolean condition, DocumentPartDefinition then) {
+    public static DocumentPartDefinition when(final boolean condition, final DocumentPartDefinition then) {
         return when(condition, () -> then);
     }
 
@@ -587,7 +587,7 @@ public final class HtmlDsl {
      * @param then a {@link Supplier} of a definition which may be inserted
      * @return a result definition
      */
-    public static DocumentPartDefinition when(boolean condition, Supplier<DocumentPartDefinition> then) {
+    public static DocumentPartDefinition when(final boolean condition, final Supplier<DocumentPartDefinition> then) {
         return condition ? then.get() : EmptyDefinition.INSTANCE;
     }
 
@@ -608,7 +608,7 @@ public final class HtmlDsl {
         return new ElementRefDefinition();
     }
 
-    private static boolean isPropertyByDefault(String name) {
+    private static boolean isPropertyByDefault(final String name) {
         return DEFAULT_PROPERTIES_NAMES.contains(name);
     }
 

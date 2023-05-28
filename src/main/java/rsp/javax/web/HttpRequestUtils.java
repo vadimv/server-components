@@ -15,7 +15,7 @@ public final class HttpRequestUtils {
      * @param request a HTTP Servlet request
      * @return a HTTP request
      */
-    public static HttpRequest httpRequest(HttpServletRequest request) {
+    public static HttpRequest httpRequest(final HttpServletRequest request) {
         return new HttpRequest(httpMethod(request.getMethod()),
                                stringToURI(request.getRequestURI()),
                                request.getRequestURL().toString(),
@@ -29,7 +29,7 @@ public final class HttpRequestUtils {
      * @param handshakeRequest a WebSocket handshake request
      * @return a HTTP request
      */
-    public static HttpRequest httpRequest(HandshakeRequest handshakeRequest) {
+    public static HttpRequest httpRequest(final HandshakeRequest handshakeRequest) {
         return new HttpRequest(HttpRequest.HttpMethod.GET,
                                handshakeRequest.getRequestURI(),
                                handshakeRequest.getRequestURI().toString(),
@@ -38,18 +38,18 @@ public final class HttpRequestUtils {
                                name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)));
     }
 
-    private static URI stringToURI(String str) {
+    private static URI stringToURI(final String str) {
         try {
             return new URI(str);
-        } catch (URISyntaxException ex) {
+        } catch (final URISyntaxException ex) {
             throw new RuntimeException(ex);
         }
     }
 
-    private static HttpRequest.HttpMethod httpMethod(String method) {
+    private static HttpRequest.HttpMethod httpMethod(final String method) {
         try {
             return HttpRequest.HttpMethod.valueOf(method);
-        } catch (IllegalArgumentException ex) {
+        } catch (final IllegalArgumentException ex) {
             throw new RuntimeException("Unsupported HTTP method: " + method, ex);
         }
     }

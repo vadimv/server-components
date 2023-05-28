@@ -57,12 +57,12 @@ public final class JettyServer<S> {
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
-    public JettyServer(int port,
-                       String basePath,
-                       App<S> app,
-                       Optional<StaticResources> staticResources,
-                       Optional<SslConfiguration> sslConfiguration,
-                       int maxThreads) {
+    public JettyServer(final int port,
+                       final String basePath,
+                       final App<S> app,
+                       final Optional<StaticResources> staticResources,
+                       final Optional<SslConfiguration> sslConfiguration,
+                       final int maxThreads) {
         this.port = port;
         this.basePath = Objects.requireNonNull(Path.of(basePath));
         this.app = Objects.requireNonNull(app);
@@ -127,7 +127,7 @@ public final class JettyServer<S> {
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
                             .configurator(new Configurator() {
                                 @Override
-                                public <T> T getEndpointInstance(Class<T> clazz) throws InstantiationException {
+                                public <T> T getEndpointInstance(final Class<T> clazz) throws InstantiationException {
                                     if (clazz.equals(MainWebSocketEndpoint.class)) {
                                         @SuppressWarnings("unchecked")
                                         final T endpoint = (T) webSocketEndpoint;
@@ -138,9 +138,9 @@ public final class JettyServer<S> {
                                 }
 
                                 @Override
-                                public void modifyHandshake(ServerEndpointConfig conf,
-                                                            HandshakeRequest req,
-                                                            HandshakeResponse resp) {
+                                public void modifyHandshake(final ServerEndpointConfig conf,
+                                                            final HandshakeRequest req,
+                                                            final HandshakeResponse resp) {
                                     conf.getUserProperties().put(MainWebSocketEndpoint.HANDSHAKE_REQUEST_PROPERTY_NAME,
                                                                  HttpRequestUtils.httpRequest(req));
                                 }
@@ -159,10 +159,10 @@ public final class JettyServer<S> {
      * @param app an RSP application
      * @param staticResources a setup object for an optional static resources handler
      */
-    public JettyServer(int port,
-                       String basePath,
-                       App<S> app,
-                       StaticResources staticResources) {
+    public JettyServer(final int port,
+                       final String basePath,
+                       final App<S> app,
+                       final StaticResources staticResources) {
         this(port, basePath, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
@@ -174,11 +174,11 @@ public final class JettyServer<S> {
      * @param staticResources a setup object for an optional static resources handler
      * @param sslConfiguration the server's TLS configuration
      */
-    public JettyServer(int port,
-                       String basePath,
-                       App<S> app,
-                       StaticResources staticResources,
-                       SslConfiguration sslConfiguration) {
+    public JettyServer(final int port,
+                       final String basePath,
+                       final App<S> app,
+                       final StaticResources staticResources,
+                       final SslConfiguration sslConfiguration) {
         this(port, basePath, app, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
@@ -188,7 +188,7 @@ public final class JettyServer<S> {
      * @param basePath a context path of the web application
      * @param app an RSP application
      */
-    public JettyServer(int port, String basePath, App<S> app) {
+    public JettyServer(final int port, final String basePath, final App<S> app) {
         this(port, basePath, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
@@ -210,7 +210,7 @@ public final class JettyServer<S> {
     public void join() {
         try {
             server.join();
-        } catch (InterruptedException ex) {
+        } catch (final InterruptedException ex) {
             throw new RuntimeException(ex);
         }
     }
@@ -221,7 +221,7 @@ public final class JettyServer<S> {
     public void stop() {
         try {
             server.stop();
-        } catch (Exception ex) {
+        } catch (final Exception ex) {
             throw new RuntimeException(ex);
         }
     }

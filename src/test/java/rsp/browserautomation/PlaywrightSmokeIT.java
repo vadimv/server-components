@@ -42,11 +42,11 @@ public class PlaywrightSmokeIT {
         playwright.close();
     }
 
-    private void validatePageNotFound(Page page) {
+    private void validatePageNotFound(final Page page) {
         Assert.assertEquals(404, page.navigate("http://localhost:" + SimpleServer.PORT + "/none").status());
     }
 
-    private void validatePage(Page page) throws InterruptedException {
+    private void validatePage(final Page page) throws InterruptedException {
         Assert.assertEquals(200, page.navigate("http://localhost:" + SimpleServer.PORT + "/1").status());
         Assert.assertEquals("test-server-title", page.title());
 
@@ -65,15 +65,15 @@ public class PlaywrightSmokeIT {
         assertElementStyleAttributeEquals(page, "s0","background-color", "red");
     }
 
-    private void clickOnElement(Page page, String elementId) {
+    private void clickOnElement(final Page page, final String elementId) {
         page.click("#" + elementId);
     }
 
-    private static void assertElementTextEquals(Page page, String elementId, String expectedValue) {
+    private static void assertElementTextEquals(final Page page, final String elementId, final String expectedValue) {
         Assert.assertEquals(expectedValue, page.innerText("#" + elementId));
     }
 
-    private static void assertElementStyleAttributeEquals(Page page, String elementId, String styleName, String expectedValue) {
+    private static void assertElementStyleAttributeEquals(final Page page, final String elementId, final String styleName, final String expectedValue) {
         final Optional<String> s = BrowserUtils.style(page.getAttribute("#" + elementId, "style"),
                                          styleName);
         s.ifPresentOrElse(v -> Assert.assertEquals(expectedValue, v), () -> Assert.fail());

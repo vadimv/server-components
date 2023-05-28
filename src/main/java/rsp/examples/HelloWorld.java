@@ -9,7 +9,7 @@ import static rsp.html.HtmlDsl.*;
  * Run the class and navigate to http://localhost:8080.
  */
 public class HelloWorld {
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         final var app = new App<>("Hello world!",
                                    (sv, sc) -> html(
                                             body(

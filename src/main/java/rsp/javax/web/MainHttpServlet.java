@@ -23,21 +23,21 @@ public final class MainHttpServlet<S>  extends HttpServlet {
 
     private final PageRendering<S> pageRendering;
 
-    public MainHttpServlet(PageRendering<S> pageRendering) {
+    public MainHttpServlet(final PageRendering<S> pageRendering) {
         this.pageRendering = pageRendering;
     }
 
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) {
+    protected void doGet(final HttpServletRequest request, final HttpServletResponse response) {
         handleRequestAsync(request, response);
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+    protected void doPost(final HttpServletRequest request, final HttpServletResponse response) {
         handleRequestAsync(request, response);
     }
 
-    private void handleRequestAsync(HttpServletRequest request, HttpServletResponse response) {
+    private void handleRequestAsync(final HttpServletRequest request, final HttpServletResponse response) {
         final AsyncContext asyncContext = request.startAsync();
         asyncContext.start(() -> {
             final HttpRequest req = HttpRequestUtils.httpRequest(request);
@@ -61,7 +61,7 @@ public final class MainHttpServlet<S>  extends HttpServlet {
         });
     }
 
-    private static String exceptionDetails(Throwable ex) {
+    private static String exceptionDetails(final Throwable ex) {
         final StringBuilder sb = new StringBuilder();
         sb.append("500 Internal server error\n");
         sb.append("Exception: " + ex.getMessage() + "\n");
@@ -69,19 +69,19 @@ public final class MainHttpServlet<S>  extends HttpServlet {
         return sb.toString();
     }
 
-    private void setServletResponse(HttpResponse resp, HttpServletResponse response) {
+    private void setServletResponse(final HttpResponse resp, final HttpServletResponse response) {
         response.setStatus(resp.status);
 
         resp.headers.stream().forEach(h -> response.addHeader(h._1, h._2));
 
-        try(var inputStream = resp.bodyStream; var outputStream = response.getOutputStream()) {
+        try(final var inputStream = resp.bodyStream; final var outputStream = response.getOutputStream()) {
             copy(inputStream, outputStream);
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private static void copy(InputStream source, OutputStream target) throws IOException {
+    private static void copy(final InputStream source, final OutputStream target) throws IOException {
         final byte[] buf = new byte[DEFAULT_BUFFER_SIZE];
         int length;
         while ((length = source.read(buf)) > 0) {

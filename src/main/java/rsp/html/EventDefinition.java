@@ -55,11 +55,11 @@ public final class EventDefinition implements DocumentPartDefinition {
      *                       if false Event.preventDefault() is not called.
      * @param modifier the events filter modifier
      */
-    public EventDefinition(Optional<VirtualDomPath> elementPath,
-                           String eventType,
-                           Consumer<EventContext> handler,
-                           boolean preventDefault,
-                           Event.Modifier modifier) {
+    public EventDefinition(final Optional<VirtualDomPath> elementPath,
+                           final String eventType,
+                           final Consumer<EventContext> handler,
+                           final boolean preventDefault,
+                           final Event.Modifier modifier) {
         super();
         this.elementPath = elementPath;
         this.eventType = eventType;
@@ -75,9 +75,9 @@ public final class EventDefinition implements DocumentPartDefinition {
      * @param handler the event's handler
      * @param modifier the event's filter
      */
-    public EventDefinition(String eventType,
-                           Consumer<EventContext> handler,
-                           Event.Modifier modifier) {
+    public EventDefinition(final String eventType,
+                           final Consumer<EventContext> handler,
+                           final Event.Modifier modifier) {
         super();
         this.elementPath = Optional.empty();
         this.eventType = eventType;
@@ -95,10 +95,10 @@ public final class EventDefinition implements DocumentPartDefinition {
      *                       if false Event.preventDefault() is not called.
      * @param modifier the event's filter
      */
-    public EventDefinition(String eventType,
-                           Consumer<EventContext> handler,
-                           boolean preventDefault,
-                           Event.Modifier modifier) {
+    public EventDefinition(final String eventType,
+                           final Consumer<EventContext> handler,
+                           final boolean preventDefault,
+                           final Event.Modifier modifier) {
         super();
         this.elementPath = Optional.empty();
         this.eventType = eventType;
@@ -108,7 +108,7 @@ public final class EventDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         renderContext.addEvent(elementPath, eventType, handler, preventDefault, modifier);
     }
 
@@ -120,7 +120,7 @@ public final class EventDefinition implements DocumentPartDefinition {
      * @param timeFrameMs the throttle interval
      * @return a throttle filtered event definition
      */
-    public EventDefinition throttle(int timeFrameMs) {
+    public EventDefinition throttle(final int timeFrameMs) {
         return new EventDefinition(elementPath, eventType, handler, preventDefault, new Event.ThrottleModifier(timeFrameMs));
     }
 
@@ -135,7 +135,7 @@ public final class EventDefinition implements DocumentPartDefinition {
      * @param immediate true if the first event should be fired and false otherwise
      * @return a debounce filtered event definition
      */
-    public EventDefinition debounce(int waitMs, boolean immediate) {
+    public EventDefinition debounce(final int waitMs, final boolean immediate) {
         return new EventDefinition(elementPath, eventType, handler, preventDefault, new Event.DebounceModifier(waitMs, immediate));
     }
 
@@ -145,7 +145,7 @@ public final class EventDefinition implements DocumentPartDefinition {
      * @param waitMs the debounce interval
      * @return a debounce filtered event definition
      */
-    public EventDefinition debounce(int waitMs) {
+    public EventDefinition debounce(final int waitMs) {
         return new EventDefinition(elementPath, eventType, handler, preventDefault, new Event.DebounceModifier(waitMs, false));
     }
 }

@@ -36,8 +36,8 @@ public final class AppConfig {
      * @param heartbeatIntervalMs the rate of heartbeat messages from a browser to server
      * @param schedulerThreadPoolSize the application's scheduler thread pool size
      */
-    public AppConfig(int heartbeatIntervalMs,
-                     int schedulerThreadPoolSize) {
+    public AppConfig(final int heartbeatIntervalMs,
+                     final int schedulerThreadPoolSize) {
         this.heartbeatIntervalMs = heartbeatIntervalMs;
         this.schedulerThreadPoolSize = schedulerThreadPoolSize;
     }
@@ -47,7 +47,7 @@ public final class AppConfig {
      * @param heartbeatIntervalMs the rate of heartbeat messages from a browser to server
      * @return a new configuration object with the same field values except of the provided field
      */
-    public AppConfig heartbeatIntervalMs(int heartbeatIntervalMs) {
+    public AppConfig heartbeatIntervalMs(final int heartbeatIntervalMs) {
         return new AppConfig(heartbeatIntervalMs,
                              this.schedulerThreadPoolSize);
     }

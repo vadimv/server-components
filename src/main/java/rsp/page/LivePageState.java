@@ -15,11 +15,11 @@ public class LivePageState<S> implements Runnable {
 
     private LivePageSnapshot<S> snapshot;
 
-    public LivePageState(QualifiedSessionId qsid,
-                         LivePageSnapshot<S> snapshot,
-                         StateToRouteDispatch<S> state2route,
-                         BiFunction<String, PageRenderContext, PageRenderContext> enrich,
-                         OutMessages out) {
+    public LivePageState(final QualifiedSessionId qsid,
+                         final LivePageSnapshot<S> snapshot,
+                         final StateToRouteDispatch<S> state2route,
+                         final BiFunction<String, PageRenderContext, PageRenderContext> enrich,
+                         final OutMessages out) {
         this.snapshot = snapshot;
         this.qsid = qsid;
         this.state2route = state2route;
@@ -27,7 +27,7 @@ public class LivePageState<S> implements Runnable {
         this.out = out;
     }
 
-    public void setSnapshot(LivePageSnapshot snapshot) {
+    public void setSnapshot(final LivePageSnapshot snapshot) {
         this.snapshot = Objects.requireNonNull(snapshot);
     }
 
@@ -49,7 +49,7 @@ public class LivePageState<S> implements Runnable {
         final Set<Event> newEvents = new HashSet<>(newContext.events.values());
         // Unregister events
         final Set<Event> eventsToRemove = new HashSet<>();
-        for(Event event : oldEvents) {
+        for(final Event event : oldEvents) {
             if(!newEvents.contains(event) && !domChangePerformer.elementsToRemove.contains(event.eventTarget.elementPath)) {
                 eventsToRemove.add(event);
             }
@@ -62,7 +62,7 @@ public class LivePageState<S> implements Runnable {
 
         // Register new event types on client
         final Set<Event> eventsToAdd = new HashSet<>();
-        for(Event event : newEvents) {
+        for(final Event event : newEvents) {
             if(!oldEvents.contains(event)) {
                 eventsToAdd.add(event);
             }

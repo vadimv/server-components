@@ -17,7 +17,7 @@ public final class ReadOnly<S> implements UseState<S> {
      * Creates a new instance of the read-only container.
      * @param state an initial state snapshot
      */
-    public ReadOnly(S state) {
+    public ReadOnly(final S state) {
         this.state = state;
     }
 
@@ -27,22 +27,22 @@ public final class ReadOnly<S> implements UseState<S> {
     }
 
     @Override
-    public void accept(S state) {
+    public void accept(final S state) {
         throw new IllegalStateException("Set state is not allowed");
     }
 
     @Override
-    public void accept(CompletableFuture<S> completableFuture) {
+    public void accept(final CompletableFuture<S> completableFuture) {
         throw new IllegalStateException("Set state is not allowed");
     }
 
     @Override
-    public void accept(Function<S, S> function) {
+    public void accept(final Function<S, S> function) {
         throw new IllegalStateException("Set state is not allowed");
     }
 
     @Override
-    public void acceptOptional(Function<S, Optional<S>> function) {
+    public void acceptOptional(final Function<S, Optional<S>> function) {
         throw new IllegalStateException("Set state is not allowed");
     }
 }

@@ -17,16 +17,16 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
 
     private boolean headWasOpened = false;
 
-    private UpgradingPageRenderContext(PageRenderContext context, String pageInfo) {
+    private UpgradingPageRenderContext(final PageRenderContext context, final String pageInfo) {
         this.context = context;
         this.pageInfo = pageInfo;
     }
 
-    public static UpgradingPageRenderContext create(PageRenderContext context,
-                                                    String sessionId,
-                                                    String path,
-                                                    String connectionLostWidgetHtml,
-                                                    int heartBeatInterval) {
+    public static UpgradingPageRenderContext create(final PageRenderContext context,
+                                                    final String sessionId,
+                                                    final String path,
+                                                    final String connectionLostWidgetHtml,
+                                                    final int heartBeatInterval) {
         final String cfg = "window['kfg']={"
                 + "sid:'" + sessionId + "',"
                 + "r:'" + path + "',"
@@ -37,22 +37,22 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void setStatusCode(int statusCode) {
+    public void setStatusCode(final int statusCode) {
         context.setStatusCode(statusCode);
     }
 
     @Override
-    public void setHeaders(Map<String, String> headers) {
+    public void setHeaders(final Map<String, String> headers) {
         context.setHeaders(headers);
     }
 
     @Override
-    public void setDocType(String docType) {
+    public void setDocType(final String docType) {
         context.setDocType(docType);
     }
 
     @Override
-    public void openNode(XmlNs xmlNs, String name) {
+    public void openNode(final XmlNs xmlNs, final String name) {
         if (!headWasOpened && xmlNs.equals(XmlNs.html) && name.equals("body")) {
             // No <head> have opened above
             // it means a programmer didn't include head() in the page
@@ -66,7 +66,7 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void closeNode(String name, boolean upgrade) {
+    public void closeNode(final String name, final boolean upgrade) {
         if (headWasOpened && upgrade && name.equals("head")) {
             upgradeHeadTag();
         }
@@ -85,31 +85,31 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty) {
+    public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         context.setAttr(xmlNs, name, value, isProperty);
     }
 
     @Override
-    public void setStyle(String name, String value) {
+    public void setStyle(final String name, final String value) {
         context.setStyle(name, value);
     }
 
     @Override
-    public void addTextNode(String text) {
+    public void addTextNode(final String text) {
         context.addTextNode(text);
     }
 
     @Override
-    public void addEvent(Optional<VirtualDomPath> elementPath,
-                         String eventName,
-                         Consumer<EventContext> eventHandler,
-                         boolean preventDefault,
-                         Event.Modifier modifier) {
+    public void addEvent(final Optional<VirtualDomPath> elementPath,
+                         final String eventName,
+                         final Consumer<EventContext> eventHandler,
+                         final boolean preventDefault,
+                         final Event.Modifier modifier) {
        context.addEvent(elementPath, eventName, eventHandler, preventDefault, modifier);
     }
 
     @Override
-    public void addRef(Ref ref) {
+    public void addRef(final Ref ref) {
         context.addRef(ref);
     }
 

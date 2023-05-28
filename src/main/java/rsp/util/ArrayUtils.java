@@ -14,7 +14,7 @@ public final class ArrayUtils {
      * @param <T> the array's type
      * @return the result array
      */
-    public static <T> T[] concat(T[] first, T[] second) {
+    public static <T> T[] concat(final T[] first, final T[] second) {
         final T[] result = Arrays.copyOf(first, first.length + second.length);
         System.arraycopy(second, 0, result, first.length, second.length);
         return result;
@@ -27,7 +27,7 @@ public final class ArrayUtils {
      * @param <T> the array's and the item's type
      * @return the result array
      */
-    public static <T> T[] append(T[] array, T item) {
+    public static <T> T[] append(final T[] array, final T item) {
         final T[] a = Arrays.copyOf(array, array.length + 1);
         a[a.length - 1] = item;
         return a;

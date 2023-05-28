@@ -19,10 +19,10 @@ public final class PropertiesHandle {
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers;
     private final OutMessages out;
 
-    public PropertiesHandle(VirtualDomPath path,
-                            Supplier<Integer> descriptorSupplier,
-                            Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
-                            OutMessages out) {
+    public PropertiesHandle(final VirtualDomPath path,
+                            final Supplier<Integer> descriptorSupplier,
+                            final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
+                            final OutMessages out) {
         this.path = Objects.requireNonNull(path);
         this.descriptorSupplier = Objects.requireNonNull(descriptorSupplier);
         this.registeredEventHandlers = Objects.requireNonNull(registeredEventHandlers);
@@ -34,7 +34,7 @@ public final class PropertiesHandle {
      * @param propertyName a property name
      * @return CompletableFuture of the JSON data type
      */
-    public CompletableFuture<JsonDataType> get(String propertyName) {
+    public CompletableFuture<JsonDataType> get(final String propertyName) {
         final Integer newDescriptor = descriptorSupplier.get();
         final CompletableFuture<JsonDataType> valueFuture = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, valueFuture);
@@ -42,11 +42,11 @@ public final class PropertiesHandle {
         return valueFuture;
     }
 
-    public CompletionStage<String> getString(String propertyName) {
+    public CompletionStage<String> getString(final String propertyName) {
         return get(propertyName).thenApply(v -> v.toString());
     }
 
-    public CompletableFuture<Void> set(String propertyName, String value) {
+    public CompletableFuture<Void> set(final String propertyName, final String value) {
         out.modifyDom(List.of(new DefaultDomChangesPerformer.SetAttr(path, XmlNs.html, propertyName, value, true)));
         return new CompletableFuture<>();
     }

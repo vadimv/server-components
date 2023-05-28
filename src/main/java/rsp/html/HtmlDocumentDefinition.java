@@ -17,14 +17,14 @@ public final class HtmlDocumentDefinition extends TagDefinition {
     private final int statusCode;
     private final Map<String, String> headers;
 
-    public HtmlDocumentDefinition(int statusCode, Map<String, String> headers, DocumentPartDefinition... children) {
+    public HtmlDocumentDefinition(final int statusCode, final Map<String, String> headers, final DocumentPartDefinition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
         this.headers = Objects.requireNonNull(headers);
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         renderContext.setStatusCode(statusCode);
         renderContext.setHeaders(headers);
         renderContext.setDocType("<!DOCTYPE html>");
@@ -36,7 +36,7 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      * @param statusCode status code
      * @return an instance with the status code
      */
-    public HtmlDocumentDefinition statusCode(int statusCode) {
+    public HtmlDocumentDefinition statusCode(final int statusCode) {
         return new HtmlDocumentDefinition(statusCode, this.headers, this.children);
     }
 
@@ -45,7 +45,7 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      * @param headers the map containing headers
      * @return an instance with added headers
      */
-    public HtmlDocumentDefinition addHeaders(Map<String, String> headers) {
+    public HtmlDocumentDefinition addHeaders(final Map<String, String> headers) {
         return new HtmlDocumentDefinition(this.statusCode, mergeMaps(this.headers, headers), this.children);
     }
 
@@ -54,12 +54,12 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      * @param location Location header for redirection
      * @return and instance with the redirection status code and header
      */
-    public HtmlDocumentDefinition redirect(String location) {
+    public HtmlDocumentDefinition redirect(final String location) {
         return new HtmlDocumentDefinition(MOVED_TEMPORARILY_STATUS_CODE,
                                           mergeMaps(this.headers, Map.of("Location", location)), this.children);
     }
 
-    private static Map<String, String> mergeMaps(Map<String, String> m1, Map<String, String> m2) {
+    private static Map<String, String> mergeMaps(final Map<String, String> m1, final Map<String, String> m2) {
         final Map<String, String> result = new HashMap<>(m1);
         result.putAll(m2);
         return result;

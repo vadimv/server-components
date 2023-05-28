@@ -16,13 +16,13 @@ import java.util.stream.Collectors;
  */
 public final class JsCompiler {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(final String[] args) throws IOException {
         if (assembleJs(new File(args[0]), new File(args[1]), args[2]).errors.size() > 0) {
             System.exit(1);
         }
     }
 
-    public static Result assembleJs(File sourceDir, File targetDir, String baseName) throws IOException {
+    public static Result assembleJs(final File sourceDir, final File targetDir, final String baseName) throws IOException {
         System.out.println("Assembling ES6 sources using Google Closure Compiler");
         if (!sourceDir.isDirectory()) {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " sources directory expected");
@@ -50,7 +50,7 @@ public final class JsCompiler {
         return result;
     }
 
-    private static List<SourceFile> inputs(File sourceDir) {
+    private static List<SourceFile> inputs(final File sourceDir) {
         return Arrays.stream(sourceDir.listFiles()).map(file -> {
                 final String path = file.getAbsolutePath();
                 final Charset charset = StandardCharsets.UTF_8;
@@ -58,7 +58,7 @@ public final class JsCompiler {
             }).collect(Collectors.toList());
     }
 
-    private static CompilerOptions options(File source, File sourceMapOutputFile) {
+    private static CompilerOptions options(final File source, final File sourceMapOutputFile) {
         final CompilerOptions options = new CompilerOptions();
         options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT_2015);
         options.setLanguageOut(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);

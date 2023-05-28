@@ -22,7 +22,7 @@ import static rsp.routing.RoutingDsl.*;
  * </ul>
  */
 public class PlainForm {
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         final App<Optional<FullName>> app = new App<>(route(),
                                                       pages());
         final var server = new JettyServer<>(8080, "", app);
@@ -34,7 +34,7 @@ public class PlainForm {
         public final String firstName;
         public final String secondName;
 
-        public FullName(String firstName, String secondName) {
+        public FullName(final String firstName, final String secondName) {
             this.firstName = Objects.requireNonNull(firstName);
             this.secondName = Objects.requireNonNull(secondName);
         }

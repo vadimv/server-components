@@ -14,21 +14,21 @@ public final class Tag implements Node {
     public final CopyOnWriteArraySet<Style> styles = new CopyOnWriteArraySet<>();
     public final List<Node> children = new ArrayList<>();
 
-    public Tag(VirtualDomPath path, XmlNs xmlns, String name) {
+    public Tag(final VirtualDomPath path, final XmlNs xmlns, final String name) {
         this.path = path;
         this.xmlns = xmlns;
         this.name = name;
     }
 
-    public void addChild(Node node) {
+    public void addChild(final Node node) {
         children.add(node);
     }
 
-    public void addAttribute(String name, String value, boolean isProperty) {
+    public void addAttribute(final String name, final String value, final boolean isProperty) {
         attributes.add(new Attribute(name, value, isProperty));
     }
 
-    public void addStyle(String name, String value) {
+    public void addStyle(final String name, final String value) {
         styles.add(new Style(name, value));
     }
 
@@ -42,12 +42,12 @@ public final class Tag implements Node {
     }
 
     @Override
-    public void appendString(StringBuilder sb) {
+    public void appendString(final StringBuilder sb) {
         sb.append('<');
         sb.append(name);
         if (styles.size() > 0) {
             sb.append(" style=\"");
-            for (Style style: styles) {
+            for (final Style style: styles) {
                 sb.append(style.name);
                 sb.append(":");
                 sb.append(style.value);
@@ -56,7 +56,7 @@ public final class Tag implements Node {
             sb.append('"');
         }
         if (attributes.size() > 0) {
-            for (Attribute attribute: attributes) {
+            for (final Attribute attribute: attributes) {
                 sb.append(' ');
                 sb.append(attribute.name);
                 sb.append('=');
@@ -68,7 +68,7 @@ public final class Tag implements Node {
         sb.append('>');
 
         if (children.size() > 0) {
-            for (Node childNode: children) {
+            for (final Node childNode: children) {
                 childNode.appendString(sb);
             }
         }

@@ -205,7 +205,7 @@ sealed interfaces and pattern matching in Java 17:
     /**
      * An event handler, makes the page's FSM transition.
      */
-    public static void userSelected(UseState<State> s, User user) {
+    public static void userSelected(final UseState<State> s, final User user) {
         s.accept(new UserState(user));
     }
 
@@ -247,7 +247,7 @@ To respond to browser events, register a page DOM event handler by adding an ``o
                 s.accept(new State(s.get().counter + 1));
             }));
     ...
-    static class State { final int counter; State(int counter) { this.counter = counter; } }
+    static class State { final int counter; State(final int counter) { this.counter = counter; } }
 ```
 
 When an event occurs:
@@ -358,19 +358,23 @@ up to the root component's context
 
 ```java
     ...
-    public static Component<ConfirmPanelState> confirmPanelComponent(String text) {
-        return s -> div(attr("class", "panel"),
-                         span(text),
-                         buttonComponent("Ok").render(new ButtonState(), 
-                                                      buttonState -> s.accept(new ConfimPanelState(true))),
-                         buttonComponent("Cancel").render(new ButtonState(), 
-                                                          buttonState -> s.accept(new ConfimPanelState(false)));
-        
+public static Component<ConfirmPanelState> confirmPanelComponent(String text){
+        return s->div(attr("class","panel"),
+        span(text),
+        buttonComponent("Ok").render(new ButtonState(),
+        buttonState->s.accept(new ConfimPanelState(true))),
+        buttonComponent("Cancel").render(new ButtonState(),
+        buttonState->s.accept(new ConfimPanelState(false)));
+
+        }
+
+public static class ConfirmPanelState {
+    public final boolean confirmed;
+
+    public ConfirmPanelState(final boolean confirmed) {
+        this.confirmed = confirmed;
     }
-    public static class ConfirmPanelState {
-        public final boolean confirmed;
-        public ConfirmPanelState(boolean confirmed) { this.confirmed = confirmed; }
-    }
+}
 ```
 
 An application's top-level ``Component<S>`` is the root of its component tree.

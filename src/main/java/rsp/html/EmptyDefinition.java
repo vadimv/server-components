@@ -19,7 +19,7 @@ final class EmptyDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         // no-op
     }
 }

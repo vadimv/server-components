@@ -1,7 +1,7 @@
 package rsp.util.json;
 
 public final class JsonUtils {
-    public static String unescape(String s) {
+    public static String unescape(final String s) {
         final StringBuilder sb = new StringBuilder();
         int i = 0;
         final int len = s.length() - 1;
@@ -33,10 +33,10 @@ public final class JsonUtils {
         return sb.toString();
     }
 
-    public static String escape(String s) {
+    public static String escape(final String s) {
         final StringBuilder sb = new StringBuilder();
         int i = 0;
-        int len = s.length();
+        final int len = s.length();
         while (i < len) {
             final char c = s.charAt(i);
             switch(c) {

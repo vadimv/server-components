@@ -20,7 +20,7 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         stateUpdateListener = renderContext.getStateNotificationListener();
         final DocumentPartDefinition documentPartDefinition = createViewFunction.apply(state, s -> {
             state = s;

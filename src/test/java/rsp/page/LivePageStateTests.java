@@ -41,7 +41,7 @@ public class LivePageStateTests {
                             out.commands);
     }
 
-    private LivePageState<State> create(State state, OutMessages out) {
+    private LivePageState<State> create(final State state, final OutMessages out) {
         final CreateViewFunction<State> rootCreateViewFunction = (sv, sc) -> span(sv.toString());
 
         final LivePageSnapshot<State> lpps = new LivePageSnapshot<>(null,
@@ -56,7 +56,7 @@ public class LivePageStateTests {
         return new LivePageState<>(QID, lpps, state2route, enrichFunction(), out);
     }
 
-    private static Tag domRoot(CreateViewFunction<State> component, State state) {
+    private static Tag domRoot(final CreateViewFunction<State> component, final State state) {
         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(null);
         component.apply(state, s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
@@ -80,7 +80,7 @@ public class LivePageStateTests {
     private static class State {
         public final int value;
 
-        private State(int value) {
+        private State(final int value) {
             this.value = value;
         }
 
@@ -94,12 +94,12 @@ public class LivePageStateTests {
         public final List<Message> commands = new ArrayList<>();
 
         @Override
-        public void setRenderNum(int renderNum) {
+        public void setRenderNum(final int renderNum) {
             commands.add(new SetRenderNumOutMessage(renderNum));
         }
 
         @Override
-        public void listenEvents(List<Event> events) {
+        public void listenEvents(final List<Event> events) {
                 commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType,
                                                                                    e.preventDefault,
                                                                                    e.eventTarget.elementPath,
@@ -107,48 +107,48 @@ public class LivePageStateTests {
         }
 
         @Override
-        public void forgetEvent(String eventType, VirtualDomPath elementPath) {
+        public void forgetEvent(final String eventType, final VirtualDomPath elementPath) {
             commands.add(new ForgetEventOutMessage(eventType, elementPath));
 
         }
 
         @Override
-        public void extractProperty(int descriptor, VirtualDomPath path, String name) {
+        public void extractProperty(final int descriptor, final VirtualDomPath path, final String name) {
             commands.add(new ExtractPropertyOutMessage(descriptor, path, name));
         }
 
         @Override
-        public void modifyDom(List<DefaultDomChangesPerformer.DomChange> domChange) {
+        public void modifyDom(final List<DefaultDomChangesPerformer.DomChange> domChange) {
             commands.add(new ModifyDomOutMessage(domChange));
         }
 
         @Override
-        public void setHref(String path) {
+        public void setHref(final String path) {
             throw new IllegalStateException();
         }
 
         @Override
-        public void pushHistory(String path) {
+        public void pushHistory(final String path) {
             commands.add(new PushHistoryMessage(path));
         }
 
         @Override
-        public void evalJs(int descriptor, String js) {
+        public void evalJs(final int descriptor, final String js) {
             throw new IllegalStateException();
         }
     }
 
     final static class SetRenderNumOutMessage implements Message {
         public final int renderNum;
-        SetRenderNumOutMessage(int renderNum) {
+        SetRenderNumOutMessage(final int renderNum) {
             this.renderNum = renderNum;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            SetRenderNumOutMessage that = (SetRenderNumOutMessage) o;
+            final SetRenderNumOutMessage that = (SetRenderNumOutMessage) o;
             return renderNum == that.renderNum;
         }
 
@@ -166,7 +166,7 @@ public class LivePageStateTests {
         public final VirtualDomPath path;
         public final Event.Modifier modifier;
 
-        public ListenEventOutMessage(String eventType, boolean preventDefault, VirtualDomPath path, Event.Modifier modifier) {
+        public ListenEventOutMessage(final String eventType, final boolean preventDefault, final VirtualDomPath path, final Event.Modifier modifier) {
             this.eventType = eventType;
             this.preventDefault = preventDefault;
             this.path = path;
@@ -174,10 +174,10 @@ public class LivePageStateTests {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ListenEventOutMessage that = (ListenEventOutMessage) o;
+            final ListenEventOutMessage that = (ListenEventOutMessage) o;
             return preventDefault == that.preventDefault &&
                     Objects.equals(eventType, that.eventType) &&
                     Objects.equals(path, that.path) &&
@@ -194,16 +194,16 @@ public class LivePageStateTests {
         public final String eventType;
         public final VirtualDomPath elementPath;
 
-        public ForgetEventOutMessage(String eventType, VirtualDomPath elementPath) {
+        public ForgetEventOutMessage(final String eventType, final VirtualDomPath elementPath) {
             this.eventType = eventType;
             this.elementPath = elementPath;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ForgetEventOutMessage that = (ForgetEventOutMessage) o;
+            final ForgetEventOutMessage that = (ForgetEventOutMessage) o;
             return Objects.equals(eventType, that.eventType) &&
                     Objects.equals(elementPath, that.elementPath);
         }
@@ -219,17 +219,17 @@ public class LivePageStateTests {
         public final VirtualDomPath path;
         public final String name;
 
-        public ExtractPropertyOutMessage(int descriptor, VirtualDomPath path, String name) {
+        public ExtractPropertyOutMessage(final int descriptor, final VirtualDomPath path, final String name) {
             this.descriptor = descriptor;
             this.path = path;
             this.name = name;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ExtractPropertyOutMessage that = (ExtractPropertyOutMessage) o;
+            final ExtractPropertyOutMessage that = (ExtractPropertyOutMessage) o;
             return descriptor == that.descriptor &&
                     Objects.equals(path, that.path) &&
                     Objects.equals(name, that.name);
@@ -244,15 +244,15 @@ public class LivePageStateTests {
     static final class ModifyDomOutMessage implements Message {
         public final List<DefaultDomChangesPerformer.DomChange> domChange;
 
-        ModifyDomOutMessage(List<DefaultDomChangesPerformer.DomChange> domChange) {
+        ModifyDomOutMessage(final List<DefaultDomChangesPerformer.DomChange> domChange) {
             this.domChange = domChange;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            ModifyDomOutMessage that = (ModifyDomOutMessage) o;
+            final ModifyDomOutMessage that = (ModifyDomOutMessage) o;
             return Objects.equals(domChange, that.domChange);
         }
 
@@ -272,12 +272,12 @@ public class LivePageStateTests {
     static final class PushHistoryMessage implements Message {
         public final String path;
 
-        public PushHistoryMessage(String path) {
+        public PushHistoryMessage(final String path) {
             this.path = path;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final PushHistoryMessage that = (PushHistoryMessage) o;

@@ -5,16 +5,16 @@ import java.util.Objects;
 public final class Style {
     public final String name;
     public final String value;
-    public Style(String name, String value) {
+    public Style(final String name, final String value) {
         this.name = name;
         this.value = value;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Style attribute = (Style) o;
+        final Style attribute = (Style) o;
         return Objects.equals(name, attribute.name) &&
                 Objects.equals(value, attribute.value);
     }

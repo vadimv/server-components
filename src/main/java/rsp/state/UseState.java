@@ -14,10 +14,10 @@ import java.util.function.Supplier;
 public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFutureConsumer<S>, FunctionConsumer<S> {
 
 
-    static <S> UseState<S> readWriteInCompletableFuture(Supplier<S> supplier, CompletableFutureConsumer<S> completableFutureConsumer) {
+    static <S> UseState<S> readWriteInCompletableFuture(final Supplier<S> supplier, final CompletableFutureConsumer<S> completableFutureConsumer) {
         return new UseState<>() {
             @Override
-            public void accept(S s) {
+            public void accept(final S s) {
                 accept(CompletableFuture.completedFuture(s));
             }
 
@@ -27,26 +27,26 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             }
 
             @Override
-            public void accept(CompletableFuture<S> cf) {
+            public void accept(final CompletableFuture<S> cf) {
                 completableFutureConsumer.accept(cf);
             }
 
             @Override
-            public void accept(Function<S, S> f) {
+            public void accept(final Function<S, S> f) {
                 accept(new CompletableFuture<S>().thenApply(f));
             }
 
             @Override
-            public void acceptOptional(Function<S, Optional<S>> function) {
+            public void acceptOptional(final Function<S, Optional<S>> function) {
                 function.apply(supplier.get()).ifPresent(s -> accept(s));
             }
         };
     }
 
-    static <S> UseState<S> readWriteInFunction(Supplier<S> supplier, FunctionConsumer<S> functionConsumer) {
+    static <S> UseState<S> readWriteInFunction(final Supplier<S> supplier, final FunctionConsumer<S> functionConsumer) {
         return new UseState<>() {
             @Override
-            public void accept(S s) {
+            public void accept(final S s) {
                 functionConsumer.accept(p -> s);
             }
 
@@ -56,17 +56,17 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             }
 
             @Override
-            public void accept(CompletableFuture<S> completableFuture) {
+            public void accept(final CompletableFuture<S> completableFuture) {
                 completableFuture.thenAccept(s -> accept(s));
             }
 
             @Override
-            public void accept(Function<S, S> f) {
+            public void accept(final Function<S, S> f) {
                 functionConsumer.accept(f);
             }
 
             @Override
-            public void acceptOptional(Function<S, Optional<S>> function) {
+            public void acceptOptional(final Function<S, Optional<S>> function) {
                 function.apply(get()).ifPresent(s -> functionConsumer.accept(p -> s));
             }
 
@@ -81,16 +81,16 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
      * @param <S> the type of the state snapshot, an immutable class
      * @return a read-write wrapper instance
      */
-    static <S> UseState<S> readWrite(Supplier<S> supplier, Consumer<S> consumer) {
+    static <S> UseState<S> readWrite(final Supplier<S> supplier, final Consumer<S> consumer) {
         return new UseState<>() {
 
             @Override
-            public void accept(Function<S, S> function) {
+            public void accept(final Function<S, S> function) {
                 consumer.accept(function.apply(supplier.get()));
             }
 
             @Override
-            public void acceptOptional(Function<S, Optional<S>> function) {
+            public void acceptOptional(final Function<S, Optional<S>> function) {
                 function.apply(get()).ifPresent(s -> consumer.accept(s));
             }
 
@@ -100,12 +100,12 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             }
 
             @Override
-            public void accept(S s) {
+            public void accept(final S s) {
                 consumer.accept(s);
             }
 
             @Override
-            public void accept(CompletableFuture<S> completableFuture) {
+            public void accept(final CompletableFuture<S> completableFuture) {
                 completableFuture.thenAccept(s -> consumer.accept(s));
             }
         };
@@ -118,7 +118,7 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
      * @param <S> the type of the state snapshot, an immutable class
      * @return a read-only wrapper instance
      */
-    static <S> UseState<S> readOnly(Supplier<S> supplier) {
+    static <S> UseState<S> readOnly(final Supplier<S> supplier) {
         return new UseState<>() {
 
             @Override
@@ -127,22 +127,22 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             }
 
             @Override
-            public void accept(S s) {
+            public void accept(final S s) {
                 throw new IllegalStateException("Not allowed for a read-only UseState instance");
             }
 
             @Override
-            public void accept(CompletableFuture<S> completableFuture) {
+            public void accept(final CompletableFuture<S> completableFuture) {
                 throw new IllegalStateException("Not allowed for a read-only UseState instance");
             }
 
             @Override
-            public void accept(Function<S, S> function) {
+            public void accept(final Function<S, S> function) {
                 throw new IllegalStateException("Not allowed for a read-only UseState instance");
             }
 
             @Override
-            public void acceptOptional(Function<S, Optional<S>> function) {
+            public void acceptOptional(final Function<S, Optional<S>> function) {
                 throw new IllegalStateException("Not allowed for a read-only UseState instance");
             }
         };
@@ -154,16 +154,16 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
      * @param <S> the type of the state snapshot, an immutable class
      * @return a read-write wrapper instance
      */
-    static <S> UseState<S> writeOnly(Consumer<S> consumer) {
+    static <S> UseState<S> writeOnly(final Consumer<S> consumer) {
         return new UseState<>() {
 
             @Override
-            public void accept(Function<S, S> function) {
+            public void accept(final Function<S, S> function) {
                 throw new IllegalStateException("Not allowed for a write-only UseState instance");
             }
 
             @Override
-            public void acceptOptional(Function<S, Optional<S>> function) {
+            public void acceptOptional(final Function<S, Optional<S>> function) {
                 function.apply(get()).ifPresent(s -> consumer.accept(s));
             }
 
@@ -173,12 +173,12 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             }
 
             @Override
-            public void accept(S s) {
+            public void accept(final S s) {
                 consumer.accept(s);
             }
 
             @Override
-            public void accept(CompletableFuture<S> completableFuture) {
+            public void accept(final CompletableFuture<S> completableFuture) {
                 completableFuture.thenAccept(s -> consumer.accept(s));
             }
         };
@@ -198,22 +198,22 @@ public interface UseState<S> extends Supplier<S>, Consumer<S>, CompletableFuture
             }
 
             @Override
-            public void accept(Void s) {
+            public void accept(final Void s) {
                 throw new IllegalStateException("Not allowed for the Void type");
             }
 
             @Override
-            public void accept(CompletableFuture<Void> completableFuture) {
+            public void accept(final CompletableFuture<Void> completableFuture) {
                 throw new IllegalStateException("Not allowed for the Void type");
             }
 
             @Override
-            public void accept(Function<Void, Void> function) {
+            public void accept(final Function<Void, Void> function) {
                 throw new IllegalStateException("Not allowed for the Void type");
             }
 
             @Override
-            public void acceptOptional(Function<Void, Optional<Void>> function) {
+            public void acceptOptional(final Function<Void, Optional<Void>> function) {
                 throw new IllegalStateException("Not allowed for the Void type");
             }
         };

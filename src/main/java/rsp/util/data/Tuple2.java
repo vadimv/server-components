@@ -23,7 +23,7 @@ public final class Tuple2<S, T> {
      * @param _1 the first element
      * @param _2 the second element
      */
-    public Tuple2(S _1, T _2) {
+    public Tuple2(final S _1, final T _2) {
         this._1 = _1;
         this._2 = _2;
     }
@@ -36,15 +36,15 @@ public final class Tuple2<S, T> {
      * @param <T> the second element's type
      * @return a new instance
      */
-    public static <S, T> Tuple2<S, T> of(S _1, T _2) {
+    public static <S, T> Tuple2<S, T> of(final S _1, final T _2) {
         return new Tuple2<>(_1, _2);
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Tuple2<?, ?> tuple2 = (Tuple2<?, ?>) o;
+        final Tuple2<?, ?> tuple2 = (Tuple2<?, ?>) o;
         return Objects.equals(_1, tuple2._1) &&
                 Objects.equals(_2, tuple2._2);
     }

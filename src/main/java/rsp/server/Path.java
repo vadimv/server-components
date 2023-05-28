@@ -23,7 +23,7 @@ public final class Path {
      * @param isAbsolute true if the path is absolute, false is the path is relative
      * @param elements the path's elements
      */
-    public Path(boolean isAbsolute, String... elements) {
+    public Path(final boolean isAbsolute, final String... elements) {
         this.isAbsolute = isAbsolute;
         this.elements = elements;
     }
@@ -33,7 +33,7 @@ public final class Path {
      * @param segments paths segments
      * @return a path object
      */
-    public static Path absolute(String... segments) {
+    public static Path absolute(final String... segments) {
         return new Path(true, segments);
     }
 
@@ -42,7 +42,7 @@ public final class Path {
      * @param segments paths segments
      * @return a path object
      */
-    public static Path relative(String... segments) {
+    public static Path relative(final String... segments) {
         return new Path(false, segments);
     }
 
@@ -52,7 +52,7 @@ public final class Path {
      *            if starts with '/' then the path is absolute, otherwise the path is relative
      * @return a path object
      */
-    public static Path of(String str) {
+    public static Path of(final String str) {
         final String trimmedStr = str.trim();
         final String[] tokens = Arrays.stream(trimmedStr.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
         return new Path(trimmedStr.startsWith("/"), tokens);
@@ -64,14 +64,14 @@ public final class Path {
      * @param path the path to resolve
      * @return the result path
      */
-    public Path resolve(Path path) {
+    public Path resolve(final Path path) {
         if (path.isAbsolute) {
             return path;
         }
         return new Path(this.isAbsolute, ArrayUtils.concat(this.elements, path.elements));
     }
 
-    public Path relativize(Path path) {
+    public Path relativize(final Path path) {
         return new Path(false);// TODO
     }
 
@@ -82,7 +82,7 @@ public final class Path {
      * @throws IllegalArgumentException if index is out of this path elements number,
      *         or this path has zero elements
      */
-    public String get(int index) {
+    public String get(final int index) {
         if (index >=0 && index < elements.length)
         {
             return elements[index];
@@ -108,10 +108,10 @@ public final class Path {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Path path = (Path) o;
+        final Path path = (Path) o;
         return isAbsolute == path.isAbsolute &&
                 Arrays.equals(elements, path.elements);
     }
@@ -149,7 +149,7 @@ public final class Path {
      * @param s the string to check
      * @return true if the path ends with the element and false if it is not
      */
-    public boolean endsWith(String s) {
+    public boolean endsWith(final String s) {
         return elements.length != 0 && elements[elements.length - 1].equals(s);
     }
 
@@ -158,7 +158,7 @@ public final class Path {
      * @param s the string to check
      * @return true if the path starts with the element and false if it is not
      */
-    public boolean startsWith(String s) {
+    public boolean startsWith(final String s) {
         return elements.length != 0 && elements[0].equals(s);
     }
 }

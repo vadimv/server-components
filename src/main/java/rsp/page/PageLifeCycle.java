@@ -32,12 +32,12 @@ public interface PageLifeCycle<S> {
     class Default<S> implements PageLifeCycle<S> {
 
         @Override
-        public void beforeLivePageCreated(QualifiedSessionId sid, UseState<S> useState) {
+        public void beforeLivePageCreated(final QualifiedSessionId sid, final UseState<S> useState) {
             //no-op
         }
 
         @Override
-        public void afterLivePageClosed(QualifiedSessionId sid, S state) {
+        public void afterLivePageClosed(final QualifiedSessionId sid, final S state) {
             //no-op
         }
     }

@@ -9,7 +9,7 @@ public final class ExceptionsUtils {
      * @param ex an exception
      * @return the result string
      */
-    public static String stackTraceToString(Throwable ex) {
+    public static String stackTraceToString(final Throwable ex) {
         final StringWriter sw = new StringWriter();
         final PrintWriter pw = new PrintWriter(sw);
         ex.printStackTrace(pw);

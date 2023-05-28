@@ -118,7 +118,7 @@ public class SerializeOutMessagesTests {
         Assert.assertEquals("[15,\"click\",\"1_1\"]", c.result);
     }
 
-    private SerializeOutMessages create(Consumer<String> consumer) {
+    private SerializeOutMessages create(final Consumer<String> consumer) {
         return new SerializeOutMessages(consumer);
     }
 
@@ -127,7 +127,7 @@ public class SerializeOutMessagesTests {
         public String result;
 
         @Override
-        public void accept(String message) {
+        public void accept(final String message) {
             result = message;
         }
     }

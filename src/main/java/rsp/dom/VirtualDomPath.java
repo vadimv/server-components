@@ -11,11 +11,11 @@ public final class VirtualDomPath {
 
     private final int[] array;
 
-    public VirtualDomPath(int... xs) {
+    public VirtualDomPath(final int... xs) {
         array = xs;
     }
 
-    public static VirtualDomPath of(String path) {
+    public static VirtualDomPath of(final String path) {
         return new VirtualDomPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(s -> Integer.parseInt(s)).toArray());
     }
 
@@ -45,14 +45,14 @@ public final class VirtualDomPath {
         }
     }
 
-    public VirtualDomPath childNumber(int num) {
+    public VirtualDomPath childNumber(final int num) {
         final VirtualDomPath childPath = incLevel();
         childPath.array[childPath.level() - 1] = num;
         return childPath;
     }
 
-    private VirtualDomPath take(int level) {
-        int[] na = new int[level];
+    private VirtualDomPath take(final int level) {
+        final int[] na = new int[level];
         System.arraycopy(array, 0, na, 0, level);
         return new VirtualDomPath(na);
     }
@@ -67,7 +67,7 @@ public final class VirtualDomPath {
     }
 
     @Override
-    public boolean equals(Object other) {
+    public boolean equals(final Object other) {
         if (other instanceof VirtualDomPath) {
             return Arrays.equals(array, ((VirtualDomPath) other).array);
         }

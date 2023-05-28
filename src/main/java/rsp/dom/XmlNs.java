@@ -12,7 +12,7 @@ public final class XmlNs {
     public final String name;
     public final String uri;
 
-    public XmlNs(String name, String uri) {
+    public XmlNs(final String name, final String uri) {
         this.name = name;
         this.uri = uri;
     }
@@ -23,10 +23,10 @@ public final class XmlNs {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        XmlNs xmlNs = (XmlNs) o;
+        final XmlNs xmlNs = (XmlNs) o;
         return Objects.equals(name, xmlNs.name) &&
                 Objects.equals(uri, xmlNs.uri);
     }

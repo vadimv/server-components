@@ -19,14 +19,14 @@ public class TagDefinition extends BaseDocumentPartDefinition {
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public TagDefinition(XmlNs ns, String name, DocumentPartDefinition... children) {
+    public TagDefinition(final XmlNs ns, final String name, final DocumentPartDefinition... children) {
         this.ns = Objects.requireNonNull(ns);
         this.name = Objects.requireNonNull(name);
         this.children = children;
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         renderContext.openNode(ns, name);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, true);

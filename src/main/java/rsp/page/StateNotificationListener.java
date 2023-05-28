@@ -8,7 +8,7 @@ public class StateNotificationListener {
         livePageState.run();
     }
 
-    public <S> void setListener(Runnable livePageState) {
+    public <S> void setListener(final Runnable livePageState) {
         this.livePageState = livePageState;
     }
 }

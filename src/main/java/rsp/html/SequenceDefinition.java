@@ -14,13 +14,13 @@ public final class SequenceDefinition extends BaseDocumentPartDefinition {
      * Creates a definition of a sequence of nodes definitions.
      * @param items to be rendered one ofter another
      */
-    public SequenceDefinition(DocumentPartDefinition[] items) {
+    public SequenceDefinition(final DocumentPartDefinition[] items) {
         super();
         this.items = items;
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         Arrays.stream(items).forEach(c -> c.render(renderContext));
     }
 }

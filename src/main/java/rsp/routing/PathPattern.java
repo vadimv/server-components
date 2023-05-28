@@ -18,7 +18,7 @@ public final class PathPattern {
 
     private static final Pattern FIND_REGEX = Pattern.compile("\\(.*\\)");
 
-    private PathPattern(List<String> patternSegments, int[] paramsIndexes, Map<Integer, Pattern> regexes) {
+    private PathPattern(final List<String> patternSegments, final int[] paramsIndexes, final Map<Integer, Pattern> regexes) {
         this.patternSegments = patternSegments;
         this.paramsIndexes = paramsIndexes;
         this.regexes = regexes;
@@ -38,12 +38,12 @@ public final class PathPattern {
      * @param pattern the path pattern
      * @return a result path pattern
      */
-    public static PathPattern of(String pattern) {
+    public static PathPattern of(final String pattern) {
         final Tuple2<List<String>, Map<Integer, Pattern>> p = parse(pattern);
         return new PathPattern(p._1, paramsIndexes(p._1), p._2);
     }
 
-    private static Tuple2<List<String>, Map<Integer, Pattern>> parse(String pattern) {
+    private static Tuple2<List<String>, Map<Integer, Pattern>> parse(final String pattern) {
         final String[] segments = Arrays.stream(pattern.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
         final List<String> l = new ArrayList<>();
         final Map<Integer, Pattern> regexMap = new HashMap<>();
@@ -66,7 +66,7 @@ public final class PathPattern {
         return new Tuple2<>(l, regexMap);
     }
 
-    private static int[] paramsIndexes(List<String> patternSegments) {
+    private static int[] paramsIndexes(final List<String> patternSegments) {
         final List<Integer> l = new ArrayList<>();
         for (int i = 0; i < patternSegments.size(); i++) {
             if (isParam(patternSegments.get(i))) {
@@ -76,7 +76,7 @@ public final class PathPattern {
         return l.stream().mapToInt(i -> i).toArray();
     }
 
-    public boolean match(Path path) {
+    public boolean match(final Path path) {
         if (path.isEmpty() && (patternSegments.size() == 0 || isWildcard(patternSegments.get(0)))) {
             return true;
         }
@@ -96,11 +96,11 @@ public final class PathPattern {
                 || (path.size() > patternSegments.size() && isWildcard(patternSegments.get(i -1))) ;
     }
 
-    private static boolean isParam(String str) {
+    private static boolean isParam(final String str) {
         return str.startsWith(":");
     }
 
-    private static boolean isWildcard(String str) {
+    private static boolean isWildcard(final String str) {
         return str.equals("*");
     }
 }

@@ -33,11 +33,11 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public MainWebSocketEndpoint(StateToRouteDispatch<S> state2route,
-                                 Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages,
-                                 BiFunction<String, PageRenderContext, PageRenderContext> enrich,
-                                 Supplier<ScheduledExecutorService> schedulerSupplier,
-                                 PageLifeCycle<S> lifeCycleEventsListener) {
+    public MainWebSocketEndpoint(final StateToRouteDispatch<S> state2route,
+                                 final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages,
+                                 final BiFunction<String, PageRenderContext, PageRenderContext> enrich,
+                                 final Supplier<ScheduledExecutorService> schedulerSupplier,
+                                 final PageLifeCycle<S> lifeCycleEventsListener) {
         this.state2route = state2route;
         this.renderedPages = renderedPages;
         this.enrich = enrich;
@@ -46,7 +46,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     }
 
     @Override
-    public void onOpen(Session session, EndpointConfig endpointConfig) {
+    public void onOpen(final Session session, final EndpointConfig endpointConfig) {
         logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
         final OutMessages out = new SerializeOutMessages((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
@@ -77,7 +77,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             final DeserializeInMessage in = new DeserializeInMessage(livePage);
             session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
-                public void onMessage(String s) {
+                public void onMessage(final String s) {
                     logger.log(TRACE, () -> session.getId() + " -> " + s);
                     in.parse(s);
                 }
@@ -89,28 +89,28 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         }
     }
 
-    private void sendText(Session session, String text) {
+    private void sendText(final Session session, final String text) {
         try {
             logger.log(TRACE, () -> session.getId() + " <- " + text);
             session.getBasicRemote().sendText(text);
-        } catch (IOException ioException) {
+        } catch (final IOException ioException) {
             throw new RuntimeException(ioException);
         }
     }
 
     @Override
-    public void onClose(Session session, CloseReason closeReason) {
+    public void onClose(final Session session, final CloseReason closeReason) {
         shutdown(session);
         logger.log(DEBUG, () -> "WebSocket closed " + closeReason.getReasonPhrase());
     }
 
     @Override
-    public void onError(Session session, Throwable thr) {
+    public void onError(final Session session, final Throwable thr) {
         shutdown(session);
         logger.log(ERROR, () -> "WebSocket error: " + thr.getLocalizedMessage(), thr);
     }
 
-    private void shutdown(Session session) {
+    private void shutdown(final Session session) {
         @SuppressWarnings("unchecked")
         final LivePage<S> livePage = (LivePage<S>) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
@@ -120,11 +120,11 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         }
     }
 
-    public static HttpRequest of(HandshakeRequest handshakeRequest) {
+    public static HttpRequest of(final HandshakeRequest handshakeRequest) {
         return HttpRequestUtils.httpRequest(handshakeRequest);
     }
 
-    public static boolean isKnownLostSession(QualifiedSessionId qsid) {
+    public static boolean isKnownLostSession(final QualifiedSessionId qsid) {
         synchronized (lostSessionsIds) {
             if (lostSessionsIds.contains(qsid)) {
                 return true;

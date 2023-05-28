@@ -9,10 +9,10 @@ import java.util.*;
  */
 public class JsonSimpleUtils {
 
-    public static JsonDataType parse(String s) {
+    public static JsonDataType parse(final String s) {
         try {
             return convertToJsonType(new org.json.simple.parser.JSONParser().parse(s));
-        } catch (ParseException ex) {
+        } catch (final ParseException ex) {
             throw new JsonDataType.JsonException("Parse exception", ex);
         }
     }
@@ -22,7 +22,7 @@ public class JsonSimpleUtils {
      * @param j an input object
      * @return the conversion result
      */
-    public static JsonDataType convertToJsonType(Object j) {
+    public static JsonDataType convertToJsonType(final Object j) {
         if (j == null) {
             return JsonDataType.Null.INSTANCE;
         } else if (j instanceof org.json.simple.JSONObject) {
@@ -30,14 +30,14 @@ public class JsonSimpleUtils {
             @SuppressWarnings("unchecked")
             final Set<Map.Entry> entrySet = jsonObject.entrySet();
             final Map<String, JsonDataType> m = new HashMap<>();
-            for (Map.Entry entry : entrySet) {
+            for (final Map.Entry entry : entrySet) {
                 m.put((String) entry.getKey(), convertToJsonType(entry.getValue()));
             }
             return new JsonDataType.Object(Collections.unmodifiableMap(m));
         } else if (j instanceof org.json.simple.JSONArray){
             final org.json.simple.JSONArray jsonArray = (org.json.simple.JSONArray) j;
             final List<JsonDataType> a = new ArrayList<>();
-            for(Object item : jsonArray) {
+            for(final Object item : jsonArray) {
                 a.add(convertToJsonType(item));
             }
             return new JsonDataType.Array(a.toArray(new JsonDataType[0]));

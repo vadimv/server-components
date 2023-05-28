@@ -11,18 +11,18 @@ public final class PathMatchFunction<S> implements Function<Path, CompletableFut
     private final PathPattern pathPattern;
     private final BiFunction<String, String, CompletableFuture<S>> matchFun;
 
-    public PathMatchFunction(PathPattern pathPattern,
-                             BiFunction<String, String, CompletableFuture<S>> matchFun) {
+    public PathMatchFunction(final PathPattern pathPattern,
+                             final BiFunction<String, String, CompletableFuture<S>> matchFun) {
         this.pathPattern = pathPattern;
         this.matchFun = matchFun;
     }
 
     @Override
-    public CompletableFuture<S> apply(Path path) {
+    public CompletableFuture<S> apply(final Path path) {
         return callMatchFun(path);
     }
 
-    private CompletableFuture<S> callMatchFun(Path path) {
+    private CompletableFuture<S> callMatchFun(final Path path) {
         final int[] pathParameterIndexes = pathPattern.paramsIndexes;
         if (pathParameterIndexes.length == 0) {
             return matchFun.apply("", "");

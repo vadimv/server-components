@@ -35,10 +35,10 @@ public final class LivePage<S> implements InMessages, Schedule {
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
 
-    public LivePage(QualifiedSessionId qsid,
-                    LivePageState<S> pageState,
-                    ScheduledExecutorService scheduledExecutorService,
-                    OutMessages out) {
+    public LivePage(final QualifiedSessionId qsid,
+                    final LivePageState<S> pageState,
+                    final ScheduledExecutorService scheduledExecutorService,
+                    final OutMessages out) {
         this.qsid = qsid;
         this.pageState = pageState;
         this.scheduledExecutorService = scheduledExecutorService;
@@ -49,14 +49,14 @@ public final class LivePage<S> implements InMessages, Schedule {
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
         synchronized (pageState) {
-            for (var timer : schedules.entrySet()) {
+            for (final var timer : schedules.entrySet()) {
                 timer.getValue().cancel(true);
             }
         }
     }
 
     @Override
-    public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> result) {
+    public void handleExtractPropertyResponse(final int descriptorId, final Either<Throwable, JsonDataType> result) {
         result.on(ex -> {
                     logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " exception: " + ex.getMessage());
                     synchronized (pageState) {
@@ -80,7 +80,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
+    public void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
         logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toStringValue());
         synchronized (pageState) {
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
@@ -92,7 +92,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
+    public void handleDomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
         synchronized (pageState) {
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
@@ -115,9 +115,9 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public synchronized Timer scheduleAtFixedRate(Runnable command,
-                                                   Object key,
-                                                   long initialDelay, long period, TimeUnit unit) {
+    public synchronized Timer scheduleAtFixedRate(final Runnable command,
+                                                  final Object key,
+                                                  final long initialDelay, final long period, final TimeUnit unit) {
         final ScheduledFuture<?> timer = scheduledExecutorService.scheduleAtFixedRate(() -> {
             synchronized (pageState) {
                 command.run();
@@ -128,7 +128,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public synchronized Timer schedule(Runnable command, Object key, long delay, TimeUnit unit) {
+    public synchronized Timer schedule(final Runnable command, final Object key, final long delay, final TimeUnit unit) {
         final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
             synchronized (pageState) {
                 command.run();
@@ -139,7 +139,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     }
 
     @Override
-    public synchronized void cancel(Object key) {
+    public synchronized void cancel(final Object key) {
         final ScheduledFuture<?> schedule = schedules.get(key);
         if (schedule != null) {
             schedule.cancel(true);
@@ -147,7 +147,7 @@ public final class LivePage<S> implements InMessages, Schedule {
         }
     }
 
-    private EventContext createEventContext(JsonDataType.Object eventObject) {
+    private EventContext createEventContext(final JsonDataType.Object eventObject) {
         return new EventContext(qsid,
                                 js -> evalJs(js),
                                 ref -> createPropertiesHandle(ref),
@@ -156,7 +156,7 @@ public final class LivePage<S> implements InMessages, Schedule {
                                 href -> setHref(href));
     }
 
-    private PropertiesHandle createPropertiesHandle(Ref ref) {
+    private PropertiesHandle createPropertiesHandle(final Ref ref) {
         final VirtualDomPath path = resolveRef(ref);
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
@@ -164,11 +164,11 @@ public final class LivePage<S> implements InMessages, Schedule {
         return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, out);
     }
 
-    private VirtualDomPath resolveRef(Ref ref) {
+    private VirtualDomPath resolveRef(final Ref ref) {
         return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : pageState.snapshot().refs.get(ref);
     }
 
-    public CompletableFuture<JsonDataType> evalJs(String js) {
+    public CompletableFuture<JsonDataType> evalJs(final String js) {
         synchronized (pageState) {
             final int newDescriptor = ++descriptorsCounter;
             final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
@@ -178,11 +178,11 @@ public final class LivePage<S> implements InMessages, Schedule {
         }
     }
 
-    private void setHref(String path) {
+    private void setHref(final String path) {
         out.setHref(path);
     }
 
-    private void pushHistory(String path) {
+    private void pushHistory(final String path) {
         out.pushHistory(path);
     }
 }

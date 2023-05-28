@@ -11,17 +11,17 @@ public final class HttpResponse {
     public final List<Tuple2<String,String>> headers;
     public final InputStream bodyStream;
 
-    public HttpResponse(int status,
-                        List<Tuple2<String,String>> headers,
-                        InputStream bodyStream) {
+    public HttpResponse(final int status,
+                        final List<Tuple2<String,String>> headers,
+                        final InputStream bodyStream) {
         this.status = status;
         this.headers = headers;
         this.bodyStream = bodyStream;
     }
 
-    public HttpResponse(int status,
-                        List<Tuple2<String,String>> headers,
-                        String body) {
+    public HttpResponse(final int status,
+                        final List<Tuple2<String,String>> headers,
+                        final String body) {
         this(status, headers, new ByteArrayInputStream(body.getBytes()));
     }
 }

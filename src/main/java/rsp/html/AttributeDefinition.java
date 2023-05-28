@@ -29,7 +29,7 @@ public final class AttributeDefinition extends BaseDocumentPartDefinition {
      * @param value the attribute's value
      * @param isProperty true if this attribute is an HTML property and false otherwise
      */
-    public AttributeDefinition(String name, String value, boolean isProperty) {
+    public AttributeDefinition(final String name, final String value, final boolean isProperty) {
         super();
         this.name = name;
         this.value = value;
@@ -37,7 +37,7 @@ public final class AttributeDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
     }
 }

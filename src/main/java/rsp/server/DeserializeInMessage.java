@@ -31,11 +31,11 @@ public final class DeserializeInMessage {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public DeserializeInMessage(InMessages inMessages) {
+    public DeserializeInMessage(final InMessages inMessages) {
         this.inMessages = inMessages;
     }
 
-    public void parse(String message) {
+    public void parse(final String message) {
         Objects.requireNonNull(message);
         final JSONParser jsonParser = new JSONParser();
         try {
@@ -48,12 +48,12 @@ public final class DeserializeInMessage {
                                                             messageJson.size() > 2 ? messageJson.get(2) : ""); break;
                 case HEARTBEAT: heartBeat(); break;
             }
-        } catch (Throwable ex) {
+        } catch (final Throwable ex) {
             logger.log(System.Logger.Level.ERROR, "Incoming message parse exception", ex);
         }
     }
 
-    private void parseExtractPropertyResponse(String metadata, Object value) {
+    private void parseExtractPropertyResponse(final String metadata, final Object value) {
         final String[] tokens = metadata.split(":");
         final int descriptorId = Integer.parseInt(tokens[0]);
         final int jsonMetadata = Integer.parseInt(tokens[1]);
@@ -65,13 +65,13 @@ public final class DeserializeInMessage {
                                                  result);
     }
 
-    private void parseEvalJsResponse(String metadata, Object value) {
+    private void parseEvalJsResponse(final String metadata, final Object value) {
         final String[] tokens = metadata.split(":");
         inMessages.handleEvalJsResponse(Integer.parseInt(tokens[0]),
                                         JsonSimpleUtils.convertToJsonType(value));
     }
 
-    private void parseDomEvent(String str, Object eventObject) {
+    private void parseDomEvent(final String str, final Object eventObject) {
         final JsonDataType json = JsonSimpleUtils.convertToJsonType(eventObject);
         if (json instanceof JsonDataType.Object) {
             final String[] tokens = str.split(":");

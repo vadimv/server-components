@@ -31,12 +31,12 @@ public final class EventContext {
      * @param executorService the proxy object for scheduling
      * @param setHref the proxy object for setting browser's URL
      */
-    public EventContext(QualifiedSessionId sessionId,
-                        Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
-                        Function<Ref, PropertiesHandle> propertiesHandleLookup,
-                        JsonDataType.Object eventObject,
-                        Schedule executorService,
-                        Consumer<String> setHref) {
+    public EventContext(final QualifiedSessionId sessionId,
+                        final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
+                        final Function<Ref, PropertiesHandle> propertiesHandleLookup,
+                        final JsonDataType.Object eventObject,
+                        final Schedule executorService,
+                        final Consumer<String> setHref) {
         this.sessionId = sessionId;
         this.propertiesHandleLookup = propertiesHandleLookup;
         this.jsEvaluation = jsEvaluation;
@@ -50,7 +50,7 @@ public final class EventContext {
      * @param ref a reference to an element
      * @return the proxy object to read the element's properties
      */
-    public PropertiesHandle props(ElementRef ref) {
+    public PropertiesHandle props(final ElementRef ref) {
         return propertiesHandleLookup.apply(ref);
     }
 
@@ -59,7 +59,7 @@ public final class EventContext {
      * @param js code to execute
      * @return a CompletableFuture of the JSON data type
      */
-    public CompletableFuture<JsonDataType> evalJs(String js) {
+    public CompletableFuture<JsonDataType> evalJs(final String js) {
         return jsEvaluation.apply(js);
     }
 
@@ -67,7 +67,7 @@ public final class EventContext {
      * Sets the client browser's URL.
      * @param href URL
      */
-    public void setHref(String href) {
+    public void setHref(final String href) {
         setHref.accept(href);
     }
 
@@ -94,7 +94,7 @@ public final class EventContext {
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of the delayed task
      */
-    public Timer schedule(Runnable command, int delay, TimeUnit timeUnit) {
+    public Timer schedule(final Runnable command, final int delay, final TimeUnit timeUnit) {
         return executorService.schedule(command, new Object(), delay, timeUnit);
     }
 
@@ -106,7 +106,7 @@ public final class EventContext {
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of the delayed task
      */
-    public Timer schedule(Runnable command, TimerRef ref, int delay, TimeUnit timeUnit) {
+    public Timer schedule(final Runnable command, final TimerRef ref, final int delay, final TimeUnit timeUnit) {
         return executorService.schedule(command, ref, delay, timeUnit);
     }
 
@@ -120,7 +120,7 @@ public final class EventContext {
      * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public Timer scheduleAtFixedRate(Runnable command, int delay, int period, TimeUnit timeUnit) {
+    public Timer scheduleAtFixedRate(final Runnable command, final int delay, final int period, final TimeUnit timeUnit) {
         return executorService.scheduleAtFixedRate(command, new Object(), delay, period, timeUnit);
     }
 
@@ -135,7 +135,7 @@ public final class EventContext {
      * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public Timer scheduleAtFixedRate(Runnable command, TimerRef ref, int delay, int period, TimeUnit timeUnit) {
+    public Timer scheduleAtFixedRate(final Runnable command, final TimerRef ref, final int delay, final int period, final TimeUnit timeUnit) {
         return executorService.scheduleAtFixedRate(command, ref, delay, period, timeUnit);
     }
 
@@ -144,7 +144,7 @@ public final class EventContext {
      * If no schedule exists with this name, the cancel command is ignored.
      * @param ref the Id of the schedule to cancel
      */
-    public void cancelSchedule(TimerRef ref) {
+    public void cancelSchedule(final TimerRef ref) {
         executorService.cancel(ref);
     }
 }

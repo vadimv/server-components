@@ -4,7 +4,7 @@ public final class Text implements Node {
     public final VirtualDomPath path;
     public final String text;
 
-    public Text(VirtualDomPath path, String text) {
+    public Text(final VirtualDomPath path, final String text) {
         this.path = path;
         this.text = text;
     }
@@ -16,7 +16,7 @@ public final class Text implements Node {
 
 
     @Override
-    public void appendString(StringBuilder sb) {
+    public void appendString(final StringBuilder sb) {
         sb.append(text);
     }
 

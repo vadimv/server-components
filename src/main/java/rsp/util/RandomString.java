@@ -6,7 +6,7 @@ public final class RandomString {
 
     private final int length;
 
-    public RandomString(int length) {
+    public RandomString(final int length) {
         this.length = length;
     }
 

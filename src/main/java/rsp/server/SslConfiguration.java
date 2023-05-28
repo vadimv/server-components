@@ -20,7 +20,7 @@ public final class SslConfiguration {
      * @param keyStorePath a path to a keystore.jks file
      * @param keyStorePassword a keystore password
      */
-    public SslConfiguration(String keyStorePath, String keyStorePassword) {
+    public SslConfiguration(final String keyStorePath, final String keyStorePassword) {
         this.keyStorePath = keyStorePath;
         this.keyStorePassword = keyStorePassword;
     }

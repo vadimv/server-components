@@ -7,14 +7,14 @@ public final class Attribute {
     public final String value;
     public final boolean isProperty;
 
-    public Attribute(String name, String value, boolean isProperty) {
+    public Attribute(final String name, final String value, final boolean isProperty) {
         this.name = name;
         this.value = value;
         this.isProperty = isProperty;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         final Attribute attribute = (Attribute) o;

@@ -12,13 +12,13 @@ public final class TextDefinition extends BaseDocumentPartDefinition {
      * Creates a new instance of a text definition.
      * @param text a text {@link String}
      */
-    public TextDefinition(String text) {
+    public TextDefinition(final String text) {
         super();
         this.text = text;
     }
 
     @Override
-    public void render(PageRenderContext renderContext) {
+    public void render(final PageRenderContext renderContext) {
         renderContext.addTextNode(text);
     }
 }

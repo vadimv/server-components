@@ -125,48 +125,48 @@ public class DiffTests {
         }
 
         @Override
-        public void remove(VirtualDomPath parentId, VirtualDomPath id) {
+        public void remove(final VirtualDomPath parentId, final VirtualDomPath id) {
             insertDelimiter(sb);
             sb.append("-TAG:" + parentId + ":" + id);
         }
 
         @Override
-        public void create(VirtualDomPath id, XmlNs xmlNs, String tag) {
+        public void create(final VirtualDomPath id, final XmlNs xmlNs, final String tag) {
             insertDelimiter(sb);
             sb.append("+TAG:" + id + ":" + tag);
         }
 
         @Override
-        public void removeAttr(VirtualDomPath id, XmlNs xmlNs, String name, boolean isProperty) {
+        public void removeAttr(final VirtualDomPath id, final XmlNs xmlNs, final String name, final boolean isProperty) {
             insertDelimiter(sb);
             sb.append("-ATTR:" + id + ":" + name);
         }
 
         @Override
-        public void setAttr(VirtualDomPath id, XmlNs xmlNs, String name, String value, boolean isProperty) {
+        public void setAttr(final VirtualDomPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             insertDelimiter(sb);
             sb.append("+ATTR:" + id + ":" + name + "=" + value + ":" + isProperty);
         }
 
         @Override
-        public void removeStyle(VirtualDomPath id, String name) {
+        public void removeStyle(final VirtualDomPath id, final String name) {
             insertDelimiter(sb);
             sb.append("-STYLE:" + id + ":" + name);
         }
 
         @Override
-        public void setStyle(VirtualDomPath id, String name, String value) {
+        public void setStyle(final VirtualDomPath id, final String name, final String value) {
             sb.append("+STYLE:" + id + ":" + name + "=" + value);
             insertDelimiter(sb);
         }
 
         @Override
-        public void createText(VirtualDomPath parenPath, VirtualDomPath path, String text) {
+        public void createText(final VirtualDomPath parenPath, final VirtualDomPath path, final String text) {
             sb.append("+TEXT:" + parenPath + ":" + path + "=" + text);
             insertDelimiter(sb);
         }
 
-        private void insertDelimiter(StringBuilder sb) {
+        private void insertDelimiter(final StringBuilder sb) {
             if (sb.length() != 0) sb.append(" ");
         }
     }

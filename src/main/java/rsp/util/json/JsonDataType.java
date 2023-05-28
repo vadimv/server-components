@@ -14,7 +14,7 @@ public interface JsonDataType {
     final class Boolean implements JsonDataType {
         private final boolean value;
 
-        public Boolean(boolean value) {
+        public Boolean(final boolean value) {
             this.value = value;
         }
 
@@ -28,7 +28,7 @@ public interface JsonDataType {
         }
 
         @Override
-        public boolean equals(java.lang.Object o) {
+        public boolean equals(final java.lang.Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final JsonDataType.Boolean aBoolean = (JsonDataType.Boolean) o;
@@ -48,27 +48,27 @@ public interface JsonDataType {
     final class Number implements JsonDataType {
         private final java.lang.Number value;
 
-        public Number(long value) {
+        public Number(final long value) {
             this.value = value;
         }
 
-        public Number(int value) {
+        public Number(final int value) {
             this.value = Long.valueOf(value);
         }
 
-        public Number(byte value) {
+        public Number(final byte value) {
             this.value = Long.valueOf(value);
         }
 
-        public Number(short value) {
+        public Number(final short value) {
             this.value = Long.valueOf(value);
         }
 
-        public Number(float value) {
+        public Number(final float value) {
             this.value = Double.valueOf(value);
         }
 
-        public Number(double value) {
+        public Number(final double value) {
             this.value = value;
         }
 
@@ -94,7 +94,7 @@ public interface JsonDataType {
         }
 
         @Override
-        public boolean equals(java.lang.Object o) {
+        public boolean equals(final java.lang.Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final JsonDataType.Number number = (JsonDataType.Number) o;
@@ -117,7 +117,7 @@ public interface JsonDataType {
          * Creates a new instance of a string JSON.
          * @param value unescaped
          */
-        public String(java.lang.String value) {
+        public String(final java.lang.String value) {
             this.value = value;
         }
 
@@ -136,7 +136,7 @@ public interface JsonDataType {
         }
 
         @Override
-        public boolean equals(java.lang.Object o) {
+        public boolean equals(final java.lang.Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final JsonDataType.String string = (JsonDataType.String) o;
@@ -157,7 +157,7 @@ public interface JsonDataType {
 
         private final Map<java.lang.String, JsonDataType> values;
 
-        Object(Map<java.lang.String, JsonDataType> values) {
+        Object(final Map<java.lang.String, JsonDataType> values) {
             this.values = values;
         }
 
@@ -165,15 +165,15 @@ public interface JsonDataType {
             this(Map.of());
         }
 
-        public static Object of(Map<java.lang.String, JsonDataType> values) {
+        public static Object of(final Map<java.lang.String, JsonDataType> values) {
             return new Object(Map.copyOf(values));
         }
 
-        public Optional<JsonDataType> value(java.lang.String name) {
+        public Optional<JsonDataType> value(final java.lang.String name) {
             return Optional.ofNullable(values.get(name));
         }
 
-        public Object put(java.lang.String name, JsonDataType value) {
+        public Object put(final java.lang.String name, final JsonDataType value) {
             final Map<java.lang.String, JsonDataType> newValues = new HashMap<>(values);
             newValues.put(name, value);
             return new JsonDataType.Object(newValues);
@@ -195,7 +195,7 @@ public interface JsonDataType {
         }
 
         @Override
-        public boolean equals(java.lang.Object o) {
+        public boolean equals(final java.lang.Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final JsonDataType.Object object = (JsonDataType.Object) o;
@@ -214,7 +214,7 @@ public interface JsonDataType {
     final class Array implements JsonDataType {
         private final JsonDataType[] elements;
 
-        public Array(JsonDataType... elements) {
+        public Array(final JsonDataType... elements) {
             this.elements = elements;
         }
 
@@ -231,7 +231,7 @@ public interface JsonDataType {
         }
 
         @Override
-        public boolean equals(java.lang.Object o) {
+        public boolean equals(final java.lang.Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             final JsonDataType.Array array = (JsonDataType.Array) o;
@@ -263,19 +263,19 @@ public interface JsonDataType {
         public JsonException() {
         }
 
-        public JsonException(java.lang.String message) {
+        public JsonException(final java.lang.String message) {
             super(message);
         }
 
-        public JsonException(java.lang.String message, Throwable cause) {
+        public JsonException(final java.lang.String message, final Throwable cause) {
             super(message, cause);
         }
 
-        public JsonException(Throwable cause) {
+        public JsonException(final Throwable cause) {
             super(cause);
         }
 
-        public JsonException(java.lang.String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+        public JsonException(final java.lang.String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
             super(message, cause, enableSuppression, writableStackTrace);
         }
     }
@@ -285,7 +285,7 @@ public interface JsonDataType {
      * @param string the string to parse
      * @return the result JsonDataType object
      */
-    static JsonDataType of(java.lang.String string) {
+    static JsonDataType of(final java.lang.String string) {
         return JsonSimpleUtils.parse(string);
     }
 

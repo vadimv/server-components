@@ -7,38 +7,38 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override
-    public void removeAttr(VirtualDomPath path, XmlNs xmlNs, String name, boolean isProperty) {
+    public void removeAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
         commands.add(new RemoveAttr(path, xmlNs, name, isProperty));
     }
 
     @Override
-    public void removeStyle(VirtualDomPath path, String name) {
+    public void removeStyle(final VirtualDomPath path, final String name) {
         commands.add(new RemoveStyle(path, name));
     }
 
     @Override
-    public void remove(VirtualDomPath parentPath, VirtualDomPath path) {
+    public void remove(final VirtualDomPath parentPath, final VirtualDomPath path) {
         commands.add(new Remove(parentPath, path));
         elementsToRemove.add(path);
     }
 
     @Override
-    public void setAttr(VirtualDomPath path, XmlNs xmlNs, String name, String value, boolean isProperty) {
+    public void setAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         commands.add(new SetAttr(path, xmlNs, name, value, isProperty));
     }
 
     @Override
-    public void setStyle(VirtualDomPath path, String name, String value) {
+    public void setStyle(final VirtualDomPath path, final String name, final String value) {
         commands.add(new SetStyle(path, name, value));
     }
 
     @Override
-    public void createText(VirtualDomPath parentPath, VirtualDomPath path, String text) {
+    public void createText(final VirtualDomPath parentPath, final VirtualDomPath path, final String text) {
         commands.add(new CreateText(parentPath, path, text));
     }
 
     @Override
-    public void create(VirtualDomPath path, XmlNs xmlNs, String tag) {
+    public void create(final VirtualDomPath path, final XmlNs xmlNs, final String tag) {
         commands.add(new Create(path, xmlNs, tag));
     }
 
@@ -50,7 +50,7 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         public final String name;
         public final boolean isProperty;
 
-        public RemoveAttr(VirtualDomPath path, XmlNs xmlNs, String name, boolean isProperty) {
+        public RemoveAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
@@ -58,10 +58,10 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            RemoveAttr that = (RemoveAttr) o;
+            final RemoveAttr that = (RemoveAttr) o;
             return isProperty == that.isProperty &&
                     Objects.equals(path, that.path) &&
                     Objects.equals(xmlNs, that.xmlNs) &&
@@ -77,16 +77,16 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
     public static final class RemoveStyle implements DomChange {
         public final VirtualDomPath path;
         public final String name;
-        public RemoveStyle(VirtualDomPath path, String name) {
+        public RemoveStyle(final VirtualDomPath path, final String name) {
             this.path = path;
             this.name = name;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            RemoveStyle that = (RemoveStyle) o;
+            final RemoveStyle that = (RemoveStyle) o;
             return Objects.equals(path, that.path) &&
                     Objects.equals(name, that.name);
         }
@@ -100,16 +100,16 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
     public static final class Remove implements DomChange {
         public final VirtualDomPath parentPath;
         public final VirtualDomPath path;
-        public Remove(VirtualDomPath parentPath, VirtualDomPath path) {
+        public Remove(final VirtualDomPath parentPath, final VirtualDomPath path) {
             this.parentPath = parentPath;
             this.path = path;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            Remove remove = (Remove) o;
+            final Remove remove = (Remove) o;
             return Objects.equals(parentPath, remove.parentPath) &&
                     Objects.equals(path, remove.path);
         }
@@ -127,7 +127,7 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         public final String value;
         public final boolean isProperty;
 
-        public SetAttr(VirtualDomPath path, XmlNs xmlNs, String name, String value, boolean isProperty) {
+        public SetAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
@@ -136,10 +136,10 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            SetAttr setAttr = (SetAttr) o;
+            final SetAttr setAttr = (SetAttr) o;
             return isProperty == setAttr.isProperty &&
                     Objects.equals(path, setAttr.path) &&
                     Objects.equals(xmlNs, setAttr.xmlNs) &&
@@ -157,17 +157,17 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         public final VirtualDomPath path;
         public final String name;
         public final String value;
-        public SetStyle(VirtualDomPath path, String name, String value) {
+        public SetStyle(final VirtualDomPath path, final String name, final String value) {
             this.path = path;
             this.name = name;
             this.value = value;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            SetStyle setStyle = (SetStyle) o;
+            final SetStyle setStyle = (SetStyle) o;
             return Objects.equals(path, setStyle.path) &&
                     Objects.equals(name, setStyle.name) &&
                     Objects.equals(value, setStyle.value);
@@ -183,17 +183,17 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         public final VirtualDomPath parentPath;
         public final VirtualDomPath path;
         public final String text;
-        public CreateText(VirtualDomPath parentPath, VirtualDomPath path, String text) {
+        public CreateText(final VirtualDomPath parentPath, final VirtualDomPath path, final String text) {
             this.parentPath = parentPath;
             this.path = path;
             this.text = text;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            CreateText that = (CreateText) o;
+            final CreateText that = (CreateText) o;
             return Objects.equals(parentPath, that.parentPath) &&
                     Objects.equals(path, that.path) &&
                     Objects.equals(text, that.text);
@@ -218,17 +218,17 @@ public final class DefaultDomChangesPerformer implements DomChangesPerformer {
         public final VirtualDomPath path;
         public final XmlNs xmlNs;
         public final String tag;
-        public Create(VirtualDomPath path, XmlNs xmlNs, String tag) {
+        public Create(final VirtualDomPath path, final XmlNs xmlNs, final String tag) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.tag = tag;
         }
 
         @Override
-        public boolean equals(Object o) {
+        public boolean equals(final Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            Create create = (Create) o;
+            final Create create = (Create) o;
             return Objects.equals(path, create.path) &&
                     Objects.equals(xmlNs, create.xmlNs) &&
                     Objects.equals(tag, create.tag);

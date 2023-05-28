@@ -61,7 +61,7 @@ public class DeserializeInMessageTests {
         Assert.assertEquals(new JsonDataType.String("foo"), result.value);
     }
 
-    private DeserializeInMessage createParser(InMessages collector) {
+    private DeserializeInMessage createParser(final InMessages collector) {
         return new DeserializeInMessage(collector);
     }
 
@@ -71,7 +71,7 @@ public class DeserializeInMessageTests {
         final String eventType;
         final JsonDataType.Object eventObject;
 
-        public DomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
+        public DomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
             this.renderNumber = renderNumber;
             this.path = path;
             this.eventType = eventType;
@@ -82,7 +82,7 @@ public class DeserializeInMessageTests {
     private final class ExtractProperty {
         public final int descriptorId;
         public final Either<Throwable, JsonDataType> value;
-        public ExtractProperty(int descriptorId, Either<Throwable, JsonDataType> value) {
+        public ExtractProperty(final int descriptorId, final Either<Throwable, JsonDataType> value) {
             this.descriptorId = descriptorId;
             this.value = value;
         }
@@ -91,7 +91,7 @@ public class DeserializeInMessageTests {
     private final class JsResponse {
         public final int descriptorId;
         public final JsonDataType value;
-        public JsResponse(int descriptorId, JsonDataType value) {
+        public JsResponse(final int descriptorId, final JsonDataType value) {
             this.descriptorId = descriptorId;
             this.value = value;
         }
@@ -103,17 +103,17 @@ public class DeserializeInMessageTests {
 
 
         @Override
-        public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> value) {
+        public void handleExtractPropertyResponse(final int descriptorId, final Either<Throwable, JsonDataType> value) {
             result = new ExtractProperty(descriptorId, value);
         }
 
         @Override
-        public void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
+        public void handleDomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
             result = new DomEvent(renderNumber, path, eventType, eventObject);
         }
 
         @Override
-        public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
+        public void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
             result = new JsResponse(descriptorId, value);
         }
     }
