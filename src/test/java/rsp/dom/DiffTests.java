@@ -13,7 +13,7 @@ public class DiffTests {
         final Tag tree1 = new Tag(path, XmlNs.html, "html");
         final Tag tree2 = new Tag(path, XmlNs.html, "html");
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2, cp).run();
         Assert.assertEquals("", cp.resultAsString());
     }
@@ -23,7 +23,7 @@ public class DiffTests {
         final Tag tree1 = new Tag(path, XmlNs.html, "html");
         final Tag tree2 = new Tag(path, XmlNs.html, "div");
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("-TAG:0:1 +TAG:1:div", cp.resultAsString());
     }
@@ -36,7 +36,7 @@ public class DiffTests {
         tree2.addChild(new Tag(path.incLevel(), XmlNs.html, "span"));
         tree2.addChild(new Tag(path.incLevel(), XmlNs.html, "span"));
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("+TAG:1_1:span +TAG:1_2:span", cp.resultAsString());
     }
@@ -49,7 +49,7 @@ public class DiffTests {
         final Tag tree2 = new Tag(path, XmlNs.html, "div");
         tree2.addChild(new Tag(path.incLevel(), XmlNs.html, "a"));
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("-TAG:1:1_1 +TAG:1_1:a", cp.resultAsString());
     }
@@ -64,7 +64,7 @@ public class DiffTests {
         child21.addChild(new Tag(path.incLevel().incLevel().incSibling(), XmlNs.html, "span"));
         tree2.addChild(child21);
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
@@ -76,7 +76,7 @@ public class DiffTests {
         final Tag tree2 = new Tag(path, XmlNs.html, "div");
         tree2.addAttribute("attr1", "value1", true);
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("+ATTR:1:attr1=value1:true", cp.resultAsString());
     }
@@ -88,7 +88,7 @@ public class DiffTests {
 
         final Tag tree2 = new Tag(path, XmlNs.html, "div");
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("-ATTR:1:attr1", cp.resultAsString());
     }
@@ -100,7 +100,7 @@ public class DiffTests {
         final Tag tree2 = new Tag(path, XmlNs.html, "div");
         tree2.addStyle("style1", "value1");
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("+STYLE:1:style1=value1", cp.resultAsString());
     }
@@ -112,12 +112,12 @@ public class DiffTests {
 
         final Tag tree2 = new Tag(path, XmlNs.html, "div");
 
-        final TestChangesPerformer cp = new TestChangesPerformer();
+        final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
         Assert.assertEquals("-STYLE:1:style1", cp.resultAsString());
     }
 
-    static class TestChangesPerformer implements DomChangesPerformer {
+    static class TestChangesContext implements DomChangesContext {
         final StringBuilder sb = new StringBuilder();
 
         public String resultAsString() {

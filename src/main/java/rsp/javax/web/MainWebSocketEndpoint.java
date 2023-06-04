@@ -1,5 +1,6 @@
 package rsp.javax.web;
 
+import rsp.component.StatefulComponent;
 import rsp.page.*;
 import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
@@ -25,7 +26,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
     private final StateToRouteDispatch<S> state2route;
-    private final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages;
+    private final Map<QualifiedSessionId, StatefulComponent<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
@@ -34,7 +35,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     public MainWebSocketEndpoint(final StateToRouteDispatch<S> state2route,
-                                 final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages,
+                                 final Map<QualifiedSessionId, StatefulComponent<S>> renderedPages,
                                  final BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  final Supplier<ScheduledExecutorService> schedulerSupplier,
                                  final PageLifeCycle<S> lifeCycleEventsListener) {
@@ -53,23 +54,18 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
 
-        final LivePageSnapshot<S> currentPageSnapshot = renderedPages.remove(qsid);
-        if (currentPageSnapshot == null) {
+        final StatefulComponent<S> rootComponent = renderedPages.remove(qsid);
+        if (rootComponent == null) {
             logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
             if (!isKnownLostSession(qsid)) {
                 logger.log(WARNING, () -> "Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort());
                 out.evalJs(-1, "RSP.reload()");
             }
         } else {
-            final LivePageState<S> livePageState = new LivePageState<>(qsid,
-                                                                       currentPageSnapshot,
-                                                                       state2route,
-                                                                       enrich,
-                                                                       out);
-            currentPageSnapshot.componentsStateNotificationListener.setListener(livePageState);
+            rootComponent.setOut(out);
             //lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
             final LivePage<S> livePage = new LivePage<>(qsid,
-                                                        livePageState,
+                                                        rootComponent,
                                                         schedulerSupplier.get(),
                                                         out);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
@@ -84,7 +80,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             });
 
             out.setRenderNum(0);
-            out.listenEvents(currentPageSnapshot.events.values().stream().collect(Collectors.toList()));
+            out.listenEvents(rootComponent.events.values().stream().collect(Collectors.toList()));
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }

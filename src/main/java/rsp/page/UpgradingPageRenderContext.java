@@ -1,7 +1,7 @@
 package rsp.page;
 
-import rsp.StatefulComponent;
 import rsp.dom.Event;
+import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
@@ -114,8 +114,23 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public StateNotificationListener getStateNotificationListener() {
-        return context.getStateNotificationListener();
+    public Tag tag() {
+        return context.tag();
+    }
+
+    @Override
+    public PageRenderContext newInstance() {
+        return new UpgradingPageRenderContext(context.newInstance(), pageInfo);
+    }
+
+    @Override
+    public Map<Event.Target, Event> events() {
+        return context.events();
+    }
+
+    @Override
+    public Map<Ref, VirtualDomPath> refs() {
+        return context.refs();
     }
 
     @Override

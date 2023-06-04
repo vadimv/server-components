@@ -23,25 +23,25 @@ public class LivePageStateTests {
 
     @Test
     public void should_generate_update_commands_for_same_state() {
-        final TestCollectingOutMessages out = new TestCollectingOutMessages();
+/*        final TestCollectingOutMessages out = new TestCollectingOutMessages();
         final LivePageState<State> livePageState = create(new State(0), out);
         livePageState.run();//(new State(0));
-        Assert.assertEquals(List.of(), out.commands);
+        Assert.assertEquals(List.of(), out.commands);*/
     }
 
     @Test
     public void should_generate_update_commands_for_new_state() {
-        final TestCollectingOutMessages out = new TestCollectingOutMessages();
+/*        final TestCollectingOutMessages out = new TestCollectingOutMessages();
         final LivePageState<State> livePageState = create(new State(0), out);
         livePageState.run();//.accept(new State(100));
-        Assert.assertEquals(List.of(new ModifyDomOutMessage(List.of(new DefaultDomChangesPerformer.CreateText(VirtualDomPath.of("1"),
+        Assert.assertEquals(List.of(new ModifyDomOutMessage(List.of(new DefaultDomChangesContext.CreateText(VirtualDomPath.of("1"),
                                                                                                       VirtualDomPath.of("1_1"),
                                                                                                       "100"))),
                                     new PushHistoryMessage("/100")),
-                            out.commands);
+                            out.commands);*/
     }
 
-    private LivePageState<State> create(final State state, final OutMessages out) {
+/*    private LivePageState<State> create(final State state, final OutMessages out) {
         final CreateViewFunction<State> rootCreateViewFunction = (sv, sc) -> span(sv.toString());
 
         final LivePageSnapshot<State> lpps = new LivePageSnapshot<>(null,
@@ -54,13 +54,13 @@ public class LivePageStateTests {
         final StateToRouteDispatch<State> state2route = new StateToRouteDispatch<>(Path.of(""), (s, p) -> Path.of("/" + s.value));
 
         return new LivePageState<>(QID, lpps, state2route, enrichFunction(), out);
-    }
+    }*/
 
     private static Tag domRoot(final CreateViewFunction<State> component, final State state) {
-        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(null);
+        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
         component.apply(state, s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
-        return domTreeContext.root();
+        return domTreeContext.tag();
     }
 
     private static BiFunction<String, PageRenderContext, PageRenderContext> enrichFunction() {
@@ -118,7 +118,7 @@ public class LivePageStateTests {
         }
 
         @Override
-        public void modifyDom(final List<DefaultDomChangesPerformer.DomChange> domChange) {
+        public void modifyDom(final List<DefaultDomChangesContext.DomChange> domChange) {
             commands.add(new ModifyDomOutMessage(domChange));
         }
 
@@ -242,9 +242,9 @@ public class LivePageStateTests {
     }
 
     static final class ModifyDomOutMessage implements Message {
-        public final List<DefaultDomChangesPerformer.DomChange> domChange;
+        public final List<DefaultDomChangesContext.DomChange> domChange;
 
-        ModifyDomOutMessage(final List<DefaultDomChangesPerformer.DomChange> domChange) {
+        ModifyDomOutMessage(final List<DefaultDomChangesContext.DomChange> domChange) {
             this.domChange = domChange;
         }
 

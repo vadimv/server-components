@@ -15,7 +15,6 @@ import java.util.function.Function;
  * This is the main object for an application's code to interact with RSP internals and access data.
  */
 public final class EventContext {
-    private final QualifiedSessionId sessionId;
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<JsonDataType>> jsEvaluation;
     private final JsonDataType.Object eventObject;
@@ -24,20 +23,17 @@ public final class EventContext {
 
     /**
      * Creates a new instance of an event's context.
-     * @param sessionId page's session Id
      * @param jsEvaluation the proxy function for JavaScript evaluation
      * @param propertiesHandleLookup the proxy function for reading properties values
      * @param eventObject the event's object
      * @param executorService the proxy object for scheduling
      * @param setHref the proxy object for setting browser's URL
      */
-    public EventContext(final QualifiedSessionId sessionId,
-                        final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
+    public EventContext(final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
                         final Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         final JsonDataType.Object eventObject,
                         final Schedule executorService,
                         final Consumer<String> setHref) {
-        this.sessionId = sessionId;
         this.propertiesHandleLookup = propertiesHandleLookup;
         this.jsEvaluation = jsEvaluation;
         this.eventObject = eventObject;
@@ -71,13 +67,6 @@ public final class EventContext {
         setHref.accept(href);
     }
 
-    /**
-     * Gets the current page session Id.
-     * @return Id
-     */
-    public QualifiedSessionId sessionId() {
-        return sessionId;
-    }
 
     /**
      * Gets the event's object.

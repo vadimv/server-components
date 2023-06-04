@@ -1,8 +1,10 @@
 package rsp.page;
 
-import rsp.StatefulComponent;
+import rsp.component.ComponentRenderContext;
+import rsp.component.DefaultComponentRenderContext;
+import rsp.component.StatefulComponent;
 import rsp.dom.DomTreePageRenderContext;
-import rsp.html.DocumentPartDefinition;
+import rsp.dom.VirtualDomPath;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
@@ -10,6 +12,7 @@ import rsp.server.Path;
 import rsp.util.RandomString;
 import rsp.util.data.Tuple2;
 
+import javax.swing.plaf.nimbus.State;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -29,12 +32,12 @@ public final class PageRendering<S> {
     private final Route<HttpRequest, S> routes;
     private final Function<S, StatefulComponent<S>> rootComponent;
 
-    private final Map<QualifiedSessionId, LivePageSnapshot<S>> renderedPages;
+    private final Map<QualifiedSessionId, StatefulComponent<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
     public PageRendering(final Route<HttpRequest, S> routes,
                          final Function<S, StatefulComponent<S>> rootComponent,
-                         final Map<QualifiedSessionId, LivePageSnapshot<S>> pagesStorage,
+                         final Map<QualifiedSessionId, StatefulComponent<S>> pagesStorage,
                          final BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
         this.routes = routes;
         this.rootComponent = rootComponent;
@@ -84,17 +87,12 @@ public final class PageRendering<S> {
 
             return routes.apply(request)
                     .map(cf -> cf.thenApply(rootState ->  {
-                        final StateNotificationListener componentsStateNotificationListener = new StateNotificationListener();
-                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(componentsStateNotificationListener);
+                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
                         final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
+                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext, null);
                         final StatefulComponent<S> component = rootComponent.apply(rootState);
-                        component.render(enrichedDomTreeContext);
-                        renderedPages.put(pageId, new LivePageSnapshot<>(component,
-                                                                         componentsStateNotificationListener,
-                                                                         request.path,
-                                                                         domTreeContext.root(),
-                                                                         domTreeContext.events,
-                                                                         domTreeContext.refs));
+                        component.render(componentRenderContext);
+                        renderedPages.put(pageId, component);
                         final String responseBody = domTreeContext.toString();
                         logger.log(TRACE, () -> "Page body: " + responseBody);
                         return new HttpResponse(domTreeContext.statusCode(),

@@ -1,6 +1,7 @@
 package rsp.page;
 
 import rsp.dom.DomTreePageRenderContext;
+import rsp.dom.VirtualDomPath;
 import rsp.html.TagDefinition;
 import rsp.html.HtmlDsl;
 
@@ -9,7 +10,7 @@ public final class DefaultConnectionLostWidget {
     public static final String HTML;
 
     static {
-        final DomTreePageRenderContext rc = new DomTreePageRenderContext(null);
+        final DomTreePageRenderContext rc = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
         widget().render(rc);
         HTML = rc.toString();
     }

@@ -1,6 +1,5 @@
 package rsp.dom;
 
-import rsp.page.StateNotificationListener;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.PageRenderContext;
@@ -10,10 +9,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 public final class DomTreePageRenderContext implements PageRenderContext {
-    private final StateNotificationListener componentsStateNotificationListener;
-    public final ConcurrentHashMap<Event.Target, Event> events = new ConcurrentHashMap<>();
-    public final ConcurrentHashMap<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
+    public final Map<Event.Target, Event> events = new ConcurrentHashMap<>();
+    public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
+    private final VirtualDomPath rootPath;
 
     private int statusCode;
     private Map<String, String> headers;
@@ -21,10 +20,8 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     private Tag root;
 
 
-
-
-    public DomTreePageRenderContext(final StateNotificationListener componentsStateNotificationListener) {
-        this.componentsStateNotificationListener = componentsStateNotificationListener;
+    public DomTreePageRenderContext(final VirtualDomPath rootPath) {
+        this.rootPath = rootPath;
     }
 
     public Map<String, String> headers() {
@@ -35,7 +32,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
         return docType;
     }
 
-    public Tag root() {
+    public Tag tag() {
         return root;
     }
 
@@ -61,7 +58,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     @Override
     public void openNode(final XmlNs xmlns, final String name) {
         if (root == null) {
-            root = new Tag(VirtualDomPath.DOCUMENT, xmlns, name);
+            root = new Tag(rootPath, xmlns, name);
             tagsStack.push(root);
         } else {
             final Tag parent = tagsStack.peek();
@@ -109,8 +106,18 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public StateNotificationListener getStateNotificationListener() {
-        return componentsStateNotificationListener;
+    public PageRenderContext newInstance() {
+        return new DomTreePageRenderContext(root.path);
+    }
+
+    @Override
+    public Map<Event.Target, Event> events() {
+        return events;
+    }
+
+    @Override
+    public Map<Ref, VirtualDomPath> refs() {
+        return refs;
     }
 
     @Override

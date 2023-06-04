@@ -2,7 +2,7 @@ package rsp.dom;
 
 import java.util.*;
 
-public final class DefaultDomChangesPerformer implements DomChangesPerformer {
+public final class DefaultDomChangesContext implements DomChangesContext {
     public final Set<VirtualDomPath> elementsToRemove = new HashSet<>();
     public final List<DomChange> commands = new ArrayList<>();
 

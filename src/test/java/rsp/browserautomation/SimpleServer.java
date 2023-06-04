@@ -2,6 +2,7 @@ package rsp.browserautomation;
 
 import rsp.App;
 import rsp.CreateViewFunction;
+import rsp.component.StatefulComponent;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
@@ -26,7 +27,7 @@ public class SimpleServer {
 
     public static SimpleServer run(final boolean blockCurrentThread) {
         final App<AppState> app = new App<>(routes(),
-                                            appComponent());
+                appComponent());
         final SimpleServer s = new SimpleServer(new JettyServer<>(PORT, "", app));
         s.jetty.start();
         if (blockCurrentThread) {
@@ -37,13 +38,14 @@ public class SimpleServer {
 
     private static Route<HttpRequest, AppState> routes() {
         return concat(get("/:id(^\\d+$)", (__, id) -> new OkState(Integer.parseInt(id)).toCompletableFuture()),
-                      any(new NotFoundState()));
+                any(new NotFoundState()));
     }
 
     private static CreateViewFunction<AppState> appComponent() {
         final CreateViewFunction<OkState> okCreateViewFunction = (sv, sc) ->
                 html(head(title("test-server-title")),
-                        body(SUB_STATE_VIEW.apply(sv.i, s -> sc.accept(new OkState(s))),
+                        body(//SUB_STATE_VIEW.apply(sv.i, s -> sc.accept(new OkState(s))),
+                                new StatefulComponent<>(80000, SUB_STATE_VIEW),
                                 div(button(attr("type", "button"),
                                         attr("id", "b0"),
                                         text("+1"),
@@ -91,6 +93,6 @@ public class SimpleServer {
 
     public static final CreateViewFunction<Integer> SUB_STATE_VIEW = (sv, sc) ->
             div(attr("id", "d0"),
-                text("+10"),
+                text("value2:" + sv),
                 on("click", d -> { sc.accept(sv + 10);}));
 }

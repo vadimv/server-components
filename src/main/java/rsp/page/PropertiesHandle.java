@@ -2,7 +2,7 @@ package rsp.page;
 
 import rsp.dom.XmlNs;
 import rsp.dom.VirtualDomPath;
-import rsp.dom.DefaultDomChangesPerformer;
+import rsp.dom.DefaultDomChangesContext;
 import rsp.server.OutMessages;
 import rsp.util.json.JsonDataType;
 
@@ -47,7 +47,7 @@ public final class PropertiesHandle {
     }
 
     public CompletableFuture<Void> set(final String propertyName, final String value) {
-        out.modifyDom(List.of(new DefaultDomChangesPerformer.SetAttr(path, XmlNs.html, propertyName, value, true)));
+        out.modifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true)));
         return new CompletableFuture<>();
     }
 

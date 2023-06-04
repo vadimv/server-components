@@ -3,7 +3,7 @@ package rsp.server;
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
 import rsp.dom.VirtualDomPath;
-import rsp.dom.DefaultDomChangesPerformer.*;
+import rsp.dom.DefaultDomChangesContext.*;
 
 import java.util.Arrays;
 import java.util.List;

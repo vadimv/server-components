@@ -1,6 +1,6 @@
 package rsp;
 
-import rsp.page.LivePageSnapshot;
+import rsp.component.StatefulComponent;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.routing.Route;
@@ -46,7 +46,7 @@ public final class App<S> {
      */
     public final Function<S, StatefulComponent<S>> rootComponent;
 
-    public final Map<QualifiedSessionId, LivePageSnapshot<S>> pagesStorage = new ConcurrentHashMap<>();
+    public final Map<QualifiedSessionId, StatefulComponent<S>> pagesStorage = new ConcurrentHashMap<>();
 
     /**
      * Creates an instance of an application.

@@ -6,9 +6,9 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public final class Diff {
     private final Optional<Tag> current;
     private final Tag work;
-    private final DomChangesPerformer performer;
+    private final DomChangesContext performer;
 
-    public Diff(final Optional<Tag> current, final Tag work, final DomChangesPerformer performer) {
+    public Diff(final Optional<Tag> current, final Tag work, final DomChangesContext performer) {
         this.current = Objects.requireNonNull(current);
         this.work = Objects.requireNonNull(work);
         this.performer = Objects.requireNonNull(performer);
@@ -19,7 +19,7 @@ public final class Diff {
                                 () -> create(work, new VirtualDomPath(1), performer));
     }
 
-    private static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesPerformer changesPerformer) {
+    private static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesContext changesPerformer) {
         if (!c.name.equals(w.name)) {
             changesPerformer.remove(path.parent().get(), path);
             create(w, path, changesPerformer);
@@ -33,7 +33,7 @@ public final class Diff {
     private static void diffAttributes(final CopyOnWriteArraySet<Attribute> ca,
                                        final CopyOnWriteArraySet<Attribute> wa,
                                        final VirtualDomPath path,
-                                       final DomChangesPerformer performer) {
+                                       final DomChangesContext performer) {
         final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
         final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
@@ -49,7 +49,7 @@ public final class Diff {
     private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
                                    final CopyOnWriteArraySet<Style> wa,
                                    final VirtualDomPath path,
-                                   final DomChangesPerformer performer) {
+                                   final DomChangesContext performer) {
         final Set<Style> c = new CopyOnWriteArraySet<>(ca);
         final Set<Style> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
@@ -62,7 +62,7 @@ public final class Diff {
         });
     }
 
-    private static void diffChildren(final List<Node> cc, final List<Node> wc, final VirtualDomPath path, final DomChangesPerformer performer) {
+    private static void diffChildren(final List<Node> cc, final List<Node> wc, final VirtualDomPath path, final DomChangesContext performer) {
         final ListIterator<Node> c = cc.listIterator();
         final ListIterator<Node> w = wc.listIterator();
 
@@ -94,7 +94,7 @@ public final class Diff {
 
     }
 
-    private static void create(final Tag tag, final VirtualDomPath path, final DomChangesPerformer changesPerformer) {
+    private static void create(final Tag tag, final VirtualDomPath path, final DomChangesContext changesPerformer) {
         changesPerformer.create(path, tag.xmlns, tag.name);
         for (final Style style: tag.styles) {
             changesPerformer.setStyle(path, style.name, style.value);

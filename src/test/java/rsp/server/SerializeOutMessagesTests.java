@@ -2,7 +2,7 @@ package rsp.server;
 
 import org.junit.Assert;
 import org.junit.Test;
-import rsp.dom.DefaultDomChangesPerformer;
+import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
@@ -40,60 +40,60 @@ public class SerializeOutMessagesTests {
     @Test
     public void should_modify_dom_create_tag() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.Create(VirtualDomPath.of("1_1"), XmlNs.html, "div")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(VirtualDomPath.of("1_1"), XmlNs.html, "div")));
         Assert.assertEquals("[4,0,\"1\",\"1_1\",0,\"div\"]", c.result); // TODO should a unified way to be used to encode XmlNs.html and others? e.g. an enum integer values
 
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.Create(VirtualDomPath.of("100_1"), XmlNs.svg, "a")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(VirtualDomPath.of("100_1"), XmlNs.svg, "a")));
         Assert.assertEquals("[4,0,\"100\",\"100_1\",\"svg\",\"a\"]", c.result);
     }
 
     @Test
     public void should_combine_modify_dom_commands_correctly() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.Create(VirtualDomPath.of("1_1"), XmlNs.html, "div"),
-                                    new DefaultDomChangesPerformer.Create(VirtualDomPath.of("1_1_1"), XmlNs.html, "div")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(VirtualDomPath.of("1_1"), XmlNs.html, "div"),
+                                    new DefaultDomChangesContext.Create(VirtualDomPath.of("1_1_1"), XmlNs.html, "div")));
         Assert.assertEquals("[4,0,\"1\",\"1_1\",0,\"div\",0,\"1_1\",\"1_1_1\",0,\"div\"]", c.result);
     }
 
     @Test
     public void should_modify_dom_create_text() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.CreateText(VirtualDomPath.of("1_1"), VirtualDomPath.of("1_1_3"), "foo bar")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.CreateText(VirtualDomPath.of("1_1"), VirtualDomPath.of("1_1_3"), "foo bar")));
         Assert.assertEquals("[4,1,\"1_1\",\"1_1_3\",\"foo bar\"]", c.result); //TODO check escape characters
     }
 
     @Test
     public void should_modify_dom_remove_tag() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.Remove(VirtualDomPath.of("1_1"), VirtualDomPath.of("1_1_3"))));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Remove(VirtualDomPath.of("1_1"), VirtualDomPath.of("1_1_3"))));
         Assert.assertEquals("[4,2,\"1_1\",\"1_1_3\"]", c.result);
     }
 
     @Test
     public void should_modify_dom_create_attr() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.SetAttr(VirtualDomPath.of("1_1"), XmlNs.html, "name", "value", true)));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(VirtualDomPath.of("1_1"), XmlNs.html, "name", "value", true)));
         Assert.assertEquals("[4,3,\"1_1\",0,\"name\",\"value\",true]", c.result);
     }
 
     @Test
     public void should_modify_dom_remove_attr() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.RemoveAttr(VirtualDomPath.of("1_1"), XmlNs.html, "name", false)));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.RemoveAttr(VirtualDomPath.of("1_1"), XmlNs.html, "name", false)));
         Assert.assertEquals("[4,4,\"1_1\",0,\"name\",false]", c.result);
     }
 
     @Test
     public void should_modify_dom_create_style() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.SetStyle(VirtualDomPath.of("1_1"),"name", "value")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.SetStyle(VirtualDomPath.of("1_1"),"name", "value")));
         Assert.assertEquals("[4,5,\"1_1\",\"name\",\"value\"]", c.result);
     }
 
     @Test
     public void should_modify_dom_remove_style() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesPerformer.RemoveStyle(VirtualDomPath.of("1_1"),"name")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.RemoveStyle(VirtualDomPath.of("1_1"),"name")));
         Assert.assertEquals("[4,6,\"1_1\",\"name\",false]", c.result); // TODO why the boolean field at the end?
     }
 

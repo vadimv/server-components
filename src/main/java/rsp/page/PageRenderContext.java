@@ -1,6 +1,7 @@
 package rsp.page;
 
 import rsp.dom.Event;
+import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
@@ -24,5 +25,8 @@ public interface PageRenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
-    StateNotificationListener getStateNotificationListener();
+    Tag tag();
+    PageRenderContext newInstance();
+    Map<Event.Target, Event> events();
+    Map<Ref, VirtualDomPath> refs();
 }

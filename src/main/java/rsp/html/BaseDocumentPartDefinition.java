@@ -1,6 +1,7 @@
 package rsp.html;
 
 import rsp.dom.DomTreePageRenderContext;
+import rsp.dom.VirtualDomPath;
 import rsp.page.PageRenderContext;
 
 /**
@@ -11,7 +12,7 @@ public abstract class BaseDocumentPartDefinition implements DocumentPartDefiniti
 
     @Override
     public String toString() {
-        final PageRenderContext pageRenderContext = new DomTreePageRenderContext(null);
+        final PageRenderContext pageRenderContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
         render(pageRenderContext);
         return pageRenderContext.toString();
     }
