@@ -2,6 +2,7 @@ package rsp.page;
 
 import rsp.component.ComponentRenderContext;
 import rsp.component.DefaultComponentRenderContext;
+import rsp.component.OutContext;
 import rsp.component.StatefulComponent;
 import rsp.dom.DomTreePageRenderContext;
 import rsp.dom.VirtualDomPath;
@@ -32,12 +33,12 @@ public final class PageRendering<S> {
     private final Route<HttpRequest, S> routes;
     private final Function<S, StatefulComponent<S>> rootComponent;
 
-    private final Map<QualifiedSessionId, StatefulComponent<S>> renderedPages;
+    private final Map<QualifiedSessionId, RenderedPageSnapshot<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
     public PageRendering(final Route<HttpRequest, S> routes,
                          final Function<S, StatefulComponent<S>> rootComponent,
-                         final Map<QualifiedSessionId, StatefulComponent<S>> pagesStorage,
+                         final Map<QualifiedSessionId, RenderedPageSnapshot<S>> pagesStorage,
                          final BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
         this.routes = routes;
         this.rootComponent = rootComponent;
@@ -89,12 +90,17 @@ public final class PageRendering<S> {
                     .map(cf -> cf.thenApply(rootState ->  {
                         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
                         final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
-                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext, null);
+                        final OutContext outContext = new OutContext();
+                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext, outContext);
+
                         final StatefulComponent<S> component = rootComponent.apply(rootState);
                         component.render(componentRenderContext);
-                        renderedPages.put(pageId, component);
+                        final RenderedPageSnapshot<S> pageSnapshot = new RenderedPageSnapshot<>(component, outContext);
+                        renderedPages.put(pageId, pageSnapshot);
                         final String responseBody = domTreeContext.toString();
+
                         logger.log(TRACE, () -> "Page body: " + responseBody);
+
                         return new HttpResponse(domTreeContext.statusCode(),
                                                 headers(domTreeContext.headers(), deviceId),
                                                 domTreeContext.toString());

@@ -7,7 +7,6 @@ import rsp.dom.XmlNs;
 import rsp.page.EventContext;
 import rsp.page.PageRenderContext;
 import rsp.ref.Ref;
-import rsp.server.InMessages;
 import rsp.server.OutMessages;
 
 import java.util.Map;
@@ -15,73 +14,73 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 public class DefaultComponentRenderContext implements ComponentRenderContext {
-    private final PageRenderContext context;
-    private final OutMessages out;
+    private final PageRenderContext renderContext;
+    private final OutContext outContext;
 
-    public DefaultComponentRenderContext(final PageRenderContext context, final OutMessages out) {
-        this.context = context;
-        this.out = out;
+    public DefaultComponentRenderContext(final PageRenderContext context, final OutContext outContext) {
+        this.renderContext = context;
+        this.outContext = outContext;
     }
 
     @Override
     public ComponentRenderContext newInstance() {
-        return new DefaultComponentRenderContext(context.newInstance(), out);
+        return new DefaultComponentRenderContext(renderContext.newInstance(), outContext);
     }
 
 
     @Override
     public OutMessages out() {
-        return out;
+        return outContext.get();
     }
 
     @Override
     public Map<Event.Target, Event> events() {
-        return context.events();
+        return renderContext.events();
     }
 
     @Override
     public Map<Ref, VirtualDomPath> refs() {
-        return context.refs();
+        return renderContext.refs();
     }
 
     @Override
     public void setStatusCode(int statusCode) {
-        context.setStatusCode(statusCode);
+        renderContext.setStatusCode(statusCode);
     }
 
     @Override
     public void setHeaders(Map<String, String> headers) {
-        context.setHeaders(headers);
+        renderContext.setHeaders(headers);
     }
 
     @Override
     public void setDocType(String docType) {
-        context.setDocType(docType);
+        renderContext.setDocType(docType);
     }
 
     @Override
     public void openNode(XmlNs xmlns, String name) {
-        context.openNode(xmlns, name);
+        renderContext.openNode(xmlns, name);
     }
 
     @Override
     public void closeNode(String name, boolean upgrade) {
-        context.closeNode(name, upgrade);
+        renderContext.closeNode(name, upgrade);
     }
 
     @Override
     public void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty) {
-        context.setAttr(xmlNs, name, value, isProperty);
+        renderContext.setAttr(xmlNs, name, value, isProperty);
     }
 
     @Override
     public void setStyle(String name, String value) {
-        context.setStyle(name, value);
+        renderContext.setStyle(name, value);
     }
 
     @Override
     public void addTextNode(String text) {
-        context.addTextNode(text);
+        renderContext.addTextNode(text);
     }
 
     @Override
@@ -91,7 +90,7 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
                          boolean preventDefault,
                          Event.Modifier modifier) {
 
-        context.addEvent(elementPath,
+        renderContext.addEvent(elementPath,
                          eventName,
                          eventHandler,
                          preventDefault,
@@ -100,11 +99,11 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
 
     @Override
     public void addRef(Ref ref) {
-        context.addRef(ref);
+        renderContext.addRef(ref);
     }
 
     @Override
     public Tag tag() {
-        return context.tag();
+        return renderContext.tag();
     }
 }

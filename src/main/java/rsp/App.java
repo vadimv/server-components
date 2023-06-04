@@ -3,6 +3,7 @@ package rsp;
 import rsp.component.StatefulComponent;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
+import rsp.page.RenderedPageSnapshot;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
@@ -46,7 +47,7 @@ public final class App<S> {
      */
     public final Function<S, StatefulComponent<S>> rootComponent;
 
-    public final Map<QualifiedSessionId, StatefulComponent<S>> pagesStorage = new ConcurrentHashMap<>();
+    public final Map<QualifiedSessionId, RenderedPageSnapshot<S>> pagesStorage = new ConcurrentHashMap<>();
 
     /**
      * Creates an instance of an application.

@@ -43,9 +43,6 @@ public final class StatefulComponent<S> implements DocumentPartDefinition, InMes
         this.createViewFunction = createViewFunction;
     }
 
-    public void setOut(OutMessages out) {
-        this.out = out;
-    }
 
     @Override
     public void render(final PageRenderContext renderContext) {
@@ -56,7 +53,7 @@ public final class StatefulComponent<S> implements DocumentPartDefinition, InMes
         final DocumentPartDefinition documentPartDefinition = createViewFunction.apply(state, s -> {
             synchronized (this) {
                 state = s;
-
+                out = componentRenderContext.out();
                 final Tag oldTag = tag;
                 final Set<Event> oldEvents = new HashSet<>(events.values());
 
