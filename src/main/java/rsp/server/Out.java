@@ -6,7 +6,7 @@ import rsp.dom.DefaultDomChangesContext;
 
 import java.util.List;
 
-public interface OutMessages {
+public interface Out {
     void setRenderNum(int renderNum);
     void listenEvents(List<Event> events);
     void forgetEvent(String eventType, VirtualDomPath elementPath);

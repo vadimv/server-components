@@ -1,21 +1,21 @@
 package rsp.component;
 
-import rsp.server.OutMessages;
+import rsp.server.Out;
 
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public final class OutContext implements Supplier<OutMessages>, Consumer<OutMessages> {
-    private volatile OutMessages out;
+public final class OutContext implements Supplier<Out>, Consumer<Out> {
+    private volatile Out out;
 
     @Override
-    public OutMessages get() {
+    public Out get() {
         return Objects.requireNonNull(out);
     }
 
     @Override
-    public void accept(final OutMessages outMessages) {
-        this.out = Objects.requireNonNull(outMessages);
+    public void accept(final Out out) {
+        this.out = Objects.requireNonNull(out);
     }
 }

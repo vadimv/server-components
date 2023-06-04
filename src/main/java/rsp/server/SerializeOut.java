@@ -14,7 +14,7 @@ import static rsp.util.json.JsonUtils.escape;
 /**
  * The communication protocol is based on the protocol of Korolev project by Aleksey Fomkin
  */
-public final class SerializeOutMessages implements OutMessages {
+public final class SerializeOut implements Out {
     private static final int SET_RENDER_NUM = 0; // (n)
     private static final int CLEAN_ROOT = 1; // ()
     private static final int LISTEN_EVENT = 2; // (type, preventDefault, id, modifier)
@@ -55,7 +55,7 @@ public final class SerializeOutMessages implements OutMessages {
 
     private final Consumer<String> messagesConsumer;
 
-    public SerializeOutMessages(final Consumer<String> messagesConsumer) {
+    public SerializeOut(final Consumer<String> messagesConsumer) {
         this.messagesConsumer = messagesConsumer;
     }
 

@@ -1,12 +1,11 @@
 package rsp.javax.web;
 
-import rsp.component.OutContext;
 import rsp.component.StatefulComponent;
 import rsp.page.*;
 import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
-import rsp.server.OutMessages;
-import rsp.server.SerializeOutMessages;
+import rsp.server.Out;
+import rsp.server.SerializeOut;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
@@ -27,7 +26,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
     private final StateToRouteDispatch<S> state2route;
-    private final Map<QualifiedSessionId, RenderedPageSnapshot<S>> renderedPages;
+    private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
@@ -36,7 +35,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     public MainWebSocketEndpoint(final StateToRouteDispatch<S> state2route,
-                                 final Map<QualifiedSessionId, RenderedPageSnapshot<S>> renderedPages,
+                                 final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
                                  final BiFunction<String, PageRenderContext, PageRenderContext> enrich,
                                  final Supplier<ScheduledExecutorService> schedulerSupplier,
                                  final PageLifeCycle<S> lifeCycleEventsListener) {
@@ -50,22 +49,22 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onOpen(final Session session, final EndpointConfig endpointConfig) {
         logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
-        final OutMessages out = new SerializeOutMessages((msg) -> sendText(session, msg));
+        final Out out = new SerializeOut((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
 
-        final RenderedPageSnapshot<S> renderedPageSnapshot = renderedPages.remove(qsid);
+        final RenderedPage<S> renderedPage = renderedPages.remove(qsid);
 
-        if (renderedPageSnapshot == null) {
+        if (renderedPage == null) {
             logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
             if (!isKnownLostSession(qsid)) {
                 logger.log(WARNING, () -> "Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort());
                 out.evalJs(-1, "RSP.reload()");
             }
         } else {
-            final StatefulComponent<S> rootComponent = renderedPageSnapshot.rootComponent;
-            renderedPageSnapshot.outContext.accept(out);
+            final StatefulComponent<S> rootComponent = renderedPage.rootComponent;
+            renderedPage.outContext.accept(out);
             //lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
             final LivePage<S> livePage = new LivePage<>(qsid,
                                                         rootComponent,

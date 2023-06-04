@@ -16,7 +16,7 @@ import java.util.Objects;
 public final class DeserializeInMessage {
     private static final System.Logger logger = System.getLogger(DeserializeInMessage.class.getName());
 
-    private final InMessages inMessages;
+    private final In in;
 
     private static final int DOM_EVENT = 0; // `$renderNum:$elementId:$eventType`
     private static final int CUSTOM_CALLBACK = 1; // `$name:arg`
@@ -31,8 +31,8 @@ public final class DeserializeInMessage {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public DeserializeInMessage(final InMessages inMessages) {
-        this.inMessages = inMessages;
+    public DeserializeInMessage(final In in) {
+        this.in = in;
     }
 
     public void parse(final String message) {
@@ -61,13 +61,13 @@ public final class DeserializeInMessage {
                 Either.right(JsonSimpleUtils.convertToJsonType(value))
                 :
                 Either.left(new RuntimeException("Property not found"));
-        inMessages.handleExtractPropertyResponse(descriptorId,
+        in.handleExtractPropertyResponse(descriptorId,
                                                  result);
     }
 
     private void parseEvalJsResponse(final String metadata, final Object value) {
         final String[] tokens = metadata.split(":");
-        inMessages.handleEvalJsResponse(Integer.parseInt(tokens[0]),
+        in.handleEvalJsResponse(Integer.parseInt(tokens[0]),
                                         JsonSimpleUtils.convertToJsonType(value));
     }
 
@@ -75,7 +75,7 @@ public final class DeserializeInMessage {
         final JsonDataType json = JsonSimpleUtils.convertToJsonType(eventObject);
         if (json instanceof JsonDataType.Object) {
             final String[] tokens = str.split(":");
-            inMessages.handleDomEvent(Integer.parseInt(tokens[0]),
+            in.handleDomEvent(Integer.parseInt(tokens[0]),
                                       VirtualDomPath.of(tokens[1]),
                                       tokens[2],
                                       (JsonDataType.Object) JsonSimpleUtils.convertToJsonType(eventObject));

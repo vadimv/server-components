@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.dom.XmlNs;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.DefaultDomChangesContext;
-import rsp.server.OutMessages;
+import rsp.server.Out;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -17,12 +17,12 @@ public final class PropertiesHandle {
     private final VirtualDomPath path;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers;
-    private final OutMessages out;
+    private final Out out;
 
     public PropertiesHandle(final VirtualDomPath path,
                             final Supplier<Integer> descriptorSupplier,
                             final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
-                            final OutMessages out) {
+                            final Out out) {
         this.path = Objects.requireNonNull(path);
         this.descriptorSupplier = Objects.requireNonNull(descriptorSupplier);
         this.registeredEventHandlers = Objects.requireNonNull(registeredEventHandlers);

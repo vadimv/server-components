@@ -2,8 +2,8 @@ package rsp.page;
 
 import rsp.component.StatefulComponent;
 import rsp.dom.VirtualDomPath;
-import rsp.server.InMessages;
-import rsp.server.OutMessages;
+import rsp.server.In;
+import rsp.server.Out;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
@@ -20,13 +20,13 @@ import static java.lang.System.Logger.Level.DEBUG;
  * A server-side object representing an open browser's page.
  * @param <S> the application's state's type
  */
-public final class LivePage<S> implements InMessages, Schedule {
+public final class LivePage<S> implements In, Schedule {
     private static final System.Logger logger = System.getLogger(LivePage.class.getName());
 
     public final QualifiedSessionId qsid;
     private final StatefulComponent<S> pageRootComponent;
     private final ScheduledExecutorService scheduledExecutorService;
-    private final OutMessages out;
+    private final Out out;
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
@@ -34,7 +34,7 @@ public final class LivePage<S> implements InMessages, Schedule {
     public LivePage(final QualifiedSessionId qsid,
                     final StatefulComponent<S> pageRootComponent,
                     final ScheduledExecutorService scheduledExecutorService,
-                    final OutMessages out) {
+                    final Out out) {
         this.qsid = qsid;
         this.pageRootComponent = pageRootComponent;
         this.scheduledExecutorService = scheduledExecutorService;

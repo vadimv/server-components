@@ -1,21 +1,16 @@
 package rsp.page;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-import org.junit.Assert;
 import org.junit.Test;
 import rsp.CreateViewFunction;
 import rsp.dom.*;
-import rsp.server.OutMessages;
-import rsp.server.Path;
+import rsp.server.Out;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
-
-import static rsp.html.HtmlDsl.*;
 
 public class LivePageStateTests {
 
@@ -90,7 +85,7 @@ public class LivePageStateTests {
         }
     }
 
-    private static class TestCollectingOutMessages implements OutMessages {
+    private static class TestCollectingOut implements Out {
         public final List<Message> commands = new ArrayList<>();
 
         @Override

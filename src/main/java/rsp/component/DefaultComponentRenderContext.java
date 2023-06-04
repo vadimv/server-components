@@ -7,7 +7,7 @@ import rsp.dom.XmlNs;
 import rsp.page.EventContext;
 import rsp.page.PageRenderContext;
 import rsp.ref.Ref;
-import rsp.server.OutMessages;
+import rsp.server.Out;
 
 import java.util.Map;
 import java.util.Optional;
@@ -29,7 +29,7 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
 
 
     @Override
-    public OutMessages out() {
+    public Out out() {
         return outContext.get();
     }
 

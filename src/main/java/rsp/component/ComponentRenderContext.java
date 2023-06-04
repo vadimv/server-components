@@ -1,8 +1,8 @@
 package rsp.component;
 
 import rsp.page.PageRenderContext;
-import rsp.server.OutMessages;
+import rsp.server.Out;
 
 public interface ComponentRenderContext extends PageRenderContext {
-    OutMessages out();
+    Out out();
 }

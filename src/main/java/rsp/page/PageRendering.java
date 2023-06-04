@@ -13,7 +13,6 @@ import rsp.server.Path;
 import rsp.util.RandomString;
 import rsp.util.data.Tuple2;
 
-import javax.swing.plaf.nimbus.State;
 import java.io.IOException;
 import java.net.URL;
 import java.util.*;
@@ -33,12 +32,12 @@ public final class PageRendering<S> {
     private final Route<HttpRequest, S> routes;
     private final Function<S, StatefulComponent<S>> rootComponent;
 
-    private final Map<QualifiedSessionId, RenderedPageSnapshot<S>> renderedPages;
+    private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
 
     public PageRendering(final Route<HttpRequest, S> routes,
                          final Function<S, StatefulComponent<S>> rootComponent,
-                         final Map<QualifiedSessionId, RenderedPageSnapshot<S>> pagesStorage,
+                         final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          final BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
         this.routes = routes;
         this.rootComponent = rootComponent;
@@ -95,7 +94,7 @@ public final class PageRendering<S> {
 
                         final StatefulComponent<S> component = rootComponent.apply(rootState);
                         component.render(componentRenderContext);
-                        final RenderedPageSnapshot<S> pageSnapshot = new RenderedPageSnapshot<>(component, outContext);
+                        final RenderedPage<S> pageSnapshot = new RenderedPage<>(component, outContext);
                         renderedPages.put(pageId, pageSnapshot);
                         final String responseBody = domTreeContext.toString();
 

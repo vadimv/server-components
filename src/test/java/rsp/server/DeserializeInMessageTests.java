@@ -10,7 +10,7 @@ public class DeserializeInMessageTests {
 
     @Test
     public void should_deserialize_dom_event_correctly() {
-        final TestInMessages collector = new TestInMessages();
+        final TestIn collector = new TestIn();
         final DeserializeInMessage p = createParser(collector);
         p.parse("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
@@ -23,7 +23,7 @@ public class DeserializeInMessageTests {
 
     @Test
     public void should_deserialize_extract_property() {
-        final TestInMessages collector = new TestInMessages();
+        final TestIn collector = new TestIn();
         final DeserializeInMessage p = createParser(collector);
         p.parse("[2,\"1:0\",\"bar\"]");
 
@@ -39,7 +39,7 @@ public class DeserializeInMessageTests {
 
     @Test
     public void should_deserialize_extract_missed_property() {
-        final TestInMessages collector = new TestInMessages();
+        final TestIn collector = new TestIn();
         final DeserializeInMessage p = createParser(collector);
         p.parse("[2,\"1:2\"]");
 
@@ -51,7 +51,7 @@ public class DeserializeInMessageTests {
 
     @Test
     public void should_deserialize_eval_js_response() {
-        final TestInMessages collector = new TestInMessages();
+        final TestIn collector = new TestIn();
         final DeserializeInMessage p = createParser(collector);
         p.parse("[4,\"1:0\",\"foo\"]");
 
@@ -61,7 +61,7 @@ public class DeserializeInMessageTests {
         Assert.assertEquals(new JsonDataType.String("foo"), result.value);
     }
 
-    private DeserializeInMessage createParser(final InMessages collector) {
+    private DeserializeInMessage createParser(final In collector) {
         return new DeserializeInMessage(collector);
     }
 
@@ -97,7 +97,7 @@ public class DeserializeInMessageTests {
         }
     }
 
-    private final class TestInMessages implements InMessages {
+    private final class TestIn implements In {
         public Object result;
 
 

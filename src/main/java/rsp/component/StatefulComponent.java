@@ -7,8 +7,8 @@ import rsp.html.WindowRef;
 import rsp.page.*;
 import rsp.page.Timer;
 import rsp.ref.Ref;
-import rsp.server.InMessages;
-import rsp.server.OutMessages;
+import rsp.server.In;
+import rsp.server.Out;
 import rsp.server.Path;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 import static java.lang.System.Logger.Level.DEBUG;
 
 
-public final class StatefulComponent<S> implements DocumentPartDefinition, InMessages {
+public final class StatefulComponent<S> implements DocumentPartDefinition, In {
     private static final System.Logger logger = System.getLogger(StatefulComponent.class.getName());
 
     public final CreateViewFunction<S> createViewFunction;
@@ -28,7 +28,7 @@ public final class StatefulComponent<S> implements DocumentPartDefinition, InMes
     private S state;
     private Path path;
     private Tag tag;
-    private OutMessages out;
+    private Out out;
 
     private int descriptorsCounter;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
