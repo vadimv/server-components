@@ -2,13 +2,13 @@ package rsp.browserautomation;
 
 import rsp.App;
 import rsp.CreateViewFunction;
-import rsp.component.StatefulComponent;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
 
 import java.util.concurrent.CompletableFuture;
 
+import static rsp.component.ComponentDsl.component;
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
@@ -41,19 +41,13 @@ public class SimpleServer {
                 any(new NotFoundState()));
     }
 
+
     private static CreateViewFunction<AppState> appComponent() {
         final CreateViewFunction<OkState> okCreateViewFunction = (sv, sc) ->
                 html(head(title("test-server-title")),
-                        body(//SUB_STATE_VIEW.apply(sv.i, s -> sc.accept(new OkState(s))),
-                                new StatefulComponent<>(80000, SUB_STATE_VIEW),
-                                div(button(attr("type", "button"),
-                                        attr("id", "b0"),
-                                        text("+1"),
-                                        on("click",
-                                                d -> { sc.accept(new OkState(sv.i + 1));}))),
-                                div(span(attr("id", "s0"),
-                                        style("background-color", sv.i % 2 ==0 ? "red" : "blue"),
-                                        text(sv.i)))
+                        body(component(new OkState(80000), SUB_STATE_VIEW),
+                             component(new OkState(1000), SUB_STATE_VIEW),
+                             SUB_STATE_VIEW.apply(sv, sc)
                         ));
 
         final CreateViewFunction<NotFoundState> notFoundComponent =
@@ -91,8 +85,14 @@ public class SimpleServer {
         }
     }
 
-    public static final CreateViewFunction<Integer> SUB_STATE_VIEW = (sv, sc) ->
-            div(attr("id", "d0"),
-                text("value2:" + sv),
-                on("click", d -> { sc.accept(sv + 10);}));
+    public static final CreateViewFunction<OkState> SUB_STATE_VIEW = (sv, sc) ->
+            div(div(button(attr("type", "button"),
+                            attr("id", "b0"),
+                            text("+1"),
+                            on("click",
+                                    d -> { sc.accept(new OkState(sv.i + 1));}))),
+                    div(span(attr("id", "s0"),
+                            style("background-color", sv.i % 2 ==0 ? "red" : "blue"),
+                            text(sv.i)))
+            );
 }
