@@ -8,7 +8,6 @@ import rsp.page.EventContext;
 import rsp.page.LivePage;
 import rsp.page.PageRenderContext;
 import rsp.ref.Ref;
-import rsp.server.Out;
 
 import java.util.Map;
 import java.util.Optional;
@@ -33,13 +32,10 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
         return renderContext.rootPath();
     }
 
-
     @Override
     public LivePage livePage() {
         return livePageContext.get();
     }
-
-
 
     @Override
     public Map<Event.Target, Event> events() {
@@ -99,10 +95,10 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
                          Event.Modifier modifier) {
 
         renderContext.addEvent(elementPath,
-                         eventName,
-                         eventHandler,
-                         preventDefault,
-                         modifier);
+                               eventName,
+                               eventHandler,
+                               preventDefault,
+                               modifier);
     }
 
     @Override

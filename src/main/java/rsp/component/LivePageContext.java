@@ -6,8 +6,8 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public final class LivePageContext<S> implements Supplier<LivePage>, Consumer<LivePage> {
-    private volatile LivePage<S> livePage;
+public final class LivePageContext implements Supplier<LivePage>, Consumer<LivePage> {
+    private volatile LivePage livePage;
 
     @Override
     public LivePage get() {

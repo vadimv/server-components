@@ -1,6 +1,5 @@
 package rsp.page;
 
-import rsp.component.StatefulComponent;
 import rsp.dom.*;
 import rsp.html.WindowRef;
 import rsp.ref.Ref;
@@ -14,7 +13,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
@@ -22,11 +20,10 @@ import static java.lang.System.Logger.Level.DEBUG;
  * A server-side object representing an open browser's page.
  * @param <S> the application's state's type
  */
-public final class LivePage<S> implements In, Schedule {
+public final class LivePage implements In, Schedule {
     private static final System.Logger logger = System.getLogger(LivePage.class.getName());
 
     public final QualifiedSessionId qsid;
-    private final StatefulComponent<S> pageRootComponent;
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final Out out;
@@ -35,18 +32,14 @@ public final class LivePage<S> implements In, Schedule {
 
     private int descriptorsCounter;
 
-
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
 
-
     public LivePage(final QualifiedSessionId qsid,
-                    final StatefulComponent<S> pageRootComponent,
                     final ScheduledExecutorService scheduledExecutorService,
                     final Map<Event.Target, Event> events,
                     final Out out) {
         this.qsid = qsid;
-        this.pageRootComponent = pageRootComponent;
         this.scheduledExecutorService = scheduledExecutorService;
         this.events.putAll(events);
         this.out = out;
@@ -96,7 +89,7 @@ public final class LivePage<S> implements In, Schedule {
     }
 
     @Override
-    public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> result) {
+    public void handleExtractPropertyResponse(final int descriptorId, final Either<Throwable, JsonDataType> result) {
         result.on(ex -> {
                     logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " exception: " + ex.getMessage());
                     synchronized (this) {
@@ -120,7 +113,7 @@ public final class LivePage<S> implements In, Schedule {
     }
 
     @Override
-    public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
+    public void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
         logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toStringValue());
         synchronized (this) {
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
@@ -132,7 +125,7 @@ public final class LivePage<S> implements In, Schedule {
     }
 
     @Override
-    public void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
+    public void handleDomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
         synchronized (this) {
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
@@ -154,8 +147,7 @@ public final class LivePage<S> implements In, Schedule {
         }
     }
 
-
-    private EventContext createEventContext(JsonDataType.Object eventObject) {
+    private EventContext createEventContext(final JsonDataType.Object eventObject) {
         return new EventContext(js -> evalJs(js),
                                 ref -> createPropertiesHandle(ref),
                                 eventObject,
@@ -163,7 +155,7 @@ public final class LivePage<S> implements In, Schedule {
                                 href -> setHref(href));
     }
 
-    private PropertiesHandle createPropertiesHandle(Ref ref) {
+    private PropertiesHandle createPropertiesHandle(final Ref ref) {
         final VirtualDomPath path = resolveRef(ref);
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
@@ -171,11 +163,11 @@ public final class LivePage<S> implements In, Schedule {
         return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, out);
     }
 
-    private VirtualDomPath resolveRef(Ref ref) {
+    private VirtualDomPath resolveRef(final Ref ref) {
         return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : refs.get(ref);
     }
 
-    public CompletableFuture<JsonDataType> evalJs(String js) {
+    public CompletableFuture<JsonDataType> evalJs(final String js) {
         synchronized (this) {
             final int newDescriptor = ++descriptorsCounter;
             final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
@@ -185,10 +177,9 @@ public final class LivePage<S> implements In, Schedule {
         }
     }
 
-    private void setHref(String path) {
+    private void setHref(final String path) {
         out.setHref(path);
     }
-
 
     public void update(final Tag oldTag,
                        final Tag newTag,
@@ -240,6 +231,5 @@ public final class LivePage<S> implements In, Schedule {
         if (!newPath.equals(oldPath)) {
             out.pushHistory(state2route.basePath.resolve(newPath).toString());
         }*/
-
     }
 }

@@ -31,7 +31,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
 
-
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     public MainWebSocketEndpoint(final StateToRouteDispatch<S> state2route,
@@ -66,11 +65,10 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             final StatefulComponent<S> rootComponent = renderedPage.rootComponent;
 
             //lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
-            final LivePage<S> livePage = new LivePage<>(qsid,
-                                                        rootComponent,
-                                                        schedulerSupplier.get(),
-                                                        rootComponent.events,
-                                                        out);
+            final LivePage livePage = new LivePage(qsid,
+                                                   schedulerSupplier.get(),
+                                                   rootComponent.events,
+                                                   out);
             renderedPage.livePageContext.accept(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
@@ -112,7 +110,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private void shutdown(final Session session) {
         @SuppressWarnings("unchecked")
-        final LivePage<S> livePage = (LivePage<S>) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
+        final LivePage livePage = (LivePage) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
             //lifeCycleEventsListener.afterLivePageClosed(livePage.qsid, livePage.getPageState());

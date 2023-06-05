@@ -5,7 +5,6 @@ import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.html.DocumentPartDefinition;
-import rsp.page.LivePage;
 import rsp.page.PageRenderContext;
 
 import java.util.Map;
@@ -31,28 +30,25 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     public void render(final PageRenderContext renderContext) {
         //path = renderContext.tag() == null ? renderContext.rootPath() : renderContext.tag().path();
 
-        final DocumentPartDefinition documentPartDefinition = createViewFunction.apply(state, s -> {
-            synchronized (this) {
+        final DocumentPartDefinition view = createViewFunction.apply(state, s -> {
+            final PageRenderContext componentContext = renderContext.newInstance();
+            assert componentContext instanceof ComponentRenderContext;
+            final ComponentRenderContext context = (ComponentRenderContext) componentContext;
+
+            synchronized (context.livePage()) {
                 final Tag oldTag = tag;
                 final Map<Event.Target, Event> oldEvents = events;
 
                 state = s;
 
-                final ComponentRenderContext crc = asComponentRenderContext(renderContext.newInstance());
-                render(crc);
-                final LivePage livePage = crc.livePage();
-                livePage.update(oldTag, crc.tag(), oldEvents, crc.events());
+                render(context);
+                context.livePage().update(oldTag, context.tag(), oldEvents, context.events());
             }
         });
 
-        documentPartDefinition.render(renderContext);
+        view.render(renderContext);
 
         tag = renderContext.tag();
         events = renderContext.events();
-    }
-
-    private static ComponentRenderContext asComponentRenderContext(final PageRenderContext renderContext) {
-        if (!(renderContext instanceof ComponentRenderContext)) throw new IllegalArgumentException("ComponentRenderContext is expected");
-        return (ComponentRenderContext) renderContext;
     }
 }
