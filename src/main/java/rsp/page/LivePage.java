@@ -1,18 +1,20 @@
 package rsp.page;
 
 import rsp.component.StatefulComponent;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.*;
+import rsp.html.WindowRef;
+import rsp.ref.Ref;
 import rsp.server.In;
 import rsp.server.Out;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
@@ -25,19 +27,28 @@ public final class LivePage<S> implements In, Schedule {
 
     public final QualifiedSessionId qsid;
     private final StatefulComponent<S> pageRootComponent;
+
     private final ScheduledExecutorService scheduledExecutorService;
     private final Out out;
+    public final Map<Event.Target, Event> events = new HashMap<>();
+    public final Map<Ref, VirtualDomPath> refs = new HashMap<>(); // TODO
+
+    private int descriptorsCounter;
+
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
 
+
     public LivePage(final QualifiedSessionId qsid,
                     final StatefulComponent<S> pageRootComponent,
                     final ScheduledExecutorService scheduledExecutorService,
+                    final Map<Event.Target, Event> events,
                     final Out out) {
         this.qsid = qsid;
         this.pageRootComponent = pageRootComponent;
         this.scheduledExecutorService = scheduledExecutorService;
+        this.events.putAll(events);
         this.out = out;
     }
 
@@ -49,28 +60,6 @@ public final class LivePage<S> implements In, Schedule {
                 timer.getValue().cancel(true);
             }
         }
-    }
-
-    @Override
-    public void handleExtractPropertyResponse(final int descriptorId, final Either<Throwable, JsonDataType> result) {
-
-        pageRootComponent.handleExtractPropertyResponse(descriptorId, result);
-    }
-
-    @Override
-    public void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
-      pageRootComponent.handleEvalJsResponse(descriptorId, value);
-    }
-
-    @Override
-    public void handleDomEvent(final int renderNumber,
-                               final VirtualDomPath path,
-                               final String eventType,
-                               final JsonDataType.Object eventObject) {
-        pageRootComponent.handleDomEvent(renderNumber,
-                                         path,
-                                         eventType,
-                                         eventObject);
     }
 
     @Override
@@ -104,5 +93,153 @@ public final class LivePage<S> implements In, Schedule {
             schedule.cancel(true);
             schedules.remove(key);
         }
+    }
+
+    @Override
+    public void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> result) {
+        result.on(ex -> {
+                    logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " exception: " + ex.getMessage());
+                    synchronized (this) {
+                        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+                        if (cf != null) {
+                            cf.completeExceptionally(ex);
+                            registeredEventHandlers.remove(descriptorId);
+                        }
+                    }
+                },
+                v -> {
+                    logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.toStringValue());
+                    synchronized (this) {
+                        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+                        if (cf != null) {
+                            cf.complete(v);
+                            registeredEventHandlers.remove(descriptorId);
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void handleEvalJsResponse(int descriptorId, JsonDataType value) {
+        logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toStringValue());
+        synchronized (this) {
+            final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+            if (cf != null) {
+                cf.complete(value);
+                registeredEventHandlers.remove(descriptorId);
+            }
+        }
+    }
+
+    @Override
+    public void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject) {
+        synchronized (this) {
+            VirtualDomPath eventElementPath = path;
+            while(eventElementPath.level() > 0) {
+                final Event event = events.get(new Event.Target(eventType, eventElementPath));
+                if (event != null && event.eventTarget.eventType.equals(eventType)) {
+                    final EventContext eventContext = createEventContext(eventObject);
+                    event.eventHandler.accept(eventContext);
+                    break;
+                } else {
+                    final Optional<VirtualDomPath> parentPath = eventElementPath.parent();
+                    if (parentPath.isPresent()) {
+                        eventElementPath = parentPath.get();
+                    } else {
+                        // TODO warn
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+
+    private EventContext createEventContext(JsonDataType.Object eventObject) {
+        return new EventContext(js -> evalJs(js),
+                                ref -> createPropertiesHandle(ref),
+                                eventObject,
+                                this,
+                                href -> setHref(href));
+    }
+
+    private PropertiesHandle createPropertiesHandle(Ref ref) {
+        final VirtualDomPath path = resolveRef(ref);
+        if (path == null) {
+            throw new IllegalStateException("Ref not found: " + ref);
+        }
+        return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, out);
+    }
+
+    private VirtualDomPath resolveRef(Ref ref) {
+        return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : refs.get(ref);
+    }
+
+    public CompletableFuture<JsonDataType> evalJs(String js) {
+        synchronized (this) {
+            final int newDescriptor = ++descriptorsCounter;
+            final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
+            registeredEventHandlers.put(newDescriptor, resultHandler);
+            out.evalJs(newDescriptor, js);
+            return resultHandler;
+        }
+    }
+
+    private void setHref(String path) {
+        out.setHref(path);
+    }
+
+
+    public void update(final Tag oldTag,
+                       final Tag newTag,
+                       final Map<Event.Target, Event> oldEvents,
+                       final Map<Event.Target, Event> newEvents) {
+
+        // Calculate diff between currentContext and newContext
+        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
+        new Diff(Optional.of(oldTag), newTag, domChangePerformer).run();
+        if ( domChangePerformer.commands.size() > 0) {
+            out.modifyDom(domChangePerformer.commands);
+        }
+
+        // Events
+        // Unregister events
+        final Set<Event> eventsToRemove = new HashSet<>();
+        for(Event event : oldEvents.values()) {
+            if(!newEvents.values().contains(event) && !domChangePerformer.elementsToRemove.contains(event.eventTarget.elementPath)) {
+                eventsToRemove.add(event);
+            }
+        }
+        eventsToRemove.forEach(event -> {
+            final Event.Target eventTarget = event.eventTarget;
+            out.forgetEvent(eventTarget.eventType,
+                    eventTarget.elementPath);
+        });
+
+        // Register new event types on client
+        final Set<Event> eventsToAdd = new HashSet<>();
+        for(Event event : newEvents.values()) {
+            if(!oldEvents.values().contains(event)) {
+                eventsToAdd.add(event);
+            }
+        }
+        out.listenEvents(new ArrayList<>(eventsToAdd));
+        events.clear();
+        events.putAll(newEvents);
+/*        eventsToAdd.forEach(event -> {
+            final Event.Target eventTarget = event.eventTarget;
+            out.listenEvent(eventTarget.eventType,
+                    event.preventDefault,
+                    eventTarget.elementPath,
+                    event.modifier);
+        });*/
+
+        // Browser's navigation
+   /*     final Path oldPath = snapshot.path;
+        final Path newPath = state2route.stateToPath.apply(newState, oldPath);
+        if (!newPath.equals(oldPath)) {
+            out.pushHistory(state2route.basePath.resolve(newPath).toString());
+        }*/
+
     }
 }

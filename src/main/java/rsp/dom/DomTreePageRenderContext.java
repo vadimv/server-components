@@ -11,13 +11,14 @@ import java.util.function.Consumer;
 public final class DomTreePageRenderContext implements PageRenderContext {
     public final Map<Event.Target, Event> events = new ConcurrentHashMap<>();
     public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
+    public final VirtualDomPath rootPath;
+
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
-    private final VirtualDomPath rootPath;
 
     private int statusCode;
     private Map<String, String> headers;
     private String docType;
-    private Tag root;
+    private Tag tag;
 
 
     public DomTreePageRenderContext(final VirtualDomPath rootPath) {
@@ -33,7 +34,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     public Tag tag() {
-        return root;
+        return tag;
     }
 
     public int statusCode() {
@@ -57,9 +58,9 @@ public final class DomTreePageRenderContext implements PageRenderContext {
 
     @Override
     public void openNode(final XmlNs xmlns, final String name) {
-        if (root == null) {
-            root = new Tag(rootPath, xmlns, name);
-            tagsStack.push(root);
+        if (tag == null) {
+            tag = new Tag(rootPath, xmlns, name);
+            tagsStack.push(tag);
         } else {
             final Tag parent = tagsStack.peek();
             final int nextChild = parent.children.size() + 1;
@@ -107,7 +108,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
 
     @Override
     public PageRenderContext newInstance() {
-        return new DomTreePageRenderContext(root.path);
+        return new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
     }
 
     @Override
@@ -120,16 +121,20 @@ public final class DomTreePageRenderContext implements PageRenderContext {
         return refs;
     }
 
+    public VirtualDomPath rootPath() {
+        return rootPath;
+    }
+
     @Override
     public String toString() {
-        if (root == null) {
+        if (tag == null) {
             throw new IllegalStateException("DOM tree not initialized");
         }
         final StringBuilder sb = new StringBuilder();
         if (docType != null) {
             sb.append(docType);
         }
-        root.appendString(sb);
+        tag.appendString(sb);
         return sb.toString();
     }
 }

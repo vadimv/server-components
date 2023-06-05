@@ -45,8 +45,8 @@ public class SimpleServer {
     private static CreateViewFunction<AppState> appComponent() {
         final CreateViewFunction<OkState> okCreateViewFunction = (sv, sc) ->
                 html(head(title("test-server-title")),
-                        body(component(new OkState(80000), SUB_STATE_VIEW),
-                             component(new OkState(1000), SUB_STATE_VIEW),
+                        body(/*component(new OkState(80000), SUB_STATE_VIEW),
+                             component(new OkState(1000), SUB_STATE_VIEW),*/
                              SUB_STATE_VIEW.apply(sv, sc)
                         ));
 

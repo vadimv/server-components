@@ -5,6 +5,7 @@ import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
+import rsp.page.LivePage;
 import rsp.page.PageRenderContext;
 import rsp.ref.Ref;
 import rsp.server.Out;
@@ -15,23 +16,30 @@ import java.util.function.Consumer;
 
 public class DefaultComponentRenderContext implements ComponentRenderContext {
     private final PageRenderContext renderContext;
-    private final OutContext outContext;
+    private final LivePageContext livePageContext;
 
-    public DefaultComponentRenderContext(final PageRenderContext context, final OutContext outContext) {
+    public DefaultComponentRenderContext(final PageRenderContext context, final LivePageContext livePageContext) {
         this.renderContext = context;
-        this.outContext = outContext;
+        this.livePageContext = livePageContext;
     }
 
     @Override
     public ComponentRenderContext newInstance() {
-        return new DefaultComponentRenderContext(renderContext.newInstance(), outContext);
+        return new DefaultComponentRenderContext(renderContext.newInstance(), livePageContext);
+    }
+
+    @Override
+    public VirtualDomPath rootPath() {
+        return renderContext.rootPath();
     }
 
 
     @Override
-    public Out out() {
-        return outContext.get();
+    public LivePage livePage() {
+        return livePageContext.get();
     }
+
+
 
     @Override
     public Map<Event.Target, Event> events() {

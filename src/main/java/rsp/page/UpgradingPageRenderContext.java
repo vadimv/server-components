@@ -124,6 +124,11 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
+    public VirtualDomPath rootPath() {
+        return context.rootPath();
+    }
+
+    @Override
     public Map<Event.Target, Event> events() {
         return context.events();
     }

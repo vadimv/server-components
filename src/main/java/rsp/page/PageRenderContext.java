@@ -27,6 +27,7 @@ public interface PageRenderContext {
     void addRef(Ref ref);
     Tag tag();
     PageRenderContext newInstance();
+    VirtualDomPath rootPath();
     Map<Event.Target, Event> events();
     Map<Ref, VirtualDomPath> refs();
 }

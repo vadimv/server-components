@@ -64,12 +64,14 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             }
         } else {
             final StatefulComponent<S> rootComponent = renderedPage.rootComponent;
-            renderedPage.outContext.accept(out);
+
             //lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
             final LivePage<S> livePage = new LivePage<>(qsid,
                                                         rootComponent,
                                                         schedulerSupplier.get(),
+                                                        rootComponent.events,
                                                         out);
+            renderedPage.livePageContext.accept(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
             final DeserializeInMessage in = new DeserializeInMessage(livePage);
@@ -82,7 +84,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             });
 
             out.setRenderNum(0);
-            out.listenEvents(rootComponent.events.values().stream().collect(Collectors.toList()));
+            out.listenEvents(renderedPage.events.values().stream().collect(Collectors.toList()));
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }

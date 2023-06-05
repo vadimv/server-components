@@ -2,7 +2,7 @@ package rsp.page;
 
 import rsp.component.ComponentRenderContext;
 import rsp.component.DefaultComponentRenderContext;
-import rsp.component.OutContext;
+import rsp.component.LivePageContext;
 import rsp.component.StatefulComponent;
 import rsp.dom.DomTreePageRenderContext;
 import rsp.dom.VirtualDomPath;
@@ -89,12 +89,13 @@ public final class PageRendering<S> {
                     .map(cf -> cf.thenApply(rootState ->  {
                         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
                         final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
-                        final OutContext outContext = new OutContext();
-                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext, outContext);
+                        final LivePageContext livePageContext = new LivePageContext();
+                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext,
+                                livePageContext);
 
                         final StatefulComponent<S> component = rootComponent.apply(rootState);
                         component.render(componentRenderContext);
-                        final RenderedPage<S> pageSnapshot = new RenderedPage<>(component, outContext);
+                        final RenderedPage<S> pageSnapshot = new RenderedPage<>(component, componentRenderContext.events(), livePageContext);
                         renderedPages.put(pageId, pageSnapshot);
                         final String responseBody = domTreeContext.toString();
 
