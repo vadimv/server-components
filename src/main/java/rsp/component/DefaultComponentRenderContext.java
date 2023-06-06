@@ -23,8 +23,8 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
     }
 
     @Override
-    public ComponentRenderContext newInstance() {
-        return new DefaultComponentRenderContext(renderContext.newInstance(), livePageContext);
+    public ComponentRenderContext newInstance(VirtualDomPath path) {
+        return new DefaultComponentRenderContext(renderContext.newInstance(path), livePageContext);
     }
 
     @Override
@@ -107,7 +107,12 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
     }
 
     @Override
-    public Tag tag() {
-        return renderContext.tag();
+    public Tag rootTag() {
+        return renderContext.rootTag();
+    }
+
+    @Override
+    public Tag currentTag() {
+        return renderContext.currentTag();
     }
 }

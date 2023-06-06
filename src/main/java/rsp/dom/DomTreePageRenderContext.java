@@ -11,14 +11,16 @@ import java.util.function.Consumer;
 public final class DomTreePageRenderContext implements PageRenderContext {
     public final Map<Event.Target, Event> events = new ConcurrentHashMap<>();
     public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
-    public final VirtualDomPath rootPath;
+    private final VirtualDomPath rootPath;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
 
     private int statusCode;
     private Map<String, String> headers;
     private String docType;
-    private Tag tag;
+    private Tag rootTag;
+
+    private Tag justClosedTag;
 
 
     public DomTreePageRenderContext(final VirtualDomPath rootPath) {
@@ -33,8 +35,13 @@ public final class DomTreePageRenderContext implements PageRenderContext {
         return docType;
     }
 
-    public Tag tag() {
-        return tag;
+    public Tag rootTag() {
+        return rootTag;
+    }
+
+    @Override
+    public Tag currentTag() {
+        return justClosedTag;
     }
 
     public int statusCode() {
@@ -58,9 +65,9 @@ public final class DomTreePageRenderContext implements PageRenderContext {
 
     @Override
     public void openNode(final XmlNs xmlns, final String name) {
-        if (tag == null) {
-            tag = new Tag(rootPath, xmlns, name);
-            tagsStack.push(tag);
+        if (rootTag == null) {
+            rootTag = new Tag(rootPath, xmlns, name);
+            tagsStack.push(rootTag);
         } else {
             final Tag parent = tagsStack.peek();
             final int nextChild = parent.children.size() + 1;
@@ -72,7 +79,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
 
     @Override
     public void closeNode(final String name, final boolean upgrade) {
-        tagsStack.pop();
+        justClosedTag = tagsStack.pop();
     }
 
     @Override
@@ -107,8 +114,8 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public PageRenderContext newInstance() {
-        return new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
+    public PageRenderContext newInstance(final VirtualDomPath path) {
+        return new DomTreePageRenderContext(path);
     }
 
     @Override
@@ -127,14 +134,14 @@ public final class DomTreePageRenderContext implements PageRenderContext {
 
     @Override
     public String toString() {
-        if (tag == null) {
+        if (rootTag == null) {
             throw new IllegalStateException("DOM tree not initialized");
         }
         final StringBuilder sb = new StringBuilder();
         if (docType != null) {
             sb.append(docType);
         }
-        tag.appendString(sb);
+        rootTag.appendString(sb);
         return sb.toString();
     }
 }

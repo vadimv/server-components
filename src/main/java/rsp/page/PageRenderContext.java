@@ -25,8 +25,9 @@ public interface PageRenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
-    Tag tag();
-    PageRenderContext newInstance();
+    Tag rootTag();
+    Tag currentTag();
+    PageRenderContext newInstance(VirtualDomPath path);
     VirtualDomPath rootPath();
     Map<Event.Target, Event> events();
     Map<Ref, VirtualDomPath> refs();

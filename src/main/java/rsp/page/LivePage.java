@@ -18,7 +18,6 @@ import static java.lang.System.Logger.Level.DEBUG;
 
 /**
  * A server-side object representing an open browser's page.
- * @param <S> the application's state's type
  */
 public final class LivePage implements In, Schedule {
     private static final System.Logger logger = System.getLogger(LivePage.class.getName());
@@ -204,7 +203,7 @@ public final class LivePage implements In, Schedule {
         eventsToRemove.forEach(event -> {
             final Event.Target eventTarget = event.eventTarget;
             out.forgetEvent(eventTarget.eventType,
-                    eventTarget.elementPath);
+                            eventTarget.elementPath);
         });
 
         // Register new event types on client

@@ -91,7 +91,7 @@ public final class PageRendering<S> {
                         final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
                         final LivePageContext livePageContext = new LivePageContext();
                         final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext,
-                                livePageContext);
+                                                                                                                livePageContext);
 
                         final StatefulComponent<S> component = rootComponent.apply(rootState);
                         component.render(componentRenderContext);

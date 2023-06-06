@@ -11,12 +11,17 @@ public final class Diff {
     public Diff(final Optional<Tag> current, final Tag work, final DomChangesContext performer) {
         this.current = Objects.requireNonNull(current);
         this.work = Objects.requireNonNull(work);
+        current.ifPresent(c -> {
+            if (!c.path.equals(work.path)) {
+                throw new IllegalArgumentException("Root paths for a diff expected to be equal");
+            }
+        });
         this.performer = Objects.requireNonNull(performer);
     }
 
     public void run() {
-        current.ifPresentOrElse(current -> diff(current, work, new VirtualDomPath(1), performer),
-                                () -> create(work, new VirtualDomPath(1), performer));
+        current.ifPresentOrElse(c -> diff(c, work, c.path, performer),
+                                () -> create(work, work.path, performer));
     }
 
     private static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesContext changesPerformer) {

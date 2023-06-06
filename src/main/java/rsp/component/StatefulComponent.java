@@ -28,10 +28,9 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
 
     @Override
     public void render(final PageRenderContext renderContext) {
-        //path = renderContext.tag() == null ? renderContext.rootPath() : renderContext.tag().path();
 
         final DocumentPartDefinition view = createViewFunction.apply(state, s -> {
-            final PageRenderContext componentContext = renderContext.newInstance();
+            final PageRenderContext componentContext = renderContext.newInstance(path);
             assert componentContext instanceof ComponentRenderContext;
             final ComponentRenderContext context = (ComponentRenderContext) componentContext;
 
@@ -42,13 +41,20 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
                 state = s;
 
                 render(context);
-                context.livePage().update(oldTag, context.tag(), oldEvents, context.events());
+                context.livePage().update(oldTag, context.rootTag(), oldEvents, context.events());
             }
         });
 
         view.render(renderContext);
 
-        tag = renderContext.tag();
+        if (path == null) {
+            path = renderContext.currentTag().path;;
+        }
+
+        tag = renderContext.currentTag();
+        assert path.equals(tag.path);
+
         events = renderContext.events();
+
     }
 }

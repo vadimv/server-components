@@ -55,7 +55,7 @@ public class LivePageStateTests {
         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
         component.apply(state, s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
-        return domTreeContext.tag();
+        return domTreeContext.rootTag();
     }
 
     private static BiFunction<String, PageRenderContext, PageRenderContext> enrichFunction() {

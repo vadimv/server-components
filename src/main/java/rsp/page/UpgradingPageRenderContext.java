@@ -114,13 +114,18 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public Tag tag() {
-        return context.tag();
+    public Tag rootTag() {
+        return context.rootTag();
     }
 
     @Override
-    public PageRenderContext newInstance() {
-        return new UpgradingPageRenderContext(context.newInstance(), pageInfo);
+    public Tag currentTag() {
+        return context.currentTag();
+    }
+
+    @Override
+    public PageRenderContext newInstance(VirtualDomPath path) {
+        return new UpgradingPageRenderContext(context.newInstance(path), pageInfo);
     }
 
     @Override
