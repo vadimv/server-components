@@ -5,7 +5,6 @@ import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.html.DocumentPartDefinition;
-import rsp.page.LivePage;
 import rsp.page.PageRenderContext;
 import rsp.server.Out;
 
@@ -18,7 +17,7 @@ import java.util.stream.Collectors;
 public final class StatefulComponent<S> implements DocumentPartDefinition {
     private static final System.Logger logger = System.getLogger(StatefulComponent.class.getName());
 
-    public final CreateViewFunction<S> createViewFunction;
+    private final CreateViewFunction<S> createViewFunction;
 
     private S state;
     private VirtualDomPath path;
@@ -33,28 +32,23 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
         this.createViewFunction = createViewFunction;
     }
 
-
     @Override
     public void render(final PageRenderContext renderContext) {
         final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
 
         final DocumentPartDefinition view = createViewFunction.apply(state, s -> {
-            //final PageRenderContext componentContext = renderContext.newSharedContext(path);
+            final Tag oldTag = tag;
+            final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
 
-            synchronized (componentContext.livePage()) {
-                final Tag oldTag = tag;
-                final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
+            state = s;
 
-                state = s;
+            componentContext.resetSharedContext(componentContext.newSharedContext(path));
+            render(componentContext);
 
-                componentContext.resetSharedContext(componentContext.newSharedContext(path));
-                render(componentContext);
-                componentContext.livePage().update(oldTag, componentContext.rootTag());
-                componentContext.livePage().update(oldEvents, events);
-            }
+            componentContext.livePage().update(oldTag, componentContext.rootTag());
+            componentContext.livePage().update(oldEvents, events);
         });
 
-        //final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
         view.render(componentContext);
 
         if (path == null) {

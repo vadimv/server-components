@@ -9,7 +9,6 @@ import rsp.page.LivePage;
 import rsp.page.PageRenderContext;
 import rsp.ref.Ref;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -134,10 +133,5 @@ public class DefaultComponentRenderContext<S> implements ComponentRenderContext 
 
     public <S> void addChildComponent(StatefulComponent<S> childComponent) {
         component.addChildComponent(childComponent);
-    }
-
-    @Override
-    public StatefulComponent<S> component() {
-        return component;
     }
 }
