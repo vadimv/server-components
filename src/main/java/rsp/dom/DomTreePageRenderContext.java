@@ -1,5 +1,7 @@
 package rsp.dom;
 
+import rsp.component.LivePageContext;
+import rsp.page.LivePage;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.PageRenderContext;
@@ -12,6 +14,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     public final Map<Event.Target, Event> events = new ConcurrentHashMap<>();
     public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
     private final VirtualDomPath rootPath;
+    private final LivePageContext livePageContext;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
 
@@ -23,8 +26,9 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     private Tag justClosedTag;
 
 
-    public DomTreePageRenderContext(final VirtualDomPath rootPath) {
+    public DomTreePageRenderContext(final VirtualDomPath rootPath, final LivePageContext livePageContext) {
         this.rootPath = rootPath;
+        this.livePageContext = livePageContext;
     }
 
     public Map<String, String> headers() {
@@ -115,7 +119,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
 
     @Override
     public PageRenderContext newInstance(final VirtualDomPath path) {
-        return new DomTreePageRenderContext(path);
+        return new DomTreePageRenderContext(path, livePageContext);
     }
 
     @Override
@@ -126,6 +130,11 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     @Override
     public Map<Ref, VirtualDomPath> refs() {
         return refs;
+    }
+
+    @Override
+    public LivePage livePage() {
+        return livePageContext.get();
     }
 
     public VirtualDomPath rootPath() {

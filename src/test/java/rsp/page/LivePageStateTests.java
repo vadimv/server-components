@@ -3,6 +3,7 @@ package rsp.page;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Test;
 import rsp.CreateViewFunction;
+import rsp.component.LivePageContext;
 import rsp.dom.*;
 import rsp.server.Out;
 
@@ -52,7 +53,7 @@ public class LivePageStateTests {
     }*/
 
     private static Tag domRoot(final CreateViewFunction<State> component, final State state) {
-        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
+        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT, new LivePageContext());
         component.apply(state, s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.rootTag();

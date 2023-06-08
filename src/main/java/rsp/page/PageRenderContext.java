@@ -31,4 +31,5 @@ public interface PageRenderContext {
     VirtualDomPath rootPath();
     Map<Event.Target, Event> events();
     Map<Ref, VirtualDomPath> refs();
+    LivePage livePage();
 }

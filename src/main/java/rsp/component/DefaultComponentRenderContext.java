@@ -15,16 +15,15 @@ import java.util.function.Consumer;
 
 public class DefaultComponentRenderContext implements ComponentRenderContext {
     private final PageRenderContext renderContext;
-    private final LivePageContext livePageContext;
 
-    public DefaultComponentRenderContext(final PageRenderContext context, final LivePageContext livePageContext) {
+
+    public DefaultComponentRenderContext(final PageRenderContext context) {
         this.renderContext = context;
-        this.livePageContext = livePageContext;
     }
 
     @Override
     public ComponentRenderContext newInstance(VirtualDomPath path) {
-        return new DefaultComponentRenderContext(renderContext.newInstance(path), livePageContext);
+        return new DefaultComponentRenderContext(renderContext.newInstance(path));
     }
 
     @Override
@@ -34,7 +33,7 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
 
     @Override
     public LivePage livePage() {
-        return livePageContext.get();
+        return renderContext.livePage();
     }
 
     @Override

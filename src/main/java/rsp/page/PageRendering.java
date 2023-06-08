@@ -87,11 +87,10 @@ public final class PageRendering<S> {
 
             return routes.apply(request)
                     .map(cf -> cf.thenApply(rootState ->  {
-                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT);
-                        final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
                         final LivePageContext livePageContext = new LivePageContext();
-                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext,
-                                                                                                                livePageContext);
+                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT, livePageContext);
+                        final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
+                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext);
 
                         final StatefulComponent<S> component = rootComponent.apply(rootState);
                         component.render(componentRenderContext);

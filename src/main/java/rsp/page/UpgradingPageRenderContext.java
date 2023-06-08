@@ -144,6 +144,11 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
+    public LivePage livePage() {
+        return context.livePage();
+    }
+
+    @Override
     public String toString() {
         return context.toString();
     }
