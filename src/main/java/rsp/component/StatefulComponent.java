@@ -37,16 +37,19 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
         final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
 
         final DocumentPartDefinition view = createViewFunction.apply(state, s -> {
-            final Tag oldTag = tag;
-            final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
 
-            state = s;
+            synchronized (componentContext.livePage()) {
+                final Tag oldTag = tag;
+                final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
 
-            componentContext.resetSharedContext(componentContext.newSharedContext(path));
-            render(componentContext);
+                state = s;
 
-            componentContext.livePage().update(oldTag, componentContext.rootTag());
-            componentContext.livePage().update(oldEvents, events);
+                componentContext.resetSharedContext(componentContext.newSharedContext(path));
+                render(componentContext);
+
+                componentContext.livePage().update(oldTag, componentContext.rootTag());
+                componentContext.livePage().update(oldEvents, events);
+            }
         });
 
         view.render(componentContext);
