@@ -5,9 +5,15 @@ import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.html.DocumentPartDefinition;
+import rsp.page.LivePage;
 import rsp.page.PageRenderContext;
+import rsp.server.Out;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class StatefulComponent<S> implements DocumentPartDefinition {
     private static final System.Logger logger = System.getLogger(StatefulComponent.class.getName());
@@ -17,7 +23,9 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     private S state;
     private VirtualDomPath path;
     private Tag tag;
-    public Map<Event.Target, Event> events;
+
+    public final Map<Event.Target, Event> events = new HashMap<>();
+    private List<StatefulComponent<?>> children = new ArrayList<>();
 
     public StatefulComponent(final S initialState,
                              final CreateViewFunction<S> createViewFunction) {
@@ -28,33 +36,54 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
 
     @Override
     public void render(final PageRenderContext renderContext) {
+        final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
 
         final DocumentPartDefinition view = createViewFunction.apply(state, s -> {
-            final PageRenderContext componentContext = renderContext.newInstance(path);
-            assert componentContext instanceof ComponentRenderContext;
-            final ComponentRenderContext context = (ComponentRenderContext) componentContext;
+            //final PageRenderContext componentContext = renderContext.newSharedContext(path);
 
-            synchronized (context.livePage()) {
+            synchronized (componentContext.livePage()) {
                 final Tag oldTag = tag;
-                final Map<Event.Target, Event> oldEvents = events;
+                final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
 
                 state = s;
 
-                render(context);
-                context.livePage().update(oldTag, context.rootTag(), oldEvents, context.events());
+                componentContext.resetSharedContext(componentContext.newSharedContext(path));
+                render(componentContext);
+                componentContext.livePage().update(oldTag, componentContext.rootTag());
+                componentContext.livePage().update(oldEvents, events);
             }
         });
 
-        view.render(renderContext);
+        //final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
+        view.render(componentContext);
 
         if (path == null) {
-            path = renderContext.currentTag().path;;
+            path = componentContext.currentTag().path;;
         }
 
-        tag = renderContext.currentTag();
+        tag = componentContext.currentTag();
         assert path.equals(tag.path);
 
-        events = renderContext.events();
+        if (renderContext instanceof DefaultComponentRenderContext) {
+            ((DefaultComponentRenderContext)renderContext).addChildComponent(this);
+        }
+    }
 
+    public void addChildComponent(StatefulComponent<?> childComponent) {
+        children.add(childComponent);
+    }
+
+    public void listenEvents(Out out) {
+        out.listenEvents(events.values().stream().collect(Collectors.toList()));
+        children.forEach(childComponent -> childComponent.listenEvents(out));
+    }
+
+    public Map<Event.Target, Event> recursiveEvents() {
+        Map<Event.Target, Event> recursiveEvents = new HashMap<>();
+        recursiveEvents.putAll(events);
+        for (StatefulComponent<?> childComponent : children) {
+            recursiveEvents.putAll(childComponent.events);
+        }
+        return recursiveEvents;
     }
 }

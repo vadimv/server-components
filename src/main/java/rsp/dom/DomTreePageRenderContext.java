@@ -44,6 +44,11 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
+    public Tag parentTag() {
+        return tagsStack.peek();
+    }
+
+    @Override
     public Tag currentTag() {
         return justClosedTag;
     }
@@ -118,7 +123,12 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public PageRenderContext newInstance(final VirtualDomPath path) {
+    public PageRenderContext sharedContext() {
+        return this;
+    }
+
+    @Override
+    public PageRenderContext newSharedContext(final VirtualDomPath path) {
         return new DomTreePageRenderContext(path, livePageContext);
     }
 

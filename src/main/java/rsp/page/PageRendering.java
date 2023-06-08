@@ -90,19 +90,19 @@ public final class PageRendering<S> {
                         final LivePageContext livePageContext = new LivePageContext();
                         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT, livePageContext);
                         final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
-                        final ComponentRenderContext componentRenderContext = new DefaultComponentRenderContext(enrichedDomTreeContext);
 
                         final StatefulComponent<S> component = rootComponent.apply(rootState);
-                        component.render(componentRenderContext);
-                        final RenderedPage<S> pageSnapshot = new RenderedPage<>(component, componentRenderContext.events(), livePageContext);
+
+                        component.render(enrichedDomTreeContext);
+                        final RenderedPage<S> pageSnapshot = new RenderedPage<>(component, livePageContext);
                         renderedPages.put(pageId, pageSnapshot);
-                        final String responseBody = domTreeContext.toString();
+                        final String responseBody = enrichedDomTreeContext.toString();
 
                         logger.log(TRACE, () -> "Page body: " + responseBody);
 
                         return new HttpResponse(domTreeContext.statusCode(),
                                                 headers(domTreeContext.headers(), deviceId),
-                                                domTreeContext.toString());
+                                                responseBody);
                     })).orElse(defaultPage404());
         } catch (final Throwable ex) {
             return CompletableFuture.failedFuture(ex);

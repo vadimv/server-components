@@ -12,13 +12,13 @@ import java.util.function.Consumer;
 
 public final class UpgradingPageRenderContext implements PageRenderContext {
 
-    private final PageRenderContext context;
+    private final PageRenderContext renderContext;
     private final String pageInfo;
 
     private boolean headWasOpened = false;
 
-    private UpgradingPageRenderContext(final PageRenderContext context, final String pageInfo) {
-        this.context = context;
+    private UpgradingPageRenderContext(final PageRenderContext renderContext, final String pageInfo) {
+        this.renderContext = renderContext;
         this.pageInfo = pageInfo;
     }
 
@@ -38,17 +38,17 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
 
     @Override
     public void setStatusCode(final int statusCode) {
-        context.setStatusCode(statusCode);
+        renderContext.setStatusCode(statusCode);
     }
 
     @Override
     public void setHeaders(final Map<String, String> headers) {
-        context.setHeaders(headers);
+        renderContext.setHeaders(headers);
     }
 
     @Override
     public void setDocType(final String docType) {
-        context.setDocType(docType);
+        renderContext.setDocType(docType);
     }
 
     @Override
@@ -56,13 +56,13 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
         if (!headWasOpened && xmlNs.equals(XmlNs.html) && name.equals("body")) {
             // No <head> have opened above
             // it means a programmer didn't include head() in the page
-            context.openNode(XmlNs.html, "head");
+            renderContext.openNode(XmlNs.html, "head");
             upgradeHeadTag();
-            context.closeNode("head", false);
+            renderContext.closeNode("head", false);
         } else if (xmlNs.equals(XmlNs.html) && name.equals("head")) {
             headWasOpened = true;
         }
-        context.openNode(xmlNs, name);
+        renderContext.openNode(xmlNs, name);
     }
 
     @Override
@@ -70,33 +70,33 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
         if (headWasOpened && upgrade && name.equals("head")) {
             upgradeHeadTag();
         }
-        context.closeNode(name, upgrade);
+        renderContext.closeNode(name, upgrade);
     }
 
     private void upgradeHeadTag() {
-        context.openNode(XmlNs.html, "script");
-        context.addTextNode(pageInfo);
-        context.closeNode("script", false);
+        renderContext.openNode(XmlNs.html, "script");
+        renderContext.addTextNode(pageInfo);
+        renderContext.closeNode("script", false);
 
-        context.openNode(XmlNs.html, "script");
-        context.setAttr(XmlNs.html, "src", "/static/rsp-client.min.js", false);
-        context.setAttr(XmlNs.html, "defer", "defer", true);
-        context.closeNode("script", true);
+        renderContext.openNode(XmlNs.html, "script");
+        renderContext.setAttr(XmlNs.html, "src", "/static/rsp-client.min.js", false);
+        renderContext.setAttr(XmlNs.html, "defer", "defer", true);
+        renderContext.closeNode("script", true);
     }
 
     @Override
     public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
-        context.setAttr(xmlNs, name, value, isProperty);
+        renderContext.setAttr(xmlNs, name, value, isProperty);
     }
 
     @Override
     public void setStyle(final String name, final String value) {
-        context.setStyle(name, value);
+        renderContext.setStyle(name, value);
     }
 
     @Override
     public void addTextNode(final String text) {
-        context.addTextNode(text);
+        renderContext.addTextNode(text);
     }
 
     @Override
@@ -105,51 +105,61 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final Event.Modifier modifier) {
-       context.addEvent(elementPath, eventName, eventHandler, preventDefault, modifier);
+       renderContext.addEvent(elementPath, eventName, eventHandler, preventDefault, modifier);
     }
 
     @Override
     public void addRef(final Ref ref) {
-        context.addRef(ref);
+        renderContext.addRef(ref);
     }
 
     @Override
     public Tag rootTag() {
-        return context.rootTag();
+        return renderContext.rootTag();
+    }
+
+    @Override
+    public Tag parentTag() {
+        return renderContext.parentTag();
     }
 
     @Override
     public Tag currentTag() {
-        return context.currentTag();
+        return renderContext.currentTag();
     }
 
     @Override
-    public PageRenderContext newInstance(VirtualDomPath path) {
-        return new UpgradingPageRenderContext(context.newInstance(path), pageInfo);
+    public PageRenderContext sharedContext() {
+        return this;
+    }
+
+    @Override
+    public PageRenderContext newSharedContext(VirtualDomPath path) {
+        return new UpgradingPageRenderContext(renderContext.newSharedContext(path), pageInfo);
     }
 
     @Override
     public VirtualDomPath rootPath() {
-        return context.rootPath();
+        return renderContext.rootPath();
     }
 
     @Override
     public Map<Event.Target, Event> events() {
-        return context.events();
+        return renderContext.events();
     }
 
     @Override
     public Map<Ref, VirtualDomPath> refs() {
-        return context.refs();
+        return renderContext.refs();
     }
 
     @Override
     public LivePage livePage() {
-        return context.livePage();
+        return renderContext.livePage();
     }
 
     @Override
     public String toString() {
-        return context.toString();
+        return renderContext.toString();
     }
 }

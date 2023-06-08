@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
@@ -26,7 +27,7 @@ public final class LivePage implements In, Schedule {
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final Out out;
-    public final Map<Event.Target, Event> events = new HashMap<>();
+    public final Supplier<Map<Event.Target, Event>> eventsSupplier;
     public final Map<Ref, VirtualDomPath> refs = new HashMap<>(); // TODO
 
     private int descriptorsCounter;
@@ -36,11 +37,11 @@ public final class LivePage implements In, Schedule {
 
     public LivePage(final QualifiedSessionId qsid,
                     final ScheduledExecutorService scheduledExecutorService,
-                    final Map<Event.Target, Event> events,
+                    final Supplier<Map<Event.Target, Event>> events,
                     final Out out) {
         this.qsid = qsid;
         this.scheduledExecutorService = scheduledExecutorService;
-        this.events.putAll(events);
+        this.eventsSupplier = events;
         this.out = out;
     }
 
@@ -128,6 +129,7 @@ public final class LivePage implements In, Schedule {
         synchronized (this) {
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
+                final var events = eventsSupplier.get();
                 final Event event = events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
                     final EventContext eventContext = createEventContext(eventObject);
@@ -181,9 +183,7 @@ public final class LivePage implements In, Schedule {
     }
 
     public void update(final Tag oldTag,
-                       final Tag newTag,
-                       final Map<Event.Target, Event> oldEvents,
-                       final Map<Event.Target, Event> newEvents) {
+                       final Tag newTag) {
 
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -191,8 +191,14 @@ public final class LivePage implements In, Schedule {
         if ( domChangePerformer.commands.size() > 0) {
             out.modifyDom(domChangePerformer.commands);
         }
+    }
 
-        // Events
+    public void update(final Map<Event.Target, Event> oldEvents,
+                       final Map<Event.Target, Event> newEvents) {
+
+        // Calculate diff between currentContext and newContext
+        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
+
         // Unregister events
         final Set<Event> eventsToRemove = new HashSet<>();
         for(Event event : oldEvents.values()) {
@@ -203,7 +209,7 @@ public final class LivePage implements In, Schedule {
         eventsToRemove.forEach(event -> {
             final Event.Target eventTarget = event.eventTarget;
             out.forgetEvent(eventTarget.eventType,
-                            eventTarget.elementPath);
+                    eventTarget.elementPath);
         });
 
         // Register new event types on client
@@ -214,15 +220,6 @@ public final class LivePage implements In, Schedule {
             }
         }
         out.listenEvents(new ArrayList<>(eventsToAdd));
-        events.clear();
-        events.putAll(newEvents);
-/*        eventsToAdd.forEach(event -> {
-            final Event.Target eventTarget = event.eventTarget;
-            out.listenEvent(eventTarget.eventType,
-                    event.preventDefault,
-                    eventTarget.elementPath,
-                    event.modifier);
-        });*/
 
         // Browser's navigation
    /*     final Path oldPath = snapshot.path;

@@ -9,21 +9,35 @@ import rsp.page.LivePage;
 import rsp.page.PageRenderContext;
 import rsp.ref.Ref;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public class DefaultComponentRenderContext implements ComponentRenderContext {
-    private final PageRenderContext renderContext;
+public class DefaultComponentRenderContext<S> implements ComponentRenderContext {
+    private PageRenderContext renderContext;
+    private final StatefulComponent<S> component;
 
 
-    public DefaultComponentRenderContext(final PageRenderContext context) {
-        this.renderContext = context;
+    public DefaultComponentRenderContext(final PageRenderContext context, final StatefulComponent<S> component) {
+        this.renderContext = Objects.requireNonNull(context);
+        this.component = Objects.requireNonNull(component);
+    }
+
+    public void resetSharedContext(PageRenderContext sharedContext) {
+        component.events.clear();
+        renderContext = sharedContext;
     }
 
     @Override
-    public ComponentRenderContext newInstance(VirtualDomPath path) {
-        return new DefaultComponentRenderContext(renderContext.newInstance(path));
+    public PageRenderContext sharedContext() {
+        return renderContext;
+    }
+
+    @Override
+    public PageRenderContext newSharedContext(final VirtualDomPath path) {
+        return renderContext.newSharedContext(path);
     }
 
     @Override
@@ -38,7 +52,7 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
 
     @Override
     public Map<Event.Target, Event> events() {
-        return renderContext.events();
+        return Map.copyOf(component.events);
     }
 
     @Override
@@ -47,61 +61,59 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
     }
 
     @Override
-    public void setStatusCode(int statusCode) {
+    public void setStatusCode(final int statusCode) {
         renderContext.setStatusCode(statusCode);
     }
 
     @Override
-    public void setHeaders(Map<String, String> headers) {
+    public void setHeaders(final Map<String, String> headers) {
         renderContext.setHeaders(headers);
     }
 
     @Override
-    public void setDocType(String docType) {
+    public void setDocType(final String docType) {
         renderContext.setDocType(docType);
     }
 
     @Override
-    public void openNode(XmlNs xmlns, String name) {
+    public void openNode(final XmlNs xmlns, final String name) {
         renderContext.openNode(xmlns, name);
     }
 
     @Override
-    public void closeNode(String name, boolean upgrade) {
+    public void closeNode(final String name, final boolean upgrade) {
         renderContext.closeNode(name, upgrade);
     }
 
     @Override
-    public void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty) {
+    public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         renderContext.setAttr(xmlNs, name, value, isProperty);
     }
 
     @Override
-    public void setStyle(String name, String value) {
+    public void setStyle(final String name, final String value) {
         renderContext.setStyle(name, value);
     }
 
     @Override
-    public void addTextNode(String text) {
+    public void addTextNode(final String text) {
         renderContext.addTextNode(text);
     }
 
     @Override
-    public void addEvent(Optional<VirtualDomPath> elementPath,
-                         String eventName,
-                         Consumer<EventContext> eventHandler,
-                         boolean preventDefault,
-                         Event.Modifier modifier) {
+    public void addEvent(final Optional<VirtualDomPath> elementPath,
+                         final String eventType,
+                         final Consumer<EventContext> eventHandler,
+                         final boolean preventDefault,
+                         final Event.Modifier modifier) {
 
-        renderContext.addEvent(elementPath,
-                               eventName,
-                               eventHandler,
-                               preventDefault,
-                               modifier);
+        final VirtualDomPath eventPath = elementPath.orElse(renderContext.parentTag().path);
+        final Event.Target eventTarget = new Event.Target(eventType, eventPath);
+        component.events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     @Override
-    public void addRef(Ref ref) {
+    public void addRef(final Ref ref) {
         renderContext.addRef(ref);
     }
 
@@ -111,7 +123,21 @@ public class DefaultComponentRenderContext implements ComponentRenderContext {
     }
 
     @Override
+    public Tag parentTag() {
+        return renderContext.parentTag();
+    }
+
+    @Override
     public Tag currentTag() {
         return renderContext.currentTag();
+    }
+
+    public <S> void addChildComponent(StatefulComponent<S> childComponent) {
+        component.addChildComponent(childComponent);
+    }
+
+    @Override
+    public StatefulComponent<S> component() {
+        return component;
     }
 }

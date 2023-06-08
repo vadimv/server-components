@@ -10,11 +10,13 @@ import rsp.server.SerializeOut;
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.lang.System.Logger.Level.*;
 
@@ -67,7 +69,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             //lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
             final LivePage livePage = new LivePage(qsid,
                                                    schedulerSupplier.get(),
-                                                   rootComponent.events,
+                                                   () -> rootComponent.recursiveEvents(),
                                                    out);
             renderedPage.livePageContext.accept(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
@@ -82,7 +84,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             });
 
             out.setRenderNum(0);
-            out.listenEvents(renderedPage.events.values().stream().collect(Collectors.toList()));
+            rootComponent.listenEvents(out);
+
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }
