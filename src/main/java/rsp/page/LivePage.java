@@ -28,7 +28,7 @@ public final class LivePage implements In, Schedule {
     private final ScheduledExecutorService scheduledExecutorService;
     private final Out out;
     public final Supplier<Map<Event.Target, Event>> eventsSupplier;
-    public final Map<Ref, VirtualDomPath> refs = new HashMap<>(); // TODO
+    private final Supplier<Map<Ref, VirtualDomPath>> refsSupplier;
 
     private int descriptorsCounter;
 
@@ -38,10 +38,12 @@ public final class LivePage implements In, Schedule {
     public LivePage(final QualifiedSessionId qsid,
                     final ScheduledExecutorService scheduledExecutorService,
                     final Supplier<Map<Event.Target, Event>> events,
+                    final Supplier<Map<Ref, VirtualDomPath>> refs,
                     final Out out) {
         this.qsid = qsid;
         this.scheduledExecutorService = scheduledExecutorService;
         this.eventsSupplier = events;
+        this.refsSupplier = refs;
         this.out = out;
     }
 
@@ -127,12 +129,12 @@ public final class LivePage implements In, Schedule {
     @Override
     public void handleDomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
         synchronized (this) {
+            final Map<Event.Target, Event> events = eventsSupplier.get();
+            final EventContext eventContext = createEventContext(eventObject);
             VirtualDomPath eventElementPath = path;
             while(eventElementPath.level() > 0) {
-                final var events = eventsSupplier.get();
                 final Event event = events.get(new Event.Target(eventType, eventElementPath));
                 if (event != null && event.eventTarget.eventType.equals(eventType)) {
-                    final EventContext eventContext = createEventContext(eventObject);
                     event.eventHandler.accept(eventContext);
                     break;
                 } else {
@@ -165,7 +167,7 @@ public final class LivePage implements In, Schedule {
     }
 
     private VirtualDomPath resolveRef(final Ref ref) {
-        return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : refs.get(ref);
+        return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : refsSupplier.get().get(ref); //TODO check for null
     }
 
     public CompletableFuture<JsonDataType> evalJs(final String js) {

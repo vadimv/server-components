@@ -137,20 +137,20 @@ provide the Java code:
     import static rsp.html.HtmlDsl.*;
     ...
     public Component<State> render() {
-        return s -> html(
-                      body(
-                           h1("This is a heading"),
-                           div(attr("class", "par"), 
-                               p("This is a paragraph"),
-                               p(s.get().text)) // adds a paragraph with a text from the state object's 'text' field
-                          ) 
-                    );
+        return (s, sc) -> html(
+                              body(
+                                   h1("This is a heading"),
+                                   div(attr("class", "par"), 
+                                       p("This is a paragraph"),
+                                       p(s.text)) // adds a paragraph with a text from the state object's 'text' field
+                                  ) 
+                            );
     }
 ```
 where:
 - HTML tags are represented by the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
-- The lambda parameter's `s`,  ``s.get()`` method reads the current state snapshot, in this example a POJO of a `State` class
+- the lambda's parameter `s` is the current state snapshot, in this example a POJO of a `State` class
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 ```java

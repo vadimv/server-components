@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.state.UseState;
+import rsp.stateview.UseState;
 
 /**
  * The listener interface for receiving page lifecycle events.

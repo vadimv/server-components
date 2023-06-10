@@ -1,7 +1,7 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.CreateViewFunction;
+import rsp.stateview.CreateViewFunction;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.routing.RoutingDsl;

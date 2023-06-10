@@ -2,7 +2,7 @@ package rsp.page;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Test;
-import rsp.CreateViewFunction;
+import rsp.stateview.CreateViewFunction;
 import rsp.component.LivePageContext;
 import rsp.dom.*;
 import rsp.server.Out;

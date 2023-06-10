@@ -56,7 +56,7 @@ public class DefaultComponentRenderContext<S> implements ComponentRenderContext 
 
     @Override
     public Map<Ref, VirtualDomPath> refs() {
-        return renderContext.refs();
+        return component.refs;
     }
 
     @Override
@@ -113,7 +113,7 @@ public class DefaultComponentRenderContext<S> implements ComponentRenderContext 
 
     @Override
     public void addRef(final Ref ref) {
-        renderContext.addRef(ref);
+        component.refs.put(ref, renderContext.parentTag().path);;
     }
 
     @Override

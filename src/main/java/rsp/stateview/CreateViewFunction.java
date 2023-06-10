@@ -1,8 +1,10 @@
-package rsp;
+package rsp.stateview;
 
 import rsp.html.TagDefinition;
 
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * A state's view representation.
@@ -20,8 +22,7 @@ public interface CreateViewFunction<S> {
      */
     TagDefinition apply(S sv, Consumer<S> sc);
 
-    /*default DocumentPartDefinition apply(S s) {
+    default TagDefinition apply(S s) {
         return apply(s, v -> {});
-    }*/
-
+    }
 }

@@ -1,4 +1,4 @@
-package rsp.state;
+package rsp.stateview;
 
 import java.util.concurrent.CompletableFuture;
 

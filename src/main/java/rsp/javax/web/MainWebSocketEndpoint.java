@@ -70,6 +70,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             final LivePage livePage = new LivePage(qsid,
                                                    schedulerSupplier.get(),
                                                    () -> rootComponent.recursiveEvents(),
+                                                   () -> rootComponent.recursiveRefs(),
                                                    out);
             renderedPage.livePageContext.accept(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);

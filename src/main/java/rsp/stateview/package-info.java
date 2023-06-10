@@ -1,4 +1,4 @@
 /**
  * This package defines state management classes and interfaces.
  */
-package rsp.state;
+package rsp.stateview;

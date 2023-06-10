@@ -1,17 +1,19 @@
 package rsp.component;
 
-import rsp.CreateViewFunction;
+import rsp.stateview.CreateViewFunction;
 import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.html.DocumentPartDefinition;
 import rsp.page.PageRenderContext;
+import rsp.ref.Ref;
 import rsp.server.Out;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public final class StatefulComponent<S> implements DocumentPartDefinition {
@@ -23,7 +25,9 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     private VirtualDomPath path;
     private Tag tag;
 
+    // TODO change to private
     public final Map<Event.Target, Event> events = new HashMap<>();
+    public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
     private List<StatefulComponent<?>> children = new ArrayList<>();
 
     public StatefulComponent(final S initialState,
@@ -76,11 +80,20 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     }
 
     public Map<Event.Target, Event> recursiveEvents() {
-        Map<Event.Target, Event> recursiveEvents = new HashMap<>();
+        final Map<Event.Target, Event> recursiveEvents = new HashMap<>();
         recursiveEvents.putAll(events);
         for (StatefulComponent<?> childComponent : children) {
             recursiveEvents.putAll(childComponent.events);
         }
         return recursiveEvents;
+    }
+
+    public Map<Ref, VirtualDomPath> recursiveRefs() {
+        final Map<Ref, VirtualDomPath> recursiveRefs = new HashMap<>();
+        recursiveRefs.putAll(refs);
+        for (StatefulComponent<?> childComponent : children) {
+            recursiveRefs.putAll(childComponent.refs);
+        }
+        return recursiveRefs;
     }
 }
