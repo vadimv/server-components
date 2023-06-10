@@ -1,6 +1,6 @@
 package rsp.component;
 
-import rsp.stateview.CreateViewFunction;
+import rsp.stateview.CreateViewFunction;;
 
 public class ComponentDsl {
     /**

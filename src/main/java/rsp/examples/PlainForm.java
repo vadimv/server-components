@@ -53,16 +53,16 @@ public class PlainForm {
     }
 
     private static CreateViewFunction<Optional<FullName>> pages() {
-        return (sv, sc) -> html(
+        return sv -> sc -> html(
                         headPlain(title("Plain Form Pages")),
                         body(
-                            sv.isEmpty() ? formComponent().apply(sv, sc) : formResult().apply(sv, sc)
+                            sv.isEmpty() ? formComponent().apply(sv).apply(sc) : formResult().apply(sv).apply(sc)
                         )
         );
     }
 
     private static CreateViewFunction<Optional<FullName>> formComponent() {
-        return (sv, sc) -> div(
+        return sv -> sc -> div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
                 label(attr("for", "firstname"), text("First name:")),
@@ -76,7 +76,7 @@ public class PlainForm {
     }
 
     private static CreateViewFunction<Optional<FullName>> formResult() {
-        return (sv, sc) -> div(h2(text("HTML Form result")),
+        return sv ->  sc -> div(h2(text("HTML Form result")),
                         div(p("The submitted name is " + sv.orElseThrow())));
     }
 }

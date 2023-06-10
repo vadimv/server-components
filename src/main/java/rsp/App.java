@@ -7,6 +7,7 @@ import rsp.page.RenderedPage;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
+import rsp.stateview.CreateLazyViewFunction;
 import rsp.stateview.CreateViewFunction;
 
 import java.util.Map;
@@ -84,6 +85,15 @@ public final class App<S> {
              routes,
              s -> new StatefulComponent<>(s, rootComponent));
     }
+
+/*    public App(final Route<HttpRequest, S> routes,
+               final CreateLazyViewFunction<S> rootComponent) {
+        this(AppConfig.DEFAULT,
+                (s, p) -> p,
+                new PageLifeCycle.Default<>(),
+                routes,
+                s -> new StatefulComponent<>(s, rootComponent));
+    }*/
 
     /**
      * Creates an instance of an application with the default config

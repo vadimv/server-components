@@ -43,22 +43,22 @@ public class SimpleServer {
 
 
     private static CreateViewFunction<AppState> appComponent() {
-        final CreateViewFunction<OkState> okCreateViewFunction = (sv, sc) ->
+        final CreateViewFunction<OkState> okCreateViewFunction = sv -> sc ->
                 html(head(title("test-server-title")),
                         body(component(new OkState(80000), SUB_STATE_VIEW),
                                 component(new OkState(1000), SUB_STATE_VIEW),
-                             SUB_STATE_VIEW.apply(sv, sc)
+                             SUB_STATE_VIEW.apply(sv).apply(sc)
                         ));
 
         final CreateViewFunction<NotFoundState> notFoundComponent =
-                (sv, sc) -> html(headPlain(title("Not found")),
+                sv -> sc -> html(headPlain(title("Not found")),
                         body(h1("Not found 404"))).statusCode(404);
 
-        final CreateViewFunction<AppState> appComponent = (sv, sc) -> {
+        final CreateViewFunction<AppState> appComponent = sv -> sc -> {
             if (sv instanceof NotFoundState) {
-                return notFoundComponent.apply((NotFoundState)sv, s -> {});
+                return notFoundComponent.apply((NotFoundState)sv).apply(s -> {});
             } else if (sv instanceof OkState) {
-                return okCreateViewFunction.apply((OkState)sv, s -> sc.accept(s));
+                return okCreateViewFunction.apply((OkState)sv).apply(s -> sc.accept(s));
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
@@ -85,7 +85,7 @@ public class SimpleServer {
         }
     }
 
-    public static final CreateViewFunction<OkState> SUB_STATE_VIEW = (sv, sc) ->
+    public static final CreateViewFunction<OkState> SUB_STATE_VIEW = sv -> sc ->
             div(div(button(attr("type", "button"),
                             attr("id", "b0"),
                             text("+1"),

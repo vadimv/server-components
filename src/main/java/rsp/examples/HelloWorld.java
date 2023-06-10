@@ -2,6 +2,7 @@ package rsp.examples;
 
 import rsp.App;
 import rsp.jetty.JettyServer;
+import rsp.stateview.CreateViewFunction;
 
 import static rsp.html.HtmlDsl.*;
 
@@ -10,13 +11,13 @@ import static rsp.html.HtmlDsl.*;
  */
 public class HelloWorld {
     public static void main(final String[] args) {
-        final var app = new App<>("Hello world!",
-                                   (sv, sc) -> html(
-                                            body(
-                                                 p(sv)
-                                                )
-                                            )
-                                  );
+        final CreateViewFunction<String> view = s -> sc -> html(
+                                                                    body(
+                                                                            p(s)
+                                                                    )
+                                                            );
+
+        final var app = new App<>("Hello world!", view);
         final var server = new JettyServer<>(8080, "", app);
         server.start();
         server.join();

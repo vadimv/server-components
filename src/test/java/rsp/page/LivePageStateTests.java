@@ -54,7 +54,7 @@ public class LivePageStateTests {
 
     private static Tag domRoot(final CreateViewFunction<State> component, final State state) {
         final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT, new LivePageContext());
-        component.apply(state, s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
+        component.apply(state).apply(s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.rootTag();
     }

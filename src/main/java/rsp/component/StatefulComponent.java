@@ -40,7 +40,7 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     public void render(final PageRenderContext renderContext) {
         final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
 
-        final DocumentPartDefinition view = createViewFunction.apply(state, s -> {
+        final DocumentPartDefinition view = createViewFunction.apply(state).apply(s -> {
 
             synchronized (componentContext.livePage()) {
                 final Tag oldTag = tag;
