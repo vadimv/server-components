@@ -1,6 +1,5 @@
 package rsp.dom;
 
-import rsp.component.LivePageContext;
 import rsp.page.LivePage;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
@@ -8,13 +7,14 @@ import rsp.page.RenderContext;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public final class DomTreeRenderContext implements RenderContext {
     public final Map<Event.Target, Event> events = new ConcurrentHashMap<>();
     public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
     private final VirtualDomPath rootPath;
-    private final LivePageContext livePageContext;
+    private final AtomicReference<LivePage> livePageContext;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
 
@@ -26,7 +26,7 @@ public final class DomTreeRenderContext implements RenderContext {
     private Tag justClosedTag;
 
 
-    public DomTreeRenderContext(final VirtualDomPath rootPath, final LivePageContext livePageContext) {
+    public DomTreeRenderContext(final VirtualDomPath rootPath, final AtomicReference<LivePage> livePageContext) {
         this.rootPath = rootPath;
         this.livePageContext = livePageContext;
     }

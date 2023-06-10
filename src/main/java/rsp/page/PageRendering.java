@@ -1,6 +1,5 @@
 package rsp.page;
 
-import rsp.component.LivePageContext;
 import rsp.component.Component;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
@@ -15,6 +14,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -85,7 +85,7 @@ public final class PageRendering<S> {
 
             return routes.apply(request)
                     .map(cf -> cf.thenApply(rootState ->  {
-                        final LivePageContext livePageContext = new LivePageContext();
+                        final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
                         final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, livePageContext);
                         final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 

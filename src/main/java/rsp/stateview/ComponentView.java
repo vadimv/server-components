@@ -12,4 +12,5 @@ import java.util.function.Function;
  * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface
+
 public interface ComponentView<S> extends Function<S, Function<Consumer<S>, TagDefinition>> {}

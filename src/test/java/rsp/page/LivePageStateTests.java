@@ -3,13 +3,13 @@ package rsp.page;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Test;
 import rsp.stateview.ComponentView;
-import rsp.component.LivePageContext;
 import rsp.dom.*;
 import rsp.server.Out;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
@@ -53,7 +53,7 @@ public class LivePageStateTests {
     }*/
 
     private static Tag domRoot(final ComponentView<State> component, final State state) {
-        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new LivePageContext());
+        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new AtomicReference<>());
         component.apply(state).apply(s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.rootTag();

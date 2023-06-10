@@ -38,7 +38,7 @@ public final class Component<S> implements SegmentDefinition {
 
     @Override
     public void render(final RenderContext renderContext) {
-        final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
+        final DefaultComponentRenderContext<S> componentContext = new DefaultComponentRenderContext<>(renderContext.sharedContext(), this);
 
         final SegmentDefinition view = componentView.apply(state).apply(s -> {
 
@@ -66,7 +66,7 @@ public final class Component<S> implements SegmentDefinition {
         assert path.equals(tag.path);
 
         if (renderContext instanceof DefaultComponentRenderContext) {
-            ((DefaultComponentRenderContext)renderContext).addChildComponent(this);
+            ((DefaultComponentRenderContext<?>)renderContext).addChildComponent(this);
         }
     }
 

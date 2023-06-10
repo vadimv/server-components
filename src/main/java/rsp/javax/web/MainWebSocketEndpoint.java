@@ -72,7 +72,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                    () -> rootComponent.recursiveEvents(),
                                                    () -> rootComponent.recursiveRefs(),
                                                    out);
-            renderedPage.livePageContext.accept(livePage);
+            renderedPage.livePageContext.set(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
             final DeserializeInMessage in = new DeserializeInMessage(livePage);
