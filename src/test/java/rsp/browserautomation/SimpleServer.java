@@ -1,7 +1,7 @@
 package rsp.browserautomation;
 
 import rsp.App;
-import rsp.stateview.CreateViewFunction;
+import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
@@ -42,23 +42,23 @@ public class SimpleServer {
     }
 
 
-    private static CreateViewFunction<AppState> appComponent() {
-        final CreateViewFunction<OkState> okCreateViewFunction = sv -> sc ->
+    private static ComponentView<AppState> appComponent() {
+        final ComponentView<OkState> okComponentView = sv -> sc ->
                 html(head(title("test-server-title")),
                         body(component(new OkState(80000), SUB_STATE_VIEW),
                                 component(new OkState(1000), SUB_STATE_VIEW),
                              SUB_STATE_VIEW.apply(sv).apply(sc)
                         ));
 
-        final CreateViewFunction<NotFoundState> notFoundComponent =
+        final ComponentView<NotFoundState> notFoundComponent =
                 sv -> sc -> html(headPlain(title("Not found")),
                         body(h1("Not found 404"))).statusCode(404);
 
-        final CreateViewFunction<AppState> appComponent = sv -> sc -> {
+        final ComponentView<AppState> appComponent = sv -> sc -> {
             if (sv instanceof NotFoundState) {
                 return notFoundComponent.apply((NotFoundState)sv).apply(s -> {});
             } else if (sv instanceof OkState) {
-                return okCreateViewFunction.apply((OkState)sv).apply(s -> sc.accept(s));
+                return okComponentView.apply((OkState)sv).apply(s -> sc.accept(s));
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
@@ -85,7 +85,7 @@ public class SimpleServer {
         }
     }
 
-    public static final CreateViewFunction<OkState> SUB_STATE_VIEW = sv -> sc ->
+    public static final ComponentView<OkState> SUB_STATE_VIEW = sv -> sc ->
             div(div(button(attr("type", "button"),
                             attr("id", "b0"),
                             text("+1"),

@@ -2,7 +2,7 @@ package rsp.page;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Test;
-import rsp.stateview.CreateViewFunction;
+import rsp.stateview.ComponentView;
 import rsp.component.LivePageContext;
 import rsp.dom.*;
 import rsp.server.Out;
@@ -52,14 +52,14 @@ public class LivePageStateTests {
         return new LivePageState<>(QID, lpps, state2route, enrichFunction(), out);
     }*/
 
-    private static Tag domRoot(final CreateViewFunction<State> component, final State state) {
-        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT, new LivePageContext());
+    private static Tag domRoot(final ComponentView<State> component, final State state) {
+        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new LivePageContext());
         component.apply(state).apply(s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.rootTag();
     }
 
-    private static BiFunction<String, PageRenderContext, PageRenderContext> enrichFunction() {
+    private static BiFunction<String, RenderContext, RenderContext> enrichFunction() {
         return (sessionId, ctx) -> ctx;
     }
 

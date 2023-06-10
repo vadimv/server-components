@@ -1,11 +1,11 @@
 package rsp.component;
 
-import rsp.stateview.CreateViewFunction;
+import rsp.stateview.ComponentView;
 import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
-import rsp.html.DocumentPartDefinition;
-import rsp.page.PageRenderContext;
+import rsp.html.SegmentDefinition;
+import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.Out;
 
@@ -16,10 +16,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public final class StatefulComponent<S> implements DocumentPartDefinition {
-    private static final System.Logger logger = System.getLogger(StatefulComponent.class.getName());
+public final class Component<S> implements SegmentDefinition {
+    private static final System.Logger logger = System.getLogger(Component.class.getName());
 
-    private final CreateViewFunction<S> createViewFunction;
+    private final ComponentView<S> componentView;
 
     private S state;
     private VirtualDomPath path;
@@ -28,19 +28,19 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     // TODO change to private
     public final Map<Event.Target, Event> events = new HashMap<>();
     public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
-    private List<StatefulComponent<?>> children = new ArrayList<>();
+    private List<Component<?>> children = new ArrayList<>();
 
-    public StatefulComponent(final S initialState,
-                             final CreateViewFunction<S> createViewFunction) {
+    public Component(final S initialState,
+                     final ComponentView<S> componentView) {
         this.state = initialState;
-        this.createViewFunction = createViewFunction;
+        this.componentView = componentView;
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         final DefaultComponentRenderContext componentContext = new DefaultComponentRenderContext(renderContext.sharedContext(), this);
 
-        final DocumentPartDefinition view = createViewFunction.apply(state).apply(s -> {
+        final SegmentDefinition view = componentView.apply(state).apply(s -> {
 
             synchronized (componentContext.livePage()) {
                 final Tag oldTag = tag;
@@ -70,7 +70,7 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
         }
     }
 
-    public void addChildComponent(StatefulComponent<?> childComponent) {
+    public void addChildComponent(Component<?> childComponent) {
         children.add(childComponent);
     }
 
@@ -82,7 +82,7 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     public Map<Event.Target, Event> recursiveEvents() {
         final Map<Event.Target, Event> recursiveEvents = new HashMap<>();
         recursiveEvents.putAll(events);
-        for (StatefulComponent<?> childComponent : children) {
+        for (Component<?> childComponent : children) {
             recursiveEvents.putAll(childComponent.events);
         }
         return recursiveEvents;
@@ -91,7 +91,7 @@ public final class StatefulComponent<S> implements DocumentPartDefinition {
     public Map<Ref, VirtualDomPath> recursiveRefs() {
         final Map<Ref, VirtualDomPath> recursiveRefs = new HashMap<>();
         recursiveRefs.putAll(refs);
-        for (StatefulComponent<?> childComponent : children) {
+        for (Component<?> childComponent : children) {
             recursiveRefs.putAll(childComponent.refs);
         }
         return recursiveRefs;

@@ -4,13 +4,13 @@ import rsp.component.LivePageContext;
 import rsp.page.LivePage;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public final class DomTreePageRenderContext implements PageRenderContext {
+public final class DomTreeRenderContext implements RenderContext {
     public final Map<Event.Target, Event> events = new ConcurrentHashMap<>();
     public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
     private final VirtualDomPath rootPath;
@@ -26,7 +26,7 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     private Tag justClosedTag;
 
 
-    public DomTreePageRenderContext(final VirtualDomPath rootPath, final LivePageContext livePageContext) {
+    public DomTreeRenderContext(final VirtualDomPath rootPath, final LivePageContext livePageContext) {
         this.rootPath = rootPath;
         this.livePageContext = livePageContext;
     }
@@ -123,13 +123,13 @@ public final class DomTreePageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public PageRenderContext sharedContext() {
+    public RenderContext sharedContext() {
         return this;
     }
 
     @Override
-    public PageRenderContext newSharedContext(final VirtualDomPath path) {
-        return new DomTreePageRenderContext(path, livePageContext);
+    public RenderContext newSharedContext(final VirtualDomPath path) {
+        return new DomTreeRenderContext(path, livePageContext);
     }
 
     @Override

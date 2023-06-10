@@ -1,14 +1,13 @@
 package rsp;
 
-import rsp.component.StatefulComponent;
+import rsp.component.Component;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.Path;
-import rsp.stateview.CreateLazyViewFunction;
-import rsp.stateview.CreateViewFunction;
+import rsp.stateview.ComponentView;
 
 import java.util.Map;
 import java.util.Optional;
@@ -47,7 +46,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final Function<S, StatefulComponent<S>> rootComponent;
+    public final Function<S, Component<S>> rootComponent;
 
     public final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -63,7 +62,7 @@ public final class App<S> {
                 final BiFunction<S, Path, Path> state2path,
                 final PageLifeCycle<S> lifeCycleEventsListener,
                 final Route<HttpRequest, S> routes,
-                final Function<S, StatefulComponent<S>> rootComponent) {
+                final Function<S, Component<S>> rootComponent) {
 
         this.config = config;
         this.routes = routes;
@@ -78,12 +77,12 @@ public final class App<S> {
      * @param rootComponent the root of the components tree
      */
     public App(final Route<HttpRequest, S> routes,
-               final CreateViewFunction<S> rootComponent) {
+               final ComponentView<S> rootComponent) {
         this(AppConfig.DEFAULT,
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
              routes,
-             s -> new StatefulComponent<>(s, rootComponent));
+             s -> new Component<>(s, rootComponent));
     }
 
 /*    public App(final Route<HttpRequest, S> routes,
@@ -99,15 +98,15 @@ public final class App<S> {
      * Creates an instance of an application with the default config
      * and default routing which maps any request to the initial state.
      * @param initialState the initial state snapshot
-     * @param rootComponent the root of the components tree
+     * @param rootComponentView the root of the components tree
      */
     public App(final S initialState,
-               final CreateViewFunction<S> rootComponent) {
+               final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),
              request -> Optional.of(CompletableFuture.completedFuture(initialState)),
-             s -> new StatefulComponent<>(s, rootComponent));
+             s -> new Component<>(s, rootComponentView));
     }
 
     /**

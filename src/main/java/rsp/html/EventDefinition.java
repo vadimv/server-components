@@ -3,7 +3,7 @@ package rsp.html;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /**
  * A DOM event subscription definition.
  */
-public final class EventDefinition implements DocumentPartDefinition {
+public final class EventDefinition implements SegmentDefinition {
 
     /**
      * Is used when prevent default behaviour is not explicitly specified for an event.
@@ -108,7 +108,7 @@ public final class EventDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         renderContext.addEvent(elementPath, eventType, handler, preventDefault, modifier);
     }
 

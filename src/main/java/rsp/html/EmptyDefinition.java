@@ -1,11 +1,11 @@
 package rsp.html;
 
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 /**
  * The void definition, without any representation in the result DOM tree.
  */
-final class EmptyDefinition implements DocumentPartDefinition {
+final class EmptyDefinition implements SegmentDefinition {
     /**
      * The default instance for reuse.
      */
@@ -19,7 +19,7 @@ final class EmptyDefinition implements DocumentPartDefinition {
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         // no-op
     }
 }

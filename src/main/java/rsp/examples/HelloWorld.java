@@ -2,7 +2,7 @@ package rsp.examples;
 
 import rsp.App;
 import rsp.jetty.JettyServer;
-import rsp.stateview.CreateViewFunction;
+import rsp.stateview.ComponentView;
 
 import static rsp.html.HtmlDsl.*;
 
@@ -11,7 +11,7 @@ import static rsp.html.HtmlDsl.*;
  */
 public class HelloWorld {
     public static void main(final String[] args) {
-        final CreateViewFunction<String> view = s -> sc -> html(
+        final ComponentView<String> view = s -> sc -> html(
                                                                     body(
                                                                             p(s)
                                                                     )

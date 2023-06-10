@@ -1,17 +1,17 @@
 package rsp.html;
 
 import rsp.ref.ElementRef;
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 import java.util.Objects;
 
 /**
  * A reference to an element.
  */
-public final class ElementRefDefinition implements DocumentPartDefinition, ElementRef {
+public final class ElementRefDefinition implements SegmentDefinition, ElementRef {
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         renderContext.addRef(this);
     }
 
@@ -19,7 +19,7 @@ public final class ElementRefDefinition implements DocumentPartDefinition, Eleme
         return new KeyRef<K>(this, key);
     }
 
-    public static class KeyRef<K> implements ElementRef, DocumentPartDefinition {
+    public static class KeyRef<K> implements ElementRef, SegmentDefinition {
         private final ElementRefDefinition parentRef;
         private final K key;
         public KeyRef(final ElementRefDefinition parentRef, final K key) {
@@ -29,7 +29,7 @@ public final class ElementRefDefinition implements DocumentPartDefinition, Eleme
         }
 
         @Override
-        public void render(final PageRenderContext renderContext) {
+        public void render(final RenderContext renderContext) {
             renderContext.addRef(this);
         }
 

@@ -1,7 +1,7 @@
 package rsp.html;
 
 import rsp.dom.XmlNs;
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,14 +17,14 @@ public final class HtmlDocumentDefinition extends TagDefinition {
     private final int statusCode;
     private final Map<String, String> headers;
 
-    public HtmlDocumentDefinition(final int statusCode, final Map<String, String> headers, final DocumentPartDefinition... children) {
+    public HtmlDocumentDefinition(final int statusCode, final Map<String, String> headers, final SegmentDefinition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
         this.headers = Objects.requireNonNull(headers);
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         renderContext.setStatusCode(statusCode);
         renderContext.setHeaders(headers);
         renderContext.setDocType("<!DOCTYPE html>");

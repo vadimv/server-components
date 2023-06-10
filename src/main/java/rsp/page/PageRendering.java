@@ -1,10 +1,8 @@
 package rsp.page;
 
-import rsp.component.ComponentRenderContext;
-import rsp.component.DefaultComponentRenderContext;
 import rsp.component.LivePageContext;
-import rsp.component.StatefulComponent;
-import rsp.dom.DomTreePageRenderContext;
+import rsp.component.Component;
+import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
@@ -30,15 +28,15 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Route<HttpRequest, S> routes;
-    private final Function<S, StatefulComponent<S>> rootComponent;
+    private final Function<S, Component<S>> rootComponent;
 
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
+    private final BiFunction<String, RenderContext, RenderContext> enrich;
 
     public PageRendering(final Route<HttpRequest, S> routes,
-                         final Function<S, StatefulComponent<S>> rootComponent,
+                         final Function<S, Component<S>> rootComponent,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         final BiFunction<String, PageRenderContext, PageRenderContext> enrich) {
+                         final BiFunction<String, RenderContext, RenderContext> enrich) {
         this.routes = routes;
         this.rootComponent = rootComponent;
         this.renderedPages = pagesStorage;
@@ -88,10 +86,10 @@ public final class PageRendering<S> {
             return routes.apply(request)
                     .map(cf -> cf.thenApply(rootState ->  {
                         final LivePageContext livePageContext = new LivePageContext();
-                        final DomTreePageRenderContext domTreeContext = new DomTreePageRenderContext(VirtualDomPath.DOCUMENT, livePageContext);
-                        final PageRenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
+                        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, livePageContext);
+                        final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 
-                        final StatefulComponent<S> component = rootComponent.apply(rootState);
+                        final Component<S> component = rootComponent.apply(rootState);
 
                         component.render(enrichedDomTreeContext);
                         final RenderedPage<S> pageSnapshot = new RenderedPage<>(component, livePageContext);

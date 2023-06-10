@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public interface PageRenderContext {
+public interface RenderContext {
     void setStatusCode(int statusCode);
     void setHeaders(Map<String, String> headers);
     void setDocType(String docType);
@@ -28,8 +28,8 @@ public interface PageRenderContext {
     Tag rootTag();
     Tag parentTag();
     Tag currentTag();
-    PageRenderContext sharedContext();
-    PageRenderContext newSharedContext(VirtualDomPath path);
+    RenderContext sharedContext();
+    RenderContext newSharedContext(VirtualDomPath path);
     VirtualDomPath rootPath();
     Map<Event.Target, Event> events();
     Map<Ref, VirtualDomPath> refs();

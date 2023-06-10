@@ -6,7 +6,7 @@ import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
 import rsp.page.LivePage;
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 import rsp.ref.Ref;
 
 import java.util.Map;
@@ -15,27 +15,27 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 public class DefaultComponentRenderContext<S> implements ComponentRenderContext {
-    private PageRenderContext renderContext;
-    private final StatefulComponent<S> component;
+    private RenderContext renderContext;
+    private final Component<S> component;
 
 
-    public DefaultComponentRenderContext(final PageRenderContext context, final StatefulComponent<S> component) {
+    public DefaultComponentRenderContext(final RenderContext context, final Component<S> component) {
         this.renderContext = Objects.requireNonNull(context);
         this.component = Objects.requireNonNull(component);
     }
 
-    public void resetSharedContext(PageRenderContext sharedContext) {
+    public void resetSharedContext(RenderContext sharedContext) {
         component.events.clear();
         renderContext = sharedContext;
     }
 
     @Override
-    public PageRenderContext sharedContext() {
+    public RenderContext sharedContext() {
         return renderContext;
     }
 
     @Override
-    public PageRenderContext newSharedContext(final VirtualDomPath path) {
+    public RenderContext newSharedContext(final VirtualDomPath path) {
         return renderContext.newSharedContext(path);
     }
 
@@ -131,7 +131,7 @@ public class DefaultComponentRenderContext<S> implements ComponentRenderContext 
         return renderContext.currentTag();
     }
 
-    public <S> void addChildComponent(StatefulComponent<S> childComponent) {
+    public <S> void addChildComponent(Component<S> childComponent) {
         component.addChildComponent(childComponent);
     }
 }

@@ -1,12 +1,12 @@
 package rsp.html;
 
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 import rsp.dom.XmlNs;
 
 /**
  * A definition of a HTML element's attribute.
  */
-public final class AttributeDefinition extends BaseDocumentPartDefinition {
+public final class AttributeDefinition extends BaseSegmentDefinition {
     /**
      * The attribute's name.
      */
@@ -37,7 +37,7 @@ public final class AttributeDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
     }
 }

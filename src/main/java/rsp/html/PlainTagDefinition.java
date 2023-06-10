@@ -1,7 +1,7 @@
 package rsp.html;
 
 import rsp.dom.XmlNs;
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 import java.util.Arrays;
 
@@ -16,12 +16,12 @@ public final class PlainTagDefinition extends TagDefinition {
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public PlainTagDefinition(final XmlNs ns, final String name, final DocumentPartDefinition... children) {
+    public PlainTagDefinition(final XmlNs ns, final String name, final SegmentDefinition... children) {
         super(ns, name, children);
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         renderContext.openNode(ns, name);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);

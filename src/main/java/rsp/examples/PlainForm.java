@@ -1,7 +1,7 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.stateview.CreateViewFunction;
+import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.routing.RoutingDsl;
@@ -52,7 +52,7 @@ public class PlainForm {
                                                                                     req.queryParam("lastname").orElseThrow())))));
     }
 
-    private static CreateViewFunction<Optional<FullName>> pages() {
+    private static ComponentView<Optional<FullName>> pages() {
         return sv -> sc -> html(
                         headPlain(title("Plain Form Pages")),
                         body(
@@ -61,7 +61,7 @@ public class PlainForm {
         );
     }
 
-    private static CreateViewFunction<Optional<FullName>> formComponent() {
+    private static ComponentView<Optional<FullName>> formComponent() {
         return sv -> sc -> div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
@@ -75,7 +75,7 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static CreateViewFunction<Optional<FullName>> formResult() {
+    private static ComponentView<Optional<FullName>> formResult() {
         return sv ->  sc -> div(h2(text("HTML Form result")),
                         div(p("The submitted name is " + sv.orElseThrow())));
     }

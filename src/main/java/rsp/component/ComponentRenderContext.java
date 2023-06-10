@@ -1,6 +1,6 @@
 package rsp.component;
 
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
-public interface ComponentRenderContext extends PageRenderContext {
+public interface ComponentRenderContext extends RenderContext {
 }

@@ -1,6 +1,6 @@
 package rsp.javax.web;
 
-import rsp.component.StatefulComponent;
+import rsp.component.Component;
 import rsp.page.*;
 import rsp.server.DeserializeInMessage;
 import rsp.server.HttpRequest;
@@ -29,7 +29,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final BiFunction<String, PageRenderContext, PageRenderContext> enrich;
+    private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
 
@@ -37,7 +37,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     public MainWebSocketEndpoint(final StateToRouteDispatch<S> state2route,
                                  final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
-                                 final BiFunction<String, PageRenderContext, PageRenderContext> enrich,
+                                 final BiFunction<String, RenderContext, RenderContext> enrich,
                                  final Supplier<ScheduledExecutorService> schedulerSupplier,
                                  final PageLifeCycle<S> lifeCycleEventsListener) {
         this.state2route = state2route;
@@ -64,7 +64,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 out.evalJs(-1, "RSP.reload()");
             }
         } else {
-            final StatefulComponent<S> rootComponent = renderedPage.rootComponent;
+            final Component<S> rootComponent = renderedPage.rootComponent;
 
             //lifeCycleEventsListener.beforeLivePageCreated(qsid, livePageState);
             final LivePage livePage = new LivePage(qsid,

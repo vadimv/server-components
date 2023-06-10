@@ -106,8 +106,8 @@ public final class JettyServer<S> {
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + basePath);
-        final BiFunction<String, PageRenderContext, PageRenderContext> enrichContextFun =
-                (sessionId, ctx) -> UpgradingPageRenderContext.create(ctx,
+        final BiFunction<String, RenderContext, RenderContext> enrichContextFun =
+                (sessionId, ctx) -> UpgradingRenderContext.create(ctx,
                                                                       sessionId,
                                                                       "/",
                                                                       DefaultConnectionLostWidget.HTML,

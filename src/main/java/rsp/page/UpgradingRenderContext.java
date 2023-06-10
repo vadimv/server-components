@@ -10,30 +10,30 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
 
-public final class UpgradingPageRenderContext implements PageRenderContext {
+public final class UpgradingRenderContext implements RenderContext {
 
-    private final PageRenderContext renderContext;
+    private final RenderContext renderContext;
     private final String pageInfo;
 
     private boolean headWasOpened = false;
 
-    private UpgradingPageRenderContext(final PageRenderContext renderContext, final String pageInfo) {
+    private UpgradingRenderContext(final RenderContext renderContext, final String pageInfo) {
         this.renderContext = renderContext;
         this.pageInfo = pageInfo;
     }
 
-    public static UpgradingPageRenderContext create(final PageRenderContext context,
-                                                    final String sessionId,
-                                                    final String path,
-                                                    final String connectionLostWidgetHtml,
-                                                    final int heartBeatInterval) {
+    public static UpgradingRenderContext create(final RenderContext context,
+                                                final String sessionId,
+                                                final String path,
+                                                final String connectionLostWidgetHtml,
+                                                final int heartBeatInterval) {
         final String cfg = "window['kfg']={"
                 + "sid:'" + sessionId + "',"
                 + "r:'" + path + "',"
                 + "clw:'" + connectionLostWidgetHtml + "',"
                 + "heartbeatInterval:" + heartBeatInterval
                 + "}";
-        return new UpgradingPageRenderContext(context, cfg);
+        return new UpgradingRenderContext(context, cfg);
     }
 
     @Override
@@ -129,13 +129,13 @@ public final class UpgradingPageRenderContext implements PageRenderContext {
     }
 
     @Override
-    public PageRenderContext sharedContext() {
+    public RenderContext sharedContext() {
         return this;
     }
 
     @Override
-    public PageRenderContext newSharedContext(VirtualDomPath path) {
-        return new UpgradingPageRenderContext(renderContext.newSharedContext(path), pageInfo);
+    public RenderContext newSharedContext(VirtualDomPath path) {
+        return new UpgradingRenderContext(renderContext.newSharedContext(path), pageInfo);
     }
 
     @Override

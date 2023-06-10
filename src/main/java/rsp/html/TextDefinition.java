@@ -1,11 +1,11 @@
 package rsp.html;
 
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 /**
  * A definition of a HTML tag text content.
  */
-public final class TextDefinition extends BaseDocumentPartDefinition {
+public final class TextDefinition extends BaseSegmentDefinition {
     private final String text;
 
     /**
@@ -18,7 +18,7 @@ public final class TextDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         renderContext.addTextNode(text);
     }
 }

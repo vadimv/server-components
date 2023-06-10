@@ -32,7 +32,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static HtmlDocumentDefinition html(final DocumentPartDefinition... children) {
+    public static HtmlDocumentDefinition html(final SegmentDefinition... children) {
         return new HtmlDocumentDefinition(OK_STATUS_CODE, Map.of(), children);
     }
 
@@ -43,7 +43,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition xmlTag(final XmlNs ns, final String name, final DocumentPartDefinition... children) {
+    public static TagDefinition xmlTag(final XmlNs ns, final String name, final SegmentDefinition... children) {
         return new TagDefinition(ns, name, children);
     }
 
@@ -53,7 +53,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tag(final String name, final DocumentPartDefinition... children) {
+    public static TagDefinition tag(final String name, final SegmentDefinition... children) {
         return xmlTag(XmlNs.html, name, children);
     }
 
@@ -155,7 +155,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition body(final DocumentPartDefinition... children) {
+    public static TagDefinition body(final SegmentDefinition... children) {
         return tag("body", children);
     }
 
@@ -164,7 +164,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition head(final DocumentPartDefinition... children) {
+    public static TagDefinition head(final SegmentDefinition... children) {
         return tag("head", children);
     }
 
@@ -176,7 +176,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition headPlain(final DocumentPartDefinition... children) {
+    public static TagDefinition headPlain(final SegmentDefinition... children) {
         return new PlainTagDefinition(XmlNs.html, "head", children);
     }
 
@@ -212,7 +212,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
-    public static TagDefinition h1(final DocumentPartDefinition... children) {
+    public static TagDefinition h1(final SegmentDefinition... children) {
         return tag("h1", children);
     }
 
@@ -230,7 +230,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return  a tag definition
      */
-    public static TagDefinition h2(final DocumentPartDefinition... children) {
+    public static TagDefinition h2(final SegmentDefinition... children) {
         return tag("h2", children);
     }
 
@@ -248,7 +248,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h3(final DocumentPartDefinition... children) {
+    public static TagDefinition h3(final SegmentDefinition... children) {
         return tag("h3", children);
     }
 
@@ -266,7 +266,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h4(final DocumentPartDefinition... children) {
+    public static TagDefinition h4(final SegmentDefinition... children) {
         return tag("h4", children);
     }
 
@@ -284,7 +284,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h5(final DocumentPartDefinition... children) {
+    public static TagDefinition h5(final SegmentDefinition... children) {
         return tag("h5", children);
     }
 
@@ -302,7 +302,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition h6(final DocumentPartDefinition... children) {
+    public static TagDefinition h6(final SegmentDefinition... children) {
         return tag("h6", children);
     }
 
@@ -320,7 +320,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition div(final DocumentPartDefinition... children) {
+    public static TagDefinition div(final SegmentDefinition... children) {
         return tag("div", children);
     }
 
@@ -338,7 +338,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition a(final DocumentPartDefinition... children) {
+    public static TagDefinition a(final SegmentDefinition... children) {
         return tag("a", children);
     }
 
@@ -349,8 +349,8 @@ public final class HtmlDsl {
      * @param children other descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition a(final String href, final String text, final DocumentPartDefinition... children) {
-        return a(ArrayUtils.concat(new DocumentPartDefinition[]{ attr("href", href), text(text)}, children));
+    public static TagDefinition a(final String href, final String text, final SegmentDefinition... children) {
+        return a(ArrayUtils.concat(new SegmentDefinition[]{ attr("href", href), text(text)}, children));
     }
 
     /**
@@ -358,7 +358,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition p(final DocumentPartDefinition... children) {
+    public static TagDefinition p(final SegmentDefinition... children) {
         return tag("p", children);
     }
 
@@ -376,7 +376,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition span(final DocumentPartDefinition... children) {
+    public static TagDefinition span(final SegmentDefinition... children) {
         return tag("span", children);
     }
 
@@ -394,7 +394,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition form(final DocumentPartDefinition... children) {
+    public static TagDefinition form(final SegmentDefinition... children) {
         return tag("form", children);
     }
 
@@ -403,7 +403,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition input(final DocumentPartDefinition... children) {
+    public static TagDefinition input(final SegmentDefinition... children) {
         return tag("input", children);
     }
 
@@ -412,7 +412,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition button(final DocumentPartDefinition... children) {
+    public static TagDefinition button(final SegmentDefinition... children) {
         return tag("button", children);
     }
 
@@ -421,7 +421,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition ul(final DocumentPartDefinition... children) {
+    public static TagDefinition ul(final SegmentDefinition... children) {
         return tag("ul", children);
     }
 
@@ -430,7 +430,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition ol(final DocumentPartDefinition... children) {
+    public static TagDefinition ol(final SegmentDefinition... children) {
         return tag("ol", children);
     }
 
@@ -439,7 +439,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition li(final DocumentPartDefinition... children) {
+    public static TagDefinition li(final SegmentDefinition... children) {
         return tag("li", children);
     }
 
@@ -457,7 +457,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition table(final DocumentPartDefinition... children) {
+    public static TagDefinition table(final SegmentDefinition... children) {
         return tag("table", children);
     }
 
@@ -466,7 +466,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition thead(final DocumentPartDefinition... children) {
+    public static TagDefinition thead(final SegmentDefinition... children) {
         return tag("thead", children);
     }
 
@@ -475,7 +475,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tbody(final DocumentPartDefinition... children) {
+    public static TagDefinition tbody(final SegmentDefinition... children) {
         return tag("tbody", children);
     }
 
@@ -484,7 +484,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition th(final DocumentPartDefinition... children) {
+    public static TagDefinition th(final SegmentDefinition... children) {
         return tag("th", children);
     }
 
@@ -502,7 +502,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition tr(final DocumentPartDefinition... children) {
+    public static TagDefinition tr(final SegmentDefinition... children) {
         return tag("tr", children);
     }
 
@@ -511,7 +511,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition td(final DocumentPartDefinition... children) {
+    public static TagDefinition td(final SegmentDefinition... children) {
         return tag("td", children);
     }
 
@@ -529,7 +529,7 @@ public final class HtmlDsl {
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition label(final DocumentPartDefinition... children) {
+    public static TagDefinition label(final SegmentDefinition... children) {
         return tag("label", children);
     }
 
@@ -547,8 +547,8 @@ public final class HtmlDsl {
      * @param items a {@link Stream} of definitions
      * @return a document part definition representing a sequence of definitions
      */
-    public static SequenceDefinition of(final Stream<DocumentPartDefinition> items) {
-        return new SequenceDefinition(items.toArray(DocumentPartDefinition[]::new));
+    public static SequenceDefinition of(final Stream<SegmentDefinition> items) {
+        return new SequenceDefinition(items.toArray(SegmentDefinition[]::new));
     }
 
     /**
@@ -557,8 +557,8 @@ public final class HtmlDsl {
      * @param itemSupplier a code block
      * @return a result definition
      */
-    public static SequenceDefinition of(final Supplier<DocumentPartDefinition> itemSupplier) {
-        return new SequenceDefinition(new DocumentPartDefinition[] { itemSupplier.get() });
+    public static SequenceDefinition of(final Supplier<SegmentDefinition> itemSupplier) {
+        return new SequenceDefinition(new SegmentDefinition[] { itemSupplier.get() });
     }
 
     /**
@@ -566,7 +566,7 @@ public final class HtmlDsl {
      * @param completableFutureDefinition an asynchronous computation of a definition
      * @return a result definition
      */
-    public static DocumentPartDefinition of(final CompletableFuture<? extends DocumentPartDefinition> completableFutureDefinition) {
+    public static SegmentDefinition of(final CompletableFuture<? extends SegmentDefinition> completableFutureDefinition) {
         return completableFutureDefinition.join();
     }
 
@@ -576,7 +576,7 @@ public final class HtmlDsl {
      * @param then a definition which may be inserted
      * @return a result definition
      */
-    public static DocumentPartDefinition when(final boolean condition, final DocumentPartDefinition then) {
+    public static SegmentDefinition when(final boolean condition, final SegmentDefinition then) {
         return when(condition, () -> then);
     }
 
@@ -587,7 +587,7 @@ public final class HtmlDsl {
      * @param then a {@link Supplier} of a definition which may be inserted
      * @return a result definition
      */
-    public static DocumentPartDefinition when(final boolean condition, final Supplier<DocumentPartDefinition> then) {
+    public static SegmentDefinition when(final boolean condition, final Supplier<SegmentDefinition> then) {
         return condition ? then.get() : EmptyDefinition.INSTANCE;
     }
 

@@ -1,11 +1,11 @@
 package rsp.html;
 
-import rsp.page.PageRenderContext;
+import rsp.page.RenderContext;
 
 /**
  * A definition of a HTML element's inline style.
  */
-public final class StyleDefinition extends BaseDocumentPartDefinition {
+public final class StyleDefinition extends BaseSegmentDefinition {
     /**
      * The style's name.
      */
@@ -28,7 +28,7 @@ public final class StyleDefinition extends BaseDocumentPartDefinition {
     }
 
     @Override
-    public void render(final PageRenderContext renderContext) {
+    public void render(final RenderContext renderContext) {
         renderContext.setStyle(name, value);
     }
 }
