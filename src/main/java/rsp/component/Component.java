@@ -1,5 +1,6 @@
 package rsp.component;
 
+import rsp.page.LivePage;
 import rsp.stateview.ComponentView;
 import rsp.dom.Event;
 import rsp.dom.Tag;
@@ -41,8 +42,8 @@ public final class Component<S> implements SegmentDefinition {
         final DefaultComponentRenderContext<S> componentContext = new DefaultComponentRenderContext<>(renderContext.sharedContext(), this);
 
         final SegmentDefinition view = componentView.apply(state).apply(s -> {
-
-            synchronized (componentContext.livePage()) {
+            final LivePage livePage = componentContext.livePage();
+            synchronized (livePage) {
                 final Tag oldTag = tag;
                 final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
 
@@ -51,8 +52,8 @@ public final class Component<S> implements SegmentDefinition {
                 componentContext.resetSharedContext(componentContext.newSharedContext(path));
                 render(componentContext);
 
-                componentContext.livePage().update(oldTag, componentContext.rootTag());
-                componentContext.livePage().update(oldEvents, events);
+                livePage.update(oldTag, componentContext.rootTag());
+                livePage.update(oldEvents, events);
             }
         });
 

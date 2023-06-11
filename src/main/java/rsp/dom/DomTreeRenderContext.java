@@ -27,8 +27,8 @@ public final class DomTreeRenderContext implements RenderContext {
 
 
     public DomTreeRenderContext(final VirtualDomPath rootPath, final AtomicReference<LivePage> livePageContext) {
-        this.rootPath = rootPath;
-        this.livePageContext = livePageContext;
+        this.rootPath = Objects.requireNonNull(rootPath);
+        this.livePageContext = Objects.requireNonNull(livePageContext);
     }
 
     public Map<String, String> headers() {
@@ -144,7 +144,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public LivePage livePage() {
-        return livePageContext.get();
+        return Objects.requireNonNull(livePageContext.get(), "Page context not set");
     }
 
     public VirtualDomPath rootPath() {
