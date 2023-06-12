@@ -85,14 +85,6 @@ public final class App<S> {
              s -> new Component<>(s, rootComponent));
     }
 
-/*    public App(final Route<HttpRequest, S> routes,
-               final CreateLazyViewFunction<S> rootComponent) {
-        this(AppConfig.DEFAULT,
-                (s, p) -> p,
-                new PageLifeCycle.Default<>(),
-                routes,
-                s -> new StatefulComponent<>(s, rootComponent));
-    }*/
 
     /**
      * Creates an instance of an application with the default config

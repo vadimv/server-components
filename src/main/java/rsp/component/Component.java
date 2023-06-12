@@ -9,12 +9,14 @@ import rsp.html.SegmentDefinition;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.Out;
+import rsp.stateview.NewState;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class Component<S> implements SegmentDefinition {
@@ -22,7 +24,7 @@ public final class Component<S> implements SegmentDefinition {
 
     private final ComponentView<S> componentView;
 
-    private S state;
+    private volatile S state;
     private VirtualDomPath path;
     private Tag tag;
 
@@ -41,20 +43,42 @@ public final class Component<S> implements SegmentDefinition {
     public void render(final RenderContext renderContext) {
         final DefaultComponentRenderContext<S> componentContext = new DefaultComponentRenderContext<>(renderContext.sharedContext(), this);
 
-        final SegmentDefinition view = componentView.apply(state).apply(s -> {
-            final LivePage livePage = componentContext.livePage();
-            synchronized (livePage) {
-                final Tag oldTag = tag;
-                final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
+        final SegmentDefinition view = componentView.apply(state).apply(new NewState<S>() {
+            @Override
+            public void set(S newState) {
+                final LivePage livePage = componentContext.livePage();
+                synchronized (livePage) {
+                    final Tag oldTag = tag;
+                    final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
 
-                state = s;
+                    state = newState;
 
-                componentContext.resetSharedContext(componentContext.newSharedContext(path));
-                render(componentContext);
+                    componentContext.resetSharedContext(componentContext.newSharedContext(path));
+                    render(componentContext);
 
-                livePage.update(oldTag, componentContext.rootTag());
-                livePage.update(oldEvents, events);
+                    livePage.update(oldTag, componentContext.rootTag());
+                    livePage.update(oldEvents, events);
+                }
             }
+
+            @Override
+            public void apply(Function<S, S> newStateFunction) {
+                final LivePage livePage = componentContext.livePage();
+                synchronized (livePage) {
+                    final Tag oldTag = tag;
+                    final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
+
+                    state = newStateFunction.apply(state);
+
+                    componentContext.resetSharedContext(componentContext.newSharedContext(path));
+                    render(componentContext);
+
+                    livePage.update(oldTag, componentContext.rootTag());
+                    livePage.update(oldEvents, events);
+                }
+            }
+
+
         });
 
         view.render(componentContext);

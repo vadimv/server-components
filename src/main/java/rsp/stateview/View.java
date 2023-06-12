@@ -2,9 +2,6 @@ package rsp.stateview;
 
 import rsp.html.TagDefinition;
 
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -12,4 +9,5 @@ import java.util.function.Function;
  * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface
-public interface ComponentView<S> extends Function<S, Function<NewState<S>, TagDefinition>> {}
+
+public interface View<S> extends Function<S, TagDefinition> {}

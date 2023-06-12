@@ -5,6 +5,7 @@ import org.junit.Test;
 import rsp.stateview.ComponentView;
 import rsp.dom.*;
 import rsp.server.Out;
+import rsp.stateview.NewState;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +55,7 @@ public class LivePageStateTests {
 
     private static Tag domRoot(final ComponentView<State> component, final State state) {
         final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new AtomicReference<>());
-        component.apply(state).apply(s -> {}).render(enrichFunction().apply(QID.sessionId, domTreeContext));
+        component.apply(state).apply(new NewState.Default<>()).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.rootTag();
     }

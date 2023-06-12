@@ -5,6 +5,8 @@ import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
+import rsp.stateview.NewState;
+import rsp.stateview.View;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -27,7 +29,7 @@ public class SimpleServer {
 
     public static SimpleServer run(final boolean blockCurrentThread) {
         final App<AppState> app = new App<>(routes(),
-                appComponent());
+                                            appComponent());
         final SimpleServer s = new SimpleServer(new JettyServer<>(PORT, "", app));
         s.jetty.start();
         if (blockCurrentThread) {
@@ -50,15 +52,20 @@ public class SimpleServer {
                              SUB_STATE_VIEW.apply(sv).apply(sc)
                         ));
 
-        final ComponentView<NotFoundState> notFoundComponent =
-                sv -> sc -> html(headPlain(title("Not found")),
+        final View<NotFoundState> notFoundComponent =
+                sv -> html(headPlain(title("Not found")),
                         body(h1("Not found 404"))).statusCode(404);
 
         final ComponentView<AppState> appComponent = sv -> sc -> {
             if (sv instanceof NotFoundState) {
-                return notFoundComponent.apply((NotFoundState)sv).apply(s -> {});
+                return notFoundComponent.apply((NotFoundState)sv);
             } else if (sv instanceof OkState) {
-                return okComponentView.apply((OkState)sv).apply(s -> sc.accept(s));
+                return okComponentView.apply((OkState)sv).apply(new NewState.Default<>() {
+                    @Override
+                    public void set(OkState newState) {
+                        sc.set(newState);
+                    }
+                });
             } else {
                 // should never happen
                 throw new IllegalStateException("Illegal state");
@@ -90,7 +97,7 @@ public class SimpleServer {
                             attr("id", "b0"),
                             text("+1"),
                             on("click",
-                                    d -> { sc.accept(new OkState(sv.i + 1));}))),
+                                    d -> { sc.set(new OkState(sv.i + 1));}))),
                     div(span(attr("id", "s0"),
                             style("background-color", sv.i % 2 ==0 ? "red" : "blue"),
                             text(sv.i)))
