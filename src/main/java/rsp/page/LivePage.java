@@ -184,44 +184,41 @@ public final class LivePage implements In, Schedule {
         out.setHref(path);
     }
 
-    public void update(final Tag oldTag,
-                       final Tag newTag) {
-
+    public Set<VirtualDomPath> update(final Tag oldTag,
+                                      final Tag newTag) {
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         new Diff(Optional.of(oldTag), newTag, domChangePerformer).run();
         if ( domChangePerformer.commands.size() > 0) {
             out.modifyDom(domChangePerformer.commands);
         }
+        return domChangePerformer.elementsToRemove;
     }
 
-    public void update(final Map<Event.Target, Event> oldEvents,
-                       final Map<Event.Target, Event> newEvents) {
-
-        // Calculate diff between currentContext and newContext
-        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-
+    public void update(final Set<Event> oldEvents,
+                       final Set<Event> newEvents,
+                       final Set<VirtualDomPath> elementsToRemove) {
         // Unregister events
-        final Set<Event> eventsToRemove = new HashSet<>();
-        for(Event event : oldEvents.values()) {
-            if(!newEvents.values().contains(event) && !domChangePerformer.elementsToRemove.contains(event.eventTarget.elementPath)) {
+        final List<Event> eventsToRemove = new ArrayList<>();
+        for(Event event : oldEvents) {
+            if(!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
                 eventsToRemove.add(event);
             }
         }
         eventsToRemove.forEach(event -> {
             final Event.Target eventTarget = event.eventTarget;
             out.forgetEvent(eventTarget.eventType,
-                    eventTarget.elementPath);
+                            eventTarget.elementPath);
         });
 
         // Register new event types on client
-        final Set<Event> eventsToAdd = new HashSet<>();
-        for(Event event : newEvents.values()) {
-            if(!oldEvents.values().contains(event)) {
+        final List<Event> eventsToAdd = new ArrayList<>();
+        for(Event event : newEvents) {
+            if(!oldEvents.contains(event)) {
                 eventsToAdd.add(event);
             }
         }
-        out.listenEvents(new ArrayList<>(eventsToAdd));
+        out.listenEvents(eventsToAdd);
 
         // Browser's navigation
    /*     final Path oldPath = snapshot.path;

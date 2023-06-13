@@ -11,10 +11,7 @@ import rsp.ref.Ref;
 import rsp.server.Out;
 import rsp.stateview.NewState;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -24,7 +21,7 @@ public final class Component<S> implements SegmentDefinition {
 
     private final ComponentView<S> componentView;
 
-    private volatile S state;
+    private S state;
     private VirtualDomPath path;
     private Tag tag;
 
@@ -35,7 +32,10 @@ public final class Component<S> implements SegmentDefinition {
 
     public Component(final S initialState,
                      final ComponentView<S> componentView) {
-        this.state = initialState;
+        synchronized (this) {
+            this.state = initialState;
+        }
+
         this.componentView = componentView;
     }
 
@@ -56,8 +56,8 @@ public final class Component<S> implements SegmentDefinition {
                     componentContext.resetSharedContext(componentContext.newSharedContext(path));
                     render(componentContext);
 
-                    livePage.update(oldTag, componentContext.rootTag());
-                    livePage.update(oldEvents, events);
+                    final Set<VirtualDomPath> elementsToRemove = livePage.update(oldTag, componentContext.rootTag());
+                    livePage.update(new HashSet<>(oldEvents.values()), new HashSet<>(events.values()), elementsToRemove);
                 }
             }
 
@@ -73,8 +73,8 @@ public final class Component<S> implements SegmentDefinition {
                     componentContext.resetSharedContext(componentContext.newSharedContext(path));
                     render(componentContext);
 
-                    livePage.update(oldTag, componentContext.rootTag());
-                    livePage.update(oldEvents, events);
+                    final Set<VirtualDomPath> elementsToRemove = livePage.update(oldTag, componentContext.rootTag());
+                    livePage.update(new HashSet<>(oldEvents.values()), new HashSet<>(events.values()), elementsToRemove);
                 }
             }
 
