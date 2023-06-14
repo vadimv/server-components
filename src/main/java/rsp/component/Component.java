@@ -12,6 +12,7 @@ import rsp.server.Out;
 import rsp.stateview.NewState;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -46,19 +47,17 @@ public final class Component<S> implements SegmentDefinition {
         final SegmentDefinition view = componentView.apply(state).apply(new NewState<S>() {
             @Override
             public void set(S newState) {
-                final LivePage livePage = componentContext.livePage();
-                synchronized (livePage) {
-                    final Tag oldTag = tag;
-                    final Map<Event.Target, Event> oldEvents = Map.copyOf(events);
+                apply(s -> newState);
+            }
 
-                    state = newState;
+            @Override
+            public void applyWhenComplete(CompletableFuture<S> newState) {
+                newState.thenAccept(s -> set(s));
+            }
 
-                    componentContext.resetSharedContext(componentContext.newSharedContext(path));
-                    render(componentContext);
-
-                    final Set<VirtualDomPath> elementsToRemove = livePage.update(oldTag, componentContext.rootTag());
-                    livePage.update(new HashSet<>(oldEvents.values()), new HashSet<>(events.values()), elementsToRemove);
-                }
+            @Override
+            public void applyIfPresent(Function<S, Optional<S>> stateTransformer) {
+                stateTransformer.apply(state).ifPresent(s -> set(s));
             }
 
             @Override
@@ -77,8 +76,6 @@ public final class Component<S> implements SegmentDefinition {
                     livePage.update(new HashSet<>(oldEvents.values()), new HashSet<>(events.values()), elementsToRemove);
                 }
             }
-
-
         });
 
         view.render(componentContext);

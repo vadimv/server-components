@@ -12,9 +12,12 @@
 * [Navigation bar URL path](#navigation-bar-url-path)
 * [UI Components](#ui-components)
 * [Plain HTML pages](#plain-html-pages)
+* [DOM events](#dom-events)
+* [Elements references](#elements-references)
 * [Page lifecycle events](#page-lifecycle-events)
+* [Running JavaScript code](#js-code)
 * [Application and server's configuration](#application-and-servers-configuration)
-* [Schedules](#schedules)
+* [Schedules and timers](#schedules)
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
 
 ## About
@@ -48,7 +51,7 @@ Add the dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>0.7</version>
+        <version>1.0</version>
     </dependency>
 ```
 
@@ -136,27 +139,26 @@ provide the Java code:
 ```java
     import static rsp.html.HtmlDsl.*;
     ...
-    public Component<State> render() {
-        return (s, sc) -> html(
-                              body(
-                                   h1("This is a heading"),
-                                   div(attr("class", "par"), 
-                                       p("This is a paragraph"),
-                                       p(s.text)) // adds a paragraph with a text from the state object's 'text' field
-                                  ) 
-                            );
-    }
+    final ComponentView<State> view = state -> newState -> html(
+                                          body(
+                                               h1("This is a heading"),
+                                               div(attr("class", "par"), 
+                                                   p("This is a paragraph"),
+                                                   p(state.text)) // adds a paragraph with a text from the state object's 'text' field
+                                              ) 
+                                        );
 ```
 where:
 - HTML tags are represented by the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
-- the lambda's parameter `s` is the current state snapshot, in this example a POJO of a `State` class
+- the lambda's parameter `state` is the current state snapshot
+- the lambda's parameter 'newState' is the object allowing setting a new value of a state
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 ```java
     import static rsp.html.HtmlDsl.*;
     ...
-    s -> ul(of(s.get().items.stream().map(item -> li(item.name))))
+    state -> ul(of(state.items.stream().map(item -> li(item.name))))
 ```
 
 An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
@@ -164,7 +166,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
     final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
     ...
          // let's consider that at this moment we know the current user's Id
-    s -> div(of(service.apply(s.get().user.id).map(str -> text(str))))
+    state -> div(of(service.apply(state.user.id).map(str -> text(str))))
 ```
 
 Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments
@@ -172,9 +174,9 @@ with imperative logic.
 ```java
     import static rsp.html.HtmlDsl.*;
     ...
-    s -> of(() -> {
-                     if (s.get().showInfo) {
-                         return p(s.get().info);
+    state -> of(() -> {
+                     if (state.showInfo) {
+                         return p(state.info);
                      } else {
                          return p("none");
                      }       
@@ -183,7 +185,7 @@ with imperative logic.
 
 The ``when()`` DSL function conditionally renders (or not) an element:
 ```java
-    s -> when(s.get().showLabel, span("This is a label"))
+    state -> when(state.showLabel, span("This is a label"))
 ```
 
 ### Page state model
@@ -201,18 +203,12 @@ sealed interfaces and pattern matching in Java 17:
     record UsersState(List<User> users) implements State {}
     
     record User(long id, String name) {}
-
-    /**
-     * An event handler, makes the page's FSM transition.
-     */
-    public static void userSelected(final UseState<State> s, final User user) {
-        s.accept(new UserState(user));
-    }
+        
 
     /**
      * The page's renderer, called by the framework as a result of a state transition.
      */
-    static Component<State> render() {
+    static View<State> render() {
         return s -> switch (s.get()) {
             case UserState  state  -> userView().render(state);
             case UsersState state  -> usersView().render(state);
@@ -336,7 +332,7 @@ For example:
             ).statusCode(404);
 ```
 
-### UI Components
+### UI Stateful Components
 
 Pages are composed of components. A component is a Java class which implements the ``Component<S>`` interface.
 
