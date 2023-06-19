@@ -184,8 +184,8 @@ public final class LivePage implements In, Schedule {
         out.setHref(path);
     }
 
-    public Set<VirtualDomPath> update(final Tag oldTag,
-                                      final Tag newTag) {
+    public Set<VirtualDomPath> updateElements(final Tag oldTag,
+                                              final Tag newTag) {
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         new Diff(Optional.of(oldTag), newTag, domChangePerformer).run();
@@ -195,9 +195,9 @@ public final class LivePage implements In, Schedule {
         return domChangePerformer.elementsToRemove;
     }
 
-    public void update(final Set<Event> oldEvents,
-                       final Set<Event> newEvents,
-                       final Set<VirtualDomPath> elementsToRemove) {
+    public void updateEvents(final Set<Event> oldEvents,
+                             final Set<Event> newEvents,
+                             final Set<VirtualDomPath> elementsToRemove) {
         // Unregister events
         final List<Event> eventsToRemove = new ArrayList<>();
         for(Event event : oldEvents) {

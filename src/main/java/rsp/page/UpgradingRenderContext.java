@@ -1,10 +1,13 @@
 package rsp.page;
 
+import rsp.component.Component;
 import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
+import rsp.stateview.ComponentView;
+import rsp.stateview.NewState;
 
 import java.util.Map;
 import java.util.Optional;
@@ -114,8 +117,23 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
+    public <S> NewState<S> openComponent(final S initialState, final ComponentView<S> view) {
+        return renderContext.openComponent(initialState, view);
+    }
+
+    @Override
+    public void closeComponent() {
+        renderContext.closeComponent();
+    }
+
+    @Override
     public Tag rootTag() {
         return renderContext.rootTag();
+    }
+
+    @Override
+    public <S> Component<S> rootComponent() {
+        return renderContext.rootComponent();
     }
 
     @Override

@@ -1,6 +1,6 @@
 package rsp;
 
-import rsp.component.Component;
+import rsp.component.ComponentDefinition;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -46,7 +46,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final Function<S, Component<S>> rootComponent;
+    public final Function<S, ComponentDefinition<S>> rootComponent;
 
     public final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -62,7 +62,7 @@ public final class App<S> {
                 final BiFunction<S, Path, Path> state2path,
                 final PageLifeCycle<S> lifeCycleEventsListener,
                 final Route<HttpRequest, S> routes,
-                final Function<S, Component<S>> rootComponent) {
+                final Function<S, ComponentDefinition<S>> rootComponent) {
 
         this.config = config;
         this.routes = routes;
@@ -74,15 +74,15 @@ public final class App<S> {
     /**
      * Creates an instance of an application with the default configuration.
      * @param routes a function that dispatches an incoming HTTP request to a page's initial state
-     * @param rootComponent the root of the components tree
+     * @param rootComponentView the root of the components tree
      */
     public App(final Route<HttpRequest, S> routes,
-               final ComponentView<S> rootComponent) {
+               final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              (s, p) -> p,
              new PageLifeCycle.Default<>(),
              routes,
-             s -> new Component<>(s, rootComponent));
+             s -> new ComponentDefinition<>(s, rootComponentView));
     }
 
 
@@ -98,7 +98,7 @@ public final class App<S> {
              (s, p) ->  p,
              new PageLifeCycle.Default<>(),
              request -> Optional.of(CompletableFuture.completedFuture(initialState)),
-             s -> new Component<>(s, rootComponentView));
+             s -> new ComponentDefinition<>(s, rootComponentView));
     }
 
     /**
