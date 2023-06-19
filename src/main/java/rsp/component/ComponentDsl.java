@@ -6,6 +6,7 @@ import rsp.stateview.ComponentView;
 import rsp.stateview.View;;
 
 public class ComponentDsl {
+
     /**
      * A stateful component.
      * @param initialState the component's initial state

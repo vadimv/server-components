@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class Component<S> implements NewState<S> {
+public final class Component<S> implements NewState<S> {
 
     public final Map<Event.Target, Event> events = new HashMap<>();
     public final Map<Ref, VirtualDomPath> refs = new HashMap<>();
@@ -53,17 +53,17 @@ public class Component<S> implements NewState<S> {
     }
 
     @Override
-    public void applyWhenComplete(CompletableFuture<S> newState) {
+    public void applyWhenComplete(final CompletableFuture<S> newState) {
         newState.thenAccept(s -> set(s));
     }
 
     @Override
-    public void applyIfPresent(Function<S, Optional<S>> stateTransformer) {
+    public void applyIfPresent(final Function<S, Optional<S>> stateTransformer) {
         stateTransformer.apply(state).ifPresent(s -> set(s));
     }
 
     @Override
-    public void apply(Function<S, S> newStateFunction) {
+    public void apply(final Function<S, S> newStateFunction) {
         final LivePage livePage = livePageContext.get();
         synchronized (livePage) {
             assert tag != null;
@@ -104,7 +104,7 @@ public class Component<S> implements NewState<S> {
         return recursiveRefs;
     }
 
-    public void listenEvents(Out out) {
+    public void listenEvents(final Out out) {
         out.listenEvents(events.values().stream().collect(Collectors.toList()));
         children.forEach(childComponent -> childComponent.listenEvents(out));
     }
