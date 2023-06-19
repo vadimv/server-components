@@ -152,11 +152,6 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
-    public RenderContext sharedContext() {
-        return this;
-    }
-
-    @Override
     public RenderContext newSharedContext(VirtualDomPath path) {
         return new UpgradingRenderContext(renderContext.newSharedContext(path), pageInfo);
     }
