@@ -18,9 +18,10 @@ import static rsp.routing.RoutingDsl.*;
 public class SimpleServer {
 
     public static final int PORT = 8085;
+    public static final int COUNTER_1_INITIAL_VALUE = 8000;
     public final JettyServer<AppState> jetty;
 
-    static SegmentDefinition incrementCounterComponent(String name, int initialValue){
+    static SegmentDefinition incrementCounterComponent(final String name, final int initialValue) {
         return component(initialValue, state -> newState ->
                 div(div(button(attr("type", "button"),
                                 attr("id", name + "_b0"),
@@ -35,7 +36,7 @@ public class SimpleServer {
 
     static final ComponentView<CounterState> countersComponentView = state -> newState ->
             html(head(title("test-server-title")),
-                    body(incrementCounterComponent("c1", 8000),
+                    body(incrementCounterComponent("c1", COUNTER_1_INITIAL_VALUE),
                          incrementCounterComponent("c2", state.i)
                     ));
 

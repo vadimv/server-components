@@ -49,7 +49,27 @@ public class PlaywrightSmokeIT {
     private void validatePage(final Page page) throws InterruptedException {
         Assert.assertEquals(200, page.navigate("http://localhost:" + SimpleServer.PORT + "/1").status());
         Assert.assertEquals("test-server-title", page.title());
+        validateComponent1(page);
+        validateComponent2(page);
+    }
 
+    private void validateComponent1(Page page) throws InterruptedException {
+        assertElementTextEquals(page, "c1_s0", Integer.toString(SimpleServer.COUNTER_1_INITIAL_VALUE));
+        assertElementStyleAttributeEquals(page, "c1_s0",  "background-color","red");
+        waitForPageResponse();
+
+        clickOnElement(page,"c1_b0");
+        waitForPageResponse();
+        assertElementTextEquals(page,"c1_s0", Integer.toString(SimpleServer.COUNTER_1_INITIAL_VALUE + 1));
+        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", "blue");
+
+        clickOnElement(page,"c1_b0");
+        waitForPageResponse();
+        assertElementTextEquals(page,"c1_s0", Integer.toString(SimpleServer.COUNTER_1_INITIAL_VALUE + 2));
+        assertElementStyleAttributeEquals(page, "c1_s0","background-color", "red");
+    }
+
+    private void validateComponent2(Page page) throws InterruptedException {
         assertElementTextEquals(page, "c2_s0", "1");
         assertElementStyleAttributeEquals(page, "c2_s0",  "background-color","blue");
         waitForPageResponse();
@@ -65,6 +85,7 @@ public class PlaywrightSmokeIT {
         assertElementStyleAttributeEquals(page, "c2_s0","background-color", "blue");
     }
 
+
     private void clickOnElement(final Page page, final String elementId) {
         page.click("#" + elementId);
     }
@@ -74,8 +95,7 @@ public class PlaywrightSmokeIT {
     }
 
     private static void assertElementStyleAttributeEquals(final Page page, final String elementId, final String styleName, final String expectedValue) {
-        final Optional<String> s = BrowserUtils.style(page.getAttribute("#" + elementId, "style"),
-                                         styleName);
+        final Optional<String> s = BrowserUtils.style(page.getAttribute("#" + elementId, "style"), styleName);
         s.ifPresentOrElse(v -> Assert.assertEquals(expectedValue, v), () -> Assert.fail());
     }
 
