@@ -58,9 +58,8 @@ public final class LivePage implements In, Schedule {
     }
 
     @Override
-    public synchronized Timer scheduleAtFixedRate(final Runnable command,
-                                                  final Object key,
-                                                  final long initialDelay, final long period, final TimeUnit unit) {
+    public synchronized Timer scheduleAtFixedRate(final Runnable command, final Object key, final long initialDelay, final long period, final TimeUnit unit) {
+        logger.log(DEBUG, () -> "Scheduling a periodical task " + key + " with delay: " + initialDelay + ", and period: " + period + " " + unit);
         final ScheduledFuture<?> timer = scheduledExecutorService.scheduleAtFixedRate(() -> {
             synchronized (this) {
                 command.run();
@@ -72,6 +71,7 @@ public final class LivePage implements In, Schedule {
 
     @Override
     public synchronized Timer schedule(final Runnable command, final Object key, final long delay, final TimeUnit unit) {
+        logger.log(DEBUG, () -> "Scheduling a delayed task " + key + " with delay: " + delay + " " + unit);
         final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
             synchronized (this) {
                 command.run();
@@ -83,6 +83,7 @@ public final class LivePage implements In, Schedule {
 
     @Override
     public synchronized void cancel(final Object key) {
+        logger.log(DEBUG, () -> "Cancelling the task " + key);
         final ScheduledFuture<?> schedule = schedules.get(key);
         if (schedule != null) {
             schedule.cancel(true);
@@ -128,6 +129,7 @@ public final class LivePage implements In, Schedule {
 
     @Override
     public void handleDomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
+        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + path + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (this) {
             final Map<Event.Target, Event> events = eventsSupplier.get();
             final EventContext eventContext = createEventContext(eventObject);
@@ -171,6 +173,7 @@ public final class LivePage implements In, Schedule {
     }
 
     public CompletableFuture<JsonDataType> evalJs(final String js) {
+        logger.log(DEBUG, () -> "Called an JS evaluation: " + js);
         synchronized (this) {
             final int newDescriptor = ++descriptorsCounter;
             final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
