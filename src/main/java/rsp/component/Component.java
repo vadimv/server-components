@@ -43,6 +43,10 @@ public class Component<S> implements NewState<S> {
         children.add(component);
     }
 
+    public S getState() {
+        return state;
+    }
+
     @Override
     public void set(final S newState) {
         apply(s -> newState);
