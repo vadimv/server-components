@@ -68,14 +68,13 @@ public class Component<S> implements NewState<S> {
             state = newStateFunction.apply(state);
             final RenderContext renderContext = parentRenderContext.newSharedContext(oldTag.path);
 
+            events.clear();
+            refs.clear();
+
             renderContext.openComponent(this);
-
             final SegmentDefinition view = componentView.apply(state).apply(this);
-
             view.render(renderContext);
-
             renderContext.closeComponent();
-
 
             tag = renderContext.rootTag();
             final Set<VirtualDomPath> elementsToRemove = livePage.updateElements(oldTag, renderContext.rootTag());
