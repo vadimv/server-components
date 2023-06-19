@@ -1,6 +1,7 @@
 package rsp.browserautomation;
 
 import rsp.App;
+import rsp.html.SegmentDefinition;
 import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
@@ -19,22 +20,23 @@ public class SimpleServer {
     public static final int PORT = 8085;
     public final JettyServer<AppState> jetty;
 
-    static final ComponentView<Integer> incrementCounterComponentView = state -> newState ->
-            div(div(button(attr("type", "button"),
-                            attr("id", "b0"),
-                            text("+1"),
-                            on("click",
-                                    d -> newState.set(state + 1)))),
-                    div(span(attr("id", "s0"),
-                            style("background-color", state % 2 ==0 ? "red" : "blue"),
-                            text(state)))
-            );
+    static SegmentDefinition incrementCounterComponent(String name, int initialValue){
+        return component(initialValue, state -> newState ->
+                div(div(button(attr("type", "button"),
+                                attr("id", name + "_b0"),
+                                text("+1"),
+                                on("click",
+                                        d -> newState.set(state + 1)))),
+                        div(span(attr("id", name + "_s0"),
+                                style("background-color", state % 2 ==0 ? "red" : "blue"),
+                                text(state)))
+                ));
+    }
 
     static final ComponentView<CounterState> countersComponentView = state -> newState ->
             html(head(title("test-server-title")),
-                    body(component(80000, incrementCounterComponentView),
-                         component(state.i, incrementCounterComponentView)
-                      //   incrementCounterComponent.apply(state).apply(newState)
+                    body(incrementCounterComponent("c1", 8000),
+                         incrementCounterComponent("c2", state.i)
                     ));
 
     static final View<NotFoundState> notFoundStatelessView = state ->

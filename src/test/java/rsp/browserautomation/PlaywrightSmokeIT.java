@@ -50,19 +50,19 @@ public class PlaywrightSmokeIT {
         Assert.assertEquals(200, page.navigate("http://localhost:" + SimpleServer.PORT + "/1").status());
         Assert.assertEquals("test-server-title", page.title());
 
-        assertElementTextEquals(page, "s0", "1");
-        assertElementStyleAttributeEquals(page, "s0",  "background-color","blue");
+        assertElementTextEquals(page, "c2_s0", "1");
+        assertElementStyleAttributeEquals(page, "c2_s0",  "background-color","blue");
         waitForPageResponse();
 
-        clickOnElement(page,"b0");
+        clickOnElement(page,"c2_b0");
         waitForPageResponse();
-        assertElementTextEquals(page,"s0", "2");
-        assertElementStyleAttributeEquals(page, "s0", "background-color", "red");
+        assertElementTextEquals(page,"c2_s0", "2");
+        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", "red");
 
-        clickOnElement(page,"d0");
+        clickOnElement(page,"c2_b0");
         waitForPageResponse();
-        assertElementTextEquals(page,"s0", "12");
-        assertElementStyleAttributeEquals(page, "s0","background-color", "red");
+        assertElementTextEquals(page,"c2_s0", "3");
+        assertElementStyleAttributeEquals(page, "c2_s0","background-color", "blue");
     }
 
     private void clickOnElement(final Page page, final String elementId) {
