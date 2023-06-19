@@ -14,7 +14,7 @@
     <properties><revision>0.8-SNAPSHOT</revision>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
 
         <junit.version>4.12</junit.version>
         <jcip-annotations.version>1.0-1</jcip-annotations.version>
@@ -80,6 +80,7 @@
                     <encoding>UTF-8</encoding>
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
+                        <arg>--enable-preview</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>

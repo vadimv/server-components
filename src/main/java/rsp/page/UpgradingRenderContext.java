@@ -1,10 +1,13 @@
 package rsp.page;
 
+import rsp.component.Component;
 import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
+import rsp.stateview.ComponentView;
+import rsp.stateview.NewState;
 
 import java.util.Map;
 import java.util.Optional;
@@ -114,8 +117,28 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
+    public <S> NewState<S> openComponent(final S initialState, final ComponentView<S> view) {
+        return renderContext.openComponent(initialState, view);
+    }
+
+    @Override
+    public <S> void openComponent(Component<S> component) {
+        renderContext.openComponent(component);
+    }
+
+    @Override
+    public void closeComponent() {
+        renderContext.closeComponent();
+    }
+
+    @Override
     public Tag rootTag() {
         return renderContext.rootTag();
+    }
+
+    @Override
+    public <S> Component<S> rootComponent() {
+        return renderContext.rootComponent();
     }
 
     @Override
@@ -129,11 +152,6 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
-    public RenderContext sharedContext() {
-        return this;
-    }
-
-    @Override
     public RenderContext newSharedContext(VirtualDomPath path) {
         return new UpgradingRenderContext(renderContext.newSharedContext(path), pageInfo);
     }
@@ -141,16 +159,6 @@ public final class UpgradingRenderContext implements RenderContext {
     @Override
     public VirtualDomPath rootPath() {
         return renderContext.rootPath();
-    }
-
-    @Override
-    public Map<Event.Target, Event> events() {
-        return renderContext.events();
-    }
-
-    @Override
-    public Map<Ref, VirtualDomPath> refs() {
-        return renderContext.refs();
     }
 
     @Override

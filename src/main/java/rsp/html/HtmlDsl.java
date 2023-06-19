@@ -26,6 +26,7 @@ public final class HtmlDsl {
     public final static String DEFAULT_PROPERTIES_NAMES =
             "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
 
+    public enum HeadType { SPA, PLAIN }
 
     /**
      * A HTML {@literal <html>} element, the root element of a HTML document.
@@ -161,23 +162,25 @@ public final class HtmlDsl {
 
     /**
      * A HTML {@literal <head>} element of a HTML document.
+     * This element will contain a script which establishes a connection to the server and enables a single-page application.
      * @param children descendants definitions of this element
      * @return a tag definition
      */
     public static TagDefinition head(final SegmentDefinition... children) {
-        return tag("head", children);
+        return head(HeadType.SPA, children);
     }
 
     /**
-     * A 'plain' HTML {@literal <head>} element of a HTML document,
+     * A HTML {@literal <head>} element of a HTML document,
      * has not to be upgraded with the script element establishing
      * a WebSocket connection to the server after the browser loads the page.
      * No live page session will be created on the server in this case.
+     * @param headType a type of this {@literal <head>} element.
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition headPlain(final SegmentDefinition... children) {
-        return new PlainTagDefinition(XmlNs.html, "head", children);
+    public static TagDefinition head(final HeadType headType, final SegmentDefinition... children) {
+        return headType == HeadType.SPA ? tag("head", children) : new PlainTagDefinition(XmlNs.html, "head", children);
     }
 
     /**

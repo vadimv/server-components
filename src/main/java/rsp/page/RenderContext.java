@@ -1,10 +1,13 @@
 package rsp.page;
 
+import rsp.component.Component;
 import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
+import rsp.stateview.ComponentView;
+import rsp.stateview.NewState;
 
 import java.util.Map;
 import java.util.Optional;
@@ -25,13 +28,14 @@ public interface RenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
+    <S> NewState<S> openComponent(S initialState, ComponentView<S> view);
+    <S> void openComponent(Component<S> component);
+    void closeComponent();
     Tag rootTag();
+    <S> Component<S> rootComponent();
     Tag parentTag();
     Tag currentTag();
-    RenderContext sharedContext();
     RenderContext newSharedContext(VirtualDomPath path);
     VirtualDomPath rootPath();
-    Map<Event.Target, Event> events();
-    Map<Ref, VirtualDomPath> refs();
     LivePage livePage();
 }

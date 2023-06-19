@@ -1,23 +1,54 @@
 package rsp.browserautomation;
 
 import rsp.App;
+import rsp.html.SegmentDefinition;
 import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.server.HttpRequest;
-import rsp.stateview.NewState;
 import rsp.stateview.View;
 
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.component.ComponentDsl.component;
+import static rsp.component.ComponentDsl.statelessComponent;
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
 public class SimpleServer {
 
     public static final int PORT = 8085;
+    public static final int COUNTER_1_INITIAL_VALUE = 8000;
     public final JettyServer<AppState> jetty;
+
+    static SegmentDefinition incrementCounterComponent(final String name, final int initialValue) {
+        return component(initialValue, state -> newState ->
+                div(div(button(attr("type", "button"),
+                                attr("id", name + "_b0"),
+                                text("+1"),
+                                on("click",
+                                        d -> newState.set(state + 1)))),
+                        div(span(attr("id", name + "_s0"),
+                                style("background-color", state % 2 ==0 ? "red" : "blue"),
+                                text(state)))
+                ));
+    }
+
+    static final ComponentView<CounterState> countersComponentView = state -> newState ->
+            html(head(title("test-server-title")),
+                    body(incrementCounterComponent("c1", COUNTER_1_INITIAL_VALUE),
+                         incrementCounterComponent("c2", state.i)
+                    ));
+
+    static final View<NotFoundState> notFoundStatelessView = __ ->
+            html(head(HeadType.PLAIN, title("Not found")),
+                 body(h1("Not found 404"))).statusCode(404);
+
+    static final ComponentView<AppState> appComponentView = state -> newState ->
+        switch (state) {
+            case NotFoundState nfs -> statelessComponent(nfs, notFoundStatelessView);
+            case CounterState counterState -> component(counterState, countersComponentView);
+        };
 
     public SimpleServer(final JettyServer<AppState> jetty) {
         this.jetty = jetty;
@@ -29,8 +60,8 @@ public class SimpleServer {
 
     public static SimpleServer run(final boolean blockCurrentThread) {
         final App<AppState> app = new App<>(routes(),
-                                            appComponent());
-        final SimpleServer s = new SimpleServer(new JettyServer<>(PORT, "", app));
+                                            appComponentView);
+        final SimpleServer s = new SimpleServer(new JettyServer<>(8085, "", app));
         s.jetty.start();
         if (blockCurrentThread) {
             s.jetty.join();
@@ -39,51 +70,21 @@ public class SimpleServer {
     }
 
     private static Route<HttpRequest, AppState> routes() {
-        return concat(get("/:id(^\\d+$)", (__, id) -> new OkState(Integer.parseInt(id)).toCompletableFuture()),
+        return concat(get("/:id(^\\d+$)", (__, id) -> new CounterState(Integer.parseInt(id)).toCompletableFuture()),
                 any(new NotFoundState()));
     }
 
 
-    private static ComponentView<AppState> appComponent() {
-        final ComponentView<OkState> okComponentView = sv -> sc ->
-                html(head(title("test-server-title")),
-                        body(component(new OkState(80000), SUB_STATE_VIEW),
-                                component(new OkState(1000), SUB_STATE_VIEW),
-                             SUB_STATE_VIEW.apply(sv).apply(sc)
-                        ));
-
-        final View<NotFoundState> notFoundComponent =
-                sv -> html(headPlain(title("Not found")),
-                        body(h1("Not found 404"))).statusCode(404);
-
-        final ComponentView<AppState> appComponent = sv -> sc -> {
-            if (sv instanceof NotFoundState) {
-                return notFoundComponent.apply((NotFoundState)sv);
-            } else if (sv instanceof OkState) {
-                return okComponentView.apply((OkState)sv).apply(new NewState.Default<>() {
-                    @Override
-                    public void set(OkState newState) {
-                        sc.set(newState);
-                    }
-                });
-            } else {
-                // should never happen
-                throw new IllegalStateException("Illegal state");
-            }
-        };
-        return appComponent;
+    sealed interface AppState {
     }
 
-    interface AppState {
+    static final class NotFoundState implements AppState {
     }
 
-    public static class NotFoundState implements AppState {
-    }
-
-    private static class OkState implements AppState {
+    static final class CounterState implements AppState {
         public final int i;
 
-        public OkState(final int i) {
+        public CounterState(final int i) {
             this.i = i;
         }
 
@@ -91,15 +92,4 @@ public class SimpleServer {
             return CompletableFuture.completedFuture(this);
         }
     }
-
-    public static final ComponentView<OkState> SUB_STATE_VIEW = sv -> sc ->
-            div(div(button(attr("type", "button"),
-                            attr("id", "b0"),
-                            text("+1"),
-                            on("click",
-                                    d -> { sc.set(new OkState(sv.i + 1));}))),
-                    div(span(attr("id", "s0"),
-                            style("background-color", sv.i % 2 ==0 ? "red" : "blue"),
-                            text(sv.i)))
-            );
 }

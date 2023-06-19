@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.component.Component;
+import rsp.component.ComponentDefinition;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.routing.Route;
@@ -28,13 +28,13 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Route<HttpRequest, S> routes;
-    private final Function<S, Component<S>> rootComponent;
+    private final Function<S, ComponentDefinition<S>> rootComponent;
 
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
 
     public PageRendering(final Route<HttpRequest, S> routes,
-                         final Function<S, Component<S>> rootComponent,
+                         final Function<S, ComponentDefinition<S>> rootComponent,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          final BiFunction<String, RenderContext, RenderContext> enrich) {
         this.routes = routes;
@@ -89,10 +89,11 @@ public final class PageRendering<S> {
                         final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, livePageContext);
                         final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 
-                        final Component<S> component = rootComponent.apply(rootState);
+                        final ComponentDefinition<S> component = rootComponent.apply(rootState);
 
                         component.render(enrichedDomTreeContext);
-                        final RenderedPage<S> pageSnapshot = new RenderedPage<>(component, livePageContext);
+
+                        final RenderedPage<S> pageSnapshot = new RenderedPage<S>(enrichedDomTreeContext.rootComponent(), livePageContext);
                         renderedPages.put(pageId, pageSnapshot);
                         final String responseBody = enrichedDomTreeContext.toString();
 

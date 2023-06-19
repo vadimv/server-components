@@ -1,6 +1,7 @@
 package rsp.page;
 
 import rsp.component.Component;
+import rsp.component.ComponentDefinition;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;

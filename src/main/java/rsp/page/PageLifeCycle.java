@@ -19,9 +19,8 @@ public interface PageLifeCycle<S> {
     /**
      * Invoked after an live page session closed.
      * @param sid the qualified session Id of the page being closed
-     * @param state the current state
      */
-    void afterLivePageClosed(QualifiedSessionId sid, S state);
+    void afterLivePageClosed(QualifiedSessionId sid);
 
     /**
      * The default lifecycle listener implementation doing nothing.
@@ -35,7 +34,7 @@ public interface PageLifeCycle<S> {
         }
 
         @Override
-        public void afterLivePageClosed(final QualifiedSessionId sid, final S state) {
+        public void afterLivePageClosed(final QualifiedSessionId sid) {
             //no-op
         }
     }
