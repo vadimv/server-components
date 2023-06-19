@@ -335,16 +335,23 @@ For example:
 
 ### UI Stateful Components
 
-Pages are composed of components. A component is a Java class which implements the ``Component<S>`` interface.
+Pages are composed of stateful components and stateless views.
+Stateful components have its own mutable state associated with every component of that kind.
+Stateless views used for representation only and do not have a mutable state.
 
 ```java
-    public static SegmentDefinition<ButtonState> buttonComponent(String text) {
+    public static ComponentView<ButtonState> buttonComponent(String text) {
         return state -> newState -> input(attr("type", "button"),
                            attr("class", "button"),
                            attr("value", text),      
                            on("click", ctx -> s.accept(new ButtonState())));
         
     }
+        ...
+
+    component()
+    
+    
     public static class ButtonState {}
 ```
 
