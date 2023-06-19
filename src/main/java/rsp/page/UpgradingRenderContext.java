@@ -162,16 +162,6 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
-    public Map<Event.Target, Event> events() {
-        return renderContext.events();
-    }
-
-    @Override
-    public Map<Ref, VirtualDomPath> refs() {
-        return renderContext.refs();
-    }
-
-    @Override
     public LivePage livePage() {
         return renderContext.livePage();
     }

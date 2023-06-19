@@ -36,9 +36,6 @@ public interface RenderContext {
     Tag parentTag();
     Tag currentTag();
     RenderContext newSharedContext(VirtualDomPath path);
-
     VirtualDomPath rootPath();
-    Map<Event.Target, Event> events();
-    Map<Ref, VirtualDomPath> refs();
     LivePage livePage();
 }

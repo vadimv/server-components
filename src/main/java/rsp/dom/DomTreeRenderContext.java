@@ -14,8 +14,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 public final class DomTreeRenderContext implements RenderContext {
-    public final Map<Event.Target, Event> events = new ConcurrentHashMap<>();
-    public final Map<Ref, VirtualDomPath> refs = new ConcurrentHashMap<>();
     private final VirtualDomPath rootPath;
     private final AtomicReference<LivePage> livePageContext;
 
@@ -135,12 +133,15 @@ public final class DomTreeRenderContext implements RenderContext {
         final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
         final Component<?> component = componentsStack.peek();
+        assert component != null;
         component.events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     @Override
     public void addRef(final Ref ref) {
-        refs.put(ref, tagsStack.peek().path);
+        final Component<?> component = componentsStack.peek();
+        assert component != null;
+        component.refs.put(ref, tagsStack.peek().path);
     }
 
     @Override
@@ -174,16 +175,6 @@ public final class DomTreeRenderContext implements RenderContext {
     @Override
     public RenderContext newSharedContext(final VirtualDomPath path) {
         return new DomTreeRenderContext(path, livePageContext);
-    }
-
-    @Override
-    public Map<Event.Target, Event> events() {
-        return events;
-    }
-
-    @Override
-    public Map<Ref, VirtualDomPath> refs() {
-        return refs;
     }
 
     @Override
