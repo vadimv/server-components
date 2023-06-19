@@ -54,7 +54,7 @@ public class PlainForm {
 
     private static ComponentView<Optional<FullName>> pages() {
         return sv -> sc -> html(
-                        headPlain(title("Plain Form Pages")),
+                        head(HeadType.PLAIN, title("Plain Form Pages")),
                         body(
                             sv.isEmpty() ? formComponent().apply(sv).apply(sc) : formResult().apply(sv).apply(sc)
                         )

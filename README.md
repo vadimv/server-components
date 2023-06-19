@@ -9,13 +9,13 @@
 * [HTML markup Java DSL](#html-markup-rendering-java-dsl)
 * [Page state model](#page-state-model)
 * [Single-page application](#single-page-application)
-* [Navigation bar URL path](#navigation-bar-url-path)
 * [UI Components](#ui-components)
-* [Plain HTML pages](#plain-html-pages)
 * [DOM events](#dom-events)
+* [Navigation bar URL path](#navigation-bar-url-path)
 * [Elements references](#elements-references)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Running JavaScript code](#js-code)
+* [Plain HTML pages](#plain-html-pages)
 * [Application and server's configuration](#application-and-servers-configuration)
 * [Schedules and timers](#schedules)
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
@@ -163,10 +163,10 @@ The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a lis
 
 An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
 ```java
-    final Function<Long, CompletableFuture<String>> service = userDetailsService(); 
+    final Function<Long, CompletableFuture<String>> lookupService = userDetailsByIdService(); 
     ...
          // let's consider that at this moment we know the current user's Id
-    state -> div(of(service.apply(state.user.id).map(str -> text(str))))
+    state -> newState -> div(of(lookupService.apply(state.user.id).map(str -> text(str))))
 ```
 
 Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments
@@ -209,14 +209,14 @@ sealed interfaces and pattern matching in Java 17:
      * The page's renderer, called by the framework as a result of a state transition.
      */
     static View<State> render() {
-        return s -> switch (s.get()) {
-            case UserState  state  -> userView().render(state);
-            case UsersState state  -> usersView().render(state);
+        return state -> switch (state) {
+            case UserState  s -> userView().render(s);
+            case UsersState s -> usersView().render(s);
         };
     }
 
-    private static Component<UserState> userView() { return s -> span("User:" + s.get()); }
-    private static Component<UsersState> usersView() { return s -> span("Users list:" + s.get()); }
+    private static View<UserState> userView() { return s -> span("User:" + s.get()); }
+    private static View<UsersState> usersView() { return s -> span("Users list:" + s.get()); }
 ```
 
 ### Single-page application
@@ -238,9 +238,9 @@ and enables reacting to the browser events.
 To respond to browser events, register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the DSL:
 
 ```java
-    s -> a("#", "Click me", on("click", ctx -> {
-                System.out.println("Clicked " + s.get().counter + " times");
-                s.accept(new State(s.get().counter + 1));
+    state -> newState -> a("#", "Click me", on("click", ctx -> {
+                                System.out.println("Clicked " + state.counter + " times");
+                                newState.set(new State(s.get().counter + 1));
             }));
     ...
     static class State { final int counter; State(final int counter) { this.counter = counter; } }
@@ -315,21 +315,22 @@ Events code runs in a synchronized sections on a live page session state contain
 
 ### Plain HTML pages
 
-Using ``plainHead()`` function instead of ``head()`` renders the markup with the ``head`` tag without injecting of this script
-resulting in a plain detached HTML page.
+Using ``head(HeadType.PLAIN, ...)`` renders the markup with the ``head`` tag without injecting of init script
+to establish a connection with server and enable server side events handling for SPA.
+This results in rendering of a plain detached HTML page.
 
 The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers.
 For example:
 
 ```java
-    s -> html(   
-              plainHead(title("404 page not found")),
-              body(
-                   div(
-                       p("404 page not found")
-                  ) 
-                )
-            ).statusCode(404);
+    __ -> html(   
+                  head(HeadType.PLAIN, title("404 page not found")),
+                  body(
+                       div(
+                           p("404 page not found")
+                      ) 
+                    )
+                ).statusCode(404);
 ```
 
 ### UI Stateful Components
@@ -337,8 +338,8 @@ For example:
 Pages are composed of components. A component is a Java class which implements the ``Component<S>`` interface.
 
 ```java
-    public static Component<ButtonState> buttonComponent(String text) {
-        return s -> input(attr("type", "button"),
+    public static SegmentDefinition<ButtonState> buttonComponent(String text) {
+        return state -> newState -> input(attr("type", "button"),
                            attr("class", "button"),
                            attr("value", text),      
                            on("click", ctx -> s.accept(new ButtonState())));
@@ -355,7 +356,7 @@ up to the root component's context
 ```java
     ...
 public static Component<ConfirmPanelState> confirmPanelComponent(String text){
-        return s->div(attr("class","panel"),
+        return s -> div(attr("class","panel"),
         span(text),
         buttonComponent("Ok").render(new ButtonState(),
         buttonState->s.accept(new ConfimPanelState(true))),

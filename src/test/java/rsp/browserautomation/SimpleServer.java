@@ -40,9 +40,9 @@ public class SimpleServer {
                          incrementCounterComponent("c2", state.i)
                     ));
 
-    static final View<NotFoundState> notFoundStatelessView = state ->
-            html(headPlain(title("Not found")),
-                    body(h1("Not found 404"))).statusCode(404);
+    static final View<NotFoundState> notFoundStatelessView = __ ->
+            html(head(HeadType.PLAIN, title("Not found")),
+                 body(h1("Not found 404"))).statusCode(404);
 
     static final ComponentView<AppState> appComponentView = state -> newState ->
         switch (state) {
