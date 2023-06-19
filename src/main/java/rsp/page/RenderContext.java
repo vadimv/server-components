@@ -29,6 +29,7 @@ public interface RenderContext {
                   Event.Modifier modifier);
     void addRef(Ref ref);
     <S> NewState<S> openComponent(S initialState, ComponentView<S> view);
+    <S> void openComponent(Component<S> component);
     void closeComponent();
     Tag rootTag();
     <S> Component<S> rootComponent();

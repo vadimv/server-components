@@ -19,7 +19,7 @@ public class SimpleServer {
     public static final int PORT = 8085;
     public final JettyServer<AppState> jetty;
 
-    static final ComponentView<OkState> incrementCounterComponent = state -> newState ->
+    static final ComponentView<OkState> incrementCounterComponentView = state -> newState ->
             div(div(button(attr("type", "button"),
                             attr("id", "b0"),
                             text("+1"),
@@ -32,8 +32,8 @@ public class SimpleServer {
 
     static final ComponentView<OkState> countersComponentView = state -> newState ->
             html(head(title("test-server-title")),
-                    body(component(new OkState(80000), incrementCounterComponent)
-                      //   component(new OkState(1000), incrementCounterComponent),
+                    body(component(new OkState(80000), incrementCounterComponentView),
+                         component(new OkState(1000), incrementCounterComponentView)
                       //   incrementCounterComponent.apply(state).apply(newState)
                     ));
 

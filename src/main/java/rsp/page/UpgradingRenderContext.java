@@ -122,6 +122,11 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
+    public <S> void openComponent(Component<S> component) {
+        renderContext.openComponent(component);
+    }
+
+    @Override
     public void closeComponent() {
         renderContext.closeComponent();
     }

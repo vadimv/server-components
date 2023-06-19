@@ -156,6 +156,16 @@ public final class DomTreeRenderContext implements RenderContext {
         return newComponent;
     }
 
+    public <S> void openComponent(Component<S> component) {
+        if (rootComponent == null) {
+            rootComponent = component;
+        } else {
+            final Component<?> parentComponent = componentsStack.peek();
+            parentComponent.addChild(component);
+        }
+        componentsStack.push(component);
+    }
+
     @Override
     public void closeComponent() {
         componentsStack.pop();

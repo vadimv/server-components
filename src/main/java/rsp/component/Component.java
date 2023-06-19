@@ -68,9 +68,9 @@ public class Component<S> implements NewState<S> {
             state = newStateFunction.apply(state);
             final RenderContext renderContext = parentRenderContext.newSharedContext(oldTag.path);
 
-            final NewState<S> newStateHandler = renderContext.openComponent(state, componentView);
+            renderContext.openComponent(this);
 
-            final SegmentDefinition view = componentView.apply(state).apply(newStateHandler);
+            final SegmentDefinition view = componentView.apply(state).apply(this);
 
             view.render(renderContext);
 
