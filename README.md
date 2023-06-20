@@ -36,7 +36,7 @@ The page's state is maintained on the server.
 
 Actually, RSP supports two types of web pages:
 - Single-page application (SPA) with establishing the page's live session and keeping its state on the server
-- Plain old detached HTML pages rendered on the server
+- Plain old detached HTML pages
 
 A web application can contain a mix of both types.
 For example, an admin part can be a single-page application page, and the client-facing part made of plain pages.
@@ -59,8 +59,8 @@ Add the dependency:
 * [Hello World](src/main/java/rsp/examples/HelloWorld.java)
 * [TODOs list](https://github.com/vadimv/rsp-todo-list)
 * [Tetris](https://github.com/vadimv/rsp-tetris)
-* [Hacker News API client](https://github.com/vadimv/rsp-hn)
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
+* [Hacker News API client](https://github.com/vadimv/rsp-hn)
 
 ### HTTP requests routing
 
@@ -114,11 +114,9 @@ The ``any()`` route matches every request.
 
 ### HTML markup Java DSL
 
-RSP provides a Java internal domain-specific language (DSL).
-This DSL is used for declarative definition of an HTML page as a composition of functions.
-The framework converts a DSL page definition together with a provided state object to an HTML page markup during the rendering phase.
+RSP provides a Java internal domain-specific language (DSL) for declarative definition of an HTML page as a composition of functions.
 
-For example, to re-write the HTML fragment below:
+For example, re-write the HTML fragment below:
 
 ```html
 <!DOCTYPE html>
@@ -133,7 +131,7 @@ For example, to re-write the HTML fragment below:
 </html> 
 ```
 
-providing the Java code:
+in DSL Java code:
 
 ```java
     import static rsp.html.HtmlDsl.*;
@@ -221,10 +219,10 @@ For example:
 
 Model an RSP application page's and its components state as a finite state machine (FSM).
 An HTTP request routing resolves an initial page state. 
-Page events, like user actions or timer events trigger state transitions.
+Events, like user actions or timer events trigger state transitions.
 
 The following example shows how a page state can be modelled using records, 
-sealed interfaces and pattern matching in Java 17:
+sealed interfaces and pattern matching:
 
 ```java
     sealed interface State permits UserState, UsersState {}
@@ -351,12 +349,13 @@ To invoke arbitrary JavaScript in the browser use the ``ctx.evalJs()`` method of
 ### UI Stateful Components
 
 Pages are composed of components of two kinds:
-- stateful components
+- stateful components, and
 - stateless views.
 
-Stateful components have its own mutable state associated with every component of that kind.
+A stateful component has its own mutable state associated with every component of that kind.
 
-Stateless views used for representation only and do not have a mutable state.
+Stateless views used for representation only and do not have a mutable state and effectively is a pure function 
+from a state to a DOM segment definition.
 
 ```java
     public static ComponentView<ButtonState> buttonComponent(String text) {
@@ -383,12 +382,11 @@ up to the root component's context
     ...
 public static Component<ConfirmPanelState> confirmPanelComponent(String text){
         return s -> div(attr("class","panel"),
-        span(text),
-        buttonComponent("Ok").render(new ButtonState(),
-        buttonState->s.accept(new ConfimPanelState(true))),
-        buttonComponent("Cancel").render(new ButtonState(),
-        buttonState->s.accept(new ConfimPanelState(false)));
-
+            span(text),
+            buttonComponent("Ok").render(new ButtonState(),
+            buttonState->s.accept(new ConfimPanelState(true))),
+            buttonComponent("Cancel").render(new ButtonState(),
+            buttonState->s.accept(new ConfimPanelState(false)));
         }
 
 public static class ConfirmPanelState {
@@ -478,7 +476,8 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 
 ### Schedules
 
-The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` methods allow submitting of a delayed or periodic action that can be cancelled. 
+The framework provides  ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` helper utility methods 
+that allow submitting of a delayed or periodic action that can be cancelled. 
 A timer reference parameter may be provided when creating a new schedule. 
 Later this reference could be used for the schedule cancellation.
 Scheduled tasks will be executed in threads from the internal thread pool,
