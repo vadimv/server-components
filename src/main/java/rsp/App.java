@@ -1,6 +1,7 @@
 package rsp;
 
 import rsp.component.ComponentDefinition;
+import rsp.html.TagDefinition;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -99,6 +100,15 @@ public final class App<S> {
              new PageLifeCycle.Default<>(),
              request -> Optional.of(CompletableFuture.completedFuture(initialState)),
              s -> new ComponentDefinition<>(s, rootComponentView));
+    }
+
+    public App(final S initialState,
+               final Function<S, TagDefinition> rootView) {
+        this(AppConfig.DEFAULT,
+             (s, p) ->  p,
+             new PageLifeCycle.Default<>(),
+             request -> Optional.of(CompletableFuture.completedFuture(initialState)),
+             s -> new ComponentDefinition<>(s, state -> newState -> rootView.apply(state)));
     }
 
     /**
