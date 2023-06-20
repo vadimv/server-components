@@ -8,14 +8,12 @@
 * [HTTP requests routing](#http-requests-routing)  
 * [HTML markup Java DSL](#html-markup-rendering-java-dsl)
 * [Page state model](#page-state-model)
-* [Single-page application](#single-page-application)
-* [UI Components](#ui-components)
 * [DOM events](#dom-events)
-* [Navigation bar URL path](#navigation-bar-url-path)
 * [Elements references](#elements-references)
+* [UI Components](#ui-components)
+* [Navigation bar URL path](#navigation-bar-url-path)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Running JavaScript code](#js-code)
-* [Plain HTML pages](#plain-html-pages)
 * [Application and server's configuration](#application-and-servers-configuration)
 * [Schedules and timers](#schedules)
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
@@ -33,18 +31,19 @@ The project's build requires on-boarding non-Java dependency management and buil
 
 RSP aims for developing the web UI in Java while keeping external dependencies and JavaScript usage to the minimum.
 
-With RSP, after loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
+After loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
 The page's state is maintained on the server.
 
-As the result:
-- coding and debugging the UI is just coding in plain Java and debugging Java;
-- fast initial page load no matter of the application's size;
-- your code always stays on your server;
-- SEO-friendly out of the box.
+Actually, RSP supports two types of web pages:
+- Single-page application (SPA) with establishing the page's live session and keeping its state on the server
+- Plain old detached HTML pages rendered on the server
+
+A web application can contain a mix of both types.
+For example, an admin part can be a single-page application page, and the client-facing part made of plain pages.
 
 ### Maven
 
-Use Java version 11 or newer.
+Use Java version 17 or newer.
 
 Add the dependency:
 ```xml
@@ -59,9 +58,9 @@ Add the dependency:
 
 * [Hello World](src/main/java/rsp/examples/HelloWorld.java)
 * [TODOs list](https://github.com/vadimv/rsp-todo-list)
+* [Tetris](https://github.com/vadimv/rsp-tetris)
 * [Hacker News API client](https://github.com/vadimv/rsp-hn)
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
-* [Tetris](https://github.com/vadimv/rsp-tetris)
 
 ### HTTP requests routing
 
@@ -113,7 +112,7 @@ Use ``match()`` DSL function routes to implement custom matching logic, for exam
 
 The ``any()`` route matches every request.
 
-### HTML markup rendering Java DSL
+### HTML markup Java DSL
 
 RSP provides a Java internal domain-specific language (DSL).
 This DSL is used for declarative definition of an HTML page as a composition of functions.
@@ -134,12 +133,12 @@ For example, to re-write the HTML fragment below:
 </html> 
 ```
 
-provide the Java code:
+providing the Java code:
 
 ```java
     import static rsp.html.HtmlDsl.*;
     ...
-    final ComponentView<State> view = state -> newState -> html(
+    final View<State> view = state -> html(
                                           body(
                                                h1("This is a heading"),
                                                div(attr("class", "par"), 
@@ -152,7 +151,6 @@ where:
 - HTML tags are represented by the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
 - the lambda's parameter `state` is the current state snapshot
-- the lambda's parameter 'newState' is the object allowing setting a new value of a state
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 ```java
@@ -188,10 +186,41 @@ The ``when()`` DSL function conditionally renders (or not) an element:
     state -> when(state.showLabel, span("This is a label"))
 ```
 
-### Page state model
+#### SPA pages head tag
 
-Model an RSP application page's state as a finite state machine (FSM).
-An HTTP request routing resolves an initial state. 
+The page's ``<head>`` tag DSL determines if this page is an SPA or plain.
+
+The ``head(...)`` or ``head(PageType.SPA, ...)`` function creates an HTML page ``<head>`` tag for an SPA.
+If the ``head()`` is not present in the page's markup, the simple SPA-type header is added automatically.
+This type of head injects a script, which establishes a WebSocket connection between the browser's page and the server
+and enables reacting to the browser events.
+
+#### Plain HTML pages head tag
+
+Using ``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag without injecting of init script
+to establish a connection with server and enable server side events handling for SPA.
+This results in rendering of a plain detached HTML page.
+
+#### Page HTTP status code and HTTP headers
+
+The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers.
+For example:
+
+```java
+    __ -> html(   
+                  head(HeadType.PLAIN, title("404 page not found")),
+                  body(
+                       div(
+                           p("404 page not found")
+                      ) 
+                    )
+                ).statusCode(404);
+```
+
+### Components state model
+
+Model an RSP application page's and its components state as a finite state machine (FSM).
+An HTTP request routing resolves an initial page state. 
 Page events, like user actions or timer events trigger state transitions.
 
 The following example shows how a page state can be modelled using records, 
@@ -208,32 +237,18 @@ sealed interfaces and pattern matching in Java 17:
     /**
      * The page's renderer, called by the framework as a result of a state transition.
      */
-    static View<State> render() {
+    static View<State> pageView() {
         return state -> switch (state) {
-            case UserState  s -> userView().render(s);
-            case UsersState s -> usersView().render(s);
+            case UserState  user -> userView().render(user);
+            case UsersState users -> usersView().render(users);
         };
     }
 
-    private static View<UserState> userView() { return s -> span("User:" + s.get()); }
-    private static View<UsersState> usersView() { return s -> span("Users list:" + s.get()); }
+    private static View<UserState> userView() { return state -> span("User:" + state); }
+    private static View<UsersState> usersView() { return state -> span("Users list:" + state); }
 ```
 
-### Single-page application
-
-RSP supports two types of web pages:
-- Single-page application (SPA) with establishing the page's live session and keeping its state on the server
-- Plain detached pages
-
-An RSP web application can contain a mix of both types.
-For example, an admin part can be a single-page application page, and the client facing part made of plain pages.
-
-The type of page to be rendered is determined by the page's head tag DSL function.
-
-The ``head()`` function creates an HTML page ``head`` tag for an SPA.
-If the ``head()`` is not present in the page's markup, the simple SPA-type header is added automatically.
-This type of header injects a script, which establishes a WebSocket connection between the browser's page and the server
-and enables reacting to the browser events.
+### DOM events
 
 To respond to browser events, register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the DSL:
 
@@ -243,7 +258,7 @@ To respond to browser events, register a page DOM event handler by adding an ``o
                                 newState.set(new State(s.get().counter + 1));
             }));
     ...
-    static class State { final int counter; State(final int counter) { this.counter = counter; } }
+    static final class State { final int counter; State(final int counter) { this.counter = counter; } }
 ```
 
 When an event occurs:
@@ -259,32 +274,6 @@ A new set state snapshot triggers the following sequence of actions:
 - the page's JavaScript program updates the presentation
 
 The event handler's ``EventContext`` class parameter has a number of utility methods.  
-
-One of these methods allows access to client-side document elements properties values by elements references.
-
-```java
-    final ElementRef inputRef = createElementRef();
-    ...
-    input(inputRef,
-          attr("type", "text")),
-    a("#", "Click me", on("click", ctx -> {
-            ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
-    }))
-```
-
-A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
-
-There is the special ``window()`` reference for the page's window object.
-
-The ``window().on(eventType, handler)`` method registers a window event handler:
-
-```java
-    html(window().on("click", ctx -> {
-            System.out.println("window clicked");
-        }),
-        ...
-        )
-```
 
 Some types of browser events, like a mouse move, may fire a lot of invocations. 
 Sending all these notifications over the network and processing them on the server side may cause the system's overload.
@@ -313,30 +302,60 @@ The context's ``EventContext.eventObject()`` method reads the event's object as 
 ```
 Events code runs in a synchronized sections on a live page session state container object.
 
-### Plain HTML pages
+### Elements references
 
-Using ``head(HeadType.PLAIN, ...)`` renders the markup with the ``head`` tag without injecting of init script
-to establish a connection with server and enable server side events handling for SPA.
-This results in rendering of a plain detached HTML page.
-
-The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers.
-For example:
+One of these methods allows access to client-side document elements properties values by elements references.
 
 ```java
-    __ -> html(   
-                  head(HeadType.PLAIN, title("404 page not found")),
-                  body(
-                       div(
-                           p("404 page not found")
-                      ) 
-                    )
-                ).statusCode(404);
+    final ElementRef inputRef = createElementRef();
+    ...
+    input(inputRef,
+          attr("type", "text")),
+    a("#", "Click me", on("click", ctx -> {
+            ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
+    }))
+```
+
+A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
+
+There is the special ``window()`` reference for the page's window object.
+
+The ``window().on(eventType, handler)`` method registers a window event handler:
+
+```java
+    html(window().on("click", ctx -> {
+            System.out.println("window clicked");
+        }),
+        ...
+        )
+```
+
+### Evaluating JavaScript code
+
+To invoke arbitrary JavaScript in the browser use the ``ctx.evalJs()`` method of an event's context object.
+``ctx.evalJs()`` returns the evaluation result as an object of  ``CompletableFuture<JsonDataType>``.
+
+```java
+    ...
+        button(attr("type", "button"),
+               text("Alert"),
+               on("click",
+                  ctx -> ctx.evalJs("alert('Hello from the server')"))),
+        button(attr("type", "button"),
+                text("Calculate"),
+                on("click",
+                   ctx -> ctx.evalJs("1+1").whenComplete((r,e) -> System.out.println("1+1=" + r)))
+   ...
 ```
 
 ### UI Stateful Components
 
-Pages are composed of stateful components and stateless views.
+Pages are composed of components of two kinds:
+- stateful components
+- stateless views.
+
 Stateful components have its own mutable state associated with every component of that kind.
+
 Stateless views used for representation only and do not have a mutable state.
 
 ```java
@@ -428,6 +447,7 @@ This allows to listen to the SPA page's lifecycle events:
 Add these listeners, for example, when you need to subscribe to some messages stream on a page live session creation
 and unsubscribing when the page closes.
 
+
 ### Application and server's configuration
 
 Provide an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`` method of an ``App`` object:
@@ -458,8 +478,7 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 
 ### Schedules
 
-The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` 
-methods allow submitting of a delayed or periodic action that can be cancelled. 
+The ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` methods allow submitting of a delayed or periodic action that can be cancelled. 
 A timer reference parameter may be provided when creating a new schedule. 
 Later this reference could be used for the schedule cancellation.
 Scheduled tasks will be executed in threads from the internal thread pool,
