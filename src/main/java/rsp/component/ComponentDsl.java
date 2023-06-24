@@ -3,7 +3,7 @@ package rsp.component;
 import rsp.html.SegmentDefinition;
 import rsp.html.TagDefinition;
 import rsp.stateview.ComponentView;
-import rsp.stateview.View;;
+import rsp.stateview.View;
 
 public class ComponentDsl {
 

@@ -4,6 +4,7 @@ import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.html.TagDefinition;
 import rsp.html.HtmlDsl;
+import rsp.server.HttpRequest;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -12,7 +13,7 @@ public final class DefaultConnectionLostWidget {
     public static final String HTML;
 
     static {
-        final DomTreeRenderContext rc = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new AtomicReference<>());
+        final DomTreeRenderContext rc = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, () -> HttpRequest.DUMMY, new AtomicReference<>());
         widget().render(rc);
         HTML = rc.toString();
     }

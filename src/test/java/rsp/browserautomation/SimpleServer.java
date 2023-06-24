@@ -2,9 +2,9 @@ package rsp.browserautomation;
 
 import rsp.App;
 import rsp.html.SegmentDefinition;
+import rsp.routing.Routing;
 import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
-import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.stateview.View;
 
@@ -59,7 +59,7 @@ public class SimpleServer {
     }
 
     public static SimpleServer run(final boolean blockCurrentThread) {
-        final App<AppState> app = new App<>(routes(),
+        final App<AppState> app = new App<>(routing(),
                                             appComponentView);
         final SimpleServer s = new SimpleServer(new JettyServer<>(8085, "", app));
         s.jetty.start();
@@ -69,9 +69,9 @@ public class SimpleServer {
         return s;
     }
 
-    private static Route<HttpRequest, AppState> routes() {
-        return concat(get("/:id(^\\d+$)", (__, id) -> new CounterState(Integer.parseInt(id)).toCompletableFuture()),
-                any(new NotFoundState()));
+    private static Routing<HttpRequest, AppState> routing() {
+        return new Routing<>(get("/:id(^\\d+$)", (__, id) -> CompletableFuture.completedFuture(new CounterState(Integer.parseInt(id)))),
+                            new NotFoundState() );
     }
 
 

@@ -30,7 +30,7 @@ public final class RoutingDsl {
      */
     @SafeVarargs
     public static <T, S> Route<T, S> concat(final Route<T, S>... routeDefinitions) {
-        return new Routes<>(routeDefinitions);
+        return new ConcatRoutes<>(routeDefinitions);
     }
 
     /**
@@ -123,6 +123,7 @@ public final class RoutingDsl {
     }
 
 
+
     /**
      * Creates a route which matches a GET request and the provided path with two path parameters.
      * @param pathPattern the match path pattern
@@ -207,5 +208,36 @@ public final class RoutingDsl {
      */
     public static <S> Route<HttpRequest, S> any(final S value) {
         return req -> Optional.of(CompletableFuture.completedFuture(value));
+    }
+
+
+    public static <T, S> Function<T, CompletableFuture<? extends S>> whenRouteNotFound(Route<T, S>  routing, S notFoundState) {
+        return new Function<T, CompletableFuture<? extends S>>() {
+            @Override
+            public CompletableFuture<? extends S> apply(T t) {
+                return routing.apply(t).orElse(CompletableFuture.completedFuture(notFoundState));
+            }
+        };
+    }
+
+    private static final class ConcatRoutes<T, S> implements Route<T, S> {
+
+        private final Route<T, S>[] routing;
+
+        @SafeVarargs
+        public ConcatRoutes(final Route<T, S>... routing) {
+            this.routing = routing;
+        }
+
+        @Override
+        public Optional<CompletableFuture<? extends S>> apply(final T request) {
+            for (final Route<T, S> route : routing) {
+                final Optional<CompletableFuture<? extends S>> result = route.apply(request);
+                if (result.isPresent()) {
+                    return result;
+                }
+            }
+            return Optional.empty();
+        }
     }
 }

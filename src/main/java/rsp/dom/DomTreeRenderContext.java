@@ -5,16 +5,23 @@ import rsp.page.LivePage;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
+import rsp.server.HttpRequest;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
+import rsp.util.data.Tuple2;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class DomTreeRenderContext implements RenderContext {
     private final VirtualDomPath rootPath;
+    private final Supplier<HttpRequest> httpRequestSupplier;
     private final AtomicReference<LivePage> livePageContext;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
@@ -29,8 +36,11 @@ public final class DomTreeRenderContext implements RenderContext {
     private Tag justClosedTag;
 
 
-    public DomTreeRenderContext(final VirtualDomPath rootPath, final AtomicReference<LivePage> livePageContext) {
+    public DomTreeRenderContext(final VirtualDomPath rootPath,
+                                final Supplier<HttpRequest> httpRequestSupplier,
+                                final AtomicReference<LivePage> livePageContext) {
         this.rootPath = Objects.requireNonNull(rootPath);
+        this.httpRequestSupplier = httpRequestSupplier;
         this.livePageContext = Objects.requireNonNull(livePageContext);
     }
 
@@ -46,6 +56,7 @@ public final class DomTreeRenderContext implements RenderContext {
         return rootTag;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Component<?> rootComponent() {
         return rootComponent;
@@ -145,7 +156,17 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public <S> NewState<S> openComponent(final S initialState, final ComponentView<S> componentView) {
+    public <S> Tuple2<S, NewState<S>> openComponent(final Function<HttpRequest, CompletableFuture<S>> initialStateFunction,
+                                                    final ComponentView<S> componentView) {
+        var initialStateCompletableFuture = initialStateFunction.apply(httpRequestSupplier.get());
+        S initialState = null;
+        try {
+            initialState = initialStateCompletableFuture.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
         final Component<S> newComponent = new Component<S>(initialState, componentView, this, livePageContext);
         if (rootComponent == null) {
             rootComponent = newComponent;
@@ -154,7 +175,7 @@ public final class DomTreeRenderContext implements RenderContext {
             parentComponent.addChild(newComponent);
         }
         componentsStack.push(newComponent);
-        return newComponent;
+        return new Tuple2<>(initialState, newComponent);
     }
 
     public <S> void openComponent(Component<S> component) {
@@ -174,7 +195,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public RenderContext newSharedContext(final VirtualDomPath path) {
-        return new DomTreeRenderContext(path, livePageContext);
+        return new DomTreeRenderContext(path, httpRequestSupplier, livePageContext);
     }
 
     @Override

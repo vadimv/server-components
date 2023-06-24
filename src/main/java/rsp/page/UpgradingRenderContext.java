@@ -6,12 +6,16 @@ import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
+import rsp.server.HttpRequest;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
+import rsp.util.data.Tuple2;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public final class UpgradingRenderContext implements RenderContext {
 
@@ -117,8 +121,8 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
-    public <S> NewState<S> openComponent(final S initialState, final ComponentView<S> view) {
-        return renderContext.openComponent(initialState, view);
+    public <S> Tuple2<S, NewState<S>> openComponent(final Function<HttpRequest, CompletableFuture<S>> initialStateFunction, final ComponentView<S> view) {
+        return renderContext.openComponent(initialStateFunction, view);
     }
 
     @Override

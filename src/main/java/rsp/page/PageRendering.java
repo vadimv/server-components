@@ -3,7 +3,6 @@ package rsp.page;
 import rsp.component.ComponentDefinition;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
-import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.server.HttpResponse;
 import rsp.server.Path;
@@ -16,7 +15,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -26,18 +24,14 @@ public final class PageRendering<S> {
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
-
-    private final Route<HttpRequest, S> routes;
-    private final Function<S, ComponentDefinition<S>> rootComponent;
+    private final ComponentDefinition<S> rootComponent;
 
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
 
-    public PageRendering(final Route<HttpRequest, S> routes,
-                         final Function<S, ComponentDefinition<S>> rootComponent,
+    public PageRendering(final ComponentDefinition<S> rootComponent,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          final BiFunction<String, RenderContext, RenderContext> enrich) {
-        this.routes = routes;
         this.rootComponent = rootComponent;
         this.renderedPages = pagesStorage;
         this.enrich = enrich;
@@ -83,26 +77,24 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            return routes.apply(request)
-                    .map(cf -> cf.thenApply(rootState ->  {
-                        final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
-                        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, livePageContext);
-                        final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
+            final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
+            final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
+                                                                                () -> request,
+                                                                                livePageContext);
+            final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 
-                        final ComponentDefinition<S> component = rootComponent.apply(rootState);
+            rootComponent.render(enrichedDomTreeContext);
 
-                        component.render(enrichedDomTreeContext);
+            final RenderedPage<S> pageSnapshot = new RenderedPage<S>(enrichedDomTreeContext.rootComponent(), livePageContext);
+            renderedPages.put(pageId, pageSnapshot);
+            final String responseBody = enrichedDomTreeContext.toString();
 
-                        final RenderedPage<S> pageSnapshot = new RenderedPage<S>(enrichedDomTreeContext.rootComponent(), livePageContext);
-                        renderedPages.put(pageId, pageSnapshot);
-                        final String responseBody = enrichedDomTreeContext.toString();
+            logger.log(TRACE, () -> "Page body: " + responseBody);
 
-                        logger.log(TRACE, () -> "Page body: " + responseBody);
+            return CompletableFuture.completedFuture(new HttpResponse(domTreeContext.statusCode(),
+                                                     headers(domTreeContext.headers(), deviceId),
+                                                     responseBody));
 
-                        return new HttpResponse(domTreeContext.statusCode(),
-                                                headers(domTreeContext.headers(), deviceId),
-                                                responseBody);
-                    })).orElse(defaultPage404());
         } catch (final Throwable ex) {
             return CompletableFuture.failedFuture(ex);
         }

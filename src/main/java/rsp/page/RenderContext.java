@@ -6,12 +6,16 @@ import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
+import rsp.server.HttpRequest;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
+import rsp.util.data.Tuple2;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public interface RenderContext {
     void setStatusCode(int statusCode);
@@ -28,7 +32,7 @@ public interface RenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
-    <S> NewState<S> openComponent(S initialState, ComponentView<S> view);
+    <S> Tuple2<S, NewState<S>> openComponent(Function<HttpRequest, CompletableFuture<S>> initialStateFuncion, ComponentView<S> view);
     <S> void openComponent(Component<S> component);
     void closeComponent();
     Tag rootTag();

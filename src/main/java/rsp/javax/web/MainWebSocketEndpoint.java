@@ -27,7 +27,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
-    private final StateToRouteDispatch<S> state2route;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
@@ -35,12 +34,10 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public MainWebSocketEndpoint(final StateToRouteDispatch<S> state2route,
-                                 final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
+    public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
                                  final BiFunction<String, RenderContext, RenderContext> enrich,
                                  final Supplier<ScheduledExecutorService> schedulerSupplier,
                                  final PageLifeCycle<S> lifeCycleEventsListener) {
-        this.state2route = state2route;
         this.renderedPages = renderedPages;
         this.enrich = enrich;
         this.schedulerSupplier = schedulerSupplier;
