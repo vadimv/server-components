@@ -5,7 +5,7 @@
 * [About](#about)
 * [Maven](#maven)
 * [Code examples](#code-examples)
-* [HTTP requests routing](#http-requests-routing)  
+* [Routing of HTTP requests](#routing-of-http-requests)  
 * [HTML markup Java DSL](#html-markup-rendering-java-dsl)
 * [Page state model](#page-state-model)
 * [DOM events](#dom-events)
@@ -20,26 +20,13 @@
 
 ## About
 
-RSP is a lightweight modern Java server-state web framework.
+RSP is a lightweight modern server-side web framework for Java.
 
-A popular approach for a Java backend based web UI is to build the client-side with tools
-like React or Vue and fetch the data from the server with some kind of remote API.
-
-JavaScript client programming is extremely powerful, but this scheme introduces a lot of complexity.
-Any change made on the client-side potentially needs to be reflected on the API and the server-side.
-The project's build requires on-boarding non-Java dependency management and build tools.
-
-RSP aims for developing the web UI in Java while keeping external dependencies and JavaScript usage to the minimum.
-
-After loading an initial page HTML, the browser feeds events to the server and updates the presentation to the incoming diff commands.
-The page's state is maintained on the server.
-
-Actually, RSP supports two types of web pages:
-- Single-page application (SPA) with establishing the page's live session and keeping its state on the server
-- Plain old detached HTML pages
+RSP supports two types of web pages:
+- Single-page application (SPA) with establishing the page's live session and keeping its state on the server.
+- Plain old detached HTML pages.
 
 A web application can contain a mix of both types.
-For example, an admin part can be a single-page application page, and the client-facing part made of plain pages.
 
 ### Maven
 
@@ -62,9 +49,9 @@ Add the dependency:
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
 * [Hacker News API client](https://github.com/vadimv/rsp-hn)
 
-### HTTP requests routing
+### Routing of HTTP requests 
 
-An RSP application's initial page rendering request-response workflow consist of two explicitly defined phases:
+An application's initial page rendering request-response workflow consist of two explicitly defined phases:
 - routing an incoming request with a result of the page's immutable state object;
 - rendering this state object into the result HTTP response.
 
@@ -83,7 +70,7 @@ To dispatch the incoming request, create a Routing object and provide it as an a
                       post("/users/:id(^\\d+$)", (req, id) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))));
     }
 ```
-During a dispatch, routes verified one by one for a matching HTTP method and path pattern. 
+During a dispatch, routing verified one by one for a matching HTTP method and path pattern. 
 Route path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
 The matched variables values become available as the correspondent handler functions ``String`` parameters alongside with the request details object.
 The route's handler function should return a ``CompletableFuture`` of the page's state:
@@ -95,7 +82,7 @@ The route's handler function should return a ``CompletableFuture`` of the page's
 If needed, extract a paths-specific routing section:
 
 ```java
-    final Route<HttpRequest, State> routes = concat(get(__ -> paths()),
+    final Route<HttpRequest, State> routing = concat(get(__ -> paths()),
                                                     any(State.pageNotFound()));
     
     private static PathRoutes<State> paths() {
@@ -104,7 +91,7 @@ If needed, extract a paths-specific routing section:
     }
 ```
 
-Use ``match()`` DSL function routes to implement custom matching logic, for example:
+Use ``match()`` DSL function routing to implement custom matching logic, for example:
 
 ```java
     match(req -> req.queryParam("name").isPresent(), req -> CompletableFuture.completedFuture(State.of(req.queryParam("name"))))
@@ -114,7 +101,7 @@ The ``any()`` route matches every request.
 
 ### HTML markup Java DSL
 
-RSP provides a Java internal domain-specific language (DSL) for declarative definition of an HTML page as a composition of functions.
+RSP provides a Java internal domain-specific language (DSL) for declarative definition of an HTML as a composition of functions.
 
 For example, re-write the HTML fragment below:
 
@@ -141,7 +128,7 @@ in DSL Java code:
                                                h1("This is a heading"),
                                                div(attr("class", "par"), 
                                                    p("This is a paragraph"),
-                                                   p(state.text)) // adds a paragraph with a text from the state object's 'text' field
+                                                   p(state.text)) // adds a paragraph with a text from the state object
                                               ) 
                                         );
 ```
@@ -161,7 +148,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
 ```java
     final Function<Long, CompletableFuture<String>> lookupService = userDetailsByIdService(); 
     ...
-         // let's consider that at this moment we know the current user's Id
+     // consider that at this moment we know the current user's Id
     state -> newState -> div(of(lookupService.apply(state.user.id).map(str -> text(str))))
 ```
 
@@ -184,7 +171,7 @@ The ``when()`` DSL function conditionally renders (or not) an element:
     state -> when(state.showLabel, span("This is a label"))
 ```
 
-#### SPA pages head tag
+#### SPA and plain pages head tag
 
 The page's ``<head>`` tag DSL determines if this page is an SPA or plain.
 
@@ -192,8 +179,6 @@ The ``head(...)`` or ``head(PageType.SPA, ...)`` function creates an HTML page `
 If the ``head()`` is not present in the page's markup, the simple SPA-type header is added automatically.
 This type of head injects a script, which establishes a WebSocket connection between the browser's page and the server
 and enables reacting to the browser events.
-
-#### Plain HTML pages head tag
 
 Using ``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag without injecting of init script
 to establish a connection with server and enable server side events handling for SPA.
@@ -221,8 +206,7 @@ Model an RSP application page's and its components state as a finite state machi
 An HTTP request routing resolves an initial page state. 
 Events, like user actions or timer events trigger state transitions.
 
-The following example shows how a page state can be modelled using records, 
-sealed interfaces and pattern matching:
+The following example shows how a page state can be modelled using records, sealed interfaces and pattern matching:
 
 ```java
     sealed interface State permits UserState, UsersState {}
@@ -451,7 +435,7 @@ and unsubscribing when the page closes.
 Provide an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`` method of an ``App`` object:
 
 ```java
-    final var app = new App(routes(), rootCreateViewFunction()).config(AppConfig.DEFAULT);
+    final var app = new App(routing(), rootCreateViewFunction()).config(AppConfig.DEFAULT);
 ```
 A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters like the application's web context base path,
 an optional static resources' handler and a TLS/SSL connection's configuration:
@@ -477,12 +461,9 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 ### Schedules
 
 The framework provides  ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` helper utility methods 
-that allow submitting of a delayed or periodic action that can be cancelled. 
+to submit of a delayed or periodic action that can be cancelled. 
 A timer reference parameter may be provided when creating a new schedule. 
 Later this reference could be used for the schedule cancellation.
-Scheduled tasks will be executed in threads from the internal thread pool,
-see the synchronized versions of ``accept()`` and ``acceptOptional()`` methods of the live page object accepting
-lambdas as parameters.
 
 ```java
     final static TimerRef TIMER_0 = TimerRef.createTimerRef();

@@ -1,6 +1,7 @@
 package rsp.examples;
 
 import rsp.App;
+import rsp.routing.Routing;
 import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
@@ -23,7 +24,7 @@ import static rsp.routing.RoutingDsl.*;
  */
 public class PlainForm {
     public static void main(final String[] args) {
-        final App<Optional<FullName>> app = new App<>(route(),
+        final App<Optional<FullName>> app = new App<>(new Routing<>(route(), Optional.empty()),
                                                       pages());
         final var server = new JettyServer<>(8080, "", app);
         server.start();

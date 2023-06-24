@@ -2,9 +2,10 @@ package rsp.browserautomation;
 
 import rsp.App;
 import rsp.html.SegmentDefinition;
+import rsp.routing.Routing;
+import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
-import rsp.routing.Route;
 import rsp.server.HttpRequest;
 import rsp.stateview.View;
 
@@ -18,37 +19,66 @@ import static rsp.routing.RoutingDsl.*;
 public class SimpleServer {
 
     public static final int PORT = 8085;
-    public static final int COUNTER_1_INITIAL_VALUE = 8000;
     public final JettyServer<AppState> jetty;
 
-    static SegmentDefinition incrementCounterComponent(final String name, final int initialValue) {
-        return component(initialValue, state -> newState ->
+
+    private static Routing<HttpRequest, AppState> appRouting() {
+        return new Routing<>(get("/:id(^\\d+$)/:id(^\\d+$)", __ -> CompletableFuture.completedFuture(new CounterState(1))),
+                new NotFoundState() );
+    }
+
+    private static SegmentDefinition incrementCounterComponent1(final String name) {
+        return component(routing1(),
+                        (count, path) -> Path.of("/" + count + "/" + path.get(1)),
+                        incrementCounterComponentView(name));
+    }
+
+    private static Routing<HttpRequest, Integer> routing1() {
+        return new Routing<>(get("/:id(^\\d+$)/*", (__, id) -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                -1);
+    }
+
+
+    private static SegmentDefinition incrementCounterComponent2(final String name) {
+        return component(routing2(),
+                        (count, path) -> Path.of("/" + path.get(0) + "/" + count),
+                        incrementCounterComponentView(name));
+    }
+
+    private static Routing<HttpRequest, Integer> routing2() {
+        return new Routing<>(get("/*/:id(^\\d+$)", (__, id) -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                -1);
+    }
+
+
+    private static ComponentView<Integer> incrementCounterComponentView(String name) {
+        return state -> newState ->
                 div(div(button(attr("type", "button"),
                                 attr("id", name + "_b0"),
                                 text("+1"),
                                 on("click",
                                         d -> newState.set(state + 1)))),
                         div(span(attr("id", name + "_s0"),
-                                style("background-color", state % 2 ==0 ? "red" : "blue"),
-                                text(state)))
-                ));
+                                style("background-color", state % 2 == 0 ? "red" : "blue"),
+                                text(state))));
     }
 
-    static final ComponentView<CounterState> countersComponentView = state -> newState ->
+    private static final ComponentView<CounterState> countersComponentView = state -> newState ->
             html(head(title("test-server-title")),
-                    body(incrementCounterComponent("c1", COUNTER_1_INITIAL_VALUE),
-                         incrementCounterComponent("c2", state.i)
+                    body(incrementCounterComponent1("c1"),
+                         incrementCounterComponent2("c2")
                     ));
 
-    static final View<NotFoundState> notFoundStatelessView = __ ->
+    private static final View<NotFoundState> notFoundStatelessView = __ ->
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
 
-    static final ComponentView<AppState> appComponentView = state -> newState ->
+    private static final ComponentView<AppState> appComponentView = state -> newState ->
         switch (state) {
             case NotFoundState nfs -> statelessComponent(nfs, notFoundStatelessView);
             case CounterState counterState -> component(counterState, countersComponentView);
         };
+
 
     public SimpleServer(final JettyServer<AppState> jetty) {
         this.jetty = jetty;
@@ -59,7 +89,7 @@ public class SimpleServer {
     }
 
     public static SimpleServer run(final boolean blockCurrentThread) {
-        final App<AppState> app = new App<>(routes(),
+        final App<AppState> app = new App<>(appRouting(),
                                             appComponentView);
         final SimpleServer s = new SimpleServer(new JettyServer<>(8085, "", app));
         s.jetty.start();
@@ -67,11 +97,6 @@ public class SimpleServer {
             s.jetty.join();
         }
         return s;
-    }
-
-    private static Route<HttpRequest, AppState> routes() {
-        return concat(get("/:id(^\\d+$)", (__, id) -> new CounterState(Integer.parseInt(id)).toCompletableFuture()),
-                any(new NotFoundState()));
     }
 
 
@@ -86,10 +111,6 @@ public class SimpleServer {
 
         public CounterState(final int i) {
             this.i = i;
-        }
-
-        public CompletableFuture<AppState> toCompletableFuture() {
-            return CompletableFuture.completedFuture(this);
         }
     }
 }

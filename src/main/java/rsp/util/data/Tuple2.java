@@ -24,8 +24,8 @@ public final class Tuple2<S, T> {
      * @param _2 the second element
      */
     public Tuple2(final S _1, final T _2) {
-        this._1 = _1;
-        this._2 = _2;
+        this._1 = Objects.requireNonNull(_1);
+        this._2 = Objects.requireNonNull(_2);
     }
 
     /**

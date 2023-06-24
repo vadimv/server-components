@@ -3,6 +3,7 @@ package rsp.html;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.page.RenderContext;
+import rsp.server.HttpRequest;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -14,7 +15,7 @@ public abstract class BaseSegmentDefinition implements SegmentDefinition {
 
     @Override
     public String toString() {
-        final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new AtomicReference<>());
+        final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, () -> HttpRequest.DUMMY, new AtomicReference<>());
         render(renderContext);
         return renderContext.toString();
     }

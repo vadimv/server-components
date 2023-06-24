@@ -13,4 +13,13 @@ import java.util.function.Function;
  */
 @FunctionalInterface
 public interface Route<T, S> extends Function<T, Optional<CompletableFuture<? extends S>>> {
+
+    default Function<T, CompletableFuture<? extends S>> whenRouteNotFound(Class<? super S> clazz,S notFoundState) {
+        return new Function<T, CompletableFuture<? extends S>>() {
+            @Override
+            public CompletableFuture<? extends S> apply(T t) {
+                return Route.this.apply(t).orElse(CompletableFuture.completedFuture(notFoundState));
+            }
+        };
+    }
 }

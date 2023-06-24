@@ -11,6 +11,8 @@ import java.util.function.Function;
  * Represents an HTTP request.
  */
 public final class HttpRequest {
+    public final static HttpRequest DUMMY = new HttpRequest(HttpMethod.GET, URI.create("about.blank"), "", Path.EMPTY_ABSOLUTE );
+
     public final HttpMethod method;
     public final URI uri;
     public final String url;
@@ -19,7 +21,7 @@ public final class HttpRequest {
     public final Function<String, Optional<String>> getHeader;
 
     /**
-     * Creates a new instance of a HTTP request.
+     * Creates a new instance of an HTTP request.
      * @param method the HTTP verb
      * @param uri the request's URI
      * @param url the request's URL

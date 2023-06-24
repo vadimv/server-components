@@ -5,6 +5,7 @@ import rsp.html.WindowRef;
 import rsp.ref.Ref;
 import rsp.server.In;
 import rsp.server.Out;
+import rsp.server.Path;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
@@ -13,7 +14,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
@@ -27,24 +30,30 @@ public final class LivePage implements In, Schedule {
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final Out out;
-    public final Supplier<Map<Event.Target, Event>> eventsSupplier;
+    private final Supplier<Map<Event.Target, Event>> eventsSupplier;
     private final Supplier<Map<Ref, VirtualDomPath>> refsSupplier;
-
-    private int descriptorsCounter;
+    private final Path basePath;
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
 
+    private int descriptorsCounter;
+    private Path path;
+
     public LivePage(final QualifiedSessionId qsid,
+                    final Path basePath,
+                    final Path path,
                     final ScheduledExecutorService scheduledExecutorService,
                     final Supplier<Map<Event.Target, Event>> events,
                     final Supplier<Map<Ref, VirtualDomPath>> refs,
                     final Out out) {
-        this.qsid = qsid;
-        this.scheduledExecutorService = scheduledExecutorService;
-        this.eventsSupplier = events;
-        this.refsSupplier = refs;
-        this.out = out;
+        this.qsid = Objects.requireNonNull(qsid);
+        this.basePath = Objects.requireNonNull(basePath);
+        this.path = Objects.requireNonNull(path);
+        this.scheduledExecutorService = Objects.requireNonNull(scheduledExecutorService);
+        this.eventsSupplier = Objects.requireNonNull(events);
+        this.refsSupplier = Objects.requireNonNull(refs);
+        this.out = Objects.requireNonNull(out);
     }
 
 
@@ -222,12 +231,19 @@ public final class LivePage implements In, Schedule {
             }
         }
         out.listenEvents(eventsToAdd);
+    }
 
-        // Browser's navigation
-   /*     final Path oldPath = snapshot.path;
-        final Path newPath = state2route.stateToPath.apply(newState, oldPath);
-        if (!newPath.equals(oldPath)) {
-            out.pushHistory(state2route.basePath.resolve(newPath).toString());
-        }*/
+    /**
+     * Updates browser's navigation.
+     * @param pathOperator
+     */
+    public void applyToPath(UnaryOperator<Path> pathOperator) {
+        final Path newPath = pathOperator.apply(path);
+        logger.log(DEBUG, () -> "New path after a components path's function application: " + newPath);
+        if (!newPath.equals(path)) {
+            path = newPath;
+            out.pushHistory(basePath.resolve(newPath).toString());
+            logger.log(DEBUG, () -> "Path update: " + newPath);
+        }
     }
 }

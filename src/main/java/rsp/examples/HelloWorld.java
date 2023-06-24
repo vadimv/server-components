@@ -2,7 +2,6 @@ package rsp.examples;
 
 import rsp.App;
 import rsp.jetty.JettyServer;
-import rsp.stateview.ComponentView;
 import rsp.stateview.View;
 
 import static rsp.html.HtmlDsl.*;
