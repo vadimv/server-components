@@ -77,7 +77,7 @@ public class PlaywrightSmokeIT {
 
     private void validateComponent2(Page page) throws InterruptedException {
         assertElementTextEquals(page, "c2_s0", Integer.toString(COUNTER_2_INITIAL_VALUE));
-        assertElementStyleAttributeEquals(page, "c2_s0",  "background-color",expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE));
+        assertElementStyleAttributeEquals(page, "c2_s0",  "background-color", expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE));
         waitForPageResponse();
 
         clickOnElement(page,"c2_b0");
