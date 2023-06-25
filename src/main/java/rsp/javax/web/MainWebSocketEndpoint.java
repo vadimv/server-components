@@ -2,18 +2,12 @@ package rsp.javax.web;
 
 import rsp.component.Component;
 import rsp.page.*;
-import rsp.server.DeserializeInMessage;
-import rsp.server.HttpRequest;
-import rsp.server.Out;
-import rsp.server.SerializeOut;
+import rsp.server.*;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -27,21 +21,21 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
+    private final Path basePath;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final BiFunction<String, RenderContext, RenderContext> enrich;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
-                                 final BiFunction<String, RenderContext, RenderContext> enrich,
+    public MainWebSocketEndpoint(final Path basePath,
+                                 final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
                                  final Supplier<ScheduledExecutorService> schedulerSupplier,
                                  final PageLifeCycle<S> lifeCycleEventsListener) {
-        this.renderedPages = renderedPages;
-        this.enrich = enrich;
-        this.schedulerSupplier = schedulerSupplier;
-        this.lifeCycleEventsListener = lifeCycleEventsListener;
+        this.basePath = Objects.requireNonNull(basePath);
+        this.renderedPages = Objects.requireNonNull(renderedPages);
+        this.schedulerSupplier = Objects.requireNonNull(schedulerSupplier);
+        this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
     }
 
     @Override
@@ -66,6 +60,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             lifeCycleEventsListener.beforeLivePageCreated(qsid, rootComponent.getState());
 
             final LivePage livePage = new LivePage(qsid,
+                                                   basePath,
+                                                   renderedPage.httpRequest.path,
                                                    schedulerSupplier.get(),
                                                    () -> rootComponent.recursiveEvents(),
                                                    () -> rootComponent.recursiveRefs(),

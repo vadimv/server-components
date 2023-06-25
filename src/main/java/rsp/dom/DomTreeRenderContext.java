@@ -6,6 +6,7 @@ import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
 import rsp.server.HttpRequest;
+import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
 import rsp.util.data.Tuple2;
@@ -15,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -157,17 +159,22 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public <S> Tuple2<S, NewState<S>> openComponent(final Function<HttpRequest, CompletableFuture<S>> initialStateFunction,
+                                                    final BiFunction<S, Path, Path> state2pathFunction,
                                                     final ComponentView<S> componentView) {
         var initialStateCompletableFuture = initialStateFunction.apply(httpRequestSupplier.get());
         S initialState = null;
         try {
-            initialState = initialStateCompletableFuture.get();
+            initialState = initialStateCompletableFuture.get(); // TODO
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-        final Component<S> newComponent = new Component<S>(initialState, componentView, this, livePageContext);
+        final Component<S> newComponent = new Component<S>(initialState,
+                                                           state2pathFunction,
+                                                           componentView,
+                                                           this,
+                                                           livePageContext);
         if (rootComponent == null) {
             rootComponent = newComponent;
         } else {

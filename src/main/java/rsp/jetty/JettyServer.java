@@ -108,16 +108,16 @@ public final class JettyServer<S> {
         context.setContextPath("/" + basePath);
         final BiFunction<String, RenderContext, RenderContext> enrichContextFun =
                 (sessionId, ctx) -> UpgradingRenderContext.create(ctx,
-                                                                      sessionId,
-                                                                      "/",
-                                                                      DefaultConnectionLostWidget.HTML,
-                                                                      app.config.heartbeatIntervalMs);
+                                                                  sessionId,
+                                                                  "/",
+                                                                  DefaultConnectionLostWidget.HTML,
+                                                                  app.config.heartbeatIntervalMs);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.rootComponent,
-                                                                                     app.pagesStorage,
-                                                                                     enrichContextFun))),"/*");
+                                                                                       app.pagesStorage,
+                                                                                       enrichContextFun))),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
-        final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage,
-                                                                                        enrichContextFun,
+        final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(this.basePath,
+                                                                                        app.pagesStorage,
                                                                                         () -> scheduler,
                                                                                         app.lifeCycleEventsListener);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {

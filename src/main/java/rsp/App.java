@@ -76,8 +76,8 @@ public final class App<S> {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
              new ComponentDefinition<S>(new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
-                                       (__, p) ->  p,
-                                       rootComponentView));
+                                        (__, p) ->  p,
+                                        rootComponentView));
     }
 
     public App(final S initialState,

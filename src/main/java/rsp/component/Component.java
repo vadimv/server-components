@@ -8,12 +8,14 @@ import rsp.page.LivePage;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.Out;
+import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,16 +26,19 @@ public final class Component<S> implements NewState<S> {
     private final List<Component<?>> children = new ArrayList<>();
 
     private final ComponentView<S> componentView;
+    private final BiFunction<S, Path, Path> state2pathFunction;
     private final RenderContext parentRenderContext;
     private final AtomicReference<LivePage> livePageContext;
     private S state;
     public Tag tag;
 
     public Component(final S initialState,
+                     final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContext parentRenderContext,
                      final AtomicReference<LivePage> livePageSupplier) {
         this.state = Objects.requireNonNull(initialState);
+        this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
         this.parentRenderContext = Objects.requireNonNull(parentRenderContext);
         this.livePageContext = Objects.requireNonNull(livePageSupplier);
@@ -83,6 +88,9 @@ public final class Component<S> implements NewState<S> {
             tag = renderContext.rootTag();
             final Set<VirtualDomPath> elementsToRemove = livePage.updateElements(oldTag, renderContext.rootTag());
             livePage.updateEvents(new HashSet<>(oldEvents.values()), new HashSet<>(events.values()), elementsToRemove);
+
+            // Browser's navigation
+            livePage.applyToPath(path -> state2pathFunction.apply(state, path));
         }
     }
 

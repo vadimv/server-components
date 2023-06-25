@@ -85,7 +85,9 @@ public final class PageRendering<S> {
 
             rootComponent.render(enrichedDomTreeContext);
 
-            final RenderedPage<S> pageSnapshot = new RenderedPage<S>(enrichedDomTreeContext.rootComponent(), livePageContext);
+            final RenderedPage<S> pageSnapshot = new RenderedPage<S>(request,
+                                                                     enrichedDomTreeContext.rootComponent(),
+                                                                     livePageContext);
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = enrichedDomTreeContext.toString();
 
