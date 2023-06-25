@@ -2,6 +2,8 @@ package rsp.component;
 
 import rsp.html.SegmentDefinition;
 import rsp.html.TagDefinition;
+import rsp.routing.Routing;
+import rsp.server.HttpRequest;
 import rsp.stateview.ComponentView;
 import rsp.stateview.View;
 
@@ -15,6 +17,12 @@ public class ComponentDsl {
      */
     public static <S> SegmentDefinition component(final S initialState, final ComponentView<S> componentView) {
         return new ComponentDefinition<S>(initialState, componentView);
+    }
+
+    public static <S> SegmentDefinition component(final Routing<HttpRequest, S> initialStateRouting, final ComponentView<S> componentView) {
+        return new ComponentDefinition<S>(initialStateRouting.toInitialStateFunction(),
+                                         (s, p) ->  p,
+                                         componentView);
     }
 
     public static <S> TagDefinition statelessComponent(final S initialState, final View<S> componentView) {

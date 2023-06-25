@@ -42,9 +42,7 @@ public final class App<S> {
     /**
      * Creates an instance of an application.
      * @param config an application config
-     * @param state2path a function that dispatches a current state snapshot to the browser's navigation bar's path
      * @param lifeCycleEventsListener a listener for the app pages lifecycle events
-     * @param routing a function that dispatches an incoming HTTP request to a page's initial state
      * @param rootComponent the root of the components tree
      */
     private App(final AppConfig config,
@@ -66,7 +64,6 @@ public final class App<S> {
              new PageLifeCycle.Default<>(),
              new ComponentDefinition<>(routing.toInitialStateFunction(), (s, p) -> p, rootComponentView));
     }
-
 
     /**
      * Creates an instance of an application with the default config
@@ -97,18 +94,10 @@ public final class App<S> {
      * @param config an application config
      * @return a new application object with the same field values except of the provided field
      */
-/*    public App<S> config(final AppConfig config) {
-        return new App<S>(config, this.state2path, this.lifeCycleEventsListener, this.routing, this.rootComponent);
-    }*/
+    public App<S> config(final AppConfig config) {
+        return new App<S>(config,  this.lifeCycleEventsListener, this.rootComponent);
+    }
 
-    /**
-     * Sets the application's global state to the browser's navigation path function.
-     * @param stateToPath a function that dispatches a current state snapshot to the browser's navigation bar's path
-     * @return a new application object with the same field values except of the provided field
-     */
-/*    public App<S> stateToPath(final BiFunction<S, Path, Path> stateToPath) {
-        return new App<S>(this.config, stateToPath, this.lifeCycleEventsListener, this.routing, this.rootComponent);
-    }*/
 
     /**
      * Sets a listener for the app pages lifecycle events.
@@ -117,8 +106,8 @@ public final class App<S> {
      * @param lifeCycleEventsListener the listener interface for receiving page lifecycle events.
      * @return a new application object with the same field values except of the provided field
      */
- /*   public App<S> pageLifeCycle(final PageLifeCycle<S> lifeCycleEventsListener) {
-        return new App<S>(this.config, this.state2path, lifeCycleEventsListener, this.routing, this.rootComponent);
-    }*/
+    public App<S> pageLifeCycle(final PageLifeCycle<S> lifeCycleEventsListener) {
+        return new App<S>(this.config, lifeCycleEventsListener, this.rootComponent);
+    }
 }
 

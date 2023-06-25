@@ -14,6 +14,9 @@ import java.util.Optional;
 public class PlaywrightSmokeIT {
 
     private static final int EXPECTED_RESPONSE_TIME_MS = 300;
+    private static final int COUNTER_1_INITIAL_VALUE = 100;
+    private static final int COUNTER_2_INITIAL_VALUE = 1001;
+
 
     private static SimpleServer server;
 
@@ -47,44 +50,50 @@ public class PlaywrightSmokeIT {
     }
 
     private void validatePage(final Page page) throws InterruptedException {
-        Assert.assertEquals(200, page.navigate("http://localhost:" + SimpleServer.PORT + "/1").status());
+        Assert.assertEquals(200, page.navigate("http://localhost:"
+                                                        + SimpleServer.PORT
+                                                        + "/" + COUNTER_1_INITIAL_VALUE
+                                                        +"/" + COUNTER_2_INITIAL_VALUE).status());
         Assert.assertEquals("test-server-title", page.title());
         validateComponent1(page);
         validateComponent2(page);
     }
 
     private void validateComponent1(Page page) throws InterruptedException {
-        assertElementTextEquals(page, "c1_s0", Integer.toString(SimpleServer.COUNTER_1_INITIAL_VALUE));
-        assertElementStyleAttributeEquals(page, "c1_s0",  "background-color","red");
+        assertElementTextEquals(page, "c1_s0", Integer.toString(COUNTER_1_INITIAL_VALUE));
+        assertElementStyleAttributeEquals(page, "c1_s0",  "background-color", expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE));
         waitForPageResponse();
 
         clickOnElement(page,"c1_b0");
         waitForPageResponse();
-        assertElementTextEquals(page,"c1_s0", Integer.toString(SimpleServer.COUNTER_1_INITIAL_VALUE + 1));
-        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", "blue");
+        assertElementTextEquals(page,"c1_s0", Integer.toString(COUNTER_1_INITIAL_VALUE + 1));
+        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE + 1));
 
         clickOnElement(page,"c1_b0");
         waitForPageResponse();
-        assertElementTextEquals(page,"c1_s0", Integer.toString(SimpleServer.COUNTER_1_INITIAL_VALUE + 2));
-        assertElementStyleAttributeEquals(page, "c1_s0","background-color", "red");
+        assertElementTextEquals(page,"c1_s0", Integer.toString(COUNTER_1_INITIAL_VALUE + 2));
+        assertElementStyleAttributeEquals(page, "c1_s0","background-color", expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE + 2));
     }
 
     private void validateComponent2(Page page) throws InterruptedException {
-        assertElementTextEquals(page, "c2_s0", "1");
-        assertElementStyleAttributeEquals(page, "c2_s0",  "background-color","blue");
+        assertElementTextEquals(page, "c2_s0", Integer.toString(COUNTER_2_INITIAL_VALUE));
+        assertElementStyleAttributeEquals(page, "c2_s0",  "background-color",expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE));
         waitForPageResponse();
 
         clickOnElement(page,"c2_b0");
         waitForPageResponse();
-        assertElementTextEquals(page,"c2_s0", "2");
-        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", "red");
+        assertElementTextEquals(page,"c2_s0", Integer.toString(COUNTER_2_INITIAL_VALUE + 1));
+        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 1));
 
         clickOnElement(page,"c2_b0");
         waitForPageResponse();
-        assertElementTextEquals(page,"c2_s0", "3");
-        assertElementStyleAttributeEquals(page, "c2_s0","background-color", "blue");
+        assertElementTextEquals(page,"c2_s0", Integer.toString(COUNTER_2_INITIAL_VALUE + 2));
+        assertElementStyleAttributeEquals(page, "c2_s0","background-color", expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 2));
     }
 
+    private static String expectedColorAttributeValue(int value) {
+        return value % 2 == 0 ? "red" : "blue";
+    }
 
     private void clickOnElement(final Page page, final String elementId) {
         page.click("#" + elementId);
