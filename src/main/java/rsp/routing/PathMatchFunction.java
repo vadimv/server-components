@@ -22,6 +22,7 @@ public final class PathMatchFunction<S> implements Function<Path, CompletableFut
         return callMatchFun(path);
     }
 
+    // TODO
     private CompletableFuture<S> callMatchFun(final Path path) {
         final int[] pathParameterIndexes = pathPattern.paramsIndexes;
         if (pathParameterIndexes.length == 0) {

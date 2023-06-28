@@ -3,9 +3,11 @@ package rsp.page;
 import rsp.dom.*;
 import rsp.html.WindowRef;
 import rsp.ref.Ref;
+import rsp.server.HttpRequest;
 import rsp.server.In;
 import rsp.server.Out;
 import rsp.server.Path;
+import rsp.util.Lookup;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
@@ -23,7 +25,7 @@ import static java.lang.System.Logger.Level.DEBUG;
 /**
  * A server-side object representing an open browser's page.
  */
-public final class LivePage implements In, Schedule {
+public final class LivePage implements In, Schedule, Lookup {
     private static final System.Logger logger = System.getLogger(LivePage.class.getName());
 
     public final QualifiedSessionId qsid;
@@ -33,6 +35,7 @@ public final class LivePage implements In, Schedule {
     private final Supplier<Map<Event.Target, Event>> eventsSupplier;
     private final Supplier<Map<Ref, VirtualDomPath>> refsSupplier;
     private final Path basePath;
+    private final HttpRequest httpRequest;
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
@@ -42,14 +45,15 @@ public final class LivePage implements In, Schedule {
 
     public LivePage(final QualifiedSessionId qsid,
                     final Path basePath,
-                    final Path path,
+                    final HttpRequest httpRequest,
                     final ScheduledExecutorService scheduledExecutorService,
                     final Supplier<Map<Event.Target, Event>> events,
                     final Supplier<Map<Ref, VirtualDomPath>> refs,
                     final Out out) {
         this.qsid = Objects.requireNonNull(qsid);
         this.basePath = Objects.requireNonNull(basePath);
-        this.path = Objects.requireNonNull(path);
+        this.httpRequest = Objects.requireNonNull(httpRequest);
+        this.path = Objects.requireNonNull(httpRequest.path);
         this.scheduledExecutorService = Objects.requireNonNull(scheduledExecutorService);
         this.eventsSupplier = Objects.requireNonNull(events);
         this.refsSupplier = Objects.requireNonNull(refs);
@@ -244,6 +248,17 @@ public final class LivePage implements In, Schedule {
             path = newPath;
             out.pushHistory(basePath.resolve(newPath).toString());
             logger.log(DEBUG, () -> "Path update: " + newPath);
+        }
+    }
+
+    @Override
+    public <T> T lookup(final Class<T> clazz) {
+        if (HttpRequest.class.equals(clazz)) {
+            return (T) httpRequest;
+        } else if (Path.class.equals(clazz)) {
+            return (T) path;
+        } else {
+            throw new IllegalStateException("Lookup for an unsupported state reference type: " + clazz);
         }
     }
 }

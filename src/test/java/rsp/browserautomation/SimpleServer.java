@@ -23,19 +23,19 @@ public class SimpleServer {
 
 
     private static Routing<HttpRequest, AppState> appRouting() {
-        return new Routing<>(get("/:id(^\\d+$)/:id(^\\d+$)", __ -> CompletableFuture.completedFuture(new CounterState(1))),
+        return new Routing<>(get("/:id(^\\d+$)/:id(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
                 new NotFoundState() );
     }
 
     private static SegmentDefinition incrementCounterComponent1(final String name) {
         return component(routing1(),
-                        (count, path) -> Path.of("/" + count + "/" + path.get(1)),
-                        incrementCounterComponentView(name));
+                         (count, path) -> Path.of("/" + count + "/" + path.get(1)),
+                         incrementCounterComponentView(name));
     }
 
-    private static Routing<HttpRequest, Integer> routing1() {
-        return new Routing<>(get("/:id(^\\d+$)/*", (__, id) -> CompletableFuture.completedFuture(Integer.parseInt(id))),
-                -1);
+    private static Routing<Path, Integer> routing1() {
+        return new Routing<>(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                            -1);
     }
 
 
@@ -45,9 +45,9 @@ public class SimpleServer {
                         incrementCounterComponentView(name));
     }
 
-    private static Routing<HttpRequest, Integer> routing2() {
-        return new Routing<>(get("/*/:id(^\\d+$)", (__, id) -> CompletableFuture.completedFuture(Integer.parseInt(id))),
-                -1);
+    private static Routing<Path, Integer> routing2() {
+        return new Routing<>(path("/*/:id(^\\d+$)", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                            -1);
     }
 
 
@@ -63,7 +63,7 @@ public class SimpleServer {
                                 text(state))));
     }
 
-    private static final ComponentView<CounterState> countersComponentView = state -> newState ->
+    private static final ComponentView<CountersState> countersComponentView = state -> newState ->
             html(head(title("test-server-title")),
                     body(incrementCounterComponent1("c1"),
                          incrementCounterComponent2("c2")
@@ -76,7 +76,7 @@ public class SimpleServer {
     private static final ComponentView<AppState> appComponentView = state -> newState ->
         switch (state) {
             case NotFoundState nfs -> statelessComponent(nfs, notFoundStatelessView);
-            case CounterState counterState -> component(counterState, countersComponentView);
+            case CountersState countersState -> component(countersState, countersComponentView);
         };
 
 
@@ -106,7 +106,10 @@ public class SimpleServer {
     static final class NotFoundState implements AppState {
     }
 
-    static final class CounterState implements AppState {
+    static final class CountersState implements AppState {
+    }
+
+    static final class CounterState {
         public final int i;
 
         public CounterState(final int i) {

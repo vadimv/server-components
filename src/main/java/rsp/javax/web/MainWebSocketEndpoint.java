@@ -61,7 +61,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
             final LivePage livePage = new LivePage(qsid,
                                                    basePath,
-                                                   renderedPage.httpRequest.path,
+                                                   renderedPage.httpRequest,
                                                    schedulerSupplier.get(),
                                                    () -> rootComponent.recursiveEvents(),
                                                    () -> rootComponent.recursiveRefs(),

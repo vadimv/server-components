@@ -54,12 +54,12 @@ public class LivePageStateTests {
         return new LivePageState<>(QID, lpps, state2route, enrichFunction(), out);
     }*/
 
-    private static Tag domRoot(final ComponentView<State> component, final State state) {
-        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, () -> HttpRequest.DUMMY,  new AtomicReference<>());
+/*    private static Tag domRoot(final ComponentView<State> component, final State state) {
+        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new AtomicReference<>());
         component.apply(state).apply(new NewState.Default<>()).render(enrichFunction().apply(QID.sessionId, domTreeContext));
 
         return domTreeContext.rootTag();
-    }
+    }*/
 
     private static BiFunction<String, RenderContext, RenderContext> enrichFunction() {
         return (sessionId, ctx) -> ctx;

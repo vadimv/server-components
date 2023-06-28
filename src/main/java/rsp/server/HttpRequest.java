@@ -11,6 +11,8 @@ import java.util.function.Function;
  * Represents an HTTP request.
  */
 public final class HttpRequest {
+
+    // TODO refactor to remove
     public final static HttpRequest DUMMY = new HttpRequest(HttpMethod.GET, URI.create("about.blank"), "", Path.EMPTY_ABSOLUTE );
 
     public final HttpMethod method;

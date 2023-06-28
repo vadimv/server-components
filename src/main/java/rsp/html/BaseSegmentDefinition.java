@@ -13,10 +13,11 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public abstract class BaseSegmentDefinition implements SegmentDefinition {
 
-    @Override
+/*    @Override
     public String toString() {
-        final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, () -> HttpRequest.DUMMY, new AtomicReference<>());
+        final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
+                                                                     new AtomicReference<>());
         render(renderContext);
         return renderContext.toString();
-    }
+    }*/
 }

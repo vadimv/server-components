@@ -5,25 +5,23 @@ import rsp.page.LivePage;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
-import rsp.server.HttpRequest;
 import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
+import rsp.util.Lookup;
 import rsp.util.data.Tuple2;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public final class DomTreeRenderContext implements RenderContext {
     private final VirtualDomPath rootPath;
-    private final Supplier<HttpRequest> httpRequestSupplier;
+    private final Lookup stateOriginLookup;
     private final AtomicReference<LivePage> livePageContext;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
@@ -39,10 +37,10 @@ public final class DomTreeRenderContext implements RenderContext {
 
 
     public DomTreeRenderContext(final VirtualDomPath rootPath,
-                                final Supplier<HttpRequest> httpRequestSupplier,
+                                final Lookup stateOriginLookup,
                                 final AtomicReference<LivePage> livePageContext) {
         this.rootPath = Objects.requireNonNull(rootPath);
-        this.httpRequestSupplier = httpRequestSupplier;
+        this.stateOriginLookup = stateOriginLookup;
         this.livePageContext = Objects.requireNonNull(livePageContext);
     }
 
@@ -158,10 +156,12 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public <S> Tuple2<S, NewState<S>> openComponent(final Function<HttpRequest, CompletableFuture<S>> initialStateFunction,
-                                                    final BiFunction<S, Path, Path> state2pathFunction,
-                                                    final ComponentView<S> componentView) {
-        var initialStateCompletableFuture = initialStateFunction.apply(httpRequestSupplier.get());
+    public <T, S> Tuple2<S, NewState<S>> openComponent(final Class<T> stateOriginClass,
+                                                       final Function<T, CompletableFuture<S>> initialStateFunction,
+                                                       final BiFunction<S, Path, Path> state2pathFunction,
+                                                       final ComponentView<S> componentView) {
+        final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
+        final CompletableFuture<S> initialStateCompletableFuture = initialStateFunction.apply(stateOrigin);
         S initialState = null;
         try {
             initialState = initialStateCompletableFuture.get(); // TODO
@@ -202,7 +202,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public RenderContext newSharedContext(final VirtualDomPath path) {
-        return new DomTreeRenderContext(path, httpRequestSupplier, livePageContext);
+        return new DomTreeRenderContext(path, livePageContext.get(), livePageContext);
     }
 
     @Override
