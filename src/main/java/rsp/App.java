@@ -35,7 +35,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final ComponentDefinition<S> rootComponent;
+    public final ComponentDefinition<HttpRequest, S> rootComponent;
 
     public final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -47,7 +47,7 @@ public final class App<S> {
      */
     private App(final AppConfig config,
                 final PageLifeCycle<S> lifeCycleEventsListener,
-                final ComponentDefinition<S> rootComponent) {
+                final ComponentDefinition<HttpRequest, S> rootComponent) {
         this.config = Objects.requireNonNull(config);
         this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
         this.rootComponent = Objects.requireNonNull(rootComponent);
@@ -62,7 +62,10 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new ComponentDefinition<>(routing.toInitialStateFunction(), (s, p) -> p, rootComponentView));
+             new ComponentDefinition<>(HttpRequest.class,
+                                       routing.toInitialStateFunction(),
+                                       (__, p) -> p,
+                                       rootComponentView));
     }
 
     /**
@@ -75,16 +78,18 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new ComponentDefinition<S>(new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
-                                        (__, p) ->  p,
-                                        rootComponentView));
+             new ComponentDefinition<>(HttpRequest.class,
+                                       new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
+                                       (__, p) ->  p,
+                                       rootComponentView));
     }
 
     public App(final S initialState,
                final Function<S, TagDefinition> rootView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new ComponentDefinition<S>(new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
+             new ComponentDefinition<>(HttpRequest.class,
+                                       new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
                                         (__, p) ->  p,
                                         state -> newState -> rootView.apply(state)));
     }

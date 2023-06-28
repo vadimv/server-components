@@ -34,10 +34,10 @@ public interface RenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
-    <S> Tuple2<S, NewState<S>> openComponent(Function<HttpRequest,
-                                             CompletableFuture<S>> initialStateFunction,
-                                             BiFunction<S, Path, Path> state2pathFunction,
-                                             ComponentView<S> view);
+    <T, S> Tuple2<S, NewState<S>> openComponent(final Class<T> stateReferenceClass,
+                                                final Function<T, CompletableFuture<S>> initialStateFunction,
+                                                final BiFunction<S, Path, Path> state2pathFunction,
+                                                final ComponentView<S> componentView);
     <S> void openComponent(Component<S> component);
     void closeComponent();
     Tag rootTag();
