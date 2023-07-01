@@ -25,13 +25,13 @@ public final class DomTreeRenderContext implements RenderContext {
     private final AtomicReference<LivePage> livePageContext;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
-    private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
+    private final Deque<Component<?, ?>> componentsStack = new ArrayDeque<>();
 
     private int statusCode;
     private Map<String, String> headers;
     private String docType;
     private Tag rootTag;
-    private Component<?> rootComponent;
+    private Component<?, ?> rootComponent;
 
     private Tag justClosedTag;
 
@@ -58,7 +58,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @SuppressWarnings("unchecked")
     @Override
-    public Component<?> rootComponent() {
+    public Component<?, ?> rootComponent() {
         return rootComponent;
     }
 
@@ -108,7 +108,7 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     private void setComponentRootTag(final Tag newTag) {
-        final Component<?> component = componentsStack.peek();
+        final Component<?, ?> component = componentsStack.peek();
         if (component != null && component.tag == null)
         {
             component.tag = newTag;
@@ -143,16 +143,16 @@ public final class DomTreeRenderContext implements RenderContext {
                          final Event.Modifier modifier) {
         final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path);
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
-        final Component<?> component = componentsStack.peek();
+        final Component<?, ?> component = componentsStack.peek();
         assert component != null;
-        component.events.put(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
+        component.addEvent(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     @Override
     public void addRef(final Ref ref) {
-        final Component<?> component = componentsStack.peek();
+        final Component<?, ?> component = componentsStack.peek();
         assert component != null;
-        component.refs.put(ref, tagsStack.peek().path);
+        component.addRef(ref, tagsStack.peek().path);
     }
 
     @Override
@@ -160,36 +160,29 @@ public final class DomTreeRenderContext implements RenderContext {
                                                        final Function<T, CompletableFuture<S>> initialStateFunction,
                                                        final BiFunction<S, Path, Path> state2pathFunction,
                                                        final ComponentView<S> componentView) {
-        final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
-        final CompletableFuture<S> initialStateCompletableFuture = initialStateFunction.apply(stateOrigin);
-        S initialState = null;
-        try {
-            initialState = initialStateCompletableFuture.get(); // TODO
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-        final Component<S> newComponent = new Component<S>(initialState,
-                                                           state2pathFunction,
-                                                           componentView,
-                                                           this,
-                                                           livePageContext);
+        final Component<T, S> newComponent = new Component<>(stateOriginLookup,
+                                                             stateOriginClass,
+                                                             initialStateFunction,
+                                                             state2pathFunction,
+                                                             componentView,
+                                                            this,
+                                                             livePageContext);
+        final S initialState = newComponent.resolveState(true);
         if (rootComponent == null) {
             rootComponent = newComponent;
         } else {
-            final Component<?> parentComponent = componentsStack.peek();
+            final Component<?, ?> parentComponent = componentsStack.peek();
             parentComponent.addChild(newComponent);
         }
         componentsStack.push(newComponent);
         return new Tuple2<>(initialState, newComponent);
     }
 
-    public <S> void openComponent(Component<S> component) {
+    public <T, S> void openComponent(Component<T, S> component) {
         if (rootComponent == null) {
             rootComponent = component;
         } else {
-            final Component<?> parentComponent = componentsStack.peek();
+            final Component<?, ?> parentComponent = componentsStack.peek();
             parentComponent.addChild(component);
         }
         componentsStack.push(component);

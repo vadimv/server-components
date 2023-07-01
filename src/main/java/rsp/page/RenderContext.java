@@ -6,7 +6,6 @@ import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
-import rsp.server.HttpRequest;
 import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
@@ -38,10 +37,10 @@ public interface RenderContext {
                                                 final Function<T, CompletableFuture<S>> initialStateFunction,
                                                 final BiFunction<S, Path, Path> state2pathFunction,
                                                 final ComponentView<S> componentView);
-    <S> void openComponent(Component<S> component);
+    <T, S> void openComponent(Component<T, S> component);
     void closeComponent();
     Tag rootTag();
-    <S> Component<S> rootComponent();
+    <T, S> Component<T, S> rootComponent();
     Tag parentTag();
     Tag currentTag();
     RenderContext newSharedContext(VirtualDomPath path);
