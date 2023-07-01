@@ -55,7 +55,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 out.evalJs(-1, "RSP.reload()");
             }
         } else {
-            final Component<S> rootComponent = renderedPage.rootComponent;
+            final Component<?, S> rootComponent = renderedPage.rootComponent;
 
             lifeCycleEventsListener.beforeLivePageCreated(qsid, rootComponent.getState());
 
@@ -63,8 +63,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                    basePath,
                                                    renderedPage.httpRequest,
                                                    schedulerSupplier.get(),
-                                                   () -> rootComponent.recursiveEvents(),
-                                                   () -> rootComponent.recursiveRefs(),
+                                                   rootComponent,
                                                    out);
             renderedPage.livePageContext.set(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);

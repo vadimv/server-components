@@ -11,6 +11,7 @@ import rsp.server.Out;
 import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
+import rsp.util.Lookup;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -19,33 +20,56 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public final class Component<S> implements NewState<S> {
+public final class Component<T, S> implements NewState<S> {
 
-    public final Map<Event.Target, Event> events = new HashMap<>();
-    public final Map<Ref, VirtualDomPath> refs = new HashMap<>();
-    private final List<Component<?>> children = new ArrayList<>();
+    private final Map<Event.Target, Event> events = new HashMap<>();
+    private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
+    private final List<Component<?, ?>> children = new ArrayList<>();
 
-    private final ComponentView<S> componentView;
+    private final Lookup stateOriginLookup;
+    private final Class<T> stateOriginClass;
+    private final Function<T, CompletableFuture<S>> resolveStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
+    private final ComponentView<S> componentView;
     private final RenderContext parentRenderContext;
     private final AtomicReference<LivePage> livePageContext;
+
     private S state;
     public Tag tag;
 
-    public Component(final S initialState,
+    public Component(final Lookup stateOriginLookup,
+                     final Class<T> stateOriginClass,
+                     final Function<T, CompletableFuture<S>> resolveStateFunction,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContext parentRenderContext,
                      final AtomicReference<LivePage> livePageSupplier) {
-        this.state = Objects.requireNonNull(initialState);
+        this.stateOriginLookup = stateOriginLookup;
+        this.stateOriginClass = Objects.requireNonNull(stateOriginClass);
+        this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
         this.parentRenderContext = Objects.requireNonNull(parentRenderContext);
         this.livePageContext = Objects.requireNonNull(livePageSupplier);
     }
 
-    public void addChild(final Component<?> component) {
+    public void addChild(final Component<?, ?> component) {
         children.add(component);
+    }
+
+    public S resolveState(boolean isInitialState) {
+        final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
+        final CompletableFuture<S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
+        try {
+            if (isInitialState) {
+                state = initialStateCompletableFuture.get();
+            } else {
+                set(initialStateCompletableFuture.get()); // TODO
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return state;
     }
 
     public S getState() {
@@ -97,7 +121,7 @@ public final class Component<S> implements NewState<S> {
     public Map<Event.Target, Event> recursiveEvents() {
         final Map<Event.Target, Event> recursiveEvents = new HashMap<>();
         recursiveEvents.putAll(events);
-        for (Component<?> childComponent : children) {
+        for (Component<?, ?> childComponent : children) {
             recursiveEvents.putAll(childComponent.recursiveEvents());
         }
         return recursiveEvents;
@@ -106,7 +130,7 @@ public final class Component<S> implements NewState<S> {
     public Map<Ref, VirtualDomPath> recursiveRefs() {
         final Map<Ref, VirtualDomPath> recursiveRefs = new HashMap<>();
         recursiveRefs.putAll(refs);
-        for (Component<?> childComponent : children) {
+        for (Component<?, ?> childComponent : children) {
             recursiveRefs.putAll(childComponent.recursiveRefs());
         }
         return recursiveRefs;
@@ -115,5 +139,13 @@ public final class Component<S> implements NewState<S> {
     public void listenEvents(final Out out) {
         out.listenEvents(events.values().stream().collect(Collectors.toList()));
         children.forEach(childComponent -> childComponent.listenEvents(out));
+    }
+
+    public void addEvent(Event.Target eventTarget, Event event) {
+        events.put(eventTarget, event);
+    }
+
+    public void addRef(Ref ref, VirtualDomPath path) {
+        refs.put(ref, path);
     }
 }

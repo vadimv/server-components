@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.component.Component;
 import rsp.dom.*;
 import rsp.html.WindowRef;
 import rsp.ref.Ref;
@@ -28,12 +29,13 @@ import static java.lang.System.Logger.Level.DEBUG;
 public final class LivePage implements In, Schedule, Lookup {
     private static final System.Logger logger = System.getLogger(LivePage.class.getName());
 
+    public static String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
+
     public final QualifiedSessionId qsid;
 
     private final ScheduledExecutorService scheduledExecutorService;
+    private final Component<?, ?> rootComponent;
     private final Out out;
-    private final Supplier<Map<Event.Target, Event>> eventsSupplier;
-    private final Supplier<Map<Ref, VirtualDomPath>> refsSupplier;
     private final Path basePath;
     private final HttpRequest httpRequest;
 
@@ -47,16 +49,14 @@ public final class LivePage implements In, Schedule, Lookup {
                     final Path basePath,
                     final HttpRequest httpRequest,
                     final ScheduledExecutorService scheduledExecutorService,
-                    final Supplier<Map<Event.Target, Event>> events,
-                    final Supplier<Map<Ref, VirtualDomPath>> refs,
+                    final Component<?, ?> rootComponent,
                     final Out out) {
         this.qsid = Objects.requireNonNull(qsid);
         this.basePath = Objects.requireNonNull(basePath);
         this.httpRequest = Objects.requireNonNull(httpRequest);
         this.path = Objects.requireNonNull(httpRequest.path);
         this.scheduledExecutorService = Objects.requireNonNull(scheduledExecutorService);
-        this.eventsSupplier = Objects.requireNonNull(events);
-        this.refsSupplier = Objects.requireNonNull(refs);
+        this.rootComponent = Objects.requireNonNull(rootComponent);
         this.out = Objects.requireNonNull(out);
     }
 
@@ -141,24 +141,29 @@ public final class LivePage implements In, Schedule, Lookup {
     }
 
     @Override
-    public void handleDomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
-        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + path + ", type: " + eventType + ", event data: " + eventObject);
+    public void handleDomEvent(final int renderNumber, final VirtualDomPath eventPath, final String eventType, final JsonDataType.Object eventObject) {
+        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (this) {
-            final Map<Event.Target, Event> events = eventsSupplier.get();
-            final EventContext eventContext = createEventContext(eventObject);
-            VirtualDomPath eventElementPath = path;
-            while(eventElementPath.level() > 0) {
-                final Event event = events.get(new Event.Target(eventType, eventElementPath));
-                if (event != null && event.eventTarget.eventType.equals(eventType)) {
-                    event.eventHandler.accept(eventContext);
-                    break;
-                } else {
-                    final Optional<VirtualDomPath> parentPath = eventElementPath.parent();
-                    if (parentPath.isPresent()) {
-                        eventElementPath = parentPath.get();
-                    } else {
-                        // TODO warn
+            if (HISTORY_ENTRY_CHANGE_EVENT_NAME.equals(eventType) && VirtualDomPath.WINDOW.equals(eventPath)) {
+                this.path = Path.of("/0/0"); // TODO
+                rootComponent.resolveState(false);
+            } else {
+                final Map<Event.Target, Event> events = rootComponent.recursiveEvents();
+                final EventContext eventContext = createEventContext(eventObject);
+                VirtualDomPath eventElementPath = eventPath;
+                while(eventElementPath.level() > 0) {
+                    final Event event = events.get(new Event.Target(eventType, eventElementPath));
+                    if (event != null && event.eventTarget.eventType.equals(eventType)) {
+                        event.eventHandler.accept(eventContext);
                         break;
+                    } else {
+                        final Optional<VirtualDomPath> parentPath = eventElementPath.parent();
+                        if (parentPath.isPresent()) {
+                            eventElementPath = parentPath.get();
+                        } else {
+                            // TODO warn
+                            break;
+                        }
                     }
                 }
             }
@@ -182,7 +187,7 @@ public final class LivePage implements In, Schedule, Lookup {
     }
 
     private VirtualDomPath resolveRef(final Ref ref) {
-        return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : refsSupplier.get().get(ref); //TODO check for null
+        return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
     }
 
     public CompletableFuture<JsonDataType> evalJs(final String js) {

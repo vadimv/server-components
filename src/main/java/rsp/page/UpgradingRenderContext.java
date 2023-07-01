@@ -131,7 +131,7 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
-    public <S> void openComponent(Component<S> component) {
+    public <T, S> void openComponent(Component<T, S> component) {
         renderContext.openComponent(component);
     }
 
@@ -146,7 +146,7 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
-    public <S> Component<S> rootComponent() {
+    public <T, S> Component<T, S> rootComponent() {
         return renderContext.rootComponent();
     }
 
