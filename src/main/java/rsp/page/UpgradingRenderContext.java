@@ -157,6 +157,11 @@ public final class UpgradingRenderContext implements RenderContext {
     }
 
     @Override
+    public RenderContext newContext() {
+        return renderContext.newContext();
+    }
+
+    @Override
     public VirtualDomPath rootPath() {
         return renderContext.rootPath();
     }

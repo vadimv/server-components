@@ -94,14 +94,17 @@ public final class Component<T, S> implements NewState<S> {
     public void apply(final Function<S, S> newStateFunction) {
         final LivePage livePage = livePageContext.get();
         synchronized (livePage) {
-            assert tag != null;
             final Tag oldTag = tag;
-            final Map<Event.Target, Event> oldEvents = new HashMap<>(events);
+            final Map<Event.Target, Event> oldEvents = oldTag != null ?
+                                                  new HashMap<>(recursiveEvents()) :
+                                                  Map.of();
             state = newStateFunction.apply(state);
-            final RenderContext renderContext = parentRenderContext.newSharedContext(oldTag.path);
-
+            final RenderContext renderContext = oldTag != null ?
+                                                   parentRenderContext.newSharedContext(oldTag.path) :
+                                                   parentRenderContext.newContext();
             events.clear();
             refs.clear();
+            children.clear();
 
             renderContext.openComponent(this);
             final SegmentDefinition view = componentView.apply(state).apply(this);
@@ -111,7 +114,7 @@ public final class Component<T, S> implements NewState<S> {
             tag = renderContext.rootTag();
             final Set<VirtualDomPath> elementsToRemove = livePage.updateElements(Optional.ofNullable(oldTag),
                                                                                  renderContext.rootTag());
-            livePage.updateEvents(new HashSet<>(oldEvents.values()), new HashSet<>(events.values()), elementsToRemove);
+            livePage.updateEvents(new HashSet<>(oldEvents.values()), new HashSet<>(recursiveEvents().values()), elementsToRemove);
 
             // Browser's navigation
             livePage.applyToPath(path -> state2pathFunction.apply(state, path));
