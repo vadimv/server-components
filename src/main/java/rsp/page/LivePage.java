@@ -4,11 +4,7 @@ import rsp.component.Component;
 import rsp.dom.*;
 import rsp.html.WindowRef;
 import rsp.ref.Ref;
-import rsp.server.HttpRequest;
-import rsp.server.In;
-import rsp.server.Out;
-import rsp.server.Path;
-import rsp.util.Lookup;
+import rsp.server.*;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
@@ -17,8 +13,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import static java.lang.System.Logger.Level.DEBUG;
@@ -26,35 +20,33 @@ import static java.lang.System.Logger.Level.DEBUG;
 /**
  * A server-side object representing an open browser's page.
  */
-public final class LivePage implements In, Schedule, Lookup {
+public final class LivePage implements In, Schedule {
     private static final System.Logger logger = System.getLogger(LivePage.class.getName());
 
     public static String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     public final QualifiedSessionId qsid;
-
+    public final HttpRequestLookup httpRequestLookup;
     private final ScheduledExecutorService scheduledExecutorService;
     private final Component<?, ?> rootComponent;
     private final Out out;
     private final Path basePath;
-    private final HttpRequest httpRequest;
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
 
     private int descriptorsCounter;
-    private Path path;
+
 
     public LivePage(final QualifiedSessionId qsid,
                     final Path basePath,
-                    final HttpRequest httpRequest,
+                    final HttpRequestLookup httpRequestLookup,
                     final ScheduledExecutorService scheduledExecutorService,
                     final Component<?, ?> rootComponent,
                     final Out out) {
         this.qsid = Objects.requireNonNull(qsid);
         this.basePath = Objects.requireNonNull(basePath);
-        this.httpRequest = Objects.requireNonNull(httpRequest);
-        this.path = Objects.requireNonNull(httpRequest.path);
+        this.httpRequestLookup = httpRequestLookup;
         this.scheduledExecutorService = Objects.requireNonNull(scheduledExecutorService);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.out = Objects.requireNonNull(out);
@@ -145,8 +137,9 @@ public final class LivePage implements In, Schedule, Lookup {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (this) {
             if (HISTORY_ENTRY_CHANGE_EVENT_NAME.equals(eventType) && VirtualDomPath.WINDOW.equals(eventPath)) {
-                this.path = Path.of("/0/0"); // TODO
-                rootComponent.resolveState(false);
+                final Path path = eventObject.value("path").map(p -> Path.of(p.toString())).get();
+                httpRequestLookup.setPath(path); // TODO
+                rootComponent.resolveAndSet();
             } else {
                 final Map<Event.Target, Event> events = rootComponent.recursiveEvents();
                 final EventContext eventContext = createEventContext(eventObject);
@@ -205,11 +198,11 @@ public final class LivePage implements In, Schedule, Lookup {
         out.setHref(path);
     }
 
-    public Set<VirtualDomPath> updateElements(final Tag oldTag,
+    public Set<VirtualDomPath> updateElements(final Optional<Tag> optionalOldTag,
                                               final Tag newTag) {
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        new Diff(Optional.of(oldTag), newTag, domChangePerformer).run();
+        new Diff(optionalOldTag, newTag, domChangePerformer).run();
         if ( domChangePerformer.commands.size() > 0) {
             out.modifyDom(domChangePerformer.commands);
         }
@@ -247,23 +240,13 @@ public final class LivePage implements In, Schedule, Lookup {
      * @param pathOperator
      */
     public void applyToPath(UnaryOperator<Path> pathOperator) {
-        final Path newPath = pathOperator.apply(path);
+        final Path oldPath = httpRequestLookup.path();
+        final Path newPath = pathOperator.apply(oldPath);
         logger.log(DEBUG, () -> "New path after a components path's function application: " + newPath);
-        if (!newPath.equals(path)) {
-            path = newPath;
+        if (!newPath.equals(oldPath)) {
+            httpRequestLookup.setPath(newPath);
             out.pushHistory(basePath.resolve(newPath).toString());
             logger.log(DEBUG, () -> "Path update: " + newPath);
-        }
-    }
-
-    @Override
-    public <T> T lookup(final Class<T> clazz) {
-        if (HttpRequest.class.equals(clazz)) {
-            return (T) httpRequest;
-        } else if (Path.class.equals(clazz)) {
-            return (T) path;
-        } else {
-            throw new IllegalStateException("Lookup for an unsupported state reference type: " + clazz);
         }
     }
 }

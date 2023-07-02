@@ -13,7 +13,6 @@ import rsp.util.data.Tuple2;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -32,8 +31,6 @@ public final class DomTreeRenderContext implements RenderContext {
     private String docType;
     private Tag rootTag;
     private Component<?, ?> rootComponent;
-
-    private Tag justClosedTag;
 
 
     public DomTreeRenderContext(final VirtualDomPath rootPath,
@@ -60,16 +57,6 @@ public final class DomTreeRenderContext implements RenderContext {
     @Override
     public Component<?, ?> rootComponent() {
         return rootComponent;
-    }
-
-    @Override
-    public Tag parentTag() {
-        return tagsStack.peek();
-    }
-
-    @Override
-    public Tag currentTag() {
-        return justClosedTag;
     }
 
     public int statusCode() {
@@ -117,7 +104,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public void closeNode(final String name, final boolean upgrade) {
-        justClosedTag = tagsStack.pop();
+        tagsStack.pop();
     }
 
     @Override
@@ -167,7 +154,7 @@ public final class DomTreeRenderContext implements RenderContext {
                                                              componentView,
                                                             this,
                                                              livePageContext);
-        final S initialState = newComponent.resolveState(true);
+        final S initialState = newComponent.resolveState();
         if (rootComponent == null) {
             rootComponent = newComponent;
         } else {
@@ -195,12 +182,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public RenderContext newSharedContext(final VirtualDomPath path) {
-        return new DomTreeRenderContext(path, livePageContext.get(), livePageContext);
-    }
-
-    @Override
-    public LivePage livePage() {
-        return Objects.requireNonNull(livePageContext.get(), "Page context not set");
+        return new DomTreeRenderContext(path, livePageContext.get().httpRequestLookup, livePageContext);
     }
 
     public VirtualDomPath rootPath() {

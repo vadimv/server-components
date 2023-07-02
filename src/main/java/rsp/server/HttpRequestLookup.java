@@ -4,7 +4,7 @@ import rsp.util.Lookup;
 
 public class HttpRequestLookup implements Lookup {
 
-    private final HttpRequest httpRequest;
+    private volatile HttpRequest httpRequest;
 
     public HttpRequestLookup(HttpRequest httpRequest) {
         this.httpRequest = httpRequest;
@@ -20,5 +20,13 @@ public class HttpRequestLookup implements Lookup {
         } else {
             throw new IllegalStateException("Lookup failed for an unsupported state reference type: " + clazz);
         }
+    }
+
+    public void setPath(Path path) {
+        httpRequest = httpRequest.withPath(path);
+    }
+
+    public Path path() {
+        return httpRequest.path;
     }
 }

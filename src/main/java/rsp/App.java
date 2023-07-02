@@ -8,13 +8,13 @@ import rsp.page.RenderedPage;
 import rsp.routing.Routing;
 import rsp.server.HttpRequest;
 import rsp.stateview.ComponentView;
+import rsp.stateview.View;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 /**
  * An assembly point for everything needed to set off a UI application.
@@ -85,6 +85,26 @@ public final class App<S> {
     }
 
     public App(final S initialState,
+               final View<S> rootComponentView) {
+        this(AppConfig.DEFAULT,
+                new PageLifeCycle.Default<>(),
+                new ComponentDefinition<>(HttpRequest.class,
+                        new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
+                        (__, p) ->  p,
+                        state -> newState -> rootComponentView.apply(state)));
+    }
+
+    public App(final Routing<HttpRequest, S> routing,
+               final View<S> rootComponentView) {
+        this(AppConfig.DEFAULT,
+                new PageLifeCycle.Default<>(),
+                new ComponentDefinition<>(HttpRequest.class,
+                                          routing.toInitialStateFunction(),
+                                          (__, p) ->  p,
+                                          state -> newState -> rootComponentView.apply(state)));
+    }
+
+/*    public App(final S initialState,
                final Function<S, TagDefinition> rootView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
@@ -92,7 +112,7 @@ public final class App<S> {
                                        new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
                                         (__, p) ->  p,
                                         state -> newState -> rootView.apply(state)));
-    }
+    }*/
 
     /**
      * Sets the application's config.

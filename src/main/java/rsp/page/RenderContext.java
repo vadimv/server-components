@@ -41,9 +41,6 @@ public interface RenderContext {
     void closeComponent();
     Tag rootTag();
     <T, S> Component<T, S> rootComponent();
-    Tag parentTag();
-    Tag currentTag();
     RenderContext newSharedContext(VirtualDomPath path);
     VirtualDomPath rootPath();
-    LivePage livePage();
 }

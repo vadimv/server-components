@@ -4,6 +4,7 @@ import rsp.page.PageRendering;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -102,6 +103,10 @@ public final class HttpRequest {
      */
     public Optional<String> header(final String headerName) {
         return getHeader.apply(headerName);
+    }
+
+    public HttpRequest withPath(Path newPath) {
+        return new HttpRequest(method, uri, url, Objects.requireNonNull(newPath), getQueryParam, getHeader);
     }
 
     /**

@@ -73,10 +73,10 @@ public class SimpleServer {
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
 
-    private static final ComponentView<AppState> appComponentView = state -> newState ->
+    private static final View<AppState> appComponentView = state ->
         switch (state) {
             case NotFoundState nfs -> statelessComponent(nfs, notFoundStatelessView);
-            case CountersState countersState -> component(countersState, countersComponentView);
+            case CountersState countersState ->  component(countersState, countersComponentView);
         };
 
 

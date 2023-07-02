@@ -20,7 +20,7 @@ public class ComponentDsl {
      * @param componentView a function for forming the component's view according to a state value
      * @return a component definition
      */
-    public static <S> SegmentDefinition component(final S initialState,
+    public static <S> ComponentDefinition<Path, S> component(final S initialState,
                                                   final ComponentView<S> componentView) {
         Objects.requireNonNull(initialState);
         return new ComponentDefinition<Path, S>(Path.class,
@@ -29,33 +29,33 @@ public class ComponentDsl {
                                                 componentView);
     }
 
-    public static <S> SegmentDefinition webComponent(final Routing<HttpRequest, S> initialStateRouting,
-                                                     final ComponentView<S> componentView) {
+    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Routing<HttpRequest, S> initialStateRouting,
+                                                                       final ComponentView<S> componentView) {
         return new ComponentDefinition<HttpRequest, S>(HttpRequest.class,
                                                        initialStateRouting.toInitialStateFunction(),
                                                        (__, path) ->  path,
                                                        componentView);
     }
 
-    public static <S> SegmentDefinition component(final Routing<Path, S> initialStateRouting,
-                                                     final BiFunction<S, Path, Path> state2PathFunction,
-                                                     final ComponentView<S> componentView) {
+    public static <S> ComponentDefinition<Path, S> component(final Routing<Path, S> initialStateRouting,
+                                                             final BiFunction<S, Path, Path> state2PathFunction,
+                                                             final ComponentView<S> componentView) {
         return new ComponentDefinition<Path, S>(Path.class,
                                                 initialStateRouting.toInitialStateFunction(),
                                                 state2PathFunction,
                                                 componentView);
     }
 
-    public static <S> SegmentDefinition webComponent(final Routing<HttpRequest, S> initialStateRouting,
-                                                     final BiFunction<S, Path, Path> state2PathFunction,
-                                                     final ComponentView<S> componentView) {
+    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Routing<HttpRequest, S> initialStateRouting,
+                                                                       final BiFunction<S, Path, Path> state2PathFunction,
+                                                                       final ComponentView<S> componentView) {
         return new ComponentDefinition<HttpRequest, S>(HttpRequest.class,
                                                        initialStateRouting.toInitialStateFunction(),
                                                        state2PathFunction,
                                                        componentView);
     }
 
-    public static <S> TagDefinition statelessComponent(final S initialState, final View<S> componentView) {
+    public static <S> SegmentDefinition statelessComponent(final S initialState, final View<S> componentView) {
         return componentView.apply(initialState);
     }
 }

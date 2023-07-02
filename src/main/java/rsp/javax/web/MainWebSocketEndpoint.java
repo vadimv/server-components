@@ -1,6 +1,8 @@
 package rsp.javax.web;
 
 import rsp.component.Component;
+import rsp.dom.Event;
+import rsp.dom.VirtualDomPath;
 import rsp.page.*;
 import rsp.server.*;
 
@@ -9,7 +11,6 @@ import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static java.lang.System.Logger.Level.*;
@@ -61,7 +62,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
             final LivePage livePage = new LivePage(qsid,
                                                    basePath,
-                                                   renderedPage.httpRequest,
+                                                   renderedPage.httpRequestLookup,
                                                    schedulerSupplier.get(),
                                                    rootComponent,
                                                    out);
@@ -79,6 +80,11 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
             out.setRenderNum(0);
             rootComponent.listenEvents(out);
+            out.listenEvents(List.of(new Event(new Event.Target(LivePage.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                                                                VirtualDomPath.WINDOW),
+                                     context -> {},
+                                    true,
+                                     Event.NO_MODIFIER)));
 
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
