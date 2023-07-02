@@ -185,6 +185,11 @@ public final class DomTreeRenderContext implements RenderContext {
         return new DomTreeRenderContext(path, livePageContext.get().httpRequestLookup, livePageContext);
     }
 
+    @Override
+    public RenderContext newContext() {
+        return new DomTreeRenderContext(rootPath, livePageContext.get().httpRequestLookup, livePageContext);
+    }
+
     public VirtualDomPath rootPath() {
         return rootPath;
     }
