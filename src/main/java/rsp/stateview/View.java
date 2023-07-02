@@ -1,6 +1,6 @@
 package rsp.stateview;
 
-import rsp.html.TagDefinition;
+import rsp.html.SegmentDefinition;
 
 import java.util.function.Function;
 
@@ -10,4 +10,4 @@ import java.util.function.Function;
  */
 @FunctionalInterface
 
-public interface View<S> extends Function<S, TagDefinition> {}
+public interface View<S> extends Function<S, SegmentDefinition> {}

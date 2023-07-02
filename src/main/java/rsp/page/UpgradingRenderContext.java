@@ -150,15 +150,6 @@ public final class UpgradingRenderContext implements RenderContext {
         return renderContext.rootComponent();
     }
 
-    @Override
-    public Tag parentTag() {
-        return renderContext.parentTag();
-    }
-
-    @Override
-    public Tag currentTag() {
-        return renderContext.currentTag();
-    }
 
     @Override
     public RenderContext newSharedContext(VirtualDomPath path) {
@@ -168,11 +159,6 @@ public final class UpgradingRenderContext implements RenderContext {
     @Override
     public VirtualDomPath rootPath() {
         return renderContext.rootPath();
-    }
-
-    @Override
-    public LivePage livePage() {
-        return renderContext.livePage();
     }
 
     @Override

@@ -57,19 +57,18 @@ public final class Component<T, S> implements NewState<S> {
         children.add(component);
     }
 
-    public S resolveState(boolean isInitialState) {
+    public S resolveState() {
         final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
         final CompletableFuture<S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
         try {
-            if (isInitialState) {
-                state = initialStateCompletableFuture.get();
-            } else {
-                set(initialStateCompletableFuture.get()); // TODO
-            }
+            return initialStateCompletableFuture.get();
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
-        return state;
+    }
+
+    public void resolveAndSet() {
+        set(resolveState());
     }
 
     public S getState() {
@@ -110,7 +109,8 @@ public final class Component<T, S> implements NewState<S> {
             renderContext.closeComponent();
 
             tag = renderContext.rootTag();
-            final Set<VirtualDomPath> elementsToRemove = livePage.updateElements(oldTag, renderContext.rootTag());
+            final Set<VirtualDomPath> elementsToRemove = livePage.updateElements(Optional.ofNullable(oldTag),
+                                                                                 renderContext.rootTag());
             livePage.updateEvents(new HashSet<>(oldEvents.values()), new HashSet<>(events.values()), elementsToRemove);
 
             // Browser's navigation

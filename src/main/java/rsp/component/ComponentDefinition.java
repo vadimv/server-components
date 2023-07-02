@@ -39,12 +39,12 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
 
     @Override
     public void render(final RenderContext renderContext) {
-        final Tuple2<S, NewState<S>> newStateHandler = renderContext.openComponent(stateFunctionInputClass,
-                                                                                   initialStateFunction,
-                                                                                   state2pathFunction,
-                                                                                   componentView);
+        final Tuple2<S, NewState<S>> newComponentHandler = renderContext.openComponent(stateFunctionInputClass,
+                                                                                       initialStateFunction,
+                                                                                       state2pathFunction,
+                                                                                       componentView);
 
-        final SegmentDefinition view = componentView.apply(newStateHandler._1).apply(newStateHandler._2);
+        final SegmentDefinition view = componentView.apply(newComponentHandler._1).apply(newComponentHandler._2);
 
         view.render(renderContext);
 

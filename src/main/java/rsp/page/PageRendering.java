@@ -79,14 +79,15 @@ public final class PageRendering<S> {
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
             final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
+            final HttpRequestLookup httpRequestLookup = new HttpRequestLookup(request);
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
-                                                                                 new HttpRequestLookup(request),
+                                                                                 httpRequestLookup,
                                                                                  livePageContext);
             final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 
             rootComponent.render(enrichedDomTreeContext);
 
-            final RenderedPage<S> pageSnapshot = new RenderedPage<>(request,
+            final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpRequestLookup,
                                                                     enrichedDomTreeContext.rootComponent(),
                                                                     livePageContext);
             renderedPages.put(pageId, pageSnapshot);

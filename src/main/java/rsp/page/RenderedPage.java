@@ -1,23 +1,21 @@
 package rsp.page;
 
 import rsp.component.Component;
-import rsp.component.ComponentDefinition;
-import rsp.server.HttpRequest;
-import rsp.server.Path;
+import rsp.server.HttpRequestLookup;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class RenderedPage<S> {
-    public final HttpRequest httpRequest;
+    public final HttpRequestLookup httpRequestLookup;
     public final Component<?, S> rootComponent;
     public final AtomicReference<LivePage> livePageContext;
 
-    public RenderedPage(final HttpRequest httpRequest,
+    public RenderedPage(final HttpRequestLookup httpRequestLookup,
                         final Component<?, S> rootComponent,
                         final AtomicReference<LivePage> livePageContext) {
 
-        this.httpRequest = Objects.requireNonNull(httpRequest);
+        this.httpRequestLookup = Objects.requireNonNull(httpRequestLookup);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.livePageContext = Objects.requireNonNull(livePageContext);
     }
