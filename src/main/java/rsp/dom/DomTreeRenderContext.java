@@ -181,7 +181,7 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public RenderContext newSharedContext(final VirtualDomPath path) {
+    public RenderContext newContext(final VirtualDomPath path) {
         return new DomTreeRenderContext(path, livePageContext.get().httpRequestLookup, livePageContext);
     }
 

@@ -41,7 +41,6 @@ public interface RenderContext {
     void closeComponent();
     Tag rootTag();
     <T, S> Component<T, S> rootComponent();
-    RenderContext newSharedContext(VirtualDomPath path);
+    RenderContext newContext(VirtualDomPath path);
     RenderContext newContext();
-    VirtualDomPath rootPath();
 }
