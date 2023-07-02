@@ -100,7 +100,7 @@ public final class Component<T, S> implements NewState<S> {
                                                   Map.of();
             state = newStateFunction.apply(state);
             final RenderContext renderContext = oldTag != null ?
-                                                   parentRenderContext.newSharedContext(oldTag.path) :
+                                                   parentRenderContext.newContext(oldTag.path) :
                                                    parentRenderContext.newContext();
             events.clear();
             refs.clear();

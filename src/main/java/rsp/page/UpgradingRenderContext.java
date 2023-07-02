@@ -6,7 +6,6 @@ import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
 import rsp.ref.Ref;
-import rsp.server.HttpRequest;
 import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
@@ -150,20 +149,14 @@ public final class UpgradingRenderContext implements RenderContext {
         return renderContext.rootComponent();
     }
 
-
     @Override
-    public RenderContext newSharedContext(VirtualDomPath path) {
-        return new UpgradingRenderContext(renderContext.newSharedContext(path), pageInfo);
+    public RenderContext newContext(VirtualDomPath path) {
+        return new UpgradingRenderContext(renderContext.newContext(path), pageInfo);
     }
 
     @Override
     public RenderContext newContext() {
         return renderContext.newContext();
-    }
-
-    @Override
-    public VirtualDomPath rootPath() {
-        return renderContext.rootPath();
     }
 
     @Override
