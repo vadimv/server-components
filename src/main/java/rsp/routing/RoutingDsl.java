@@ -23,6 +23,18 @@ import java.util.function.Predicate;
 public final class RoutingDsl {
 
     /**
+     * Creates a routing.
+     * @param routes routes to try the input object
+     * @param notFoundState the result when none of the provided routes matched
+     * @param <T> the type of the input object, e.g. Path or HttpRequest
+     * @param <S> the type of the applications root component's state, should be an immutable class
+     * @return the result routing
+     */
+    public static <T, S> Routing<T, S> routing(final Route<T, S> routes, final S notFoundState) {
+        return new Routing<>(routes, notFoundState);
+    }
+
+    /**
      * Concatenates routes.
      * @param routeDefinitions routes definitions
      * @param <S> the type of the applications root component's state, should be an immutable class
