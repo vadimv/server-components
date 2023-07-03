@@ -34,8 +34,8 @@ public class SimpleServer {
     }
 
     private static Routing<Path, Integer> routing1() {
-        return new Routing<>(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
-                            -1);
+        return routing(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                      -1);
     }
 
 
@@ -46,8 +46,8 @@ public class SimpleServer {
     }
 
     private static Routing<Path, Integer> routing2() {
-        return new Routing<>(path("/*/:id(^\\d+$)", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
-                            -1);
+        return routing(path("/*/:id(^\\d+$)", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                       -1);
     }
 
 
@@ -107,13 +107,5 @@ public class SimpleServer {
     }
 
     static final class CountersState implements AppState {
-    }
-
-    static final class CounterState {
-        public final int i;
-
-        public CounterState(final int i) {
-            this.i = i;
-        }
     }
 }
