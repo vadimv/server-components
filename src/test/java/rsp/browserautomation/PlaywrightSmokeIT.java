@@ -10,10 +10,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+
 @net.jcip.annotations.NotThreadSafe
 public class PlaywrightSmokeIT {
 
-    private static final int EXPECTED_RESPONSE_TIME_MS = 300;
+    private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final int COUNTER_1_INITIAL_VALUE = 100;
     private static final int COUNTER_2_INITIAL_VALUE = 1001;
 
@@ -27,7 +29,8 @@ public class PlaywrightSmokeIT {
 
     @Test
     public void should_pass_smoke_tests() throws Exception {
-        final Playwright playwright = Playwright.create();
+        try(final Playwright playwright = Playwright.create()) {
+
         final List<BrowserType> browserTypes = Arrays.asList(
                 playwright.chromium(),
                 playwright.webkit(),
@@ -35,14 +38,14 @@ public class PlaywrightSmokeIT {
         );
 
         for (final BrowserType browserType : browserTypes) {
-            final Browser browser = browserType.launch();
-            final BrowserContext context = browser.newContext();
-            final Page page = context.newPage();
-            System.out.println("Browser type: " + browserType.name());
-            validatePageNotFound(page);
-            validatePage(page);
+               final Browser browser = browserType.launch();
+               final BrowserContext context = browser.newContext();
+               final Page page = context.newPage();
+               System.out.println("Browser type: " + browserType.name());
+               validatePageNotFound(page);
+               validatePage(page);
+           }
         }
-        playwright.close();
     }
 
     private void validatePageNotFound(final Page page) {
@@ -55,40 +58,44 @@ public class PlaywrightSmokeIT {
                                                         + "/" + COUNTER_1_INITIAL_VALUE
                                                         +"/" + COUNTER_2_INITIAL_VALUE).status());
         Assert.assertEquals("test-server-title", page.title());
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
         validateComponent1(page);
         validateComponent2(page);
     }
 
-    private void validateComponent1(Page page) throws InterruptedException {
-        assertElementTextEquals(page, "c1_s0", Integer.toString(COUNTER_1_INITIAL_VALUE));
-        assertElementStyleAttributeEquals(page, "c1_s0",  "background-color", expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE));
-        waitForPageResponse();
+    private void validateComponent1(Page page) {
+        assertThat(page.locator("#c1_s0")).hasText(Integer.toString(COUNTER_1_INITIAL_VALUE));
+        assertThat(page.locator("#c1_s0")).hasClass(expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE));
 
         clickOnElement(page,"c1_b0");
-        waitForPageResponse();
-        assertElementTextEquals(page,"c1_s0", Integer.toString(COUNTER_1_INITIAL_VALUE + 1));
-        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE + 1));
+        assertThat(page.locator("#c1_s0")).hasText(Integer.toString(COUNTER_1_INITIAL_VALUE + 1));
+        assertThat(page.locator("#c1_s0")).hasClass(expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE + 1));
 
         clickOnElement(page,"c1_b0");
-        waitForPageResponse();
-        assertElementTextEquals(page,"c1_s0", Integer.toString(COUNTER_1_INITIAL_VALUE + 2));
-        assertElementStyleAttributeEquals(page, "c1_s0","background-color", expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE + 2));
+        assertThat(page.locator("#c1_s0")).hasText(Integer.toString(COUNTER_1_INITIAL_VALUE + 2));
+        assertThat(page.locator("#c1_s0")).hasClass(expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE + 2));
     }
 
-    private void validateComponent2(Page page) throws InterruptedException {
-        assertElementTextEquals(page, "c2_s0", Integer.toString(COUNTER_2_INITIAL_VALUE));
-        assertElementStyleAttributeEquals(page, "c2_s0",  "background-color", expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE));
-        waitForPageResponse();
+    private void validateComponent2(Page page) {
+        assertThat(page.locator("#c2_s0")).hasText(Integer.toString(COUNTER_2_INITIAL_VALUE));
+        assertThat(page.locator("#c2_s0")).hasClass(expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE));
 
         clickOnElement(page,"c2_b0");
-        waitForPageResponse();
-        assertElementTextEquals(page,"c2_s0", Integer.toString(COUNTER_2_INITIAL_VALUE + 1));
-        assertElementStyleAttributeEquals(page, "c2_s0", "background-color", expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 1));
+        assertThat(page.locator("#c2_s0")).hasText(Integer.toString(COUNTER_2_INITIAL_VALUE + 1));
+        assertThat(page.locator("#c2_s0")).hasClass(expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 1));
 
         clickOnElement(page,"c2_b0");
-        waitForPageResponse();
-        assertElementTextEquals(page,"c2_s0", Integer.toString(COUNTER_2_INITIAL_VALUE + 2));
-        assertElementStyleAttributeEquals(page, "c2_s0","background-color", expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 2));
+        assertThat(page.locator("#c2_s0")).hasText(Integer.toString(COUNTER_2_INITIAL_VALUE + 2));
+        assertThat(page.locator("#c2_s0")).hasClass(expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 2));
+
+        page.goBack();
+        assertThat(page.locator("#c2_s0")).hasText(Integer.toString(COUNTER_2_INITIAL_VALUE + 1));
+        assertThat(page.locator("#c2_s0")).hasClass(expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 1));
+
+        page.goForward();
+        assertThat(page.locator("#c2_s0")).hasText(Integer.toString(COUNTER_2_INITIAL_VALUE + 2));
+        assertThat(page.locator("#c2_s0")).hasClass(expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE + 2));
+
     }
 
     private static String expectedColorAttributeValue(int value) {
@@ -99,17 +106,18 @@ public class PlaywrightSmokeIT {
         page.click("#" + elementId);
     }
 
-    private static void assertElementTextEquals(final Page page, final String elementId, final String expectedValue) {
-        Assert.assertEquals(expectedValue, page.innerText("#" + elementId));
+    private static boolean hasStyle(final Locator element, final String styleName, final String expectedValue) throws InterruptedException {
+        int i = 0;
+        while(i < 10) {
+            final Optional<String> s = BrowserUtils.style(element.getAttribute("style"), styleName);
+            if (s.isPresent() && s.get().equals(expectedValue)) return true;
+            Thread.sleep(100);
+        }
+        return false;
     }
 
-    private static void assertElementStyleAttributeEquals(final Page page, final String elementId, final String styleName, final String expectedValue) {
-        final Optional<String> s = BrowserUtils.style(page.getAttribute("#" + elementId, "style"), styleName);
-        s.ifPresentOrElse(v -> Assert.assertEquals(expectedValue, v), () -> Assert.fail());
-    }
-
-    private static void waitForPageResponse() throws InterruptedException {
-        Thread.sleep(EXPECTED_RESPONSE_TIME_MS);
+    private static void waitFor(long timeMs) throws InterruptedException {
+        Thread.sleep(timeMs);
     }
 
     @AfterClass

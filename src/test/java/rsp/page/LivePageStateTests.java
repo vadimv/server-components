@@ -1,8 +1,9 @@
 package rsp.page;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.Assert;
 import org.junit.Test;
-import rsp.server.HttpRequest;
+import rsp.component.Component;
 import rsp.stateview.ComponentView;
 import rsp.dom.*;
 import rsp.server.Out;
@@ -11,9 +12,12 @@ import rsp.stateview.NewState;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+
+import static rsp.html.HtmlDsl.span;
 
 public class LivePageStateTests {
 
@@ -21,10 +25,10 @@ public class LivePageStateTests {
 
     @Test
     public void should_generate_update_commands_for_same_state() {
-/*        final TestCollectingOutMessages out = new TestCollectingOutMessages();
-        final LivePageState<State> livePageState = create(new State(0), out);
-        livePageState.run();//(new State(0));
-        Assert.assertEquals(List.of(), out.commands);*/
+        final TestCollectingOut out = new TestCollectingOut();
+        final NewState<State> liveComponent = create(new State(0), out);
+        liveComponent.set(new State(0));
+        Assert.assertEquals(List.of(), out.commands);
     }
 
     @Test
@@ -39,27 +43,21 @@ public class LivePageStateTests {
                             out.commands);*/
     }
 
-/*    private LivePageState<State> create(final State state, final OutMessages out) {
-        final CreateViewFunction<State> rootCreateViewFunction = (sv, sc) -> span(sv.toString());
+    private Component<String, State> create(final State initialState, final Out out) {
+        final ComponentView<State> view = state -> newState -> span(state.toString());
 
-        final LivePageSnapshot<State> lpps = new LivePageSnapshot<>(null,
+        final AtomicReference<LivePage> livePageSupplier = new AtomicReference<>();
+        final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
                                                                     null,
-                                                                    Path.of("/" + state),
-                                                                    domRoot(rootCreateViewFunction, state),
-                                                                    Collections.emptyMap(),
-                                                                    Collections.emptyMap());
-
-        final StateToRouteDispatch<State> state2route = new StateToRouteDispatch<>(Path.of(""), (s, p) -> Path.of("/" + s.value));
-
-        return new LivePageState<>(QID, lpps, state2route, enrichFunction(), out);
-    }*/
-
-/*    private static Tag domRoot(final ComponentView<State> component, final State state) {
-        final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT, new AtomicReference<>());
-        component.apply(state).apply(new NewState.Default<>()).render(enrichFunction().apply(QID.sessionId, domTreeContext));
-
-        return domTreeContext.rootTag();
-    }*/
+                                                                     livePageSupplier);
+        return new Component<>(null,
+                                String.class,
+                                t -> CompletableFuture.completedFuture(initialState),
+                                (s, p) -> p,
+                                view,
+                                renderContext,
+                                livePageSupplier);
+    }
 
     private static BiFunction<String, RenderContext, RenderContext> enrichFunction() {
         return (sessionId, ctx) -> ctx;
