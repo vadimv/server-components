@@ -108,7 +108,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onError(final Session session, final Throwable thr) {
         shutdown(session);
-        logger.log(ERROR, () -> "WebSocket error: " + thr.getLocalizedMessage(), thr);
+        logger.log(ERROR, () -> "WebSocket error: " + thr.getMessage(), thr);
     }
 
     private void shutdown(final Session session) {

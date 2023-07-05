@@ -66,7 +66,7 @@ public final class LivePage implements In, Schedule {
     public synchronized Timer scheduleAtFixedRate(final Runnable command, final Object key, final long initialDelay, final long period, final TimeUnit unit) {
         logger.log(DEBUG, () -> "Scheduling a periodical task " + key + " with delay: " + initialDelay + ", and period: " + period + " " + unit);
         final ScheduledFuture<?> timer = scheduledExecutorService.scheduleAtFixedRate(() -> {
-            synchronized (this) {
+            synchronized (LivePage.this) {
                 command.run();
             }
         }, initialDelay, period, unit);
@@ -78,7 +78,7 @@ public final class LivePage implements In, Schedule {
     public synchronized Timer schedule(final Runnable command, final Object key, final long delay, final TimeUnit unit) {
         logger.log(DEBUG, () -> "Scheduling a delayed task " + key + " with delay: " + delay + " " + unit);
         final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
-            synchronized (this) {
+            synchronized (LivePage.this) {
                 command.run();
             }
         }, delay, unit);
@@ -203,7 +203,7 @@ public final class LivePage implements In, Schedule {
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         new Diff(optionalOldTag, newTag, domChangePerformer).run();
-        if ( domChangePerformer.commands.size() > 0) {
+        if (domChangePerformer.commands.size() > 0) {
             out.modifyDom(domChangePerformer.commands);
         }
         return domChangePerformer.elementsToRemove;
