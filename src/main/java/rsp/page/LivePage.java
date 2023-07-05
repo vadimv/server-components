@@ -20,7 +20,7 @@ import static java.lang.System.Logger.Level.DEBUG;
 /**
  * A server-side object representing an open browser's page.
  */
-public final class LivePage implements In, Schedule {
+public final class LivePage implements In, Page, Schedule {
     private static final System.Logger logger = System.getLogger(LivePage.class.getName());
 
     public static String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
@@ -183,6 +183,7 @@ public final class LivePage implements In, Schedule {
         return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
     }
 
+    @Override
     public CompletableFuture<JsonDataType> evalJs(final String js) {
         logger.log(DEBUG, () -> "Called an JS evaluation: " + js);
         synchronized (this) {
@@ -198,8 +199,9 @@ public final class LivePage implements In, Schedule {
         out.setHref(path);
     }
 
-    public Set<VirtualDomPath> updateElements(final Optional<Tag> optionalOldTag,
-                                              final Tag newTag) {
+    @Override
+    public Set<VirtualDomPath> updateDom(final Optional<Tag> optionalOldTag,
+                                         final Tag newTag) {
         // Calculate diff between currentContext and newContext
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         new Diff(optionalOldTag, newTag, domChangePerformer).run();
@@ -209,6 +211,7 @@ public final class LivePage implements In, Schedule {
         return domChangePerformer.elementsToRemove;
     }
 
+    @Override
     public void updateEvents(final Set<Event> oldEvents,
                              final Set<Event> newEvents,
                              final Set<VirtualDomPath> elementsToRemove) {
@@ -239,7 +242,8 @@ public final class LivePage implements In, Schedule {
      * Updates browser's navigation.
      * @param pathOperator
      */
-    public void applyToPath(UnaryOperator<Path> pathOperator) {
+    @Override
+    public void applyToPath(final UnaryOperator<Path> pathOperator) {
         final Path oldPath = httpRequestLookup.path();
         final Path newPath = pathOperator.apply(oldPath);
         logger.log(DEBUG, () -> "New path after a components path's function application: " + newPath);
