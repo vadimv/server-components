@@ -1,5 +1,7 @@
 package rsp.page;
 
+import rsp.stateview.NewState;
+
 /**
  * The listener interface for receiving a page's session lifecycle events.
  * @param <S> page's root state type, an immutable class
@@ -7,18 +9,18 @@ package rsp.page;
 public interface PageLifeCycle<S> {
 
     /**
-     * Invoked before an live page session created.
+     * Invoked after a live page session created.
      * @param sid the qualified session Id of the page created
-     * @param state the initial state
-     *
+     * @param rootComponentState the root component's initial state
+     * @param rootComponentNewState the root component's state update interface
      */
-    void beforePageCreated(QualifiedSessionId sid, S state);
+    void pageCreated(QualifiedSessionId sid, S rootComponentState, NewState<S> rootComponentNewState);
 
     /**
      * Invoked after an live page session closed.
      * @param sid the qualified session Id of the page being closed
      */
-    void afterPageClosed(QualifiedSessionId sid);
+    void pageClosed(QualifiedSessionId sid);
 
     /**
      * The default lifecycle listener implementation doing nothing.
@@ -27,12 +29,12 @@ public interface PageLifeCycle<S> {
     class Default<S> implements PageLifeCycle<S> {
 
         @Override
-        public void beforePageCreated(final QualifiedSessionId sid, final S state) {
+        public void pageCreated(final QualifiedSessionId sid, final S rootComponentState, NewState<S> rootComponentNewState) {
             //no-op
         }
 
         @Override
-        public void afterPageClosed(final QualifiedSessionId sid) {
+        public void pageClosed(final QualifiedSessionId sid) {
             //no-op
         }
     }

@@ -118,8 +118,7 @@ public final class Component<T, S> implements NewState<S> {
             renderContext.closeComponent();
 
             tag = renderContext.rootTag();
-            final Set<VirtualDomPath> elementsToRemove = livePage.updateDom(Optional.ofNullable(oldTag),
-                                                                                 renderContext.rootTag());
+            final Set<VirtualDomPath> elementsToRemove = livePage.updateDom(Optional.ofNullable(oldTag), renderContext.rootTag());
             livePage.updateEvents(new HashSet<>(oldEvents.values()), new HashSet<>(recursiveEvents().values()), elementsToRemove);
 
             // Browser's navigation

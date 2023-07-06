@@ -283,7 +283,7 @@ To respond to browser events, register a page DOM event handler by adding an ``o
 
 When an event occurs:
 - the page sends the event data message to the server
-- the system fires its registered event handler's Java code.
+- the system fires its registered event handler's Java code
 
 An event handler's code usually sets a new application's state snapshot, calling one of the overloaded ``UseState<S>.accept()`` methods on the application state accessor.
 
@@ -384,9 +384,9 @@ To invoke arbitrary JavaScript in the browser use the ``ctx.evalJs()`` method of
                on("click",
                   ctx -> ctx.evalJs("alert('Hello from the server')"))),
         button(attr("type", "button"),
-                text("Calculate"),
-                on("click",
-                   ctx -> ctx.evalJs("1+1").whenComplete((r,e) -> System.out.println("1+1=" + r)))
+               text("Calculate"),
+               on("click",
+                  ctx -> ctx.evalJs("1+1").whenComplete((r,e) -> System.out.println("1+1=" + r)))
    ...
 ```
 
@@ -400,13 +400,11 @@ This allows to listen to an SPA page's lifecycle events:
 ```java
     final PageLifeCycle<Integer> plc = new PageLifeCycle.Default<Integer>() {
         @Override
-        public void beforeLivePageCreated(QualifiedSessionId sid, UseState<Integer> useState) {
+        public void pageCreated(QualifiedSessionId sid, Integer initialState, NewState<Integer> newState) {
             final Thread t = new Thread(() -> {
                 try {
                     Thread.sleep(10_000);
-                    synchronized (useState) {
-                        useState.accept(useState.get() + 1);
-                    }
+                    newState.apply(s -> s + 1);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

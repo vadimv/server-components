@@ -57,15 +57,12 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             }
         } else {
             final Component<?, S> rootComponent = renderedPage.rootComponent;
-
-            lifeCycleEventsListener.beforePageCreated(qsid, rootComponent.getState());
-
             final LivePageSession livePage = new LivePageSession(qsid,
-                                                   basePath,
-                                                   renderedPage.httpRequestLookup,
-                                                   schedulerSupplier.get(),
-                                                   rootComponent,
-                    remoteOut);
+                                                                 basePath,
+                                                                 renderedPage.httpRequestLookup,
+                                                                 schedulerSupplier.get(),
+                                                                 rootComponent,
+                                                                 remoteOut);
             renderedPage.livePageContext.set(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
@@ -81,12 +78,14 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             remoteOut.setRenderNum(0);
             rootComponent.listenEvents(remoteOut);
             remoteOut.listenEvents(List.of(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                                                VirtualDomPath.WINDOW),
+                                                                      VirtualDomPath.WINDOW),
                                      context -> {},
                                     true,
                                      Event.NO_MODIFIER)));
 
             logger.log(DEBUG, () -> "Live page started: " + this);
+
+            lifeCycleEventsListener.pageCreated(qsid, rootComponent.getState(), rootComponent);
         }
     }
 
@@ -116,7 +115,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final LivePageSession livePage = (LivePageSession) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
-            lifeCycleEventsListener.afterPageClosed(livePage.qsid);
+            lifeCycleEventsListener.pageClosed(livePage.qsid);
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }
