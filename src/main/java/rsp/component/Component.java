@@ -57,6 +57,12 @@ public final class Component<T, S> implements NewState<S> {
         children.add(component);
     }
 
+    public void setRootTagIfNotSet(Tag newTag) {
+        if (this.tag == null) {
+            this.tag = newTag;
+        }
+    }
+
     public S resolveState() {
         final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
         final CompletableFuture<S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
@@ -73,13 +79,6 @@ public final class Component<T, S> implements NewState<S> {
 
     public S getState() {
         return state;
-    }
-
-    public void setRootTagIfNotSet(Tag newTag) {
-        if (this.tag == null)
-        {
-            this.tag = newTag;
-        }
     }
 
     @Override
@@ -129,8 +128,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public Map<Event.Target, Event> recursiveEvents() {
-        final Map<Event.Target, Event> recursiveEvents = new HashMap<>();
-        recursiveEvents.putAll(events);
+        final Map<Event.Target, Event> recursiveEvents = new HashMap<>(events);
         for (Component<?, ?> childComponent : children) {
             recursiveEvents.putAll(childComponent.recursiveEvents());
         }
@@ -138,8 +136,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public Map<Ref, VirtualDomPath> recursiveRefs() {
-        final Map<Ref, VirtualDomPath> recursiveRefs = new HashMap<>();
-        recursiveRefs.putAll(refs);
+        final Map<Ref, VirtualDomPath> recursiveRefs = new HashMap<>(refs);
         for (Component<?, ?> childComponent : children) {
             recursiveRefs.putAll(childComponent.recursiveRefs());
         }
