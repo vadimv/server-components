@@ -53,9 +53,9 @@ To start using it, add the dependency:
 
 ### Routing
 
-An initial page generation consists of two phases:
-- routing an incoming HTTP request and/or URL paths resulting in setup of the page's components immutable state objects
-- rendering these state objects into the components views resulting a HTTP response
+An initial HTML generation consists of two phases:
+- routing an incoming HTTP request and/or URL paths resulting in setup of the page's components state objects
+- rendering these state objects and the components' views to the result HTML markup
 
 To define a routing of an incoming request, create a ``Routing`` object for components and/or provide it as an application's constructor parameter:
 
@@ -73,8 +73,8 @@ To define a routing of an incoming request, create a ``Routing`` object for comp
                       NotFound.INSTANCE);
     }
 ```
-During a dispatch, routes are verified one by one for a matching HTTP method and path pattern. 
-Routes path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
+During a dispatch, the routes are verified one by one for a matching HTTP method and a path pattern. 
+Route path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
 The matched variables values become available as the correspondent handlers' parameters alongside with the request details object.
 The route's handler function should return a ``CompletableFuture`` of the page's state:
 
@@ -138,7 +138,7 @@ provide the DSL Java code as below:
 where:
 - HTML tags are represented by the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
-- the lambda's parameter `state` is the current state snapshot
+- the lambda's parameter `state` is the current state object
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 ```java
@@ -281,8 +281,8 @@ To respond to browser events, register a page DOM event handler by adding an ``o
     static final class State { final int counter; State(final int counter) { this.counter = counter; } }
 ```
 
-When an event occurs:
-- the page sends the event data message to the server
+When an event occurs on the client-side:
+- the browser's page sends the event data message to the server via WebSocket
 - the system fires its registered event handler's Java code
 
 An event handler's code usually sets a new application's state snapshot, calling one of the overloaded ``UseState<S>.accept()`` methods on the application state accessor.
@@ -461,8 +461,8 @@ Later this reference could be used for the schedule cancellation.
            text("Start"),
            on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
     button(attr("type", "button"),
-               text("Stop"),
-               on("click", c -> c.cancelSchedule(TIMER_0)))
+           text("Stop"),
+           on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
 ### How to build the project and run tests
