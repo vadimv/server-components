@@ -12,6 +12,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * A definition of a stateful component.
+ */
 public final class ComponentDefinition<T, S> implements SegmentDefinition {
     private static final System.Logger logger = System.getLogger(ComponentDefinition.class.getName());
 

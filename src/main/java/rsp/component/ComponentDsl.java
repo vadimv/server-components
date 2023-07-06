@@ -12,6 +12,9 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
+/**
+ * Stateful components definitions domain-specific language functions.
+ */
 public class ComponentDsl {
 
     /**
