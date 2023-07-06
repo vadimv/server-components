@@ -89,12 +89,12 @@ public final class Component<T, S> implements NewState<S> {
 
     @Override
     public void applyWhenComplete(final CompletableFuture<S> newState) {
-        newState.thenAccept(s -> set(s));
+        newState.thenAccept(this::set);
     }
 
     @Override
     public void applyIfPresent(final Function<S, Optional<S>> stateTransformer) {
-        stateTransformer.apply(state).ifPresent(s -> set(s));
+        stateTransformer.apply(state).ifPresent(this::set);
     }
 
     @Override
