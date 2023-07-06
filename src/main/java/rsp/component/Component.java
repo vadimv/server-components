@@ -35,7 +35,7 @@ public final class Component<T, S> implements NewState<S> {
     private final AtomicReference<LivePageSession> livePageContext;
 
     private S state;
-    public Tag tag;
+    private Tag tag;
 
     public Component(final Lookup stateOriginLookup,
                      final Class<T> stateOriginClass,
@@ -73,6 +73,13 @@ public final class Component<T, S> implements NewState<S> {
 
     public S getState() {
         return state;
+    }
+
+    public void setRootTagIfNotSet(Tag newTag) {
+        if (this.tag == null)
+        {
+            this.tag = newTag;
+        }
     }
 
     @Override

@@ -83,22 +83,22 @@ public final class DomTreeRenderContext implements RenderContext {
         if (rootTag == null) {
             rootTag = new Tag(rootPath, xmlns, name);
             tagsStack.push(rootTag);
-            setComponentRootTag(rootTag);
+            trySetCurrentComponentRootTag(rootTag);
         } else {
             final Tag parent = tagsStack.peek();
             final int nextChild = parent.children.size() + 1;
             final Tag newTag = new Tag(parent.path.childNumber(nextChild), xmlns, name);
             parent.addChild(newTag);
             tagsStack.push(newTag);
-            setComponentRootTag(newTag);
+            trySetCurrentComponentRootTag(newTag);
         }
     }
 
-    private void setComponentRootTag(final Tag newTag) {
+    private void trySetCurrentComponentRootTag(final Tag newTag) {
         final Component<?, ?> component = componentsStack.peek();
-        if (component != null && component.tag == null)
+        if (component != null)
         {
-            component.tag = newTag;
+            component.setRootTagIfNotSet(newTag);
         }
     }
 
