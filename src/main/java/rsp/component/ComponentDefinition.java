@@ -39,11 +39,9 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
                                                                                        initialStateFunction,
                                                                                        state2pathFunction,
                                                                                        componentView);
-
-        final SegmentDefinition view = componentView.apply(newComponentHandler._1).apply(newComponentHandler._2);
-
+        final SegmentDefinition view = componentView.apply(newComponentHandler._1)
+                                                    .apply(newComponentHandler._2);
         view.render(renderContext);
-
         renderContext.closeComponent();
     }
 }
