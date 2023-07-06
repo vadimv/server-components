@@ -33,13 +33,6 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
         this.componentView = Objects.requireNonNull(componentView);
     }
 
-/*    public ComponentDefinition(final S initialState,
-                               final ComponentView<S> componentView) {
-        this((Class<T>) Path.class,
-             __ -> CompletableFuture.completedFuture(Objects.requireNonNull(initialState)),
-             (__, path) -> path, componentView);
-    }*/
-
     @Override
     public void render(final RenderContext renderContext) {
         final Tuple2<S, NewState<S>> newComponentHandler = renderContext.openComponent(stateFunctionInputClass,
