@@ -9,11 +9,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public final class RenderedPage<S> {
     public final HttpRequestLookup httpRequestLookup;
     public final Component<?, S> rootComponent;
-    public final AtomicReference<LivePage> livePageContext;
+    public final AtomicReference<LivePageSession> livePageContext;
 
     public RenderedPage(final HttpRequestLookup httpRequestLookup,
                         final Component<?, S> rootComponent,
-                        final AtomicReference<LivePage> livePageContext) {
+                        final AtomicReference<LivePageSession> livePageContext) {
 
         this.httpRequestLookup = Objects.requireNonNull(httpRequestLookup);
         this.rootComponent = Objects.requireNonNull(rootComponent);

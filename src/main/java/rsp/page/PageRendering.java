@@ -21,6 +21,7 @@ import static java.lang.System.Logger.Level.TRACE;
 
 public final class PageRendering<S> {
     private static final System.Logger logger = System.getLogger(PageRendering.class.getName());
+
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 
@@ -33,9 +34,9 @@ public final class PageRendering<S> {
     public PageRendering(final ComponentDefinition<HttpRequest, S> rootComponent,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          final BiFunction<String, RenderContext, RenderContext> enrich) {
-        this.rootComponent = rootComponent;
-        this.renderedPages = pagesStorage;
-        this.enrich = enrich;
+        this.rootComponent = Objects.requireNonNull(rootComponent);
+        this.renderedPages = Objects.requireNonNull(pagesStorage);
+        this.enrich = Objects.requireNonNull(enrich);
     }
 
     public CompletableFuture<HttpResponse> httpResponse(final HttpRequest request) {
@@ -78,7 +79,7 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
+            final AtomicReference<LivePageSession> livePageContext = new AtomicReference<>();
             final HttpRequestLookup httpRequestLookup = new HttpRequestLookup(request);
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
                                                                                  httpRequestLookup,

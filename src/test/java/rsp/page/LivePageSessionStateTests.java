@@ -4,9 +4,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Assert;
 import org.junit.Test;
 import rsp.component.Component;
+import rsp.server.RemoteOut;
 import rsp.stateview.ComponentView;
 import rsp.dom.*;
-import rsp.server.Out;
 import rsp.stateview.NewState;
 
 import java.util.ArrayList;
@@ -19,13 +19,13 @@ import java.util.stream.Collectors;
 
 import static rsp.html.HtmlDsl.span;
 
-public class LivePageStateTests {
+public class LivePageSessionStateTests {
 
     private static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
     @Test
     public void should_generate_update_commands_for_same_state() {
-        final TestCollectingOut out = new TestCollectingOut();
+        final TestCollectingRemoteOut out = new TestCollectingRemoteOut();
         final NewState<State> liveComponent = create(new State(0), out);
         liveComponent.set(new State(0));
         Assert.assertEquals(List.of(), out.commands);
@@ -43,10 +43,10 @@ public class LivePageStateTests {
                             out.commands);*/
     }
 
-    private Component<String, State> create(final State initialState, final Out out) {
+    private Component<String, State> create(final State initialState, final RemoteOut remoteOut) {
         final ComponentView<State> view = state -> newState -> span(state.toString());
 
-        final AtomicReference<LivePage> livePageSupplier = new AtomicReference<>();
+        final AtomicReference<LivePageSession> livePageSupplier = new AtomicReference<>();
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
                                                                     null,
                                                                      livePageSupplier);
@@ -86,7 +86,7 @@ public class LivePageStateTests {
         }
     }
 
-    private static class TestCollectingOut implements Out {
+    private static class TestCollectingRemoteOut implements RemoteOut {
         public final List<Message> commands = new ArrayList<>();
 
         @Override

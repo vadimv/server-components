@@ -10,7 +10,7 @@ import rsp.dom.XmlNs;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class SerializeOutTests {
+public class SerializeRemoteOutTests {
 
     @Test
     public void should_set_render_num() {
@@ -118,8 +118,8 @@ public class SerializeOutTests {
         Assert.assertEquals("[15,\"click\",\"1_1\"]", c.result);
     }
 
-    private SerializeOut create(final Consumer<String> consumer) {
-        return new SerializeOut(consumer);
+    private SerializeRemoteOut create(final Consumer<String> consumer) {
+        return new SerializeRemoteOut(consumer);
     }
 
 

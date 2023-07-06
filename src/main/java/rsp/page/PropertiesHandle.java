@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.dom.XmlNs;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.DefaultDomChangesContext;
-import rsp.server.Out;
+import rsp.server.RemoteOut;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -17,16 +17,16 @@ public final class PropertiesHandle {
     private final VirtualDomPath path;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers;
-    private final Out out;
+    private final RemoteOut remoteOut;
 
     public PropertiesHandle(final VirtualDomPath path,
                             final Supplier<Integer> descriptorSupplier,
                             final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
-                            final Out out) {
+                            final RemoteOut remoteOut) {
         this.path = Objects.requireNonNull(path);
         this.descriptorSupplier = Objects.requireNonNull(descriptorSupplier);
         this.registeredEventHandlers = Objects.requireNonNull(registeredEventHandlers);
-        this.out = Objects.requireNonNull(out);
+        this.remoteOut = Objects.requireNonNull(remoteOut);
     }
 
     /**
@@ -38,7 +38,7 @@ public final class PropertiesHandle {
         final Integer newDescriptor = descriptorSupplier.get();
         final CompletableFuture<JsonDataType> valueFuture = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, valueFuture);
-        out.extractProperty(newDescriptor, path, propertyName);
+        remoteOut.extractProperty(newDescriptor, path, propertyName);
         return valueFuture;
     }
 
@@ -47,7 +47,7 @@ public final class PropertiesHandle {
     }
 
     public CompletableFuture<Void> set(final String propertyName, final String value) {
-        out.modifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true)));
+        remoteOut.modifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true)));
         return new CompletableFuture<>();
     }
 

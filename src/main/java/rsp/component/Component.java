@@ -4,10 +4,10 @@ import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.html.SegmentDefinition;
-import rsp.page.LivePage;
+import rsp.page.LivePageSession;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
-import rsp.server.Out;
+import rsp.server.RemoteOut;
 import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.NewState;
@@ -32,7 +32,7 @@ public final class Component<T, S> implements NewState<S> {
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContext parentRenderContext;
-    private final AtomicReference<LivePage> livePageContext;
+    private final AtomicReference<LivePageSession> livePageContext;
 
     private S state;
     public Tag tag;
@@ -43,7 +43,7 @@ public final class Component<T, S> implements NewState<S> {
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContext parentRenderContext,
-                     final AtomicReference<LivePage> livePageSupplier) {
+                     final AtomicReference<LivePageSession> livePageSupplier) {
         this.stateOriginLookup = stateOriginLookup;
         this.stateOriginClass = Objects.requireNonNull(stateOriginClass);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
@@ -92,7 +92,7 @@ public final class Component<T, S> implements NewState<S> {
 
     @Override
     public void apply(final Function<S, S> newStateFunction) {
-        final LivePage livePage = livePageContext.get();
+        final LivePageSession livePage = livePageContext.get();
         synchronized (livePage) {
             final Tag oldTag = tag;
             final Map<Event.Target, Event> oldEvents = oldTag != null ?
@@ -139,9 +139,9 @@ public final class Component<T, S> implements NewState<S> {
         return recursiveRefs;
     }
 
-    public void listenEvents(final Out out) {
-        out.listenEvents(events.values().stream().collect(Collectors.toList()));
-        children.forEach(childComponent -> childComponent.listenEvents(out));
+    public void listenEvents(final RemoteOut remoteOut) {
+        remoteOut.listenEvents(events.values().stream().collect(Collectors.toList()));
+        children.forEach(childComponent -> childComponent.listenEvents(remoteOut));
     }
 
     public void addEvent(Event.Target eventTarget, Event event) {
