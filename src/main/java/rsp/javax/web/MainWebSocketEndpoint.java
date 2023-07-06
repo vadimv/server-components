@@ -42,7 +42,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onOpen(final Session session, final EndpointConfig endpointConfig) {
         logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
-        final Out out = new SerializeOut((msg) -> sendText(session, msg));
+        final RemoteOut remoteOut = new SerializeRemoteOut((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
@@ -53,23 +53,20 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
             if (!isKnownLostSession(qsid)) {
                 logger.log(WARNING, () -> "Reload a remote on: " + handshakeRequest.uri.getHost() + ":" + handshakeRequest.uri.getPort());
-                out.evalJs(-1, "RSP.reload()");
+                remoteOut.evalJs(-1, "RSP.reload()");
             }
         } else {
             final Component<?, S> rootComponent = renderedPage.rootComponent;
-
-            lifeCycleEventsListener.beforeLivePageCreated(qsid, rootComponent.getState());
-
-            final LivePage livePage = new LivePage(qsid,
-                                                   basePath,
-                                                   renderedPage.httpRequestLookup,
-                                                   schedulerSupplier.get(),
-                                                   rootComponent,
-                                                   out);
+            final LivePageSession livePage = new LivePageSession(qsid,
+                                                                 basePath,
+                                                                 renderedPage.httpRequestLookup,
+                                                                 schedulerSupplier.get(),
+                                                                 rootComponent,
+                                                                 remoteOut);
             renderedPage.livePageContext.set(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
-            final DeserializeInMessage in = new DeserializeInMessage(livePage);
+            final DeserializeRemoteInMessage in = new DeserializeRemoteInMessage(livePage);
             session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
                 public void onMessage(final String s) {
@@ -78,15 +75,17 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 }
             });
 
-            out.setRenderNum(0);
-            rootComponent.listenEvents(out);
-            out.listenEvents(List.of(new Event(new Event.Target(LivePage.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                                                VirtualDomPath.WINDOW),
+            remoteOut.setRenderNum(0);
+            rootComponent.listenEvents(remoteOut);
+            remoteOut.listenEvents(List.of(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                                                                      VirtualDomPath.WINDOW),
                                      context -> {},
                                     true,
                                      Event.NO_MODIFIER)));
 
             logger.log(DEBUG, () -> "Live page started: " + this);
+
+            lifeCycleEventsListener.pageCreated(qsid, rootComponent.getState(), rootComponent);
         }
     }
 
@@ -113,10 +112,10 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private void shutdown(final Session session) {
         @SuppressWarnings("unchecked")
-        final LivePage livePage = (LivePage) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
+        final LivePageSession livePage = (LivePageSession) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
-            lifeCycleEventsListener.afterLivePageClosed(livePage.qsid);
+            lifeCycleEventsListener.pageClosed(livePage.qsid);
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }

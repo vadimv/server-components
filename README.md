@@ -17,7 +17,7 @@
 * [Evaluating JavaScript code on the client-side](#evaluating-javascript-code-on-the-client-side)
 * [Navigation bar URL path](#navigation-bar-url-path-and-components-state-mapping)
 * [Page lifecycle events](#page-lifecycle-events)
-* [Application and server's configuration](#application-and-servers-configuration)
+* [Application and server's configuration](#application-servers-configuration)
 * [Schedules and timers](#schedules)
 * [Logging](#logging)
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
@@ -26,8 +26,8 @@
 
 rsp is a lightweight modern server-side web framework for Java.
 
-A web application supports two types of web pages:
-- single-page application (SPA) with the page's live session and its state on the server
+With rsp, for a typical web application, two types of web pages are supported:
+- single-page application (SPA), server-rendered, with page's live session and its state on the server, e.g. for the admin UI
 - plain server-rendered detached HTML pages
 
 ### Maven
@@ -53,11 +53,11 @@ To start using it, add the dependency:
 
 ### Routing
 
-An application's initial page generation consist of two steps:
-- routing an incoming HTTP request and/or URL paths with a result of the components' immutable state objects;
-- rendering these state objects into the result HTTP response.
+An initial HTML generation consists of two phases:
+- routing an incoming HTTP request and/or URL paths resulting in setup of the page's components state objects
+- rendering these state objects and the components' views to the result HTML markup
 
-To configure a routing of an incoming request, create a Routing object and provide it as an application's constructor parameter:
+To define a routing of an incoming request, create a ``Routing`` object for components and/or provide it as an application's constructor parameter:
 
 ```java
     import static rsp.html.RoutingDsl.*;
@@ -73,9 +73,9 @@ To configure a routing of an incoming request, create a Routing object and provi
                       NotFound.INSTANCE);
     }
 ```
-During a dispatch, routes are verified one by one for a matching HTTP method and path pattern. 
-Routes path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
-The matched variables values become available as the correspondent handler functions ``String`` parameters alongside with the request details object.
+During a dispatch, the routes are verified one by one for a matching HTTP method and a path pattern. 
+Route path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
+The matched variables values become available as the correspondent handlers' parameters alongside with the request details object.
 The route's handler function should return a ``CompletableFuture`` of the page's state:
 
 ```java
@@ -85,8 +85,8 @@ The route's handler function should return a ``CompletableFuture`` of the page's
 If needed, extract a paths-specific routing section:
 
 ```java
-    final Route<HttpRequest, State> routing = concat(get(__ -> paths()),  //TODO
-                                                    any(State.pageNotFound()));
+    final Routing<HttpRequest, State> routing = routing(concat(get(__ -> paths()),
+                                                        State.pageNotFound()));
     
     private static PathRoutes<State> paths() {
          return concat(path("/articles", db.getArticles().thenApply(articles -> State.ofArticles(articles))),
@@ -104,7 +104,7 @@ The ``any()`` route matches every request.
 
 ### HTML markup Java DSL
 
-rsp provides a Java internal domain-specific language (DSL) for declarative definition of an HTML as a composition of functions.
+rsp provides a Java internal domain-specific language (DSL) for declarative definition of HTML views as a composition of functions.
 
 For example, to re-write the HTML fragment:
 
@@ -138,7 +138,7 @@ provide the DSL Java code as below:
 where:
 - HTML tags are represented by the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are represented by the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
-- the lambda's parameter `state` is the current state snapshot
+- the lambda's parameter `state` is the current state object
 
 The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
 ```java
@@ -204,9 +204,9 @@ For example:
 ```
 ### UI Stateful Components
 
-SPA pages are composed of components of two kinds:
-- stateful components, and
-- stateless views.
+Actually, SPA pages are composed of components of two kinds:
+- Stateful components, and
+- Stateless views
 
 A stateful component has its own mutable state associated.
 Use Component's DSL  ``component()`` overloaded functions to create a stateful component.
@@ -235,9 +235,9 @@ An application's top-level ``ComponentDefintion<S>`` is the root of its componen
 
 ### Components state model
 
-An application components state is modeled as a finite state machine (FSM) and managed inside the framework.
+A component's state is modeled as a finite state machine (FSM) and managed by the framework.
 Any state change must be initiated by invoking of one of the ``NewState`` interface methods, like ``set()`` and ``apply()``.
-Normally state transitions are triggered by events.
+Normally, state transitions are triggered by the browser's events.
 
 The following example shows how a page state can be modelled using records, sealed interfaces and pattern matching:
 
@@ -281,9 +281,9 @@ To respond to browser events, register a page DOM event handler by adding an ``o
     static final class State { final int counter; State(final int counter) { this.counter = counter; } }
 ```
 
-When an event occurs:
-- the page sends the event data message to the server
-- the system fires its registered event handler's Java code.
+When an event occurs on the client-side:
+- the browser's page sends the event data message to the server via WebSocket
+- the system fires its registered event handler's Java code
 
 An event handler's code usually sets a new application's state snapshot, calling one of the overloaded ``UseState<S>.accept()`` methods on the application state accessor.
 
@@ -295,7 +295,7 @@ A new set state snapshot triggers the following sequence of actions:
 
 The event handler's ``EventContext`` class parameter has a number of utility methods.  
 
-Some types of browser events, like a mouse move, may fire a lot of invocations. 
+Some types of browser events, like a mouse move, may fire a lot of events' invocations. 
 Sending all these notifications over the network and processing them on the server side may cause the system's overload.
 To filter the events before sending use the following event object's methods:
 - ``throttle(int timeFrameMs)``
@@ -309,7 +309,7 @@ To filter the events before sending use the following event object's methods:
         )
 ```
 
-The context's ``EventContext.eventObject()`` method reads the event's object as a JSON-like data structure:
+The context's ``EventContext.eventObject()`` method reads the event's object as a JSON data structure:
 
 ```java
     form(on("submit", ctx -> {
@@ -324,12 +324,13 @@ Events code runs in a synchronized sections on a live page session state contain
 
 ### Navigation bar URL path and components state mapping
 
-A component's state could be mapped to the browser's navigation bar path. With that the current navigation path will be
-automatically converted to a component's state and vis-a-versa, the state transition will cause the navigation path to be updated accordingly.
+A component's state can be mapped to the browser's navigation bar path. 
+With that, the current navigation path will be automatically converted to a component's state and vis-a-versa,
+the state transition will cause the navigation path to be updated accordingly.
 
-The Back and Forward browser's history buttons clicks initiate state transitions.
+The "Back" and "Forward" browser's history buttons clicks initiate state transitions.
 
-Here is an example, where the first element of a path is mapped to an integer id, and id is mapped to the first element of the path:
+This is an example, where the first element of a path is mapped to an integer id, and id is mapped to the first element of the path:
 
 ```java
     import static rsp.component.ComponentDsl.*;
@@ -345,7 +346,7 @@ If not configured, the default state-to-path mapping sets an empty path for any 
 
 ### DOM elements references
 
-One of these methods allows access to client-side document elements properties values by elements references.
+One of the event context object's methods allows access to client-side document elements properties values by elements references.
 
 ```java
     final ElementRef inputRef = createElementRef();
@@ -383,29 +384,27 @@ To invoke arbitrary JavaScript in the browser use the ``ctx.evalJs()`` method of
                on("click",
                   ctx -> ctx.evalJs("alert('Hello from the server')"))),
         button(attr("type", "button"),
-                text("Calculate"),
-                on("click",
-                   ctx -> ctx.evalJs("1+1").whenComplete((r,e) -> System.out.println("1+1=" + r)))
+               text("Calculate"),
+               on("click",
+                  ctx -> ctx.evalJs("1+1").whenComplete((r,e) -> System.out.println("1+1=" + r)))
    ...
 ```
 
 ### Page lifecycle events
 
 Provide an implementation of the ``PageLifecycle`` interface as a parameter on an application's constructor.
-This allows to listen to the SPA page's lifecycle events:
+This allows to listen to an SPA page's lifecycle events:
 - before the page is created
 - after the page is closed
 
 ```java
     final PageLifeCycle<Integer> plc = new PageLifeCycle.Default<Integer>() {
         @Override
-        public void beforeLivePageCreated(QualifiedSessionId sid, UseState<Integer> useState) {
+        public void pageCreated(QualifiedSessionId sid, Integer initialState, NewState<Integer> newState) {
             final Thread t = new Thread(() -> {
                 try {
                     Thread.sleep(10_000);
-                    synchronized (useState) {
-                        useState.accept(useState.get() + 1);
-                    }
+                    newState.apply(s -> s + 1);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -417,7 +416,7 @@ This allows to listen to the SPA page's lifecycle events:
     final App<Optional<FullName>> app = new App<>(route(), pages()).pageLifeCycle(plc);
     ...
 ```
-Add these listeners, for example, when you need to subscribe to some messages stream on a page live session creation
+Use these listeners, when you need to subscribe to some messages stream on a page live session creation
 and unsubscribing when the page closes.
 
 ### Application server's configuration
@@ -451,8 +450,8 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 ### Schedules
 
 The framework provides the ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` utility methods 
-allowing to submit of a delayed or periodic action that can be cancelled.
-A timer reference parameter may be provided when creating a new schedule. 
+which allows to submit a delayed or periodic action that can be cancelled.
+A timer's reference parameter may be provided when creating a new schedule. 
 Later this reference could be used for the schedule cancellation.
 
 ```java
@@ -462,8 +461,8 @@ Later this reference could be used for the schedule cancellation.
            text("Start"),
            on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
     button(attr("type", "button"),
-               text("Stop"),
-               on("click", c -> c.cancelSchedule(TIMER_0)))
+           text("Stop"),
+           on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
 ### How to build the project and run tests

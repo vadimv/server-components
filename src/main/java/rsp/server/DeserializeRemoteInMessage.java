@@ -10,13 +10,15 @@ import rsp.util.json.JsonSimpleUtils;
 
 import java.util.Objects;
 
+import static java.lang.System.Logger.Level.TRACE;
+
 /**
  * The communication protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
  */
-public final class DeserializeInMessage {
-    private static final System.Logger logger = System.getLogger(DeserializeInMessage.class.getName());
+public final class DeserializeRemoteInMessage {
+    private static final System.Logger logger = System.getLogger(DeserializeRemoteInMessage.class.getName());
 
-    private final In in;
+    private final RemoteIn remoteIn;
 
     private static final int DOM_EVENT = 0; // `$renderNum:$elementId:$eventType`
     private static final int CUSTOM_CALLBACK = 1; // `$name:arg`
@@ -31,8 +33,8 @@ public final class DeserializeInMessage {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public DeserializeInMessage(final In in) {
-        this.in = in;
+    public DeserializeRemoteInMessage(final RemoteIn remoteIn) {
+        this.remoteIn = remoteIn;
     }
 
     public void parse(final String message) {
@@ -58,16 +60,15 @@ public final class DeserializeInMessage {
         final int descriptorId = Integer.parseInt(tokens[0]);
         final int jsonMetadata = Integer.parseInt(tokens[1]);
         final Either<Throwable, JsonDataType> result = jsonMetadata == JSON_METADATA_DATA ?
-                Either.right(JsonSimpleUtils.convertToJsonType(value))
-                :
+                Either.right(JsonSimpleUtils.convertToJsonType(value)) :
                 Either.left(new RuntimeException("Property not found"));
-        in.handleExtractPropertyResponse(descriptorId,
+        remoteIn.handleExtractPropertyResponse(descriptorId,
                                                  result);
     }
 
     private void parseEvalJsResponse(final String metadata, final Object value) {
         final String[] tokens = metadata.split(":");
-        in.handleEvalJsResponse(Integer.parseInt(tokens[0]),
+        remoteIn.handleEvalJsResponse(Integer.parseInt(tokens[0]),
                                         JsonSimpleUtils.convertToJsonType(value));
     }
 
@@ -75,7 +76,7 @@ public final class DeserializeInMessage {
         final JsonDataType json = JsonSimpleUtils.convertToJsonType(eventObject);
         if (json instanceof JsonDataType.Object) {
             final String[] tokens = str.split(":");
-            in.handleDomEvent(Integer.parseInt(tokens[0]),
+            remoteIn.handleDomEvent(Integer.parseInt(tokens[0]),
                                       VirtualDomPath.of(tokens[1]),
                                       tokens[2],
                                       (JsonDataType.Object) JsonSimpleUtils.convertToJsonType(eventObject));
@@ -85,6 +86,6 @@ public final class DeserializeInMessage {
     }
 
     private void heartBeat() {
-        // no-op
+        logger.log(TRACE, () -> "Heartbeat message received");
     }
 }

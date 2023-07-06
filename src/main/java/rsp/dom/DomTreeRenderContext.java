@@ -1,7 +1,7 @@
 package rsp.dom;
 
 import rsp.component.Component;
-import rsp.page.LivePage;
+import rsp.page.LivePageSession;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
@@ -21,7 +21,7 @@ import java.util.function.Function;
 public final class DomTreeRenderContext implements RenderContext {
     private final VirtualDomPath rootPath;
     private final Lookup stateOriginLookup;
-    private final AtomicReference<LivePage> livePageContext;
+    private final AtomicReference<LivePageSession> livePageContext;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final Deque<Component<?, ?>> componentsStack = new ArrayDeque<>();
@@ -35,7 +35,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     public DomTreeRenderContext(final VirtualDomPath rootPath,
                                 final Lookup stateOriginLookup,
-                                final AtomicReference<LivePage> livePageContext) {
+                                final AtomicReference<LivePageSession> livePageContext) {
         this.rootPath = Objects.requireNonNull(rootPath);
         this.stateOriginLookup = stateOriginLookup;
         this.livePageContext = Objects.requireNonNull(livePageContext);
@@ -83,22 +83,22 @@ public final class DomTreeRenderContext implements RenderContext {
         if (rootTag == null) {
             rootTag = new Tag(rootPath, xmlns, name);
             tagsStack.push(rootTag);
-            setComponentRootTag(rootTag);
+            trySetCurrentComponentRootTag(rootTag);
         } else {
             final Tag parent = tagsStack.peek();
             final int nextChild = parent.children.size() + 1;
             final Tag newTag = new Tag(parent.path.childNumber(nextChild), xmlns, name);
             parent.addChild(newTag);
             tagsStack.push(newTag);
-            setComponentRootTag(newTag);
+            trySetCurrentComponentRootTag(newTag);
         }
     }
 
-    private void setComponentRootTag(final Tag newTag) {
+    private void trySetCurrentComponentRootTag(final Tag newTag) {
         final Component<?, ?> component = componentsStack.peek();
-        if (component != null && component.tag == null)
+        if (component != null)
         {
-            component.tag = newTag;
+            component.setRootTagIfNotSet(newTag);
         }
     }
 
@@ -165,6 +165,7 @@ public final class DomTreeRenderContext implements RenderContext {
         return new Tuple2<>(initialState, newComponent);
     }
 
+    @Override
     public <T, S> void openComponent(Component<T, S> component) {
         if (rootComponent == null) {
             rootComponent = component;

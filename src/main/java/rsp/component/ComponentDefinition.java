@@ -12,6 +12,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
+/**
+ * A definition of a stateful component.
+ */
 public final class ComponentDefinition<T, S> implements SegmentDefinition {
     private static final System.Logger logger = System.getLogger(ComponentDefinition.class.getName());
 
@@ -30,24 +33,15 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
         this.componentView = Objects.requireNonNull(componentView);
     }
 
-/*    public ComponentDefinition(final S initialState,
-                               final ComponentView<S> componentView) {
-        this((Class<T>) Path.class,
-             __ -> CompletableFuture.completedFuture(Objects.requireNonNull(initialState)),
-             (__, path) -> path, componentView);
-    }*/
-
     @Override
     public void render(final RenderContext renderContext) {
         final Tuple2<S, NewState<S>> newComponentHandler = renderContext.openComponent(stateFunctionInputClass,
                                                                                        initialStateFunction,
                                                                                        state2pathFunction,
                                                                                        componentView);
-
-        final SegmentDefinition view = componentView.apply(newComponentHandler._1).apply(newComponentHandler._2);
-
+        final SegmentDefinition view = componentView.apply(newComponentHandler._1)
+                                                    .apply(newComponentHandler._2);
         view.render(renderContext);
-
         renderContext.closeComponent();
     }
 }

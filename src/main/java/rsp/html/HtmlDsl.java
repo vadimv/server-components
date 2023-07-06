@@ -15,7 +15,7 @@ import java.util.stream.Stream;
 import static rsp.server.HttpStatusCodes.OK_STATUS_CODE;
 
 /**
- * A HTML tags definitions domain-specific language and related util functions.
+ * HTML tags definitions domain-specific language and related util functions.
  */
 public final class HtmlDsl {
 

@@ -6,12 +6,12 @@ import rsp.dom.VirtualDomPath;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
-public class DeserializeInMessageTests {
+public class DeserializeRemoteInMessageTests {
 
     @Test
     public void should_deserialize_dom_event_correctly() {
-        final TestIn collector = new TestIn();
-        final DeserializeInMessage p = createParser(collector);
+        final TestRemoteIn collector = new TestRemoteIn();
+        final DeserializeRemoteInMessage p = createParser(collector);
         p.parse("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
         Assert.assertTrue(collector.result instanceof DomEvent);
@@ -23,8 +23,8 @@ public class DeserializeInMessageTests {
 
     @Test
     public void should_deserialize_extract_property() {
-        final TestIn collector = new TestIn();
-        final DeserializeInMessage p = createParser(collector);
+        final TestRemoteIn collector = new TestRemoteIn();
+        final DeserializeRemoteInMessage p = createParser(collector);
         p.parse("[2,\"1:0\",\"bar\"]");
 
         Assert.assertTrue(collector.result instanceof ExtractProperty);
@@ -39,8 +39,8 @@ public class DeserializeInMessageTests {
 
     @Test
     public void should_deserialize_extract_missed_property() {
-        final TestIn collector = new TestIn();
-        final DeserializeInMessage p = createParser(collector);
+        final TestRemoteIn collector = new TestRemoteIn();
+        final DeserializeRemoteInMessage p = createParser(collector);
         p.parse("[2,\"1:2\"]");
 
 /*        Assert.assertTrue(collector.result instanceof ExtractProperty);
@@ -51,8 +51,8 @@ public class DeserializeInMessageTests {
 
     @Test
     public void should_deserialize_eval_js_response() {
-        final TestIn collector = new TestIn();
-        final DeserializeInMessage p = createParser(collector);
+        final TestRemoteIn collector = new TestRemoteIn();
+        final DeserializeRemoteInMessage p = createParser(collector);
         p.parse("[4,\"1:0\",\"foo\"]");
 
         Assert.assertTrue(collector.result instanceof JsResponse);
@@ -61,8 +61,8 @@ public class DeserializeInMessageTests {
         Assert.assertEquals(new JsonDataType.String("foo"), result.value);
     }
 
-    private DeserializeInMessage createParser(final In collector) {
-        return new DeserializeInMessage(collector);
+    private DeserializeRemoteInMessage createParser(final RemoteIn collector) {
+        return new DeserializeRemoteInMessage(collector);
     }
 
     private final class DomEvent {
@@ -97,7 +97,7 @@ public class DeserializeInMessageTests {
         }
     }
 
-    private final class TestIn implements In {
+    private final class TestRemoteIn implements RemoteIn {
         public Object result;
 
 
