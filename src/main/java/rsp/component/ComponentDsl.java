@@ -1,9 +1,8 @@
 package rsp.component;
 
 import rsp.html.SegmentDefinition;
-import rsp.html.TagDefinition;
 import rsp.routing.Routing;
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 import rsp.stateview.ComponentView;
 import rsp.stateview.View;

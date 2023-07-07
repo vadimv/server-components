@@ -3,16 +3,17 @@ package rsp.server;
 import org.junit.Assert;
 import org.junit.Test;
 import rsp.dom.VirtualDomPath;
+import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
-public class DeserializeRemoteInMessageTests {
+public class RemotePageMessageDecoderTests {
 
     @Test
     public void should_deserialize_dom_event_correctly() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final DeserializeRemoteInMessage p = createParser(collector);
-        p.parse("[0,\"0:1_2_1_2_2_1:click\",{}]");
+        final RemotePageMessageDecoder p = createParser(collector);
+        p.decode("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
         Assert.assertTrue(collector.result instanceof DomEvent);
         final DomEvent result = (DomEvent) collector.result;
@@ -24,8 +25,8 @@ public class DeserializeRemoteInMessageTests {
     @Test
     public void should_deserialize_extract_property() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final DeserializeRemoteInMessage p = createParser(collector);
-        p.parse("[2,\"1:0\",\"bar\"]");
+        final RemotePageMessageDecoder p = createParser(collector);
+        p.decode("[2,\"1:0\",\"bar\"]");
 
         Assert.assertTrue(collector.result instanceof ExtractProperty);
         final ExtractProperty result = (ExtractProperty) collector.result;
@@ -40,8 +41,8 @@ public class DeserializeRemoteInMessageTests {
     @Test
     public void should_deserialize_extract_missed_property() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final DeserializeRemoteInMessage p = createParser(collector);
-        p.parse("[2,\"1:2\"]");
+        final RemotePageMessageDecoder p = createParser(collector);
+        p.decode("[2,\"1:2\"]");
 
 /*        Assert.assertTrue(collector.result instanceof ExtractProperty);
         final ExtractProperty result = (ExtractProperty) collector.result;
@@ -52,8 +53,8 @@ public class DeserializeRemoteInMessageTests {
     @Test
     public void should_deserialize_eval_js_response() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final DeserializeRemoteInMessage p = createParser(collector);
-        p.parse("[4,\"1:0\",\"foo\"]");
+        final RemotePageMessageDecoder p = createParser(collector);
+        p.decode("[4,\"1:0\",\"foo\"]");
 
         Assert.assertTrue(collector.result instanceof JsResponse);
         final JsResponse result = (JsResponse) collector.result;
@@ -61,8 +62,8 @@ public class DeserializeRemoteInMessageTests {
         Assert.assertEquals(new JsonDataType.String("foo"), result.value);
     }
 
-    private DeserializeRemoteInMessage createParser(final RemoteIn collector) {
-        return new DeserializeRemoteInMessage(collector);
+    private RemotePageMessageDecoder createParser(final RemoteIn collector) {
+        return new RemotePageMessageDecoder(collector);
     }
 
     private final class DomEvent {

@@ -1,7 +1,7 @@
 package rsp.javax.web;
 
-import rsp.server.HttpRequest;
-import rsp.server.HttpResponse;
+import rsp.server.http.HttpRequest;
+import rsp.server.http.HttpResponse;
 import rsp.page.PageRendering;
 import rsp.util.ExceptionsUtils;
 

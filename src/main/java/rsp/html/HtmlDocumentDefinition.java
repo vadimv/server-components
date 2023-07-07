@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static rsp.server.HttpStatusCodes.MOVED_TEMPORARILY_STATUS_CODE;
+import static rsp.server.http.HttpStatusCodes.MOVED_TEMPORARILY_STATUS_CODE;
 
 /**
  * A definition of an HTML document.

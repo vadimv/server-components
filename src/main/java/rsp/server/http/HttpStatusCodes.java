@@ -1,4 +1,4 @@
-package rsp.server;
+package rsp.server.http;
 
 public interface HttpStatusCodes {
     int OK_STATUS_CODE = 200;

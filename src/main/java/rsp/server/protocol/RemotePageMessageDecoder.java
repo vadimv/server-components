@@ -1,9 +1,10 @@
-package rsp.server;
+package rsp.server.protocol;
 
 
 import org.json.simple.JSONArray;
 import org.json.simple.parser.JSONParser;
 import rsp.dom.VirtualDomPath;
+import rsp.server.RemoteIn;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonSimpleUtils;
@@ -13,10 +14,10 @@ import java.util.Objects;
 import static java.lang.System.Logger.Level.TRACE;
 
 /**
- * The communication protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
+ * The implementation of the text-based protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
  */
-public final class DeserializeRemoteInMessage {
-    private static final System.Logger logger = System.getLogger(DeserializeRemoteInMessage.class.getName());
+public final class RemotePageMessageDecoder {
+    private static final System.Logger logger = System.getLogger(RemotePageMessageDecoder.class.getName());
 
     private final RemoteIn remoteIn;
 
@@ -33,22 +34,21 @@ public final class DeserializeRemoteInMessage {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public DeserializeRemoteInMessage(final RemoteIn remoteIn) {
+    public RemotePageMessageDecoder(final RemoteIn remoteIn) {
         this.remoteIn = remoteIn;
     }
 
-    public void parse(final String message) {
+    public void decode(final String message) {
         Objects.requireNonNull(message);
         final JSONParser jsonParser = new JSONParser();
         try {
             final JSONArray messageJson = (JSONArray) jsonParser.parse(message);
             final int messageType = Math.toIntExact((long)messageJson.get(0));
-            switch(messageType) {
-                case DOM_EVENT: parseDomEvent((String) messageJson.get(1), messageJson.get(2)); break;
-                case EXTRACT_PROPERTY_RESPONSE: parseExtractPropertyResponse((String) messageJson.get(1), messageJson.get(2)); break;
-                case EVAL_JS_RESPONSE: parseEvalJsResponse((String) messageJson.get(1),
-                                                            messageJson.size() > 2 ? messageJson.get(2) : ""); break;
-                case HEARTBEAT: heartBeat(); break;
+            switch (messageType) {
+                case DOM_EVENT -> parseDomEvent((String) messageJson.get(1), messageJson.get(2));
+                case EXTRACT_PROPERTY_RESPONSE -> parseExtractPropertyResponse((String) messageJson.get(1), messageJson.get(2));
+                case EVAL_JS_RESPONSE -> parseEvalJsResponse((String) messageJson.get(1), messageJson.size() > 2 ? messageJson.get(2) : "");
+                case HEARTBEAT -> heartBeat();
             }
         } catch (final Throwable ex) {
             logger.log(System.Logger.Level.ERROR, "Incoming message parse exception", ex);
@@ -60,16 +60,14 @@ public final class DeserializeRemoteInMessage {
         final int descriptorId = Integer.parseInt(tokens[0]);
         final int jsonMetadata = Integer.parseInt(tokens[1]);
         final Either<Throwable, JsonDataType> result = jsonMetadata == JSON_METADATA_DATA ?
-                Either.right(JsonSimpleUtils.convertToJsonType(value)) :
-                Either.left(new RuntimeException("Property not found"));
-        remoteIn.handleExtractPropertyResponse(descriptorId,
-                                                 result);
+                                        Either.right(JsonSimpleUtils.convertToJsonType(value)) :
+                                        Either.left(new RuntimeException("Property not found"));
+        remoteIn.handleExtractPropertyResponse(descriptorId, result);
     }
 
     private void parseEvalJsResponse(final String metadata, final Object value) {
         final String[] tokens = metadata.split(":");
-        remoteIn.handleEvalJsResponse(Integer.parseInt(tokens[0]),
-                                        JsonSimpleUtils.convertToJsonType(value));
+        remoteIn.handleEvalJsResponse(Integer.parseInt(tokens[0]), JsonSimpleUtils.convertToJsonType(value));
     }
 
     private void parseDomEvent(final String str, final Object eventObject) {
@@ -77,9 +75,9 @@ public final class DeserializeRemoteInMessage {
         if (json instanceof JsonDataType.Object) {
             final String[] tokens = str.split(":");
             remoteIn.handleDomEvent(Integer.parseInt(tokens[0]),
-                                      VirtualDomPath.of(tokens[1]),
-                                      tokens[2],
-                                      (JsonDataType.Object) JsonSimpleUtils.convertToJsonType(eventObject));
+                                    VirtualDomPath.of(tokens[1]),
+                                    tokens[2],
+                                    (JsonDataType.Object) JsonSimpleUtils.convertToJsonType(eventObject));
         } else {
             throw new IllegalStateException("Unexpected type of an event object: " + eventObject.getClass().getName());
         }

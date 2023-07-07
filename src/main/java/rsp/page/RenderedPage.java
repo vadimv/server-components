@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.component.Component;
-import rsp.server.HttpRequestLookup;
+import rsp.server.http.HttpRequestLookup;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;

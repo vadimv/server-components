@@ -5,6 +5,9 @@ import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.page.*;
 import rsp.server.*;
+import rsp.server.http.HttpRequest;
+import rsp.server.protocol.RemotePageMessageDecoder;
+import rsp.server.protocol.RemotePageMessageEncoder;
 
 import javax.websocket.*;
 import javax.websocket.server.HandshakeRequest;
@@ -42,7 +45,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onOpen(final Session session, final EndpointConfig endpointConfig) {
         logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
-        final RemoteOut remoteOut = new SerializeRemoteOut((msg) -> sendText(session, msg));
+        final RemoteOut remoteOut = new RemotePageMessageEncoder((msg) -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
@@ -66,12 +69,12 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             renderedPage.livePageContext.set(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
-            final DeserializeRemoteInMessage in = new DeserializeRemoteInMessage(livePage);
+            final RemotePageMessageDecoder in = new RemotePageMessageDecoder(livePage);
             session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
                 public void onMessage(final String s) {
                     logger.log(TRACE, () -> session.getId() + " -> " + s);
-                    in.parse(s);
+                    in.decode(s);
                 }
             });
 
