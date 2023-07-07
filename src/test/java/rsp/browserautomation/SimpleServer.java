@@ -7,7 +7,7 @@ import rsp.server.Path;
 import rsp.server.StaticResources;
 import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 import rsp.stateview.View;
 
 import java.io.File;

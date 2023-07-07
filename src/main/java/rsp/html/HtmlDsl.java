@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static rsp.server.HttpStatusCodes.OK_STATUS_CODE;
+import static rsp.server.http.HttpStatusCodes.OK_STATUS_CODE;
 
 /**
  * HTML tags definitions domain-specific language and related util functions.

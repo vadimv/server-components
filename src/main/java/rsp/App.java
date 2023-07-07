@@ -1,12 +1,11 @@
 package rsp;
 
 import rsp.component.ComponentDefinition;
-import rsp.html.TagDefinition;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.routing.Routing;
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 import rsp.stateview.ComponentView;
 import rsp.stateview.View;
 

@@ -1,12 +1,5 @@
 package rsp.html;
 
-import rsp.dom.DomTreeRenderContext;
-import rsp.dom.VirtualDomPath;
-import rsp.page.RenderContext;
-import rsp.server.HttpRequest;
-
-import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * The base class for all DLS definitions classes.
  * Contains an implementation of the {@link Object#toString()} method.

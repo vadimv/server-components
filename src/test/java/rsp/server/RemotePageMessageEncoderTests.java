@@ -6,11 +6,12 @@ import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
+import rsp.server.protocol.RemotePageMessageEncoder;
 
 import java.util.List;
 import java.util.function.Consumer;
 
-public class SerializeRemoteOutTests {
+public class RemotePageMessageEncoderTests {
 
     @Test
     public void should_set_render_num() {
@@ -118,8 +119,8 @@ public class SerializeRemoteOutTests {
         Assert.assertEquals("[15,\"click\",\"1_1\"]", c.result);
     }
 
-    private SerializeRemoteOut create(final Consumer<String> consumer) {
-        return new SerializeRemoteOut(consumer);
+    private RemotePageMessageEncoder create(final Consumer<String> consumer) {
+        return new RemotePageMessageEncoder(consumer);
     }
 
 

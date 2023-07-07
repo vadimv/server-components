@@ -336,9 +336,9 @@ This is an example, where the first element of a path is mapped to an integer id
     import static rsp.component.ComponentDsl.*;
 
     static SegmentDefinition component() {
-        return component( new Routing<>(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))), -1),
-                          (id, path) -> Path.of("/" + id + "/" + path.get(0)),
-                          componentView());
+        return component(new Routing<>(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))), -1),
+                         (id, path) -> Path.of("/" + id + "/" + path.get(0)),
+                         componentView());
     }
 
 ```
@@ -394,7 +394,7 @@ To invoke arbitrary JavaScript in the browser use the ``ctx.evalJs()`` method of
 
 Provide an implementation of the ``PageLifecycle`` interface as a parameter on an application's constructor.
 This allows to listen to an SPA page's lifecycle events:
-- before the page is created
+- after the page is created
 - after the page is closed
 
 ```java

@@ -1,6 +1,6 @@
 package rsp.routing;
 
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 import rsp.util.TriFunction;
 

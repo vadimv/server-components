@@ -5,6 +5,7 @@ import rsp.dom.*;
 import rsp.html.WindowRef;
 import rsp.ref.Ref;
 import rsp.server.*;
+import rsp.server.http.HttpRequestLookup;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
@@ -51,7 +52,6 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
     }
-
 
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);

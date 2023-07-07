@@ -4,8 +4,8 @@ import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.html.TagDefinition;
 import rsp.html.HtmlDsl;
-import rsp.server.HttpRequest;
-import rsp.server.HttpRequestLookup;
+import rsp.server.http.HttpRequest;
+import rsp.server.http.HttpRequestLookup;
 
 import java.util.concurrent.atomic.AtomicReference;
 

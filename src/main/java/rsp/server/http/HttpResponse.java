@@ -1,4 +1,4 @@
-package rsp.server;
+package rsp.server.http;
 
 import rsp.util.data.Tuple2;
 

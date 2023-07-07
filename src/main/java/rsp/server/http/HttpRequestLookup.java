@@ -1,5 +1,6 @@
-package rsp.server;
+package rsp.server.http;
 
+import rsp.server.Path;
 import rsp.util.Lookup;
 
 public class HttpRequestLookup implements Lookup {

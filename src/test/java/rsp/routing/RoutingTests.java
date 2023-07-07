@@ -2,7 +2,7 @@ package rsp.routing;
 
 import org.junit.Assert;
 import org.junit.Test;
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 
 import java.net.URI;

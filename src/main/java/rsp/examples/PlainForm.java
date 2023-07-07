@@ -6,7 +6,7 @@ import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.routing.RoutingDsl;
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
 import java.util.Optional;

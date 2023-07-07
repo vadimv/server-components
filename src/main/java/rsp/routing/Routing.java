@@ -1,7 +1,5 @@
 package rsp.routing;
 
-import rsp.server.HttpRequest;
-
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;

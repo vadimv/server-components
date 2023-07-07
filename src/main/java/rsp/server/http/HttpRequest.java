@@ -1,6 +1,7 @@
-package rsp.server;
+package rsp.server.http;
 
 import rsp.page.PageRendering;
+import rsp.server.Path;
 
 import java.net.URI;
 import java.util.Arrays;

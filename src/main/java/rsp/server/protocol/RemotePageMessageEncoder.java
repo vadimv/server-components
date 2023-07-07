@@ -1,9 +1,10 @@
-package rsp.server;
+package rsp.server.protocol;
 
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.DefaultDomChangesContext.*;
+import rsp.server.RemoteOut;
 
 import java.util.Arrays;
 import java.util.List;
@@ -12,9 +13,9 @@ import java.util.function.Consumer;
 import static rsp.util.json.JsonUtils.escape;
 
 /**
- * The communication protocol is based on the protocol of Korolev project by Aleksey Fomkin
+ * The implementation of the text-based protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
  */
-public final class SerializeRemoteOut implements RemoteOut {
+public final class RemotePageMessageEncoder implements RemoteOut {
     private static final int SET_RENDER_NUM = 0; // (n)
     private static final int CLEAN_ROOT = 1; // ()
     private static final int LISTEN_EVENT = 2; // (type, preventDefault, id, modifier)
@@ -53,16 +54,16 @@ public final class SerializeRemoteOut implements RemoteOut {
     private static final int  SEARCH_LOCATION_TYPE = 3;
     private static final int  PUSH_STATE_TYPE = 4;
 
-    private final Consumer<String> messagesConsumer;
+    private final Consumer<String> messagesOut;
 
-    public SerializeRemoteOut(final Consumer<String> messagesConsumer) {
-        this.messagesConsumer = messagesConsumer;
+    public RemotePageMessageEncoder(final Consumer<String> messagesOut) {
+        this.messagesOut = messagesOut;
     }
 
     @Override
     public void setRenderNum(final int renderNum) {
         final String message = addSquareBrackets(joinString(SET_RENDER_NUM, renderNum));
-        messagesConsumer.accept(message);
+        messagesOut.accept(message);
     }
 
     @Override
@@ -74,7 +75,7 @@ public final class SerializeRemoteOut implements RemoteOut {
                                                                          quote(modifierString(e.modifier)))).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(LISTEN_EVENT,
                                                                 joinString(changes)));
-            messagesConsumer.accept(message);
+            messagesOut.accept(message);
         }
     }
 
@@ -83,7 +84,7 @@ public final class SerializeRemoteOut implements RemoteOut {
         final String message = addSquareBrackets(joinString(FORGET_EVENT,
                                                             quote(escape(eventType)),
                                                             quote(path.toString())));
-        messagesConsumer.accept(message);
+        messagesOut.accept(message);
     }
 
     private static String modifierString(final Event.Modifier eventModifier) {
@@ -104,7 +105,7 @@ public final class SerializeRemoteOut implements RemoteOut {
                                                             quote(descriptor),
                                                             quote(path),
                                                             quote(escape(name))));
-        messagesConsumer.accept(message);
+        messagesOut.accept(message);
     }
 
     @Override
@@ -113,20 +114,20 @@ public final class SerializeRemoteOut implements RemoteOut {
             final String[] changes = domChanges.stream().map(this::modifyDomMessageBody).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(MODIFY_DOM,
                                                                 joinString(changes)));
-            messagesConsumer.accept(message);
+            messagesOut.accept(message);
         }
     }
 
     @Override
     public void setHref(final String path) {
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(path)));
-        messagesConsumer.accept(message);
+        messagesOut.accept(message);
     }
 
     @Override
     public void pushHistory(final String path) {
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(path)));
-        messagesConsumer.accept(message);
+        messagesOut.accept(message);
     }
 
     private String modifyDomMessageBody(final DomChange domChange) {
@@ -164,7 +165,7 @@ public final class SerializeRemoteOut implements RemoteOut {
     @Override
     public void evalJs(final int descriptor, final String js) {
         final String message = addSquareBrackets(joinString(EVAL_JS, descriptor, quote(js)));
-        messagesConsumer.accept(message);
+        messagesOut.accept(message);
     }
 
     private String joinString(final String[] strings) {

@@ -1,6 +1,6 @@
 package rsp.javax.web;
 
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 
 import javax.servlet.http.HttpServletRequest;

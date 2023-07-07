@@ -1,6 +1,6 @@
 package rsp.routing;
 
-import rsp.server.HttpRequest;
+import rsp.server.http.HttpRequest;
 import rsp.util.TriFunction;
 
 import java.util.concurrent.CompletableFuture;

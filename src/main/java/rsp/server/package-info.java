@@ -1,4 +1,4 @@
 /**
- * HTTP(s) request and response related.
+ * Web server related classes.
  */
 package rsp.server;
