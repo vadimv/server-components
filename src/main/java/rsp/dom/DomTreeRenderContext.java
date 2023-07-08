@@ -32,12 +32,11 @@ public final class DomTreeRenderContext implements RenderContext {
     private Tag rootTag;
     private Component<?, ?> rootComponent;
 
-
     public DomTreeRenderContext(final VirtualDomPath rootPath,
                                 final Lookup stateOriginLookup,
                                 final AtomicReference<LivePageSession> livePageContext) {
         this.rootPath = Objects.requireNonNull(rootPath);
-        this.stateOriginLookup = stateOriginLookup;
+        this.stateOriginLookup = Objects.requireNonNull(stateOriginLookup);
         this.livePageContext = Objects.requireNonNull(livePageContext);
     }
 
@@ -86,6 +85,7 @@ public final class DomTreeRenderContext implements RenderContext {
             trySetCurrentComponentRootTag(rootTag);
         } else {
             final Tag parent = tagsStack.peek();
+            assert parent != null;
             final int nextChild = parent.children.size() + 1;
             final Tag newTag = new Tag(parent.path.childNumber(nextChild), xmlns, name);
             parent.addChild(newTag);
@@ -96,8 +96,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     private void trySetCurrentComponentRootTag(final Tag newTag) {
         final Component<?, ?> component = componentsStack.peek();
-        if (component != null)
-        {
+        if (component != null) {
             component.setRootTagIfNotSet(newTag);
         }
     }
@@ -154,15 +153,8 @@ public final class DomTreeRenderContext implements RenderContext {
                                                              componentView,
                                                             this,
                                                              livePageContext);
-        final S initialState = newComponent.resolveState();
-        if (rootComponent == null) {
-            rootComponent = newComponent;
-        } else {
-            final Component<?, ?> parentComponent = componentsStack.peek();
-            parentComponent.addChild(newComponent);
-        }
-        componentsStack.push(newComponent);
-        return new Tuple2<>(initialState, newComponent);
+        openComponent(newComponent);
+        return new Tuple2<>(newComponent.resolveState(), newComponent);
     }
 
     @Override
