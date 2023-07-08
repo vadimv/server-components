@@ -5,6 +5,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import rsp.component.Component;
 import rsp.server.RemoteOut;
+import rsp.server.http.HttpRequest;
+import rsp.server.http.HttpRequestLookup;
 import rsp.stateview.ComponentView;
 import rsp.dom.*;
 import rsp.stateview.NewState;
@@ -46,9 +48,10 @@ public class LivePageSessionStateTests {
     private Component<String, State> create(final State initialState, final RemoteOut remoteOut) {
         final ComponentView<State> view = state -> newState -> span(state.toString());
 
-        final AtomicReference<LivePageSession> livePageSupplier = new AtomicReference<>();
+        final AtomicReference<LivePage> livePageSupplier = new AtomicReference<>();
+        livePageSupplier.set(null);
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
-                                                                    null,
+                                                                    new HttpRequestLookup(HttpRequest.DUMMY),
                                                                      livePageSupplier);
         return new Component<>(null,
                                 String.class,

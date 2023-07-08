@@ -79,7 +79,7 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            final AtomicReference<LivePageSession> livePageContext = new AtomicReference<>();
+            final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
             final HttpRequestLookup httpRequestLookup = new HttpRequestLookup(request);
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
                                                                                  httpRequestLookup,

@@ -1,6 +1,7 @@
 package rsp.dom;
 
 import rsp.component.Component;
+import rsp.page.LivePage;
 import rsp.page.LivePageSession;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
@@ -21,7 +22,7 @@ import java.util.function.Function;
 public final class DomTreeRenderContext implements RenderContext {
     private final VirtualDomPath rootPath;
     private final Lookup stateOriginLookup;
-    private final AtomicReference<LivePageSession> livePageContext;
+    private final AtomicReference<LivePage> livePageContext;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final Deque<Component<?, ?>> componentsStack = new ArrayDeque<>();
@@ -34,7 +35,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     public DomTreeRenderContext(final VirtualDomPath rootPath,
                                 final Lookup stateOriginLookup,
-                                final AtomicReference<LivePageSession> livePageContext) {
+                                final AtomicReference<LivePage> livePageContext) {
         this.rootPath = Objects.requireNonNull(rootPath);
         this.stateOriginLookup = Objects.requireNonNull(stateOriginLookup);
         this.livePageContext = Objects.requireNonNull(livePageContext);
@@ -175,12 +176,12 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public RenderContext newContext(final VirtualDomPath path) {
-        return new DomTreeRenderContext(path, livePageContext.get().httpRequestLookup, livePageContext);
+        return new DomTreeRenderContext(path, livePageContext.get(), livePageContext);
     }
 
     @Override
     public RenderContext newContext() {
-        return new DomTreeRenderContext(rootPath, livePageContext.get().httpRequestLookup, livePageContext);
+        return new DomTreeRenderContext(rootPath, livePageContext.get(), livePageContext);
     }
 
     public VirtualDomPath rootPath() {
