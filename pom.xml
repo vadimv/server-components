@@ -11,7 +11,7 @@
     <description>A Java library for building real-time user interfaces and UI components.</description>
     <url>https://github.com/vadimv/rsp</url>
 
-    <properties><revision>0.8-SNAPSHOT</revision>
+    <properties><revision>1.0-SNAPSHOT</revision>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
