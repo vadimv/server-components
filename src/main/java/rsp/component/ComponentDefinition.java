@@ -19,12 +19,12 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
     private static final System.Logger logger = System.getLogger(ComponentDefinition.class.getName());
 
     private final Class<T> stateFunctionInputClass;
-    private final Function<T, CompletableFuture<S>> initialStateFunction;
+    private final Function<T, CompletableFuture<? extends S>> initialStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
 
     public ComponentDefinition(final Class<T> stateFunctionInputClass,
-                               final Function<T, CompletableFuture<S>> initialStateFunction,
+                               final Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                final BiFunction<S, Path, Path> state2pathFunction,
                                final ComponentView<S> componentView) {
         this.stateFunctionInputClass = Objects.requireNonNull(stateFunctionInputClass);

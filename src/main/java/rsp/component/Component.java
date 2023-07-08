@@ -28,7 +28,7 @@ public final class Component<T, S> implements NewState<S> {
 
     private final Lookup stateOriginLookup;
     private final Class<T> stateOriginClass;
-    private final Function<T, CompletableFuture<S>> resolveStateFunction;
+    private final Function<T, CompletableFuture<? extends S>> resolveStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContext parentRenderContext;
@@ -39,7 +39,7 @@ public final class Component<T, S> implements NewState<S> {
 
     public Component(final Lookup stateOriginLookup,
                      final Class<T> stateOriginClass,
-                     final Function<T, CompletableFuture<S>> resolveStateFunction,
+                     final Function<T, CompletableFuture<? extends S>> resolveStateFunction,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContext parentRenderContext,
@@ -65,7 +65,7 @@ public final class Component<T, S> implements NewState<S> {
 
     public S resolveState() {
         final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
-        final CompletableFuture<S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
+        final CompletableFuture<? extends S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
         try {
             return initialStateCompletableFuture.get();
         } catch (Exception e) {

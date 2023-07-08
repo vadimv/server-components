@@ -123,7 +123,7 @@ public final class UpgradingRenderContext implements RenderContext {
 
     @Override
     public <T, S> Tuple2<S, NewState<S>> openComponent(final Class<T> stateReferenceClass,
-                                                       final Function<T, CompletableFuture<S>> initialStateFunction,
+                                                       final Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                                        final BiFunction<S, Path, Path> state2pathFunction,
                                                        final ComponentView<S> componentView) {
         return renderContext.openComponent(stateReferenceClass, initialStateFunction, state2pathFunction, componentView);

@@ -143,7 +143,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public <T, S> Tuple2<S, NewState<S>> openComponent(final Class<T> stateOriginClass,
-                                                       final Function<T, CompletableFuture<S>> initialStateFunction,
+                                                       final Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                                        final BiFunction<S, Path, Path> state2pathFunction,
                                                        final ComponentView<S> componentView) {
         final Component<T, S> newComponent = new Component<>(stateOriginLookup,

@@ -34,7 +34,7 @@ public interface RenderContext {
                   Event.Modifier modifier);
     void addRef(Ref ref);
     <T, S> Tuple2<S, NewState<S>> openComponent(final Class<T> stateReferenceClass,
-                                                final Function<T, CompletableFuture<S>> initialStateFunction,
+                                                final Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                                 final BiFunction<S, Path, Path> state2pathFunction,
                                                 final ComponentView<S> componentView);
     <T, S> void openComponent(Component<T, S> component);
