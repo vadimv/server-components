@@ -18,7 +18,7 @@
 
         <junit.version>4.12</junit.version>
         <jcip-annotations.version>1.0-1</jcip-annotations.version>
-        <equalsverifier.version>3.10.1</equalsverifier.version>
+        <equalsverifier.version>3.15</equalsverifier.version>
         <playwright.version>1.35.0</playwright.version>
 
         <jetty.version>9.4.31.v20200723</jetty.version>
@@ -80,7 +80,6 @@
                     <encoding>UTF-8</encoding>
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
-                        <arg>--enable-preview</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -115,6 +114,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven-javadoc-plugin.version}</version>
                 <configuration>
+                    <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
                     <doclint>all,-missing</doclint>
                     <excludePackageNames>rsp.dom:rsp.examples:rsp.dom:rsp.examples.*:rsp.javax.web:rsp.server:rsp.page</excludePackageNames>
                 </configuration>

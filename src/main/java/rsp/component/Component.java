@@ -4,7 +4,7 @@ import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.html.SegmentDefinition;
-import rsp.page.LivePageSession;
+import rsp.page.LivePage;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
@@ -28,22 +28,22 @@ public final class Component<T, S> implements NewState<S> {
 
     private final Lookup stateOriginLookup;
     private final Class<T> stateOriginClass;
-    private final Function<T, CompletableFuture<S>> resolveStateFunction;
+    private final Function<T, CompletableFuture<? extends S>> resolveStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContext parentRenderContext;
-    private final AtomicReference<LivePageSession> livePageContext;
+    private final AtomicReference<LivePage> livePageContext;
 
     private S state;
     private Tag tag;
 
     public Component(final Lookup stateOriginLookup,
                      final Class<T> stateOriginClass,
-                     final Function<T, CompletableFuture<S>> resolveStateFunction,
+                     final Function<T, CompletableFuture<? extends S>> resolveStateFunction,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContext parentRenderContext,
-                     final AtomicReference<LivePageSession> livePageSupplier) {
+                     final AtomicReference<LivePage> livePageSupplier) {
         this.stateOriginLookup = stateOriginLookup;
         this.stateOriginClass = Objects.requireNonNull(stateOriginClass);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
@@ -65,7 +65,7 @@ public final class Component<T, S> implements NewState<S> {
 
     public S resolveState() {
         final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
-        final CompletableFuture<S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
+        final CompletableFuture<? extends S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
         try {
             return initialStateCompletableFuture.get();
         } catch (Exception e) {
@@ -98,7 +98,7 @@ public final class Component<T, S> implements NewState<S> {
 
     @Override
     public void apply(final Function<S, S> newStateFunction) {
-        final LivePageSession livePage = livePageContext.get();
+        final LivePage livePage = livePageContext.get();
         synchronized (livePage) {
             final Tag oldTag = tag;
             final Map<Event.Target, Event> oldEvents = oldTag != null ?

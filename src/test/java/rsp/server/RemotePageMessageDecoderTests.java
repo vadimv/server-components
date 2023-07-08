@@ -39,18 +39,6 @@ public class RemotePageMessageDecoderTests {
     }
 
     @Test
-    public void should_deserialize_extract_missed_property() {
-        final TestRemoteIn collector = new TestRemoteIn();
-        final RemotePageMessageDecoder p = createParser(collector);
-        p.decode("[2,\"1:2\"]");
-
-/*        Assert.assertTrue(collector.result instanceof ExtractProperty);
-        final ExtractProperty result = (ExtractProperty) collector.result;
-        Assert.assertEquals(1, result.descriptorId);
-        result.value.on(v -> {}, v -> Assert.fail());*/
-    }
-
-    @Test
     public void should_deserialize_eval_js_response() {
         final TestRemoteIn collector = new TestRemoteIn();
         final RemotePageMessageDecoder p = createParser(collector);

@@ -27,7 +27,7 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
     public static String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     public final QualifiedSessionId qsid;
-    public final HttpRequestLookup httpRequestLookup;
+    private final HttpRequestLookup httpRequestLookup;
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final Component<?, ?> rootComponent;
@@ -51,6 +51,16 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
         this.scheduledExecutorService = Objects.requireNonNull(scheduledExecutorService);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
+    }
+
+    public void init() {
+        rootComponent.listenEvents(remoteOut);
+
+        remoteOut.listenEvents(List.of(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                                                                  VirtualDomPath.WINDOW),
+                                                                  context -> {},
+                                                                 true,
+                                                                  Event.NO_MODIFIER)));
     }
 
     public void shutdown() {
@@ -253,5 +263,10 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
             remoteOut.pushHistory(basePath.resolve(newPath).toString());
             logger.log(DEBUG, () -> "Path update: " + newPath);
         }
+    }
+
+    @Override
+    public <T> T lookup(Class<T> clazz) {
+        return httpRequestLookup.lookup(clazz);
     }
 }

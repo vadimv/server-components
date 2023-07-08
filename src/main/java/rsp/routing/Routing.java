@@ -32,8 +32,8 @@ public final class Routing<T, S> {
         }
     }
 
-    public Function<T, CompletableFuture<S>> toInitialStateFunction() {
-        return httpRequest -> (CompletableFuture<S>) route(httpRequest);
+    public Function<T, CompletableFuture<? extends S>> toInitialStateFunction() {
+        return httpRequest -> route(httpRequest);
     }
 
 }
