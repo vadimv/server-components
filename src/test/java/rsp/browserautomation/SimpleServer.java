@@ -77,11 +77,15 @@ public class SimpleServer {
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
 
-    private static final View<AppState> appComponentView = state ->
-        switch (state) {
-            case NotFoundState nfs -> statelessComponent(nfs, notFoundStatelessView);
-            case CountersState countersState ->  component(countersState, countersComponentView);
-        };
+    private static final View<AppState> appComponentView = state -> {
+        if (state instanceof NotFoundState) {
+            return statelessComponent((NotFoundState) state, notFoundStatelessView);
+        } else if (state instanceof CountersState) {
+            return component((CountersState) state, countersComponentView);
+        } else {
+            throw new IllegalStateException();
+        }
+    };
 
 
     public SimpleServer(final JettyServer<AppState> jetty) {

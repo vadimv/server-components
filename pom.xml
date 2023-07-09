@@ -80,7 +80,6 @@
                     <encoding>UTF-8</encoding>
                     <compilerArgs>
                         <arg>-Xlint:all</arg>
-                        <arg>--enable-preview</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -115,6 +114,7 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven-javadoc-plugin.version}</version>
                 <configuration>
+                    <javadocExecutable>${java.home}/bin/javadoc</javadocExecutable>
                     <doclint>all,-missing</doclint>
                     <excludePackageNames>rsp.dom:rsp.examples:rsp.dom:rsp.examples.*:rsp.javax.web:rsp.server:rsp.page</excludePackageNames>
                 </configuration>
