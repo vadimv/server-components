@@ -53,6 +53,16 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
         this.remoteOut = Objects.requireNonNull(remoteOut);
     }
 
+    public void init() {
+        rootComponent.listenEvents(remoteOut);
+
+        remoteOut.listenEvents(List.of(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                                                                  VirtualDomPath.WINDOW),
+                                                                  context -> {},
+                                                                 true,
+                                                                  Event.NO_MODIFIER)));
+    }
+
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
         synchronized (this) {

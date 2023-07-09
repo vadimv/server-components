@@ -4,76 +4,82 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.Assert;
 import org.junit.Test;
 import rsp.component.Component;
+import rsp.dom.DefaultDomChangesContext;
+import rsp.dom.DomTreeRenderContext;
+import rsp.dom.Event;
+import rsp.dom.VirtualDomPath;
+import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.HttpRequestLookup;
 import rsp.stateview.ComponentView;
-import rsp.dom.*;
 import rsp.stateview.NewState;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static rsp.html.HtmlDsl.span;
 
-public class LivePageSessionStateTests {
+public class LivePageTests {
 
     private static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
+
     @Test
-    public void should_generate_update_commands_for_same_state() {
+    public void should_get_empty_commands_for_same_state() {
         final TestCollectingRemoteOut out = new TestCollectingRemoteOut();
-        final NewState<State> liveComponent = create(new State(0), out);
+        final NewState<State> liveComponent = createComponent(new State(0), out);
         liveComponent.set(new State(0));
         Assert.assertEquals(List.of(), out.commands);
     }
 
     @Test
     public void should_generate_update_commands_for_new_state() {
-/*        final TestCollectingOutMessages out = new TestCollectingOutMessages();
-        final LivePageState<State> livePageState = create(new State(0), out);
-        livePageState.run();//.accept(new State(100));
+        final TestCollectingRemoteOut out = new TestCollectingRemoteOut();
+        final NewState<State> liveComponent = createComponent(new State(0), out);
+        liveComponent.set(new State(100));
         Assert.assertEquals(List.of(new ModifyDomOutMessage(List.of(new DefaultDomChangesContext.CreateText(VirtualDomPath.of("1"),
-                                                                                                      VirtualDomPath.of("1_1"),
-                                                                                                      "100"))),
-                                    new PushHistoryMessage("/100")),
-                            out.commands);*/
+                                VirtualDomPath.of("1_1"),
+                                "100"))),
+                        new PushHistoryMessage("/100")),
+                out.commands);
     }
 
-    private Component<String, State> create(final State initialState, final RemoteOut remoteOut) {
+    private Component<String, State> createComponent(final State initialState, final RemoteOut remoteOut) {
         final ComponentView<State> view = state -> newState -> span(state.toString());
 
         final AtomicReference<LivePage> livePageSupplier = new AtomicReference<>();
-        livePageSupplier.set(null);
+        final HttpRequestLookup lookup = new HttpRequestLookup(HttpRequest.DUMMY);
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
-                                                                    new HttpRequestLookup(HttpRequest.DUMMY),
-                                                                     livePageSupplier);
-        return new Component<>(null,
-                                String.class,
-                                t -> CompletableFuture.completedFuture(initialState),
-                                (s, p) -> p,
-                                view,
-                                renderContext,
-                                livePageSupplier);
+                new HttpRequestLookup(HttpRequest.DUMMY),
+                livePageSupplier);
+        final Component<String, State> component = new Component<>(lookup,
+                String.class,
+                t -> CompletableFuture.completedFuture(initialState),
+                (s, p) -> p,
+                view,
+                renderContext,
+                livePageSupplier);
+        final LivePageSession livePage = new LivePageSession(QID,
+                                                             Path.of("1"),
+                                                             lookup,
+                                                             Executors.newScheduledThreadPool(1) ,
+                                                             component,
+                                                             remoteOut);
+        livePageSupplier.set(livePage);
+        livePage.init();
+
+        return component;
     }
 
     private static BiFunction<String, RenderContext, RenderContext> enrichFunction() {
         return (sessionId, ctx) -> ctx;
-    }
-
-    @Test
-    public void should_comply_to_equals_hash_contract_for_helper_classes() {
-        EqualsVerifier.forClass(SetRenderNumOutMessage.class).verify();
-        EqualsVerifier.forClass(ListenEventOutMessage.class).verify();
-        EqualsVerifier.forClass(ForgetEventOutMessage.class).verify();
-        EqualsVerifier.forClass(ExtractPropertyOutMessage.class).verify();
-        EqualsVerifier.forClass(ModifyDomOutMessage.class).verify();
-        EqualsVerifier.forClass(PushHistoryMessage.class).verify();
     }
 
     private static class State {
@@ -99,10 +105,10 @@ public class LivePageSessionStateTests {
 
         @Override
         public void listenEvents(final List<Event> events) {
-                commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType,
-                                                                                   e.preventDefault,
-                                                                                   e.eventTarget.elementPath,
-                                                                                   e.modifier)).collect(Collectors.toList()));
+            commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType,
+                    e.preventDefault,
+                    e.eventTarget.elementPath,
+                    e.modifier)).collect(Collectors.toList()));
         }
 
         @Override
@@ -294,5 +300,15 @@ public class LivePageSessionStateTests {
                     "path='" + path + '\'' +
                     '}';
         }
+    }
+
+    @Test
+    public void should_comply_to_equals_hash_contract_for_helper_classes() {
+        EqualsVerifier.forClass(SetRenderNumOutMessage.class).verify();
+        EqualsVerifier.forClass(ListenEventOutMessage.class).verify();
+        EqualsVerifier.forClass(ForgetEventOutMessage.class).verify();
+        EqualsVerifier.forClass(ExtractPropertyOutMessage.class).verify();
+        EqualsVerifier.forClass(ModifyDomOutMessage.class).verify();
+        EqualsVerifier.forClass(PushHistoryMessage.class).verify();
     }
 }

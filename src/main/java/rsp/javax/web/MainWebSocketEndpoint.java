@@ -79,16 +79,9 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             });
 
             remoteOut.setRenderNum(0);
-            rootComponent.listenEvents(remoteOut);
-            remoteOut.listenEvents(List.of(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                                                      VirtualDomPath.WINDOW),
-                                     context -> {},
-                                    true,
-                                     Event.NO_MODIFIER)));
-
-            logger.log(DEBUG, () -> "Live page started: " + this);
-
+            livePage.init();
             lifeCycleEventsListener.pageCreated(qsid, rootComponent.getState(), rootComponent);
+            logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }
 

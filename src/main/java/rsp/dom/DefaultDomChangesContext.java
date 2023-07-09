@@ -238,5 +238,14 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         public int hashCode() {
             return Objects.hash(path, xmlNs, tag);
         }
+
+        @Override
+        public String toString() {
+            return "Create{" +
+                    "path=" + path +
+                    ", xmlNs=" + xmlNs +
+                    ", tag='" + tag + '\'' +
+                    '}';
+        }
     }
 }
