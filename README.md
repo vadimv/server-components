@@ -66,11 +66,11 @@ To define a routing of an incoming request, create a ``Routing`` object for comp
     ...
     private static Routing<HttpRequest, State> routes() {
         final var db = new Database();
-        return routing(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
-                      get("/articles/:id", (__, id) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
-                      get("/users/:id", (__, id) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
-                      post("/users/:id(^\\d+$)", (req, id) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result))),
-                      NotFound.INSTANCE);
+        return routing(concat(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
+                              get("/articles/:id", (__, id) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
+                              get("/users/:id", (__, id) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
+                              post("/users/:id(^\\d+$)", (req, id) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result)))),
+                       NotFound.INSTANCE);
     }
 ```
 During a dispatch, the routes are verified one by one for a matching HTTP method and a path pattern. 
