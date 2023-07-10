@@ -85,8 +85,8 @@ The route's handler function should return a ``CompletableFuture`` of the page's
 If needed, extract a paths-specific routing section:
 
 ```java
-    final Routing<HttpRequest, State> routing = routing(concat(get(__ -> paths()),
-                                                        State.pageNotFound()));
+    final Routing<HttpRequest, State> routing = routing(get(__ -> paths()),
+                                                        State.pageNotFound());
     
     private static PathRoutes<State> paths() {
          return concat(path("/articles", db.getArticles().thenApply(articles -> State.ofArticles(articles))),
