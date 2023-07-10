@@ -11,7 +11,8 @@
     <description>A Java library for building real-time user interfaces and UI components.</description>
     <url>https://github.com/vadimv/rsp</url>
 
-    <properties><revision>1.0-SNAPSHOT</revision>
+    <properties>
+        <revision>1.0</revision>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
@@ -33,7 +34,7 @@
         <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
         <maven-source-plugin.version>3.2.0</maven-source-plugin.version>
         <maven-gpg-plugin.version>1.6</maven-gpg-plugin.version>
-        <nexus-staging-maven-plugin.version>1.6.8</nexus-staging-maven-plugin.version>
+        <nexus-staging-maven-plugin.version>1.6.13</nexus-staging-maven-plugin.version>
         <maven-scm-plugin.version>1.11.2</maven-scm-plugin.version>
     </properties>
 
