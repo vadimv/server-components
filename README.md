@@ -14,7 +14,7 @@
 * [DOM events](#dom-events)
 * [Navigation bar URL path and components state mapping](#navigation-bar-url-path-and-components-state-mapping)
 * [DOM elements references](#dom-elements-references)
-* [Evaluating JavaScript code on the client-side](#evaluating-javascript-code-on-the-client-side)
+* [Evaluating code on the client-side](#evaluating-js-code-on-the-client-side)
 * [Navigation bar URL path](#navigation-bar-url-path-and-components-state-mapping)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Application and server's configuration](#application-servers-configuration)
@@ -27,7 +27,7 @@
 rsp is a lightweight modern server-side web framework for Java.
 
 With rsp, for a typical web application, two types of web pages are supported:
-- single-page application (SPA), server-rendered, with page's live session and its state on the server, e.g. for the admin UI
+- single-page applications (SPAs), written in Java, e.g. for an admin UI
 - plain server-rendered detached HTML pages
 
 ### Maven
@@ -174,7 +174,7 @@ The ``when()`` DSL function conditionally renders (or not) an element:
     state -> when(state.showLabel, span("This is a label"))
 ```
 
-#### SPAs and plain pages head tag
+#### SPAs and plain pages and the head tag
 
 The page's ``<head>`` tag DSL determines if this page is an SPA or plain.
 
@@ -205,10 +205,10 @@ For example:
 ### UI Stateful Components
 
 Actually, SPA pages are composed of components of two kinds:
-- Stateful components, and
-- Stateless views
+- stateful components
+- stateless views
 
-A stateful component has its own mutable state associated.
+A stateful component has its own state's snapshot associated.
 Use Component's DSL  ``component()`` overloaded functions to create a stateful component.
 
 Stateless views used for representation only and do not have a mutable state and effectively is a pure function
@@ -235,7 +235,7 @@ An application's top-level ``ComponentDefintion<S>`` is the root of its componen
 
 ### Components state model
 
-A component's state is modeled as a finite state machine (FSM) and managed by the framework.
+A component's state is modelled as a finite state machine (FSM) and managed by the framework.
 Any state change must be initiated by invoking of one of the ``NewState`` interface methods, like ``set()`` and ``apply()``.
 Normally, state transitions are triggered by the browser's events.
 
@@ -270,7 +270,7 @@ A component's initial state can be provided is the following ways:
 
 ### DOM events
 
-To respond to browser events, register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the DSL:
+To respond to browser events, register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the Java DSL:
 
 ```java
     state -> newState -> a("#", "Click me", on("click", ctx -> {
@@ -281,19 +281,16 @@ To respond to browser events, register a page DOM event handler by adding an ``o
     static final class State { final int counter; State(final int counter) { this.counter = counter; } }
 ```
 
-When an event occurs on the client-side:
+This is how it works when an event occurs:
 - the browser's page sends the event data message to the server via WebSocket
 - the system fires its registered event handler's Java code
-
-An event handler's code usually sets a new application's state snapshot, calling one of the overloaded ``UseState<S>.accept()`` methods on the application state accessor.
+- an event handler's code sets a new application's state snapshot, calling the ``NewState.set()`` method.
 
 A new set state snapshot triggers the following sequence of actions:
 - the page's virtual DOM re-rendered on the server
 - the difference between the current and the previous DOM trees is calculated  
 - the diff commands sent to the browser
-- the page's JavaScript program updates the presentation
-
-The event handler's ``EventContext`` class parameter has a number of utility methods.  
+- the page's JS code updates the presentation
 
 Some types of browser events, like a mouse move, may fire a lot of events' invocations. 
 Sending all these notifications over the network and processing them on the server side may cause the system's overload.
@@ -320,12 +317,11 @@ The context's ``EventContext.eventObject()`` method reads the event's object as 
         input(attr("type", "button"), attr("value", "Submit"))
     )
 ```
-Events code runs in a synchronized sections on a live page session state container object.
 
 ### Navigation bar URL path and components state mapping
 
-A component's state can be mapped to the browser's navigation bar path. 
-With that, the current navigation path will be automatically converted to a component's state and vis-a-versa,
+A component's state normally to be mapped to the browser's navigation bar path. 
+With that, the current navigation path will be converted to a component's state and vis-a-versa,
 the state transition will cause the navigation path to be updated accordingly.
 
 The "Back" and "Forward" browser's history buttons clicks initiate state transitions.
@@ -372,9 +368,9 @@ The ``window().on(eventType, handler)`` method registers a window event handler:
         )
 ```
 
-### Evaluating JavaScript code on the client-side
+### Evaluating JS code on the client-side
 
-To invoke arbitrary JavaScript in the browser use the ``ctx.evalJs()`` method of an event's context object.
+To invoke arbitrary EcmaScript code in the browser use the ``ctx.evalJs()`` method of an event's context object.
 ``ctx.evalJs()`` returns the evaluation result as an object of  ``CompletableFuture<JsonDataType>``.
 
 ```java
@@ -392,8 +388,9 @@ To invoke arbitrary JavaScript in the browser use the ``ctx.evalJs()`` method of
 
 ### Page lifecycle events
 
-Provide an implementation of the ``PageLifecycle`` interface as a parameter on an application's constructor.
-This allows to listen to an SPA page's lifecycle events:
+To listen to an SPA page's lifecycle events, provide an implementation of the ``PageLifecycle`` interface as a parameter
+of the application's object constructor.
+This allows to run some specific code
 - after the page is created
 - after the page is closed
 
@@ -416,8 +413,7 @@ This allows to listen to an SPA page's lifecycle events:
     final App<Optional<FullName>> app = new App<>(route(), pages()).pageLifeCycle(plc);
     ...
 ```
-Use these listeners, when you need to subscribe to some messages stream on a page live session creation
-and unsubscribing when the page closes.
+Use these listeners to subscribe to some messages stream on a page live session creation and unsubscribing when the page closes.
 
 ### Application server's configuration
 
@@ -426,7 +422,7 @@ Use an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`
 ```java
     final var app = new App(routing(), rootCreateViewFunction()).config(AppConfig.DEFAULT);
 ```
-A web server's ``rsp.jetty.JettyServer`` class constructor accepts parameters like the application's web context base path,
+A web server's ``rsp.jetty.JettyServer`` class' constructor accepts extra parameters like the application's web context base path,
 an optional static resources' handler and a TLS/SSL connection's configuration:
 
 ```java
@@ -449,10 +445,9 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 
 ### Schedules
 
-The framework provides the ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` utility methods 
+The rsp framework provides the ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` utility methods 
 which allows to submit a delayed or periodic action that can be cancelled.
-A timer's reference parameter may be provided when creating a new schedule. 
-Later this reference could be used for the schedule cancellation.
+Provide a timer's reference parameter when creating a new schedule, later use this reference for the schedule cancellation.
 
 ```java
     final static TimerRef TIMER_0 = TimerRef.createTimerRef();
@@ -467,14 +462,14 @@ Later this reference could be used for the schedule cancellation.
 
 ### How to build the project and run tests
 
-To build the project from the sources:
+To build the project from the sources, run:
 
 ```shell script
 
 $ mvn clean package
 ```
 
-To run all the tests:
+Run all the system tests:
 
 ```shell script
 
