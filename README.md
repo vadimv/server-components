@@ -174,7 +174,7 @@ The ``when()`` DSL function conditionally renders (or not) an element:
     state -> when(state.showLabel, span("This is a label"))
 ```
 
-#### SPAs and plain pages and the head tag
+### SPAs and plain pages and the head tag
 
 The page's ``<head>`` tag DSL determines if this page is an SPA or plain.
 
@@ -187,7 +187,7 @@ Using ``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag w
 to establish a connection with server and enable server side events handling for SPA.
 This results in rendering of a plain detached HTML page.
 
-#### Page HTTP status code and HTTP headers
+### Page HTTP status code and HTTP headers
 
 The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers.
 For example:
