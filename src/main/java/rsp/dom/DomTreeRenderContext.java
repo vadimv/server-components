@@ -53,10 +53,9 @@ public final class DomTreeRenderContext implements RenderContext {
         return rootTag;
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public Component<?, ?> rootComponent() {
-        return rootComponent;
+    @Override @SuppressWarnings("unchecked")
+    public <T, S> Component<T, S> rootComponent() {
+        return (Component<T, S>) rootComponent;
     }
 
     public int statusCode() {
