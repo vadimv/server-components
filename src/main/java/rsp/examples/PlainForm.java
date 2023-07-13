@@ -10,7 +10,6 @@ import rsp.routing.RoutingDsl;
 import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.html.HtmlDsl.*;
@@ -25,14 +24,16 @@ import static rsp.routing.RoutingDsl.*;
  */
 public class PlainForm {
     public static void main(final String[] args) {
-        final App<Optional<FullName>> app = new App<>(new Routing<>(route(), Optional.empty()),
+        final App<Name> app = new App<>(new Routing<>(route(), new EmptyName()),
                                                       pages());
         final var server = new JettyServer<>(8080, "", app);
         server.start();
         server.join();
     }
 
-    public record FullName(String firstName, String secondName) {
+    public sealed interface Name {}
+
+    public record FullName(String firstName, String secondName) implements Name {
         public FullName(final String firstName, final String secondName) {
             this.firstName = Objects.requireNonNull(firstName);
             this.secondName = Objects.requireNonNull(secondName);
@@ -43,24 +44,26 @@ public class PlainForm {
         }
     }
 
-    private static Route<HttpRequest, Optional<FullName>> route() {
+    public record EmptyName() implements Name {}
+
+    private static Route<HttpRequest, Name> route() {
         return RoutingDsl.concat(
-            get("/*", req -> CompletableFuture.completedFuture(Optional.empty())),
+            get("/*", req -> CompletableFuture.completedFuture(new EmptyName())),
             post("/*",
-                  req -> CompletableFuture.completedFuture(Optional.of(new FullName(req.queryParam("firstname").orElseThrow(),
-                                                                                    req.queryParam("lastname").orElseThrow())))));
+                  req -> CompletableFuture.completedFuture(new FullName(req.queryParam("firstname").orElseThrow(),
+                                                                                   req.queryParam("lastname").orElseThrow()))));
     }
 
-    private static View<Optional<FullName>> pages() {
+    private static View<Name> pages() {
         return state -> html(
                         head(HeadType.PLAIN, title("Plain Form Pages")),
                         body(
-                            state.isEmpty() ? formComponent(state) : formResult(state)
+                            state instanceof FullName ? formResult((FullName)state) : formComponent()
                         )
         );
     }
 
-    private static TagDefinition formComponent(Optional<FullName> state) {
+    private static TagDefinition formComponent() {
         return div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
@@ -74,8 +77,8 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static TagDefinition formResult(Optional<FullName> state) {
+    private static TagDefinition formResult(FullName state) {
         return div(h2(text("HTML Form result")),
-                        div(p("The submitted name is " + state.orElseThrow())));
+                      div(p("The submitted name is " + state)));
     }
 }
