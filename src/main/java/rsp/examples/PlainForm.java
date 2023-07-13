@@ -1,8 +1,9 @@
 package rsp.examples;
 
 import rsp.App;
+import rsp.component.View;
+import rsp.html.TagDefinition;
 import rsp.routing.Routing;
-import rsp.stateview.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.routing.RoutingDsl;
@@ -31,10 +32,7 @@ public class PlainForm {
         server.join();
     }
 
-    public static class FullName {
-        public final String firstName;
-        public final String secondName;
-
+    public record FullName(String firstName, String secondName) {
         public FullName(final String firstName, final String secondName) {
             this.firstName = Objects.requireNonNull(firstName);
             this.secondName = Objects.requireNonNull(secondName);
@@ -53,31 +51,31 @@ public class PlainForm {
                                                                                     req.queryParam("lastname").orElseThrow())))));
     }
 
-    private static ComponentView<Optional<FullName>> pages() {
-        return sv -> sc -> html(
+    private static View<Optional<FullName>> pages() {
+        return state -> html(
                         head(HeadType.PLAIN, title("Plain Form Pages")),
                         body(
-                            sv.isEmpty() ? formComponent().apply(sv).apply(sc) : formResult().apply(sv).apply(sc)
+                            state.isEmpty() ? formComponent(state) : formResult(state)
                         )
         );
     }
 
-    private static ComponentView<Optional<FullName>> formComponent() {
-        return sv -> sc -> div(
+    private static TagDefinition formComponent(Optional<FullName> state) {
+        return div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
-                label(attr("for", "firstname"), text("First name:")),
-                input(attr("type", "text"), attr("name","firstname"), attr("value", "First")),
-                br(),
-                label(attr("for", "lastname"), text("Last name:")),
-                input(attr("type", "text"), attr("name","lastname"), attr("value", "Last")),
-                br(),
-                input(attr("type", "submit"), attr("value", "Submit"))),
+                     label(attr("for", "firstname"), text("First name:")),
+                     input(attr("type", "text"), attr("name","firstname"), attr("value", "First")),
+                     br(),
+                     label(attr("for", "lastname"), text("Last name:")),
+                     input(attr("type", "text"), attr("name","lastname"), attr("value", "Last")),
+                     br(),
+                     input(attr("type", "submit"), attr("value", "Submit"))),
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static ComponentView<Optional<FullName>> formResult() {
-        return sv ->  sc -> div(h2(text("HTML Form result")),
-                        div(p("The submitted name is " + sv.orElseThrow())));
+    private static TagDefinition formResult(Optional<FullName> state) {
+        return div(h2(text("HTML Form result")),
+                        div(p("The submitted name is " + state.orElseThrow())));
     }
 }

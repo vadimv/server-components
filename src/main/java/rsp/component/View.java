@@ -1,4 +1,4 @@
-package rsp.stateview;
+package rsp.component;
 
 import rsp.html.SegmentDefinition;
 
@@ -9,4 +9,5 @@ import java.util.function.Function;
  * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface
-public interface ComponentView<S> extends Function<S, Function<NewState<S>, SegmentDefinition>> {}
+
+public interface View<S> extends Function<S, SegmentDefinition> {}

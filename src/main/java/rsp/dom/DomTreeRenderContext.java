@@ -2,13 +2,12 @@ package rsp.dom;
 
 import rsp.component.Component;
 import rsp.page.LivePage;
-import rsp.page.LivePageSession;
 import rsp.ref.Ref;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
 import rsp.server.Path;
-import rsp.stateview.ComponentView;
-import rsp.stateview.NewState;
+import rsp.component.ComponentView;
+import rsp.component.NewState;
 import rsp.util.Lookup;
 import rsp.util.data.Tuple2;
 

@@ -8,8 +8,8 @@ import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.HttpRequestLookup;
-import rsp.stateview.ComponentView;
-import rsp.stateview.NewState;
+import rsp.component.ComponentView;
+import rsp.component.NewState;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

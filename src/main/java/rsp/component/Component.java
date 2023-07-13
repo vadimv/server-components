@@ -9,8 +9,6 @@ import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
 import rsp.server.Path;
-import rsp.stateview.ComponentView;
-import rsp.stateview.NewState;
 import rsp.util.Lookup;
 
 import java.util.*;
@@ -20,6 +18,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+/**
+ * Represents a stateful component.
+ * @param <T> a type to be resolved to an initial state
+ * @param <S> a type for this component's state snapshot, should be an immutable class
+ */
 public final class Component<T, S> implements NewState<S> {
 
     private final Map<Event.Target, Event> events = new HashMap<>();

@@ -5,10 +5,10 @@ import rsp.html.SegmentDefinition;
 import rsp.routing.Routing;
 import rsp.server.Path;
 import rsp.server.StaticResources;
-import rsp.stateview.ComponentView;
+import rsp.component.ComponentView;
 import rsp.jetty.JettyServer;
 import rsp.server.http.HttpRequest;
-import rsp.stateview.View;
+import rsp.component.View;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;

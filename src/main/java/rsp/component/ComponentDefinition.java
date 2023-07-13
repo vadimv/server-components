@@ -3,8 +3,6 @@ package rsp.component;
 import rsp.html.SegmentDefinition;
 import rsp.page.RenderContext;
 import rsp.server.Path;
-import rsp.stateview.ComponentView;
-import rsp.stateview.NewState;
 import rsp.util.data.Tuple2;
 
 import java.util.Objects;

@@ -6,8 +6,8 @@ import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.routing.Routing;
 import rsp.server.http.HttpRequest;
-import rsp.stateview.ComponentView;
-import rsp.stateview.View;
+import rsp.component.ComponentView;
+import rsp.component.View;
 
 import java.util.Map;
 import java.util.Objects;

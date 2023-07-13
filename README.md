@@ -2,12 +2,11 @@
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-* [About](#about)
-* [Maven](#maven)
+* [Maven Central](#maven-central)
 * [Code examples](#code-examples)
 * [Routing](#routing)  
 * [HTML markup Java DSL](#html-markup-java-dsl)
-* [SPAs and plain pages head tag](#spas-and-plain-pages-head-tag)
+* [SPAs, plain pages head tag](#spas-plain-pages-and-the-head-tag)
 * [Page HTTP status code and HTTP headers](#page-http-status-code-and-http-headers)
 * [UI Stateful components](#ui-stateful-components)
 * [Components state model](#components-state-model)
@@ -22,7 +21,6 @@
 * [Logging](#logging)
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
 
-## About
 
 rsp is a lightweight modern server-side web framework for Java.
 
@@ -30,7 +28,7 @@ With rsp, for a typical web application, two types of web pages are supported:
 - single-page applications (SPAs), written in Java, e.g. for an admin UI
 - plain server-rendered detached HTML pages
 
-### Maven
+### Maven Central
 
 This project requires Java version 17 or newer.
 
@@ -46,6 +44,7 @@ To start using it, add the dependency:
 ### Code examples
 
 * [Hello World](src/main/java/rsp/examples/HelloWorld.java)
+* [Plain form](src/main/java/rsp/examples/PlainForm.java)
 * [TODOs list](https://github.com/vadimv/rsp-todo-list)
 * [Tetris](https://github.com/vadimv/rsp-tetris)
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
@@ -174,7 +173,7 @@ The ``when()`` DSL function conditionally renders (or not) an element:
     state -> when(state.showLabel, span("This is a label"))
 ```
 
-### SPAs and plain pages and the head tag
+### SPAs, plain pages and the head tag
 
 The page's ``<head>`` tag DSL determines if this page is an SPA or plain.
 

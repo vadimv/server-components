@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.stateview.NewState;
+import rsp.component.NewState;
 
 /**
  * The listener interface for receiving a page's session lifecycle events.
