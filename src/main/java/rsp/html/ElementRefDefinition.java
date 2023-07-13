@@ -11,8 +11,9 @@ import java.util.Objects;
 public final class ElementRefDefinition implements SegmentDefinition, ElementRef {
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         renderContext.addRef(this);
+        return true;
     }
 
     public <K> KeyRef<K> withKey(final K key) {
@@ -29,8 +30,9 @@ public final class ElementRefDefinition implements SegmentDefinition, ElementRef
         }
 
         @Override
-        public void render(final RenderContext renderContext) {
+        public boolean render(final RenderContext renderContext) {
             renderContext.addRef(this);
+            return true;
         }
 
         @Override

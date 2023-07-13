@@ -108,8 +108,9 @@ public final class EventDefinition implements SegmentDefinition {
     }
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         renderContext.addEvent(elementPath, eventType, handler, preventDefault, modifier);
+        return true;
     }
 
     /**

@@ -28,7 +28,8 @@ public final class StyleDefinition extends BaseSegmentDefinition {
     }
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         renderContext.setStyle(name, value);
+        return true;
     }
 }

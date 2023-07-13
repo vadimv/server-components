@@ -19,7 +19,8 @@ final class EmptyDefinition implements SegmentDefinition {
     }
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         // no-op
+        return true;
     }
 }

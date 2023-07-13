@@ -20,7 +20,8 @@ public final class SequenceDefinition extends BaseSegmentDefinition {
     }
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         Arrays.stream(items).forEach(c -> c.render(renderContext));
+        return true;
     }
 }

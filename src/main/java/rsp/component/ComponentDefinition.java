@@ -32,7 +32,7 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
     }
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         final Tuple2<S, NewState<S>> newComponentHandler = renderContext.openComponent(stateFunctionInputClass,
                                                                                        initialStateFunction,
                                                                                        state2pathFunction,
@@ -41,5 +41,6 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
                                                     .apply(newComponentHandler._2);
         view.render(renderContext);
         renderContext.closeComponent();
+        return true;
     }
 }

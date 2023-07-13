@@ -18,7 +18,8 @@ public final class TextDefinition extends BaseSegmentDefinition {
     }
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         renderContext.addTextNode(text);
+        return true;
     }
 }

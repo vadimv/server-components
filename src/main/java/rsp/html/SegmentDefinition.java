@@ -11,7 +11,8 @@ public interface SegmentDefinition {
     /**
      * An implementation of this method determines how its definition node is rendered to a virtual DOM tree.
      * @param renderContext the renderer
+     * @return true, instead of void, used to make the compiler make more strict checks on the DSL
      */
-    void render(RenderContext renderContext);
+    boolean render(RenderContext renderContext);
 
 }

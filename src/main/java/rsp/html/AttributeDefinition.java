@@ -37,7 +37,8 @@ public final class AttributeDefinition extends BaseSegmentDefinition {
     }
 
     @Override
-    public void render(final RenderContext renderContext) {
+    public boolean render(final RenderContext renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
+        return true;
     }
 }
