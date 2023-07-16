@@ -207,11 +207,9 @@ Actually, SPA pages are composed of components of two kinds:
 - stateful components
 - stateless views
 
-A stateful component has its own state's snapshot associated.
-Use Component's DSL  ``component()`` overloaded functions to create a stateful component.
+Every stateful component has its own changeable state, represented by a snapshot of an immutable class or record.
 
-Stateless views used for representation only and do not have a mutable state and effectively is a pure function
-from a state to a DOM fragment's definition.
+Use component's DSL  ``component()`` overloaded functions to create a stateful component.
 
 ```java
     import static rsp.component.ComponentDsl.*;
@@ -230,7 +228,9 @@ from a state to a DOM fragment's definition.
 
 ```
 
-An application's top-level ``ComponentDefintion<S>`` is the root of its component tree.
+An application's top-level ``ComponentDefintion<S>`` is the root of its page's components tree.
+
+Stateless views effectively are functions from an input state to a DOM fragment's definition.
 
 ### Components state model
 
