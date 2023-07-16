@@ -10,7 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 
 /**
- * Stateful components definitions domain-specific language functions.
+ * Stateful and stateless components definitions domain-specific language functions.
  */
 public class ComponentDsl {
 
@@ -21,7 +21,7 @@ public class ComponentDsl {
      * @return a component's definition for the DSL
      */
     public static <S> ComponentDefinition<Path, S> component(final S initialState,
-                                                  final ComponentView<S> componentView) {
+                                                             final ComponentView<S> componentView) {
         Objects.requireNonNull(initialState);
         return new ComponentDefinition<>(Path.class,
                                          __ -> CompletableFuture.completedFuture(initialState),

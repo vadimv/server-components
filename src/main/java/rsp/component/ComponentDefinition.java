@@ -21,6 +21,9 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
 
+    /**
+     * Creates a new instance of a stateful component's definition.
+     */
     public ComponentDefinition(final Class<T> stateFunctionInputClass,
                                final Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                final BiFunction<S, Path, Path> state2pathFunction,

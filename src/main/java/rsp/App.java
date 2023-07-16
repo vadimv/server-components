@@ -15,6 +15,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static rsp.component.ComponentDsl.webComponent;
+
 /**
  * An assembly point for everything needed to set off a UI application.
  * This class object itself to be provided to a hosting web container, for example {@link rsp.jetty.JettyServer}.
@@ -61,10 +63,9 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new ComponentDefinition<>(HttpRequest.class,
-                                       routing.toInitialStateFunction(),
-                                       (__, p) -> p,
-                                       rootComponentView));
+             webComponent(routing,
+                          (__, p) -> p,
+                          rootComponentView));
     }
 
     /**
@@ -77,8 +78,7 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new ComponentDefinition<>(HttpRequest.class,
-                                       new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
+             webComponent(new Routing<>(request -> Optional.of(CompletableFuture.completedFuture(initialState))),
                                        (__, p) ->  p,
                                        rootComponentView));
     }

@@ -201,7 +201,7 @@ For example:
                     )
                 ).statusCode(404);
 ```
-### UI Stateful Components
+### UI components
 
 Actually, SPA pages are composed of components of two kinds:
 - stateful components
@@ -209,7 +209,7 @@ Actually, SPA pages are composed of components of two kinds:
 
 Every stateful component has its own changeable state, represented by a snapshot of an immutable class or record.
 
-Use component's DSL  ``component()`` overloaded functions to create a stateful component.
+Use components DSL  ``component()`` and ``webComponent()`` overloaded functions to create a stateful component.
 
 ```java
     import static rsp.component.ComponentDsl.*;
