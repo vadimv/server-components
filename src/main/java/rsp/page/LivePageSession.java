@@ -5,7 +5,10 @@ import rsp.dom.*;
 import rsp.html.WindowRef;
 import rsp.ref.Ref;
 import rsp.server.*;
-import rsp.server.http.HttpRequestLookup;
+import rsp.server.http.Fragment;
+import rsp.server.http.StateOriginLookup;
+import rsp.server.http.Query;
+import rsp.server.http.RelativeUrl;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
@@ -27,7 +30,7 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
     public static String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     public final QualifiedSessionId qsid;
-    private final HttpRequestLookup httpRequestLookup;
+    private final StateOriginLookup stateOriginLookup;
 
     private final ScheduledExecutorService scheduledExecutorService;
     private final Component<?, ?> rootComponent;
@@ -41,13 +44,13 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
 
     public LivePageSession(final QualifiedSessionId qsid,
                            final Path basePath,
-                           final HttpRequestLookup httpRequestLookup,
+                           final StateOriginLookup stateOriginLookup,
                            final ScheduledExecutorService scheduledExecutorService,
                            final Component<?, ?> rootComponent,
                            final RemoteOut remoteOut) {
         this.qsid = Objects.requireNonNull(qsid);
         this.basePath = Objects.requireNonNull(basePath);
-        this.httpRequestLookup = httpRequestLookup;
+        this.stateOriginLookup = stateOriginLookup;
         this.scheduledExecutorService = Objects.requireNonNull(scheduledExecutorService);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
@@ -147,9 +150,8 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (this) {
             if (HISTORY_ENTRY_CHANGE_EVENT_NAME.equals(eventType) && VirtualDomPath.WINDOW.equals(eventPath)) {
-                final Path path = eventObject.value("path").map(p -> Path.of(p.toString()))
-                                             .orElseThrow(() -> new JsonDataType.JsonException("'path' property is not found in the event object" + eventObject));
-                httpRequestLookup.setPath(path);
+                final RelativeUrl relativeUrl = historyEntryChangeNewRelativeUrl(eventObject);
+                stateOriginLookup.setRelativeUrl(relativeUrl);
                 rootComponent.resolveAndSet();
             } else {
                 final Map<Event.Target, Event> events = rootComponent.recursiveEvents();
@@ -172,6 +174,16 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
                 }
             }
         }
+    }
+
+    private static RelativeUrl historyEntryChangeNewRelativeUrl(final JsonDataType.Object eventObject) {
+        final Path path = eventObject.value("path").map(p -> Path.of(p.toString()))
+                .orElseThrow(() -> new JsonDataType.JsonException("The 'path' property not found in the event object" + eventObject));
+        final Query query = eventObject.value("query").map(q -> Query.of(q.toString()))
+                .orElseThrow(() -> new JsonDataType.JsonException("The 'query' property not found in the event object" + eventObject));
+        final Fragment fragment = eventObject.value("fragment").map(f -> Fragment.of(f.toString()))
+                .orElseThrow(() -> new JsonDataType.JsonException("The 'fragment' property not found in the event object" + eventObject));
+        return new RelativeUrl(path, query, fragment);
     }
 
     private EventContext createEventContext(final JsonDataType.Object eventObject) {
@@ -255,11 +267,12 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
      */
     @Override
     public void applyToPath(final UnaryOperator<Path> pathOperator) {
-        final Path oldPath = httpRequestLookup.path();
+        final RelativeUrl oldRelativeUrl = stateOriginLookup.relativeUrl();
+        final Path oldPath = oldRelativeUrl.path();
         final Path newPath = pathOperator.apply(oldPath);
         logger.log(DEBUG, () -> "New path after a components path's function application: " + newPath);
         if (!newPath.equals(oldPath)) {
-            httpRequestLookup.setPath(newPath);
+            stateOriginLookup.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
             remoteOut.pushHistory(basePath.resolve(newPath).toString());
             logger.log(DEBUG, () -> "Path update: " + newPath);
         }
@@ -267,6 +280,6 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
 
     @Override
     public <T> T lookup(Class<T> clazz) {
-        return httpRequestLookup.lookup(clazz);
+        return stateOriginLookup.lookup(clazz);
     }
 }

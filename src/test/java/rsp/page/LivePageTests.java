@@ -7,7 +7,8 @@ import rsp.dom.*;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
-import rsp.server.http.HttpRequestLookup;
+import rsp.server.http.HttpStateOrigin;
+import rsp.server.http.StateOriginLookup;
 import rsp.component.ComponentView;
 import rsp.component.NewState;
 
@@ -41,10 +42,10 @@ public class LivePageTests {
         final ComponentView<State> view = state -> newState -> span(state.toString());
 
         final AtomicReference<LivePage> livePageSupplier = new AtomicReference<>();
-        final HttpRequestLookup lookup = new HttpRequestLookup(HttpRequest.DUMMY);
+        final StateOriginLookup lookup = new StateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null));
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
-                                                                    new HttpRequestLookup(HttpRequest.DUMMY),
-                                                                    livePageSupplier);
+                                                                     new StateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null)),
+                                                                     livePageSupplier);
         final Component<String, State> component = new Component<>(lookup,
                                                                     String.class,
                                                                     t -> CompletableFuture.completedFuture(initialState),

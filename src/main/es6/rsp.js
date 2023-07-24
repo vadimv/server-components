@@ -106,15 +106,16 @@ export class RSP {
       };
 
       /**
-       * Add some specific properties of an event object for some specific event types
+       * Add specific properties for some specific event types
        */
       this.eventObject = (eventType, e) => {
         var result = {};
         if (eventType == 'keydown') {
-            result.keyCode = '' + e.keyCode;
+            result["keyCode"] = '' + e.keyCode;
         } else if (eventType == 'popstate') {
-            result.path = window.location.pathname;
-            result.hash = window.location.hash;
+            result["path"] = window.location.pathname;
+            result["query"] = window.location.search;
+            result["fragment"] = window.location.hash;
         } else if (eventType == 'submit') {
             var formData = new FormData(e.target);
             /** @suppress {missingProperties} */

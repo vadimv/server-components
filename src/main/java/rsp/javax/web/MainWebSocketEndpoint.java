@@ -1,8 +1,6 @@
 package rsp.javax.web;
 
 import rsp.component.Component;
-import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
 import rsp.page.*;
 import rsp.server.*;
 import rsp.server.http.HttpRequest;
@@ -10,7 +8,6 @@ import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.server.protocol.RemotePageMessageEncoder;
 
 import javax.websocket.*;
-import javax.websocket.server.HandshakeRequest;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
@@ -62,7 +59,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             final Component<?, S> rootComponent = renderedPage.rootComponent;
             final LivePageSession livePage = new LivePageSession(qsid,
                                                                  basePath,
-                                                                 renderedPage.httpRequestLookup,
+                                                                 renderedPage.stateOriginLookup,
                                                                  schedulerSupplier.get(),
                                                                  rootComponent,
                                                                  remoteOut);
@@ -114,10 +111,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             lifeCycleEventsListener.pageClosed(livePage.qsid);
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
-    }
-
-    public static HttpRequest of(final HandshakeRequest handshakeRequest) {
-        return HttpRequestUtils.httpRequest(handshakeRequest);
     }
 
     public static boolean isKnownLostSession(final QualifiedSessionId qsid) {

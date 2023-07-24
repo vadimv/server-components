@@ -15,7 +15,7 @@ import java.util.function.Function;
 public final class HttpRequest {
 
     // TODO refactor to remove
-    public final static HttpRequest DUMMY = new HttpRequest(HttpMethod.GET, URI.create("about.blank"), "", Path.EMPTY_ABSOLUTE );
+    public final static HttpRequest DUMMY = new HttpRequest(HttpMethod.GET, URI.create("about.blank"), "", Path.EMPTY_ABSOLUTE);
 
     public final HttpMethod method;
     public final URI uri;
@@ -39,12 +39,12 @@ public final class HttpRequest {
                        final Path path,
                        final Function<String, Optional<String>> queryParam,
                        final Function<String, Optional<String>> getHeader) {
-        this.method = method;
-        this.uri = uri;
-        this.url = url;
-        this.path = path;
-        this.getQueryParam = queryParam;
-        this.getHeader = getHeader;
+        this.method = Objects.requireNonNull(method);
+        this.uri = Objects.requireNonNull(uri);
+        this.url = Objects.requireNonNull(url);
+        this.path = Objects.requireNonNull(path);
+        this.getQueryParam = Objects.requireNonNull(queryParam);
+        this.getHeader = Objects.requireNonNull(getHeader);
     }
 
     /**
@@ -104,10 +104,6 @@ public final class HttpRequest {
      */
     public Optional<String> header(final String headerName) {
         return getHeader.apply(headerName);
-    }
-
-    public HttpRequest withPath(Path newPath) {
-        return new HttpRequest(method, uri, url, Objects.requireNonNull(newPath), getQueryParam, getHeader);
     }
 
     /**

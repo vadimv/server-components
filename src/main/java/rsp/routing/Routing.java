@@ -7,7 +7,7 @@ import java.util.function.Function;
 /**
  * Defines a routing.
  * @see RoutingDsl#concat
- * @param <T> the type of the component's input object
+ * @param <T> the type of the component's input object, the 'state origin type'
  * @param <S> the type of the component's state, should be an immutable class
  */
 public final class Routing<T, S> {

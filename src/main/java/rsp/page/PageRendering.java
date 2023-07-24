@@ -3,9 +3,7 @@ package rsp.page;
 import rsp.component.ComponentDefinition;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
-import rsp.server.http.HttpRequest;
-import rsp.server.http.HttpRequestLookup;
-import rsp.server.http.HttpResponse;
+import rsp.server.http.*;
 import rsp.server.Path;
 import rsp.util.RandomString;
 import rsp.util.data.Tuple2;
@@ -80,15 +78,16 @@ public final class PageRendering<S> {
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
             final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
-            final HttpRequestLookup httpRequestLookup = new HttpRequestLookup(request);
+            final StateOriginLookup stateOriginLookup = new StateOriginLookup(new HttpStateOrigin(request,
+                                                                                                  RelativeUrl.of(request)));
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
-                                                                                 httpRequestLookup,
+                    stateOriginLookup,
                                                                                  livePageContext);
             final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 
             rootComponent.render(enrichedDomTreeContext);
 
-            final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpRequestLookup,
+            final RenderedPage<S> pageSnapshot = new RenderedPage<>(stateOriginLookup,
                                                                     enrichedDomTreeContext.rootComponent(),
                                                                     livePageContext);
             renderedPages.put(pageId, pageSnapshot);
