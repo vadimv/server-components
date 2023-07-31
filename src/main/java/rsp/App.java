@@ -78,9 +78,9 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             webComponent(new Routing<>(request -> Optional.of(CompletableFuture.completedFuture(initialState))),
-                                       (__, p) ->  p,
-                                       rootComponentView));
+             webComponent(request -> CompletableFuture.completedFuture(initialState),
+                          (__, p) ->  p,
+                          rootComponentView));
     }
 
     public App(final S initialState,
@@ -88,9 +88,9 @@ public final class App<S> {
         this(AppConfig.DEFAULT,
                 new PageLifeCycle.Default<>(),
                 new ComponentDefinition<>(HttpRequest.class,
-                        new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
-                        (__, p) ->  p,
-                        state -> newState -> rootComponentView.apply(state)));
+                                          request -> CompletableFuture.completedFuture(initialState),
+                                          (__, p) ->  p,
+                                          state -> newState -> rootComponentView.apply(state)));
     }
 
     public App(final Routing<HttpRequest, S> routing,
@@ -98,7 +98,7 @@ public final class App<S> {
         this(AppConfig.DEFAULT,
                 new PageLifeCycle.Default<>(),
                 new ComponentDefinition<>(HttpRequest.class,
-                                          routing.toInitialStateFunction(),
+                                          routing,
                                           (__, p) ->  p,
                                           state -> newState -> rootComponentView.apply(state)));
     }

@@ -66,6 +66,7 @@ public final class Component<T, S> implements NewState<S> {
         }
     }
 
+    // TODO
     public S resolveState() {
         final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
         final CompletableFuture<? extends S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);

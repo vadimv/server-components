@@ -8,6 +8,7 @@ import rsp.server.Path;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Stateful and stateless components definitions domain-specific language functions.
@@ -29,28 +30,28 @@ public class ComponentDsl {
                                          componentView);
     }
 
-    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Routing<HttpRequest, S> initialStateRouting,
+    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
                                                                        final ComponentView<S> componentView) {
         return new ComponentDefinition<>(HttpRequest.class,
-                                         initialStateRouting.toInitialStateFunction(),
+                                         initialStateRouting,
                                          (__, path) ->  path,
                                          componentView);
     }
 
-    public static <S> ComponentDefinition<Path, S> component(final Routing<Path, S> initialStateRouting,
+    public static <S> ComponentDefinition<Path, S> component(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
                                                              final BiFunction<S, Path, Path> state2PathFunction,
                                                              final ComponentView<S> componentView) {
         return new ComponentDefinition<>(Path.class,
-                                         initialStateRouting.toInitialStateFunction(),
+                                         initialStateRouting,
                                          state2PathFunction,
                                          componentView);
     }
 
-    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Routing<HttpRequest, S> initialStateRouting,
+    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
                                                                        final BiFunction<S, Path, Path> state2PathFunction,
                                                                        final ComponentView<S> componentView) {
         return new ComponentDefinition<>(HttpRequest.class,
-                                         initialStateRouting.toInitialStateFunction(),
+                                         initialStateRouting,
                                          state2PathFunction,
                                          componentView);
     }

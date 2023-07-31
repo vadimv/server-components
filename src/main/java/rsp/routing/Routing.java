@@ -1,6 +1,7 @@
 package rsp.routing;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
@@ -10,30 +11,18 @@ import java.util.function.Function;
  * @param <T> the type of the component's input object, the 'state origin type'
  * @param <S> the type of the component's state, should be an immutable class
  */
-public final class Routing<T, S> {
+public final class Routing<T, S> implements Function<T, CompletableFuture<? extends S>> {
     private final S notFoundState;
     private final Route<T, S> routes;
 
     public Routing(final Route<T, S> routes, final S notFoundState) {
         this.routes = Objects.requireNonNull(routes);
-        this.notFoundState = notFoundState;
+        this.notFoundState = Objects.requireNonNull(notFoundState);
     }
 
-    public Routing(final Route<T, S> routes) {
-        this(routes, null);
+    @Override
+    public CompletableFuture<? extends S> apply(T stateOrigin) {
+        final Optional<CompletableFuture<? extends S>> result = routes.apply(stateOrigin);
+        return result.orElse(CompletableFuture.completedFuture(notFoundState));
     }
-
-    public CompletableFuture<? extends S> route(final T request) {
-        final var result = routes.apply(request);
-        if (notFoundState != null) {
-            return result.orElse(CompletableFuture.completedFuture(notFoundState));
-        } else {
-            return result.orElseThrow(() -> new RuntimeException("Not found 404"));
-        }
-    }
-
-    public Function<T, CompletableFuture<? extends S>> toInitialStateFunction() {
-        return httpRequest -> route(httpRequest);
-    }
-
 }
