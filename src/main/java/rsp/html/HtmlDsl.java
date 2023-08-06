@@ -598,21 +598,26 @@ public final class HtmlDsl {
      * Provides a definition of a browsers' window object.
      * @return a window object definition
      */
-    public static WindowRef window() {
-        return new WindowRef();
+    public static Window window() {
+        return new Window();
     }
 
     /**
      * Creates reference to a HTML element which can be used as a key for obtaining its element's properties values.
-     * @see EventContext#props(ElementRef)
+     * @see EventContext#propertiesByRef(ElementRef)
      * @return a reference object
      */
-    public static ElementRefDefinition createElementRef() {
-        return new ElementRefDefinition();
+    public static ElementRef createElementRef() {
+        return new ElementRef() {};
+    }
+
+    public static ElementRefDefinition elementId(ElementRef ref) {
+        return new ElementRefDefinition(ref);
     }
 
     private static boolean isPropertyByDefault(final String name) {
         return DEFAULT_PROPERTIES_NAMES.contains(name);
     }
+
 
 }

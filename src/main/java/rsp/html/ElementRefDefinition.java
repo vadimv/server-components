@@ -8,11 +8,16 @@ import java.util.Objects;
 /**
  * A reference to an element.
  */
-public final class ElementRefDefinition implements SegmentDefinition, ElementRef {
+public final class ElementRefDefinition implements SegmentDefinition {
+
+    private final ElementRef id;
+    public ElementRefDefinition(final ElementRef id) {
+        this.id = Objects.requireNonNull(id);
+    }
 
     @Override
     public boolean render(final RenderContext renderContext) {
-        renderContext.addRef(this);
+        renderContext.addRef(id);
         return true;
     }
 

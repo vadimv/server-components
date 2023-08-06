@@ -12,17 +12,22 @@ import java.util.function.Function;
  * @param <S> the type of the component's state, should be an immutable class
  */
 public final class Routing<T, S> implements Function<T, CompletableFuture<? extends S>> {
-    private final S notFoundState;
+    private final CompletableFuture<S> notFoundState;
     private final Route<T, S> routes;
 
-    public Routing(final Route<T, S> routes, final S notFoundState) {
+    public Routing(final Route<T, S> routes, final CompletableFuture<S> notFoundState) {
         this.routes = Objects.requireNonNull(routes);
         this.notFoundState = Objects.requireNonNull(notFoundState);
     }
 
+    public Routing(final Route<T, S> routes, final S notFoundState) {
+        this.routes = Objects.requireNonNull(routes);
+        this.notFoundState = CompletableFuture.completedFuture(Objects.requireNonNull(notFoundState));
+    }
+
     @Override
-    public CompletableFuture<? extends S> apply(T stateOrigin) {
+    public CompletableFuture<? extends S> apply(final T stateOrigin) {
         final Optional<CompletableFuture<? extends S>> result = routes.apply(stateOrigin);
-        return result.orElse(CompletableFuture.completedFuture(notFoundState));
+        return result.orElse(notFoundState);
     }
 }

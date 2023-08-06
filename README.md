@@ -316,6 +316,16 @@ The context's ``EventContext.eventObject()`` method reads the event's object as 
         input(attr("type", "button"), attr("value", "Submit"))
     )
 ```
+The ``window().on(eventType, handler)`` DSL function registers a browser's window object event handler:
+
+```java
+    html(window().on("click", ctx -> {
+            System.out.println("window clicked");
+        }),
+        ...
+        )
+```
+
 
 ### Navigation bar URL path and components state mapping
 
@@ -346,26 +356,21 @@ One of the event context object's methods allows access to client-side document 
 ```java
     final ElementRef inputRef = createElementRef();
     ...
-    input(inputRef,
+    input(elementId(inputRef),
           attr("type", "text")),
     a("#", "Click me", on("click", ctx -> {
-            ctx.props(inputRef).getString("value").thenAccept(value -> System.out.println("Input's value: " + value));     
+            var props = ctx.propertiesByRef(inputRef);
+            props.getString("value").thenAccept(value -> { 
+                                                  System.out.println("Input element's value: " + value);
+                                                  props.set("value", "new text");           
+            });     
     }))
 ```
 
 A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
 
-There is the special ``window()`` reference for the page's window object.
+There is the special ``window().ref()`` reference for the page's window object.
 
-The ``window().on(eventType, handler)`` method registers a window event handler:
-
-```java
-    html(window().on("click", ctx -> {
-            System.out.println("window clicked");
-        }),
-        ...
-        )
-```
 
 ### Evaluating JS code on the client-side
 

@@ -46,7 +46,7 @@ public final class EventContext {
      * @param ref a reference to an element
      * @return the proxy object to read the element's properties
      */
-    public PropertiesHandle props(final ElementRef ref) {
+    public PropertiesHandle propertiesByRef(final ElementRef ref) {
         return propertiesHandleLookup.apply(ref);
     }
 

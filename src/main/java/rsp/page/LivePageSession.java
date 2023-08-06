@@ -2,7 +2,7 @@ package rsp.page;
 
 import rsp.component.Component;
 import rsp.dom.*;
-import rsp.html.WindowRef;
+import rsp.html.Window;
 import rsp.ref.Ref;
 import rsp.server.*;
 import rsp.server.http.Fragment;
@@ -203,7 +203,7 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
     }
 
     private VirtualDomPath resolveRef(final Ref ref) {
-        return ref instanceof WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
+        return ref instanceof Window.WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
     }
 
     @Override

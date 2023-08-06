@@ -9,10 +9,11 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * A reference to a browser's page window object.
+ * Represents a browser's page window object.
  */
-public final class WindowRef implements ElementRef {
+public final class Window {
 
+    private final ElementRef WINDOW_REFERENCE = new WindowRef();
     /**
      * Registers an listener on a window object event with the 'prevent-default' property set to true
      * @param eventType a event's name
@@ -36,6 +37,8 @@ public final class WindowRef implements ElementRef {
     }
 
     public ElementRef ref() {
-        return this;
+        return WINDOW_REFERENCE;
     }
+
+    public static final class WindowRef implements ElementRef {}
 }

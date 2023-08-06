@@ -11,7 +11,6 @@ import rsp.component.View;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -71,17 +70,30 @@ public final class App<S> {
     /**
      * Creates an instance of an application with the default config
      * and default routing which maps any request to the initial state.
+     * @param initialState the initial state snapshot as a CompletableFuture
+     * @param rootComponentView the root of the components tree
+     */
+    public App(final CompletableFuture<S> initialState,
+               final ComponentView<S> rootComponentView) {
+        this(AppConfig.DEFAULT,
+             new PageLifeCycle.Default<>(),
+             webComponent(request -> initialState,
+                          (__, p) ->  p,
+                          rootComponentView));
+    }
+
+    /**
+     * Creates an instance of an application with the default config
+     * and default routing which maps any request to the initial state.
      * @param initialState the initial state snapshot
      * @param rootComponentView the root of the components tree
      */
     public App(final S initialState,
                final ComponentView<S> rootComponentView) {
-        this(AppConfig.DEFAULT,
-             new PageLifeCycle.Default<>(),
-             webComponent(request -> CompletableFuture.completedFuture(initialState),
-                          (__, p) ->  p,
-                          rootComponentView));
+        this(CompletableFuture.completedFuture(initialState),
+             rootComponentView);
     }
+
 
     public App(final S initialState,
                final View<S> rootComponentView) {
@@ -102,16 +114,6 @@ public final class App<S> {
                                           (__, p) ->  p,
                                           state -> newState -> rootComponentView.apply(state)));
     }
-
-/*    public App(final S initialState,
-               final Function<S, TagDefinition> rootView) {
-        this(AppConfig.DEFAULT,
-             new PageLifeCycle.Default<>(),
-             new ComponentDefinition<>(HttpRequest.class,
-                                       new Routing<HttpRequest, S>(request -> Optional.of(CompletableFuture.completedFuture(initialState))).toInitialStateFunction(),
-                                        (__, p) ->  p,
-                                        state -> newState -> rootView.apply(state)));
-    }*/
 
     /**
      * Sets the application's config.

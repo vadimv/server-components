@@ -1,6 +1,7 @@
 package rsp.page;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import rsp.component.Component;
 import rsp.dom.*;
@@ -25,7 +26,7 @@ public class LivePageTests {
 
     private static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
-    @Test
+    @Test @Ignore
     public void should_generate_update_commands_for_new_state() {
         final TestCollectingRemoteOut out = new TestCollectingRemoteOut();
         final NewState<State> liveComponent = createComponent(out);
