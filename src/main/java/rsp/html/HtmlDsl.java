@@ -603,7 +603,7 @@ public final class HtmlDsl {
     }
 
     /**
-     * Creates reference to a HTML element which can be used as a key for obtaining its element's properties values.
+     * Creates reference to an HTML element which can be used as a key for obtaining its element's properties values.
      * @see EventContext#propertiesByRef(ElementRef)
      * @return a reference object
      */
@@ -611,13 +611,17 @@ public final class HtmlDsl {
         return new ElementRef() {};
     }
 
+    /**
+     * An element ID DSL directive binds its parent element to the reference provided.
+     * @param ref the reference which could be used to access the bind element's properties
+     * @return a rendering hint definition, not added to the result HTML tree
+     */
     public static ElementRefDefinition elementId(ElementRef ref) {
         return new ElementRefDefinition(ref);
     }
 
+
     private static boolean isPropertyByDefault(final String name) {
         return DEFAULT_PROPERTIES_NAMES.contains(name);
     }
-
-
 }
