@@ -8,8 +8,7 @@
 * [HTML markup Java DSL](#html-markup-java-dsl)
 * [SPAs, plain pages head tag](#spas-plain-pages-and-the-head-tag)
 * [Page HTTP status code and HTTP headers](#page-http-status-code-and-http-headers)
-* [UI Stateful components](#ui-stateful-components)
-* [Components state model](#components-state-model)
+* [UI components](#ui-components)
 * [DOM events](#dom-events)
 * [Navigation bar URL path and components state mapping](#navigation-bar-url-path-and-components-state-mapping)
 * [DOM elements references](#dom-elements-references)
@@ -217,7 +216,6 @@ Use components DSL  ``component()`` and ``webComponent()`` overloaded functions 
     public static ComponentView<String> buttonView = state -> newState -> input(attr("type", "button"),
                                                                                 attr("value", state),      
                                                                                 on("click", ctx -> newState.set("Clicked")));
-
     ...
     div(
         span("Click the button below"),
@@ -231,35 +229,32 @@ Use components DSL  ``component()`` and ``webComponent()`` overloaded functions 
 An application's top-level ``ComponentDefintion<S>`` is the root of its page's components tree.
 
 Stateless views effectively are functions from an input state to a DOM fragment's definition.
+A view function of a stateful component has two parameters and a view function of stateless component has one parameter.
 
-### Components state model
+```java
+    public static View<State> appView = state -> 
+        switch (state) {
+            case NotFoundState nf -> statelessComponent(nf, notFoundStatelessView);
+            case UserState   user -> component(user, userComponentView);
+            case UsersState users -> component(users, usersComponentView);
+        }
+```
 
 A component's state is modelled as a finite state machine (FSM) and managed by the framework.
 Any state change must be initiated by invoking of one of the ``NewState`` interface methods, like ``set()`` and ``apply()``.
-Normally, state transitions are triggered by the browser's events.
+Normally, state transitions are triggered by the browser's events, notifications or timer events.
 
-The following example shows how a page state can be modelled using records, sealed interfaces and pattern matching:
+The following example shows how a page state can be modelled using records, sealed interfaces used:
 
 ```java
-    sealed interface State permits UserState, UsersState {}
+    sealed interface State permits NotFoundState, UserState, UsersState {}
+
+    record NotFoundState() implements State {};
     record UserState(User user) implements State {}
     record UsersState(List<User> users) implements State {}
     
     record User(long id, String name) {}
-        
 
-    /**
-     * The page's renderer, called by the framework as a result of a state transition.
-     */
-    static View<State> pageView() {
-        return state -> switch (state) {
-            case UserState  user -> userView().render(user);
-            case UsersState users -> usersView().render(users);
-        };
-    }
-
-    private static View<UserState> userView() { return state -> span("User:" + state); }
-    private static View<UsersState> usersView() { return state -> span("Users list:" + state); }
 ```
 
 A component's initial state can be provided is the following ways:

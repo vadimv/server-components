@@ -12,7 +12,7 @@ public interface NewState<S> {
 
     void set(S newState);
     void apply(Function<S, S> stateTransformer);
-    void applyWhenComplete(CompletableFuture<S> newState);
+    void applyWhenComplete(CompletableFuture<? extends S> newState);
     void applyIfPresent(Function<S, Optional<S>> stateTransformer);
 
 
@@ -29,7 +29,7 @@ public interface NewState<S> {
           }
 
         @Override
-        public void applyWhenComplete(CompletableFuture<T> newState) {
+        public void applyWhenComplete(CompletableFuture<? extends T> newState) {
             // NO-OP
         }
 

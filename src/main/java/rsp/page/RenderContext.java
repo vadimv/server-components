@@ -8,8 +8,6 @@ import rsp.dom.XmlNs;
 import rsp.ref.Ref;
 import rsp.server.Path;
 import rsp.component.ComponentView;
-import rsp.component.NewState;
-import rsp.util.data.Tuple2;
 
 import java.util.Map;
 import java.util.Optional;
@@ -33,10 +31,10 @@ public interface RenderContext {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
-    <T, S> Tuple2<S, NewState<S>> openComponent(final Class<T> stateReferenceClass,
-                                                final Function<T, CompletableFuture<? extends S>> initialStateFunction,
-                                                final BiFunction<S, Path, Path> state2pathFunction,
-                                                final ComponentView<S> componentView);
+    <T, S> Component<T, S> openComponent(Class<T> stateReferenceClass,
+                                         Function<T, CompletableFuture<? extends S>> initialStateFunction,
+                                         BiFunction<S, Path, Path> state2pathFunction,
+                                         ComponentView<S> componentView);
     <T, S> void openComponent(Component<T, S> component);
     void closeComponent();
     Tag rootTag();

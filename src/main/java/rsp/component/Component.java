@@ -47,7 +47,7 @@ public final class Component<T, S> implements NewState<S> {
                      final ComponentView<S> componentView,
                      final RenderContext parentRenderContext,
                      final AtomicReference<LivePage> livePageSupplier) {
-        this.stateOriginLookup = stateOriginLookup;
+        this.stateOriginLookup = Objects.requireNonNull(stateOriginLookup);
         this.stateOriginClass = Objects.requireNonNull(stateOriginClass);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
@@ -66,19 +66,13 @@ public final class Component<T, S> implements NewState<S> {
         }
     }
 
-    // TODO
-    public S resolveState() {
+    public CompletableFuture<? extends S> resolveState() {
         final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
-        final CompletableFuture<? extends S> initialStateCompletableFuture = resolveStateFunction.apply(stateOrigin);
-        try {
-            return initialStateCompletableFuture.get();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return resolveStateFunction.apply(stateOrigin);
     }
 
     public void resolveAndSet() {
-        set(resolveState());
+        applyWhenComplete(resolveState());
     }
 
     public S getState() {
@@ -91,7 +85,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     @Override
-    public void applyWhenComplete(final CompletableFuture<S> newState) {
+    public void applyWhenComplete(final CompletableFuture<? extends S> newState) {
         newState.thenAccept(this::set);
     }
 

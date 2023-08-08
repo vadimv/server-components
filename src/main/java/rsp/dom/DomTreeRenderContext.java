@@ -141,10 +141,10 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public <T, S> Tuple2<S, NewState<S>> openComponent(final Class<T> stateOriginClass,
-                                                       final Function<T, CompletableFuture<? extends S>> initialStateFunction,
-                                                       final BiFunction<S, Path, Path> state2pathFunction,
-                                                       final ComponentView<S> componentView) {
+    public <T, S> Component<T, S> openComponent(final Class<T> stateOriginClass,
+                                                final Function<T, CompletableFuture<? extends S>> initialStateFunction,
+                                                final BiFunction<S, Path, Path> state2pathFunction,
+                                                final ComponentView<S> componentView) {
         final Component<T, S> newComponent = new Component<>(stateOriginLookup,
                                                              stateOriginClass,
                                                              initialStateFunction,
@@ -153,7 +153,8 @@ public final class DomTreeRenderContext implements RenderContext {
                                                             this,
                                                              livePageContext);
         openComponent(newComponent);
-        return new Tuple2<>(newComponent.resolveState(), newComponent);
+
+        return newComponent;
     }
 
     @Override
@@ -180,10 +181,6 @@ public final class DomTreeRenderContext implements RenderContext {
     @Override
     public RenderContext newContext() {
         return new DomTreeRenderContext(rootPath, livePageContext.get(), livePageContext);
-    }
-
-    public VirtualDomPath rootPath() {
-        return rootPath;
     }
 
     @Override

@@ -36,13 +36,15 @@ public final class ComponentDefinition<T, S> implements SegmentDefinition {
 
     @Override
     public boolean render(final RenderContext renderContext) {
-        final Tuple2<S, NewState<S>> newComponentHandler = renderContext.openComponent(stateFunctionInputClass,
-                                                                                       initialStateFunction,
-                                                                                       state2pathFunction,
-                                                                                       componentView);
-        final SegmentDefinition view = componentView.apply(newComponentHandler._1)
-                                                    .apply(newComponentHandler._2);
-        view.render(renderContext);
+        final Component<T, S> newComponent = renderContext.openComponent(stateFunctionInputClass,
+                                                                         initialStateFunction,
+                                                                         state2pathFunction,
+                                                                         componentView);
+        final CompletableFuture<? extends S> statePromise = newComponent.resolveState();
+        statePromise.whenComplete((state, ex) -> { // TODO handle an exception
+            final SegmentDefinition view = componentView.apply(state).apply(newComponent);
+            view.render(renderContext);
+        });
         renderContext.closeComponent();
         return true;
     }
