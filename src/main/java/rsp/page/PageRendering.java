@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.component.ComponentDefinition;
+import rsp.component.HttpRequestStatefulComponentDefinition;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.server.http.*;
@@ -24,12 +24,12 @@ public final class PageRendering<S> {
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
-    private final ComponentDefinition<HttpRequest, S> rootComponent;
+    private final HttpRequestStatefulComponentDefinition<S> rootComponent;
 
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
 
-    public PageRendering(final ComponentDefinition<HttpRequest, S> rootComponent,
+    public PageRendering(final HttpRequestStatefulComponentDefinition<S> rootComponent,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          final BiFunction<String, RenderContext, RenderContext> enrich) {
         this.rootComponent = Objects.requireNonNull(rootComponent);

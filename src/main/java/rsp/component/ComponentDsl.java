@@ -1,7 +1,6 @@
 package rsp.component;
 
 import rsp.html.SegmentDefinition;
-import rsp.routing.Routing;
 import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 
@@ -21,42 +20,72 @@ public class ComponentDsl {
      * @param componentView a function for forming the component's view according to a state value
      * @return a component's definition for the DSL
      */
-    public static <S> ComponentDefinition<Path, S> component(final S initialState,
-                                                             final ComponentView<S> componentView) {
+    public static <S> PathStatefulComponentDefinition<S> component(final S initialState,
+                                                                   final ComponentView<S> componentView) {
         Objects.requireNonNull(initialState);
-        return new ComponentDefinition<>(Path.class,
-                                         __ -> CompletableFuture.completedFuture(initialState),
-                                         (__, path) -> path,
-                                         componentView);
+        return component(__ -> CompletableFuture.completedFuture(initialState),
+                         (__, path) -> path,
+                         componentView);
     }
 
-    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
-                                                                       final ComponentView<S> componentView) {
-        return new ComponentDefinition<>(HttpRequest.class,
-                                         initialStateRouting,
-                                         (__, path) ->  path,
-                                         componentView);
+    public static <S> HttpRequestStatefulComponentDefinition<S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
+                                                                             final ComponentView<S> componentView) {
+        return webComponent(initialStateRouting,
+                            (__, path) ->  path,
+                            componentView);
     }
 
-    public static <S> ComponentDefinition<Path, S> component(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
-                                                             final BiFunction<S, Path, Path> state2PathFunction,
-                                                             final ComponentView<S> componentView) {
-        return new ComponentDefinition<>(Path.class,
-                                         initialStateRouting,
-                                         state2PathFunction,
-                                         componentView);
+    public static <S> PathStatefulComponentDefinition<S> component(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
+                                                                   final BiFunction<S, Path, Path> state2PathFunction,
+                                                                   final ComponentView<S> componentView) {
+        Objects.requireNonNull(initialStateRouting);
+        Objects.requireNonNull(state2PathFunction);
+        Objects.requireNonNull(componentView);
+
+        return new PathStatefulComponentDefinition<S>() {
+            @Override
+            protected Function<Path, CompletableFuture<? extends S>> initialStateFunction() {
+                return initialStateRouting;
+            }
+
+            @Override
+            protected BiFunction<S, Path, Path> state2pathFunction() {
+                return state2PathFunction;
+            }
+
+            @Override
+            protected ComponentView<S> componentView() {
+                return componentView;
+            }
+        };
     }
 
-    public static <S> ComponentDefinition<HttpRequest, S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
-                                                                       final BiFunction<S, Path, Path> state2PathFunction,
-                                                                       final ComponentView<S> componentView) {
-        return new ComponentDefinition<>(HttpRequest.class,
-                                         initialStateRouting,
-                                         state2PathFunction,
-                                         componentView);
+    public static <S> HttpRequestStatefulComponentDefinition<S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
+                                                                             final BiFunction<S, Path, Path> state2PathFunction,
+                                                                             final ComponentView<S> componentView) {
+        Objects.requireNonNull(initialStateRouting);
+        Objects.requireNonNull(state2PathFunction);
+        Objects.requireNonNull(componentView);
+
+        return new HttpRequestStatefulComponentDefinition<S>() {
+            @Override
+            protected Function<HttpRequest, CompletableFuture<? extends S>> initialStateFunction() {
+                return initialStateRouting;
+            }
+
+            @Override
+            protected BiFunction<S, Path, Path> state2pathFunction() {
+                return state2PathFunction;
+            }
+
+            @Override
+            protected ComponentView<S> componentView() {
+                return componentView;
+            }
+        };
     }
 
-    public static <S> SegmentDefinition statelessComponent(final S initialState, final View<S> componentView) {
-        return componentView.apply(initialState);
+    public static <S> SegmentDefinition statelessComponent(final S state, final View<S> componentView) {
+        return componentView.apply(state);
     }
 }

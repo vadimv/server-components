@@ -14,28 +14,4 @@ public interface NewState<S> {
     void apply(Function<S, S> stateTransformer);
     void applyWhenComplete(CompletableFuture<? extends S> newState);
     void applyIfPresent(Function<S, Optional<S>> stateTransformer);
-
-
-    class Default<T> implements NewState<T> {
-
-          @Override
-          public void set(T newState) {
-              // NO-OP
-          }
-
-          @Override
-          public void apply(Function<T, T> stateTransformer) {
-              // NO-OP
-          }
-
-        @Override
-        public void applyWhenComplete(CompletableFuture<? extends T> newState) {
-            // NO-OP
-        }
-
-        @Override
-        public void applyIfPresent(Function<T, Optional<T>> stateTransformer) {
-            // NO-OP
-        }
-    }
 }

@@ -102,7 +102,7 @@ The ``any()`` route matches every request.
 
 ### HTML markup Java DSL
 
-rsp provides a Java internal domain-specific language (DSL) for declarative definition of HTML views as a composition of functions.
+rsp provides a Java internal domain-specific language (DSL) for declarative definition of HTML templates as a composition of functions.
 
 For example, to re-write the HTML fragment:
 
@@ -206,8 +206,6 @@ Actually, SPA pages are composed of components of two kinds:
 - stateful components
 - stateless views
 
-Every stateful component has its own changeable state, represented by a snapshot of an immutable class or record.
-
 Use components DSL  ``component()`` and ``webComponent()`` overloaded functions to create a stateful component.
 
 ```java
@@ -219,16 +217,39 @@ Use components DSL  ``component()`` and ``webComponent()`` overloaded functions 
     ...
     div(
         span("Click the button below"),
-        component("Ready",
+        component("Ready", // this is the component's initial state
                   buttonView)
     )   
-    ...    
-
+    ...
 ```
 
-An application's top-level ``ComponentDefintion<S>`` is the root of its page's components tree.
+The alternative way to implement a stateful component is to extend abstract classes 
+``HttpRequestStatefulComponentDefinition`` and ``PathStatefulComponentDefinition``.
 
-Stateless views effectively are functions from an input state to a DOM fragment's definition.
+A stateful component's initial state can be provided is the following ways:
+- set explicitly
+- mapped from an HTTP request
+- mapped from a request's URL path
+
+Every stateful component has its own changeable state, represented by a snapshot of an immutable class or record.
+A component's state is modelled as a finite state machine (FSM) and managed by the framework.
+Any state transition must be initiated by invoking of one of the provided parameter's ``NewState`` interface methods, like ``set()`` and ``apply()``.
+Normally, state transitions are triggered by the browser's events, notifications or timer events.
+
+The following example shows how a component's state can be modelled using records and a sealed interface:
+
+```java
+    sealed interface State permits NotFoundState, UserState, UsersState {}
+
+    record NotFoundState() implements State {};
+    record UserState(User user) implements State {}
+    record UsersState(List<User> users) implements State {}
+    
+    record User(long id, String name) {}
+```
+
+Stateless views are pure functions from an input state to a DOM fragment's definition.
+
 A view function of a stateful component has two parameters and a view function of stateless component has one parameter.
 
 ```java
@@ -240,27 +261,7 @@ A view function of a stateful component has two parameters and a view function o
         }
 ```
 
-A component's state is modelled as a finite state machine (FSM) and managed by the framework.
-Any state change must be initiated by invoking of one of the ``NewState`` interface methods, like ``set()`` and ``apply()``.
-Normally, state transitions are triggered by the browser's events, notifications or timer events.
-
-The following example shows how a page state can be modelled using records, sealed interfaces used:
-
-```java
-    sealed interface State permits NotFoundState, UserState, UsersState {}
-
-    record NotFoundState() implements State {};
-    record UserState(User user) implements State {}
-    record UsersState(List<User> users) implements State {}
-    
-    record User(long id, String name) {}
-
-```
-
-A component's initial state can be provided is the following ways:
-- set explicitly
-- mapped from an HTTP request
-- mapped from a request's URL path
+An application's top-level stateful component is the root of its page's components tree.
 
 ### DOM events
 
@@ -320,7 +321,6 @@ The ``window().on(eventType, handler)`` DSL function registers a browser's windo
         ...
         )
 ```
-
 
 ### Navigation bar URL path and components state mapping
 
