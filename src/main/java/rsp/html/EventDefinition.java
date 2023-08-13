@@ -16,7 +16,7 @@ public final class EventDefinition implements SegmentDefinition {
     /**
      * Is used when prevent default behaviour is not explicitly specified for an event.
      */
-    public static boolean PREVENT_DEFAULT_DEFAULT_VALUE = true;
+    public static final boolean PREVENT_DEFAULT_DEFAULT_VALUE = true;
 
     /**
      * The path to the element the event generated on.

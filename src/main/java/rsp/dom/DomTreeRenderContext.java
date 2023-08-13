@@ -1,15 +1,13 @@
 package rsp.dom;
 
 import rsp.component.Component;
-import rsp.page.LivePage;
-import rsp.ref.Ref;
-import rsp.page.EventContext;
-import rsp.page.RenderContext;
-import rsp.server.Path;
 import rsp.component.ComponentView;
-import rsp.component.NewState;
+import rsp.page.EventContext;
+import rsp.page.LivePage;
+import rsp.page.RenderContext;
+import rsp.ref.Ref;
+import rsp.server.Path;
 import rsp.util.Lookup;
-import rsp.util.data.Tuple2;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;

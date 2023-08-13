@@ -22,7 +22,7 @@ public final class ElementRefDefinition implements SegmentDefinition {
     }
 
     public <K> KeyRef<K> withKey(final K key) {
-        return new KeyRef<K>(this, key);
+        return new KeyRef<>(this, key);
     }
 
     public static class KeyRef<K> implements ElementRef, SegmentDefinition {

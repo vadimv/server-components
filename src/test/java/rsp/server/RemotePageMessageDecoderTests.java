@@ -54,7 +54,7 @@ public class RemotePageMessageDecoderTests {
         return new RemotePageMessageDecoder(collector);
     }
 
-    private final class DomEvent {
+    private static final class DomEvent {
         final int renderNumber;
         final VirtualDomPath path;
         final String eventType;
@@ -68,7 +68,7 @@ public class RemotePageMessageDecoderTests {
         }
     }
 
-    private final class ExtractProperty {
+    private static final class ExtractProperty {
         public final int descriptorId;
         public final Either<Throwable, JsonDataType> value;
         public ExtractProperty(final int descriptorId, final Either<Throwable, JsonDataType> value) {
@@ -77,7 +77,7 @@ public class RemotePageMessageDecoderTests {
         }
     }
 
-    private final class JsResponse {
+    private static final class JsResponse {
         public final int descriptorId;
         public final JsonDataType value;
         public JsResponse(final int descriptorId, final JsonDataType value) {
@@ -86,7 +86,7 @@ public class RemotePageMessageDecoderTests {
         }
     }
 
-    private final class TestRemoteIn implements RemoteIn {
+    private static final class TestRemoteIn implements RemoteIn {
         public Object result;
 
 

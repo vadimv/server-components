@@ -119,7 +119,7 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> config(final AppConfig config) {
-        return new App<S>(config,  this.lifeCycleEventsListener, this.rootComponent);
+        return new App<>(config,  this.lifeCycleEventsListener, this.rootComponent);
     }
 
 
@@ -131,7 +131,7 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> pageLifeCycle(final PageLifeCycle<S> lifeCycleEventsListener) {
-        return new App<S>(this.config, lifeCycleEventsListener, this.rootComponent);
+        return new App<>(this.config, lifeCycleEventsListener, this.rootComponent);
     }
 }
 

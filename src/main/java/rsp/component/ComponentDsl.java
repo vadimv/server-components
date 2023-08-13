@@ -42,7 +42,7 @@ public class ComponentDsl {
         Objects.requireNonNull(state2PathFunction);
         Objects.requireNonNull(componentView);
 
-        return new PathStatefulComponentDefinition<S>() {
+        return new PathStatefulComponentDefinition<>() {
             @Override
             protected Function<Path, CompletableFuture<? extends S>> initialStateFunction() {
                 return initialStateRouting;
@@ -67,7 +67,7 @@ public class ComponentDsl {
         Objects.requireNonNull(state2PathFunction);
         Objects.requireNonNull(componentView);
 
-        return new HttpRequestStatefulComponentDefinition<S>() {
+        return new HttpRequestStatefulComponentDefinition<>() {
             @Override
             protected Function<HttpRequest, CompletableFuture<? extends S>> initialStateFunction() {
                 return initialStateRouting;

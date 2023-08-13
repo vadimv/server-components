@@ -18,8 +18,8 @@ public final class AppConfig {
     /**
      * The default configuration.
      */
-    public static AppConfig DEFAULT = new AppConfig(DEFAULT_HEARTBEAT_INTERVAL_MS,
-                                                    DEFAULT_SCHEDULER_THREAD_POOL_SIZE);
+    public static final AppConfig DEFAULT = new AppConfig(DEFAULT_HEARTBEAT_INTERVAL_MS,
+                                                          DEFAULT_SCHEDULER_THREAD_POOL_SIZE);
 
     /**
      * The rate of heartbeat messages from a browser to server.

@@ -8,8 +8,6 @@ import rsp.dom.XmlNs;
 import rsp.ref.Ref;
 import rsp.server.Path;
 import rsp.component.ComponentView;
-import rsp.component.NewState;
-import rsp.util.data.Tuple2;
 
 import java.util.Map;
 import java.util.Optional;

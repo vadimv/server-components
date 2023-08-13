@@ -248,7 +248,7 @@ public interface JsonDataType {
      * The JSON null type.
      */
     final class Null implements JsonDataType {
-        public static Null INSTANCE = new Null();
+        public static final Null INSTANCE = new Null();
 
         private Null() {}
 

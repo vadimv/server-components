@@ -25,7 +25,7 @@ public final class StreamUtils {
     public static <L, R, T> Stream<T> zip(final Stream<L> leftStream, final Stream<R> rightStream, final BiFunction<L, R, T> combiner) {
         final Spliterator<L> lefts = leftStream.spliterator();
         final Spliterator<R> rights = rightStream.spliterator();
-        return StreamSupport.stream(new Spliterators.AbstractSpliterator<T>(Long.min(lefts.estimateSize(), rights.estimateSize()), lefts.characteristics() & rights.characteristics()) {
+        return StreamSupport.stream(new Spliterators.AbstractSpliterator<>(Long.min(lefts.estimateSize(), rights.estimateSize()), lefts.characteristics() & rights.characteristics()) {
             @Override
             public boolean tryAdvance(final Consumer<? super T> action) {
                 return lefts.tryAdvance(left->rights.tryAdvance(right->action.accept(combiner.apply(left, right))));
@@ -37,7 +37,7 @@ public final class StreamUtils {
      * Zips the specified stream with its indices.
      */
     public static <T> Stream<Map.Entry<Integer, T>> zipWithIndex(final Stream<? extends T> stream) {
-        return iterate(new Iterator<Map.Entry<Integer, T>>() {
+        return iterate(new Iterator<>() {
             private final Iterator<? extends T> streamIterator = stream.iterator();
             private int index = 0;
 

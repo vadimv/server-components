@@ -27,7 +27,7 @@ import static java.lang.System.Logger.Level.DEBUG;
 public final class LivePageSession implements RemoteIn, LivePage, Schedule {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
 
-    public static String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
+    public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     public final QualifiedSessionId qsid;
     private final StateOriginLookup stateOriginLookup;
