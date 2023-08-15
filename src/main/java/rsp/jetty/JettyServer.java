@@ -44,9 +44,6 @@ public final class JettyServer<S> {
 
     private final int port;
     private final Path basePath;
-    private final App<S> app;
-
-
     private final Server server;
 
     /**
@@ -65,7 +62,7 @@ public final class JettyServer<S> {
                        final int maxThreads) {
         this.port = port;
         this.basePath = Objects.requireNonNull(Path.of(basePath));
-        this.app = Objects.requireNonNull(app);
+        Objects.requireNonNull(app);
 
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setMaxThreads(maxThreads);

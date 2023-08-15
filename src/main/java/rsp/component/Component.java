@@ -16,7 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.UnaryOperator;
 
 /**
  * Represents a stateful component.
@@ -95,7 +95,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     @Override
-    public void apply(final Function<S, S> newStateFunction) {
+    public void apply(final UnaryOperator<S> newStateFunction) {
         final LivePage livePage = livePageContext.get();
         synchronized (livePage) {
             final Tag oldTag = tag;
@@ -104,7 +104,7 @@ public final class Component<T, S> implements NewState<S> {
                                                   Map.of();
             state = newStateFunction.apply(state);
             final RenderContext renderContext = oldTag != null ?
-                                                   parentRenderContext.newContext(oldTag.path) :
+                                                   parentRenderContext.newContext(oldTag.path()) :
                                                    parentRenderContext.newContext();
             events.clear();
             refs.clear();
@@ -141,7 +141,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public void listenEvents(final RemoteOut remoteOut) {
-        remoteOut.listenEvents(events.values().stream().collect(Collectors.toList()));
+        remoteOut.listenEvents(events.values().stream().toList());
         children.forEach(childComponent -> childComponent.listenEvents(remoteOut));
     }
 

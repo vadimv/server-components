@@ -99,7 +99,7 @@ public final class PageRendering<S> {
                                                      headers(domTreeContext.headers(), deviceId),
                                                      responseBody));
 
-        } catch (final Throwable ex) {
+        } catch (final Exception ex) {
             return CompletableFuture.failedFuture(ex);
         }
     }

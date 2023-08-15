@@ -16,7 +16,7 @@ public final class SslConfiguration {
     public final String keyStorePassword;
 
     /**
-     * Creates a new instance of a SSL/TLS configuration.
+     * Creates a new instance of an SSL/TLS configuration.
      * @param keyStorePath a path to a keystore.jks file
      * @param keyStorePassword a keystore password
      */

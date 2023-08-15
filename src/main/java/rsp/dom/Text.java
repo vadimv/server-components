@@ -1,7 +1,8 @@
 package rsp.dom;
 
 public final class Text implements Node {
-    public final VirtualDomPath path;
+    private final VirtualDomPath path;
+
     public final String text;
 
     public Text(final VirtualDomPath path, final String text) {

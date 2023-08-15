@@ -15,7 +15,7 @@ public final class Window {
 
     private final ElementRef WINDOW_REFERENCE = new WindowRef();
     /**
-     * Registers an listener on a window object event with the 'prevent-default' property set to true
+     * Registers a listener on a window object event with the 'prevent-default' property set to true
      * @param eventType a event's name
      * @param handler a code handler for this event
      * @return an event definition

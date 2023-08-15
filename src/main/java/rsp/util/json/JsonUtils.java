@@ -1,6 +1,9 @@
 package rsp.util.json;
 
 public final class JsonUtils {
+
+    private JsonUtils() {}
+
     public static String unescape(final String s) {
         final StringBuilder sb = new StringBuilder();
         int i = 0;

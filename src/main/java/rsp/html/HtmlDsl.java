@@ -12,24 +12,26 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static rsp.server.http.HttpStatusCodes.OK_STATUS_CODE;
+import static rsp.server.http.HttpResponse.OK_STATUS_CODE;
 
 /**
  * HTML tags definitions domain-specific language and related util functions.
  */
 public final class HtmlDsl {
 
+    private HtmlDsl() {}
+
     /**
      * Attributes names which are interpreted by default as properties.
      * @see #attr(String, String)
      */
-    public final static String DEFAULT_PROPERTIES_NAMES =
+    public static final String DEFAULT_PROPERTIES_NAMES =
             "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
 
     public enum HeadType { SPA, PLAIN }
 
     /**
-     * A HTML {@literal <html>} element, the root element of a HTML document.
+     * An HTML {@literal <html>} element, the root element of an HTML document.
      * @param children descendants definitions of this element
      * @return a tag definition
      */
@@ -80,7 +82,7 @@ public final class HtmlDsl {
     }
 
     /**
-     * A HTML element's attribute.
+     * An HTML element's attribute.
      * This attribute is interpreted as a property if its name is one of the properties by default:
      * {@value #DEFAULT_PROPERTIES_NAMES}.
      * @param name an attribute name
@@ -142,7 +144,7 @@ public final class HtmlDsl {
     }
 
     /**
-     * An element's text content, for a input class other than q {@link String}.
+     * An element's text content, for an input class other than q {@link String}.
      * @param obj an arbitrary object to be converted to text using its {@link #toString()} method
      * @return a text node definition
      */
@@ -161,7 +163,7 @@ public final class HtmlDsl {
     }
 
     /**
-     * A HTML {@literal <head>} element of a HTML document.
+     * An HTML {@literal <head>} element of an HTML document.
      * This element will contain a script which establishes a connection to the server and enables a single-page application.
      * @param children descendants definitions of this element
      * @return a tag definition
@@ -171,7 +173,7 @@ public final class HtmlDsl {
     }
 
     /**
-     * A HTML {@literal <head>} element of a HTML document,
+     * An HTML {@literal <head>} element of an HTML document,
      * has not to be upgraded with the script element establishing
      * a WebSocket connection to the server after the browser loads the page.
      * No live page session will be created on the server in this case.
@@ -346,7 +348,7 @@ public final class HtmlDsl {
     }
 
     /**
-     * A HTML {@literal <a>}, or anchor element of a HTML document.
+     * An HTML {@literal <a>}, or anchor element of an HTML document.
      * @param href the URL that the hyperlink points to
      * @param text the link's destination text content
      * @param children other descendants definitions of this element
@@ -556,7 +558,7 @@ public final class HtmlDsl {
 
     /**
      * Inserts a definition which is a result of some code execution.
-     * This functions allows to mix declarative DOM tree definitions and code fragments.
+     * This functions allows mix declarative DOM tree definitions and code fragments.
      * @param itemSupplier a code block
      * @return a result definition
      */

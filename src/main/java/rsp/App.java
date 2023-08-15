@@ -118,7 +118,7 @@ public final class App<S> {
      * @param config an application config
      * @return a new application object with the same field values except of the provided field
      */
-    public App<S> config(final AppConfig config) {
+    public App<S> withConfig(final AppConfig config) {
         return new App<>(config,  this.lifeCycleEventsListener, this.rootComponent);
     }
 
@@ -127,11 +127,11 @@ public final class App<S> {
      * Sets a listener for the app pages lifecycle events.
      * @see PageLifeCycle
      *
-     * @param lifeCycleEventsListener the listener interface for receiving page lifecycle events.
+     * @param lifecycleEventsListener the listener interface for receiving page lifecycle events.
      * @return a new application object with the same field values except of the provided field
      */
-    public App<S> pageLifeCycle(final PageLifeCycle<S> lifeCycleEventsListener) {
-        return new App<>(this.config, lifeCycleEventsListener, this.rootComponent);
+    public App<S> withPageLifecycle(final PageLifeCycle<S> lifecycleEventsListener) {
+        return new App<>(this.config, lifecycleEventsListener, this.rootComponent);
     }
 }
 

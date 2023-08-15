@@ -104,11 +104,10 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     }
 
     private void shutdown(final Session session) {
-        @SuppressWarnings("unchecked")
         final LivePageSession livePage = (LivePageSession) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
-            lifeCycleEventsListener.pageClosed(livePage.qsid);
+            lifeCycleEventsListener.pageClosed(livePage.getId());
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }

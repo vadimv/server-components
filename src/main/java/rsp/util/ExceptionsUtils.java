@@ -4,6 +4,9 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public final class ExceptionsUtils {
+
+    private ExceptionsUtils() {}
+
     /**
      * Reads an exception's stack trace as a {@link String}.
      * @param ex an exception

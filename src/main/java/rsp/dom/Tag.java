@@ -6,7 +6,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Tag implements Node {
 
-    public final VirtualDomPath path;
+    private final VirtualDomPath path;
+
     public final XmlNs xmlns;
     public final String name;
 

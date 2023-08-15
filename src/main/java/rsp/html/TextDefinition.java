@@ -3,7 +3,7 @@ package rsp.html;
 import rsp.page.RenderContext;
 
 /**
- * A definition of a HTML tag text content.
+ * A definition of an HTML tag text content.
  */
 public final class TextDefinition extends BaseSegmentDefinition {
     private final String text;

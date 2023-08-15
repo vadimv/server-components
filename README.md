@@ -409,17 +409,17 @@ This allows to run some specific code
         }
     };
     
-    final App<Optional<FullName>> app = new App<>(route(), pages()).pageLifeCycle(plc);
+    final App<Optional<FullName>> app = new App<>(route(), pages()).withPagelifeCycle(plc);
     ...
 ```
 Use these listeners to subscribe to some messages stream on a page live session creation and unsubscribing when the page closes.
 
 ### Application server's configuration
 
-Use an instance of the ``rsp.AppConfig`` class as the parameter to the ``config`` method of an ``App`` object:
+Use an instance of the ``rsp.AppConfig`` class as the parameter to the ``withConfig()`` method of an ``App`` object:
 
 ```java
-    final var app = new App(routing(), rootCreateViewFunction()).config(AppConfig.DEFAULT);
+    final var app = new App(routing(), rootCreateViewFunction()).withConfig(AppConfig.DEFAULT);
 ```
 A web server's ``rsp.jetty.JettyServer`` class' constructor accepts extra parameters like the application's web context base path,
 an optional static resources' handler and a TLS/SSL connection's configuration:

@@ -84,7 +84,7 @@ public final class DomTreeRenderContext implements RenderContext {
             final Tag parent = tagsStack.peek();
             assert parent != null;
             final int nextChild = parent.children.size() + 1;
-            final Tag newTag = new Tag(parent.path.childNumber(nextChild), xmlns, name);
+            final Tag newTag = new Tag(parent.path().childNumber(nextChild), xmlns, name);
             parent.addChild(newTag);
             tagsStack.push(newTag);
             trySetCurrentComponentRootTag(newTag);
@@ -115,7 +115,7 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public void addTextNode(final String text) {
-        tagsStack.peek().addChild(new Text(tagsStack.peek().path, text));
+        tagsStack.peek().addChild(new Text(tagsStack.peek().path(), text));
     }
 
     @Override
@@ -124,7 +124,7 @@ public final class DomTreeRenderContext implements RenderContext {
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final Event.Modifier modifier) {
-        final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path);
+        final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path());
         final Event.Target eventTarget = new Event.Target(eventType, eventPath);
         final Component<?, ?> component = componentsStack.peek();
         assert component != null;
@@ -135,7 +135,7 @@ public final class DomTreeRenderContext implements RenderContext {
     public void addRef(final Ref ref) {
         final Component<?, ?> component = componentsStack.peek();
         assert component != null;
-        component.addRef(ref, tagsStack.peek().path);
+        component.addRef(ref, tagsStack.peek().path());
     }
 
     @Override

@@ -17,7 +17,7 @@ public interface PageLifeCycle<S> {
     void pageCreated(QualifiedSessionId sid, S rootComponentState, NewState<S> rootComponentNewState);
 
     /**
-     * Invoked after an live page session closed.
+     * Invoked after a live page session closed.
      * @param sid the qualified session Id of the page being closed
      */
     void pageClosed(QualifiedSessionId sid);

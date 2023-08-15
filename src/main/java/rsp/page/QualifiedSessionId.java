@@ -12,12 +12,11 @@ public final class QualifiedSessionId {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final QualifiedSessionId qsid = (QualifiedSessionId) o;
-        return deviceId.equals(qsid.deviceId) &&
-                sessionId.equals(qsid.sessionId);
+        QualifiedSessionId that = (QualifiedSessionId) o;
+        return deviceId.equals(that.deviceId) && sessionId.equals(that.sessionId);
     }
 
     @Override

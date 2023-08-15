@@ -13,6 +13,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public final class DefaultConnectionLostWidget {
 
+    private DefaultConnectionLostWidget() {}
+
     public static final String HTML;
 
     static {

@@ -12,7 +12,7 @@ public final class Diff {
         this.current = Objects.requireNonNull(current);
         this.work = Objects.requireNonNull(work);
         current.ifPresent(c -> {
-            if (!c.path.equals(work.path)) {
+            if (!c.path().equals(work.path())) {
                 throw new IllegalArgumentException("Root paths for a diff expected to be equal");
             }
         });
@@ -20,8 +20,8 @@ public final class Diff {
     }
 
     public void run() {
-        current.ifPresentOrElse(c -> diff(c, work, c.path, performer),
-                                () -> create(work, work.path, performer));
+        current.ifPresentOrElse(c -> diff(c, work, c.path(), performer),
+                                () -> create(work, work.path(), performer));
     }
 
     private static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesContext changesPerformer) {
@@ -42,13 +42,9 @@ public final class Diff {
         final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
         final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
-        c.forEach(attribute ->  {
-            performer.removeAttr(path, XmlNs.html, attribute.name, attribute.isProperty);
-        });
+        c.forEach(attribute -> performer.removeAttr(path, XmlNs.html, attribute.name, attribute.isProperty));
         w.removeAll(ca);
-        w.forEach(attribute -> {
-            performer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
-        });
+        w.forEach(attribute -> performer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty));
     }
 
     private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
@@ -58,13 +54,9 @@ public final class Diff {
         final Set<Style> c = new CopyOnWriteArraySet<>(ca);
         final Set<Style> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
-        c.forEach(attribute ->  {
-            performer.removeStyle(path, attribute.name);
-        });
+        c.forEach(attribute -> performer.removeStyle(path, attribute.name));
         w.removeAll(ca);
-        w.forEach(attribute -> {
-            performer.setStyle(path, attribute.name, attribute.value);
-        });
+        w.forEach(attribute -> performer.setStyle(path, attribute.name, attribute.value));
     }
 
     private static void diffChildren(final List<Node> cc, final List<Node> wc, final VirtualDomPath path, final DomChangesContext performer) {

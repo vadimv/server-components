@@ -22,6 +22,8 @@ import java.util.function.Predicate;
  */
 public final class RoutingDsl {
 
+    private RoutingDsl() {}
+
     /**
      * Creates a routing.
      * @param routes routes to try the input object
@@ -94,7 +96,7 @@ public final class RoutingDsl {
 
     /**
      * Creates a route which delegates matching of GET requests to the provided path matching sub-routes.
-     * @param subRoutes the function from a HTTP request to sub routes.
+     * @param subRoutes the function from an HTTP request to sub routes.
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
      */
@@ -224,12 +226,7 @@ public final class RoutingDsl {
 
 
     public static <T, S> Function<T, CompletableFuture<? extends S>> whenRouteNotFound(Route<T, S>  routing, S notFoundState) {
-        return new Function<T, CompletableFuture<? extends S>>() {
-            @Override
-            public CompletableFuture<? extends S> apply(T t) {
-                return routing.apply(t).orElse(CompletableFuture.completedFuture(notFoundState));
-            }
-        };
+        return t -> routing.apply(t).orElse(CompletableFuture.completedFuture(notFoundState));
     }
 
     private static final class ConcatRoutes<T, S> implements Route<T, S> {

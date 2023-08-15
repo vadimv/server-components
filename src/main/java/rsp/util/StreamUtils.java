@@ -4,12 +4,13 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 
 public final class StreamUtils {
+
+    private StreamUtils() {}
 
     /**
      * Converts an {@link java.util.Iterator} to {@link java.util.stream.Stream}.
@@ -68,6 +69,6 @@ public final class StreamUtils {
         return CompletableFuture.allOf(listOfCompletableFutures.toArray(CompletableFuture[]::new))
                 .thenApply(v -> listOfCompletableFutures.stream()
                                                         .map(CompletableFuture::join)
-                                                        .collect(Collectors.toList()));
+                                                        .toList());
     }
 }

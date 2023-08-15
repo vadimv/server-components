@@ -7,6 +7,10 @@ import java.io.InputStream;
 import java.util.List;
 
 public final class HttpResponse {
+
+    public static final int OK_STATUS_CODE = 200;
+    public static final int MOVED_TEMPORARILY_STATUS_CODE = 302;
+
     public final int status;
     public final List<Tuple2<String,String>> headers;
     public final InputStream bodyStream;

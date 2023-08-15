@@ -3,6 +3,7 @@ package rsp.server;
 import org.junit.Assert;
 import org.junit.Test;
 import rsp.dom.VirtualDomPath;
+import rsp.server.protocol.MessageDecoder;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
@@ -12,7 +13,7 @@ public class RemotePageMessageDecoderTests {
     @Test
     public void should_deserialize_dom_event_correctly() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final RemotePageMessageDecoder p = createParser(collector);
+        final MessageDecoder p = createParser(collector);
         p.decode("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
         Assert.assertTrue(collector.result instanceof DomEvent);

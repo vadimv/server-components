@@ -51,7 +51,7 @@ public class PlainForm {
             get("/*", req -> CompletableFuture.completedFuture(new EmptyName())),
             post("/*",
                   req -> CompletableFuture.completedFuture(new FullName(req.queryParam("firstname").orElseThrow(),
-                                                                                   req.queryParam("lastname").orElseThrow()))));
+                                                                        req.queryParam("lastname").orElseThrow()))));
     }
 
     private static View<Name> pages() {

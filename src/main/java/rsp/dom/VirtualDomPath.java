@@ -2,7 +2,6 @@ package rsp.dom;
 
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 public final class VirtualDomPath {
     public static final String SEPARATOR = "_";
@@ -16,7 +15,7 @@ public final class VirtualDomPath {
     }
 
     public static VirtualDomPath of(final String path) {
-        return new VirtualDomPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(s -> Integer.parseInt(s)).toArray());
+        return new VirtualDomPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());
     }
 
     public int level() {
@@ -62,7 +61,7 @@ public final class VirtualDomPath {
         if (array.length == 0) {
             return "";
         } else {
-            return String.join(SEPARATOR, Arrays.stream(array).mapToObj(Integer::toString).collect(Collectors.toList()));
+            return String.join(SEPARATOR, Arrays.stream(array).mapToObj(Integer::toString).toList());
         }
     }
 

@@ -190,7 +190,7 @@ public interface JsonDataType {
                                             values.entrySet().stream().map(e -> "\"" + e.getKey()
                                                                                      + "\": "
                                                                                      + e.getValue().toStringValue())
-                                                             .collect(Collectors.toList()))
+                                                             .toList())
                     + '}';
         }
 
@@ -226,7 +226,7 @@ public interface JsonDataType {
         public java.lang.String toString() {
             return "["
                     + java.lang.String.join(",",
-                                            Arrays.stream(elements).map(JsonDataType::toStringValue).collect(Collectors.toList()))
+                                            Arrays.stream(elements).map(JsonDataType::toStringValue).toList())
                     + ']';
         }
 

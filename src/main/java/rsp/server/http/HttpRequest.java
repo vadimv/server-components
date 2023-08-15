@@ -15,7 +15,7 @@ import java.util.function.Function;
 public final class HttpRequest {
 
     // TODO refactor to remove
-    public final static HttpRequest DUMMY = new HttpRequest(HttpMethod.GET, URI.create("about.blank"), "", Path.EMPTY_ABSOLUTE);
+    public static final HttpRequest DUMMY = new HttpRequest(HttpMethod.GET, URI.create("about.blank"), "", Path.EMPTY_ABSOLUTE);
 
     public final HttpMethod method;
     public final URI uri;
@@ -48,7 +48,7 @@ public final class HttpRequest {
     }
 
     /**
-     * Creates a new instance of a HTTP request.
+     * Creates a new instance of an HTTP request.
      * @param method the HTTP verb
      * @param uri the request's URI
      * @param url the request's URL
@@ -81,7 +81,7 @@ public final class HttpRequest {
     }
 
     /**
-     * Gets an unique ID of the browser.
+     * Gets a unique ID of the browser.
      * @return the Optional with the device ID value or the empty
      */
     public Optional<String> deviceId() {

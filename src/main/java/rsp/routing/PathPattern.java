@@ -77,10 +77,10 @@ public final class PathPattern {
     }
 
     public boolean match(final Path path) {
-        if (path.isEmpty() && (patternSegments.size() == 0 || isWildcard(patternSegments.get(0)))) {
+        if (path.isEmpty() && (patternSegments.isEmpty() || isWildcard(patternSegments.get(0)))) {
             return true;
         }
-        if (!path.isEmpty() && patternSegments.size() == 0) {
+        if (!path.isEmpty() && patternSegments.isEmpty()) {
             return false;
         }
 

@@ -14,6 +14,8 @@ import java.util.function.Function;
  */
 public class ComponentDsl {
 
+    private ComponentDsl() {}
+
     /**
      * Creates a stateful component with an initial state provided.
      * @param initialState the component's initial state

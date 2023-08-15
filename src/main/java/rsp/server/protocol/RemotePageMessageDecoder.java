@@ -16,7 +16,7 @@ import static java.lang.System.Logger.Level.TRACE;
 /**
  * The implementation of the text-based protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
  */
-public final class RemotePageMessageDecoder {
+public final class RemotePageMessageDecoder implements MessageDecoder {
     private static final System.Logger logger = System.getLogger(RemotePageMessageDecoder.class.getName());
 
     private final RemoteIn remoteIn;
@@ -38,6 +38,7 @@ public final class RemotePageMessageDecoder {
         this.remoteIn = remoteIn;
     }
 
+    @Override
     public void decode(final String message) {
         Objects.requireNonNull(message);
         final JSONParser jsonParser = new JSONParser();
@@ -50,7 +51,7 @@ public final class RemotePageMessageDecoder {
                 case EVAL_JS_RESPONSE -> parseEvalJsResponse((String) messageJson.get(1), messageJson.size() > 2 ? messageJson.get(2) : "");
                 case HEARTBEAT -> heartBeat();
             }
-        } catch (final Throwable ex) {
+        } catch (final Exception ex) {
             logger.log(System.Logger.Level.ERROR, "Incoming message parse exception", ex);
         }
     }

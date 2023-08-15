@@ -9,21 +9,22 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * The Closure Compiler runner.
  */
 public final class JsCompiler {
+    private static final System.Logger logger = System.getLogger(JsCompiler.class.getName());
 
     public static void main(final String[] args) throws IOException {
-        if (assembleJs(new File(args[0]), new File(args[1]), args[2]).errors.size() > 0) {
+        if (!assembleJs(new File(args[0]), new File(args[1]), args[2]).errors.isEmpty()) {
             System.exit(1);
         }
     }
 
     public static Result assembleJs(final File sourceDir, final File targetDir, final String baseName) throws IOException {
-        System.out.println("Assembling ES6 sources using Google Closure Compiler");
+        logger.log( System.Logger.Level.INFO, "Assembling ES6 sources using Google Closure Compiler");
+
         if (!sourceDir.isDirectory()) {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " sources directory expected");
         }
@@ -55,7 +56,7 @@ public final class JsCompiler {
                 final String path = file.getAbsolutePath();
                 final Charset charset = StandardCharsets.UTF_8;
                 return SourceFile.fromFile(path, charset);
-            }).collect(Collectors.toList());
+            }).toList();
     }
 
     private static CompilerOptions options(final File source, final File sourceMapOutputFile) {

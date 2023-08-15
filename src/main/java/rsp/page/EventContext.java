@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * An object representing a event's context. Provided as a parameter in an event's handler.
+ * An object representing an event's context. Provided as a parameter in an event's handler.
  * This is the main object for an application's code to interact with RSP internals and access data.
  */
 public final class EventContext {

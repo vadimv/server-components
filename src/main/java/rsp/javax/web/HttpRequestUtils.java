@@ -10,6 +10,9 @@ import java.net.URISyntaxException;
 import java.util.Optional;
 
 public final class HttpRequestUtils {
+
+    private HttpRequestUtils() {}
+
     /**
      * Creates a new instance of {@link HttpRequest} given a Servlet API HttpServletRequest
      * @param request a HTTP Servlet request

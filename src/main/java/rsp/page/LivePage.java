@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.UnaryOperator;
 
 public interface LivePage extends Lookup {
+    QualifiedSessionId getId();
     CompletableFuture<JsonDataType> evalJs(String js);
     Set<VirtualDomPath> updateDom(Optional<Tag> optionalOldTag, Tag newTag);
     void updateEvents(Set<Event> oldEvents, Set<Event> newEvents, Set<VirtualDomPath> elementsToRemove);

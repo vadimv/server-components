@@ -29,9 +29,8 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
 
     public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
-    public final QualifiedSessionId qsid;
+    private final QualifiedSessionId qsid;
     private final StateOriginLookup stateOriginLookup;
-
     private final ScheduledExecutorService scheduledExecutorService;
     private final Component<?, ?> rootComponent;
     private final RemoteOut remoteOut;
@@ -73,6 +72,11 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
                 timer.getValue().cancel(true);
             }
         }
+    }
+
+    @Override
+    public QualifiedSessionId getId() {
+        return qsid;
     }
 
     @Override

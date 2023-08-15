@@ -7,6 +7,8 @@ import java.util.Arrays;
  */
 public final class ArrayUtils {
 
+    private ArrayUtils() {}
+
     /**
      * Concatenates two arrays into a new one.
      * @param first an array

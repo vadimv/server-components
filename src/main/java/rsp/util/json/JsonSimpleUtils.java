@@ -9,6 +9,8 @@ import java.util.*;
  */
 public class JsonSimpleUtils {
 
+    private JsonSimpleUtils() {}
+
     public static JsonDataType parse(final String s) {
         try {
             return convertToJsonType(new org.json.simple.parser.JSONParser().parse(s));
@@ -27,10 +29,9 @@ public class JsonSimpleUtils {
             return JsonDataType.Null.INSTANCE;
         } else if (j instanceof org.json.simple.JSONObject) {
             final org.json.simple.JSONObject jsonObject = (org.json.simple.JSONObject) j;
-            @SuppressWarnings("unchecked")
-            final Set<Map.Entry> entrySet = jsonObject.entrySet();
+            final Set<Map.Entry<?, ?>> entrySet = jsonObject.entrySet();
             final Map<String, JsonDataType> m = new HashMap<>();
-            for (final Map.Entry entry : entrySet) {
+            for (final Map.Entry<?, ?> entry : entrySet) {
                 m.put((String) entry.getKey(), convertToJsonType(entry.getValue()));
             }
             return new JsonDataType.Object(Collections.unmodifiableMap(m));

@@ -3,7 +3,7 @@ package rsp.html;
 import rsp.page.RenderContext;
 
 /**
- * A definition of a HTML element's inline style.
+ * A definition of an HTML element's inline style.
  */
 public final class StyleDefinition extends BaseSegmentDefinition {
     /**
