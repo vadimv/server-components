@@ -3,11 +3,10 @@ package rsp.browserautomation;
 import com.microsoft.playwright.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.stream.Stream;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +18,7 @@ public class PlaywrightSmokeIT {
     private static final int COUNTER_1_INITIAL_VALUE = 100;
     private static final int COUNTER_2_INITIAL_VALUE = 1001;
 
+    private static final Playwright playwright = Playwright.create();
 
     private static SimpleServer server;
 
@@ -27,25 +27,21 @@ public class PlaywrightSmokeIT {
         server = SimpleServer.run(false);
     }
 
-    @Test
-    public void should_pass_smoke_tests() throws Exception {
-        try(final Playwright playwright = Playwright.create()) {
+    @ParameterizedTest
+    @MethodSource("browserTypes")
+    public void should_pass_smoke_tests(final BrowserType browserType) throws Exception {
+       final Browser browser = browserType.launch();
+       final BrowserContext context = browser.newContext();
+       final Page page = context.newPage();
+       System.out.println("Browser type: " + browserType.name());
+       validatePageNotFound(page);
+       validatePage(page);
+    }
 
-        final List<BrowserType> browserTypes = Arrays.asList(
-                playwright.chromium(),
-                playwright.webkit(),
-                playwright.firefox()
-        );
-
-        for (final BrowserType browserType : browserTypes) {
-               final Browser browser = browserType.launch();
-               final BrowserContext context = browser.newContext();
-               final Page page = context.newPage();
-               System.out.println("Browser type: " + browserType.name());
-               validatePageNotFound(page);
-               validatePage(page);
-           }
-        }
+    private static Stream<BrowserType> browserTypes() {
+        return Stream.of(playwright.chromium(),
+                         playwright.webkit(),
+                         playwright.firefox());
     }
 
     private void validatePageNotFound(final Page page) {
@@ -104,16 +100,6 @@ public class PlaywrightSmokeIT {
 
     private void clickOnElement(final Page page, final String elementId) {
         page.click("#" + elementId);
-    }
-
-    private static boolean hasStyle(final Locator element, final String styleName, final String expectedValue) throws InterruptedException {
-        int i = 0;
-        while(i < 10) {
-            final Optional<String> s = BrowserUtils.style(element.getAttribute("style"), styleName);
-            if (s.isPresent() && s.get().equals(expectedValue)) return true;
-            Thread.sleep(100);
-        }
-        return false;
     }
 
     private static void waitFor(long timeMs) throws InterruptedException {
