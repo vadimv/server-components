@@ -1,8 +1,7 @@
 package rsp.page;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-import org.junit.Test;
-import rsp.dom.Attribute;
+import org.junit.jupiter.api.Test;
 
 public class QualifiedSessionIdTests {
     @Test

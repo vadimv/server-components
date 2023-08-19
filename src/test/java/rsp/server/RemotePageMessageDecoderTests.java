@@ -1,13 +1,16 @@
 package rsp.server;
 
-import org.junit.Assert;
-import org.junit.Test;
+
+
+import org.junit.jupiter.api.Test;
 import rsp.dom.VirtualDomPath;
 import rsp.server.protocol.MessageDecoder;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonSimpleUtils;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class RemotePageMessageDecoderTests {
 
@@ -17,11 +20,11 @@ public class RemotePageMessageDecoderTests {
         final MessageDecoder p = createDecoder(collector);
         p.decode("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
-        Assert.assertTrue(collector.result instanceof DomEvent);
+        assertTrue(collector.result instanceof DomEvent);
         final DomEvent result = (DomEvent) collector.result;
-        Assert.assertEquals("click", result.eventType);
-        Assert.assertEquals(VirtualDomPath.of("1_2_1_2_2_1"), result.path);
-        Assert.assertEquals(new JsonDataType.Object(),  result.eventObject);
+        assertEquals("click", result.eventType);
+        assertEquals(VirtualDomPath.of("1_2_1_2_2_1"), result.path);
+        assertEquals(new JsonDataType.Object(),  result.eventObject);
     }
 
     @Test
@@ -30,12 +33,12 @@ public class RemotePageMessageDecoderTests {
         final RemotePageMessageDecoder p = createDecoder(collector);
         p.decode("[2,\"1:0\",\"bar\"]");
 
-        Assert.assertTrue(collector.result instanceof ExtractProperty);
+        assertTrue(collector.result instanceof ExtractProperty);
         final ExtractProperty result = (ExtractProperty) collector.result;
-        Assert.assertEquals(1, result.descriptorId);
-        result.value.on(v -> Assert.fail(),
+        assertEquals(1, result.descriptorId);
+        result.value.on(v -> fail(),
                         v -> {
-            Assert.assertEquals(new JsonDataType.String("bar"), v);
+            assertEquals(new JsonDataType.String("bar"), v);
         });
 
     }
@@ -46,10 +49,10 @@ public class RemotePageMessageDecoderTests {
         final RemotePageMessageDecoder p = createDecoder(collector);
         p.decode("[4,\"1:0\",\"foo\"]");
 
-        Assert.assertTrue(collector.result instanceof JsResponse);
+        assertTrue(collector.result instanceof JsResponse);
         final JsResponse result = (JsResponse) collector.result;
-        Assert.assertEquals(1, result.descriptorId);
-        Assert.assertEquals(new JsonDataType.String("foo"), result.value);
+        assertEquals(1, result.descriptorId);
+        assertEquals(new JsonDataType.String("foo"), result.value);
     }
 
     private static RemotePageMessageDecoder createDecoder(final RemoteIn collector) {

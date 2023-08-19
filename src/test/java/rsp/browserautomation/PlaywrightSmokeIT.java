@@ -1,16 +1,16 @@
 package rsp.browserautomation;
 
 import com.microsoft.playwright.*;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @net.jcip.annotations.NotThreadSafe
 public class PlaywrightSmokeIT {
@@ -22,7 +22,7 @@ public class PlaywrightSmokeIT {
 
     private static SimpleServer server;
 
-    @BeforeClass
+    @BeforeAll
     public static void init() {
         server = SimpleServer.run(false);
     }
@@ -49,15 +49,15 @@ public class PlaywrightSmokeIT {
     }
 
     private void validatePageNotFound(final Page page) {
-        Assert.assertEquals(404, page.navigate("http://localhost:" + SimpleServer.PORT + "/none").status());
+        assertEquals(404, page.navigate("http://localhost:" + SimpleServer.PORT + "/none").status());
     }
 
     private void validatePage(final Page page) throws InterruptedException {
-        Assert.assertEquals(200, page.navigate("http://localhost:"
+        assertEquals(200, page.navigate("http://localhost:"
                                                         + SimpleServer.PORT
                                                         + "/" + COUNTER_1_INITIAL_VALUE
                                                         +"/" + COUNTER_2_INITIAL_VALUE).status());
-        Assert.assertEquals("test-server-title", page.title());
+        assertEquals("test-server-title", page.title());
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
         validateComponent1(page);
         validateComponent2(page);
@@ -120,7 +120,7 @@ public class PlaywrightSmokeIT {
         Thread.sleep(timeMs);
     }
 
-    @AfterClass
+    @AfterAll
     public static void shutdown() throws Exception {
         server.jetty.stop();
         Thread.sleep(2000);

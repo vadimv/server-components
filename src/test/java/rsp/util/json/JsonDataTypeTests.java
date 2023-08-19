@@ -1,7 +1,7 @@
 package rsp.util.json;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 
 public class JsonDataTypeTests {

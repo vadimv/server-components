@@ -1,9 +1,10 @@
 package rsp.dom;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DiffTests {
     final VirtualDomPath path = new VirtualDomPath(1);
@@ -15,7 +16,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2, cp).run();
-        Assert.assertEquals("", cp.resultAsString());
+        assertEquals("", cp.resultAsString());
     }
 
     @Test
@@ -25,7 +26,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("-TAG:0:1 +TAG:1:div", cp.resultAsString());
+        assertEquals("-TAG:0:1 +TAG:1:div", cp.resultAsString());
     }
 
     @Test
@@ -38,7 +39,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("+TAG:1_1:span +TAG:1_2:span", cp.resultAsString());
+        assertEquals("+TAG:1_1:span +TAG:1_2:span", cp.resultAsString());
     }
 
     @Test
@@ -51,7 +52,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("-TAG:1:1_1 +TAG:1_1:a", cp.resultAsString());
+        assertEquals("-TAG:1:1_1 +TAG:1_1:a", cp.resultAsString());
     }
 
     @Test
@@ -66,7 +67,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
+        assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
 
     @Test
@@ -78,7 +79,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("+ATTR:1:attr1=value1:true", cp.resultAsString());
+        assertEquals("+ATTR:1:attr1=value1:true", cp.resultAsString());
     }
 
     @Test
@@ -90,7 +91,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("-ATTR:1:attr1", cp.resultAsString());
+        assertEquals("-ATTR:1:attr1", cp.resultAsString());
     }
 
     @Test
@@ -102,7 +103,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("+STYLE:1:style1=value1", cp.resultAsString());
+        assertEquals("+STYLE:1:style1=value1", cp.resultAsString());
     }
 
     @Test
@@ -114,7 +115,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         new Diff(Optional.of(tree1), tree2,  cp).run();
-        Assert.assertEquals("-STYLE:1:style1", cp.resultAsString());
+        assertEquals("-STYLE:1:style1", cp.resultAsString());
     }
 
     static class TestChangesContext implements DomChangesContext {

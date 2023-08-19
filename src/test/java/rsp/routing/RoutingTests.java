@@ -1,7 +1,6 @@
 package rsp.routing;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 
@@ -9,6 +8,8 @@ import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.routing.RoutingDsl.*;
 
 public class RoutingTests {
@@ -24,8 +25,8 @@ public class RoutingTests {
                                                                   requestUri,
                                                                   requestUri.toString(),
                                                                   Path.of(requestUri.getPath())));
-        Assert.assertTrue(s.isPresent());
-        Assert.assertEquals("B", s.get().get());
+        assertTrue(s.isPresent());
+        assertEquals("B", s.get().get());
     }
 
     @Test
@@ -39,8 +40,8 @@ public class RoutingTests {
                                                                                   requestUri,
                                                                                   requestUri.toString(),
                                                                                   Path.of(requestUri.getPath())));
-        Assert.assertTrue(s.isPresent());
-        Assert.assertEquals("B", s.get().get());
+        assertTrue(s.isPresent());
+        assertEquals("B", s.get().get());
     }
 
     @Test
@@ -52,8 +53,8 @@ public class RoutingTests {
                                                                                   requestUri,
                                                                                   requestUri.toString(),
                                                                                   Path.of(requestUri.getPath())));
-        Assert.assertTrue(s.isPresent());
-        Assert.assertEquals("A", s.get().get());
+        assertTrue(s.isPresent());
+        assertEquals("A", s.get().get());
 
     }
 

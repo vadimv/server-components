@@ -1,8 +1,5 @@
 package rsp.page;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
 import rsp.component.Component;
 import rsp.dom.*;
 import rsp.server.Path;
@@ -19,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static rsp.html.HtmlDsl.span;
 import static rsp.page.TestCollectingRemoteOut.*;
 
@@ -26,12 +24,11 @@ public class LivePageTests {
 
     private static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
-    @Test @Ignore
     public void should_generate_update_commands_for_new_state() {
         final TestCollectingRemoteOut out = new TestCollectingRemoteOut();
         final NewState<State> liveComponent = createComponent(out);
         liveComponent.set(new State(100));
-        Assert.assertEquals(List.of(new ListenEventOutMessage("popstate", true, VirtualDomPath.WINDOW, Event.NO_MODIFIER),
+        assertEquals(List.of(new ListenEventOutMessage("popstate", true, VirtualDomPath.WINDOW, Event.NO_MODIFIER),
                                     new ModifyDomOutMessage(List.of(new DefaultDomChangesContext.Create(VirtualDomPath.of("1"), XmlNs.html, "span"),
                                                                     new DefaultDomChangesContext.CreateText(VirtualDomPath.of("1"), VirtualDomPath.of("1_1"), "100"))),
                                     new PushHistoryMessage("basePath/100")),

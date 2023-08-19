@@ -1,12 +1,13 @@
 package rsp.server;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import rsp.server.http.HttpRequest;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class HttpRequestTests {
     @Test
@@ -21,7 +22,7 @@ public class HttpRequestTests {
                                                     s -> Optional.of(cookieHeader));
 
         final Optional<String> cookieValue = request.cookie("name2");
-        Assert.assertEquals(Optional.of("value2"), cookieValue);
+        assertEquals(Optional.of("value2"), cookieValue);
     }
 
 
@@ -37,6 +38,6 @@ public class HttpRequestTests {
                                                     s -> Optional.of(cookieHeader));
 
         final Optional<String> cookieValue = request.cookie("name4");
-        Assert.assertEquals(Optional.empty(), cookieValue);
+        assertEquals(Optional.empty(), cookieValue);
     }
 }

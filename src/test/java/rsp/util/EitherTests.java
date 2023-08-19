@@ -1,10 +1,12 @@
 package rsp.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import rsp.util.data.Either;
 
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class EitherTests {
 
@@ -13,8 +15,8 @@ public class EitherTests {
         final Either<Integer, String> e = Either.right("foo");
 
         final AtomicReference<String> c = new AtomicReference<>();
-        e.on(l -> Assert.fail(),  r -> c.set(r));
-        Assert.assertEquals("foo", c.get());
+        e.on(l -> fail(),  r -> c.set(r));
+        assertEquals("foo", c.get());
     }
 
     @Test
@@ -22,20 +24,20 @@ public class EitherTests {
         final Either<Integer, String> e = Either.left(10);
 
         final AtomicReference<Integer> c = new AtomicReference<>();
-        e.on(l -> c.set(10), r -> Assert.fail());
-        Assert.assertEquals(Integer.valueOf(10), c.get());
+        e.on(l -> c.set(10), r -> fail());
+        assertEquals(Integer.valueOf(10), c.get());
     }
 
     @Test
     public void should_map_correctly() {
         final Either<Integer, String> e = Either.left(10);
-        e.map(v -> v + 1, v -> v).on(l -> Assert.assertEquals(Integer.valueOf(11), l), r -> Assert.fail());
+        e.map(v -> v + 1, v -> v).on(l -> assertEquals(Integer.valueOf(11), l), r -> fail());
     }
 
     @Test
     public void should_flatmap_correctly() {
         final Either<Integer, String> e = Either.left(10);
         e.flatMap(v -> Either.right(v + 1), v -> Either.left(v))
-         .on(l -> Assert.fail(), r -> Assert.assertEquals(Integer.valueOf(11), r));
+         .on(l -> fail(), r -> assertEquals(Integer.valueOf(11), r));
     }
 }

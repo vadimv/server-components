@@ -1,8 +1,11 @@
 package rsp.util.json;
 
-import org.junit.Assert;
-import org.junit.Test;
+
+
+import org.junit.jupiter.api.Test;
 import rsp.util.ExceptionsUtils;
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ExceptionsUtilsTests {
     @Test
@@ -12,7 +15,7 @@ public class ExceptionsUtilsTests {
              new StackTraceElement("class0", "method0", "file0", 16)
         });
         final String current = ExceptionsUtils.stackTraceToString(t);
-        Assert.assertTrue(current.contains("java.lang.Throwable"));
-        Assert.assertTrue(current.contains("class0.method0(file0:16)"));
+        assertTrue(current.contains("java.lang.Throwable"));
+        assertTrue(current.contains("class0.method0(file0:16)"));
     }
 }
