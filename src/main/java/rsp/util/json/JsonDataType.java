@@ -111,6 +111,8 @@ public interface JsonDataType {
      * A string JSON data type.
      */
     final class String implements JsonDataType {
+        public static final JsonDataType.String EMPTY = new JsonDataType.String("");
+
         private final java.lang.String value;
 
         /**
@@ -218,8 +220,12 @@ public interface JsonDataType {
             this.elements = elements;
         }
 
-        public JsonDataType[] elements() {
-            return elements;
+        public JsonDataType get(int index) {
+            return elements[index];
+        }
+
+        public int size() {
+            return elements.length;
         }
 
         @Override
@@ -278,15 +284,6 @@ public interface JsonDataType {
         public JsonException(final java.lang.String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
             super(message, cause, enableSuppression, writableStackTrace);
         }
-    }
-
-    /**
-     * Creates a new instance of JsonDataType by parsing a string.
-     * @param string the string to parse
-     * @return the result JsonDataType object
-     */
-    static JsonDataType of(final java.lang.String string) {
-        return JsonSimpleUtils.parse(string);
     }
 
     /**

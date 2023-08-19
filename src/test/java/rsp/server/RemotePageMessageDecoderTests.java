@@ -7,13 +7,14 @@ import rsp.server.protocol.MessageDecoder;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
+import rsp.util.json.JsonSimpleUtils;
 
 public class RemotePageMessageDecoderTests {
 
     @Test
     public void should_deserialize_dom_event_correctly() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final MessageDecoder p = createParser(collector);
+        final MessageDecoder p = createDecoder(collector);
         p.decode("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
         Assert.assertTrue(collector.result instanceof DomEvent);
@@ -26,7 +27,7 @@ public class RemotePageMessageDecoderTests {
     @Test
     public void should_deserialize_extract_property() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final RemotePageMessageDecoder p = createParser(collector);
+        final RemotePageMessageDecoder p = createDecoder(collector);
         p.decode("[2,\"1:0\",\"bar\"]");
 
         Assert.assertTrue(collector.result instanceof ExtractProperty);
@@ -42,7 +43,7 @@ public class RemotePageMessageDecoderTests {
     @Test
     public void should_deserialize_eval_js_response() {
         final TestRemoteIn collector = new TestRemoteIn();
-        final RemotePageMessageDecoder p = createParser(collector);
+        final RemotePageMessageDecoder p = createDecoder(collector);
         p.decode("[4,\"1:0\",\"foo\"]");
 
         Assert.assertTrue(collector.result instanceof JsResponse);
@@ -51,8 +52,8 @@ public class RemotePageMessageDecoderTests {
         Assert.assertEquals(new JsonDataType.String("foo"), result.value);
     }
 
-    private RemotePageMessageDecoder createParser(final RemoteIn collector) {
-        return new RemotePageMessageDecoder(collector);
+    private static RemotePageMessageDecoder createDecoder(final RemoteIn collector) {
+        return new RemotePageMessageDecoder(JsonSimpleUtils.createParser(), collector);
     }
 
     private static final class DomEvent {

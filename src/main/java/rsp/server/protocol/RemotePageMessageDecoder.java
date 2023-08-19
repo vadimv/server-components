@@ -1,13 +1,11 @@
 package rsp.server.protocol;
 
 
-import org.json.simple.JSONArray;
-import org.json.simple.parser.JSONParser;
 import rsp.dom.VirtualDomPath;
 import rsp.server.RemoteIn;
 import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
-import rsp.util.json.JsonSimpleUtils;
+import rsp.util.json.JsonParser;
 
 import java.util.Objects;
 
@@ -19,6 +17,7 @@ import static java.lang.System.Logger.Level.TRACE;
 public final class RemotePageMessageDecoder implements MessageDecoder {
     private static final System.Logger logger = System.getLogger(RemotePageMessageDecoder.class.getName());
 
+    private JsonParser jsonParser;
     private final RemoteIn remoteIn;
 
     private static final int DOM_EVENT = 0; // `$renderNum:$elementId:$eventType`
@@ -34,21 +33,24 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public RemotePageMessageDecoder(final RemoteIn remoteIn) {
-        this.remoteIn = remoteIn;
+    public RemotePageMessageDecoder(final JsonParser jsonParser, final RemoteIn remoteIn) {
+        this.jsonParser = Objects.requireNonNull(jsonParser);
+        this.remoteIn = Objects.requireNonNull(remoteIn);
     }
 
     @Override
     public void decode(final String message) {
         Objects.requireNonNull(message);
-        final JSONParser jsonParser = new JSONParser();
         try {
-            final JSONArray messageJson = (JSONArray) jsonParser.parse(message);
-            final int messageType = Math.toIntExact((long)messageJson.get(0));
+            final JsonDataType.Array messageJson = (JsonDataType.Array) jsonParser.parse(message);
+            final int messageType = Math.toIntExact(messageJson.get(0).asJsonNumber().asLong());
             switch (messageType) {
-                case DOM_EVENT -> parseDomEvent((String) messageJson.get(1), messageJson.get(2));
-                case EXTRACT_PROPERTY_RESPONSE -> parseExtractPropertyResponse((String) messageJson.get(1), messageJson.get(2));
-                case EVAL_JS_RESPONSE -> parseEvalJsResponse((String) messageJson.get(1), messageJson.size() > 2 ? messageJson.get(2) : "");
+                case DOM_EVENT -> parseDomEvent(messageJson.get(1).toString(),
+                                                messageJson.get(2).asJsonObject());
+                case EXTRACT_PROPERTY_RESPONSE -> parseExtractPropertyResponse(messageJson.get(1).toString(),
+                                                                               messageJson.get(2));
+                case EVAL_JS_RESPONSE -> parseEvalJsResponse(messageJson.get(1).toString(),
+                                                             messageJson.size() > 2 ? messageJson.get(2) : JsonDataType.String.EMPTY);
                 case HEARTBEAT -> heartBeat();
             }
         } catch (final Exception ex) {
@@ -56,32 +58,27 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
         }
     }
 
-    private void parseExtractPropertyResponse(final String metadata, final Object value) {
+    private void parseExtractPropertyResponse(final String metadata, final JsonDataType value) {
         final String[] tokens = metadata.split(":");
         final int descriptorId = Integer.parseInt(tokens[0]);
         final int jsonMetadata = Integer.parseInt(tokens[1]);
         final Either<Throwable, JsonDataType> result = jsonMetadata == JSON_METADATA_DATA ?
-                                        Either.right(JsonSimpleUtils.convertToJsonType(value)) :
+                                        Either.right(value) :
                                         Either.left(new RuntimeException("Property not found"));
         remoteIn.handleExtractPropertyResponse(descriptorId, result);
     }
 
-    private void parseEvalJsResponse(final String metadata, final Object value) {
+    private void parseEvalJsResponse(final String metadata, final JsonDataType value) {
         final String[] tokens = metadata.split(":");
-        remoteIn.handleEvalJsResponse(Integer.parseInt(tokens[0]), JsonSimpleUtils.convertToJsonType(value));
+        remoteIn.handleEvalJsResponse(Integer.parseInt(tokens[0]), value);
     }
 
-    private void parseDomEvent(final String str, final Object eventObject) {
-        final JsonDataType json = JsonSimpleUtils.convertToJsonType(eventObject);
-        if (json instanceof JsonDataType.Object) {
-            final String[] tokens = str.split(":");
-            remoteIn.handleDomEvent(Integer.parseInt(tokens[0]),
-                                    VirtualDomPath.of(tokens[1]),
-                                    tokens[2],
-                                    (JsonDataType.Object) JsonSimpleUtils.convertToJsonType(eventObject));
-        } else {
-            throw new IllegalStateException("Unexpected type of an event object: " + eventObject.getClass().getName());
-        }
+    private void parseDomEvent(final String str, final JsonDataType.Object eventObject) {
+        final String[] tokens = str.split(":");
+        remoteIn.handleDomEvent(Integer.parseInt(tokens[0]),
+                                VirtualDomPath.of(tokens[1]),
+                                tokens[2],
+                                eventObject);
     }
 
     private void heartBeat() {

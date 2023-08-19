@@ -6,6 +6,9 @@ import rsp.server.*;
 import rsp.server.http.HttpRequest;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.server.protocol.RemotePageMessageEncoder;
+import rsp.util.json.JsonDataType;
+import rsp.util.json.JsonParser;
+import rsp.util.json.JsonSimpleUtils;
 
 import javax.websocket.*;
 import java.io.IOException;
@@ -26,6 +29,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
+
+    private final JsonParser jsonParser = JsonSimpleUtils.createParser();
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
@@ -66,7 +71,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             renderedPage.livePageContext.set(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
-            final RemotePageMessageDecoder in = new RemotePageMessageDecoder(livePage);
+            final RemotePageMessageDecoder in = new RemotePageMessageDecoder(jsonParser, livePage);
             session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
                 public void onMessage(final String s) {

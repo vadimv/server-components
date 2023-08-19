@@ -11,7 +11,11 @@ public class JsonSimpleUtils {
 
     private JsonSimpleUtils() {}
 
-    public static JsonDataType parse(final String s) {
+    public static JsonParser createParser() throws JsonDataType.JsonException {
+        return jsonString -> parse(jsonString);
+    }
+
+    public static JsonDataType parse(final String s) throws JsonDataType.JsonException {
         try {
             return convertToJsonType(new org.json.simple.parser.JSONParser().parse(s));
         } catch (final ParseException ex) {
