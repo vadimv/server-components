@@ -112,8 +112,7 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
                             registeredEventHandlers.remove(descriptorId);
                         }
                     }
-                },
-                v -> {
+                }, v -> {
                     logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.toStringValue());
                     synchronized (this) {
                         final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
@@ -198,7 +197,6 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
         return ref instanceof Window.WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
     }
 
-    @Override
     public CompletableFuture<JsonDataType> evalJs(final String js) {
         logger.log(DEBUG, () -> "Called an JS evaluation: " + js);
         synchronized (this) {
