@@ -4,6 +4,7 @@ import rsp.component.Component;
 import rsp.dom.*;
 import rsp.html.Window;
 import rsp.ref.Ref;
+import rsp.ref.TimerRef;
 import rsp.server.*;
 import rsp.server.http.Fragment;
 import rsp.server.http.StateOriginLookup;
@@ -14,8 +15,6 @@ import rsp.util.json.JsonDataType;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 
@@ -31,26 +30,25 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
 
     private final QualifiedSessionId qsid;
     private final StateOriginLookup stateOriginLookup;
-    private final ScheduledExecutorService scheduledExecutorService;
+    private final Schedules schedules;
     private final Component<?, ?> rootComponent;
     private final RemoteOut remoteOut;
     private final Path basePath;
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
-    private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
 
     private int descriptorsCounter;
 
     public LivePageSession(final QualifiedSessionId qsid,
                            final Path basePath,
                            final StateOriginLookup stateOriginLookup,
-                           final ScheduledExecutorService scheduledExecutorService,
+                           final Schedules schedules,
                            final Component<?, ?> rootComponent,
                            final RemoteOut remoteOut) {
         this.qsid = Objects.requireNonNull(qsid);
         this.basePath = Objects.requireNonNull(basePath);
         this.stateOriginLookup = stateOriginLookup;
-        this.scheduledExecutorService = Objects.requireNonNull(scheduledExecutorService);
+        this.schedules = Objects.requireNonNull(schedules);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
     }
@@ -68,9 +66,7 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
         synchronized (this) {
-            for (final var timer : schedules.entrySet()) {
-                timer.getValue().cancel(true);
-            }
+            schedules.cancelAll();
         }
     }
 
@@ -80,37 +76,29 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
     }
 
     @Override
-    public synchronized Timer scheduleAtFixedRate(final Runnable command, final Object key, final long initialDelay, final long period, final TimeUnit unit) {
+    public synchronized void scheduleAtFixedRate(final Runnable command, final TimerRef key, final long initialDelay, final long period, final TimeUnit unit) {
         logger.log(DEBUG, () -> "Scheduling a periodical task " + key + " with delay: " + initialDelay + ", and period: " + period + " " + unit);
-        final ScheduledFuture<?> timer = scheduledExecutorService.scheduleAtFixedRate(() -> {
-            synchronized (LivePageSession.this) {
-                command.run();
-            }
-        }, initialDelay, period, unit);
-        schedules.put(key, timer);
-        return new Timer(key, () -> cancel(key));
+        schedules.scheduleAtFixedRate(() -> {
+                                        synchronized (LivePageSession.this) {
+                                            command.run();
+                                        }
+                                    }, key, initialDelay, period, unit);
     }
 
     @Override
-    public synchronized Timer schedule(final Runnable command, final Object key, final long delay, final TimeUnit unit) {
+    public synchronized void schedule(final Runnable command, final TimerRef key, final long delay, final TimeUnit unit) {
         logger.log(DEBUG, () -> "Scheduling a delayed task " + key + " with delay: " + delay + " " + unit);
-        final ScheduledFuture<?> timer =  scheduledExecutorService.schedule(() -> {
-            synchronized (LivePageSession.this) {
-                command.run();
-            }
-        }, delay, unit);
-        schedules.put(key, timer);
-        return new Timer(key, () -> cancel(key));
+        schedules.schedule(() -> {
+                                    synchronized (LivePageSession.this) {
+                                        command.run();
+                                    }
+                                }, key, delay, unit);
     }
 
     @Override
-    public synchronized void cancel(final Object key) {
+    public synchronized void cancel(final TimerRef key) {
         logger.log(DEBUG, () -> "Cancelling the task " + key);
-        final ScheduledFuture<?> schedule = schedules.get(key);
-        if (schedule != null) {
-            schedule.cancel(true);
-            schedules.remove(key);
-        }
+        schedules.cancel(key);
     }
 
     @Override

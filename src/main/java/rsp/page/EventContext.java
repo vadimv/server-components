@@ -83,8 +83,8 @@ public final class EventContext {
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of the delayed task
      */
-    public Timer schedule(final Runnable command, final int delay, final TimeUnit timeUnit) {
-        return executorService.schedule(command, new Object(), delay, timeUnit);
+    public void schedule(final Runnable command, final int delay, final TimeUnit timeUnit) {
+        executorService.schedule(command, TimerRef.createTimerRef(), delay, timeUnit);
     }
 
     /**
@@ -95,8 +95,8 @@ public final class EventContext {
      * @param timeUnit the time unit of the delay parameter
      * @return a timer representing pending completion of the delayed task
      */
-    public Timer schedule(final Runnable command, final TimerRef ref, final int delay, final TimeUnit timeUnit) {
-        return executorService.schedule(command, ref, delay, timeUnit);
+    public void schedule(final Runnable command, final TimerRef ref, final int delay, final TimeUnit timeUnit) {
+        executorService.schedule(command, ref, delay, timeUnit);
     }
 
     /**
@@ -109,8 +109,8 @@ public final class EventContext {
      * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public Timer scheduleAtFixedRate(final Runnable command, final int delay, final int period, final TimeUnit timeUnit) {
-        return executorService.scheduleAtFixedRate(command, new Object(), delay, period, timeUnit);
+    public void scheduleAtFixedRate(final Runnable command, final int delay, final int period, final TimeUnit timeUnit) {
+        executorService.scheduleAtFixedRate(command, TimerRef.createTimerRef(), delay, period, timeUnit);
     }
 
     /**
@@ -124,8 +124,8 @@ public final class EventContext {
      * @return a timer representing pending completion of
      *         the series of repeated tasks
      */
-    public Timer scheduleAtFixedRate(final Runnable command, final TimerRef ref, final int delay, final int period, final TimeUnit timeUnit) {
-        return executorService.scheduleAtFixedRate(command, ref, delay, period, timeUnit);
+    public void scheduleAtFixedRate(final Runnable command, final TimerRef ref, final int delay, final int period, final TimeUnit timeUnit) {
+        executorService.scheduleAtFixedRate(command, ref, delay, period, timeUnit);
     }
 
     /**

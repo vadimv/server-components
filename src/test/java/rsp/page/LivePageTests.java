@@ -54,7 +54,7 @@ public class LivePageTests {
         final LivePageSession livePage = new LivePageSession(QID,
                                                              Path.of("basePath"),
                                                              lookup,
-                                                             Executors.newScheduledThreadPool(1) ,
+                                                             new Schedules(Executors.newScheduledThreadPool(1)),
                                                              component,
                                                              remoteOut);
         livePageSupplier.set(livePage);
@@ -79,5 +79,4 @@ public class LivePageTests {
             return Integer.toString(value);
         }
     }
-
 }
