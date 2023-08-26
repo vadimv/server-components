@@ -39,25 +39,26 @@ public class LivePageTests {
         final State initialState = new State(0);
         final ComponentView<State> view = state -> newState -> span(state.toString());
 
-        final AtomicReference<LivePage> livePageSupplier = new AtomicReference<>();
+        final AtomicReference<RemoteOut> remoteOutReference = new AtomicReference<>();
         final StateOriginLookup lookup = new StateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null));
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
+                                                                     Path.of(""),
                                                                      new StateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null)),
-                                                                     livePageSupplier);
-        final Component<String, State> component = new Component<>(lookup,
-                                                                    String.class,
-                                                                    t -> CompletableFuture.completedFuture(initialState),
-                                                                    (s, p) -> Path.of(String.valueOf(s.value)),
-                                                                    view,
-                                                                    renderContext,
-                                                                    livePageSupplier);
+                                                                     remoteOutReference);
+        final Component<String, State> component = new Component<>(Path.of(""),
+                                                                   lookup,
+                                                                   String.class,
+                                                                   t -> CompletableFuture.completedFuture(initialState),
+                                                                   (s, p) -> Path.of(String.valueOf(s.value)),
+                                                                   view,
+                                                                   renderContext,
+                                                                   remoteOutReference);
         final LivePageSession livePage = new LivePageSession(QID,
                                                              Path.of("basePath"),
                                                              lookup,
                                                              new Schedules(Executors.newScheduledThreadPool(1)),
                                                              component,
                                                              remoteOut);
-        livePageSupplier.set(livePage);
         livePage.init();
 
         return component;

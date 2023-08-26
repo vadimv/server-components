@@ -6,7 +6,6 @@ import rsp.server.*;
 import rsp.server.http.HttpRequest;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.server.protocol.RemotePageMessageEncoder;
-import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonParser;
 import rsp.util.json.JsonSimpleUtils;
 
@@ -61,6 +60,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 remoteOut.evalJs(-1, "RSP.reload()");
             }
         } else {
+            renderedPage.remoteOutReference.set(remoteOut);
             final Component<?, S> rootComponent = renderedPage.rootComponent;
             final LivePageSession livePage = new LivePageSession(qsid,
                                                                  basePath,
@@ -68,7 +68,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                                                                  new Schedules(schedulerSupplier.get()),
                                                                  rootComponent,
                                                                  remoteOut);
-            renderedPage.livePageContext.set(livePage);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
             final RemotePageMessageDecoder in = new RemotePageMessageDecoder(jsonParser, livePage);

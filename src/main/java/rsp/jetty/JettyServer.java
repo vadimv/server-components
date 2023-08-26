@@ -49,19 +49,19 @@ public final class JettyServer<S> {
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param basePath a context path of the web application
+     * @param basePathStr a context path of the web application
      * @param app an RSP application
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
     public JettyServer(final int port,
-                       final String basePath,
+                       final String basePathStr,
                        final App<S> app,
                        final Optional<StaticResources> staticResources,
                        final Optional<SslConfiguration> sslConfiguration,
                        final int maxThreads) {
         this.port = port;
-        this.basePath = Objects.requireNonNull(Path.of(basePath));
+        this.basePath = Objects.requireNonNull(Path.of(basePathStr));
         Objects.requireNonNull(app);
 
         final QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -109,11 +109,12 @@ public final class JettyServer<S> {
                                                                   "/",
                                                                   DefaultConnectionLostWidget.HTML,
                                                                   app.config.heartbeatIntervalMs);
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.rootComponent,
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(basePath,
                                                                                        app.pagesStorage,
-                                                                                       enrichContextFun))),"/*");
+                                                                                       enrichContextFun,
+                                                                                       app.rootComponentDefinition))),"/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
-        final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(this.basePath,
+        final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(basePath,
                                                                                         app.pagesStorage,
                                                                                         () -> scheduler,
                                                                                         app.lifeCycleEventsListener);

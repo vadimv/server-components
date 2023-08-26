@@ -1,15 +1,13 @@
 package rsp.component;
 
-import rsp.dom.Event;
-import rsp.dom.Tag;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.*;
 import rsp.html.SegmentDefinition;
-import rsp.page.LivePage;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
 import rsp.server.Path;
-import rsp.util.Lookup;
+import rsp.server.http.RelativeUrl;
+import rsp.server.http.StateOriginLookup;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -29,31 +27,34 @@ public final class Component<T, S> implements NewState<S> {
     private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
     private final List<Component<?, ?>> children = new ArrayList<>();
 
-    private final Lookup stateOriginLookup;
+    private final Path basePath;
+    private final StateOriginLookup stateOriginLookup;
     private final Class<T> stateOriginClass;
     private final Function<T, CompletableFuture<? extends S>> resolveStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContext parentRenderContext;
-    private final AtomicReference<LivePage> livePageContext;
+    private final AtomicReference<RemoteOut> remoteOutReference;
 
     private S state;
     private Tag tag;
 
-    public Component(final Lookup stateOriginLookup,
+    public Component(final Path basePath,
+                     final StateOriginLookup stateOriginLookup,
                      final Class<T> stateOriginClass,
                      final Function<T, CompletableFuture<? extends S>> resolveStateFunction,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContext parentRenderContext,
-                     final AtomicReference<LivePage> livePageSupplier) {
+                     final AtomicReference<RemoteOut> remoteOutReference) {
+        this.basePath = Objects.requireNonNull(basePath);
         this.stateOriginLookup = Objects.requireNonNull(stateOriginLookup);
         this.stateOriginClass = Objects.requireNonNull(stateOriginClass);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
         this.parentRenderContext = Objects.requireNonNull(parentRenderContext);
-        this.livePageContext = Objects.requireNonNull(livePageSupplier);
+        this.remoteOutReference = Objects.requireNonNull(remoteOutReference);
     }
 
     public void addChild(final Component<?, ?> component) {
@@ -96,31 +97,66 @@ public final class Component<T, S> implements NewState<S> {
 
     @Override
     public void apply(final UnaryOperator<S> newStateFunction) {
-        final LivePage livePage = livePageContext.get();
-        synchronized (livePage) {
-            final Tag oldTag = tag;
-            final Map<Event.Target, Event> oldEvents = oldTag != null ?
-                                                  new HashMap<>(recursiveEvents()) :
-                                                  Map.of();
-            state = newStateFunction.apply(state);
-            final RenderContext renderContext = oldTag != null ?
-                                                   parentRenderContext.newContext(oldTag.path()) :
-                                                   parentRenderContext.newContext();
-            events.clear();
-            refs.clear();
-            children.clear();
+        final Tag oldTag = tag;
+        final Map<Event.Target, Event> oldEvents = oldTag != null ?
+                                              new HashMap<>(recursiveEvents()) :
+                                              Map.of();
+        state = newStateFunction.apply(state);
+        final RenderContext renderContext = oldTag != null ?
+                                               parentRenderContext.newContext(oldTag.path()) :
+                                               parentRenderContext.newContext();
+        events.clear();
+        refs.clear();
+        children.clear();
 
-            renderContext.openComponent(this);
-            final SegmentDefinition view = componentView.apply(state).apply(this);
-            view.render(renderContext);
-            renderContext.closeComponent();
+        renderContext.openComponent(this);
+        final SegmentDefinition view = componentView.apply(state).apply(this);
+        view.render(renderContext);
+        renderContext.closeComponent();
 
-            tag = renderContext.rootTag();
-            final Set<VirtualDomPath> elementsToRemove = livePage.updateDom(Optional.ofNullable(oldTag), renderContext.rootTag());
-            livePage.updateEvents(new HashSet<>(oldEvents.values()), new HashSet<>(recursiveEvents().values()), elementsToRemove);
+        tag = renderContext.rootTag();
 
-            // Browser's navigation
-            livePage.applyToPath(path -> state2pathFunction.apply(state, path));
+        final RemoteOut remoteOut = remoteOutReference.get();
+        assert  remoteOut != null;
+
+        // Calculate diff between an old and new DOM trees
+        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
+        new Diff(Optional.ofNullable(oldTag), renderContext.rootTag(), domChangePerformer).run();
+        final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
+        if (domChangePerformer.commands.size() > 0) {
+            remoteOut.modifyDom(domChangePerformer.commands);
+        }
+
+        // Unregister events
+        final List<Event> eventsToRemove = new ArrayList<>();
+        final Collection<Event> newEvents = recursiveEvents().values();
+        for(Event event : oldEvents.values()) {
+            if(!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
+                eventsToRemove.add(event);
+            }
+        }
+        for(Event event : eventsToRemove) {
+            final Event.Target eventTarget = event.eventTarget;
+            remoteOut.forgetEvent(eventTarget.eventType,
+                                  eventTarget.elementPath);
+        }
+
+        // Register new event types on client
+        final List<Event> eventsToAdd = new ArrayList<>();
+        for(Event event : newEvents) {
+            if(!oldEvents.values().contains(event)) {
+                eventsToAdd.add(event);
+            }
+        }
+        remoteOut.listenEvents(eventsToAdd);
+
+        // Update browser's navigation
+        final RelativeUrl oldRelativeUrl = stateOriginLookup.relativeUrl();
+        final Path oldPath = oldRelativeUrl.path();
+        final Path newPath = state2pathFunction.apply(state, oldPath);
+        if (!newPath.equals(oldPath)) {
+            stateOriginLookup.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
+            remoteOut.pushHistory(basePath.resolve(newPath).toString());
         }
     }
 

@@ -16,14 +16,14 @@ import rsp.util.json.JsonDataType;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
+import java.util.stream.Stream;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
 /**
  * A server-side session object representing an open browser's page.
  */
-public final class LivePageSession implements RemoteIn, LivePage, Schedule {
+public final class LivePageSession implements RemoteIn, Schedule {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
 
     public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
@@ -53,15 +53,16 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
         this.remoteOut = Objects.requireNonNull(remoteOut);
     }
 
-    public void init() {
-        rootComponent.listenEvents(remoteOut);
-
-        remoteOut.listenEvents(List.of(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                                                  VirtualDomPath.WINDOW),
-                                                                  context -> {},
-                                                                 true,
-                                                                  Event.NO_MODIFIER)));
-    }
+    public synchronized void init() {
+        final Event historyChangeEvent = new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                                                                    VirtualDomPath.WINDOW),
+                                                                    context -> {},
+                                                                    true,
+                                                                    Event.NO_MODIFIER);
+        final List<Event> events = Stream.concat(rootComponent.recursiveEvents().values().stream(),
+                                                 Stream.of(historyChangeEvent)).toList();
+        remoteOut.listenEvents(events);
+  }
 
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
@@ -70,7 +71,6 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
         }
     }
 
-    @Override
     public QualifiedSessionId getId() {
         return qsid;
     }
@@ -210,66 +210,5 @@ public final class LivePageSession implements RemoteIn, LivePage, Schedule {
 
     private void setHref(final String path) {
         remoteOut.setHref(path);
-    }
-
-    @Override
-    public Set<VirtualDomPath> updateDom(final Optional<Tag> optionalOldTag,
-                                         final Tag newTag) {
-        // Calculate diff between currentContext and newContext
-        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        new Diff(optionalOldTag, newTag, domChangePerformer).run();
-        if (domChangePerformer.commands.size() > 0) {
-            remoteOut.modifyDom(domChangePerformer.commands);
-        }
-        return domChangePerformer.elementsToRemove;
-    }
-
-    @Override
-    public void updateEvents(final Set<Event> oldEvents,
-                             final Set<Event> newEvents,
-                             final Set<VirtualDomPath> elementsToRemove) {
-        // Unregister events
-        final List<Event> eventsToRemove = new ArrayList<>();
-        for(Event event : oldEvents) {
-            if(!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
-                eventsToRemove.add(event);
-            }
-        }
-        eventsToRemove.forEach(event -> {
-            final Event.Target eventTarget = event.eventTarget;
-            remoteOut.forgetEvent(eventTarget.eventType,
-                            eventTarget.elementPath);
-        });
-
-        // Register new event types on client
-        final List<Event> eventsToAdd = new ArrayList<>();
-        for(Event event : newEvents) {
-            if(!oldEvents.contains(event)) {
-                eventsToAdd.add(event);
-            }
-        }
-        remoteOut.listenEvents(eventsToAdd);
-    }
-
-    /**
-     * Updates browser's navigation.
-     * @param pathOperator
-     */
-    @Override
-    public void applyToPath(final UnaryOperator<Path> pathOperator) {
-        final RelativeUrl oldRelativeUrl = stateOriginLookup.relativeUrl();
-        final Path oldPath = oldRelativeUrl.path();
-        final Path newPath = pathOperator.apply(oldPath);
-        logger.log(DEBUG, () -> "New path after a components path's function application: " + newPath);
-        if (!newPath.equals(oldPath)) {
-            stateOriginLookup.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
-            remoteOut.pushHistory(basePath.resolve(newPath).toString());
-            logger.log(DEBUG, () -> "Path update: " + newPath);
-        }
-    }
-
-    @Override
-    public <T> T lookup(Class<T> clazz) {
-        return stateOriginLookup.lookup(clazz);
     }
 }

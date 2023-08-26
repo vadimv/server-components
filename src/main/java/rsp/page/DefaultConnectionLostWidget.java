@@ -4,6 +4,7 @@ import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.html.TagDefinition;
 import rsp.html.HtmlDsl;
+import rsp.server.Path;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.RelativeUrl;
@@ -19,6 +20,7 @@ public final class DefaultConnectionLostWidget {
 
     static {
         final DomTreeRenderContext rc = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
+                                                                 Path.of(""),
                                                                  new StateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, RelativeUrl.of(HttpRequest.DUMMY))),
                                                                  new AtomicReference<>());
         widget().render(rc);

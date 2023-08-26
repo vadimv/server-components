@@ -35,7 +35,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final HttpRequestStatefulComponentDefinition<S> rootComponent;
+    public final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition;
 
     public final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -43,14 +43,14 @@ public final class App<S> {
      * Creates an instance of an application.
      * @param config an application config
      * @param lifeCycleEventsListener a listener for the app pages lifecycle events
-     * @param rootComponent the root of the components tree
+     * @param rootComponentDefinition the root of the components tree
      */
     private App(final AppConfig config,
                 final PageLifeCycle<S> lifeCycleEventsListener,
-                final HttpRequestStatefulComponentDefinition<S> rootComponent) {
+                final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition) {
         this.config = Objects.requireNonNull(config);
         this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
-        this.rootComponent = Objects.requireNonNull(rootComponent);
+        this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
     }
 
     /**
@@ -119,7 +119,7 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> withConfig(final AppConfig config) {
-        return new App<>(config,  this.lifeCycleEventsListener, this.rootComponent);
+        return new App<>(config,  this.lifeCycleEventsListener, this.rootComponentDefinition);
     }
 
 
@@ -131,7 +131,7 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> withPageLifecycle(final PageLifeCycle<S> lifecycleEventsListener) {
-        return new App<>(this.config, lifecycleEventsListener, this.rootComponent);
+        return new App<>(this.config, lifecycleEventsListener, this.rootComponentDefinition);
     }
 }
 

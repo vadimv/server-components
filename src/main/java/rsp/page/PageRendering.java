@@ -3,6 +3,7 @@ package rsp.page;
 import rsp.component.HttpRequestStatefulComponentDefinition;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
+import rsp.server.RemoteOut;
 import rsp.server.http.*;
 import rsp.server.Path;
 import rsp.util.RandomString;
@@ -24,17 +25,21 @@ public final class PageRendering<S> {
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
-    private final HttpRequestStatefulComponentDefinition<S> rootComponent;
 
+    private final Path baseUrlPath;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final BiFunction<String, RenderContext, RenderContext> enrich;
+    private final HttpRequestStatefulComponentDefinition<S> rootComponent;
 
-    public PageRendering(final HttpRequestStatefulComponentDefinition<S> rootComponent,
+    public PageRendering(final Path baseUrlPath,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         final BiFunction<String, RenderContext, RenderContext> enrich) {
-        this.rootComponent = Objects.requireNonNull(rootComponent);
+                         final BiFunction<String, RenderContext, RenderContext> enrich,
+                         final HttpRequestStatefulComponentDefinition<S> rootComponent) {
+
+        this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.renderedPages = Objects.requireNonNull(pagesStorage);
         this.enrich = Objects.requireNonNull(enrich);
+        this.rootComponent = Objects.requireNonNull(rootComponent);
     }
 
     public CompletableFuture<HttpResponse> httpResponse(final HttpRequest request) {
@@ -77,11 +82,12 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            final AtomicReference<LivePage> livePageContext = new AtomicReference<>();
+            final AtomicReference<RemoteOut> livePageContext = new AtomicReference<>();
             final StateOriginLookup stateOriginLookup = new StateOriginLookup(new HttpStateOrigin(request,
                                                                                                   RelativeUrl.of(request)));
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
-                    stateOriginLookup,
+                                                                                 baseUrlPath,
+                                                                                 stateOriginLookup,
                                                                                  livePageContext);
             final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 

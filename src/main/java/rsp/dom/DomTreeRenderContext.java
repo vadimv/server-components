@@ -3,11 +3,11 @@ package rsp.dom;
 import rsp.component.Component;
 import rsp.component.ComponentView;
 import rsp.page.EventContext;
-import rsp.page.LivePage;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.Path;
-import rsp.util.Lookup;
+import rsp.server.RemoteOut;
+import rsp.server.http.StateOriginLookup;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -17,9 +17,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class DomTreeRenderContext implements RenderContext {
-    private final VirtualDomPath rootPath;
-    private final Lookup stateOriginLookup;
-    private final AtomicReference<LivePage> livePageContext;
+    private final VirtualDomPath rootDomPath;
+    private final Path baseUrlPath;
+    private final StateOriginLookup stateOriginLookup;
+    private final AtomicReference<RemoteOut> remoteOutReference;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final Deque<Component<?, ?>> componentsStack = new ArrayDeque<>();
@@ -30,12 +31,14 @@ public final class DomTreeRenderContext implements RenderContext {
     private Tag rootTag;
     private Component<?, ?> rootComponent;
 
-    public DomTreeRenderContext(final VirtualDomPath rootPath,
-                                final Lookup stateOriginLookup,
-                                final AtomicReference<LivePage> livePageContext) {
-        this.rootPath = Objects.requireNonNull(rootPath);
+    public DomTreeRenderContext(final VirtualDomPath rootDomPath,
+                                final Path baseUrlPath,
+                                final StateOriginLookup stateOriginLookup,
+                                final AtomicReference<RemoteOut> remoteOutReference) {
+        this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
+        this.rootDomPath = Objects.requireNonNull(rootDomPath);
         this.stateOriginLookup = Objects.requireNonNull(stateOriginLookup);
-        this.livePageContext = Objects.requireNonNull(livePageContext);
+        this.remoteOutReference = Objects.requireNonNull(remoteOutReference);
     }
 
     public Map<String, String> headers() {
@@ -77,7 +80,7 @@ public final class DomTreeRenderContext implements RenderContext {
     @Override
     public void openNode(final XmlNs xmlns, final String name) {
         if (rootTag == null) {
-            rootTag = new Tag(rootPath, xmlns, name);
+            rootTag = new Tag(rootDomPath, xmlns, name);
             tagsStack.push(rootTag);
             trySetCurrentComponentRootTag(rootTag);
         } else {
@@ -143,13 +146,14 @@ public final class DomTreeRenderContext implements RenderContext {
                                                 final Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                                 final BiFunction<S, Path, Path> state2pathFunction,
                                                 final ComponentView<S> componentView) {
-        final Component<T, S> newComponent = new Component<>(stateOriginLookup,
+        final Component<T, S> newComponent = new Component<T, S>(baseUrlPath,
+                                                             stateOriginLookup,
                                                              stateOriginClass,
                                                              initialStateFunction,
                                                              state2pathFunction,
                                                              componentView,
                                                             this,
-                                                             livePageContext);
+                remoteOutReference);
         openComponent(newComponent);
 
         return newComponent;
@@ -172,13 +176,19 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public RenderContext newContext(final VirtualDomPath path) {
-        return new DomTreeRenderContext(path, livePageContext.get(), livePageContext);
+    public RenderContext newContext(final VirtualDomPath domPath) {
+        return new DomTreeRenderContext(domPath,
+                                        baseUrlPath,
+                                        stateOriginLookup,
+                                        remoteOutReference);
     }
 
     @Override
     public RenderContext newContext() {
-        return new DomTreeRenderContext(rootPath, livePageContext.get(), livePageContext);
+        return new DomTreeRenderContext(rootDomPath,
+                                        baseUrlPath,
+                                        stateOriginLookup,
+                                        remoteOutReference);
     }
 
     @Override
