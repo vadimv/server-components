@@ -7,7 +7,7 @@ import rsp.ref.Ref;
 import rsp.ref.TimerRef;
 import rsp.server.*;
 import rsp.server.http.Fragment;
-import rsp.server.http.StateOriginLookup;
+import rsp.server.http.HttpStateOriginLookup;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 import rsp.util.data.Either;
@@ -29,7 +29,7 @@ public final class LivePageSession implements RemoteIn, Schedule {
     public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     private final QualifiedSessionId qsid;
-    private final StateOriginLookup stateOriginLookup;
+    private final HttpStateOriginLookup httpStateOriginLookup;
     private final Schedules schedules;
     private final Component<?, ?> rootComponent;
     private final RemoteOut remoteOut;
@@ -41,13 +41,13 @@ public final class LivePageSession implements RemoteIn, Schedule {
 
     public LivePageSession(final QualifiedSessionId qsid,
                            final Path basePath,
-                           final StateOriginLookup stateOriginLookup,
+                           final HttpStateOriginLookup httpStateOriginLookup,
                            final Schedules schedules,
                            final Component<?, ?> rootComponent,
                            final RemoteOut remoteOut) {
         this.qsid = Objects.requireNonNull(qsid);
         this.basePath = Objects.requireNonNull(basePath);
-        this.stateOriginLookup = stateOriginLookup;
+        this.httpStateOriginLookup = httpStateOriginLookup;
         this.schedules = Objects.requireNonNull(schedules);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
@@ -142,7 +142,7 @@ public final class LivePageSession implements RemoteIn, Schedule {
         synchronized (this) {
             if (HISTORY_ENTRY_CHANGE_EVENT_NAME.equals(eventType) && VirtualDomPath.WINDOW.equals(eventPath)) {
                 final RelativeUrl relativeUrl = historyEntryChangeNewRelativeUrl(eventObject);
-                stateOriginLookup.setRelativeUrl(relativeUrl);
+                httpStateOriginLookup.setRelativeUrl(relativeUrl);
                 rootComponent.resolveState();
             } else {
                 final Map<Event.Target, Event> events = rootComponent.recursiveEvents();

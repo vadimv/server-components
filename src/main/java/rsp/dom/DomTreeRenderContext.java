@@ -7,7 +7,7 @@ import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
-import rsp.server.http.StateOriginLookup;
+import rsp.server.http.HttpStateOriginLookup;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -19,7 +19,7 @@ import java.util.function.Function;
 public final class DomTreeRenderContext implements RenderContext {
     private final VirtualDomPath rootDomPath;
     private final Path baseUrlPath;
-    private final StateOriginLookup stateOriginLookup;
+    private final HttpStateOriginLookup httpStateOriginLookup;
     private final AtomicReference<RemoteOut> remoteOutReference;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
@@ -33,11 +33,11 @@ public final class DomTreeRenderContext implements RenderContext {
 
     public DomTreeRenderContext(final VirtualDomPath rootDomPath,
                                 final Path baseUrlPath,
-                                final StateOriginLookup stateOriginLookup,
+                                final HttpStateOriginLookup httpStateOriginLookup,
                                 final AtomicReference<RemoteOut> remoteOutReference) {
         this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.rootDomPath = Objects.requireNonNull(rootDomPath);
-        this.stateOriginLookup = Objects.requireNonNull(stateOriginLookup);
+        this.httpStateOriginLookup = Objects.requireNonNull(httpStateOriginLookup);
         this.remoteOutReference = Objects.requireNonNull(remoteOutReference);
     }
 
@@ -147,13 +147,13 @@ public final class DomTreeRenderContext implements RenderContext {
                                                 final BiFunction<S, Path, Path> state2pathFunction,
                                                 final ComponentView<S> componentView) {
         final Component<T, S> newComponent = new Component<T, S>(baseUrlPath,
-                                                             stateOriginLookup,
-                                                             stateOriginClass,
-                                                             initialStateFunction,
-                                                             state2pathFunction,
-                                                             componentView,
-                                                            this,
-                                                             remoteOutReference);
+                httpStateOriginLookup,
+                                                                 stateOriginClass,
+                                                                 initialStateFunction,
+                                                                 state2pathFunction,
+                                                                 componentView,
+                                                                this,
+                                                                 remoteOutReference);
         openComponent(newComponent);
 
         return newComponent;
@@ -179,7 +179,7 @@ public final class DomTreeRenderContext implements RenderContext {
     public RenderContext newContext(final VirtualDomPath domPath) {
         return new DomTreeRenderContext(domPath,
                                         baseUrlPath,
-                                        stateOriginLookup,
+                                        httpStateOriginLookup,
                                         remoteOutReference);
     }
 
@@ -187,7 +187,7 @@ public final class DomTreeRenderContext implements RenderContext {
     public RenderContext newContext() {
         return new DomTreeRenderContext(rootDomPath,
                                         baseUrlPath,
-                                        stateOriginLookup,
+                httpStateOriginLookup,
                                         remoteOutReference);
     }
 

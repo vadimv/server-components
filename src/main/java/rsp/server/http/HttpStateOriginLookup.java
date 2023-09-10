@@ -5,11 +5,11 @@ import rsp.util.Lookup;
 
 import java.util.Objects;
 
-public class StateOriginLookup implements Lookup {
+public class HttpStateOriginLookup implements Lookup {
 
     private volatile HttpStateOrigin stateOrigin;
 
-    public StateOriginLookup(final HttpStateOrigin stateOrigin) {
+    public HttpStateOriginLookup(final HttpStateOrigin stateOrigin) {
         this.stateOrigin = Objects.requireNonNull(stateOrigin);
     }
 

@@ -16,7 +16,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public interface RenderContext {
+public interface RenderContext extends RenderContextFactory {
     void setStatusCode(int statusCode);
     void setHeaders(Map<String, String> headers);
     void setDocType(String docType);
@@ -39,6 +39,4 @@ public interface RenderContext {
     void closeComponent();
     Tag rootTag();
     <T, S> Component<T, S> rootComponent();
-    RenderContext newContext(VirtualDomPath path);
-    RenderContext newContext();
 }

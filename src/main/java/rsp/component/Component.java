@@ -3,11 +3,12 @@ package rsp.component;
 import rsp.dom.*;
 import rsp.html.SegmentDefinition;
 import rsp.page.RenderContext;
+import rsp.page.RenderContextFactory;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
 import rsp.server.Path;
 import rsp.server.http.RelativeUrl;
-import rsp.server.http.StateOriginLookup;
+import rsp.server.http.HttpStateOriginLookup;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -28,32 +29,32 @@ public final class Component<T, S> implements NewState<S> {
     private final List<Component<?, ?>> children = new ArrayList<>();
 
     private final Path basePath;
-    private final StateOriginLookup stateOriginLookup;
+    private final HttpStateOriginLookup httpStateOriginLookup;
     private final Class<T> stateOriginClass;
     private final Function<T, CompletableFuture<? extends S>> resolveStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
-    private final RenderContext parentRenderContext;
+    private final RenderContextFactory renderContextFactory;
     private final AtomicReference<RemoteOut> remoteOutReference;
 
     private S state;
     private Tag tag;
 
     public Component(final Path basePath,
-                     final StateOriginLookup stateOriginLookup,
+                     final HttpStateOriginLookup httpStateOriginLookup,
                      final Class<T> stateOriginClass,
                      final Function<T, CompletableFuture<? extends S>> resolveStateFunction,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
-                     final RenderContext parentRenderContext,
+                     final RenderContextFactory renderContextFactory,
                      final AtomicReference<RemoteOut> remoteOutReference) {
         this.basePath = Objects.requireNonNull(basePath);
-        this.stateOriginLookup = Objects.requireNonNull(stateOriginLookup);
+        this.httpStateOriginLookup = Objects.requireNonNull(httpStateOriginLookup);
         this.stateOriginClass = Objects.requireNonNull(stateOriginClass);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
-        this.parentRenderContext = Objects.requireNonNull(parentRenderContext);
+        this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remoteOutReference = Objects.requireNonNull(remoteOutReference);
     }
 
@@ -80,7 +81,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     private CompletableFuture<? extends S> getStatePromise() {
-        final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
+        final T stateOrigin = httpStateOriginLookup.lookup(stateOriginClass);
         return resolveStateFunction.apply(stateOrigin);
     }
 
@@ -111,8 +112,8 @@ public final class Component<T, S> implements NewState<S> {
                                               Map.of();
         state = newStateFunction.apply(state);
         final RenderContext renderContext = oldTag != null ?
-                                               parentRenderContext.newContext(oldTag.path()) :
-                                               parentRenderContext.newContext();
+                                        renderContextFactory.newContext(oldTag.path()) :
+                                        renderContextFactory.newContext();
         events.clear();
         refs.clear();
         children.clear();
@@ -159,11 +160,11 @@ public final class Component<T, S> implements NewState<S> {
         remoteOut.listenEvents(eventsToAdd);
 
         // Update browser's navigation
-        final RelativeUrl oldRelativeUrl = stateOriginLookup.relativeUrl();
+        final RelativeUrl oldRelativeUrl = httpStateOriginLookup.relativeUrl();
         final Path oldPath = oldRelativeUrl.path();
         final Path newPath = state2pathFunction.apply(state, oldPath);
         if (!newPath.equals(oldPath)) {
-            stateOriginLookup.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
+            httpStateOriginLookup.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
             remoteOut.pushHistory(basePath.resolve(newPath).toString());
         }
     }

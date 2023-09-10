@@ -4,8 +4,6 @@ import rsp.dom.Event;
 import rsp.dom.Tag;
 import rsp.dom.VirtualDomPath;
 import rsp.server.Path;
-import rsp.server.http.StateOriginLookup;
-import rsp.util.Lookup;
 
 import java.util.Optional;
 import java.util.Set;

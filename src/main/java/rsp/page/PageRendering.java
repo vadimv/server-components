@@ -83,17 +83,17 @@ public final class PageRendering<S> {
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
             final AtomicReference<RemoteOut> livePageContext = new AtomicReference<>();
-            final StateOriginLookup stateOriginLookup = new StateOriginLookup(new HttpStateOrigin(request,
-                                                                                                  RelativeUrl.of(request)));
+            final HttpStateOriginLookup httpStateOriginLookup = new HttpStateOriginLookup(new HttpStateOrigin(request,
+                                                                                                              RelativeUrl.of(request)));
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
                                                                                  baseUrlPath,
-                                                                                 stateOriginLookup,
+                                                                                 httpStateOriginLookup,
                                                                                  livePageContext);
             final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
 
             rootComponent.render(enrichedDomTreeContext);
 
-            final RenderedPage<S> pageSnapshot = new RenderedPage<>(stateOriginLookup,
+            final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpStateOriginLookup,
                                                                     enrichedDomTreeContext.rootComponent(),
                                                                     livePageContext);
             renderedPages.put(pageId, pageSnapshot);

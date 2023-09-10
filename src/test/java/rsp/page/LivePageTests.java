@@ -6,7 +6,7 @@ import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.StateOriginLookup;
+import rsp.server.http.HttpStateOriginLookup;
 import rsp.component.ComponentView;
 import rsp.component.NewState;
 
@@ -40,10 +40,10 @@ public class LivePageTests {
         final ComponentView<State> view = state -> newState -> span(state.toString());
 
         final AtomicReference<RemoteOut> remoteOutReference = new AtomicReference<>();
-        final StateOriginLookup lookup = new StateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null));
+        final HttpStateOriginLookup lookup = new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null));
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
                                                                      Path.of(""),
-                                                                     new StateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null)),
+                                                                     new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null)),
                                                                      remoteOutReference);
         final Component<String, State> component = new Component<>(Path.of(""),
                                                                    lookup,

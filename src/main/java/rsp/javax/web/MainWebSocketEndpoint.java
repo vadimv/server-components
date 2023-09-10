@@ -64,7 +64,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             final Component<?, S> rootComponent = renderedPage.rootComponent;
             final LivePageSession livePage = new LivePageSession(qsid,
                                                                  basePath,
-                                                                 renderedPage.stateOriginLookup,
+                                                                 renderedPage.httpStateOriginLookup,
                                                                  new Schedules(schedulerSupplier.get()),
                                                                  rootComponent,
                                                                  remoteOut);
