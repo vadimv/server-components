@@ -153,7 +153,7 @@ public final class DomTreeRenderContext implements RenderContext {
                                                              state2pathFunction,
                                                              componentView,
                                                             this,
-                remoteOutReference);
+                                                             remoteOutReference);
         openComponent(newComponent);
 
         return newComponent;

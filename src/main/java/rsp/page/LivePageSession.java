@@ -143,7 +143,7 @@ public final class LivePageSession implements RemoteIn, Schedule {
             if (HISTORY_ENTRY_CHANGE_EVENT_NAME.equals(eventType) && VirtualDomPath.WINDOW.equals(eventPath)) {
                 final RelativeUrl relativeUrl = historyEntryChangeNewRelativeUrl(eventObject);
                 stateOriginLookup.setRelativeUrl(relativeUrl);
-                rootComponent.resolveAndSet();
+                rootComponent.resolveState();
             } else {
                 final Map<Event.Target, Event> events = rootComponent.recursiveEvents();
                 final EventContext eventContext = createEventContext(eventObject);

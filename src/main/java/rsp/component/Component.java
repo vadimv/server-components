@@ -67,13 +67,21 @@ public final class Component<T, S> implements NewState<S> {
         }
     }
 
-    public CompletableFuture<? extends S> resolveState() {
-        final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
-        return resolveStateFunction.apply(stateOrigin);
+    public void render(final RenderContext renderContext) {
+        getStatePromise().whenComplete((s, ex) -> { // TODO handle an exception
+            state = s;
+            final SegmentDefinition view = componentView.apply(state).apply(this);
+            view.render(renderContext);
+        });
     }
 
-    public void resolveAndSet() {
-        applyWhenComplete(resolveState());
+    public void resolveState() {
+        applyWhenComplete(getStatePromise());
+    }
+
+    private CompletableFuture<? extends S> getStatePromise() {
+        final T stateOrigin = stateOriginLookup.lookup(stateOriginClass);
+        return resolveStateFunction.apply(stateOrigin);
     }
 
     public S getState() {

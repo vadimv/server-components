@@ -21,16 +21,12 @@ public abstract class StatefulComponentDefinition<T, S> implements SegmentDefini
     @Override
     public boolean render(final RenderContext renderContext) {
         final ComponentView<S> componentView = componentView();
-        final Component<T, S> newComponent = renderContext.openComponent(stateFunctionInputClass(),
-                                                                         initialStateFunction(),
-                                                                         state2pathFunction(),
-                                                                         componentView);
+        final Component<T, S> component = renderContext.openComponent(stateFunctionInputClass(),
+                                                                      initialStateFunction(),
+                                                                      state2pathFunction(),
+                                                                      componentView);
+        component.render(renderContext);
 
-        final CompletableFuture<? extends S> statePromise = newComponent.resolveState();
-        statePromise.whenComplete((state, ex) -> { // TODO handle an exception
-            final SegmentDefinition view = componentView.apply(state).apply(newComponent);
-            view.render(renderContext);
-        });
         renderContext.closeComponent();
         return true;
     }
