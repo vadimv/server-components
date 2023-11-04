@@ -147,26 +147,26 @@ public final class DomTreeRenderContext implements RenderContext {
                                                 final BiFunction<S, Path, Path> state2pathFunction,
                                                 final ComponentView<S> componentView) {
         final Component<T, S> newComponent = new Component<T, S>(baseUrlPath,
-                httpStateOriginLookup,
+                                                                 httpStateOriginLookup,
                                                                  stateOriginClass,
                                                                  initialStateFunction,
                                                                  state2pathFunction,
                                                                  componentView,
                                                                 this,
                                                                  remoteOutReference);
-        openComponent(newComponent);
+        if (rootComponent == null) {
+            rootComponent = newComponent;
+        } else {
+            final Component<?, ?> parentComponent = componentsStack.peek();
+            parentComponent.addChild(newComponent);
+        }
+        componentsStack.push(newComponent);
 
         return newComponent;
     }
 
     @Override
     public <T, S> void openComponent(Component<T, S> component) {
-        if (rootComponent == null) {
-            rootComponent = component;
-        } else {
-            final Component<?, ?> parentComponent = componentsStack.peek();
-            parentComponent.addChild(component);
-        }
         componentsStack.push(component);
     }
 

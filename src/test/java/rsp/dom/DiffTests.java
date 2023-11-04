@@ -56,7 +56,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_remove_and_add_for_replaced_children() {
+    public void should_remove_and_add_for_replaced_tag_with_children() {
         final Tag tree1 = new Tag(path, XmlNs.html, "body");
 
         final Tag tree2 = new Tag(path, XmlNs.html, "div");
@@ -69,6 +69,33 @@ public class DiffTests {
         new Diff(Optional.of(tree1), tree2,  cp).run();
         assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
+
+    @Test
+    public void should_add_for_a_new_child() {
+        final Tag ul1 = new Tag(path, XmlNs.html, "ul");
+        final Tag li11 = new Tag(path.incLevel(), XmlNs.html, "li");
+        li11.addChild(new Text(li11.path().incLevel(), "first"));
+        ul1.addChild(li11);
+        final Tag li12 = new Tag(path.incLevel(), XmlNs.html, "li");
+        li12.addChild(new Text(li12.path().incLevel(), "second"));
+        ul1.addChild(li12);
+
+        final Tag ul2 = new Tag(path, XmlNs.html, "ul");
+        final Tag li21 = new Tag(path.incLevel(), XmlNs.html, "li");
+        li21.addChild(new Text(li21.path().incLevel(), "first"));
+        ul2.addChild(li21);
+        final Tag li22 = new Tag(path.incLevel(), XmlNs.html, "li");
+        li22.addChild(new Text(li22.path().incLevel(), "second"));
+        ul2.addChild(li22);
+        final Tag li23 = new Tag(path.incLevel(), XmlNs.html, "li");
+        li23.addChild(new Text(li23.path().incLevel(), "third"));
+        ul2.addChild(li23);
+
+        final TestChangesContext cp = new TestChangesContext();
+        new Diff(Optional.of(ul1), ul2,  cp).run();
+        assertEquals("+TAG:1_3:li+TEXT:1_3:1_3_1=third", cp.resultAsString());
+    }
+
 
     @Test
     public void should_add_attribute() {

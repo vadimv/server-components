@@ -132,9 +132,7 @@ public final class Component<T, S> implements NewState<S> {
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         new Diff(Optional.ofNullable(oldTag), renderContext.rootTag(), domChangePerformer).run();
         final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
-        if (domChangePerformer.commands.size() > 0) {
-            remoteOut.modifyDom(domChangePerformer.commands);
-        }
+        remoteOut.modifyDom(domChangePerformer.commands);
 
         // Unregister events
         final List<Event> eventsToRemove = new ArrayList<>();
@@ -167,6 +165,9 @@ public final class Component<T, S> implements NewState<S> {
             httpStateOriginLookup.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
             remoteOut.pushHistory(basePath.resolve(newPath).toString());
         }
+
+        // Unmount obsolete children components
+
     }
 
     public Map<Event.Target, Event> recursiveEvents() {

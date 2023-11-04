@@ -110,7 +110,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void modifyDom(final List<DomChange> domChanges) {
-        if (domChanges.size() > 0) {
+        if (!domChanges.isEmpty()) {
             final String[] changes = domChanges.stream().map(this::modifyDomMessageBody).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(MODIFY_DOM,
                                                                 joinString(changes)));
