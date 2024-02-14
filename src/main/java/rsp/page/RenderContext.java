@@ -31,7 +31,8 @@ public interface RenderContext extends RenderContextFactory {
                   boolean preventDefault,
                   Event.Modifier modifier);
     void addRef(Ref ref);
-    <T, S> Component<T, S> openComponent(Class<T> stateReferenceClass,
+    <T, S> Component<T, S> openComponent(Object key,
+                                         Class<T> stateReferenceClass,
                                          Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                          BiFunction<S, Path, Path> state2pathFunction,
                                          ComponentView<S> componentView);

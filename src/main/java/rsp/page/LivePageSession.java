@@ -33,20 +33,17 @@ public final class LivePageSession implements RemoteIn, Schedule {
     private final Schedules schedules;
     private final Component<?, ?> rootComponent;
     private final RemoteOut remoteOut;
-    private final Path basePath;
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
 
     private int descriptorsCounter;
 
     public LivePageSession(final QualifiedSessionId qsid,
-                           final Path basePath,
                            final HttpStateOriginLookup httpStateOriginLookup,
                            final Schedules schedules,
                            final Component<?, ?> rootComponent,
                            final RemoteOut remoteOut) {
         this.qsid = Objects.requireNonNull(qsid);
-        this.basePath = Objects.requireNonNull(basePath);
         this.httpStateOriginLookup = httpStateOriginLookup;
         this.schedules = Objects.requireNonNull(schedules);
         this.rootComponent = Objects.requireNonNull(rootComponent);

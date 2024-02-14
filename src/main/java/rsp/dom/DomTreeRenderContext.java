@@ -8,6 +8,7 @@ import rsp.ref.Ref;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpStateOriginLookup;
+import rsp.server.http.HttpStateOriginProvider;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class DomTreeRenderContext implements RenderContext {
     private final VirtualDomPath rootDomPath;
@@ -142,18 +144,19 @@ public final class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public <T, S> Component<T, S> openComponent(final Class<T> stateOriginClass,
+    public <T, S> Component<T, S> openComponent(final Object key,
+                                                final Class<T> stateOriginClass,
                                                 final Function<T, CompletableFuture<? extends S>> initialStateFunction,
                                                 final BiFunction<S, Path, Path> state2pathFunction,
                                                 final ComponentView<S> componentView) {
-        final Component<T, S> newComponent = new Component<T, S>(baseUrlPath,
-                                                                 httpStateOriginLookup,
-                                                                 stateOriginClass,
-                                                                 initialStateFunction,
-                                                                 state2pathFunction,
-                                                                 componentView,
-                                                                this,
-                                                                 remoteOutReference);
+        final Component<T, S> newComponent = new Component<>(key,
+                                                             baseUrlPath,
+                                                             new HttpStateOriginProvider<>(httpStateOriginLookup, stateOriginClass),
+                                                             initialStateFunction,
+                                                             state2pathFunction,
+                                                             componentView,
+                                                             this,
+                                                             remoteOutReference);
         if (rootComponent == null) {
             rootComponent = newComponent;
         } else {
@@ -167,6 +170,12 @@ public final class DomTreeRenderContext implements RenderContext {
 
     @Override
     public <T, S> void openComponent(Component<T, S> component) {
+        if (rootComponent == null) {
+            rootComponent = component;
+        } else {
+            final Component<?, ?> parentComponent = componentsStack.peek();
+            parentComponent.addChild(component);
+        }
         componentsStack.push(component);
     }
 

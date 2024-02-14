@@ -24,7 +24,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
-    private final Path basePath;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
     private final PageLifeCycle<S> lifeCycleEventsListener;
@@ -33,11 +32,9 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public MainWebSocketEndpoint(final Path basePath,
-                                 final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
+    public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
                                  final Supplier<ScheduledExecutorService> schedulerSupplier,
                                  final PageLifeCycle<S> lifeCycleEventsListener) {
-        this.basePath = Objects.requireNonNull(basePath);
         this.renderedPages = Objects.requireNonNull(renderedPages);
         this.schedulerSupplier = Objects.requireNonNull(schedulerSupplier);
         this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
@@ -63,7 +60,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             renderedPage.remoteOutReference.set(remoteOut);
             final Component<?, S> rootComponent = renderedPage.rootComponent;
             final LivePageSession livePage = new LivePageSession(qsid,
-                                                                 basePath,
                                                                  renderedPage.httpStateOriginLookup,
                                                                  new Schedules(schedulerSupplier.get()),
                                                                  rootComponent,

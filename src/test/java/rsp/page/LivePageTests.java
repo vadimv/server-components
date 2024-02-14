@@ -1,12 +1,11 @@
 package rsp.page;
 
+import org.junit.jupiter.api.Test;
 import rsp.component.Component;
 import rsp.dom.*;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
-import rsp.server.http.HttpRequest;
-import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.HttpStateOriginLookup;
+import rsp.server.http.*;
 import rsp.component.ComponentView;
 import rsp.component.NewState;
 
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static rsp.html.HtmlDsl.span;
@@ -24,6 +22,7 @@ public class LivePageTests {
 
     private static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
+    @Test
     public void should_generate_update_commands_for_new_state() {
         final TestCollectingRemoteOut out = new TestCollectingRemoteOut();
         final NewState<State> liveComponent = createComponent(out);
@@ -40,21 +39,21 @@ public class LivePageTests {
         final ComponentView<State> view = state -> newState -> span(state.toString());
 
         final AtomicReference<RemoteOut> remoteOutReference = new AtomicReference<>();
-        final HttpStateOriginLookup lookup = new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null));
+        remoteOutReference.set(remoteOut);
+        final HttpStateOriginLookup lookup = new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, RelativeUrl.of(HttpRequest.DUMMY)));
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
                                                                      Path.of(""),
-                                                                     new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, null)),
+                                                                     new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, RelativeUrl.of(HttpRequest.DUMMY))),
                                                                      remoteOutReference);
-        final Component<String, State> component = new Component<>(Path.of(""),
-                                                                   lookup,
-                                                                   String.class,
+        final Component<String, State> component = new Component<>(new Object(),
+                                                                   Path.of("basePath"),
+                                                                   new HttpStateOriginProvider<>(lookup, String.class),
                                                                    t -> CompletableFuture.completedFuture(initialState),
                                                                    (s, p) -> Path.of(String.valueOf(s.value)),
                                                                    view,
                                                                    renderContext,
                                                                    remoteOutReference);
         final LivePageSession livePage = new LivePageSession(QID,
-                                                             Path.of("basePath"),
                                                              lookup,
                                                              new Schedules(Executors.newScheduledThreadPool(1)),
                                                              component,
@@ -62,10 +61,6 @@ public class LivePageTests {
         livePage.init();
 
         return component;
-    }
-
-    private static BiFunction<String, RenderContext, RenderContext> enrichFunction() {
-        return (sessionId, ctx) -> ctx;
     }
 
     private static class State {

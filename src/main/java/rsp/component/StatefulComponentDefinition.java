@@ -21,7 +21,8 @@ public abstract class StatefulComponentDefinition<T, S> implements SegmentDefini
     @Override
     public boolean render(final RenderContext renderContext) {
         final ComponentView<S> componentView = componentView();
-        final Component<T, S> component = renderContext.openComponent(stateFunctionInputClass(),
+        final Component<T, S> component = renderContext.openComponent(new Object(),
+                                                                      stateFunctionInputClass(),
                                                                       initialStateFunction(),
                                                                       state2pathFunction(),
                                                                       componentView);
