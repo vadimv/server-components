@@ -28,18 +28,18 @@ public final class PageRendering<S> {
 
     private final Path baseUrlPath;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final BiFunction<String, RenderContext, RenderContext> enrich;
-    private final HttpRequestStatefulComponentDefinition<S> rootComponent;
+    private final BiFunction<String, RenderContext, RenderContext> enrichFunction;
+    private final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition;
 
     public PageRendering(final Path baseUrlPath,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         final BiFunction<String, RenderContext, RenderContext> enrich,
-                         final HttpRequestStatefulComponentDefinition<S> rootComponent) {
+                         final BiFunction<String, RenderContext, RenderContext> enrichFunction,
+                         final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition) {
 
         this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.renderedPages = Objects.requireNonNull(pagesStorage);
-        this.enrich = Objects.requireNonNull(enrich);
-        this.rootComponent = Objects.requireNonNull(rootComponent);
+        this.enrichFunction = Objects.requireNonNull(enrichFunction);
+        this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
     }
 
     public CompletableFuture<HttpResponse> httpResponse(final HttpRequest request) {
@@ -82,20 +82,20 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            final AtomicReference<RemoteOut> livePageContext = new AtomicReference<>();
+            final AtomicReference<RemoteOut> remoteOutReference = new AtomicReference<>();
             final HttpStateOriginLookup httpStateOriginLookup = new HttpStateOriginLookup(new HttpStateOrigin(request,
                                                                                                               RelativeUrl.of(request)));
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
                                                                                  baseUrlPath,
                                                                                  httpStateOriginLookup,
-                                                                                 livePageContext);
-            final RenderContext enrichedDomTreeContext = enrich.apply(sessionId, domTreeContext);
+                                                                                 remoteOutReference);
+            final RenderContext enrichedDomTreeContext = enrichFunction.apply(sessionId, domTreeContext);
 
-            rootComponent.render(enrichedDomTreeContext);
+            rootComponentDefinition.render(enrichedDomTreeContext);
 
             final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpStateOriginLookup,
                                                                     enrichedDomTreeContext.rootComponent(),
-                                                                    livePageContext);
+                                                                    remoteOutReference);
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = enrichedDomTreeContext.toString();
 
