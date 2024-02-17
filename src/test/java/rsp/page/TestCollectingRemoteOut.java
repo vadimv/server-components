@@ -141,6 +141,14 @@ public class TestCollectingRemoteOut implements RemoteOut {
         public int hashCode() {
             return Objects.hash(eventType, elementPath);
         }
+
+        @Override
+        public String toString() {
+            return "ForgetEventOutMessage{" +
+                    "eventType='" + eventType + '\'' +
+                    ", elementPath=" + elementPath +
+                    '}';
+        }
     }
 
     static final class ExtractPropertyOutMessage implements Message {

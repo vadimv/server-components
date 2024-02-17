@@ -72,6 +72,16 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         public int hashCode() {
             return Objects.hash(path, xmlNs, name, isProperty);
         }
+
+        @Override
+        public String toString() {
+            return "RemoveAttr{" +
+                    "path=" + path +
+                    ", xmlNs=" + xmlNs +
+                    ", name='" + name + '\'' +
+                    ", isProperty=" + isProperty +
+                    '}';
+        }
     }
 
     public static final class RemoveStyle implements DomChange {
@@ -95,6 +105,14 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         public int hashCode() {
             return Objects.hash(path, name);
         }
+
+        @Override
+        public String toString() {
+            return "RemoveStyle{" +
+                    "path=" + path +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
     }
 
     public static final class Remove implements DomChange {
@@ -117,6 +135,14 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         @Override
         public int hashCode() {
             return Objects.hash(parentPath, path);
+        }
+
+        @Override
+        public String toString() {
+            return "Remove{" +
+                    "parentPath=" + parentPath +
+                    ", path=" + path +
+                    '}';
         }
     }
 
@@ -151,6 +177,17 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         public int hashCode() {
             return Objects.hash(path, xmlNs, name, value, isProperty);
         }
+
+        @Override
+        public String toString() {
+            return "SetAttr{" +
+                    "path=" + path +
+                    ", xmlNs=" + xmlNs +
+                    ", name='" + name + '\'' +
+                    ", value='" + value + '\'' +
+                    ", isProperty=" + isProperty +
+                    '}';
+        }
     }
 
     public static final class SetStyle implements DomChange {
@@ -176,6 +213,15 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         @Override
         public int hashCode() {
             return Objects.hash(path, name, value);
+        }
+
+        @Override
+        public String toString() {
+            return "SetStyle{" +
+                    "path=" + path +
+                    ", name='" + name + '\'' +
+                    ", value='" + value + '\'' +
+                    '}';
         }
     }
 
