@@ -151,8 +151,9 @@ public final class DomTreeRenderContext implements RenderContext {
                                                 final ComponentView<S> componentView) {
         final Component<T, S> newComponent = new Component<>(key,
                                                              baseUrlPath,
-                                                             new HttpStateOriginProvider<>(httpStateOriginLookup, stateOriginClass),
-                                                             initialStateFunction,
+                                                             new HttpStateOriginProvider<>(httpStateOriginLookup,
+                                                                                           stateOriginClass,
+                                                                                           initialStateFunction),
                                                              state2pathFunction,
                                                              componentView,
                                                              this,

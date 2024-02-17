@@ -30,8 +30,7 @@ public final class Component<T, S> implements NewState<S> {
 
     private final Object key;
     private final Path basePath;
-    private final HttpStateOriginProvider<T> httpStateOriginProvider;
-    private final Function<T, CompletableFuture<? extends S>> resolveStateFunction;
+    private final HttpStateOriginProvider<T, S> httpStateOriginProvider;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
@@ -42,8 +41,7 @@ public final class Component<T, S> implements NewState<S> {
 
     public Component(final Object key,
                      final Path basePath,
-                     final HttpStateOriginProvider<T> httpStateOriginProvider,
-                     final Function<T, CompletableFuture<? extends S>> resolveStateFunction,
+                     final HttpStateOriginProvider<T, S> httpStateOriginProvider,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContextFactory renderContextFactory,
@@ -51,7 +49,6 @@ public final class Component<T, S> implements NewState<S> {
         this.key = Objects.requireNonNull(key);
         this.basePath = Objects.requireNonNull(basePath);
         this.httpStateOriginProvider = Objects.requireNonNull(httpStateOriginProvider);
-        this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
@@ -69,7 +66,8 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public void render(final RenderContext renderContext) {
-        getStatePromise().whenComplete((s, ex) -> { // TODO handle an exception
+        final CompletableFuture<? extends S> statePromice = httpStateOriginProvider.getStatePromise();
+        statePromice.whenComplete((s, ex) -> { // TODO handle an exception
             state = s;
             final SegmentDefinition view = componentView.apply(state).apply(this);
             view.render(renderContext);
@@ -77,13 +75,9 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public void resolveState() {
-        applyWhenComplete(getStatePromise());
+        applyWhenComplete( httpStateOriginProvider.getStatePromise());
     }
 
-    private CompletableFuture<? extends S> getStatePromise() {
-        final T stateOrigin = httpStateOriginProvider.get();
-        return resolveStateFunction.apply(stateOrigin);
-    }
 
     public S getState() {
         return state;
