@@ -57,8 +57,8 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 remoteOut.evalJs(-1, "RSP.reload()");
             }
         } else {
-            renderedPage.remoteOutReference.set(remoteOut);
             final Component<?, S> rootComponent = renderedPage.rootComponent;
+
             final LivePageSession livePage = new LivePageSession(qsid,
                                                                  renderedPage.httpStateOriginLookup,
                                                                  new Schedules(schedulerSupplier.get()),
@@ -74,9 +74,9 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                     in.decode(s);
                 }
             });
-
             remoteOut.setRenderNum(0);
             livePage.init();
+            rootComponent.redirectMessagesOut(new RemotePageMessageEncoder(msg -> sendText(session, msg)));
             lifeCycleEventsListener.pageCreated(qsid, rootComponent.getState(), rootComponent);
             logger.log(DEBUG, () -> "Live page started: " + this);
         }

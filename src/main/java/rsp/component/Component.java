@@ -2,6 +2,7 @@ package rsp.component;
 
 import rsp.dom.*;
 import rsp.html.SegmentDefinition;
+import rsp.page.TemporaryBufferedPageCommands;
 import rsp.page.RenderContext;
 import rsp.page.RenderContextFactory;
 import rsp.ref.Ref;
@@ -12,7 +13,6 @@ import rsp.server.http.RelativeUrl;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -34,7 +34,7 @@ public final class Component<T, S> implements NewState<S> {
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
-    private final AtomicReference<RemoteOut> remoteOutReference;
+    private final TemporaryBufferedPageCommands remotePageMessages;
 
     private S state;
     private Tag tag;
@@ -45,14 +45,14 @@ public final class Component<T, S> implements NewState<S> {
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContextFactory renderContextFactory,
-                     final AtomicReference<RemoteOut> remoteOutReference) {
+                     final TemporaryBufferedPageCommands remotePageMessages) {
         this.key = Objects.requireNonNull(key);
         this.basePath = Objects.requireNonNull(basePath);
         this.httpStateOriginProvider = Objects.requireNonNull(httpStateOriginProvider);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
-        this.remoteOutReference = Objects.requireNonNull(remoteOutReference);
+        this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
     }
 
     public void addChild(final Component<?, ?> component) {
@@ -119,8 +119,8 @@ public final class Component<T, S> implements NewState<S> {
 
         tag = renderContext.rootTag();
 
-        final RemoteOut remoteOut = remoteOutReference.get();
-        assert  remoteOut != null;
+        final RemoteOut remoteOut = remotePageMessages;
+        assert remoteOut != null;
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -131,12 +131,12 @@ public final class Component<T, S> implements NewState<S> {
         // Unregister events
         final List<Event> eventsToRemove = new ArrayList<>();
         final Collection<Event> newEvents = recursiveEvents().values();
-        for(Event event : oldEvents.values()) {
-            if(!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
+        for (Event event : oldEvents.values()) {
+            if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
                 eventsToRemove.add(event);
             }
         }
-        for(Event event : eventsToRemove) {
+        for (Event event : eventsToRemove) {
             final Event.Target eventTarget = event.eventTarget;
             remoteOut.forgetEvent(eventTarget.eventType,
                                   eventTarget.elementPath);
@@ -144,7 +144,7 @@ public final class Component<T, S> implements NewState<S> {
 
         // Register new event types on client
         final List<Event> eventsToAdd = new ArrayList<>();
-        for(Event event : newEvents) {
+        for (Event event : newEvents) {
             if(!oldEvents.values().contains(event)) {
                 eventsToAdd.add(event);
             }
@@ -185,11 +185,15 @@ public final class Component<T, S> implements NewState<S> {
         children.forEach(childComponent -> childComponent.listenEvents(remoteOut));
     }
 
-    public void addEvent(Event.Target eventTarget, Event event) {
+    public void addEvent(final Event.Target eventTarget, final Event event) {
         events.put(eventTarget, event);
     }
 
-    public void addRef(Ref ref, VirtualDomPath path) {
+    public void addRef(final Ref ref, final VirtualDomPath path) {
         refs.put(ref, path);
+    }
+
+    public void redirectMessagesOut(final RemoteOut remoteOut) {
+        remotePageMessages.redirectMessagesOut(remoteOut);
     }
 }

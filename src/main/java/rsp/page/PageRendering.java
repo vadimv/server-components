@@ -88,7 +88,7 @@ public final class PageRendering<S> {
             final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
                                                                                  baseUrlPath,
                                                                                  httpStateOriginLookup,
-                                                                                 remoteOutReference);
+                                                                                 new TemporaryBufferedPageCommands());
             final RenderContext enrichedDomTreeContext = enrichFunction.apply(sessionId, domTreeContext);
 
             rootComponentDefinition.render(enrichedDomTreeContext);

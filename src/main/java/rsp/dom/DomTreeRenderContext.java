@@ -2,27 +2,25 @@ package rsp.dom;
 
 import rsp.component.Component;
 import rsp.component.ComponentView;
+import rsp.page.TemporaryBufferedPageCommands;
 import rsp.page.EventContext;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
 import rsp.server.Path;
-import rsp.server.RemoteOut;
 import rsp.server.http.HttpStateOriginLookup;
 import rsp.server.http.HttpStateOriginProvider;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public final class DomTreeRenderContext implements RenderContext {
     private final VirtualDomPath rootDomPath;
     private final Path baseUrlPath;
     private final HttpStateOriginLookup httpStateOriginLookup;
-    private final AtomicReference<RemoteOut> remoteOutReference;
+    private final TemporaryBufferedPageCommands remotePageMessagesOut;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final Deque<Component<?, ?>> componentsStack = new ArrayDeque<>();
@@ -36,11 +34,11 @@ public final class DomTreeRenderContext implements RenderContext {
     public DomTreeRenderContext(final VirtualDomPath rootDomPath,
                                 final Path baseUrlPath,
                                 final HttpStateOriginLookup httpStateOriginLookup,
-                                final AtomicReference<RemoteOut> remoteOutReference) {
+                                final TemporaryBufferedPageCommands remotePageMessagesOut) {
         this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.rootDomPath = Objects.requireNonNull(rootDomPath);
         this.httpStateOriginLookup = Objects.requireNonNull(httpStateOriginLookup);
-        this.remoteOutReference = Objects.requireNonNull(remoteOutReference);
+        this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
     }
 
     public Map<String, String> headers() {
@@ -156,8 +154,8 @@ public final class DomTreeRenderContext implements RenderContext {
                                                                                            initialStateFunction),
                                                              state2pathFunction,
                                                              componentView,
-                                                             this,
-                                                             remoteOutReference);
+                                                            this,
+                                                             remotePageMessagesOut);
         if (rootComponent == null) {
             rootComponent = newComponent;
         } else {
@@ -190,15 +188,15 @@ public final class DomTreeRenderContext implements RenderContext {
         return new DomTreeRenderContext(domPath,
                                         baseUrlPath,
                                         httpStateOriginLookup,
-                                        remoteOutReference);
+                                        remotePageMessagesOut);
     }
 
     @Override
     public RenderContext newContext() {
         return new DomTreeRenderContext(rootDomPath,
                                         baseUrlPath,
-                httpStateOriginLookup,
-                                        remoteOutReference);
+                                        httpStateOriginLookup,
+                                        remotePageMessagesOut);
     }
 
     @Override

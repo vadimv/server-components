@@ -1,14 +1,10 @@
 package rsp.page;
 
 import org.junit.jupiter.api.Test;
-import rsp.component.Component;
-import rsp.component.ComponentDsl;
-import rsp.component.ComponentView;
-import rsp.component.PathStatefulComponentDefinition;
+import rsp.component.*;
 import rsp.dom.DomTreeRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.server.Path;
-import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.HttpStateOriginLookup;
@@ -16,7 +12,6 @@ import rsp.server.http.RelativeUrl;
 
 import java.io.IOException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -39,8 +34,6 @@ public class LivePageTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final State initialState = new State(10);
 
-        final AtomicReference<RemoteOut> remoteOutReference = new AtomicReference<>();
-        remoteOutReference.set(remoteOut);
 
         final HttpStateOriginLookup lookup = new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY,
                                                                        RelativeUrl.of(HttpRequest.DUMMY)));
@@ -48,7 +41,7 @@ public class LivePageTests {
         final RenderContext renderContext = new DomTreeRenderContext(VirtualDomPath.of("1"),
                                                                         Path.of(""),
                                                                         lookup,
-                                                                        remoteOutReference);
+                                                                        new TemporaryBufferedPageCommands());
 
         final RenderContext enrichedDomTreeContext = UpgradingRenderContext.create(renderContext,
                                                                                     QID.sessionId,
@@ -69,6 +62,7 @@ public class LivePageTests {
         assertInstanceOf(ListenEventOutMessage.class, remoteOut.commands.get(0));
 
         rootComponent.set(new State(100));
+        rootComponent.redirectMessagesOut(remoteOut);
         assertInstanceOf(ModifyDomOutMessage.class, remoteOut.commands.get(1));
     }
 

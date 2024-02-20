@@ -10,8 +10,6 @@ import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.RelativeUrl;
 import rsp.server.http.HttpStateOriginLookup;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 public final class DefaultConnectionLostWidget {
 
     private DefaultConnectionLostWidget() {}
@@ -22,7 +20,7 @@ public final class DefaultConnectionLostWidget {
         final DomTreeRenderContext rc = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
                                                                  Path.of(""),
                                                                  new HttpStateOriginLookup(new HttpStateOrigin(HttpRequest.DUMMY, RelativeUrl.of(HttpRequest.DUMMY))),
-                                                                 new AtomicReference<>());
+                                                                 new TemporaryBufferedPageCommands());
         widget().render(rc);
         HTML = rc.toString();
     }
