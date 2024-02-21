@@ -103,16 +103,11 @@ public final class JettyServer<S> {
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/" + basePath);
-        final BiFunction<String, RenderContext, RenderContext> enrichContextFun =
-                (sessionId, ctx) -> UpgradingRenderContext.create(ctx,
-                                                                  sessionId,
-                                                                  "/",
-                                                                  DefaultConnectionLostWidget.HTML,
-                                                                  app.config.heartbeatIntervalMs);
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(basePath,
                                                                                        app.pagesStorage,
-                                                                                       enrichContextFun,
-                                                                                       app.rootComponentDefinition))),"/*");
+                                                                                       app.rootComponentDefinition,
+                                                                                       app.config.heartbeatIntervalMs))),
+                          "/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
         final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage,
                                                                                         () -> scheduler,

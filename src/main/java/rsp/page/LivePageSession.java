@@ -167,9 +167,9 @@ public final class LivePageSession implements RemoteIn, Schedule {
     private static RelativeUrl historyEntryChangeNewRelativeUrl(final JsonDataType.Object eventObject) {
         final Path path = eventObject.value("path").map(p -> Path.of(p.toString()))
                 .orElseThrow(() -> new JsonDataType.JsonException("The 'path' property not found in the event object" + eventObject));
-        final Query query = eventObject.value("query").map(q -> Query.of(q.toString()))
+        final Query query = eventObject.value("query").map(q -> new Query(q.toString()))
                 .orElseThrow(() -> new JsonDataType.JsonException("The 'query' property not found in the event object" + eventObject));
-        final Fragment fragment = eventObject.value("fragment").map(f -> Fragment.of(f.toString()))
+        final Fragment fragment = eventObject.value("fragment").map(f -> new Fragment(f.toString()))
                 .orElseThrow(() -> new JsonDataType.JsonException("The 'fragment' property not found in the event object" + eventObject));
         return new RelativeUrl(path, query, fragment);
     }

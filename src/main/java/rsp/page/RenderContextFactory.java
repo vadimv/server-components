@@ -1,8 +1,9 @@
 package rsp.page;
 
+import rsp.component.ComponentRenderContext;
 import rsp.dom.VirtualDomPath;
 
 public interface RenderContextFactory {
-    RenderContext newContext(VirtualDomPath path);
-    RenderContext newContext();
+    ComponentRenderContext newContext(VirtualDomPath path);
+    ComponentRenderContext newContext();
 }

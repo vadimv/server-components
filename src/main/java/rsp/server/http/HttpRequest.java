@@ -14,9 +14,6 @@ import java.util.function.Function;
  */
 public final class HttpRequest {
 
-    // TODO refactor to remove
-    public static final HttpRequest DUMMY = new HttpRequest(HttpMethod.GET, URI.create("about.blank"), "", Path.EMPTY_ABSOLUTE);
-
     public final HttpMethod method;
     public final URI uri;
     public final String url;

@@ -105,7 +105,7 @@ public final class Component<T, S> implements NewState<S> {
                                               new HashMap<>(recursiveEvents()) :
                                               Map.of();
         state = newStateFunction.apply(state);
-        final RenderContext renderContext = oldTag != null ?
+        final ComponentRenderContext renderContext = oldTag != null ?
                                         renderContextFactory.newContext(oldTag.path()) :
                                         renderContextFactory.newContext();
         events.clear();

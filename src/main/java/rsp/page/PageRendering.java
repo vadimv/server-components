@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.component.HttpRequestStatefulComponentDefinition;
-import rsp.dom.DomTreeRenderContext;
+import rsp.component.ComponentRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.server.RemoteOut;
 import rsp.server.http.*;
@@ -14,7 +14,6 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
 
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -28,18 +27,18 @@ public final class PageRendering<S> {
 
     private final Path baseUrlPath;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final BiFunction<String, RenderContext, RenderContext> enrichFunction;
     private final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition;
+    private final int heartBeatIntervalMs;
 
     public PageRendering(final Path baseUrlPath,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         final BiFunction<String, RenderContext, RenderContext> enrichFunction,
-                         final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition) {
+                         final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition,
+                         final int heartBeatIntervalMs) {
 
         this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.renderedPages = Objects.requireNonNull(pagesStorage);
-        this.enrichFunction = Objects.requireNonNull(enrichFunction);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
+        this.heartBeatIntervalMs = heartBeatIntervalMs;
     }
 
     public CompletableFuture<HttpResponse> httpResponse(final HttpRequest request) {
@@ -85,19 +84,23 @@ public final class PageRendering<S> {
             final AtomicReference<RemoteOut> remoteOutReference = new AtomicReference<>();
             final HttpStateOriginLookup httpStateOriginLookup = new HttpStateOriginLookup(new HttpStateOrigin(request,
                                                                                                               RelativeUrl.of(request)));
-            final DomTreeRenderContext domTreeContext = new DomTreeRenderContext(VirtualDomPath.DOCUMENT,
-                                                                                 baseUrlPath,
-                                                                                 httpStateOriginLookup,
-                                                                                 new TemporaryBufferedPageCommands());
-            final RenderContext enrichedDomTreeContext = enrichFunction.apply(sessionId, domTreeContext);
+            final PageConfigScript pageConfigScript = new PageConfigScript(sessionId,
+                                                                          "/",
+                                                                           DefaultConnectionLostWidget.HTML,
+                                                                           heartBeatIntervalMs);
+            final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
+                                                                           VirtualDomPath.DOCUMENT,
+                                                                           baseUrlPath,
+                                                                           httpStateOriginLookup,
+                                                                           new TemporaryBufferedPageCommands());
 
-            rootComponentDefinition.render(enrichedDomTreeContext);
+            rootComponentDefinition.render(domTreeContext);
 
             final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpStateOriginLookup,
-                                                                    enrichedDomTreeContext.rootComponent(),
+                                                                    domTreeContext.rootComponent(),
                                                                     remoteOutReference);
             renderedPages.put(pageId, pageSnapshot);
-            final String responseBody = enrichedDomTreeContext.toString();
+            final String responseBody = domTreeContext.toString();
 
             logger.log(TRACE, () -> "Page body: " + responseBody);
 

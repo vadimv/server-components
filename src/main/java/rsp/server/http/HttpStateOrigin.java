@@ -7,4 +7,8 @@ public record HttpStateOrigin(HttpRequest httpRequest, RelativeUrl relativeUrl) 
         Objects.requireNonNull(httpRequest);
         Objects.requireNonNull(relativeUrl);
     }
+
+    public HttpStateOrigin(HttpRequest httpRequest) {
+        this(httpRequest, RelativeUrl.of(httpRequest));
+    }
 }

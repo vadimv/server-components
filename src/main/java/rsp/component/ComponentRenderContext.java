@@ -1,10 +1,7 @@
-package rsp.dom;
+package rsp.component;
 
-import rsp.component.Component;
-import rsp.component.ComponentView;
-import rsp.page.TemporaryBufferedPageCommands;
-import rsp.page.EventContext;
-import rsp.page.RenderContext;
+import rsp.dom.*;
+import rsp.page.*;
 import rsp.ref.Ref;
 import rsp.server.Path;
 import rsp.server.http.HttpStateOriginLookup;
@@ -16,7 +13,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public final class DomTreeRenderContext implements RenderContext {
+public class ComponentRenderContext implements RenderContext, RenderContextFactory {
     private final VirtualDomPath rootDomPath;
     private final Path baseUrlPath;
     private final HttpStateOriginLookup httpStateOriginLookup;
@@ -31,10 +28,10 @@ public final class DomTreeRenderContext implements RenderContext {
     private Tag rootTag;
     private Component<?, ?> rootComponent;
 
-    public DomTreeRenderContext(final VirtualDomPath rootDomPath,
-                                final Path baseUrlPath,
-                                final HttpStateOriginLookup httpStateOriginLookup,
-                                final TemporaryBufferedPageCommands remotePageMessagesOut) {
+    public ComponentRenderContext(final VirtualDomPath rootDomPath,
+                                  final Path baseUrlPath,
+                                  final HttpStateOriginLookup httpStateOriginLookup,
+                                  final TemporaryBufferedPageCommands remotePageMessagesOut) {
         this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.rootDomPath = Objects.requireNonNull(rootDomPath);
         this.httpStateOriginLookup = Objects.requireNonNull(httpStateOriginLookup);
@@ -53,7 +50,7 @@ public final class DomTreeRenderContext implements RenderContext {
         return rootTag;
     }
 
-    @Override @SuppressWarnings("unchecked")
+    @SuppressWarnings("unchecked")
     public <T, S> Component<T, S> rootComponent() {
         return (Component<T, S>) rootComponent;
     }
@@ -141,7 +138,6 @@ public final class DomTreeRenderContext implements RenderContext {
         component.addRef(ref, tagsStack.peek().path());
     }
 
-    @Override
     public <T, S> Component<T, S> openComponent(final Object key,
                                                 final Class<T> stateOriginClass,
                                                 final Function<T, CompletableFuture<? extends S>> initialStateFunction,
@@ -167,7 +163,6 @@ public final class DomTreeRenderContext implements RenderContext {
         return newComponent;
     }
 
-    @Override
     public <T, S> void openComponent(Component<T, S> component) {
         if (rootComponent == null) {
             rootComponent = component;
@@ -178,22 +173,21 @@ public final class DomTreeRenderContext implements RenderContext {
         componentsStack.push(component);
     }
 
-    @Override
     public void closeComponent() {
         componentsStack.pop();
     }
 
     @Override
-    public RenderContext newContext(final VirtualDomPath domPath) {
-        return new DomTreeRenderContext(domPath,
+    public ComponentRenderContext newContext(final VirtualDomPath domPath) {
+        return new ComponentRenderContext(domPath,
                                         baseUrlPath,
                                         httpStateOriginLookup,
                                         remotePageMessagesOut);
     }
 
     @Override
-    public RenderContext newContext() {
-        return new DomTreeRenderContext(rootDomPath,
+    public ComponentRenderContext newContext() {
+        return new ComponentRenderContext(rootDomPath,
                                         baseUrlPath,
                                         httpStateOriginLookup,
                                         remotePageMessagesOut);
