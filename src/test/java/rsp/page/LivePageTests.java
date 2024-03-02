@@ -42,7 +42,6 @@ public class LivePageTests {
 
         final HttpStateOriginLookup lookup = new HttpStateOriginLookup(new HttpStateOrigin(httpRequest));
 
-
         final PageConfigScript pageConfigScript = new PageConfigScript(QID.sessionId,
                                                                         "/",
                                                                         DefaultConnectionLostWidget.HTML,

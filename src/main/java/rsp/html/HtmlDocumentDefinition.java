@@ -1,6 +1,7 @@
 package rsp.html;
 
 import rsp.dom.XmlNs;
+import rsp.page.PageRenderContext;
 import rsp.page.RenderContext;
 
 import java.util.HashMap;
@@ -25,8 +26,11 @@ public final class HtmlDocumentDefinition extends TagDefinition {
 
     @Override
     public boolean render(final RenderContext renderContext) {
-        renderContext.setStatusCode(statusCode);
-        renderContext.setHeaders(headers);
+        if (renderContext instanceof PageRenderContext pageRenderContext) {
+            pageRenderContext.setStatusCode(statusCode);
+            pageRenderContext.setHeaders(headers);
+        }
+
         renderContext.setDocType("<!DOCTYPE html>");
         super.render(renderContext);
         return true;

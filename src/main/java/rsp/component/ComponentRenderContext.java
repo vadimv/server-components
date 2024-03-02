@@ -13,41 +13,23 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ComponentRenderContext implements RenderContext, RenderContextFactory {
-    private final VirtualDomPath rootDomPath;
+public class ComponentRenderContext extends DomTreeRenderContext implements RenderContextFactory {
+
     private final Path baseUrlPath;
     private final HttpStateOriginLookup httpStateOriginLookup;
     private final TemporaryBufferedPageCommands remotePageMessagesOut;
 
-    private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final Deque<Component<?, ?>> componentsStack = new ArrayDeque<>();
-
-    private int statusCode;
-    private Map<String, String> headers;
-    private String docType;
-    private Tag rootTag;
     private Component<?, ?> rootComponent;
 
     public ComponentRenderContext(final VirtualDomPath rootDomPath,
                                   final Path baseUrlPath,
                                   final HttpStateOriginLookup httpStateOriginLookup,
                                   final TemporaryBufferedPageCommands remotePageMessagesOut) {
+        super(rootDomPath);
         this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
-        this.rootDomPath = Objects.requireNonNull(rootDomPath);
         this.httpStateOriginLookup = Objects.requireNonNull(httpStateOriginLookup);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
-    }
-
-    public Map<String, String> headers() {
-        return headers;
-    }
-
-    public String docType() {
-        return docType;
-    }
-
-    public Tag rootTag() {
-        return rootTag;
     }
 
     @SuppressWarnings("unchecked")
@@ -55,40 +37,11 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
         return (Component<T, S>) rootComponent;
     }
 
-    public int statusCode() {
-        return statusCode;
-    }
 
     @Override
-    public void setStatusCode(final int statusCode) {
-        this.statusCode = statusCode;
-    }
-
-    @Override
-    public void setHeaders(final Map<String, String> headers) {
-        this.headers = headers;
-    }
-
-    @Override
-    public void setDocType(final String docType) {
-        this.docType = docType;
-    }
-
-    @Override
-    public void openNode(final XmlNs xmlns, final String name) {
-        if (rootTag == null) {
-            rootTag = new Tag(rootDomPath, xmlns, name);
-            tagsStack.push(rootTag);
-            trySetCurrentComponentRootTag(rootTag);
-        } else {
-            final Tag parent = tagsStack.peek();
-            assert parent != null;
-            final int nextChild = parent.children.size() + 1;
-            final Tag newTag = new Tag(parent.path().childNumber(nextChild), xmlns, name);
-            parent.addChild(newTag);
-            tagsStack.push(newTag);
-            trySetCurrentComponentRootTag(newTag);
-        }
+    public void openNode(XmlNs xmlns, String name) {
+        super.openNode(xmlns, name);
+        trySetCurrentComponentRootTag(tagsStack.peek());
     }
 
     private void trySetCurrentComponentRootTag(final Tag newTag) {
@@ -96,26 +49,6 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
         if (component != null) {
             component.setRootTagIfNotSet(newTag);
         }
-    }
-
-    @Override
-    public void closeNode(final String name, final boolean upgrade) {
-        tagsStack.pop();
-    }
-
-    @Override
-    public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
-        tagsStack.peek().addAttribute(name, value, isProperty);
-    }
-
-    @Override
-    public void setStyle(final String name, final String value) {
-        tagsStack.peek().addStyle(name, value);
-    }
-
-    @Override
-    public void addTextNode(final String text) {
-        tagsStack.peek().addChild(new Text(tagsStack.peek().path(), text));
     }
 
     @Override
@@ -188,22 +121,9 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
     @Override
     public ComponentRenderContext newContext() {
         return new ComponentRenderContext(rootDomPath,
-                                        baseUrlPath,
-                                        httpStateOriginLookup,
-                                        remotePageMessagesOut);
-    }
-
-    @Override
-    public String toString() {
-        if (rootTag == null) {
-            throw new IllegalStateException("DOM tree not initialized");
-        }
-        final StringBuilder sb = new StringBuilder();
-        if (docType != null) {
-            sb.append(docType);
-        }
-        rootTag.appendString(sb);
-        return sb.toString();
+                                          baseUrlPath,
+                                          httpStateOriginLookup,
+                                          remotePageMessagesOut);
     }
 }
 

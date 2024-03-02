@@ -6,13 +6,16 @@ import rsp.dom.XmlNs;
 import rsp.server.Path;
 import rsp.server.http.HttpStateOriginLookup;
 
+import java.util.Map;
 import java.util.Objects;
 
 public final class PageRenderContext extends ComponentRenderContext {
 
     private final String pageConfigScript;
 
-    private boolean headWasOpened = false;
+    private int statusCode;
+    private Map<String, String> headers;
+    private boolean headWasOpened;
 
     public PageRenderContext(final String pageConfigScript,
                              final VirtualDomPath rootDomPath,
@@ -21,6 +24,22 @@ public final class PageRenderContext extends ComponentRenderContext {
                              final TemporaryBufferedPageCommands remotePageMessagesOut) {
         super(rootDomPath, baseUrlPath, httpStateOriginLookup, remotePageMessagesOut);
         this.pageConfigScript = Objects.requireNonNull(pageConfigScript);
+    }
+
+    public int statusCode() {
+        return statusCode;
+    }
+
+    public void setStatusCode(final int statusCode) {
+        this.statusCode = statusCode;
+    }
+
+    public Map<String, String> headers() {
+        return headers;
+    }
+
+    public void setHeaders(final Map<String, String> headers) {
+        this.headers = headers;
     }
 
     @Override

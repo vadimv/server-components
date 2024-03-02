@@ -79,4 +79,10 @@ public final class Tag implements Node {
         sb.append('>');
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        appendString(sb);
+        return sb.toString();
+    }
 }
