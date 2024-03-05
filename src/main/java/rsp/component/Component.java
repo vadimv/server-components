@@ -17,12 +17,15 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
+import static java.lang.System.Logger.Level.*;
+
 /**
  * Represents a stateful component.
  * @param <T> a type to be resolved to an initial state
  * @param <S> a type for this component's state snapshot, should be an immutable class
  */
 public final class Component<T, S> implements NewState<S> {
+    private static final System.Logger logger = System.getLogger(Component.class.getName());
 
     private final Map<Event.Target, Event> events = new HashMap<>();
     private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
@@ -66,18 +69,25 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public void render(final RenderContext renderContext) {
-        final CompletableFuture<? extends S> statePromice = httpStateOriginProvider.getStatePromise();
-        statePromice.whenComplete((s, ex) -> { // TODO handle an exception
-            state = s;
-            final SegmentDefinition view = componentView.apply(state).apply(this);
-            view.render(renderContext);
+        final CompletableFuture<? extends S> statePromise = httpStateOriginProvider.getStatePromise();
+        statePromise.whenComplete((s, stateEx) -> {
+            if (stateEx == null) {
+                state = s;
+                try {
+                    final SegmentDefinition view = componentView.apply(state).apply(this);
+                    view.render(renderContext);
+                } catch (Throwable renderEx) {
+                    logger.log(ERROR, "A component " + key + " rendering exception", renderEx);
+                }
+            } else {
+                logger.log(ERROR, "A component " + key + " state exception", stateEx);
+            }
         });
     }
 
     public void resolveState() {
         applyWhenComplete( httpStateOriginProvider.getStatePromise());
     }
-
 
     public S getState() {
         return state;
