@@ -4,6 +4,7 @@ import rsp.component.Component;
 import rsp.page.*;
 import rsp.server.*;
 import rsp.server.http.HttpRequest;
+import rsp.server.http.PageRelativeUrl;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.server.protocol.RemotePageMessageEncoder;
 import rsp.util.json.JsonParser;
@@ -57,10 +58,10 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 remoteOut.evalJs(-1, "RSP.reload()");
             }
         } else {
-            final Component<?, S> rootComponent = renderedPage.rootComponent;
+            final Component<S> rootComponent = renderedPage.rootComponent;
 
             final LivePageSession livePage = new LivePageSession(qsid,
-                                                                 renderedPage.httpStateOriginLookup,
+                                                                 renderedPage.pageStateOrigin,
                                                                  new Schedules(schedulerSupplier.get()),
                                                                  rootComponent,
                                                                  remoteOut);

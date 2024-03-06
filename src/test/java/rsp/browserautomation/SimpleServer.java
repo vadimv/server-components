@@ -29,31 +29,21 @@ public class SimpleServer {
                 new NotFoundState() );
     }
 
-    private static SegmentDefinition incrementCounterComponent1(final String name) {
-        return component(routing1(),
+    private static SegmentDefinition counter1(final String name) {
+        return component(routing(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                                      -1),
                          (count, path) -> Path.of("/" + count + "/" + path.get(1)),
-                         incrementCounterComponentView(name));
+                         counterView(name));
     }
 
-    private static Routing<Path, Integer> routing1() {
-        return routing(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
-                      -1);
-    }
-
-
-    private static SegmentDefinition incrementCounterComponent2(final String name) {
-        return component(routing2(),
+    private static SegmentDefinition counter2(final String name) {
+        return component(routing(path("/*/:id(^\\d+$)", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+                                -1),
                         (count, path) -> Path.of("/" + path.get(0) + "/" + count),
-                        incrementCounterComponentView(name));
+                        counterView(name));
     }
 
-    private static Routing<Path, Integer> routing2() {
-        return routing(path("/*/:id(^\\d+$)", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
-                       -1);
-    }
-
-
-    private static ComponentView<Integer> incrementCounterComponentView(String name) {
+    private static ComponentView<Integer> counterView(String name) {
         return state -> newState ->
                 div(div(button(attr("type", "button"),
                                 attr("id", name + "_b0"),
@@ -65,12 +55,12 @@ public class SimpleServer {
                                  text(state))));
     }
 
-    private static final ComponentView<CountersState> countersComponentView = state -> newState ->
+    private static final View<CountersState> countersComponentView = state ->
             html(head(title("test-server-title"),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
-                    body(incrementCounterComponent1("c1"),
-                         incrementCounterComponent2("c2")
+                    body(counter1("c1"),
+                         counter2("c2")
                     ));
 
     private static final View<NotFoundState> notFoundStatelessView = __ ->
@@ -81,12 +71,11 @@ public class SimpleServer {
         if (state instanceof NotFoundState) {
             return statelessComponent((NotFoundState) state, notFoundStatelessView);
         } else if (state instanceof CountersState) {
-            return component((CountersState) state, countersComponentView);
+            return statelessComponent((CountersState) state, countersComponentView);
         } else {
             throw new IllegalStateException();
         }
     };
-
 
     public SimpleServer(final JettyServer<AppState> jetty) {
         this.jetty = jetty;

@@ -7,9 +7,7 @@ import rsp.component.ComponentView;
 import rsp.component.PathStatefulComponentDefinition;
 import rsp.dom.VirtualDomPath;
 import rsp.server.Path;
-import rsp.server.http.HttpRequest;
-import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.HttpStateOriginLookup;
+import rsp.server.http.*;
 
 import java.net.URI;
 import java.util.concurrent.Executors;
@@ -40,30 +38,30 @@ public class LivePageTests {
                                                         uri.toString(),
                                                         Path.EMPTY_ABSOLUTE);
 
-        final HttpStateOriginLookup lookup = new HttpStateOriginLookup(new HttpStateOrigin(httpRequest));
-
+        final PageRelativeUrl pageRelativeUrl = new PageRelativeUrl(RelativeUrl.of(httpRequest));
         final PageConfigScript pageConfigScript = new PageConfigScript(QID.sessionId,
-                                                                        "/",
-                                                                        DefaultConnectionLostWidget.HTML,
-                                                                        1000);
+                                                                       "/",
+                                                                       DefaultConnectionLostWidget.HTML,
+                                                                       1000);
+        final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
         final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
                                                                         VirtualDomPath.DOCUMENT,
                                                                         Path.of(""),
-                                                                        lookup,
+                                                                        httpStateOrigin,
                                                                         new TemporaryBufferedPageCommands());
 
         final PathStatefulComponentDefinition<State> componentDefinition = ComponentDsl.component(initialState, view);
         componentDefinition.render(domTreeContext);
         assertFalse(domTreeContext.toString().isBlank());
 
-        final Component<String, State> rootComponent = domTreeContext.rootComponent();
+        final Component<State> rootComponent = domTreeContext.rootComponent();
         assertNotNull(rootComponent);
 
         final LivePageSession livePage = new LivePageSession(QID,
-                                                                lookup,
-                                                                new Schedules(Executors.newScheduledThreadPool(1)),
-                                                                rootComponent,
-                                                                remoteOut);
+                                                             httpStateOrigin,
+                                                             new Schedules(Executors.newScheduledThreadPool(1)),
+                                                             rootComponent,
+                                                             remoteOut);
         livePage.init();
         assertInstanceOf(ListenEventOutMessage.class, remoteOut.commands.get(0));
 

@@ -3,6 +3,7 @@ package rsp.component;
 import rsp.html.SegmentDefinition;
 import rsp.server.http.HttpRequest;
 import rsp.server.Path;
+import rsp.server.http.HttpStateOrigin;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -44,10 +45,11 @@ public class ComponentDsl {
         Objects.requireNonNull(state2PathFunction);
         Objects.requireNonNull(componentView);
 
-        return new PathStatefulComponentDefinition<>() {
+        return new PathStatefulComponentDefinition<>(new Object()) {
+
             @Override
-            protected Function<Path, CompletableFuture<? extends S>> initialStateFunction() {
-                return initialStateRouting;
+            protected Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
+                return httpStateOrigin -> initialStateRouting.apply(httpStateOrigin.relativeUrl().path());
             }
 
             @Override
@@ -69,10 +71,11 @@ public class ComponentDsl {
         Objects.requireNonNull(state2PathFunction);
         Objects.requireNonNull(componentView);
 
-        return new HttpRequestStatefulComponentDefinition<>() {
+        return new HttpRequestStatefulComponentDefinition<>(new Object()) {
+
             @Override
-            protected Function<HttpRequest, CompletableFuture<? extends S>> initialStateFunction() {
-                return initialStateRouting;
+            protected Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
+                return httpStateOrigin -> initialStateRouting.apply(httpStateOrigin.httpRequest());
             }
 
             @Override

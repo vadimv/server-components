@@ -4,12 +4,12 @@ import rsp.server.Path;
 
 import java.util.function.BiFunction;
 
-public abstract class PathStatefulComponentDefinition<S> extends StatefulComponentDefinition<Path, S> {
+public abstract class PathStatefulComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
-    @Override
-    protected Class<Path> stateFunctionInputClass() {
-        return Path.class;
+    public PathStatefulComponentDefinition(final Object key) {
+        super(key);
     }
+
 
     @Override
     protected BiFunction<S, Path, Path> state2pathFunction() {

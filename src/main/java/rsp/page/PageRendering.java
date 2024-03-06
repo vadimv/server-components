@@ -1,7 +1,6 @@
 package rsp.page;
 
 import rsp.component.HttpRequestStatefulComponentDefinition;
-import rsp.component.ComponentRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.server.RemoteOut;
 import rsp.server.http.*;
@@ -81,24 +80,22 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            final AtomicReference<RemoteOut> remoteOutReference = new AtomicReference<>();
-            final HttpStateOriginLookup httpStateOriginLookup = new HttpStateOriginLookup(new HttpStateOrigin(request,
-                                                                                                              RelativeUrl.of(request)));
+            final PageStateOrigin httpStateOrigin = new PageStateOrigin(request);
             final PageConfigScript pageConfigScript = new PageConfigScript(sessionId,
                                                                           "/",
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
+
             final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
                                                                            VirtualDomPath.DOCUMENT,
                                                                            baseUrlPath,
-                                                                           httpStateOriginLookup,
+                                                                           httpStateOrigin,
                                                                            new TemporaryBufferedPageCommands());
 
             rootComponentDefinition.render(domTreeContext);
 
-            final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpStateOriginLookup,
-                                                                    domTreeContext.rootComponent(),
-                                                                    remoteOutReference);
+            final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpStateOrigin,
+                                                                    domTreeContext.rootComponent());
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = domTreeContext.toString();
 

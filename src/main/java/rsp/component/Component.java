@@ -8,35 +8,33 @@ import rsp.page.RenderContextFactory;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
 import rsp.server.Path;
-import rsp.server.http.HttpStateOriginProvider;
 import rsp.server.http.RelativeUrl;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.UnaryOperator;
+import java.util.function.*;
 
 import static java.lang.System.Logger.Level.*;
 
 /**
  * Represents a stateful component.
- * @param <T> a type to be resolved to an initial state
  * @param <S> a type for this component's state snapshot, should be an immutable class
  */
-public final class Component<T, S> implements NewState<S> {
+public final class Component<S> implements NewState<S> {
     private static final System.Logger logger = System.getLogger(Component.class.getName());
 
     private final Map<Event.Target, Event> events = new HashMap<>();
     private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
-    private final List<Component<?, ?>> children = new ArrayList<>();
+    private final List<Component<?>> children = new ArrayList<>();
 
     private final Object key;
     private final Path basePath;
-    private final HttpStateOriginProvider<T, S> httpStateOriginProvider;
+    private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
+    private final Supplier<RelativeUrl> relativeUrlSupplier;
+    private final Consumer<RelativeUrl> relativeUrlConsumer;
     private final TemporaryBufferedPageCommands remotePageMessages;
 
     private S state;
@@ -44,21 +42,25 @@ public final class Component<T, S> implements NewState<S> {
 
     public Component(final Object key,
                      final Path basePath,
-                     final HttpStateOriginProvider<T, S> httpStateOriginProvider,
+                     final Supplier<CompletableFuture<? extends S>> resolveStateFunction,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContextFactory renderContextFactory,
+                     final Supplier<RelativeUrl> relativeUrlSupplier,
+                     final Consumer<RelativeUrl> relativeUrlConsumer,
                      final TemporaryBufferedPageCommands remotePageMessages) {
         this.key = Objects.requireNonNull(key);
         this.basePath = Objects.requireNonNull(basePath);
-        this.httpStateOriginProvider = Objects.requireNonNull(httpStateOriginProvider);
+        this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
+        this.relativeUrlSupplier = Objects.requireNonNull(relativeUrlSupplier);
+        this.relativeUrlConsumer = Objects.requireNonNull(relativeUrlConsumer);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
     }
 
-    public void addChild(final Component<?, ?> component) {
+    public void addChild(final Component<?> component) {
         children.add(component);
     }
 
@@ -69,7 +71,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public void render(final RenderContext renderContext) {
-        final CompletableFuture<? extends S> statePromise = httpStateOriginProvider.getStatePromise();
+        final CompletableFuture<? extends S> statePromise = resolveStateFunction.get();
         statePromise.whenComplete((s, stateEx) -> {
             if (stateEx == null) {
                 state = s;
@@ -86,7 +88,7 @@ public final class Component<T, S> implements NewState<S> {
     }
 
     public void resolveState() {
-        applyWhenComplete( httpStateOriginProvider.getStatePromise());
+        applyWhenComplete(resolveStateFunction.get());
     }
 
     public S getState() {
@@ -162,11 +164,11 @@ public final class Component<T, S> implements NewState<S> {
         remoteOut.listenEvents(eventsToAdd);
 
         // Update browser's navigation
-        final RelativeUrl oldRelativeUrl = httpStateOriginProvider.relativeUrl();
+        final RelativeUrl oldRelativeUrl = relativeUrlSupplier.get();
         final Path oldPath = oldRelativeUrl.path();
         final Path newPath = state2pathFunction.apply(state, oldPath);
         if (!newPath.equals(oldPath)) {
-            httpStateOriginProvider.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
+            relativeUrlConsumer.accept(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
             remoteOut.pushHistory(basePath.resolve(newPath).toString());
         }
 
@@ -176,7 +178,7 @@ public final class Component<T, S> implements NewState<S> {
 
     public Map<Event.Target, Event> recursiveEvents() {
         final Map<Event.Target, Event> recursiveEvents = new HashMap<>(events);
-        for (Component<?, ?> childComponent : children) {
+        for (Component<?> childComponent : children) {
             recursiveEvents.putAll(childComponent.recursiveEvents());
         }
         return recursiveEvents;
@@ -184,7 +186,7 @@ public final class Component<T, S> implements NewState<S> {
 
     public Map<Ref, VirtualDomPath> recursiveRefs() {
         final Map<Ref, VirtualDomPath> recursiveRefs = new HashMap<>(refs);
-        for (Component<?, ?> childComponent : children) {
+        for (Component<?> childComponent : children) {
             recursiveRefs.putAll(childComponent.recursiveRefs());
         }
         return recursiveRefs;
