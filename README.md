@@ -223,13 +223,10 @@ Use components DSL  ``component()`` and ``webComponent()`` overloaded functions 
     ...
 ```
 
-The alternative way to implement a stateful component is to extend abstract classes 
-``HttpRequestStatefulComponentDefinition`` and ``PathStatefulComponentDefinition``.
-
 A stateful component's initial state can be provided is the following ways:
 - set explicitly
 - mapped from an HTTP request
-- mapped from a request's URL path
+- mapped from a browser's address bar path and query
 
 Every stateful component has its own changeable state, represented by a snapshot of an immutable class or record.
 A component's state is modelled as a finite state machine (FSM) and managed by the framework.
@@ -259,6 +256,8 @@ A view function of a stateful component has two parameters and a view function o
             case UserState   user -> component(user, userComponentView);
             case UsersState users -> component(users, usersComponentView);
         }
+        
+     appView.apply(new UserState("Username"));
 ```
 
 An application's top-level stateful component is the root of its page's components tree.

@@ -1,8 +1,7 @@
 package rsp.page;
 
-import rsp.component.HttpRequestStatefulComponentDefinition;
+import rsp.component.HttpComponentDefinition;
 import rsp.dom.VirtualDomPath;
-import rsp.server.RemoteOut;
 import rsp.server.http.*;
 import rsp.server.Path;
 import rsp.util.RandomString;
@@ -12,7 +11,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -26,12 +24,12 @@ public final class PageRendering<S> {
 
     private final Path baseUrlPath;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition;
+    private final HttpComponentDefinition<S> rootComponentDefinition;
     private final int heartBeatIntervalMs;
 
     public PageRendering(final Path baseUrlPath,
                          final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         final HttpRequestStatefulComponentDefinition<S> rootComponentDefinition,
+                         final HttpComponentDefinition<S> rootComponentDefinition,
                          final int heartBeatIntervalMs) {
 
         this.baseUrlPath = Objects.requireNonNull(baseUrlPath);

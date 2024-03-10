@@ -14,7 +14,6 @@ import java.io.File;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.component.ComponentDsl.component;
-import static rsp.component.ComponentDsl.statelessComponent;
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
@@ -25,19 +24,19 @@ public class SimpleServer {
 
 
     private static Routing<HttpRequest, AppState> appRouting() {
-        return new Routing<>(get("/:id(^\\d+$)/:id(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
+        return new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
                 new NotFoundState() );
     }
 
     private static SegmentDefinition counter1(final String name) {
-        return component(routing(path("/:id(^\\d+$)/*", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+        return component(routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
                                       -1),
                          (count, path) -> Path.of("/" + count + "/" + path.get(1)),
                          counterView(name));
     }
 
     private static SegmentDefinition counter2(final String name) {
-        return component(routing(path("/*/:id(^\\d+$)", id -> CompletableFuture.completedFuture(Integer.parseInt(id))),
+        return component(routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
                                 -1),
                         (count, path) -> Path.of("/" + path.get(0) + "/" + count),
                         counterView(name));
@@ -68,10 +67,10 @@ public class SimpleServer {
                  body(h1("Not found 404"))).statusCode(404);
 
     private static final View<AppState> appComponentView = state -> {
-        if (state instanceof NotFoundState) {
-            return statelessComponent((NotFoundState) state, notFoundStatelessView);
-        } else if (state instanceof CountersState) {
-            return statelessComponent((CountersState) state, countersComponentView);
+        if (state instanceof NotFoundState notFoundState) {
+            return notFoundStatelessView.apply(notFoundState);
+        } else if (state instanceof CountersState countersState) {
+            return countersComponentView.apply(countersState);
         } else {
             throw new IllegalStateException();
         }

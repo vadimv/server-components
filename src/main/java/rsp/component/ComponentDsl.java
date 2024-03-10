@@ -1,7 +1,5 @@
 package rsp.component;
 
-import rsp.html.SegmentDefinition;
-import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 import rsp.server.http.HttpStateOrigin;
 
@@ -31,13 +29,6 @@ public class ComponentDsl {
                          componentView);
     }
 
-    public static <S> HttpRequestStatefulComponentDefinition<S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
-                                                                             final ComponentView<S> componentView) {
-        return webComponent(initialStateRouting,
-                            (__, path) ->  path,
-                            componentView);
-    }
-
     public static <S> PathStatefulComponentDefinition<S> component(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
                                                                    final BiFunction<S, Path, Path> state2PathFunction,
                                                                    final ComponentView<S> componentView) {
@@ -62,35 +53,5 @@ public class ComponentDsl {
                 return componentView;
             }
         };
-    }
-
-    public static <S> HttpRequestStatefulComponentDefinition<S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
-                                                                             final BiFunction<S, Path, Path> state2PathFunction,
-                                                                             final ComponentView<S> componentView) {
-        Objects.requireNonNull(initialStateRouting);
-        Objects.requireNonNull(state2PathFunction);
-        Objects.requireNonNull(componentView);
-
-        return new HttpRequestStatefulComponentDefinition<>(new Object()) {
-
-            @Override
-            protected Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
-                return httpStateOrigin -> initialStateRouting.apply(httpStateOrigin.httpRequest());
-            }
-
-            @Override
-            protected BiFunction<S, Path, Path> state2pathFunction() {
-                return state2PathFunction;
-            }
-
-            @Override
-            protected ComponentView<S> componentView() {
-                return componentView;
-            }
-        };
-    }
-
-    public static <S> SegmentDefinition statelessComponent(final S state, final View<S> componentView) {
-        return componentView.apply(state);
     }
 }
