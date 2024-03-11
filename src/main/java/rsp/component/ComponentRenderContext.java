@@ -5,7 +5,6 @@ import rsp.page.*;
 import rsp.ref.Ref;
 import rsp.server.Path;
 import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.PageRelativeUrl;
 import rsp.server.http.PageStateOrigin;
 
 import java.util.*;
@@ -17,7 +16,6 @@ import java.util.function.Supplier;
 
 public class ComponentRenderContext extends DomTreeRenderContext implements RenderContextFactory {
 
-    private final Path baseUrlPath;
     private final PageStateOrigin pageStateOrigin;
     private final TemporaryBufferedPageCommands remotePageMessagesOut;
 
@@ -25,11 +23,9 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     private Component<?> rootComponent;
 
     public ComponentRenderContext(final VirtualDomPath rootDomPath,
-                                  final Path baseUrlPath,
                                   final PageStateOrigin pageStateOrigin,
                                   final TemporaryBufferedPageCommands remotePageMessagesOut) {
         super(rootDomPath);
-        this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
     }
@@ -78,7 +74,6 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                                           final ComponentView<S> componentView) {
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> resolveStateFunction.apply(pageStateOrigin.httpStateOrigin());
         final Component<S> newComponent = new Component<>(key,
-                                                          baseUrlPath,
                                                           resolveStateSupplier,
                                                           state2pathFunction,
                                                           componentView,
@@ -107,7 +102,6 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     @Override
     public ComponentRenderContext newContext(final VirtualDomPath domPath) {
         return new ComponentRenderContext(domPath,
-                                          baseUrlPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut);
     }
@@ -115,7 +109,6 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     @Override
     public ComponentRenderContext newContext() {
         return new ComponentRenderContext(rootDomPath,
-                                          baseUrlPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut);
     }

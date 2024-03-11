@@ -6,7 +6,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 /**
- * Represents API for initiating a change of a state's snapshot.
+ * Represents an API for initiating a change of a component's state.
  * @param <S> the type of the component's state, should be an immutable class
  */
 public interface NewState<S> {

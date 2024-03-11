@@ -60,8 +60,7 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new HttpComponentDefinition(routing,
-                                         rootComponentView));
+             new HttpComponentDefinition<>(routing, rootComponentView));
     }
 
     /**
@@ -74,8 +73,7 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new HttpComponentDefinition<>(request -> initialState,
-                                           rootComponentView));
+             new HttpComponentDefinition<>(request -> initialState, rootComponentView));
     }
 
     /**
@@ -86,8 +84,7 @@ public final class App<S> {
      */
     public App(final S initialState,
                final ComponentView<S> rootComponentView) {
-        this(CompletableFuture.completedFuture(initialState),
-             rootComponentView);
+        this(CompletableFuture.completedFuture(initialState), rootComponentView);
     }
 
 
@@ -106,6 +103,7 @@ public final class App<S> {
              new HttpComponentDefinition<>(routing,
                                            state -> newState -> rootComponentView.apply(state)));
     }
+
 
     /**
      * Sets the application's config.

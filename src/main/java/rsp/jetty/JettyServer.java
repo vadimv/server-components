@@ -14,7 +14,6 @@ import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.javax.web.HttpRequestUtils;
 import rsp.page.*;
-import rsp.server.Path;
 import rsp.server.SslConfiguration;
 import rsp.server.StaticResources;
 
@@ -26,7 +25,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.BiFunction;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -43,25 +41,21 @@ public final class JettyServer<S> {
     public static final int DEFAULT_WEB_SERVER_MAX_THREADS = 50;
 
     private final int port;
-    private final Path basePath;
     private final Server server;
 
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param basePathStr a context path of the web application
      * @param app an RSP application
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
     public JettyServer(final int port,
-                       final String basePathStr,
                        final App<S> app,
                        final Optional<StaticResources> staticResources,
                        final Optional<SslConfiguration> sslConfiguration,
                        final int maxThreads) {
         this.port = port;
-        this.basePath = Objects.requireNonNull(Path.of(basePathStr));
         Objects.requireNonNull(app);
 
         final QueuedThreadPool threadPool = new QueuedThreadPool();
@@ -94,24 +88,23 @@ public final class JettyServer<S> {
         staticResources.ifPresent(sr -> {
             final ResourceHandler resourcesHandler = new ResourceHandler();
             resourcesHandler.setDirectoriesListed(true);
-            resourcesHandler.setResourceBase(sr.resourcesBaseDir.getAbsolutePath());
+            resourcesHandler.setResourceBase(sr.resourcesBaseDir().getAbsolutePath());
             final ContextHandler resourceContextHandler = new ContextHandler();
             resourceContextHandler.setHandler(resourcesHandler);
-            resourceContextHandler.setContextPath(sr.contextPath);
+            resourceContextHandler.setContextPath(sr.contextPath());
             handlers.addHandler(resourceContextHandler);
         });
 
         final ServletContextHandler context = new ServletContextHandler();
-        context.setContextPath("/" + basePath);
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(basePath,
-                                                                                       app.pagesStorage,
+        context.setContextPath("/");
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.pagesStorage,
                                                                                        app.rootComponentDefinition,
                                                                                        app.config.heartbeatIntervalMs))),
                           "/*");
         final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
-        final MainWebSocketEndpoint<S> webSocketEndpoint =  new MainWebSocketEndpoint<>(app.pagesStorage,
-                                                                                        () -> scheduler,
-                                                                                        app.lifeCycleEventsListener);
+        final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(app.pagesStorage,
+                                                                                       () -> scheduler,
+                                                                                       app.lifeCycleEventsListener);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
@@ -145,41 +138,36 @@ public final class JettyServer<S> {
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param basePath a context path of the web application
      * @param app an RSP application
      * @param staticResources a setup object for an optional static resources handler
      */
     public JettyServer(final int port,
-                       final String basePath,
                        final App<S> app,
                        final StaticResources staticResources) {
-        this(port, basePath, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
+        this(port, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param basePath a context path of the web application
      * @param app an RSP application
      * @param staticResources a setup object for an optional static resources handler
      * @param sslConfiguration the server's TLS configuration
      */
     public JettyServer(final int port,
-                       final String basePath,
                        final App<S> app,
                        final StaticResources staticResources,
                        final SslConfiguration sslConfiguration) {
-        this(port, basePath, app, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
+        this(port, app, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param basePath a context path of the web application
      * @param app an RSP application
      */
-    public JettyServer(final int port, final String basePath, final App<S> app) {
-        this(port, basePath, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
+    public JettyServer(final int port, final App<S> app) {
+        this(port, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**

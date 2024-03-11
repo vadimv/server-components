@@ -17,7 +17,7 @@ public class HttpRequestTests {
         final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,
                                                     uri,
                                                     uri.toString(),
-                                                    Path.EMPTY_RELATIVE,
+                                                    Path.EMPTY,
                                                     s -> Optional.empty(),
                                                     s -> Optional.of(cookieHeader));
 
@@ -33,7 +33,7 @@ public class HttpRequestTests {
         final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,
                                                     uri,
                                                     uri.toString(),
-                                                    Path.EMPTY_RELATIVE,
+                                                    Path.EMPTY,
                                                     s -> Optional.empty(),
                                                     s -> Optional.of(cookieHeader));
 

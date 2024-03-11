@@ -22,17 +22,14 @@ public final class PageRendering<S> {
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
-    private final Path baseUrlPath;
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final HttpComponentDefinition<S> rootComponentDefinition;
     private final int heartBeatIntervalMs;
 
-    public PageRendering(final Path baseUrlPath,
-                         final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
+    public PageRendering(final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
                          final HttpComponentDefinition<S> rootComponentDefinition,
                          final int heartBeatIntervalMs) {
 
-        this.baseUrlPath = Objects.requireNonNull(baseUrlPath);
         this.renderedPages = Objects.requireNonNull(pagesStorage);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
         this.heartBeatIntervalMs = heartBeatIntervalMs;
@@ -86,7 +83,6 @@ public final class PageRendering<S> {
 
             final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
                                                                            VirtualDomPath.DOCUMENT,
-                                                                           baseUrlPath,
                                                                            httpStateOrigin,
                                                                            new TemporaryBufferedPageCommands());
 

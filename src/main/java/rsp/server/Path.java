@@ -2,9 +2,7 @@ package rsp.server;
 
 import rsp.util.ArrayUtils;
 
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Stream;
 
 /**
@@ -12,50 +10,41 @@ import java.util.stream.Stream;
  * A path could be either absolute or relative.
  */
 public final class Path {
-    public static final Path EMPTY_ABSOLUTE = new Path(true);
-    public static final Path EMPTY_RELATIVE = new Path(false);
+    public static final Path EMPTY = Path.of("");
+    public static final Path ROOT = Path.of("/");
 
-    public final boolean isAbsolute;
-    public final String[] elements;
+    private final boolean isAbsolute;
+    private final String[] elements;
 
     /**
      * Creates a new instance of a path.
-     * @param isAbsolute true if the path is absolute, false is the path is relative
      * @param elements the path's elements
      */
-    public Path(final boolean isAbsolute, final String... elements) {
+    private Path(final boolean isAbsolute, final String[] elements) {
         this.isAbsolute = isAbsolute;
         this.elements = elements;
     }
 
     /**
-     * Creates a new instance of an absolute path from its segments.
-     * @param segments paths segments
-     * @return a path object
-     */
-    public static Path absolute(final String... segments) {
-        return new Path(true, segments);
-    }
-
-    /**
-     * Creates a new instance of a relative path from its segments.
-     * @param segments paths segments
-     * @return a path object
-     */
-    public static Path relative(final String... segments) {
-        return new Path(false, segments);
-    }
-
-    /**
      * Creates a new instance of a path from a string.
-     * @param str the string with '/' separated path elements;
-     *            if starts with '/' then the path is absolute, otherwise the path is relative
+     * @param pathStr a path string where path elements separated by '/';
+     *                 if it starts with '/' then the created path is absolute, otherwise it is relative
      * @return a path object
      */
-    public static Path of(final String str) {
-        final String trimmedStr = str.trim();
+    public static Path of(final String pathStr) {
+        Objects.requireNonNull(pathStr);
+
+        final String trimmedStr = pathStr.trim();
         final String[] tokens = Arrays.stream(trimmedStr.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
         return new Path(trimmedStr.startsWith("/"), tokens);
+    }
+
+    public boolean isAbsolute() {
+        return isAbsolute;
+    }
+
+    public String[] elements() {
+        return elements;
     }
 
     /**
@@ -72,7 +61,7 @@ public final class Path {
     }
 
     public Path relativize(final Path path) {
-        return new Path(false);// TODO
+        return EMPTY; // TODO
     }
 
     /**
@@ -83,8 +72,7 @@ public final class Path {
      *         or this path has zero elements
      */
     public String get(final int index) {
-        if (index >=0 && index < elements.length)
-        {
+        if (index >=0 && index < elements.length) {
             return elements[index];
         } else {
             throw new IllegalArgumentException("Path index: " + index + " , elements number: " + elements.length);
@@ -101,27 +89,12 @@ public final class Path {
 
     /**
      * Checks if the path is empty or not.
-     * @return true if the path is empty, false otherwise
+     * @return true if this path is empty, false otherwise
      */
     public boolean isEmpty() {
-        return elements.length == 0;
+        return EMPTY.equals(this);
     }
 
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        final Path path = (Path) o;
-        return isAbsolute == path.isAbsolute &&
-                Arrays.equals(elements, path.elements);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(isAbsolute);
-        result = 31 * result + Arrays.hashCode(elements);
-        return result;
-    }
 
     /**
      * Converts the path to the stream of its elements
@@ -160,5 +133,20 @@ public final class Path {
      */
     public boolean startsWith(final String s) {
         return elements.length != 0 && elements[0].equals(s);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Path path = (Path) o;
+        return isAbsolute == path.isAbsolute && Arrays.equals(elements, path.elements);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(isAbsolute);
+        result = 31 * result + Arrays.hashCode(elements);
+        return result;
     }
 }

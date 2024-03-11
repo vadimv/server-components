@@ -88,7 +88,6 @@ public class SimpleServer {
         final App<AppState> app = new App<>(appRouting(),
                                             appComponentView);
         final SimpleServer s = new SimpleServer(new JettyServer<>(8085,
-                                                                  "",
                                                                    app,
                                                                    new StaticResources(new File("src/test/java/rsp/browserautomation"),
                                                                                        "/res/*")));

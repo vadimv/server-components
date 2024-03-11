@@ -3,14 +3,10 @@ package rsp.page;
 import rsp.component.ComponentRenderContext;
 import rsp.dom.VirtualDomPath;
 import rsp.dom.XmlNs;
-import rsp.server.Path;
-import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.PageRelativeUrl;
 import rsp.server.http.PageStateOrigin;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Supplier;
 
 public final class PageRenderContext extends ComponentRenderContext {
 
@@ -22,11 +18,9 @@ public final class PageRenderContext extends ComponentRenderContext {
 
     public PageRenderContext(final String pageConfigScript,
                              final VirtualDomPath rootDomPath,
-                             final Path baseUrlPath,
                              final PageStateOrigin httpStateOriginSupplier,
                              final TemporaryBufferedPageCommands remotePageMessagesOut) {
         super(rootDomPath,
-              baseUrlPath,
               httpStateOriginSupplier,
               remotePageMessagesOut);
         this.pageConfigScript = Objects.requireNonNull(pageConfigScript);

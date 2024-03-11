@@ -36,9 +36,8 @@ public class LivePageTests {
         final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
                                                         uri,
                                                         uri.toString(),
-                                                        Path.EMPTY_ABSOLUTE);
+                                                        Path.ROOT);
 
-        final PageRelativeUrl pageRelativeUrl = new PageRelativeUrl(RelativeUrl.of(httpRequest));
         final PageConfigScript pageConfigScript = new PageConfigScript(QID.sessionId,
                                                                        "/",
                                                                        DefaultConnectionLostWidget.HTML,
@@ -46,7 +45,6 @@ public class LivePageTests {
         final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
         final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
                                                                         VirtualDomPath.DOCUMENT,
-                                                                        Path.of(""),
                                                                         httpStateOrigin,
                                                                         new TemporaryBufferedPageCommands());
 

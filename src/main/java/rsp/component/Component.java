@@ -21,14 +21,13 @@ import static java.lang.System.Logger.Level.*;
  * @param <S> a type for this component's state snapshot, should be an immutable class
  */
 public final class Component<S> implements NewState<S> {
-    private static final System.Logger logger = System.getLogger(Component.class.getName());
+    private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final Map<Event.Target, Event> events = new HashMap<>();
     private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
 
     private final Object key;
-    private final Path basePath;
     private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
     private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
@@ -41,7 +40,6 @@ public final class Component<S> implements NewState<S> {
     private Tag tag;
 
     public Component(final Object key,
-                     final Path basePath,
                      final Supplier<CompletableFuture<? extends S>> resolveStateFunction,
                      final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
@@ -50,7 +48,6 @@ public final class Component<S> implements NewState<S> {
                      final Consumer<RelativeUrl> relativeUrlConsumer,
                      final TemporaryBufferedPageCommands remotePageMessages) {
         this.key = Objects.requireNonNull(key);
-        this.basePath = Objects.requireNonNull(basePath);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
@@ -58,6 +55,7 @@ public final class Component<S> implements NewState<S> {
         this.relativeUrlConsumer = Objects.requireNonNull(relativeUrlConsumer);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
+        logger.log(TRACE, "New component is created with key " + key);
     }
 
     public void addChild(final Component<?> component) {
@@ -79,10 +77,10 @@ public final class Component<S> implements NewState<S> {
                     final SegmentDefinition view = componentView.apply(state).apply(this);
                     view.render(renderContext);
                 } catch (Throwable renderEx) {
-                    logger.log(ERROR, "A component " + key + " rendering exception", renderEx);
+                    logger.log(ERROR, "Component " + key + " rendering exception", renderEx);
                 }
             } else {
-                logger.log(ERROR, "A component " + key + " state exception", stateEx);
+                logger.log(ERROR, "Component " + key + " state exception", stateEx);
             }
         });
     }
@@ -116,7 +114,10 @@ public final class Component<S> implements NewState<S> {
         final Map<Event.Target, Event> oldEvents = oldTag != null ?
                                               new HashMap<>(recursiveEvents()) :
                                               Map.of();
+        final S oldState = state;
         state = newStateFunction.apply(state);
+        logger.log(TRACE, () -> "Component's " + key + " old state was " + oldState + " applied new state " + state);
+
         final ComponentRenderContext renderContext = oldTag != null ?
                                         renderContextFactory.newContext(oldTag.path()) :
                                         renderContextFactory.newContext();
@@ -169,7 +170,7 @@ public final class Component<S> implements NewState<S> {
         final Path newPath = state2pathFunction.apply(state, oldPath);
         if (!newPath.equals(oldPath)) {
             relativeUrlConsumer.accept(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
-            remoteOut.pushHistory(basePath.resolve(newPath).toString());
+            remoteOut.pushHistory(newPath.toString());
         }
 
         // Unmount obsolete children components

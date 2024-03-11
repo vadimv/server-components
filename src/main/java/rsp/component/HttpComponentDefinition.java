@@ -11,12 +11,12 @@ import java.util.function.Function;
 
 public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
-    final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting;
-    final ComponentView<S> componentView;
+    private final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting;
+    private final ComponentView<S> componentView;
 
     public HttpComponentDefinition(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
                                    final ComponentView<S> componentView) {
-        super(new Object());
+        super("http-component");
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
     }

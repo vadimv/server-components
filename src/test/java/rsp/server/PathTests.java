@@ -3,6 +3,8 @@ package rsp.server;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 
 public class PathTests {
     @Test
@@ -13,27 +15,33 @@ public class PathTests {
     @Test
     public void should_correctly_create_new_empty_relative_path_from_empty_string() {
         final Path path = Path.of("");
-        assertEquals(Path.EMPTY_RELATIVE, path);
-    }
-
-    private void assertEquals(Path emptyRelative, Path path) {
+        assertFalse(path.isAbsolute());
+        assertTrue(path.isEmpty());
+        assertEquals(Path.EMPTY, path);
     }
 
     @Test
     public void should_correctly_create_new_empty_absolute_from_string() {
         final Path path = Path.of("/");
-        assertEquals(Path.EMPTY_ABSOLUTE, path);
+        assertTrue(path.isAbsolute());
+        assertFalse(path.isEmpty());
+        assertEquals(Path.ROOT, path);
     }
 
     @Test
     public void should_correctly_create_new_relative_path_from_string() {
         final Path path = Path.of("foo/bar");
-        assertEquals(new Path(false, "foo", "bar"), path);
+        assertFalse(path.isAbsolute());
+        final String[] expectedElements = {"foo", "bar"};
+        assertArrayEquals(expectedElements, path.elements());
     }
 
     @Test
     public void should_correctly_create_new_absolute_from_string() {
         final Path path = Path.of("/foo/bar");
-        assertEquals(new Path(true, "foo", "bar"), path);
+        assertTrue(path.isAbsolute());
+        final String[] expectedElements = {"foo", "bar"};
+        assertArrayEquals(expectedElements, path.elements());
     }
+
 }

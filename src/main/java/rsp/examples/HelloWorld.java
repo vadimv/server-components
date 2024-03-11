@@ -18,7 +18,7 @@ public final class HelloWorld {
                                            );
 
         final var app = new App<>("Hello world!", view);
-        final var server = new JettyServer<>(8080, "", app);
+        final var server = new JettyServer<>(8080, app);
         server.start();
         server.join();
     }
