@@ -9,6 +9,8 @@
 * [SPAs, plain pages head tag](#spas-plain-pages-and-the-head-tag)
 * [Page HTTP status code and HTTP headers](#page-http-status-code-and-http-headers)
 * [UI components](#ui-components)
+* [How to use components](#how-to-use-components)
+* [How to write your own component](#how-to-use-components)
 * [DOM events](#dom-events)
 * [Navigation bar URL path and components state mapping](#navigation-bar-url-path-and-components-state-mapping)
 * [DOM elements references](#dom-elements-references)
@@ -202,52 +204,11 @@ For example:
 ```
 ### UI components
 
-Actually, SPA pages are composed of components of two kinds:
+Actually, pages are composed of components of two kinds:
+- views
 - stateful components
-- stateless views
 
-Use components DSL  ``component()`` and ``webComponent()`` overloaded functions to create a stateful component.
-
-```java
-    import static rsp.component.ComponentDsl.*;
-
-    public static ComponentView<String> buttonView = state -> newState -> input(attr("type", "button"),
-                                                                                attr("value", state),      
-                                                                                on("click", ctx -> newState.set("Clicked")));
-    ...
-    div(
-        span("Click the button below"),
-        component("Ready", // this is the component's initial state
-                  buttonView)
-    )   
-    ...
-```
-
-A stateful component's initial state can be provided is the following ways:
-- set explicitly
-- mapped from an HTTP request
-- mapped from a browser's address bar path and query
-
-Every stateful component has its own changeable state, represented by a snapshot of an immutable class or record.
-A component's state is modelled as a finite state machine (FSM) and managed by the framework.
-Any state transition must be initiated by invoking of one of the provided parameter's ``NewState`` interface methods, like ``set()`` and ``apply()``.
-Normally, state transitions are triggered by the browser's events, notifications or timer events.
-
-The following example shows how a component's state can be modelled using records and a sealed interface:
-
-```java
-    sealed interface State permits NotFoundState, UserState, UsersState {}
-
-    record NotFoundState() implements State {};
-    record UserState(User user) implements State {}
-    record UsersState(List<User> users) implements State {}
-    
-    record User(long id, String name) {}
-```
-
-Stateless views are pure functions from an input state to a DOM fragment's definition.
-
-A view function of a stateful component has two parameters and a view function of stateless component has one parameter.
+A view is a pure function from an input state to a DOM fragment's definition.
 
 ```java
     public static View<State> appView = state -> 
@@ -260,7 +221,68 @@ A view function of a stateful component has two parameters and a view function o
      appView.apply(new UserState("Username"));
 ```
 
-An application's top-level stateful component is the root of its page's components tree.
+A stateful components has its own state, represented by a snapshot of an immutable class or a record.
+A component's state is modelled as a finite state machine (FSM) and managed by the framework by invoking 
+the following stages of a component's lifecycle:
+- component's state initialization during its first render and mount to the components tree
+- events processing
+- unmount from the components tree
+
+An initial state can be provided is the following ways:
+- set in its initiation function to some value
+- mapped from an HTTP request, browser's address bar path and query
+
+Any state transition must be initiated by invoking of one of the provided parameter's ``NewState`` interface methods, like ``set()`` and ``apply()``.
+State transitions are can be triggered by browser events, notifications or timer events.
+
+The root of its page's components tree is a top-level stateful component. 
+
+### How to use components
+
+Include a new instance of component definition class to the DSL alongside HTML tags.
+
+```java
+    div(span("Two counters"),
+        new Counter(1),
+        new Counter(2))
+```
+
+Warning: Note that a component's code is executed on the server and in the browser, use only components you trust.
+
+### How to write your own component
+
+To create you own component inherit from one of the base component definition classes or use one of the ComponentDsl functions.
+
+```java
+    import static rsp.component.ComponentDsl.*;
+
+    static ComponentView<String> buttonView = state -> newState -> input(attr("type", "button"),
+                                                                         attr("value", state),      
+                                                                         on("click", ctx -> newState.set("Clicked")));
+    static SegmentDefinition buttonComponent(String text) {
+            return component(text,        // the component's initial state
+                             buttonView)
+    }
+    
+    ...
+    div(
+        span("Click the button below"),
+        buttonComponent("Ready");
+    )   
+    ...
+```
+
+The following example shows how a component's state can be modelled using records and a sealed interface:
+
+```java
+    sealed interface State permits NotFoundState, UserState, UsersState {}
+
+    record NotFoundState() implements State {};
+    record UserState(User user) implements State {}
+    record UsersState(List<User> users) implements State {}
+    
+    record User(long id, String name) {}
+```
 
 ### DOM events
 
@@ -366,10 +388,10 @@ A reference to an object also can be created on-the-fly using ``RefDefinition.wi
 There is the special ``window().ref()`` reference for the page's window object.
 
 
-### Evaluating JS code on the client-side
+### Evaluating JS code on client-side
 
 To invoke arbitrary EcmaScript code in the browser use the ``ctx.evalJs()`` method of an event's context object.
-``ctx.evalJs()`` returns the evaluation result as an object of  ``CompletableFuture<JsonDataType>``.
+``ctx.evalJs()`` sends a code fragment to the client and returns its evaluation result as a  ``CompletableFuture<JsonDataType>``.
 
 ```java
     ...
