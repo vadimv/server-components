@@ -4,27 +4,26 @@ import rsp.dom.*;
 import rsp.page.*;
 import rsp.ref.Ref;
 import rsp.server.Path;
+import rsp.server.RemoteOut;
 import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.PageStateOrigin;
+import rsp.server.http.RelativeUrl;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 public class ComponentRenderContext extends DomTreeRenderContext implements RenderContextFactory {
 
     private final PageStateOrigin pageStateOrigin;
-    private final TemporaryBufferedPageCommands remotePageMessagesOut;
+    private final RemoteOut remotePageMessagesOut;
 
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private Component<?> rootComponent;
 
     public ComponentRenderContext(final VirtualDomPath rootDomPath,
                                   final PageStateOrigin pageStateOrigin,
-                                  final TemporaryBufferedPageCommands remotePageMessagesOut) {
+                                  final RemoteOut remotePageMessagesOut) {
         super(rootDomPath);
         this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
@@ -75,12 +74,18 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> resolveStateFunction.apply(pageStateOrigin.httpStateOrigin());
         final Component<S> newComponent = new Component<>(key,
                                                           resolveStateSupplier,
-                                                          state2pathFunction,
                                                           componentView,
                                                          this,
-                                                          () -> pageStateOrigin.getRelativeUrl(),
-                                                          relativeUrl -> pageStateOrigin.setRelativeUrl(relativeUrl),
-                                                          remotePageMessagesOut);
+                                                          remotePageMessagesOut,
+                                                          state -> {
+                                                              final RelativeUrl oldRelativeUrl = pageStateOrigin.getRelativeUrl();
+                                                              final Path oldPath = oldRelativeUrl.path();
+                                                              final Path newPath = state2pathFunction.apply(state, oldPath);
+                                                              if (!newPath.equals(oldPath)) {
+                                                                  pageStateOrigin.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
+                                                                  remotePageMessagesOut.pushHistory(newPath.toString());
+                                                              }
+                                                          });
         openComponent(newComponent);
         return newComponent;
     }

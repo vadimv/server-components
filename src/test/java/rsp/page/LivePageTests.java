@@ -43,10 +43,11 @@ public class LivePageTests {
                                                                        DefaultConnectionLostWidget.HTML,
                                                                        1000);
         final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
+        final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
         final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
                                                                         VirtualDomPath.DOCUMENT,
                                                                         httpStateOrigin,
-                                                                        new TemporaryBufferedPageCommands());
+                                                                        commandsBuffer);
 
         final PathStatefulComponentDefinition<State> componentDefinition = ComponentDsl.component(initialState, view);
         componentDefinition.render(domTreeContext);
@@ -64,7 +65,7 @@ public class LivePageTests {
         assertInstanceOf(ListenEventOutMessage.class, remoteOut.commands.get(0));
 
         rootComponent.set(new State(100));
-        rootComponent.redirectMessagesOut(remoteOut);
+        commandsBuffer.redirectMessagesOut(remoteOut);
         assertInstanceOf(ModifyDomOutMessage.class, remoteOut.commands.get(1));
     }
 

@@ -14,7 +14,7 @@
 * [DOM events](#dom-events)
 * [Navigation bar URL path and components state mapping](#navigation-bar-url-path-and-components-state-mapping)
 * [DOM elements references](#dom-elements-references)
-* [Evaluating code on the client-side](#evaluating-js-code-on-the-client-side)
+* [Evaluating code on the client-side](#evaluating-js-code-on-client-side)
 * [Navigation bar URL path](#navigation-bar-url-path-and-components-state-mapping)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Application and server's configuration](#application-servers-configuration)
@@ -38,7 +38,7 @@ To start using it, add the dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>1.0</version>
+        <version>3.0</version>
     </dependency>
 ```
 
@@ -53,9 +53,9 @@ To start using it, add the dependency:
 
 ### Routing
 
-An initial HTML generation consists of two phases:
-- routing an incoming HTTP request and/or URL paths resulting in setup of the page's components state objects
-- rendering these state objects and the components' views to the result HTML markup
+A page's initial HTML generation consists of two phases:
+- routing an incoming HTTP request and/or URL paths results in the page's components state
+- rendering these state objects by the components' views generates HTML markup
 
 To define a routing of an incoming request, create a ``Routing`` object for components and/or provide it as an application's constructor parameter:
 
@@ -73,6 +73,7 @@ To define a routing of an incoming request, create a ``Routing`` object for comp
                        NotFound.INSTANCE);
     }
 ```
+
 During a dispatch, the routes are verified one by one for a matching HTTP method and a path pattern. 
 Route path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
 The matched variables values become available as the correspondent handlers' parameters alongside with the request details object.
@@ -170,6 +171,7 @@ with imperative logic.
 ```
 
 The ``when()`` DSL function conditionally renders (or not) an element:
+
 ```java
     state -> when(state.showLabel, span("This is a label"))
 ```
@@ -247,7 +249,7 @@ Include a new instance of component definition class to the DSL alongside HTML t
         new Counter(2))
 ```
 
-Warning: Note that a component's code is executed on the server and in the browser, use only components you trust.
+Warning: note that a component's code is executed on the server and in the browser, use only components you trust.
 
 ### How to write your own component
 
@@ -286,21 +288,21 @@ The following example shows how a component's state can be modelled using record
 
 ### DOM events
 
-To respond to browser events, register a page DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the Java DSL:
+To respond to browser events, register a DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the Java DSL:
 
 ```java
-    state -> newState -> a("#", "Click me", on("click", ctx -> {
-                                System.out.println("Clicked " + state.counter + " times");
-                                newState.set(new State(s.get().counter + 1));
-            }));
-    ...
-    static final class State { final int counter; State(final int counter) { this.counter = counter; } }
+    var view = state -> newState-> a("#","Click me",on("click", ctx-> {
+                                                        System.out.println("Clicked " + state.counter() + " times");
+                                                        newState.set(new State(s.counter() + 1));
+    }));
+
+    record State(int counter) {}
 ```
 
 This is how it works when an event occurs:
 - the browser's page sends the event data message to the server via WebSocket
 - the system fires its registered event handler's Java code
-- an event handler's code sets a new application's state snapshot, calling the ``NewState.set()`` method.
+- an event handler's code sets its component's state snapshot, calling the ``NewState.set()`` method.
 
 A new set state snapshot triggers the following sequence of actions:
 - the page's virtual DOM re-rendered on the server
@@ -322,7 +324,7 @@ To filter the events before sending use the following event object's methods:
         )
 ```
 
-The context's ``EventContext.eventObject()`` method reads the event's object as a JSON data structure:
+The context's ``eventObject()`` method reads the event's object as a JSON data structure:
 
 ```java
     form(on("submit", ctx -> {
@@ -345,7 +347,7 @@ The ``window().on(eventType, handler)`` DSL function registers a browser's windo
 
 ### Navigation bar URL path and components state mapping
 
-A component's state normally to be mapped to the browser's navigation bar path. 
+A component's state can be mapped to the browser's navigation bar path. 
 With that, the current navigation path will be converted to a component's state and vis-a-versa,
 the state transition will cause the navigation path to be updated accordingly.
 
@@ -367,7 +369,7 @@ If not configured, the default state-to-path mapping sets an empty path for any 
 
 ### DOM elements references
 
-One of the event context object's methods allows access to client-side document elements properties values by elements references.
+The ``propertiesByRef()`` method of the event context object's allows access to client-side document elements properties values providing elements references.
 
 ```java
     final ElementRef inputRef = createElementRef();
@@ -385,13 +387,13 @@ One of the event context object's methods allows access to client-side document 
 
 A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
 
-There is the special ``window().ref()`` reference for the page's window object.
+There is also the special ``window().ref()`` reference for the page's window object.
 
 
 ### Evaluating JS code on client-side
 
-To invoke arbitrary EcmaScript code in the browser use the ``ctx.evalJs()`` method of an event's context object.
-``ctx.evalJs()`` sends a code fragment to the client and returns its evaluation result as a  ``CompletableFuture<JsonDataType>``.
+To invoke arbitrary EcmaScript code in the browser use the ``evalJs()`` method of an event's context object.
+``evalJs()`` sends a code fragment to the client and returns its evaluation result as a  ``CompletableFuture<JsonDataType>``.
 
 ```java
     ...
@@ -437,13 +439,13 @@ Use these listeners to subscribe to some messages stream on a page live session 
 
 ### Application server's configuration
 
-Use an instance of the ``rsp.AppConfig`` class as the parameter to the ``withConfig()`` method of an ``App`` object:
+Use an instance of the ``AppConfig`` class as the parameter to the ``withConfig()`` method of an ``App`` object:
 
 ```java
     final var app = new App(routing(), rootCreateViewFunction()).withConfig(AppConfig.DEFAULT);
 ```
 A web server's ``rsp.jetty.JettyServer`` class' constructor accepts extra parameters like an optional static resources' handler 
-and a TLS/SSL connection's configuration:
+and a TLS/SSL configuration:
 
 ```java
     final var staticResources = new StaticResources(new File("src/main/java/rsp/tetris"), "/res/*");
@@ -465,7 +467,7 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 
 ### Schedules
 
-The rsp framework provides the ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` utility methods 
+The framework provides the ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` methods 
 which allows to submit a delayed or periodic action that can be cancelled.
 Provide a timer's reference parameter when creating a new schedule, later use this reference for the schedule cancellation.
 
@@ -485,7 +487,6 @@ Provide a timer's reference parameter when creating a new schedule, later use th
 To build the project from the sources, run:
 
 ```shell script
-
 $ mvn clean package
 ```
 

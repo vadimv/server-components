@@ -81,15 +81,18 @@ public final class PageRendering<S> {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
+            final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
+
             final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
                                                                            VirtualDomPath.DOCUMENT,
                                                                            httpStateOrigin,
-                                                                           new TemporaryBufferedPageCommands());
+                                                                           commandsBuffer);
 
             rootComponentDefinition.render(domTreeContext);
 
             final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpStateOrigin,
-                                                                    domTreeContext.rootComponent());
+                                                                    domTreeContext.rootComponent(),
+                                                                    commandsBuffer);
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = domTreeContext.toString();
 

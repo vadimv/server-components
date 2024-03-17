@@ -2,13 +2,10 @@ package rsp.component;
 
 import rsp.dom.*;
 import rsp.html.SegmentDefinition;
-import rsp.page.TemporaryBufferedPageCommands;
 import rsp.page.RenderContext;
 import rsp.page.RenderContextFactory;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
-import rsp.server.Path;
-import rsp.server.http.RelativeUrl;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -29,32 +26,26 @@ public final class Component<S> implements NewState<S> {
 
     private final Object key;
     private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
-    private final BiFunction<S, Path, Path> state2pathFunction;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
-    private final Supplier<RelativeUrl> relativeUrlSupplier;
-    private final Consumer<RelativeUrl> relativeUrlConsumer;
-    private final TemporaryBufferedPageCommands remotePageMessages;
+    private final RemoteOut remotePageMessages;
+    private final Consumer<S> stateChangedListener;
 
     private S state;
     private Tag tag;
 
     public Component(final Object key,
                      final Supplier<CompletableFuture<? extends S>> resolveStateFunction,
-                     final BiFunction<S, Path, Path> state2pathFunction,
                      final ComponentView<S> componentView,
                      final RenderContextFactory renderContextFactory,
-                     final Supplier<RelativeUrl> relativeUrlSupplier,
-                     final Consumer<RelativeUrl> relativeUrlConsumer,
-                     final TemporaryBufferedPageCommands remotePageMessages) {
+                     final RemoteOut remotePageMessages,
+                     final Consumer<S> stateChangedListener) {
         this.key = Objects.requireNonNull(key);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
-        this.state2pathFunction = Objects.requireNonNull(state2pathFunction);
         this.componentView = Objects.requireNonNull(componentView);
-        this.relativeUrlSupplier = Objects.requireNonNull(relativeUrlSupplier);
-        this.relativeUrlConsumer = Objects.requireNonNull(relativeUrlConsumer);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
+        this.stateChangedListener = Objects.requireNonNull(stateChangedListener);
         logger.log(TRACE, "New component is created with key " + key);
     }
 
@@ -164,14 +155,7 @@ public final class Component<S> implements NewState<S> {
         }
         remoteOut.listenEvents(eventsToAdd);
 
-        // Update browser's navigation
-        final RelativeUrl oldRelativeUrl = relativeUrlSupplier.get();
-        final Path oldPath = oldRelativeUrl.path();
-        final Path newPath = state2pathFunction.apply(state, oldPath);
-        if (!newPath.equals(oldPath)) {
-            relativeUrlConsumer.accept(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
-            remoteOut.pushHistory(newPath.toString());
-        }
+        stateChangedListener.accept(state);
 
         // Unmount obsolete children components
 
@@ -193,20 +177,11 @@ public final class Component<S> implements NewState<S> {
         return recursiveRefs;
     }
 
-    public void listenEvents(final RemoteOut remoteOut) {
-        remoteOut.listenEvents(events.values().stream().toList());
-        children.forEach(childComponent -> childComponent.listenEvents(remoteOut));
-    }
-
     public void addEvent(final Event.Target eventTarget, final Event event) {
         events.put(eventTarget, event);
     }
 
     public void addRef(final Ref ref, final VirtualDomPath path) {
         refs.put(ref, path);
-    }
-
-    public void redirectMessagesOut(final RemoteOut remoteOut) {
-        remotePageMessages.redirectMessagesOut(remoteOut);
     }
 }

@@ -77,7 +77,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             });
             remoteOut.setRenderNum(0);
             livePage.init();
-            rootComponent.redirectMessagesOut(new RemotePageMessageEncoder(msg -> sendText(session, msg)));
+            renderedPage.commandsBuffer.redirectMessagesOut(new RemotePageMessageEncoder(msg -> sendText(session, msg)));
             lifeCycleEventsListener.pageCreated(qsid, rootComponent.getState(), rootComponent);
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
