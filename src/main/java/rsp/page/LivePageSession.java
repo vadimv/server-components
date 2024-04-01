@@ -13,7 +13,6 @@ import rsp.util.json.JsonDataType;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
@@ -48,14 +47,15 @@ public final class LivePageSession implements RemoteIn, Schedule {
     }
 
     public synchronized void init() {
-        final Event historyChangeEvent = new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+        remoteOut.listenEvents(rootComponent.recursiveEvents());
+/*        final Event historyChangeEvent = new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
                                                                     VirtualDomPath.WINDOW),
                                                                     context -> {},
                                                                     true,
                                                                     Event.NO_MODIFIER);
         final List<Event> events = Stream.concat(rootComponent.recursiveEvents().values().stream(),
                                                  Stream.of(historyChangeEvent)).toList();
-        remoteOut.listenEvents(events);
+        remoteOut.listenEvents(events);*/
   }
 
     public void shutdown() {
@@ -134,41 +134,21 @@ public final class LivePageSession implements RemoteIn, Schedule {
     public void handleDomEvent(final int renderNumber, final VirtualDomPath eventPath, final String eventType, final JsonDataType.Object eventObject) {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (this) {
-            if (HISTORY_ENTRY_CHANGE_EVENT_NAME.equals(eventType) && VirtualDomPath.WINDOW.equals(eventPath)) {
-                final RelativeUrl relativeUrl = historyEntryChangeNewRelativeUrl(eventObject);
-                pageStateOrigin.setRelativeUrl(relativeUrl);
-                rootComponent.resolveState();
-            } else {
-                final Map<Event.Target, Event> events = rootComponent.recursiveEvents();
-                final EventContext eventContext = createEventContext(eventObject);
-                VirtualDomPath eventElementPath = eventPath;
-                while(eventElementPath.level() > 0) {
-                    final Event event = events.get(new Event.Target(eventType, eventElementPath));
-                    if (event != null && event.eventTarget.eventType.equals(eventType)) {
+            final EventContext eventContext = createEventContext(eventObject);
+            VirtualDomPath eventElementPath = eventPath;
+            while (eventElementPath.level() > 0) {
+                for (final Event event: rootComponent.recursiveEvents()) {
+                    if (event.eventTarget.elementPath.equals(eventElementPath) && event.eventTarget.eventType.equals(eventType)) {
                         event.eventHandler.accept(eventContext);
-                        break;
-                    } else {
-                        final Optional<VirtualDomPath> parentPath = eventElementPath.parent();
-                        if (parentPath.isPresent()) {
-                            eventElementPath = parentPath.get();
-                        } else {
-                            // TODO warn
-                            break;
-                        }
                     }
+                }
+                if (eventElementPath.parent().isPresent()) {
+                    eventElementPath = eventElementPath.parent().get();
+                } else {
+                    break;
                 }
             }
         }
-    }
-
-    private static RelativeUrl historyEntryChangeNewRelativeUrl(final JsonDataType.Object eventObject) {
-        final Path path = eventObject.value("path").map(p -> Path.of(p.toString()))
-                .orElseThrow(() -> new JsonDataType.JsonException("The 'path' property not found in the event object" + eventObject));
-        final Query query = eventObject.value("query").map(q -> new Query(q.toString()))
-                .orElseThrow(() -> new JsonDataType.JsonException("The 'query' property not found in the event object" + eventObject));
-        final Fragment fragment = eventObject.value("fragment").map(f -> new Fragment(f.toString()))
-                .orElseThrow(() -> new JsonDataType.JsonException("The 'fragment' property not found in the event object" + eventObject));
-        return new RelativeUrl(path, query, fragment);
     }
 
     private EventContext createEventContext(final JsonDataType.Object eventObject) {

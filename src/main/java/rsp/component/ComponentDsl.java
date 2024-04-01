@@ -2,6 +2,7 @@ package rsp.component;
 
 import rsp.server.Path;
 import rsp.server.http.HttpStateOrigin;
+import rsp.server.http.RelativeUrl;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -36,7 +37,7 @@ public class ComponentDsl {
         Objects.requireNonNull(state2PathFunction);
         Objects.requireNonNull(componentView);
 
-        return new PathStatefulComponentDefinition<>(new Object()) {
+        return new PathStatefulComponentDefinition<>("path-component") {
 
             @Override
             protected Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
@@ -46,6 +47,11 @@ public class ComponentDsl {
             @Override
             protected BiFunction<S, Path, Path> state2pathFunction() {
                 return state2PathFunction;
+            }
+
+            @Override
+            protected Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToStateFunction() {
+                return relativeUrl -> initialStateRouting.apply(relativeUrl.path());
             }
 
             @Override

@@ -15,8 +15,12 @@ public interface RenderContext {
     void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty);
     void setStyle(String name, String value);
     void addTextNode(String text);
-    void addEvent(Optional<VirtualDomPath> elementPath,
+    void addEvent(VirtualDomPath elementPath,
                   String eventName,
+                  Consumer<EventContext> eventHandler,
+                  boolean preventDefault,
+                  Event.Modifier modifier);
+    void addEvent(String eventName,
                   Consumer<EventContext> eventHandler,
                   boolean preventDefault,
                   Event.Modifier modifier);

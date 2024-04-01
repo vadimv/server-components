@@ -6,6 +6,7 @@ import rsp.page.RenderContext;
 import rsp.page.RenderContextFactory;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
+import rsp.util.TriConsumer;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -20,7 +21,7 @@ import static java.lang.System.Logger.Level.*;
 public final class Component<S> implements NewState<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final Map<Event.Target, Event> events = new HashMap<>();
+    private final List<Event> events = new ArrayList<>();
     private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
 
@@ -30,6 +31,7 @@ public final class Component<S> implements NewState<S> {
     private final RenderContextFactory renderContextFactory;
     private final RemoteOut remotePageMessages;
     private final Consumer<S> stateChangedListener;
+    private final TriConsumer<S, NewState<S>, RenderContext> beforeRenderHook;
 
     private S state;
     private Tag tag;
@@ -39,13 +41,15 @@ public final class Component<S> implements NewState<S> {
                      final ComponentView<S> componentView,
                      final RenderContextFactory renderContextFactory,
                      final RemoteOut remotePageMessages,
-                     final Consumer<S> stateChangedListener) {
+                     final Consumer<S> stateChangedListener,
+                     final TriConsumer<S, NewState<S>, RenderContext> beforeRenderHook) {
         this.key = Objects.requireNonNull(key);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
         this.componentView = Objects.requireNonNull(componentView);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
         this.stateChangedListener = Objects.requireNonNull(stateChangedListener);
+        this.beforeRenderHook = Objects.requireNonNull(beforeRenderHook);
         logger.log(TRACE, "New component is created with key " + key);
     }
 
@@ -66,6 +70,7 @@ public final class Component<S> implements NewState<S> {
                 state = s;
                 try {
                     final SegmentDefinition view = componentView.apply(state).apply(this);
+                    beforeRenderHook.accept(state, this, renderContext);
                     view.render(renderContext);
                 } catch (Throwable renderEx) {
                     logger.log(ERROR, "Component " + key + " rendering exception", renderEx);
@@ -102,9 +107,7 @@ public final class Component<S> implements NewState<S> {
     @Override
     public void apply(final UnaryOperator<S> newStateFunction) {
         final Tag oldTag = tag;
-        final Map<Event.Target, Event> oldEvents = oldTag != null ?
-                                              new HashMap<>(recursiveEvents()) :
-                                              Map.of();
+        final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
         final S oldState = state;
         state = newStateFunction.apply(state);
         logger.log(TRACE, () -> "Component's " + key + " old state was " + oldState + " applied new state " + state);
@@ -118,6 +121,7 @@ public final class Component<S> implements NewState<S> {
 
         renderContext.openComponent(this);
         final SegmentDefinition view = componentView.apply(state).apply(this);
+        beforeRenderHook.accept(state, this, renderContext);
         view.render(renderContext);
         renderContext.closeComponent();
 
@@ -134,8 +138,8 @@ public final class Component<S> implements NewState<S> {
 
         // Unregister events
         final List<Event> eventsToRemove = new ArrayList<>();
-        final Collection<Event> newEvents = recursiveEvents().values();
-        for (Event event : oldEvents.values()) {
+        final Set<Event> newEvents = new HashSet<>(recursiveEvents());
+        for (Event event : oldEvents) {
             if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
                 eventsToRemove.add(event);
             }
@@ -148,8 +152,8 @@ public final class Component<S> implements NewState<S> {
 
         // Register new event types on client
         final List<Event> eventsToAdd = new ArrayList<>();
-        for (Event event : newEvents) {
-            if(!oldEvents.values().contains(event)) {
+        for (final Event event : newEvents) {
+            if(!oldEvents.contains(event)) {
                 eventsToAdd.add(event);
             }
         }
@@ -161,10 +165,11 @@ public final class Component<S> implements NewState<S> {
 
     }
 
-    public Map<Event.Target, Event> recursiveEvents() {
-        final Map<Event.Target, Event> recursiveEvents = new HashMap<>(events);
-        for (Component<?> childComponent : children) {
-            recursiveEvents.putAll(childComponent.recursiveEvents());
+    public List<Event> recursiveEvents() {
+        final List<Event> recursiveEvents = new ArrayList<>();
+        recursiveEvents.addAll(events);
+        for (final Component<?> childComponent : children) {
+            recursiveEvents.addAll(childComponent.recursiveEvents());
         }
         return recursiveEvents;
     }
@@ -177,8 +182,8 @@ public final class Component<S> implements NewState<S> {
         return recursiveRefs;
     }
 
-    public void addEvent(final Event.Target eventTarget, final Event event) {
-        events.put(eventTarget, event);
+    public void addEvent(final Event event) {
+        events.add(event);
     }
 
     public void addRef(final Ref ref, final VirtualDomPath path) {

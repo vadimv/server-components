@@ -4,6 +4,7 @@ import rsp.html.SegmentDefinition;
 import rsp.page.RenderContext;
 import rsp.server.Path;
 import rsp.server.http.HttpStateOrigin;
+import rsp.util.TriConsumer;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -14,7 +15,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     private final Object key;
 
-    protected StatefulComponentDefinition(final Object key) {
+    public StatefulComponentDefinition(final Object key) {
         this.key = Objects.requireNonNull(key);
     }
 
@@ -24,13 +25,20 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     protected abstract ComponentView<S> componentView();
 
+    protected TriConsumer<S, NewState<S>, RenderContext> beforeRender() {
+        return (state, newState, ctx) -> {
+            // NO-OP
+        };
+    }
+
     @Override
     public boolean render(final RenderContext renderContext) {
         if (renderContext instanceof ComponentRenderContext componentRenderContext) {
             final Component<S> component = componentRenderContext.openComponent(key,
                                                                                 resolveStateFunction(),
                                                                                 state2pathFunction(),
-                                                                                componentView());
+                                                                                componentView(),
+                                                                                beforeRender());
             component.render(renderContext);
 
             componentRenderContext.closeComponent();

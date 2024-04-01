@@ -8,6 +8,7 @@ import rsp.server.RemoteOut;
 import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.PageStateOrigin;
 import rsp.server.http.RelativeUrl;
+import rsp.util.TriConsumer;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -48,16 +49,23 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     }
 
     @Override
-    public void addEvent(final Optional<VirtualDomPath> elementPath,
+    public void addEvent(final VirtualDomPath elementPath,
                          final String eventType,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final Event.Modifier modifier) {
-        final VirtualDomPath eventPath = elementPath.orElse(tagsStack.peek().path());
-        final Event.Target eventTarget = new Event.Target(eventType, eventPath);
+        final Event.Target eventTarget = new Event.Target(eventType, elementPath);
         final Component<?> component = componentsStack.peek();
         assert component != null;
-        component.addEvent(eventTarget, new Event(eventTarget, eventHandler, preventDefault, modifier));
+        component.addEvent(new Event(eventTarget, eventHandler, preventDefault, modifier));
+    }
+
+    @Override
+    public void addEvent(final String eventType,
+                         final Consumer<EventContext> eventHandler,
+                         final boolean preventDefault,
+                         final Event.Modifier modifier) {
+        addEvent(tagsStack.peek().path(), eventType, eventHandler, preventDefault, modifier);
     }
 
     @Override
@@ -70,7 +78,8 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     public <S> Component<S> openComponent(final Object key,
                                           final Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction,
                                           final BiFunction<S, Path, Path> state2pathFunction,
-                                          final ComponentView<S> componentView) {
+                                          final ComponentView<S> componentView,
+                                          final TriConsumer<S, NewState<S>, RenderContext> beforeRenderHook) {
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> resolveStateFunction.apply(pageStateOrigin.httpStateOrigin());
         final Component<S> newComponent = new Component<>(key,
                                                           resolveStateSupplier,
@@ -85,7 +94,8 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                                                                   pageStateOrigin.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
                                                                   remotePageMessagesOut.pushHistory(newPath.toString());
                                                               }
-                                                          });
+                                                          },
+                                                          beforeRenderHook);
         openComponent(newComponent);
         return newComponent;
     }

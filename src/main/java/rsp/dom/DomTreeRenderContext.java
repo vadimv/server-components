@@ -72,8 +72,16 @@ public class DomTreeRenderContext implements RenderContext {
 
 
     @Override
-    public void addEvent(final Optional<VirtualDomPath> elementPath,
+    public void addEvent(final VirtualDomPath elementPath,
                          final String eventName,
+                         final Consumer<EventContext> eventHandler,
+                         final boolean preventDefault,
+                         final Event.Modifier modifier) {
+        // NO-OP
+    }
+
+    @Override
+    public void addEvent(final String eventName,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final Event.Modifier modifier) {
