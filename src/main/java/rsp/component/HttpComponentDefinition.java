@@ -3,9 +3,11 @@ package rsp.component;
 import rsp.server.Path;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.HttpStateOrigin;
+import rsp.util.TriConsumer;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -21,7 +23,6 @@ public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
         this.componentView = Objects.requireNonNull(componentView);
     }
 
-    @Override
     protected BiFunction<S, Path, Path> state2pathFunction() {
         return (__, path) -> path;
     }
@@ -34,5 +35,16 @@ public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
     @Override
     protected ComponentView<S> componentView() {
         return componentView;
+    }
+
+    @Override
+    protected BeforeRenderCallback<S> beforeRenderCallback() {
+        return (key, state, newState, beforeRenderCallback) -> {
+        };
+    }
+
+    @Override
+    protected StateAppliedCallback<S> newStateAppliedCallback() {
+        return (key, state, ctx) -> {};
     }
 }

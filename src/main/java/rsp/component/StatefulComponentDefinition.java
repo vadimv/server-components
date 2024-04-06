@@ -2,13 +2,12 @@ package rsp.component;
 
 import rsp.html.SegmentDefinition;
 import rsp.page.RenderContext;
-import rsp.server.Path;
 import rsp.server.http.HttpStateOrigin;
 import rsp.util.TriConsumer;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 public abstract class StatefulComponentDefinition<S> implements SegmentDefinition {
@@ -21,25 +20,21 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     protected abstract Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction();
 
-    protected abstract BiFunction<S, Path, Path> state2pathFunction();
-
     protected abstract ComponentView<S> componentView();
 
-    protected TriConsumer<S, NewState<S>, RenderContext> beforeRender() {
-        return (state, newState, ctx) -> {
-            // NO-OP
-        };
-    }
+    protected abstract BeforeRenderCallback<S> beforeRenderCallback();
+
+    protected abstract StateAppliedCallback<S> newStateAppliedCallback();
 
     @Override
     public boolean render(final RenderContext renderContext) {
         if (renderContext instanceof ComponentRenderContext componentRenderContext) {
             final Component<S> component = componentRenderContext.openComponent(key,
                                                                                 resolveStateFunction(),
-                                                                                state2pathFunction(),
+                                                                                beforeRenderCallback(),
                                                                                 componentView(),
-                                                                                beforeRender());
-            component.render(renderContext);
+                                                                                newStateAppliedCallback());
+            component.render(componentRenderContext);
 
             componentRenderContext.closeComponent();
             return true;

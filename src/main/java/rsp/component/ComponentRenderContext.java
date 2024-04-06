@@ -3,12 +3,10 @@ package rsp.component;
 import rsp.dom.*;
 import rsp.page.*;
 import rsp.ref.Ref;
-import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.PageStateOrigin;
 import rsp.server.http.RelativeUrl;
-import rsp.util.TriConsumer;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -75,27 +73,23 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         component.addRef(ref, tagsStack.peek().path());
     }
 
-    public <S> Component<S> openComponent(final Object key,
+    public <S> Component<S> openComponent(final Object componentType,
                                           final Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction,
-                                          final BiFunction<S, Path, Path> state2pathFunction,
+                                          final BeforeRenderCallback<S> beforeRenderCallback,
                                           final ComponentView<S> componentView,
-                                          final TriConsumer<S, NewState<S>, RenderContext> beforeRenderHook) {
+                                          final StateAppliedCallback<S> newStateAppliedCallback) {
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> resolveStateFunction.apply(pageStateOrigin.httpStateOrigin());
-        final Component<S> newComponent = new Component<>(key,
+
+        final Component<?> parent = componentsStack.peek();
+        final ComponentPath path = parent == null ?
+                                   ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
+        final Component<S> newComponent = new Component<>(new ComponentCompositeKey(componentType, path),
                                                           resolveStateSupplier,
+                                                          beforeRenderCallback,
                                                           componentView,
+                                                          newStateAppliedCallback,
                                                          this,
-                                                          remotePageMessagesOut,
-                                                          state -> {
-                                                              final RelativeUrl oldRelativeUrl = pageStateOrigin.getRelativeUrl();
-                                                              final Path oldPath = oldRelativeUrl.path();
-                                                              final Path newPath = state2pathFunction.apply(state, oldPath);
-                                                              if (!newPath.equals(oldPath)) {
-                                                                  pageStateOrigin.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
-                                                                  remotePageMessagesOut.pushHistory(newPath.toString());
-                                                              }
-                                                          },
-                                                          beforeRenderHook);
+                                                          remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;
     }
@@ -126,6 +120,15 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         return new ComponentRenderContext(rootDomPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut);
+    }
+
+    public RelativeUrl getRelativeUrl() {
+        return pageStateOrigin.getRelativeUrl();
+    }
+
+    public void setRelativeUrl(RelativeUrl relativeUrl) {
+        pageStateOrigin.setRelativeUrl(relativeUrl);
+        remotePageMessagesOut.pushHistory(relativeUrl.path().toString());
     }
 }
 

@@ -2,11 +2,9 @@ package rsp.component;
 
 import rsp.dom.*;
 import rsp.html.SegmentDefinition;
-import rsp.page.RenderContext;
 import rsp.page.RenderContextFactory;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
-import rsp.util.TriConsumer;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -25,32 +23,37 @@ public final class Component<S> implements NewState<S> {
     private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
 
-    private final Object key;
+    private final ComponentCompositeKey key;
     private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
+    private final BeforeRenderCallback<S> beforeRenderCallback;
+    private final StateAppliedCallback<S> newStateAppliedCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
     private final RemoteOut remotePageMessages;
-    private final Consumer<S> stateChangedListener;
-    private final TriConsumer<S, NewState<S>, RenderContext> beforeRenderHook;
 
     private S state;
     private Tag tag;
 
-    public Component(final Object key,
+    public Component(final ComponentCompositeKey key,
                      final Supplier<CompletableFuture<? extends S>> resolveStateFunction,
+                     final BeforeRenderCallback<S> beforeRenderCallback,
                      final ComponentView<S> componentView,
+                     final StateAppliedCallback<S> newStateAppliedCallback,
                      final RenderContextFactory renderContextFactory,
-                     final RemoteOut remotePageMessages,
-                     final Consumer<S> stateChangedListener,
-                     final TriConsumer<S, NewState<S>, RenderContext> beforeRenderHook) {
+                     final RemoteOut remotePageMessages) {
         this.key = Objects.requireNonNull(key);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
+        this.beforeRenderCallback = Objects.requireNonNull(beforeRenderCallback);
         this.componentView = Objects.requireNonNull(componentView);
+        this.newStateAppliedCallback = Objects.requireNonNull(newStateAppliedCallback);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
-        this.stateChangedListener = Objects.requireNonNull(stateChangedListener);
-        this.beforeRenderHook = Objects.requireNonNull(beforeRenderHook);
-        logger.log(TRACE, "New component is created with key " + key);
+
+        logger.log(TRACE, "New component is created with key " + this);
+    }
+
+    public ComponentPath path() {
+        return key.path();
     }
 
     public void addChild(final Component<?> component) {
@@ -63,14 +66,14 @@ public final class Component<S> implements NewState<S> {
         }
     }
 
-    public void render(final RenderContext renderContext) {
+    public void render(final ComponentRenderContext renderContext) {
         final CompletableFuture<? extends S> statePromise = resolveStateFunction.get();
         statePromise.whenComplete((s, stateEx) -> {
             if (stateEx == null) {
                 state = s;
                 try {
                     final SegmentDefinition view = componentView.apply(state).apply(this);
-                    beforeRenderHook.accept(state, this, renderContext);
+                    beforeRenderCallback.apply(key, state, this, renderContext);
                     view.render(renderContext);
                 } catch (Throwable renderEx) {
                     logger.log(ERROR, "Component " + key + " rendering exception", renderEx);
@@ -121,7 +124,7 @@ public final class Component<S> implements NewState<S> {
 
         renderContext.openComponent(this);
         final SegmentDefinition view = componentView.apply(state).apply(this);
-        beforeRenderHook.accept(state, this, renderContext);
+        beforeRenderCallback.apply(key, state, this, renderContext);
         view.render(renderContext);
         renderContext.closeComponent();
 
@@ -159,10 +162,14 @@ public final class Component<S> implements NewState<S> {
         }
         remoteOut.listenEvents(eventsToAdd);
 
-        stateChangedListener.accept(state);
+        newStateAppliedCallback.apply(key, state, renderContext);
 
         // Unmount obsolete children components
 
+    }
+
+    public List<Component<?>> directChildren() {
+        return children;
     }
 
     public List<Event> recursiveEvents() {
@@ -188,5 +195,12 @@ public final class Component<S> implements NewState<S> {
 
     public void addRef(final Ref ref, final VirtualDomPath path) {
         refs.put(ref, path);
+    }
+
+    @Override
+    public String toString() {
+        return "Component{" +
+                "key=" + key +
+                '}';
     }
 }
