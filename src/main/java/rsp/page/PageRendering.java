@@ -83,7 +83,8 @@ public final class PageRendering<S> {
 
             final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
 
-            final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
+            final PageRenderContext domTreeContext = new PageRenderContext(pageId.deviceId,
+                                                                           pageConfigScript.toString(),
                                                                            VirtualDomPath.DOCUMENT,
                                                                            httpStateOrigin,
                                                                            commandsBuffer);
@@ -105,10 +106,6 @@ public final class PageRendering<S> {
         } catch (final Exception ex) {
             return CompletableFuture.failedFuture(ex);
         }
-    }
-
-    private CompletableFuture<HttpResponse> defaultPage404() {
-        return CompletableFuture.completedFuture(new HttpResponse(404, List.of(),"Not found"));
     }
 
     private List<Tuple2<String,String>> headers(final Map<String, String> headers, final String deviceId) {

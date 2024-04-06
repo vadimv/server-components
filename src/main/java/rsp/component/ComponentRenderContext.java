@@ -13,20 +13,23 @@ import java.util.function.*;
 
 public class ComponentRenderContext extends DomTreeRenderContext implements RenderContextFactory {
 
+    private final Object sessionId;
     private final PageStateOrigin pageStateOrigin;
     private final RemoteOut remotePageMessagesOut;
 
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private Component<?> rootComponent;
 
-    public ComponentRenderContext(final VirtualDomPath rootDomPath,
+    public ComponentRenderContext(final Object sessionId,
+                                  final VirtualDomPath rootDomPath,
                                   final PageStateOrigin pageStateOrigin,
                                   final RemoteOut remotePageMessagesOut) {
         super(rootDomPath);
+        this.sessionId = Objects.requireNonNull(sessionId);
         this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
     }
-
+    
     @SuppressWarnings("unchecked")
     public <S> Component<S> rootComponent() {
         return (Component<S>) rootComponent;
@@ -82,7 +85,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         final Component<?> parent = componentsStack.peek();
         final ComponentPath path = parent == null ?
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
-        final ComponentCompositeKey key = new ComponentCompositeKey(componentType, path);
+        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, path);
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier.getState(key,
                                                                                                            pageStateOrigin.httpStateOrigin());
         final Component<S> newComponent = new Component<>(key,
@@ -113,14 +116,16 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
 
     @Override
     public ComponentRenderContext newContext(final VirtualDomPath domPath) {
-        return new ComponentRenderContext(domPath,
+        return new ComponentRenderContext(sessionId,
+                                          domPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut);
     }
 
     @Override
     public ComponentRenderContext newContext() {
-        return new ComponentRenderContext(rootDomPath,
+        return new ComponentRenderContext(sessionId,
+                                          rootDomPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut);
     }

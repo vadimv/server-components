@@ -44,10 +44,11 @@ public class LivePageTests {
                                                                        1000);
         final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
         final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
-        final PageRenderContext domTreeContext = new PageRenderContext(pageConfigScript.toString(),
-                                                                        VirtualDomPath.DOCUMENT,
-                                                                        httpStateOrigin,
-                                                                        commandsBuffer);
+        final PageRenderContext domTreeContext = new PageRenderContext(new Object(),
+                                                                       pageConfigScript.toString(),
+                                                                       VirtualDomPath.DOCUMENT,
+                                                                       httpStateOrigin,
+                                                                       commandsBuffer);
 
         final PathStatefulComponentDefinition<State> componentDefinition = ComponentDsl.component(initialState, view);
         componentDefinition.render(domTreeContext);

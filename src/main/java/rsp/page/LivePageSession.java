@@ -48,14 +48,6 @@ public final class LivePageSession implements RemoteIn, Schedule {
 
     public synchronized void init() {
         remoteOut.listenEvents(rootComponent.recursiveEvents());
-/*        final Event historyChangeEvent = new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                                                    VirtualDomPath.WINDOW),
-                                                                    context -> {},
-                                                                    true,
-                                                                    Event.NO_MODIFIER);
-        final List<Event> events = Stream.concat(rootComponent.recursiveEvents().values().stream(),
-                                                 Stream.of(historyChangeEvent)).toList();
-        remoteOut.listenEvents(events);*/
   }
 
     public void shutdown() {

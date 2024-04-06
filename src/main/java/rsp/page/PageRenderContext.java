@@ -16,11 +16,13 @@ public final class PageRenderContext extends ComponentRenderContext {
     private Map<String, String> headers;
     private boolean headWasOpened;
 
-    public PageRenderContext(final String pageConfigScript,
+    public PageRenderContext(final Object sessionId,
+                             final String pageConfigScript,
                              final VirtualDomPath rootDomPath,
                              final PageStateOrigin httpStateOriginSupplier,
                              final TemporaryBufferedPageCommands remotePageMessagesOut) {
-        super(rootDomPath,
+        super(sessionId,
+              rootDomPath,
               httpStateOriginSupplier,
               remotePageMessagesOut);
         this.pageConfigScript = Objects.requireNonNull(pageConfigScript);
