@@ -28,8 +28,8 @@ public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
     }
 
     @Override
-    protected Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
-        return httpStateOrigin -> initialStateRouting.apply(httpStateOrigin.httpRequest());
+    protected BiFunction<ComponentCompositeKey, HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
+        return (key, httpStateOrigin) -> initialStateRouting.apply(httpStateOrigin.httpRequest());
     }
 
     @Override

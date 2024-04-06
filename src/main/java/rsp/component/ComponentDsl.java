@@ -40,8 +40,8 @@ public class ComponentDsl {
         return new PathStatefulComponentDefinition<>("path-component") {
 
             @Override
-            protected Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
-                return httpStateOrigin -> initialStateRouting.apply(httpStateOrigin.relativeUrl().path());
+            protected BiFunction<ComponentCompositeKey, HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
+                return (key, httpStateOrigin) -> initialStateRouting.apply(httpStateOrigin.relativeUrl().path());
             }
 
             @Override

@@ -74,16 +74,18 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     }
 
     public <S> Component<S> openComponent(final Object componentType,
-                                          final Function<HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction,
+                                          final BiFunction<ComponentCompositeKey, HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction,
                                           final BeforeRenderCallback<S> beforeRenderCallback,
                                           final ComponentView<S> componentView,
                                           final StateAppliedCallback<S> newStateAppliedCallback) {
-        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> resolveStateFunction.apply(pageStateOrigin.httpStateOrigin());
 
         final Component<?> parent = componentsStack.peek();
         final ComponentPath path = parent == null ?
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
-        final Component<S> newComponent = new Component<>(new ComponentCompositeKey(componentType, path),
+        final ComponentCompositeKey key = new ComponentCompositeKey(componentType, path);
+        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> resolveStateFunction.apply(key,
+                                                                                                               pageStateOrigin.httpStateOrigin());
+        final Component<S> newComponent = new Component<>(key,
                                                           resolveStateSupplier,
                                                           beforeRenderCallback,
                                                           componentView,
