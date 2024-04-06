@@ -7,11 +7,9 @@ import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
-import rsp.util.TriConsumer;
 import rsp.util.json.JsonDataType;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -37,7 +35,7 @@ public abstract class PathStatefulComponentDefinition<S> extends StatefulCompone
     }
 
     @Override
-    protected StateAppliedCallback<S> newStateAppliedCallback() {
+    protected StateAppliedCallback<S> afterStateAppliedCallback() {
         return (key, state, renderContext) -> {
             final RelativeUrl oldRelativeUrl = renderContext.getRelativeUrl();
             final Path oldPath = oldRelativeUrl.path();

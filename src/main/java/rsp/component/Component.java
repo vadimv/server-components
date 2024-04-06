@@ -27,6 +27,7 @@ public final class Component<S> implements NewState<S> {
     private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
     private final BeforeRenderCallback<S> beforeRenderCallback;
     private final StateAppliedCallback<S> newStateAppliedCallback;
+    private final UnmountCallback<S> unmountCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
     private final RemoteOut remotePageMessages;
@@ -39,6 +40,7 @@ public final class Component<S> implements NewState<S> {
                      final BeforeRenderCallback<S> beforeRenderCallback,
                      final ComponentView<S> componentView,
                      final StateAppliedCallback<S> newStateAppliedCallback,
+                     final UnmountCallback<S> unmountCallback,
                      final RenderContextFactory renderContextFactory,
                      final RemoteOut remotePageMessages) {
         this.key = Objects.requireNonNull(key);
@@ -46,6 +48,7 @@ public final class Component<S> implements NewState<S> {
         this.beforeRenderCallback = Objects.requireNonNull(beforeRenderCallback);
         this.componentView = Objects.requireNonNull(componentView);
         this.newStateAppliedCallback = Objects.requireNonNull(newStateAppliedCallback);
+        this.unmountCallback = Objects.requireNonNull(unmountCallback);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
 
@@ -84,10 +87,6 @@ public final class Component<S> implements NewState<S> {
         });
     }
 
-    public void resolveState() {
-        applyWhenComplete(resolveStateFunction.get());
-    }
-
     public S getState() {
         return state;
     }
@@ -111,6 +110,7 @@ public final class Component<S> implements NewState<S> {
     public void apply(final UnaryOperator<S> newStateFunction) {
         final Tag oldTag = tag;
         final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
+        final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
         final S oldState = state;
         state = newStateFunction.apply(state);
         logger.log(TRACE, () -> "Component's " + key + " old state was " + oldState + " applied new state " + state);
@@ -164,12 +164,30 @@ public final class Component<S> implements NewState<S> {
 
         newStateAppliedCallback.apply(key, state, renderContext);
 
-        // Unmount obsolete children components
-
+        // Notify unmounted child components
+        final Set<Component<?>> mountedComponents = new HashSet<>(children);
+        for (final Component<?> child : oldChildren) {
+            if (!mountedComponents.contains(child)) {
+                child.unmount();
+            }
+        }
     }
 
     public List<Component<?>> directChildren() {
         return children;
+    }
+
+    private void unmount() {
+        unmountCallback.apply(key, state);
+    }
+
+    public List<Component<?>> recursiveChildren() {
+        final List<Component<?>> recursiveChildren = new ArrayList<>();
+        recursiveChildren.addAll(children);
+        for (final Component<?> childComponent : children) {
+            recursiveChildren.addAll(childComponent.recursiveChildren());
+        }
+        return recursiveChildren;
     }
 
     public List<Event> recursiveEvents() {
@@ -202,5 +220,18 @@ public final class Component<S> implements NewState<S> {
         return "Component{" +
                 "key=" + key +
                 '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Component<?> component = (Component<?>) o;
+        return key.equals(component.key);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(key);
     }
 }

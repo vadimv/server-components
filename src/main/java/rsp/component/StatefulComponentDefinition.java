@@ -2,14 +2,8 @@ package rsp.component;
 
 import rsp.html.SegmentDefinition;
 import rsp.page.RenderContext;
-import rsp.server.http.HttpStateOrigin;
-import rsp.util.TriConsumer;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public abstract class StatefulComponentDefinition<S> implements SegmentDefinition {
 
@@ -19,22 +13,25 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
         this.key = Objects.requireNonNull(key);
     }
 
-    protected abstract BiFunction<ComponentCompositeKey, HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction();
+    protected abstract ComponentStateSupplier<S> stateSupplier();
 
     protected abstract ComponentView<S> componentView();
 
     protected abstract BeforeRenderCallback<S> beforeRenderCallback();
 
-    protected abstract StateAppliedCallback<S> newStateAppliedCallback();
+    protected abstract StateAppliedCallback<S> afterStateAppliedCallback();
+
+    protected abstract UnmountCallback<S> unmountCallback();
 
     @Override
     public boolean render(final RenderContext renderContext) {
         if (renderContext instanceof ComponentRenderContext componentRenderContext) {
             final Component<S> component = componentRenderContext.openComponent(key,
-                                                                                resolveStateFunction(),
+                                                                                stateSupplier(),
                                                                                 beforeRenderCallback(),
                                                                                 componentView(),
-                                                                                newStateAppliedCallback());
+                                                                                afterStateAppliedCallback(),
+                                                                                unmountCallback());
             component.render(componentRenderContext);
 
             componentRenderContext.closeComponent();

@@ -7,6 +7,7 @@ import rsp.server.http.RelativeUrl;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -40,7 +41,7 @@ public class ComponentDsl {
         return new PathStatefulComponentDefinition<>("path-component") {
 
             @Override
-            protected BiFunction<ComponentCompositeKey, HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
+            protected ComponentStateSupplier<S> stateSupplier() {
                 return (key, httpStateOrigin) -> initialStateRouting.apply(httpStateOrigin.relativeUrl().path());
             }
 
@@ -57,6 +58,11 @@ public class ComponentDsl {
             @Override
             protected ComponentView<S> componentView() {
                 return componentView;
+            }
+
+            @Override
+            protected UnmountCallback<S> unmountCallback() {
+                return (key, state) -> System.out.println("Unmounted: " + state);
             }
         };
     }

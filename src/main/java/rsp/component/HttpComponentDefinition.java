@@ -2,12 +2,9 @@ package rsp.component;
 
 import rsp.server.Path;
 import rsp.server.http.HttpRequest;
-import rsp.server.http.HttpStateOrigin;
-import rsp.util.TriConsumer;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -28,7 +25,7 @@ public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
     }
 
     @Override
-    protected BiFunction<ComponentCompositeKey, HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction() {
+    protected ComponentStateSupplier<S> stateSupplier() {
         return (key, httpStateOrigin) -> initialStateRouting.apply(httpStateOrigin.httpRequest());
     }
 
@@ -44,7 +41,12 @@ public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
     }
 
     @Override
-    protected StateAppliedCallback<S> newStateAppliedCallback() {
+    protected StateAppliedCallback<S> afterStateAppliedCallback() {
         return (key, state, ctx) -> {};
+    }
+
+    @Override
+    protected UnmountCallback<S> unmountCallback() {
+        return (key, state) -> System.out.println("Unmounted: " + key);
     }
 }

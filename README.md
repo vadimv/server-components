@@ -206,9 +206,9 @@ For example:
 ```
 ### UI components
 
-Actually, pages are composed of components of two kinds:
-- views
-- stateful components
+Pages are composed of components of two kinds:
+- Views
+- Stateful components
 
 A view is a pure function from an input state to a DOM fragment's definition.
 
@@ -223,12 +223,13 @@ A view is a pure function from an input state to a DOM fragment's definition.
      appView.apply(new UserState("Username"));
 ```
 
-A stateful components has its own state, represented by a snapshot of an immutable class or a record.
-A component's state is modelled as a finite state machine (FSM) and managed by the framework by invoking 
-the following stages of a component's lifecycle:
+A stateful component has its own state, represented by a snapshot of an immutable class or a record and managed by
+the framework.
+A component's state is modelled as a finite state machine (FSM) and can be changed by invoking 
+the stages of a component's lifecycle:
 - component's state initialization during its first render and mount to the components tree
-- events processing
-- unmount from the components tree
+- events handling
+- restoring state after mounting again to the same position
 
 An initial state can be provided is the following ways:
 - set in its initiation function to some value

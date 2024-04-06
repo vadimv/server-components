@@ -4,7 +4,6 @@ import rsp.dom.*;
 import rsp.page.*;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
-import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.PageStateOrigin;
 import rsp.server.http.RelativeUrl;
 
@@ -74,22 +73,24 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     }
 
     public <S> Component<S> openComponent(final Object componentType,
-                                          final BiFunction<ComponentCompositeKey, HttpStateOrigin, CompletableFuture<? extends S>> resolveStateFunction,
+                                          final ComponentStateSupplier<S> stateSupplier,
                                           final BeforeRenderCallback<S> beforeRenderCallback,
                                           final ComponentView<S> componentView,
-                                          final StateAppliedCallback<S> newStateAppliedCallback) {
+                                          final StateAppliedCallback<S> newStateAppliedCallback,
+                                          final UnmountCallback<S> unmountCallback) {
 
         final Component<?> parent = componentsStack.peek();
         final ComponentPath path = parent == null ?
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
         final ComponentCompositeKey key = new ComponentCompositeKey(componentType, path);
-        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> resolveStateFunction.apply(key,
-                                                                                                               pageStateOrigin.httpStateOrigin());
+        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier.getState(key,
+                                                                                                           pageStateOrigin.httpStateOrigin());
         final Component<S> newComponent = new Component<>(key,
                                                           resolveStateSupplier,
                                                           beforeRenderCallback,
                                                           componentView,
                                                           newStateAppliedCallback,
+                                                          unmountCallback,
                                                          this,
                                                           remotePageMessagesOut);
         openComponent(newComponent);
