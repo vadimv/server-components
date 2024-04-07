@@ -126,12 +126,11 @@ public final class LivePageSession implements RemoteIn, Schedule {
     public void handleDomEvent(final int renderNumber, final VirtualDomPath eventPath, final String eventType, final JsonDataType.Object eventObject) {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (this) {
-            final EventContext eventContext = createEventContext(eventObject);
             VirtualDomPath eventElementPath = eventPath;
             while (eventElementPath.level() > 0) {
                 for (final Event event: rootComponent.recursiveEvents()) {
                     if (event.eventTarget.elementPath.equals(eventElementPath) && event.eventTarget.eventType.equals(eventType)) {
-                        event.eventHandler.accept(eventContext);
+                        event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                     }
                 }
                 if (eventElementPath.parent().isPresent()) {
@@ -143,12 +142,15 @@ public final class LivePageSession implements RemoteIn, Schedule {
         }
     }
 
-    private EventContext createEventContext(final JsonDataType.Object eventObject) {
-        return new EventContext(js -> evalJs(js),
-                                ref -> createPropertiesHandle(ref),
+    private EventContext createEventContext(final VirtualDomPath eventElementPath,
+                                            final JsonDataType.Object eventObject) {
+        return new EventContext(eventElementPath,
+                                this::evalJs,
+                                this::createPropertiesHandle,
                                 eventObject,
+                                this::dispatchEvent,
                                 this,
-                                href -> setHref(href));
+                                this::setHref);
     }
 
     private PropertiesHandle createPropertiesHandle(final Ref ref) {
@@ -157,6 +159,10 @@ public final class LivePageSession implements RemoteIn, Schedule {
             throw new IllegalStateException("Ref not found: " + ref);
         }
         return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, remoteOut);
+    }
+
+    private void dispatchEvent(VirtualDomPath eventElementPath, String eventName, JsonDataType.Object event) {
+        handleDomEvent(0, eventElementPath, eventName, event);
     }
 
     private VirtualDomPath resolveRef(final Ref ref) {

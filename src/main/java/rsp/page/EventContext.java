@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.dom.VirtualDomPath;
 import rsp.ref.ElementRef;
 import rsp.ref.Ref;
 import rsp.ref.TimerRef;
@@ -15,9 +16,11 @@ import java.util.function.Function;
  * This is the main object for an application's code to interact with RSP internals and access data.
  */
 public final class EventContext {
+    private final VirtualDomPath eventElementPath;
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<JsonDataType>> jsEvaluation;
     private final JsonDataType.Object eventObject;
+    private final EventDispatcher eventsDispatcher;
     private final Schedule executorService;
     private final Consumer<String> setHref;
 
@@ -29,14 +32,18 @@ public final class EventContext {
      * @param executorService the proxy object for scheduling
      * @param setHref the proxy object for setting browser's URL
      */
-    public EventContext(final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
+    public EventContext(final VirtualDomPath eventElementPath,
+                        final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
                         final Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         final JsonDataType.Object eventObject,
+                        final EventDispatcher eventsDispatcher,
                         final Schedule executorService,
                         final Consumer<String> setHref) {
+        this.eventElementPath = eventElementPath;
         this.propertiesHandleLookup = propertiesHandleLookup;
         this.jsEvaluation = jsEvaluation;
         this.eventObject = eventObject;
+        this.eventsDispatcher = eventsDispatcher;
         this.executorService = executorService;
         this.setHref = setHref;
     }
@@ -67,6 +74,9 @@ public final class EventContext {
         setHref.accept(href);
     }
 
+    public void dispatchEvent(String name, JsonDataType.Object event) {
+        eventsDispatcher.dispatchEvent(eventElementPath, name, event);
+    };
 
     /**
      * Gets the event's object.
