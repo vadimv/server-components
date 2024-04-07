@@ -15,8 +15,8 @@ import java.util.function.Function;
 
 public abstract class PathStatefulComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
-    public PathStatefulComponentDefinition(final Object key) {
-        super(key);
+    public PathStatefulComponentDefinition(final Object componentType) {
+        super(componentType);
     }
 
     protected abstract BiFunction<S, Path, Path> state2pathFunction();

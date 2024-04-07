@@ -65,14 +65,18 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final Event.Modifier modifier) {
-        addEvent(tagsStack.peek().path(), eventType, eventHandler, preventDefault, modifier);
+        final Tag tag = tagsStack.peek();
+        assert tag != null;
+        addEvent(tag.path(), eventType, eventHandler, preventDefault, modifier);
     }
 
     @Override
     public void addRef(final Ref ref) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
-        component.addRef(ref, tagsStack.peek().path());
+        final Tag tag = tagsStack.peek();
+        assert tag != null;
+        component.addRef(ref, tag.path());
     }
 
     public <S> Component<S> openComponent(final Object componentType,
@@ -105,6 +109,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
             rootComponent = component;
         } else {
             final Component<?> parentComponent = componentsStack.peek();
+            assert parentComponent != null;
             parentComponent.addChild(component);
         }
         componentsStack.push(component);

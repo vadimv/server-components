@@ -5,7 +5,6 @@ import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
@@ -18,10 +17,6 @@ public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
         super("http-component");
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
-    }
-
-    protected BiFunction<S, Path, Path> state2pathFunction() {
-        return (__, path) -> path;
     }
 
     @Override

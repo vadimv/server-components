@@ -7,10 +7,10 @@ import java.util.Objects;
 
 public abstract class StatefulComponentDefinition<S> implements SegmentDefinition {
 
-    private final Object key;
+    private final Object componentType;
 
-    public StatefulComponentDefinition(final Object key) {
-        this.key = Objects.requireNonNull(key);
+    public StatefulComponentDefinition(final Object componentType) {
+        this.componentType = Objects.requireNonNull(componentType);
     }
 
     protected abstract ComponentStateSupplier<S> stateSupplier();
@@ -26,7 +26,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     @Override
     public boolean render(final RenderContext renderContext) {
         if (renderContext instanceof ComponentRenderContext componentRenderContext) {
-            final Component<S> component = componentRenderContext.openComponent(key,
+            final Component<S> component = componentRenderContext.openComponent(componentType,
                                                                                 stateSupplier(),
                                                                                 beforeRenderCallback(),
                                                                                 componentView(),
