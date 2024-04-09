@@ -74,8 +74,8 @@ public final class EventContext {
         setHref.accept(href);
     }
 
-    public void dispatchEvent(String name, JsonDataType.Object event) {
-        eventsDispatcher.dispatchEvent(eventElementPath, name, event);
+    public void dispatchEvent(CustomEvent customEvent) {
+        eventsDispatcher.dispatchEvent(eventElementPath, customEvent);
     };
 
     /**

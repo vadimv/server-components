@@ -336,6 +336,24 @@ The context's ``eventObject()`` method reads the event's object as a JSON data s
         input(attr("type", "button"), attr("value", "Submit"))
     )
 ```
+
+To send a custom event use ``ctx.dispatchEvent()`` method:
+
+```java
+
+    on("custom-event",
+       ctx -> {
+            System.out.println("Custom event object: " + ctx.eventObject());
+        })
+    ...
+            on("click",
+                ctx -> ctx.dispatchEvent(new CustomEvent("custom-event",
+                                                         JsonDataType.Object.EMPTY.put("key",
+                                                                                       new JsonDataType.String("value")))))
+
+```
+A CustomEvent is bubbled from a child element and can be handled by an ancestor.
+
 The ``window().on(eventType, handler)`` DSL function registers a browser's window object event handler:
 
 ```java

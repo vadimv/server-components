@@ -161,8 +161,8 @@ public final class LivePageSession implements RemoteIn, Schedule {
         return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, remoteOut);
     }
 
-    private void dispatchEvent(VirtualDomPath eventElementPath, String eventName, JsonDataType.Object event) {
-        handleDomEvent(0, eventElementPath, eventName, event);
+    private void dispatchEvent(VirtualDomPath eventElementPath, CustomEvent customEvent) {
+        handleDomEvent(0, eventElementPath, customEvent.eventName(), customEvent.eventData());
     }
 
     private VirtualDomPath resolveRef(final Ref ref) {
