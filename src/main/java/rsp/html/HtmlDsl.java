@@ -51,6 +51,17 @@ public final class HtmlDsl {
     }
 
     /**
+     * A self closing XML tag.
+     * @param ns an XML namespace
+     * @param name an element name
+     * @param attributes attributes definitions of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTagDefinition selfClosingXmlTag(final XmlNs ns, final String name, final AttributeDefinition... attributes) {
+        return new SelfClosingTagDefinition(ns, name, attributes);
+    }
+
+    /**
      * An arbitrary HTML element.
      * @param name an element name
      * @param children descendants definitions of this element
@@ -58,6 +69,16 @@ public final class HtmlDsl {
      */
     public static TagDefinition tag(final String name, final SegmentDefinition... children) {
         return xmlTag(XmlNs.html, name, children);
+    }
+
+    /**
+     * A void element.
+     * @param name an element name
+     * @param attributes  attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTagDefinition selfClosingTag(final String name, final AttributeDefinition... attributes) {
+        return selfClosingXmlTag(XmlNs.html, name, attributes);
     }
 
     /**
@@ -539,13 +560,12 @@ public final class HtmlDsl {
     }
 
     /**
-     * A HTML {@literal <br/>} element of a HTML document.
+     * A HTML {@literal <br />} element of a HTML document.
      * @return a tag definition
      */
-    public static TagDefinition br() {
-        return tag("br");
+    public static SelfClosingTagDefinition br() {
+        return selfClosingTag("br");
     }
-
 
     /**
      * Inserts a zero or more definitions provided as a stream.

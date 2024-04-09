@@ -36,8 +36,8 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     }
 
     @Override
-    public void openNode(XmlNs xmlns, String name) {
-        super.openNode(xmlns, name);
+    public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
+        super.openNode(xmlns, name, isSelfClosing);
         trySetCurrentComponentRootTag(tagsStack.peek());
     }
 

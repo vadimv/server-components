@@ -35,15 +35,15 @@ public class DomTreeRenderContext implements RenderContext {
     }
 
     @Override
-    public void openNode(final XmlNs xmlns, final String name) {
+    public void openNode(final XmlNs xmlns, final String name, boolean isSelfClosing) {
         if (rootTag == null) {
-            rootTag = new Tag(rootDomPath, xmlns, name);
+            rootTag = new Tag(rootDomPath, xmlns, name, isSelfClosing);
             tagsStack.push(rootTag);
         } else {
             final Tag parent = tagsStack.peek();
             assert parent != null;
             final int nextChild = parent.children.size() + 1;
-            final Tag newTag = new Tag(parent.path().childNumber(nextChild), xmlns, name);
+            final Tag newTag = new Tag(parent.path().childNumber(nextChild), xmlns, name, isSelfClosing);
             parent.addChild(newTag);
             tagsStack.push(newTag);
         }

@@ -10,15 +10,17 @@ public final class Tag implements Node {
 
     public final XmlNs xmlns;
     public final String name;
+    private final boolean isSelfClosing;
 
     public final CopyOnWriteArraySet<Attribute> attributes = new CopyOnWriteArraySet<>();
     public final CopyOnWriteArraySet<Style> styles = new CopyOnWriteArraySet<>();
     public final List<Node> children = new ArrayList<>();
 
-    public Tag(final VirtualDomPath path, final XmlNs xmlns, final String name) {
+    public Tag(final VirtualDomPath path, final XmlNs xmlns, final String name, boolean isSelfClosing) {
         this.path = path;
         this.xmlns = xmlns;
         this.name = name;
+        this.isSelfClosing = isSelfClosing;
     }
 
     public void addChild(final Node node) {
@@ -36,10 +38,6 @@ public final class Tag implements Node {
     @Override
     public VirtualDomPath path() {
         return path;
-    }
-
-    public List<Node> children() {
-        return children;
     }
 
     @Override
@@ -66,17 +64,21 @@ public final class Tag implements Node {
                 sb.append('"');
             }
         }
-        sb.append('>');
+        if (isSelfClosing) {
+            sb.append(" />");
+        } else {
+            sb.append('>');
 
-        if (children.size() > 0) {
-            for (final Node childNode: children) {
-                childNode.appendString(sb);
+            if (children.size() > 0) {
+                for (final Node childNode: children) {
+                    childNode.appendString(sb);
+                }
             }
-        }
 
-        sb.append("</");
-        sb.append(name);
-        sb.append('>');
+            sb.append("</");
+            sb.append(name);
+            sb.append('>');
+        }
     }
 
     @Override

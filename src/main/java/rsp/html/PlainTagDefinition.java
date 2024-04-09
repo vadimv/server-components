@@ -10,7 +10,6 @@ import java.util.Arrays;
  */
 public final class PlainTagDefinition extends TagDefinition {
 
-
     /**
      * Creates a new instance of an XML tag's definition.
      * @param name the tag's name
@@ -22,7 +21,7 @@ public final class PlainTagDefinition extends TagDefinition {
 
     @Override
     public boolean render(final RenderContext renderContext) {
-        renderContext.openNode(ns, name);
+        renderContext.openNode(ns, name, false);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);
         return true;

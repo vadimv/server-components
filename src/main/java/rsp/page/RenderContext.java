@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 public interface RenderContext {
     void setDocType(String docType);
-    void openNode(XmlNs xmlns, String name);
+    void openNode(XmlNs xmlns, String name, boolean isSelfClosing);
     void closeNode(String name, boolean upgrade);
     void setAttr(XmlNs xmlNs, String name, String value, boolean isProperty);
     void setStyle(String name, String value);

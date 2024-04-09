@@ -1,6 +1,8 @@
 package rsp.browserautomation;
 
 import rsp.App;
+import rsp.component.ComponentCompositeKey;
+import rsp.component.StoredStateComponentDefinition;
 import rsp.html.SegmentDefinition;
 import rsp.routing.Routing;
 import rsp.server.Path;
@@ -11,6 +13,8 @@ import rsp.server.http.HttpRequest;
 import rsp.component.View;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.component.ComponentDsl.component;
@@ -19,8 +23,11 @@ import static rsp.routing.RoutingDsl.*;
 
 public class SimpleServer {
 
+    private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
+
     public static final int PORT = 8085;
     public final JettyServer<AppState> jetty;
+
 
 
     private static Routing<HttpRequest, AppState> appRouting() {
@@ -54,12 +61,34 @@ public class SimpleServer {
                                  text(state))));
     }
 
+    private static SegmentDefinition storedCounter(final String name) {
+        return new StoredStateComponentDefinition<>("stored-counter", counterView(name), 123 , stateStore);
+    }
+
+    private  static ComponentView<Boolean> storedCounterView() {
+        return state -> newState ->
+                div(
+                        when(state, storedCounter("c3")),
+                        input(attr("type", "checkbox"),
+                                when(state, attr("checked", "checked")),
+                                attr("id","c3"),
+                                attr("name", "c3"),
+                                on("click", ctx -> {
+                                    newState.set(!state);
+                                })),
+                        label(attr("for", "c3"),
+                                text("Show counter 3"))
+                );
+    }
     private static final View<CountersState> countersComponentView = state ->
             html(head(title("test-server-title"),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
                     body(counter1("c1"),
-                         counter2("c2")
+                         counter2("c2"),
+                              br(),
+                         component(true, storedCounterView())
+
                     ));
 
     private static final View<NotFoundState> notFoundStatelessView = __ ->

@@ -27,7 +27,7 @@ public class TagDefinition extends BaseSegmentDefinition {
 
     @Override
     public boolean render(final RenderContext renderContext) {
-        renderContext.openNode(ns, name);
+        renderContext.openNode(ns, name, false);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, true);
         return true;
