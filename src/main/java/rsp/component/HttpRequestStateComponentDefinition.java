@@ -1,19 +1,18 @@
 package rsp.component;
 
-import rsp.server.Path;
 import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
+public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
     private final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting;
     private final ComponentView<S> componentView;
 
-    public HttpComponentDefinition(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
-                                   final ComponentView<S> componentView) {
+    public HttpRequestStateComponentDefinition(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
+                                               final ComponentView<S> componentView) {
         super("http-component");
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
@@ -30,18 +29,17 @@ public class HttpComponentDefinition<S> extends StatefulComponentDefinition<S> {
     }
 
     @Override
-    protected BeforeRenderCallback<S> beforeRenderCallback() {
-        return (key, state, newState, beforeRenderCallback) -> {
-        };
+    protected MountCallback<S> componentDidMount() {
+        return (key, state, newState, beforeRenderCallback) -> {};
     }
 
     @Override
-    protected StateAppliedCallback<S> afterStateAppliedCallback() {
+    protected StateAppliedCallback<S> componentDidUpdate() {
         return (key, state, ctx) -> {};
     }
 
     @Override
-    protected UnmountCallback<S> unmountCallback() {
-        return (key, state) -> System.out.println("Unmounted: " + key);
+    protected UnmountCallback<S> componentWillUnmount() {
+        return (key, state) -> {};
     }
 }

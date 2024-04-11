@@ -38,19 +38,19 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
-    protected StateAppliedCallback<S> afterStateAppliedCallback() {
-        return (key, state, beforeRenderCallback) -> stateStore.put(key, state);
+    protected StateAppliedCallback<S> componentDidUpdate() {
+        return (key, state, componentRenderContext) -> stateStore.put(key, state);
     }
 
     @Override
-    protected BeforeRenderCallback<S> beforeRenderCallback() {
-        return (key, state, newState, beforeRenderCallback) -> {
+    protected MountCallback<S> componentDidMount() {
+        return (key, state, newState, componentRenderContext) -> {
             // NO-OP
         };
     }
 
     @Override
-    protected UnmountCallback<S> unmountCallback() {
+    protected UnmountCallback<S> componentWillUnmount() {
         return (key, state) -> {
             // NO-OP
         };

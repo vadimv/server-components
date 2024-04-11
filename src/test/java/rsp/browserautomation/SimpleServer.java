@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.component.ComponentDsl.component;
+import static rsp.component.ComponentDsl.pathComponent;
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
@@ -32,21 +33,21 @@ public class SimpleServer {
 
     private static Routing<HttpRequest, AppState> appRouting() {
         return new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
-                new NotFoundState() );
+                             new NotFoundState());
     }
 
     private static SegmentDefinition counter1(final String name) {
-        return component(routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
-                                      -1),
-                         (count, path) -> Path.of("/" + count + "/" + path.get(1)),
-                         counterView(name));
+        return pathComponent(routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+                                          -1),
+                             (count, path) -> Path.of("/" + count + "/" + path.get(1)),
+                             counterView(name));
     }
 
     private static SegmentDefinition counter2(final String name) {
-        return component(routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
-                                -1),
-                        (count, path) -> Path.of("/" + path.get(0) + "/" + count),
-                        counterView(name));
+        return pathComponent(routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+                                    -1),
+                            (count, path) -> Path.of("/" + path.get(0) + "/" + count),
+                            counterView(name));
     }
 
     private static ComponentView<Integer> counterView(String name) {

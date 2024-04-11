@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.component.HttpComponentDefinition;
+import rsp.component.HttpRequestStateComponentDefinition;
 import rsp.dom.VirtualDomPath;
 import rsp.server.http.*;
 import rsp.server.Path;
@@ -23,11 +23,11 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
-    private final HttpComponentDefinition<S> rootComponentDefinition;
+    private final HttpRequestStateComponentDefinition<S> rootComponentDefinition;
     private final int heartBeatIntervalMs;
 
     public PageRendering(final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
-                         final HttpComponentDefinition<S> rootComponentDefinition,
+                         final HttpRequestStateComponentDefinition<S> rootComponentDefinition,
                          final int heartBeatIntervalMs) {
 
         this.renderedPages = Objects.requireNonNull(pagesStorage);

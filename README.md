@@ -23,9 +23,9 @@
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
 
 
-rsp is a lightweight modern server-side web framework for Java.
+rsp is a lightweight web framework for Java.
 
-With rsp, for a typical web application, two types of web pages are supported:
+rsp supports two types of web pages:
 - single-page applications (SPAs), written in Java, e.g. for an admin UI
 - plain server-rendered detached HTML pages
 
@@ -38,7 +38,7 @@ To start using it, add the dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>3.0</version>
+        <version>2.0</version>
     </dependency>
 ```
 
@@ -53,11 +53,11 @@ To start using it, add the dependency:
 
 ### Routing
 
-A page's initial HTML generation consists of two phases:
-- routing an incoming HTTP request and/or URL paths results in the page's components state
-- rendering these state objects by the components' views generates HTML markup
+A page's HTML generation consists of two phases:
+- a routing function maps an incoming HTTP request to the root component state
+- the root component and its descendants render this state to HTML markup
 
-To define a routing of an incoming request, create a ``Routing`` object for components and/or provide it as an application's constructor parameter:
+To define a routing of an incoming request, create a ``Routing`` and provide it as a parameter:
 
 ```java
     import static rsp.html.RoutingDsl.*;
@@ -75,7 +75,7 @@ To define a routing of an incoming request, create a ``Routing`` object for comp
 ```
 
 During a dispatch, the routes are verified one by one for a matching HTTP method and a path pattern. 
-Route path patterns can include zero, one or two path-variables, possibly combined with regexes and the wildcard symbol "*".
+Route path patterns can include zero, one or two path-extracting variables, possibly combined with regexes and the wildcard symbol "*".
 The matched variables values become available as the correspondent handlers' parameters alongside with the request details object.
 The route's handler function should return a ``CompletableFuture`` of the page's state:
 
@@ -105,7 +105,7 @@ The ``any()`` route matches every request.
 
 ### HTML markup Java DSL
 
-rsp provides a Java internal domain-specific language (DSL) for declarative definition of HTML templates as a composition of functions.
+rsp provides a Java internal domain-specific language (DSL) for definition of HTML templates as a composition of functions.
 
 For example, to re-write the HTML fragment:
 
@@ -178,20 +178,22 @@ The ``when()`` DSL function conditionally renders (or not) an element:
 
 ### SPAs, plain pages and the head tag
 
-The page's ``<head>`` tag DSL determines if this page is an SPA or plain.
+The page's ``<head>`` tag DSL determines if this page is an interactive Single-Page-Application or a plain HTML page.
 
 The ``head(...)`` or ``head(PageType.SPA, ...)`` function creates an HTML page ``<head>`` tag for an SPA.
 If the ``head()`` is not present in the page's markup, the simple SPA-type header is added automatically.
 This type of head injects a script, which establishes a WebSocket connection between the browser's page and the server
 and enables reacting to the browser events.
 
-Using ``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag without injecting of init script
+ ``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag without injecting of init script
 to establish a connection with server and enable server side events handling for SPA.
 This results in rendering of a plain detached HTML page.
 
 ### Page HTTP status code and HTTP headers
 
-The ``statusCode()`` and ``addHeaders()`` methods enable to change result response HTTP status code and headers.
+- ``statusCode()`` method sets result response HTTP status code.
+- ``addHeaders()`` method adds response headers.
+
 For example:
 
 ```java
@@ -207,8 +209,9 @@ For example:
 ### UI components
 
 Pages are composed of components of two kinds:
-- Views
-- Stateful components
+
+- views or stateless components
+- stateful components
 
 A view is a pure function from an input state to a DOM fragment's definition.
 
@@ -223,22 +226,13 @@ A view is a pure function from an input state to a DOM fragment's definition.
      appView.apply(new UserState("Username"));
 ```
 
-A stateful component has its own state, represented by a snapshot of an immutable class or a record and managed by
-the framework.
-A component's state is modelled as a finite state machine (FSM) and can be changed by invoking 
-the stages of a component's lifecycle:
-- component's state initialization during its first render and mount to the components tree
-- events handling
-- restoring state after mounting again to the same position
+A stateful component state, an object of an immutable class or a record, is managed by the framework.
+A component's state can be set:
+- on a component's initialization during its first render and mount to the components tree
+- on an update as a result of events handling
 
-An initial state can be provided is the following ways:
-- set in its initiation function to some value
-- mapped from an HTTP request, browser's address bar path and query
-
-Any state transition must be initiated by invoking of one of the provided parameter's ``NewState`` interface methods, like ``set()`` and ``apply()``.
-State transitions are can be triggered by browser events, notifications or timer events.
-
-The root of its page's components tree is a top-level stateful component. 
+A state update is initiated by invoking of one of a component view's parameter's ``NewState`` interface methods, like ``set()`` and ``apply()``.
+State transitions are can be triggered by browser events, custom events or asynchronous events, e.g. timers.
 
 ### How to use components
 
@@ -250,11 +244,12 @@ Include a new instance of component definition class to the DSL alongside HTML t
         new Counter(2))
 ```
 
-Warning: note that a component's code is executed on the server and in the browser, use only components you trust.
+Warning: note that a component's code is executed on the server, use only components you trust.
 
-### How to write your own component
+### How to implement a component
 
-To create you own component inherit from one of the base component definition classes or use one of the ComponentDsl functions.
+Component's classes inherit from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``.
+For common types of components use components DSL helper methods like ``component()``.
 
 ```java
     import static rsp.component.ComponentDsl.*;
@@ -289,7 +284,7 @@ The following example shows how a component's state can be modelled using record
 
 ### DOM events
 
-To respond to browser events, register a DOM event handler by adding an ``on(eventType, handler)`` to an HTML tag in the Java DSL:
+To respond to browser events, register a DOM event handler by adding an ``on(eventType, handler)`` to an HTML element:
 
 ```java
     var view = state -> newState-> a("#","Click me",on("click", ctx-> {
@@ -300,20 +295,10 @@ To respond to browser events, register a DOM event handler by adding an ``on(eve
     record State(int counter) {}
 ```
 
-This is how it works when an event occurs:
-- the browser's page sends the event data message to the server via WebSocket
-- the system fires its registered event handler's Java code
-- an event handler's code sets its component's state snapshot, calling the ``NewState.set()`` method.
-
-A new set state snapshot triggers the following sequence of actions:
-- the page's virtual DOM re-rendered on the server
-- the difference between the current and the previous DOM trees is calculated  
-- the diff commands sent to the browser
-- the page's JS code updates the presentation
-
 Some types of browser events, like a mouse move, may fire a lot of events' invocations. 
 Sending all these notifications over the network and processing them on the server side may cause the system's overload.
-To filter the events before sending use the following event object's methods:
+To filter the events use the following event object's methods:
+
 - ``throttle(int timeFrameMs)``
 - ``debounce(int waitMs, boolean immediate)``
 
@@ -325,7 +310,7 @@ To filter the events before sending use the following event object's methods:
         )
 ```
 
-The context's ``eventObject()`` method reads the event's object as a JSON data structure:
+The context's ``eventObject()`` method provides its event's object as a JSON data structure:
 
 ```java
     form(on("submit", ctx -> {
@@ -352,24 +337,22 @@ To send a custom event use ``ctx.dispatchEvent()`` method:
                                                                                        new JsonDataType.String("value")))))
 
 ```
-A CustomEvent is bubbled from a child element and can be handled by an ancestor.
+A custom event is bubbled from a child element and can be handled by an ancestor.
 
-The ``window().on(eventType, handler)`` DSL function registers a browser's window object event handler:
+The ``window().on(eventType, handler)`` DSL function registers an event handler on the browser's window object:
 
 ```java
     html(window().on("click", ctx -> {
             System.out.println("window clicked");
         }),
         ...
-        )
+    )
 ```
 
-### Navigation bar URL path and components state mapping
+### Navigation bar URL path and path components state mapping
 
-A component's state can be mapped to the browser's navigation bar path. 
-With that, the current navigation path will be converted to a component's state and vis-a-versa,
-the state transition will cause the navigation path to be updated accordingly.
-
+For components inherited from ``RelativeUrlStateComponentDefinition`` class state is mapped to the browser's navigation bar path and query. 
+With that, the current navigation path can be converted to a component's state and the state update will cause the navigation path to be updated accordingly.
 The "Back" and "Forward" browser's history buttons clicks initiate state transitions.
 
 This is an example, where the first element of a path is mapped to an integer id, and id is mapped to the first element of the path:
@@ -382,9 +365,7 @@ This is an example, where the first element of a path is mapped to an integer id
                          (id, path) -> Path.of("/" + id + "/" + path.get(0)),
                          componentView());
     }
-
 ```
-If not configured, the default state-to-path mapping sets an empty path for any state.
 
 ### DOM elements references
 
@@ -431,30 +412,10 @@ To invoke arbitrary EcmaScript code in the browser use the ``evalJs()`` method o
 
 To listen to an SPA page's lifecycle events, provide an implementation of the ``PageLifecycle`` interface as a parameter
 of the application's object constructor.
-This allows to run some specific code
-- after the page is created
-- after the page is closed
 
-```java
-    final PageLifeCycle<Integer> plc = new PageLifeCycle.Default<Integer>() {
-        @Override
-        public void pageCreated(QualifiedSessionId sid, Integer initialState, NewState<Integer> newState) {
-            final Thread t = new Thread(() -> {
-                try {
-                    Thread.sleep(10_000);
-                    newState.apply(s -> s + 1);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            });
-            t.start();
-        }
-    };
-    
-    final App<Optional<FullName>> app = new App<>(route(), pages()).withPagelifeCycle(plc);
-    ...
-```
-Use these listeners to subscribe to some messages stream on a page live session creation and unsubscribing when the page closes.
+A ``PageLifecycle`` implementation allows to run some specific code:
+- after the page is created, which can be used, for example, to subscribe to some messages stream
+- after the page is closed, to unsubscribe or release resources
 
 ### Application server's configuration
 

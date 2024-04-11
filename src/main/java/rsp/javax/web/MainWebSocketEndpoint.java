@@ -4,7 +4,6 @@ import rsp.component.Component;
 import rsp.page.*;
 import rsp.server.*;
 import rsp.server.http.HttpRequest;
-import rsp.server.http.PageRelativeUrl;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.server.protocol.RemotePageMessageEncoder;
 import rsp.util.json.JsonParser;
@@ -44,7 +43,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     @Override
     public void onOpen(final Session session, final EndpointConfig endpointConfig) {
         logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
-        final RemoteOut remoteOut = new RemotePageMessageEncoder((msg) -> sendText(session, msg));
+        final RemoteOut remoteOut = new RemotePageMessageEncoder(msg -> sendText(session, msg));
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));

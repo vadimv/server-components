@@ -1,6 +1,6 @@
 package rsp;
 
-import rsp.component.HttpComponentDefinition;
+import rsp.component.HttpRequestStateComponentDefinition;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -33,7 +33,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final HttpComponentDefinition<S> rootComponentDefinition;
+    public final HttpRequestStateComponentDefinition<S> rootComponentDefinition;
 
     public final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -45,7 +45,7 @@ public final class App<S> {
      */
     private App(final AppConfig config,
                 final PageLifeCycle<S> lifeCycleEventsListener,
-                final HttpComponentDefinition<S> rootComponentDefinition) {
+                final HttpRequestStateComponentDefinition<S> rootComponentDefinition) {
         this.config = Objects.requireNonNull(config);
         this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
@@ -60,7 +60,7 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new HttpComponentDefinition<>(routing, rootComponentView));
+             new HttpRequestStateComponentDefinition<>(routing, rootComponentView));
     }
 
     /**
@@ -73,7 +73,7 @@ public final class App<S> {
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new HttpComponentDefinition<>(request -> initialState, rootComponentView));
+             new HttpRequestStateComponentDefinition<>(request -> initialState, rootComponentView));
     }
 
     /**
@@ -92,16 +92,16 @@ public final class App<S> {
                final View<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new HttpComponentDefinition<>(request -> CompletableFuture.completedFuture(initialState),
-                                           state -> newState -> rootComponentView.apply(state)));
+             new HttpRequestStateComponentDefinition<>(request -> CompletableFuture.completedFuture(initialState),
+                                                       state -> newState -> rootComponentView.apply(state)));
     }
 
     public App(final Routing<HttpRequest, S> routing,
                final View<S> rootComponentView) {
         this(AppConfig.DEFAULT,
              new PageLifeCycle.Default<>(),
-             new HttpComponentDefinition<>(routing,
-                                           state -> newState -> rootComponentView.apply(state)));
+             new HttpRequestStateComponentDefinition<>(routing,
+                                                       state -> newState -> rootComponentView.apply(state)));
     }
 
 

@@ -1,17 +1,14 @@
 package rsp.component;
 
 import rsp.server.Path;
-import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.RelativeUrl;
+import rsp.server.http.HttpRequest;
 
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * Stateful and stateless components definitions domain-specific language functions.
+ * Stateful and stateless components definitions domain-specific language helpers.
  */
 public class ComponentDsl {
 
@@ -23,47 +20,20 @@ public class ComponentDsl {
      * @param componentView a function for forming the component's view according to a state value
      * @return a component's definition for the DSL
      */
-    public static <S> PathStatefulComponentDefinition<S> component(final S initialState,
-                                                                   final ComponentView<S> componentView) {
-        Objects.requireNonNull(initialState);
-        return component(__ -> CompletableFuture.completedFuture(initialState),
-                         (__, path) -> path,
-                         componentView);
+    public static <S> StatefulComponentDefinition<S> component(final S initialState,
+                                                               final ComponentView<S> componentView) {
+        return new InitialStateComponentDefinition<>("initial-state", initialState, componentView);
     }
 
-    public static <S> PathStatefulComponentDefinition<S> component(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
-                                                                   final BiFunction<S, Path, Path> state2PathFunction,
+
+    public static <S> StatefulComponentDefinition<S> pathComponent(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
+                                                                   final BiFunction<S, Path, Path> stateToPath,
                                                                    final ComponentView<S> componentView) {
-        Objects.requireNonNull(initialStateRouting);
-        Objects.requireNonNull(state2PathFunction);
-        Objects.requireNonNull(componentView);
+        return new PathStateComponentDefinition<>(initialStateRouting, stateToPath, componentView);
+    }
 
-        return new PathStatefulComponentDefinition<>("path-component") {
-
-            @Override
-            protected ComponentStateSupplier<S> stateSupplier() {
-                return (key, httpStateOrigin) -> initialStateRouting.apply(httpStateOrigin.relativeUrl().path());
-            }
-
-            @Override
-            protected BiFunction<S, Path, Path> state2pathFunction() {
-                return state2PathFunction;
-            }
-
-            @Override
-            protected Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToStateFunction() {
-                return relativeUrl -> initialStateRouting.apply(relativeUrl.path());
-            }
-
-            @Override
-            protected ComponentView<S> componentView() {
-                return componentView;
-            }
-
-            @Override
-            protected UnmountCallback<S> unmountCallback() {
-                return (key, state) -> System.out.println("Unmounted: " + state);
-            }
-        };
+    public static <S> StatefulComponentDefinition<S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
+                                                                  final ComponentView<S> componentView) {
+        return new HttpRequestStateComponentDefinition<>(initialStateRouting,  componentView);
     }
 }

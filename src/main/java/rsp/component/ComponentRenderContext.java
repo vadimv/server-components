@@ -81,10 +81,10 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
 
     public <S> Component<S> openComponent(final Object componentType,
                                           final ComponentStateSupplier<S> stateSupplier,
-                                          final BeforeRenderCallback<S> beforeRenderCallback,
+                                          final MountCallback<S> componentDidMount,
                                           final ComponentView<S> componentView,
-                                          final StateAppliedCallback<S> newStateAppliedCallback,
-                                          final UnmountCallback<S> unmountCallback) {
+                                          final StateAppliedCallback<S> componentDidUpdate,
+                                          final UnmountCallback<S> componentWillUnmount) {
 
         final Component<?> parent = componentsStack.peek();
         final ComponentPath path = parent == null ?
@@ -94,10 +94,10 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                                                                                                            pageStateOrigin.httpStateOrigin());
         final Component<S> newComponent = new Component<>(key,
                                                           resolveStateSupplier,
-                                                          beforeRenderCallback,
+                                                          componentDidMount,
                                                           componentView,
-                                                          newStateAppliedCallback,
-                                                          unmountCallback,
+                                                          componentDidUpdate,
+                                                          componentWillUnmount,
                                                          this,
                                                           remotePageMessagesOut);
         openComponent(newComponent);

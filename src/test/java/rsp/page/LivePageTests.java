@@ -1,21 +1,19 @@
 package rsp.page;
 
 import org.junit.jupiter.api.Test;
-import rsp.component.Component;
-import rsp.component.ComponentDsl;
-import rsp.component.ComponentView;
-import rsp.component.PathStatefulComponentDefinition;
+import rsp.component.*;
 import rsp.dom.VirtualDomPath;
 import rsp.server.Path;
 import rsp.server.http.*;
 
 import java.net.URI;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
-import static rsp.page.TestCollectingRemoteOut.ListenEventOutMessage;
-import static rsp.page.TestCollectingRemoteOut.ModifyDomOutMessage;
+import static rsp.page.TestCollectingRemoteOut.*;
 
 public class LivePageTests {
 
@@ -50,7 +48,9 @@ public class LivePageTests {
                                                                        httpStateOrigin,
                                                                        commandsBuffer);
 
-        final PathStatefulComponentDefinition<State> componentDefinition = ComponentDsl.component(initialState, view);
+        final StatefulComponentDefinition<State> componentDefinition = ComponentDsl.pathComponent(p -> CompletableFuture.completedFuture(initialState),
+                                                                                                  (s, p) -> p,
+                                                                                                  view);
         componentDefinition.render(domTreeContext);
         assertFalse(domTreeContext.toString().isBlank());
 
@@ -67,7 +67,18 @@ public class LivePageTests {
 
         rootComponent.set(new State(100));
         commandsBuffer.redirectMessagesOut(remoteOut);
-        assertInstanceOf(ModifyDomOutMessage.class, remoteOut.commands.get(1));
+
+        assertTrue(containsType(ModifyDomOutMessage.class, remoteOut.commands));
+        assertTrue(containsType(PushHistoryMessage.class, remoteOut.commands));
+    }
+
+    private static <U> boolean containsType(final Class<?> modifyDomOutMessageClass, final List<U> list) {
+        for (U element : list) {
+            if (modifyDomOutMessageClass.isAssignableFrom(element.getClass())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static final class State {

@@ -9,7 +9,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     private final Object componentType;
 
-    public StatefulComponentDefinition(final Object componentType) {
+    protected StatefulComponentDefinition(final Object componentType) {
         this.componentType = Objects.requireNonNull(componentType);
     }
 
@@ -17,21 +17,21 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     protected abstract ComponentView<S> componentView();
 
-    protected abstract BeforeRenderCallback<S> beforeRenderCallback();
+    protected abstract MountCallback<S> componentDidMount();
 
-    protected abstract StateAppliedCallback<S> afterStateAppliedCallback();
+    protected abstract StateAppliedCallback<S> componentDidUpdate();
 
-    protected abstract UnmountCallback<S> unmountCallback();
+    protected abstract UnmountCallback<S> componentWillUnmount();
 
     @Override
     public boolean render(final RenderContext renderContext) {
         if (renderContext instanceof ComponentRenderContext componentRenderContext) {
             final Component<S> component = componentRenderContext.openComponent(componentType,
                                                                                 stateSupplier(),
-                                                                                beforeRenderCallback(),
+                                                                                componentDidMount(),
                                                                                 componentView(),
-                                                                                afterStateAppliedCallback(),
-                                                                                unmountCallback());
+                                                                                componentDidUpdate(),
+                                                                                componentWillUnmount());
             component.render(componentRenderContext);
 
             componentRenderContext.closeComponent();

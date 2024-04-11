@@ -13,35 +13,33 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public abstract class PathStatefulComponentDefinition<S> extends StatefulComponentDefinition<S> {
+public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
-    public PathStatefulComponentDefinition(final Object componentType) {
+    protected RelativeUrlStateComponentDefinition(final Object componentType) {
         super(componentType);
     }
 
-    protected abstract BiFunction<S, Path, Path> state2pathFunction();
+    protected abstract BiFunction<S, RelativeUrl, RelativeUrl> relativeUrlToPath();
 
-    protected abstract Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToStateFunction();
+    protected abstract Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState();
 
     @Override
-    protected BeforeRenderCallback<S> beforeRenderCallback() {
-        return (key, state, newState, renderContext) -> {
-                renderContext.addEvent(VirtualDomPath.WINDOW,
-                                       LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                       eventContext -> newState.applyWhenComplete(relativeUrlToStateFunction().apply(extractRelativeUrl(eventContext.eventObject()))),
-                                      true,
-                                       Event.NO_MODIFIER);
-        };
+    protected MountCallback<S> componentDidMount() {
+        return (key, state, newState, renderContext) -> renderContext.addEvent(VirtualDomPath.WINDOW,
+                                                                               LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                                                                               eventContext -> newState.applyWhenComplete(relativeUrlToState()
+                                                                                                       .apply(extractRelativeUrl(eventContext.eventObject()))),
+                                                                               true,
+                                                                               Event.NO_MODIFIER);
     }
 
     @Override
-    protected StateAppliedCallback<S> afterStateAppliedCallback() {
+    protected StateAppliedCallback<S> componentDidUpdate() {
         return (key, state, renderContext) -> {
             final RelativeUrl oldRelativeUrl = renderContext.getRelativeUrl();
-            final Path oldPath = oldRelativeUrl.path();
-            final Path newPath = state2pathFunction().apply(state, oldPath);
-            if (!newPath.equals(oldPath)) {
-                renderContext.setRelativeUrl(new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment()));
+            final RelativeUrl newRelativeUrl = relativeUrlToPath().apply(state, oldRelativeUrl);
+            if (!newRelativeUrl.equals(oldRelativeUrl)) {
+                renderContext.setRelativeUrl(newRelativeUrl);
             }
         };
     }

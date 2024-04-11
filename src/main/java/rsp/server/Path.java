@@ -60,10 +60,6 @@ public final class Path {
         return new Path(this.isAbsolute, ArrayUtils.concat(this.elements, path.elements));
     }
 
-    public Path relativize(final Path path) {
-        return EMPTY; // TODO
-    }
-
     /**
      * Returns the element at the specified position in this path.
      * @param index index of the element to return

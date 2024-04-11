@@ -25,9 +25,9 @@ public final class Component<S> implements NewState<S> {
 
     private final ComponentCompositeKey key;
     private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
-    private final BeforeRenderCallback<S> beforeRenderCallback;
-    private final StateAppliedCallback<S> newStateAppliedCallback;
-    private final UnmountCallback<S> unmountCallback;
+    private final MountCallback<S> componentDidMount;
+    private final StateAppliedCallback<S> componentDidUpdate;
+    private final UnmountCallback<S> componentWillUnmount;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
     private final RemoteOut remotePageMessages;
@@ -37,18 +37,18 @@ public final class Component<S> implements NewState<S> {
 
     public Component(final ComponentCompositeKey key,
                      final Supplier<CompletableFuture<? extends S>> resolveStateFunction,
-                     final BeforeRenderCallback<S> beforeRenderCallback,
+                     final MountCallback<S> componentDidMount,
                      final ComponentView<S> componentView,
-                     final StateAppliedCallback<S> newStateAppliedCallback,
-                     final UnmountCallback<S> unmountCallback,
+                     final StateAppliedCallback<S> componentDidUpdate,
+                     final UnmountCallback<S> componentWillUnmount,
                      final RenderContextFactory renderContextFactory,
                      final RemoteOut remotePageMessages) {
         this.key = Objects.requireNonNull(key);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
-        this.beforeRenderCallback = Objects.requireNonNull(beforeRenderCallback);
+        this.componentDidMount = Objects.requireNonNull(componentDidMount);
         this.componentView = Objects.requireNonNull(componentView);
-        this.newStateAppliedCallback = Objects.requireNonNull(newStateAppliedCallback);
-        this.unmountCallback = Objects.requireNonNull(unmountCallback);
+        this.componentDidUpdate = Objects.requireNonNull(componentDidUpdate);
+        this.componentWillUnmount = Objects.requireNonNull(componentWillUnmount);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
 
@@ -76,8 +76,8 @@ public final class Component<S> implements NewState<S> {
                 state = s;
                 try {
                     final SegmentDefinition view = componentView.apply(state).apply(this);
-                    beforeRenderCallback.apply(key, state, this, renderContext);
                     view.render(renderContext);
+                    componentDidMount.apply(key, state, this, renderContext);
                 } catch (Throwable renderEx) {
                     logger.log(ERROR, "Component " + key + " rendering exception", renderEx);
                 }
@@ -124,9 +124,10 @@ public final class Component<S> implements NewState<S> {
 
         renderContext.openComponent(this);
         final SegmentDefinition view = componentView.apply(state).apply(this);
-        beforeRenderCallback.apply(key, state, this, renderContext);
+        componentDidMount.apply(key, state, this, renderContext);
         view.render(renderContext);
         renderContext.closeComponent();
+        componentDidUpdate.apply(key, state, renderContext);
 
         tag = renderContext.rootTag();
 
@@ -162,8 +163,6 @@ public final class Component<S> implements NewState<S> {
         }
         remoteOut.listenEvents(eventsToAdd);
 
-        newStateAppliedCallback.apply(key, state, renderContext);
-
         // Notify unmounted child components
         final Set<Component<?>> mountedComponents = new HashSet<>(children);
         for (final Component<?> child : oldChildren) {
@@ -178,7 +177,7 @@ public final class Component<S> implements NewState<S> {
     }
 
     private void unmount() {
-        unmountCallback.apply(key, state);
+        componentWillUnmount.apply(key, state);
     }
 
     public List<Component<?>> recursiveChildren() {
