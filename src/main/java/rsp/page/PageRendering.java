@@ -5,7 +5,6 @@ import rsp.dom.VirtualDomPath;
 import rsp.server.http.*;
 import rsp.server.Path;
 import rsp.util.RandomString;
-import rsp.util.data.Tuple2;
 
 import java.io.IOException;
 import java.net.URL;
@@ -100,27 +99,27 @@ public final class PageRendering<S> {
             logger.log(TRACE, () -> "Page body: " + responseBody);
 
             return CompletableFuture.completedFuture(new HttpResponse(domTreeContext.statusCode(),
-                                                     headers(domTreeContext.headers(), deviceId),
-                                                     responseBody));
+                                                                      headers(domTreeContext.headers(), deviceId),
+                                                                      responseBody));
 
         } catch (final Exception ex) {
             return CompletableFuture.failedFuture(ex);
         }
     }
 
-    private List<Tuple2<String,String>> headers(final Map<String, String> headers, final String deviceId) {
-        final List<Tuple2<String,String>> resultHeaders = new ArrayList<>();
+    private List<Header> headers(final Map<String, String> headers, final String deviceId) {
+        final List<Header> resultHeaders = new ArrayList<>();
         for (final Map.Entry<String, String> entry : headers.entrySet() ) {
-            resultHeaders.add(new Tuple2<>(entry.getKey(), entry.getValue()));
+            resultHeaders.add(new Header(entry.getKey(), entry.getValue()));
         }
-        resultHeaders.add(new Tuple2<>("content-type", "text/html; charset=utf-8"));
-        resultHeaders.add(new Tuple2<>("cache-control", "no-store, no-cache, must-revalidate"));
-        resultHeaders.add(new Tuple2<>("Set-Cookie", String.format("%s=%s; Path=%s; Max-Age=%d; SameSite=Lax",
-                                                                DEVICE_ID_COOKIE_NAME,
-                                                                deviceId,
-                                                                "/",
-                                                                60 * 60 * 24 * 365 * 10 /* 10 years */ )));
-        return resultHeaders;
+        resultHeaders.add(new Header("content-type", "text/html; charset=utf-8"));
+        resultHeaders.add(new Header("cache-control", "no-store, no-cache, must-revalidate"));
+        resultHeaders.add(new Header("Set-Cookie", String.format("%s=%s; Path=%s; Max-Age=%d; SameSite=Lax",
+                                                                       DEVICE_ID_COOKIE_NAME,
+                                                                       deviceId,
+                                                                       "/",
+                                                                       60 * 60 * 24 * 365 * 10 /* 10 years */ )));
+                return resultHeaders;
 
     }
 }

@@ -72,7 +72,7 @@ public final class MainHttpServlet<S>  extends HttpServlet {
     private void setServletResponse(final HttpResponse resp, final HttpServletResponse response) {
         response.setStatus(resp.status);
 
-        resp.headers.stream().forEach(h -> response.addHeader(h._1, h._2));
+        resp.headers.stream().forEach(h -> response.addHeader(h.name(), h.value()));
 
         try(final var inputStream = resp.bodyStream; final var outputStream = response.getOutputStream()) {
             copy(inputStream, outputStream);

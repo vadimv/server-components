@@ -1,7 +1,6 @@
 package rsp.routing;
 
 import rsp.server.Path;
-import rsp.util.data.Tuple2;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -39,11 +38,10 @@ public final class PathPattern {
      * @return a result path pattern
      */
     public static PathPattern of(final String pattern) {
-        final Tuple2<List<String>, Map<Integer, Pattern>> p = parse(pattern);
-        return new PathPattern(p._1, paramsIndexes(p._1), p._2);
+        return parse(pattern);
     }
 
-    private static Tuple2<List<String>, Map<Integer, Pattern>> parse(final String pattern) {
+    private static PathPattern parse(final String pattern) {
         final String[] segments = Arrays.stream(pattern.split("/")).filter(s -> !s.isEmpty()).toArray(String[]::new);
         final List<String> l = new ArrayList<>();
         final Map<Integer, Pattern> regexMap = new HashMap<>();
@@ -63,7 +61,7 @@ public final class PathPattern {
             }
             l.add(segment);
         }
-        return new Tuple2<>(l, regexMap);
+        return new PathPattern(l, paramsIndexes(l), regexMap);
     }
 
     private static int[] paramsIndexes(final List<String> patternSegments) {

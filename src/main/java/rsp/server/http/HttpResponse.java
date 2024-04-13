@@ -1,7 +1,5 @@
 package rsp.server.http;
 
-import rsp.util.data.Tuple2;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
@@ -12,11 +10,11 @@ public final class HttpResponse {
     public static final int MOVED_TEMPORARILY_STATUS_CODE = 302;
 
     public final int status;
-    public final List<Tuple2<String,String>> headers;
+    public final List<Header> headers;
     public final InputStream bodyStream;
 
     public HttpResponse(final int status,
-                        final List<Tuple2<String,String>> headers,
+                        final List<Header> headers,
                         final InputStream bodyStream) {
         this.status = status;
         this.headers = headers;
@@ -24,7 +22,7 @@ public final class HttpResponse {
     }
 
     public HttpResponse(final int status,
-                        final List<Tuple2<String,String>> headers,
+                        final List<Header> headers,
                         final String body) {
         this(status, headers, new ByteArrayInputStream(body.getBytes()));
     }
