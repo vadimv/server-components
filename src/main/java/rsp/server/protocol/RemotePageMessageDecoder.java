@@ -2,8 +2,8 @@ package rsp.server.protocol;
 
 
 import rsp.dom.VirtualDomPath;
+import rsp.server.ExtractPropertyResponse;
 import rsp.server.RemoteIn;
-import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonParser;
 
@@ -62,9 +62,9 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
         final String[] tokens = metadata.split(":");
         final int descriptorId = Integer.parseInt(tokens[0]);
         final int jsonMetadata = Integer.parseInt(tokens[1]);
-        final Either<Throwable, JsonDataType> result = jsonMetadata == JSON_METADATA_DATA ?
-                                        Either.right(value) :
-                                        Either.left(new RuntimeException("Property not found"));
+        final ExtractPropertyResponse result = jsonMetadata == JSON_METADATA_DATA ?
+                                        new ExtractPropertyResponse.Value(value) :
+                                        ExtractPropertyResponse.NOT_FOUND;
         remoteIn.handleExtractPropertyResponse(descriptorId, result);
     }
 

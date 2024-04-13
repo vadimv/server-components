@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import rsp.dom.VirtualDomPath;
 import rsp.server.protocol.MessageDecoder;
 import rsp.server.protocol.RemotePageMessageDecoder;
-import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonSimpleUtils;
 
@@ -36,11 +35,11 @@ public class RemotePageMessageDecoderTests {
         assertTrue(collector.result instanceof ExtractProperty);
         final ExtractProperty result = (ExtractProperty) collector.result;
         assertEquals(1, result.descriptorId);
-        result.value.on(v -> fail(),
-                        v -> {
-            assertEquals(new JsonDataType.String("bar"), v);
-        });
-
+        if (result.value instanceof ExtractPropertyResponse.NotFound) {
+            fail();
+        } else if (result.value instanceof ExtractPropertyResponse.Value v) {
+            assertEquals(new JsonDataType.String("bar"), v.value());
+        }
     }
 
     @Test
@@ -75,8 +74,8 @@ public class RemotePageMessageDecoderTests {
 
     private static final class ExtractProperty {
         public final int descriptorId;
-        public final Either<Throwable, JsonDataType> value;
-        public ExtractProperty(final int descriptorId, final Either<Throwable, JsonDataType> value) {
+        public final ExtractPropertyResponse value;
+        public ExtractProperty(final int descriptorId, final ExtractPropertyResponse value) {
             this.descriptorId = descriptorId;
             this.value = value;
         }
@@ -97,7 +96,7 @@ public class RemotePageMessageDecoderTests {
 
 
         @Override
-        public void handleExtractPropertyResponse(final int descriptorId, final Either<Throwable, JsonDataType> value) {
+        public void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse value) {
             result = new ExtractProperty(descriptorId, value);
         }
 

@@ -1,11 +1,10 @@
 package rsp.server;
 
 import rsp.dom.VirtualDomPath;
-import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
 public interface RemoteIn {
-    void handleExtractPropertyResponse(int descriptorId, Either<Throwable, JsonDataType> result);
+    void handleExtractPropertyResponse(int descriptorId, ExtractPropertyResponse result);
 
     void handleDomEvent(int renderNumber, VirtualDomPath path, String eventType, JsonDataType.Object eventObject);
 

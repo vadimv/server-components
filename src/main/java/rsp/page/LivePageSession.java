@@ -7,7 +7,6 @@ import rsp.ref.Ref;
 import rsp.ref.TimerRef;
 import rsp.server.*;
 import rsp.server.http.*;
-import rsp.util.data.Either;
 import rsp.util.json.JsonDataType;
 
 import java.util.*;
@@ -88,26 +87,26 @@ public final class LivePageSession implements RemoteIn, Schedule {
     }
 
     @Override
-    public void handleExtractPropertyResponse(final int descriptorId, final Either<Throwable, JsonDataType> result) {
-        result.on(ex -> {
-                    logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " exception: " + ex.getMessage());
-                    synchronized (this) {
-                        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
-                        if (cf != null) {
-                            cf.completeExceptionally(ex);
-                            registeredEventHandlers.remove(descriptorId);
-                        }
+    public void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
+        if (result instanceof ExtractPropertyResponse.NotFound) {
+            logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " failed");
+            synchronized (this) {
+                final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+                if (cf != null) {
+                    cf.completeExceptionally(new RuntimeException("Extract property: " + descriptorId + " not found"));
+                    registeredEventHandlers.remove(descriptorId);
+                }
+            }
+        } else if (result instanceof ExtractPropertyResponse.Value v) {
+            logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.value());
+            synchronized (this) {
+                final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+                if (cf != null) {
+                    cf.complete(v.value());
+                    registeredEventHandlers.remove(descriptorId);
                     }
-                }, v -> {
-                    logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.toStringValue());
-                    synchronized (this) {
-                        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
-                        if (cf != null) {
-                            cf.complete(v);
-                            registeredEventHandlers.remove(descriptorId);
-                        }
-                    }
-                });
+                }
+            }
     }
 
     @Override
