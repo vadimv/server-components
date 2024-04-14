@@ -38,15 +38,14 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     @Override
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
         super.openNode(xmlns, name, isSelfClosing);
-        trySetCurrentComponentRootTag(tagsStack.peek());
+
+        final Component<?> component = componentsStack.peek();
+        assert component != null;
+        final Tag tag = tagsStack.peek();
+        assert tag != null;
+        component.setRootTagIfNotSet(tag);
     }
 
-    private void trySetCurrentComponentRootTag(final Tag newTag) {
-        final Component<?> component = componentsStack.peek();
-        if (component != null) {
-            component.setRootTagIfNotSet(newTag);
-        }
-    }
 
     @Override
     public void addEvent(final VirtualDomPath elementPath,
@@ -123,14 +122,6 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     public ComponentRenderContext newContext(final VirtualDomPath domPath) {
         return new ComponentRenderContext(sessionId,
                                           domPath,
-                                          pageStateOrigin,
-                                          remotePageMessagesOut);
-    }
-
-    @Override
-    public ComponentRenderContext newContext() {
-        return new ComponentRenderContext(sessionId,
-                                          rootDomPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut);
     }

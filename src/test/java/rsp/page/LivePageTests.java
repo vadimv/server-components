@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import rsp.component.*;
 import rsp.dom.VirtualDomPath;
 import rsp.server.Path;
+import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.*;
 
 import java.net.URI;
@@ -13,7 +14,8 @@ import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
-import static rsp.page.TestCollectingRemoteOut.*;
+import static rsp.server.TestCollectingRemoteOut.*;
+import static rsp.util.TestUtils.containsType;
 
 public class LivePageTests {
 
@@ -70,15 +72,6 @@ public class LivePageTests {
 
         assertTrue(containsType(ModifyDomOutMessage.class, remoteOut.commands));
         assertTrue(containsType(PushHistoryMessage.class, remoteOut.commands));
-    }
-
-    private static <U> boolean containsType(final Class<?> modifyDomOutMessageClass, final List<U> list) {
-        for (U element : list) {
-            if (modifyDomOutMessageClass.isAssignableFrom(element.getClass())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     static final class State {

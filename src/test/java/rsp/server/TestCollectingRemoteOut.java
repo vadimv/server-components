@@ -1,9 +1,8 @@
-package rsp.page;
+package rsp.server;
 
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
-import rsp.server.RemoteOut;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,9 +76,9 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    interface Message {}
+    public interface Message {}
 
-    final static class ListenEventOutMessage implements Message {
+    public final static class ListenEventOutMessage implements Message {
         public final String eventType;
         public final boolean preventDefault;
         public final VirtualDomPath path;
@@ -119,7 +118,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    static final class ForgetEventOutMessage implements Message {
+    public static final class ForgetEventOutMessage implements Message {
         public final String eventType;
         public final VirtualDomPath elementPath;
 
@@ -151,7 +150,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    static final class ExtractPropertyOutMessage implements Message {
+    public static final class ExtractPropertyOutMessage implements Message {
         public final int descriptor;
         public final VirtualDomPath path;
         public final String name;
@@ -178,7 +177,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    static final class ModifyDomOutMessage implements Message {
+    public static final class ModifyDomOutMessage implements Message {
         public final List<DefaultDomChangesContext.DomChange> domChange;
 
         ModifyDomOutMessage(final List<DefaultDomChangesContext.DomChange> domChange) {
@@ -206,7 +205,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    static final class PushHistoryMessage implements Message {
+    public static final class PushHistoryMessage implements Message {
         public final String path;
 
         public PushHistoryMessage(final String path) {

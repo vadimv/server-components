@@ -64,9 +64,9 @@ public final class Component<S> implements NewState<S> {
     }
 
     public void setRootTagIfNotSet(Tag newTag) {
-        if (this.tag == null) {
+      if (this.tag == null) {
             this.tag = newTag;
-        }
+      }
     }
 
     public void render(final ComponentRenderContext renderContext) {
@@ -108,16 +108,19 @@ public final class Component<S> implements NewState<S> {
 
     @Override
     public void apply(final UnaryOperator<S> newStateFunction) {
+        if (tag == null) {
+            throw new IllegalStateException("Component " + this + " root tag is not rendered");
+        }
         final Tag oldTag = tag;
+        tag = null;
         final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
         final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
         final S oldState = state;
         state = newStateFunction.apply(state);
-        logger.log(TRACE, () -> "Component's " + key + " old state was " + oldState + " applied new state " + state);
+        logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
-        final ComponentRenderContext renderContext = oldTag != null ?
-                                        renderContextFactory.newContext(oldTag.path()) :
-                                        renderContextFactory.newContext();
+        final ComponentRenderContext renderContext = renderContextFactory.newContext(oldTag.path());
+
         events.clear();
         refs.clear();
         children.clear();

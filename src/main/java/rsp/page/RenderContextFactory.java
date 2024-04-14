@@ -5,5 +5,4 @@ import rsp.dom.VirtualDomPath;
 
 public interface RenderContextFactory {
     ComponentRenderContext newContext(VirtualDomPath path);
-    ComponentRenderContext newContext();
 }

@@ -1,9 +1,9 @@
-package rsp.page;
+package rsp.server;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
-import static rsp.page.TestCollectingRemoteOut.*;
+import static rsp.server.TestCollectingRemoteOut.*;
 
 public class TestCollectingRemoteOutTests {
 
