@@ -56,6 +56,10 @@ public class TestCollectingRemoteOut implements RemoteOut {
         throw new IllegalStateException();
     }
 
+    public void clear() {
+        commands.clear();
+    }
+
     final static class SetRenderNumOutMessage implements Message {
         public final int renderNum;
         SetRenderNumOutMessage(final int renderNum) {

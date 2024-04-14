@@ -32,7 +32,7 @@ public class LivePageTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final State initialState = new State(10);
 
-        final URI uri = URI.create("http:/localhost");
+        final URI uri = URI.create("http://localhost");
         final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
                                                         uri,
                                                         uri.toString(),
