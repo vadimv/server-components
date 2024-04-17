@@ -8,6 +8,13 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
     private final ComponentView<S> view;
     private final S initialState;
 
+    public InitialStateComponentDefinition(final S initialState,
+                                           final ComponentView<S> view) {
+        super(InitialStateComponentDefinition.class);
+        this.view = Objects.requireNonNull(view);
+        this.initialState = Objects.requireNonNull(initialState);
+    }
+
     public InitialStateComponentDefinition(final Object componentType,
                                            final S initialState,
                                            final ComponentView<S> view) {

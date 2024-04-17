@@ -10,9 +10,18 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     private final S initialState;
     private final Map<ComponentCompositeKey, S> stateStore;
 
-    public StoredStateComponentDefinition(final Object componentType,
+    public StoredStateComponentDefinition(final S initialState,
                                           final ComponentView<S> view,
+                                          final Map<ComponentCompositeKey, S> stateStore) {
+        super(StoredStateComponentDefinition.class);
+        this.view = Objects.requireNonNull(view);
+        this.initialState = Objects.requireNonNull(initialState);
+        this.stateStore = Objects.requireNonNull(stateStore);
+    }
+
+    public StoredStateComponentDefinition(final Object componentType,
                                           final S initialState,
+                                          final ComponentView<S> view,
                                           final Map<ComponentCompositeKey, S> stateStore) {
         super(componentType);
         this.view = Objects.requireNonNull(view);

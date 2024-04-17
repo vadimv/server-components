@@ -63,7 +63,7 @@ public class SimpleServer {
     }
 
     private static SegmentDefinition storedCounter(final String name) {
-        return new StoredStateComponentDefinition<>("stored-counter", counterView(name), 123 , stateStore);
+        return new StoredStateComponentDefinition<>(123, counterView(name), stateStore);
     }
 
     private  static ComponentView<Boolean> storedCounterView() {
@@ -87,7 +87,7 @@ public class SimpleServer {
                                  attr("href", "/res/style.css"))),
                     body(counter1("c1"),
                          counter2("c2"),
-                              br(),
+                         br(),
                          component(true, storedCounterView())
 
                     ));

@@ -18,8 +18,9 @@ public final class HttpRequest {
     public final URI uri;
     public final String url;
     public final Path path;
-    public final Function<String, Optional<String>> getQueryParam;
-    public final Function<String, Optional<String>> getHeader;
+
+    private final Function<String, Optional<String>> getQueryParam;
+    private final Function<String, Optional<String>> getHeader;
 
     /**
      * Creates a new instance of an HTTP request.

@@ -17,7 +17,7 @@ public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDe
 
     public PathStateComponentDefinition(Function<Path, CompletableFuture<? extends S>> initialStateRouting,
                                         BiFunction<S, Path, Path> stateToPath, ComponentView<S> componentView) {
-        super("path-component");
+        super(PathStateComponentDefinition.class);
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.stateToPath = Objects.requireNonNull(stateToPath);
         this.componentView = Objects.requireNonNull(componentView);
@@ -29,7 +29,7 @@ public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDe
     }
 
     @Override
-    protected BiFunction<S, RelativeUrl, RelativeUrl> relativeUrlToPath() {
+    protected BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl() {
         return (s, r) -> new RelativeUrl(stateToPath.apply(s, r.path()), Query.EMPTY, Fragment.EMPTY);
     }
 

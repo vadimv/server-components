@@ -19,7 +19,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
         super(componentType);
     }
 
-    protected abstract BiFunction<S, RelativeUrl, RelativeUrl> relativeUrlToPath();
+    protected abstract BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl();
 
     protected abstract Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState();
 
@@ -37,7 +37,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
     protected StateAppliedCallback<S> componentDidUpdate() {
         return (key, state, renderContext) -> {
             final RelativeUrl oldRelativeUrl = renderContext.getRelativeUrl();
-            final RelativeUrl newRelativeUrl = relativeUrlToPath().apply(state, oldRelativeUrl);
+            final RelativeUrl newRelativeUrl = stateToRelativeUrl().apply(state, oldRelativeUrl);
             if (!newRelativeUrl.equals(oldRelativeUrl)) {
                 renderContext.setRelativeUrl(newRelativeUrl);
             }

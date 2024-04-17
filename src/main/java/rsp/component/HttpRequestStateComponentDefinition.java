@@ -13,7 +13,7 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
 
     public HttpRequestStateComponentDefinition(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
                                                final ComponentView<S> componentView) {
-        super("http-component");
+        super(HttpRequestStateComponentDefinition.class);
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
     }
