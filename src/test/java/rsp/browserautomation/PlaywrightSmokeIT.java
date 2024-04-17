@@ -61,7 +61,7 @@ public class PlaywrightSmokeIT {
         validateComponent2(page);
     }
 
-    private void validateComponent1(Page page) {
+    private void validateComponent1(final Page page) {
         assertThat(page.locator("#c1_s0")).hasText(Integer.toString(COUNTER_1_INITIAL_VALUE));
         assertThat(page.locator("#c1_s0")).hasClass(expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE));
 
@@ -74,7 +74,7 @@ public class PlaywrightSmokeIT {
         assertThat(page.locator("#c1_s0")).hasClass(expectedColorAttributeValue(COUNTER_1_INITIAL_VALUE + 2));
     }
 
-    private void validateComponent2(Page page) {
+    private void validateComponent2(final Page page) {
         assertThat(page.locator("#c2_s0")).hasText(Integer.toString(COUNTER_2_INITIAL_VALUE));
         assertThat(page.locator("#c2_s0")).hasClass(expectedColorAttributeValue(COUNTER_2_INITIAL_VALUE));
 
@@ -96,7 +96,7 @@ public class PlaywrightSmokeIT {
 
     }
 
-    private static String expectedColorAttributeValue(int value) {
+    private static String expectedColorAttributeValue(final int value) {
         return value % 2 == 0 ? "red" : "blue";
     }
 
@@ -104,7 +104,7 @@ public class PlaywrightSmokeIT {
         page.click("#" + elementId);
     }
 
-    private static void waitFor(long timeMs) throws InterruptedException {
+    private static void waitFor(final long timeMs) throws InterruptedException {
         Thread.sleep(timeMs);
     }
 
