@@ -16,7 +16,7 @@ public final class PageRenderContext extends ComponentRenderContext {
     private Map<String, String> headers;
     private boolean headWasOpened;
 
-    public PageRenderContext(final Object sessionId,
+    public PageRenderContext(final QualifiedSessionId sessionId,
                              final String pageConfigScript,
                              final VirtualDomPath rootDomPath,
                              final PageStateOrigin httpStateOriginSupplier,

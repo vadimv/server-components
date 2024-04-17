@@ -13,14 +13,14 @@ import java.util.function.*;
 
 public class ComponentRenderContext extends DomTreeRenderContext implements RenderContextFactory {
 
-    private final Object sessionId;
+    private final QualifiedSessionId sessionId;
     private final PageStateOrigin pageStateOrigin;
     private final RemoteOut remotePageMessagesOut;
 
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private Component<?> rootComponent;
 
-    public ComponentRenderContext(final Object sessionId,
+    public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final VirtualDomPath rootDomPath,
                                   final PageStateOrigin pageStateOrigin,
                                   final RemoteOut remotePageMessagesOut) {

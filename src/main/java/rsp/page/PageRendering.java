@@ -82,7 +82,7 @@ public final class PageRendering<S> {
 
             final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
 
-            final PageRenderContext domTreeContext = new PageRenderContext(pageId.deviceId,
+            final PageRenderContext domTreeContext = new PageRenderContext(pageId,
                                                                            pageConfigScript.toString(),
                                                                            VirtualDomPath.DOCUMENT,
                                                                            httpStateOrigin,

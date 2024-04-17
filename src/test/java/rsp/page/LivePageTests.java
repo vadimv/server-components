@@ -44,7 +44,7 @@ public class LivePageTests {
                                                                        1000);
         final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
         final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
-        final PageRenderContext domTreeContext = new PageRenderContext(new Object(),
+        final PageRenderContext domTreeContext = new PageRenderContext(new QualifiedSessionId("device0", "session0"),
                                                                        pageConfigScript.toString(),
                                                                        VirtualDomPath.DOCUMENT,
                                                                        httpStateOrigin,

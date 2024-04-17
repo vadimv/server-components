@@ -1,4 +1,6 @@
 package rsp.component;
 
-public record ComponentCompositeKey(Object sessionId, Object componentType, ComponentPath path) {
+import rsp.page.QualifiedSessionId;
+
+public record ComponentCompositeKey(QualifiedSessionId sessionId, Object componentType, ComponentPath path) {
 }
