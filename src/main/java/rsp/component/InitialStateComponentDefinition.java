@@ -32,25 +32,4 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
     protected ComponentView<S> componentView() {
         return view;
     }
-
-    @Override
-    protected StateAppliedCallback<S> componentDidUpdate() {
-        return (key, state, componentRenderContext) -> {
-            // NO-OP
-        };
-    }
-
-    @Override
-    protected MountCallback<S> componentDidMount() {
-        return (key, state, newState, componentRenderContext) -> {
-            // NO-OP
-        };
-    }
-
-    @Override
-    protected UnmountCallback<S> componentWillUnmount() {
-        return (key, state) -> {
-            // NO-OP
-        };
-    }
 }

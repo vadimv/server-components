@@ -42,9 +42,4 @@ public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDe
     protected ComponentView<S> componentView() {
         return componentView;
     }
-
-    @Override
-    protected UnmountCallback<S> componentWillUnmount() {
-        return (key, state) -> {};
-    }
 }

@@ -27,19 +27,4 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
     protected ComponentView<S> componentView() {
         return componentView;
     }
-
-    @Override
-    protected MountCallback<S> componentDidMount() {
-        return (key, state, newState, beforeRenderCallback) -> {};
-    }
-
-    @Override
-    protected StateAppliedCallback<S> componentDidUpdate() {
-        return (key, state, ctx) -> {};
-    }
-
-    @Override
-    protected UnmountCallback<S> componentWillUnmount() {
-        return (key, state) -> {};
-    }
 }

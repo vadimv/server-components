@@ -13,15 +13,23 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
         this.componentType = Objects.requireNonNull(componentType);
     }
 
+
     protected abstract ComponentStateSupplier<S> stateSupplier();
 
     protected abstract ComponentView<S> componentView();
 
-    protected abstract MountCallback<S> componentDidMount();
 
-    protected abstract StateAppliedCallback<S> componentDidUpdate();
+    protected MountCallback<S> componentDidMount() {
+        return (key, state, newState, beforeRenderCallback) -> {};
+    }
 
-    protected abstract UnmountCallback<S> componentWillUnmount();
+    protected StateAppliedCallback<S> componentDidUpdate() {
+        return (key, oldState, state, newState, ctx) -> {};
+    }
+
+    protected UnmountCallback<S> componentWillUnmount() {
+        return (key, state) -> {};
+    }
 
     @Override
     public boolean render(final RenderContext renderContext) {

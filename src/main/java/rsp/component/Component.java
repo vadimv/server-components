@@ -127,10 +127,9 @@ public final class Component<S> implements NewState<S> {
 
         renderContext.openComponent(this);
         final SegmentDefinition view = componentView.apply(state).apply(this);
-        componentDidMount.apply(key, state, this, renderContext);
         view.render(renderContext);
+        componentDidMount.apply(key, state, this, renderContext);
         renderContext.closeComponent();
-        componentDidUpdate.apply(key, state, renderContext);
 
         tag = renderContext.rootTag();
 
@@ -173,6 +172,8 @@ public final class Component<S> implements NewState<S> {
                 child.unmount();
             }
         }
+
+        componentDidUpdate.apply(key, oldState, state, this, renderContext);
     }
 
     public List<Component<?>> directChildren() {

@@ -2,5 +2,5 @@ package rsp.component;
 
 @FunctionalInterface
 public interface StateAppliedCallback<S> {
-    void apply(ComponentCompositeKey key, S state, ComponentRenderContext beforeRenderCallback);
+    void apply(ComponentCompositeKey key, S oldState, S state, NewState<S> newState, ComponentRenderContext beforeRenderCallback);
 }

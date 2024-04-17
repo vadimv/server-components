@@ -1,6 +1,7 @@
 package rsp;
 
 import rsp.component.HttpRequestStateComponentDefinition;
+import rsp.component.StatefulComponentDefinition;
 import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -33,7 +34,7 @@ public final class App<S> {
     /**
      * The root of the components tree.
      */
-    public final HttpRequestStateComponentDefinition<S> rootComponentDefinition;
+    public final StatefulComponentDefinition<S> rootComponentDefinition;
 
     public final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
 
@@ -43,9 +44,9 @@ public final class App<S> {
      * @param lifeCycleEventsListener a listener for the app pages lifecycle events
      * @param rootComponentDefinition the root of the components tree
      */
-    private App(final AppConfig config,
-                final PageLifeCycle<S> lifeCycleEventsListener,
-                final HttpRequestStateComponentDefinition<S> rootComponentDefinition) {
+    public App(final AppConfig config,
+               final PageLifeCycle<S> lifeCycleEventsListener,
+               final StatefulComponentDefinition<S> rootComponentDefinition) {
         this.config = Objects.requireNonNull(config);
         this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);

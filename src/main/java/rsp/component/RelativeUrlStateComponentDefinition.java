@@ -35,7 +35,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
 
     @Override
     protected StateAppliedCallback<S> componentDidUpdate() {
-        return (key, state, renderContext) -> {
+        return (key, oldState, state, newState, renderContext) -> {
             final RelativeUrl oldRelativeUrl = renderContext.getRelativeUrl();
             final RelativeUrl newRelativeUrl = stateToRelativeUrl().apply(state, oldRelativeUrl);
             if (!newRelativeUrl.equals(oldRelativeUrl)) {
