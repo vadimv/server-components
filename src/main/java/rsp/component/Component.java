@@ -179,7 +179,8 @@ public final class Component<S> implements NewState<S> {
         return children;
     }
 
-    private void unmount() {
+    public void unmount() {
+        recursiveChildren().forEach(c -> c.unmount());
         componentWillUnmount.apply(key, state);
     }
 

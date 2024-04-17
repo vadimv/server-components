@@ -53,6 +53,7 @@ public final class LivePageSession implements RemoteIn, Schedule {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
         synchronized (this) {
             schedules.cancelAll();
+            rootComponent.unmount();
         }
     }
 
