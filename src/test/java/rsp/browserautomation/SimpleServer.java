@@ -4,11 +4,11 @@ import rsp.App;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.StoredStateComponentDefinition;
 import rsp.html.SegmentDefinition;
+import rsp.jetty.WebServer;
 import rsp.routing.Routing;
 import rsp.server.Path;
 import rsp.server.StaticResources;
 import rsp.component.ComponentView;
-import rsp.jetty.JettyServer;
 import rsp.server.http.HttpRequest;
 import rsp.component.View;
 
@@ -27,7 +27,7 @@ public class SimpleServer {
     private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
 
     public static final int PORT = 8085;
-    public final JettyServer<AppState> jetty;
+    public final WebServer<AppState> jetty;
 
 
 
@@ -106,7 +106,7 @@ public class SimpleServer {
         }
     };
 
-    public SimpleServer(final JettyServer<AppState> jetty) {
+    public SimpleServer(final WebServer<AppState> jetty) {
         this.jetty = jetty;
     }
 
@@ -117,7 +117,7 @@ public class SimpleServer {
     public static SimpleServer run(final boolean blockCurrentThread) {
         final App<AppState> app = new App<>(appRouting(),
                                             appComponentView);
-        final SimpleServer s = new SimpleServer(new JettyServer<>(8085,
+        final SimpleServer s = new SimpleServer(new WebServer<>(8085,
                                                                    app,
                                                                    new StaticResources(new File("src/test/java/rsp/browserautomation"),
                                                                                        "/res/*")));

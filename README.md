@@ -423,13 +423,13 @@ Use an instance of the ``AppConfig`` class as the parameter to the ``withConfig(
 ```java
     final var app = new App(routing(), rootCreateViewFunction()).withConfig(AppConfig.DEFAULT);
 ```
-A web server's ``rsp.jetty.JettyServer`` class' constructor accepts extra parameters like an optional static resources' handler 
+A web server's ``rsp.jetty.WebServer`` class' constructor accepts extra parameters like an optional static resources' handler 
 and a TLS/SSL configuration:
 
 ```java
     final var staticResources = new StaticResources(new File("src/main/java/rsp/tetris"), "/res/*");
     final var sslConfig = SslConfiguration("/keysore/path", "changeit");
-    final var server = new JettyServer(8080, app, staticResources, sslConfig);
+    final var server = new WebServer(8080, app, staticResources, sslConfig);
     server.start();
     server.join();
 ```

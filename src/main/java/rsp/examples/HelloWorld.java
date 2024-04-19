@@ -1,7 +1,7 @@
 package rsp.examples;
 
 import rsp.App;
-import rsp.jetty.JettyServer;
+import rsp.jetty.WebServer;
 import rsp.component.View;
 
 import static rsp.html.HtmlDsl.*;
@@ -18,7 +18,7 @@ public final class HelloWorld {
                                            );
 
         final var app = new App<>("Hello world!", view);
-        final var server = new JettyServer<>(8080, app);
+        final var server = new WebServer<>(8080, app);
         server.start();
         server.join();
     }

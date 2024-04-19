@@ -3,8 +3,8 @@ package rsp.examples;
 import rsp.App;
 import rsp.component.View;
 import rsp.html.TagDefinition;
+import rsp.jetty.WebServer;
 import rsp.routing.Routing;
-import rsp.jetty.JettyServer;
 import rsp.routing.Route;
 import rsp.routing.RoutingDsl;
 import rsp.server.http.HttpRequest;
@@ -26,7 +26,7 @@ public class PlainForm {
     public static void main(final String[] args) {
         final App<Name> app = new App<>(new Routing<>(route(), new EmptyName()),
                                                       pages());
-        final var server = new JettyServer<>(8080, app);
+        final var server = new WebServer<>(8080, app);
         server.start();
         server.join();
     }

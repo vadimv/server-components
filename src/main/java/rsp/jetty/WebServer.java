@@ -32,8 +32,8 @@ import static java.lang.System.Logger.Level.INFO;
  * An embedded server for an RSP application,
  * Jetty provides a servlet container and a JSR 356 WebSockets API implementation.
  */
-public final class JettyServer<S> {
-    private static final System.Logger logger = System.getLogger(JettyServer.class.getName());
+public final class WebServer<S> {
+    private static final System.Logger logger = System.getLogger(WebServer.class.getName());
 
     /**
      * The Jetty server's maximum threads number by default is {@value #DEFAULT_WEB_SERVER_MAX_THREADS}.
@@ -44,17 +44,17 @@ public final class JettyServer<S> {
     private final Server server;
 
     /**
-     * Creates a Jetty web server instance for hosting an RSP application.
+     * Creates a web server instance for hosting an RSP application.
      * @param port a web server's listening port
      * @param app an RSP application
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
-    public JettyServer(final int port,
-                       final App<S> app,
-                       final Optional<StaticResources> staticResources,
-                       final Optional<SslConfiguration> sslConfiguration,
-                       final int maxThreads) {
+    public WebServer(final int port,
+                     final App<S> app,
+                     final Optional<StaticResources> staticResources,
+                     final Optional<SslConfiguration> sslConfiguration,
+                     final int maxThreads) {
         this.port = port;
         Objects.requireNonNull(app);
 
@@ -140,9 +140,9 @@ public final class JettyServer<S> {
      * @param app an RSP application
      * @param staticResources a setup object for an optional static resources handler
      */
-    public JettyServer(final int port,
-                       final App<S> app,
-                       final StaticResources staticResources) {
+    public WebServer(final int port,
+                     final App<S> app,
+                     final StaticResources staticResources) {
         this(port, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
@@ -153,10 +153,10 @@ public final class JettyServer<S> {
      * @param staticResources a setup object for an optional static resources handler
      * @param sslConfiguration the server's TLS configuration
      */
-    public JettyServer(final int port,
-                       final App<S> app,
-                       final StaticResources staticResources,
-                       final SslConfiguration sslConfiguration) {
+    public WebServer(final int port,
+                     final App<S> app,
+                     final StaticResources staticResources,
+                     final SslConfiguration sslConfiguration) {
         this(port, app, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
@@ -165,7 +165,7 @@ public final class JettyServer<S> {
      * @param port a web server's listening port
      * @param app an RSP application
      */
-    public JettyServer(final int port, final App<S> app) {
+    public WebServer(final int port, final App<S> app) {
         this(port, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 

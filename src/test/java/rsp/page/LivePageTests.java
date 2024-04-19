@@ -60,7 +60,6 @@ public class LivePageTests {
         assertNotNull(rootComponent);
 
         final LivePageSession livePage = new LivePageSession(QID,
-                                                             httpStateOrigin,
                                                              rootComponent,
                                                              remoteOut);
         livePage.init();

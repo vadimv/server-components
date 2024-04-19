@@ -27,7 +27,6 @@ public final class LivePageSession implements RemoteIn {
     public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     private final QualifiedSessionId qsid;
-    private final PageStateOrigin pageStateOrigin;
     private final Component<?> rootComponent;
     private final RemoteOut remoteOut;
 
@@ -36,11 +35,9 @@ public final class LivePageSession implements RemoteIn {
     private int descriptorsCounter;
 
     public LivePageSession(final QualifiedSessionId qsid,
-                           final PageStateOrigin pageStateOrigin,
                            final Component<?> rootComponent,
                            final RemoteOut remoteOut) {
         this.qsid = Objects.requireNonNull(qsid);
-        this.pageStateOrigin = pageStateOrigin;
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
     }
