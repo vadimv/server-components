@@ -2,7 +2,6 @@ package rsp;
 
 import rsp.component.HttpRequestStateComponentDefinition;
 import rsp.component.StatefulComponentDefinition;
-import rsp.page.PageLifeCycle;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.routing.Routing;
@@ -27,11 +26,6 @@ public final class App<S> {
     public final AppConfig config;
 
     /**
-     * An implementation of the lifecycle events listener.
-     */
-    public final PageLifeCycle<S> lifeCycleEventsListener;
-
-    /**
      * The root of the components tree.
      */
     public final StatefulComponentDefinition<S> rootComponentDefinition;
@@ -41,14 +35,11 @@ public final class App<S> {
     /**
      * Creates an instance of an application.
      * @param config an application config
-     * @param lifeCycleEventsListener a listener for the app pages lifecycle events
      * @param rootComponentDefinition the root of the components tree
      */
     public App(final AppConfig config,
-               final PageLifeCycle<S> lifeCycleEventsListener,
                final StatefulComponentDefinition<S> rootComponentDefinition) {
         this.config = Objects.requireNonNull(config);
-        this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
     }
 
@@ -60,7 +51,6 @@ public final class App<S> {
     public App(final Routing<HttpRequest, S> routing,
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
-             new PageLifeCycle.Default<>(),
              new HttpRequestStateComponentDefinition<>(routing, rootComponentView));
     }
 
@@ -73,7 +63,6 @@ public final class App<S> {
     public App(final CompletableFuture<S> initialState,
                final ComponentView<S> rootComponentView) {
         this(AppConfig.DEFAULT,
-             new PageLifeCycle.Default<>(),
              new HttpRequestStateComponentDefinition<>(request -> initialState, rootComponentView));
     }
 
@@ -92,7 +81,6 @@ public final class App<S> {
     public App(final S initialState,
                final View<S> rootComponentView) {
         this(AppConfig.DEFAULT,
-             new PageLifeCycle.Default<>(),
              new HttpRequestStateComponentDefinition<>(request -> CompletableFuture.completedFuture(initialState),
                                                        state -> newState -> rootComponentView.apply(state)));
     }
@@ -100,7 +88,6 @@ public final class App<S> {
     public App(final Routing<HttpRequest, S> routing,
                final View<S> rootComponentView) {
         this(AppConfig.DEFAULT,
-             new PageLifeCycle.Default<>(),
              new HttpRequestStateComponentDefinition<>(routing,
                                                        state -> newState -> rootComponentView.apply(state)));
     }
@@ -112,19 +99,8 @@ public final class App<S> {
      * @return a new application object with the same field values except of the provided field
      */
     public App<S> withConfig(final AppConfig config) {
-        return new App<>(config,  this.lifeCycleEventsListener, this.rootComponentDefinition);
+        return new App<>(config, this.rootComponentDefinition);
     }
 
-
-    /**
-     * Sets a listener for the app pages lifecycle events.
-     * @see PageLifeCycle
-     *
-     * @param lifecycleEventsListener the listener interface for receiving page lifecycle events.
-     * @return a new application object with the same field values except of the provided field
-     */
-    public App<S> withPageLifecycle(final PageLifeCycle<S> lifecycleEventsListener) {
-        return new App<>(this.config, lifecycleEventsListener, this.rootComponentDefinition);
-    }
 }
 

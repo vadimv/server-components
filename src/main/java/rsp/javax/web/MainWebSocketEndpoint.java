@@ -26,18 +26,15 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
 
     private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
     private final Supplier<ScheduledExecutorService> schedulerSupplier;
-    private final PageLifeCycle<S> lifeCycleEventsListener;
 
     private final JsonParser jsonParser = JsonSimpleUtils.createParser();
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
     public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage<S>> renderedPages,
-                                 final Supplier<ScheduledExecutorService> schedulerSupplier,
-                                 final PageLifeCycle<S> lifeCycleEventsListener) {
+                                 final Supplier<ScheduledExecutorService> schedulerSupplier) {
         this.renderedPages = Objects.requireNonNull(renderedPages);
         this.schedulerSupplier = Objects.requireNonNull(schedulerSupplier);
-        this.lifeCycleEventsListener = Objects.requireNonNull(lifeCycleEventsListener);
     }
 
     @Override
@@ -77,7 +74,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             remoteOut.setRenderNum(0);
             livePage.init();
             renderedPage.commandsBuffer.redirectMessagesOut(new RemotePageMessageEncoder(msg -> sendText(session, msg)));
-            lifeCycleEventsListener.pageCreated(qsid, rootComponent.getState(), rootComponent);
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }
@@ -107,7 +103,6 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final LivePageSession livePage = (LivePageSession) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
             livePage.shutdown();
-            lifeCycleEventsListener.pageClosed(livePage.getId());
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }
