@@ -61,7 +61,6 @@ public class LivePageTests {
 
         final LivePageSession livePage = new LivePageSession(QID,
                                                              httpStateOrigin,
-                                                             new Schedules(Executors.newScheduledThreadPool(1)),
                                                              rootComponent,
                                                              remoteOut);
         livePage.init();

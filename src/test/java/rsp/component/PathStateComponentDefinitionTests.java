@@ -5,7 +5,6 @@ import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
-import rsp.page.VoidSchedule;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.HttpRequest;
@@ -80,7 +79,6 @@ public class PathStateComponentDefinitionTests {
                                                                                          .put("fragment",
                                                                                               new JsonDataType.String("")),
                                                                 (eventElementPath, customEvent) -> {},
-                                                                VoidSchedule.INSTANCE,
                                                                 ref -> {});
         popstateEvent.eventHandler.accept(clickEventContext);
 

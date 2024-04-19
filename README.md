@@ -18,7 +18,6 @@
 * [Navigation bar URL path](#navigation-bar-url-path-and-components-state-mapping)
 * [Page lifecycle events](#page-lifecycle-events)
 * [Application and server's configuration](#application-servers-configuration)
-* [Schedules and timers](#schedules)
 * [Logging](#logging)
 * [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
 
@@ -443,23 +442,6 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 
 ```javascript
   RSP.setProtocolDebugEnabled(true)
-```
-
-### Schedules
-
-The framework provides the ``EventContext.schedule()`` and ``EventContext.scheduleAtFixedRate()`` methods 
-which allows to submit a delayed or periodic action that can be cancelled.
-Provide a timer's reference parameter when creating a new schedule, later use this reference for the schedule cancellation.
-
-```java
-    final static TimerRef TIMER_0 = TimerRef.createTimerRef();
-    ...
-    button(attr("type", "button"),
-           text("Start"),
-           on("click", c -> c.scheduleAtFixedRate(() -> System.out.println("Timer event")), TIMER_0, 0, 1, TimeUnit.SECONDS))),
-    button(attr("type", "button"),
-           text("Stop"),
-           on("click", c -> c.cancelSchedule(TIMER_0)))
 ```
 
 ### How to build the project and run tests

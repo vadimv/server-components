@@ -1,31 +1,33 @@
 package rsp.page;
 
 import rsp.component.Component;
-import rsp.dom.*;
+import rsp.dom.Event;
+import rsp.dom.VirtualDomPath;
 import rsp.html.Window;
 import rsp.ref.Ref;
-import rsp.ref.TimerRef;
-import rsp.server.*;
-import rsp.server.http.*;
+import rsp.server.ExtractPropertyResponse;
+import rsp.server.RemoteIn;
+import rsp.server.RemoteOut;
+import rsp.server.http.PageStateOrigin;
 import rsp.util.json.JsonDataType;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
 /**
  * A server-side session object representing an open browser's page.
  */
-public final class LivePageSession implements RemoteIn, Schedule {
+public final class LivePageSession implements RemoteIn {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
 
     public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     private final QualifiedSessionId qsid;
     private final PageStateOrigin pageStateOrigin;
-    private final Schedules schedules;
     private final Component<?> rootComponent;
     private final RemoteOut remoteOut;
 
@@ -35,12 +37,10 @@ public final class LivePageSession implements RemoteIn, Schedule {
 
     public LivePageSession(final QualifiedSessionId qsid,
                            final PageStateOrigin pageStateOrigin,
-                           final Schedules schedules,
                            final Component<?> rootComponent,
                            final RemoteOut remoteOut) {
         this.qsid = Objects.requireNonNull(qsid);
         this.pageStateOrigin = pageStateOrigin;
-        this.schedules = Objects.requireNonNull(schedules);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
     }
@@ -61,31 +61,6 @@ public final class LivePageSession implements RemoteIn, Schedule {
         return qsid;
     }
 
-    @Override
-    public synchronized void scheduleAtFixedRate(final Runnable command, final TimerRef key, final long initialDelay, final long period, final TimeUnit unit) {
-        logger.log(DEBUG, () -> "Scheduling a periodical task " + key + " with delay: " + initialDelay + ", and period: " + period + " " + unit);
-        schedules.scheduleAtFixedRate(() -> {
-                                        synchronized (LivePageSession.this) {
-                                            command.run();
-                                        }
-                                    }, key, initialDelay, period, unit);
-    }
-
-    @Override
-    public synchronized void schedule(final Runnable command, final TimerRef key, final long delay, final TimeUnit unit) {
-        logger.log(DEBUG, () -> "Scheduling a delayed task " + key + " with delay: " + delay + " " + unit);
-        schedules.schedule(() -> {
-                                    synchronized (LivePageSession.this) {
-                                        command.run();
-                                    }
-                                }, key, delay, unit);
-    }
-
-    @Override
-    public synchronized void cancel(final TimerRef key) {
-        logger.log(DEBUG, () -> "Cancelling the task " + key);
-        schedules.cancel(key);
-    }
 
     @Override
     public void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
@@ -149,7 +124,6 @@ public final class LivePageSession implements RemoteIn, Schedule {
                                 this::createPropertiesHandle,
                                 eventObject,
                                 this::dispatchEvent,
-                                this,
                                 this::setHref);
     }
 
