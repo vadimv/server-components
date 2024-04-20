@@ -6,13 +6,20 @@ import java.util.concurrent.CompletableFuture;
 public class InitialStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
     private final ComponentView<S> view;
-    private final S initialState;
+    private final CompletableFuture<S> initialState;
+
+    public InitialStateComponentDefinition(final CompletableFuture<S> initialState,
+                                           final ComponentView<S> view) {
+        super(InitialStateComponentDefinition.class);
+        this.view = Objects.requireNonNull(view);
+        this.initialState = Objects.requireNonNull(initialState);
+    }
 
     public InitialStateComponentDefinition(final S initialState,
                                            final ComponentView<S> view) {
         super(InitialStateComponentDefinition.class);
         this.view = Objects.requireNonNull(view);
-        this.initialState = Objects.requireNonNull(initialState);
+        this.initialState = CompletableFuture.completedFuture(Objects.requireNonNull(initialState));
     }
 
     public InitialStateComponentDefinition(final Object componentType,
@@ -20,12 +27,12 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
                                            final ComponentView<S> view) {
         super(componentType);
         this.view = Objects.requireNonNull(view);
-        this.initialState = Objects.requireNonNull(initialState);
+        this.initialState = CompletableFuture.completedFuture(Objects.requireNonNull(initialState));
     }
 
     @Override
     protected ComponentStateSupplier<S> stateSupplier() {
-        return (key, httpStateOrigin) -> CompletableFuture.completedFuture(initialState);
+        return (key, httpStateOrigin) -> initialState;
     }
 
     @Override

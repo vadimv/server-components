@@ -1,14 +1,11 @@
 package rsp;
 
-import rsp.component.HttpRequestStateComponentDefinition;
-import rsp.component.StatefulComponentDefinition;
+import rsp.component.*;
 import rsp.jetty.WebServer;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.routing.Routing;
 import rsp.server.http.HttpRequest;
-import rsp.component.ComponentView;
-import rsp.component.View;
 
 import java.util.Map;
 import java.util.Objects;
@@ -21,10 +18,16 @@ import java.util.concurrent.ConcurrentHashMap;
  * @param <S> the type of the applications root component's state, should be an immutable class
  */
 public final class App<S> {
+
     /**
-     * The application's configuration.
+     * The default rate of heartbeat messages from a browser to server.
      */
-    public final AppConfig config;
+    public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 10000;
+
+    /**
+     * The application's rate of heartbeat messages from a browser to server.
+     */
+    public final int heartbeatIntervalMs;
 
     /**
      * The root of the components tree.
@@ -35,13 +38,20 @@ public final class App<S> {
 
     /**
      * Creates an instance of an application.
-     * @param config an application config
+     * @param rootComponentDefinition the root of the components tree
+     * @param heartbeatIntervalMs The application's rate of heartbeat messages from a browser to server
+     */
+    public App(final StatefulComponentDefinition<S> rootComponentDefinition,
+               final int heartbeatIntervalMs) {
+        this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
+        this.heartbeatIntervalMs = heartbeatIntervalMs;
+    }
+    /**
+     * Creates an instance of an application.
      * @param rootComponentDefinition the root of the components tree
      */
-    public App(final AppConfig config,
-               final StatefulComponentDefinition<S> rootComponentDefinition) {
-        this.config = Objects.requireNonNull(config);
-        this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
+    public App(final StatefulComponentDefinition<S> rootComponentDefinition) {
+        this(rootComponentDefinition, DEFAULT_HEARTBEAT_INTERVAL_MS);
     }
 
     /**
@@ -51,8 +61,7 @@ public final class App<S> {
      */
     public App(final Routing<HttpRequest, S> routing,
                final ComponentView<S> rootComponentView) {
-        this(AppConfig.DEFAULT,
-             new HttpRequestStateComponentDefinition<>(routing, rootComponentView));
+        this(new HttpRequestStateComponentDefinition<>(routing, rootComponentView), DEFAULT_HEARTBEAT_INTERVAL_MS);
     }
 
     /**
@@ -63,8 +72,7 @@ public final class App<S> {
      */
     public App(final CompletableFuture<S> initialState,
                final ComponentView<S> rootComponentView) {
-        this(AppConfig.DEFAULT,
-             new HttpRequestStateComponentDefinition<>(request -> initialState, rootComponentView));
+        this(new InitialStateComponentDefinition<>(initialState, rootComponentView), DEFAULT_HEARTBEAT_INTERVAL_MS);
     }
 
     /**
@@ -81,26 +89,16 @@ public final class App<S> {
 
     public App(final S initialState,
                final View<S> rootComponentView) {
-        this(AppConfig.DEFAULT,
-             new HttpRequestStateComponentDefinition<>(request -> CompletableFuture.completedFuture(initialState),
-                                                       state -> newState -> rootComponentView.apply(state)));
+        this(new InitialStateComponentDefinition<>(initialState,
+                                                   state -> newState -> rootComponentView.apply(state)),
+             DEFAULT_HEARTBEAT_INTERVAL_MS);
     }
 
     public App(final Routing<HttpRequest, S> routing,
                final View<S> rootComponentView) {
-        this(AppConfig.DEFAULT,
-             new HttpRequestStateComponentDefinition<>(routing,
-                                                       state -> newState -> rootComponentView.apply(state)));
-    }
-
-
-    /**
-     * Sets the application's config.
-     * @param config an application config
-     * @return a new application object with the same field values except of the provided field
-     */
-    public App<S> withConfig(final AppConfig config) {
-        return new App<>(config, this.rootComponentDefinition);
+        this(new HttpRequestStateComponentDefinition<>(routing,
+                                                       state -> newState -> rootComponentView.apply(state)),
+                DEFAULT_HEARTBEAT_INTERVAL_MS);
     }
 
 }

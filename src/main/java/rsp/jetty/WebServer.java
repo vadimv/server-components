@@ -97,7 +97,7 @@ public final class WebServer<S> {
         context.setContextPath("/");
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.pagesStorage,
                                                                                        app.rootComponentDefinition,
-                                                                                       app.config.heartbeatIntervalMs))),
+                                                                                       app.heartbeatIntervalMs))),
                           "/*");
         final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(app.pagesStorage);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
