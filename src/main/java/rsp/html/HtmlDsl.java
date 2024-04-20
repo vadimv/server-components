@@ -620,8 +620,8 @@ public final class HtmlDsl {
      * Provides a definition of a browsers' window object.
      * @return a window object definition
      */
-    public static Window window() {
-        return new Window();
+    public static WindowDefinition window() {
+        return new WindowDefinition();
     }
 
     /**

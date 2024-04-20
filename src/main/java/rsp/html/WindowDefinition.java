@@ -11,7 +11,7 @@ import java.util.function.Consumer;
 /**
  * Represents a browser's page window object.
  */
-public final class Window {
+public final class WindowDefinition {
 
     private final ElementRef WINDOW_REFERENCE = new WindowRef();
     /**

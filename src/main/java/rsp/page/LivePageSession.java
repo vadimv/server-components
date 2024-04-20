@@ -3,12 +3,11 @@ package rsp.page;
 import rsp.component.Component;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
-import rsp.html.Window;
+import rsp.html.WindowDefinition;
 import rsp.ref.Ref;
 import rsp.server.ExtractPropertyResponse;
 import rsp.server.RemoteIn;
 import rsp.server.RemoteOut;
-import rsp.server.http.PageStateOrigin;
 import rsp.util.json.JsonDataType;
 
 import java.util.HashMap;
@@ -137,7 +136,7 @@ public final class LivePageSession implements RemoteIn {
     }
 
     private VirtualDomPath resolveRef(final Ref ref) {
-        return ref instanceof Window.WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
+        return ref instanceof WindowDefinition.WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
     }
 
     public CompletableFuture<JsonDataType> evalJs(final String js) {

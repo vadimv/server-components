@@ -23,8 +23,6 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -101,9 +99,7 @@ public final class WebServer<S> {
                                                                                        app.rootComponentDefinition,
                                                                                        app.config.heartbeatIntervalMs))),
                           "/*");
-        final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(app.config.schedulerThreadPoolSize);
-        final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(app.pagesStorage,
-                                                                                       () -> scheduler);
+        final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(app.pagesStorage);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
