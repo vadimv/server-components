@@ -25,7 +25,7 @@ public class InitialStateComponentDefinitionTests {
                     span(state),
                     new InitialStateComponentDefinition<>("test",
                                                          100,
-                                                         s -> ns -> div(a(on("click", c -> ns.set(101)),
+                                                         s -> ns -> div(a(on("click", c -> ns.setState(101)),
                                                                           text("test-link-" + s))))
             );
 
@@ -63,7 +63,7 @@ public class InitialStateComponentDefinitionTests {
         assertEquals("click", renderContext.rootComponent().recursiveEvents().get(0).eventTarget.eventType);
 
         // Set state
-        renderContext.rootComponent().set("state-1");
+        renderContext.rootComponent().setState("state-1");
 
         assertEquals("state-1", renderContext.rootComponent().getState());
 

@@ -16,7 +16,7 @@ import static java.lang.System.Logger.Level.*;
  * Represents a stateful component.
  * @param <S> a type for this component's state snapshot, should be an immutable class
  */
-public final class Component<S> implements NewState<S> {
+public final class Component<S> implements StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final List<Event> events = new ArrayList<>();
@@ -92,22 +92,22 @@ public final class Component<S> implements NewState<S> {
     }
 
     @Override
-    public void set(final S newState) {
-        apply(s -> newState);
+    public void setState(final S newState) {
+        applyStateTransformation(s -> newState);
     }
 
     @Override
-    public void applyWhenComplete(final CompletableFuture<? extends S> newState) {
-        newState.thenAccept(this::set);
+    public void setStateWhenComplete(final CompletableFuture<? extends S> newState) {
+        newState.thenAccept(this::setState);
     }
 
     @Override
-    public void applyIfPresent(final Function<S, Optional<S>> stateTransformer) {
-        stateTransformer.apply(state).ifPresent(this::set);
+    public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
+        stateTransformer.apply(state).ifPresent(this::setState);
     }
 
     @Override
-    public void apply(final UnaryOperator<S> newStateFunction) {
+    public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
         if (tag == null) {
             throw new IllegalStateException("Component " + this + " root tag is not rendered");
         }

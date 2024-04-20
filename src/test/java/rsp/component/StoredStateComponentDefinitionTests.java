@@ -61,7 +61,7 @@ public class StoredStateComponentDefinitionTests {
         assertEquals(0, renderContext.rootComponent().recursiveEvents().size());
 
         // Remove sub component
-        renderContext.rootComponent().set(false);
+        renderContext.rootComponent().setState(false);
 
         assertEquals(1, remoteOut.commands.size());
         assertTrue(containsType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands));
@@ -69,7 +69,7 @@ public class StoredStateComponentDefinitionTests {
         assertEquals(0, renderContext.rootComponent().recursiveEvents().size());
 
         // Add it back
-        renderContext.rootComponent().set(true);
+        renderContext.rootComponent().setState(true);
         assertEquals(1, remoteOut.commands.size());
     }
 }

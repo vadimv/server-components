@@ -56,7 +56,7 @@ public class SimpleServer {
                                 attr("id", name + "_b0"),
                                 text("+1"),
                                 on("click",
-                                        d -> newState.set(state + 1)))),
+                                        d -> newState.setState(state + 1)))),
                         div(span(attr("id", name + "_s0"),
                                  attr("class", state % 2 == 0 ? "red" : "blue"),
                                  text(state))));
@@ -75,7 +75,7 @@ public class SimpleServer {
                                 attr("id","c3"),
                                 attr("name", "c3"),
                                 on("click", ctx -> {
-                                    newState.set(!state);
+                                    newState.setState(!state);
                                 })),
                         label(attr("for", "c3"),
                                 text("Show counter 3"))

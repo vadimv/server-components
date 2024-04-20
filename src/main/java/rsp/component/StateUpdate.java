@@ -9,10 +9,10 @@ import java.util.function.UnaryOperator;
  * Represents an API for initiating a change of a component's state.
  * @param <S> the type of the component's state, should be an immutable class
  */
-public interface NewState<S> {
+public interface StateUpdate<S> {
 
-    void set(S newState);
-    void apply(UnaryOperator<S> stateTransformer);
-    void applyWhenComplete(CompletableFuture<? extends S> newState);
-    void applyIfPresent(Function<S, Optional<S>> stateTransformer);
+    void setState(S newState);
+    void setStateWhenComplete(CompletableFuture<? extends S> newState);
+    void applyStateTransformation(UnaryOperator<S> stateTransformer);
+    void applyStateTransformationIfPresent(Function<S, Optional<S>> stateTransformer);
 }

@@ -152,7 +152,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
     final Function<Long, CompletableFuture<String>> lookupService = userDetailsByIdService(); 
     ...
      // consider that at this moment we know the current user's Id
-    state -> newState -> div(of(lookupService.apply(state.user.id).map(str -> text(str))))
+    state -> stateUpdate -> div(of(lookupService.apply(state.user.id).map(str -> text(str))))
 ```
 
 Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments
@@ -230,7 +230,7 @@ A component's state can be set:
 - on a component's initialization during its first render and mount to the components tree
 - on an update as a result of events handling
 
-A state update is initiated by invoking of one of a component view's parameter's ``NewState`` interface methods, like ``set()`` and ``apply()``.
+A state update is initiated by invoking of one of a component view's parameter's ``StateUpdate`` interface methods, e.g. ``setState()``.
 State transitions are can be triggered by browser events, custom events or asynchronous events, e.g. timers.
 
 ### How to use components
@@ -253,9 +253,9 @@ For common types of components use components DSL helper methods like ``componen
 ```java
     import static rsp.component.ComponentDsl.*;
 
-    static ComponentView<String> buttonView = state -> newState -> input(attr("type", "button"),
+    static ComponentView<String> buttonView = state -> stateUpdate -> input(attr("type", "button"),
                                                                          attr("value", state),      
-                                                                         on("click", ctx -> newState.set("Clicked")));
+                                                                         on("click", ctx -> stateUpdate.setState"Clicked")));
     static SegmentDefinition buttonComponent(String text) {
             return component(text,        // the component's initial state
                              buttonView)
@@ -286,9 +286,9 @@ The following example shows how a component's state can be modelled using record
 To respond to browser events, register a DOM event handler by adding an ``on(eventType, handler)`` to an HTML element:
 
 ```java
-    var view = state -> newState-> a("#","Click me",on("click", ctx-> {
+    var view = state -> stateUpdate-> a("#","Click me",on("click", ctx-> {
                                                         System.out.println("Clicked " + state.counter() + " times");
-                                                        newState.set(new State(s.counter() + 1));
+                                                        stateUpdate.setState(new State(s.counter() + 1));
     }));
 
     record State(int counter) {}
@@ -379,7 +379,7 @@ The ``propertiesByRef()`` method of the event context object's allows access to 
             var props = ctx.propertiesByRef(inputRef);
             props.getString("value").thenAccept(value -> { 
                                                   System.out.println("Input element's value: " + value);
-                                                  props.set("value", "new text");           
+                                                  props.setState("value", "new text");           
             });     
     }))
 ```

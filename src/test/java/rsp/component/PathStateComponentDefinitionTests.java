@@ -58,7 +58,7 @@ public class PathStateComponentDefinitionTests {
         assertEquals("popstate", renderContext.rootComponent().recursiveEvents().get(0).eventTarget.eventType);
 
         // Set state
-        renderContext.rootComponent().set("state-1");
+        renderContext.rootComponent().setState("state-1");
 
         assertEquals(2, remoteOut.commands.size());
         assertTrue(containsType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands));

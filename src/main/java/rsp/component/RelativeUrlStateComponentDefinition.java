@@ -27,7 +27,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
     protected MountCallback<S> componentDidMount() {
         return (key, state, newState, renderContext) -> renderContext.addEvent(VirtualDomPath.WINDOW,
                                                                                LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                                                               eventContext -> newState.applyWhenComplete(relativeUrlToState()
+                                                                               eventContext -> newState.setStateWhenComplete(relativeUrlToState()
                                                                                                        .apply(extractRelativeUrl(eventContext.eventObject()))),
                                                                                true,
                                                                                Event.NO_MODIFIER);

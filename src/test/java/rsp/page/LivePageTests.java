@@ -8,9 +8,7 @@ import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.*;
 
 import java.net.URI;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
@@ -65,7 +63,7 @@ public class LivePageTests {
         livePage.init();
         assertInstanceOf(ListenEventOutMessage.class, remoteOut.commands.get(0));
 
-        rootComponent.set(new State(100));
+        rootComponent.setState(new State(100));
         commandsBuffer.redirectMessagesOut(remoteOut);
 
         assertTrue(containsType(ModifyDomOutMessage.class, remoteOut.commands));
