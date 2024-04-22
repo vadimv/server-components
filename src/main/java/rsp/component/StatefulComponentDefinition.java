@@ -1,18 +1,23 @@
 package rsp.component;
 
 import rsp.html.SegmentDefinition;
+import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContext;
+import rsp.page.RenderContextFactory;
+import rsp.server.RemoteOut;
+import rsp.server.http.PageStateOrigin;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
-public abstract class StatefulComponentDefinition<S> implements SegmentDefinition {
+public abstract class StatefulComponentDefinition<S> implements SegmentDefinition, ComponentFactory<S> {
 
-    private final Object componentType;
+    protected final Object componentType;
 
     protected StatefulComponentDefinition(final Object componentType) {
         this.componentType = Objects.requireNonNull(componentType);
     }
-
 
     protected abstract ComponentStateSupplier<S> stateSupplier();
 
@@ -31,15 +36,31 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
         return (key, state) -> {};
     }
 
+
+    @Override
+    public Component<S> createComponent(final QualifiedSessionId sessionId,
+                                        final ComponentPath path,
+                                        final PageStateOrigin pageStateOrigin,
+                                        final RenderContextFactory renderContextFactory,
+                                        final RemoteOut remotePageMessagesOut) {
+        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, path);
+        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key,
+                                                                                                             pageStateOrigin.httpStateOrigin());
+        return new Component<>(key,
+                               resolveStateSupplier,
+                               componentDidMount(),
+                               componentView(),
+                               componentDidUpdate(),
+                               componentWillUnmount(),
+                               renderContextFactory,
+                               remotePageMessagesOut);
+    }
+
     @Override
     public boolean render(final RenderContext renderContext) {
         if (renderContext instanceof ComponentRenderContext componentRenderContext) {
-            final Component<S> component = componentRenderContext.openComponent(componentType,
-                                                                                stateSupplier(),
-                                                                                componentDidMount(),
-                                                                                componentView(),
-                                                                                componentDidUpdate(),
-                                                                                componentWillUnmount());
+            final Component<S> component = componentRenderContext.openComponent(this);
+
             component.render(componentRenderContext);
 
             componentRenderContext.closeComponent();

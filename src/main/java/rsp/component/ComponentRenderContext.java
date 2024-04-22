@@ -8,7 +8,6 @@ import rsp.server.http.PageStateOrigin;
 import rsp.server.http.RelativeUrl;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.*;
 
 public class ComponentRenderContext extends DomTreeRenderContext implements RenderContextFactory {
@@ -46,7 +45,6 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         component.setRootTagIfNotSet(tag);
     }
 
-
     @Override
     public void addEvent(final VirtualDomPath elementPath,
                          final String eventType,
@@ -78,27 +76,16 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         component.addRef(ref, tag.path());
     }
 
-    public <S> Component<S> openComponent(final Object componentType,
-                                          final ComponentStateSupplier<S> stateSupplier,
-                                          final MountCallback<S> componentDidMount,
-                                          final ComponentView<S> componentView,
-                                          final StateAppliedCallback<S> componentDidUpdate,
-                                          final UnmountCallback<S> componentWillUnmount) {
+    public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {
 
         final Component<?> parent = componentsStack.peek();
         final ComponentPath path = parent == null ?
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
-        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, path);
-        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier.getState(key,
-                                                                                                           pageStateOrigin.httpStateOrigin());
-        final Component<S> newComponent = new Component<>(key,
-                                                          resolveStateSupplier,
-                                                          componentDidMount,
-                                                          componentView,
-                                                          componentDidUpdate,
-                                                          componentWillUnmount,
-                                                         this,
-                                                          remotePageMessagesOut);
+        final Component<S> newComponent = componentFactory.createComponent(sessionId,
+                                                                           path,
+                                                                           pageStateOrigin,
+                                                                          this,
+                                                                           remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;
     }

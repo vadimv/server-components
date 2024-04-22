@@ -16,7 +16,7 @@ import static java.lang.System.Logger.Level.*;
  * Represents a stateful component.
  * @param <S> a type for this component's state snapshot, should be an immutable class
  */
-public final class Component<S> implements StateUpdate<S> {
+public class Component<S> implements StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final List<Event> events = new ArrayList<>();
@@ -30,13 +30,14 @@ public final class Component<S> implements StateUpdate<S> {
     private final UnmountCallback<S> componentWillUnmount;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
-    private final RemoteOut remotePageMessages;
+
+    protected final RemoteOut remotePageMessages;
 
     private S state;
     private Tag tag;
 
     public Component(final ComponentCompositeKey key,
-                     final Supplier<CompletableFuture<? extends S>> resolveStateFunction,
+                     final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
                      final MountCallback<S> componentDidMount,
                      final ComponentView<S> componentView,
                      final StateAppliedCallback<S> componentDidUpdate,
@@ -44,7 +45,7 @@ public final class Component<S> implements StateUpdate<S> {
                      final RenderContextFactory renderContextFactory,
                      final RemoteOut remotePageMessages) {
         this.key = Objects.requireNonNull(key);
-        this.resolveStateFunction = Objects.requireNonNull(resolveStateFunction);
+        this.resolveStateFunction = Objects.requireNonNull(resolveStateSupplier);
         this.componentDidMount = Objects.requireNonNull(componentDidMount);
         this.componentView = Objects.requireNonNull(componentView);
         this.componentDidUpdate = Objects.requireNonNull(componentDidUpdate);
@@ -129,6 +130,7 @@ public final class Component<S> implements StateUpdate<S> {
         final SegmentDefinition view = componentView.apply(state).apply(this);
         view.render(renderContext);
         componentDidMount.apply(key, state, this, renderContext);
+        componentDidMount2(key, state, this, renderContext);
         renderContext.closeComponent();
 
         tag = renderContext.rootTag();
@@ -173,7 +175,14 @@ public final class Component<S> implements StateUpdate<S> {
             }
         }
 
+        componentDidUpdate2(key, oldState, state, this, renderContext);
         componentDidUpdate.apply(key, oldState, state, this, renderContext);
+    }
+
+    protected void componentDidMount2(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate, ComponentRenderContext componentRenderContext) {
+    }
+
+    protected void componentDidUpdate2(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate, ComponentRenderContext beforeRenderCallback) {
     }
 
     public List<Component<?>> directChildren() {

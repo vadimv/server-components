@@ -3,8 +3,12 @@ package rsp.component;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.page.LivePageSession;
+import rsp.page.QualifiedSessionId;
+import rsp.page.RenderContextFactory;
 import rsp.server.Path;
+import rsp.server.RemoteOut;
 import rsp.server.http.Fragment;
+import rsp.server.http.PageStateOrigin;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 import rsp.util.json.JsonDataType;
@@ -12,6 +16,7 @@ import rsp.util.json.JsonDataType;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
@@ -24,33 +29,20 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
     protected abstract Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState();
 
     @Override
-    protected MountCallback<S> componentDidMount() {
-        return (key, state, newState, renderContext) -> renderContext.addEvent(VirtualDomPath.WINDOW,
-                                                                               LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                                                               eventContext -> newState.setStateWhenComplete(relativeUrlToState()
-                                                                                                       .apply(extractRelativeUrl(eventContext.eventObject()))),
-                                                                               true,
-                                                                               Event.NO_MODIFIER);
-    }
-
-    @Override
-    protected StateAppliedCallback<S> componentDidUpdate() {
-        return (key, oldState, state, newState, renderContext) -> {
-            final RelativeUrl oldRelativeUrl = renderContext.getRelativeUrl();
-            final RelativeUrl newRelativeUrl = stateToRelativeUrl().apply(state, oldRelativeUrl);
-            if (!newRelativeUrl.equals(oldRelativeUrl)) {
-                renderContext.setRelativeUrl(newRelativeUrl);
-            }
-        };
-    }
-
-    private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
-        final Path path = eventObject.value("path").map(p -> Path.of(p.toString()))
-                .orElseThrow(() -> new JsonDataType.JsonException("The 'path' property not found in the event object" + eventObject));
-        final Query query = eventObject.value("query").map(q -> new Query(q.toString()))
-                .orElseThrow(() -> new JsonDataType.JsonException("The 'query' property not found in the event object" + eventObject));
-        final Fragment fragment = eventObject.value("fragment").map(f -> new Fragment(f.toString()))
-                .orElseThrow(() -> new JsonDataType.JsonException("The 'fragment' property not found in the event object" + eventObject));
-        return new RelativeUrl(path, query, fragment);
+    public Component<S> createComponent(QualifiedSessionId sessionId, ComponentPath path, PageStateOrigin pageStateOrigin, RenderContextFactory renderContextFactory, RemoteOut remotePageMessagesOut) {
+        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, path);
+        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key,
+                                                                                                             pageStateOrigin.httpStateOrigin());
+        return new RelativeUrlStateComponent<>(key,
+                                               resolveStateSupplier,
+                                               componentDidMount(),
+                                               componentView(),
+                                               componentDidUpdate(),
+                                               componentWillUnmount(),
+                                               renderContextFactory,
+                                               remotePageMessagesOut,
+                                               stateToRelativeUrl(),
+                                               relativeUrlToState(),
+                                               pageStateOrigin);
     }
 }
