@@ -24,15 +24,15 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     protected abstract ComponentView<S> componentView();
 
 
-    protected MountCallback<S> componentDidMount() {
-        return (key, state, newState, beforeRenderCallback) -> {};
+    protected ComponentMountedCallback<S> componentDidMount() {
+        return (key, state, newState) -> {};
     }
 
-    protected StateAppliedCallback<S> componentDidUpdate() {
-        return (key, oldState, state, newState, ctx) -> {};
+    protected ComponentUpdatedCallback<S> componentDidUpdate() {
+        return (key, oldState, state, newState) -> {};
     }
 
-    protected UnmountCallback<S> componentWillUnmount() {
+    protected ComponentUnmountedCallback<S> componentWillUnmount() {
         return (key, state) -> {};
     }
 
@@ -48,8 +48,8 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                                                                                              pageStateOrigin.httpStateOrigin());
         return new Component<>(key,
                                resolveStateSupplier,
-                               componentDidMount(),
                                componentView(),
+                               componentDidMount(),
                                componentDidUpdate(),
                                componentWillUnmount(),
                                renderContextFactory,

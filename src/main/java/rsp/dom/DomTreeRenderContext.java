@@ -75,22 +75,16 @@ public class DomTreeRenderContext implements RenderContext {
                          final String eventName,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
-                         final Event.Modifier modifier) {
-        // NO-OP
-    }
+                         final Event.Modifier modifier) {}
 
     @Override
     public void addEvent(final String eventName,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
-                         final Event.Modifier modifier) {
-        // NO-OP
-    }
+                         final Event.Modifier modifier) {}
 
     @Override
-    public void addRef(final Ref ref) {
-        // NO-OP
-    }
+    public void addRef(final Ref ref) {}
 
     @Override
     public String toString() {

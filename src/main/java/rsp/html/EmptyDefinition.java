@@ -20,7 +20,6 @@ final class EmptyDefinition implements SegmentDefinition {
 
     @Override
     public boolean render(final RenderContext renderContext) {
-        // no-op
         return true;
     }
 }

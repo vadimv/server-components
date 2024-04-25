@@ -1,6 +1,8 @@
 package rsp.component;
 
 @FunctionalInterface
-public interface UnmountCallback<S> {
+public interface ComponentUnmountedCallback<S> {
+
     void apply(ComponentCompositeKey key, S state);
+
 }

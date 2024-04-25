@@ -25,9 +25,9 @@ public class Component<S> implements StateUpdate<S> {
 
     private final ComponentCompositeKey key;
     private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
-    private final MountCallback<S> componentDidMount;
-    private final StateAppliedCallback<S> componentDidUpdate;
-    private final UnmountCallback<S> componentWillUnmount;
+    private final ComponentMountedCallback<S> componentMounted;
+    private final ComponentUpdatedCallback<S> componentUpdated;
+    private final ComponentUnmountedCallback<S> componentUnmounted;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
 
@@ -38,18 +38,18 @@ public class Component<S> implements StateUpdate<S> {
 
     public Component(final ComponentCompositeKey key,
                      final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
-                     final MountCallback<S> componentDidMount,
                      final ComponentView<S> componentView,
-                     final StateAppliedCallback<S> componentDidUpdate,
-                     final UnmountCallback<S> componentWillUnmount,
+                     final ComponentMountedCallback<S> componentMounted,
+                     final ComponentUpdatedCallback<S> componentUpdatedCallback,
+                     final ComponentUnmountedCallback<S> componentUnmountedCallback,
                      final RenderContextFactory renderContextFactory,
                      final RemoteOut remotePageMessages) {
         this.key = Objects.requireNonNull(key);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateSupplier);
-        this.componentDidMount = Objects.requireNonNull(componentDidMount);
+        this.componentMounted = Objects.requireNonNull(componentMounted);
         this.componentView = Objects.requireNonNull(componentView);
-        this.componentDidUpdate = Objects.requireNonNull(componentDidUpdate);
-        this.componentWillUnmount = Objects.requireNonNull(componentWillUnmount);
+        this.componentUpdated = Objects.requireNonNull(componentUpdatedCallback);
+        this.componentUnmounted = Objects.requireNonNull(componentUnmountedCallback);
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
 
@@ -78,12 +78,13 @@ public class Component<S> implements StateUpdate<S> {
                 try {
                     final SegmentDefinition view = componentView.apply(state).apply(this);
                     view.render(renderContext);
-                    componentDidMount.apply(key, state, this, renderContext);
+                    initiallyRendered(key, state, this);
+                    componentMounted.apply(key, state, this);
                 } catch (Throwable renderEx) {
-                    logger.log(ERROR, "Component " + key + " rendering exception", renderEx);
+                    logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
                 }
             } else {
-                logger.log(ERROR, "Component " + key + " state exception", stateEx);
+                logger.log(ERROR, "Component " + this + " state exception", stateEx);
             }
         });
     }
@@ -129,9 +130,9 @@ public class Component<S> implements StateUpdate<S> {
         renderContext.openComponent(this);
         final SegmentDefinition view = componentView.apply(state).apply(this);
         view.render(renderContext);
-        componentDidMount.apply(key, state, this, renderContext);
-        componentDidMount2(key, state, this, renderContext);
         renderContext.closeComponent();
+
+        updateRendered(key, oldState, state, this);
 
         tag = renderContext.rootTag();
 
@@ -174,16 +175,14 @@ public class Component<S> implements StateUpdate<S> {
                 child.unmount();
             }
         }
-
-        componentDidUpdate2(key, oldState, state, this, renderContext);
-        componentDidUpdate.apply(key, oldState, state, this, renderContext);
+        componentUpdated.apply(key, oldState, state, this);
     }
 
-    protected void componentDidMount2(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate, ComponentRenderContext componentRenderContext) {
-    }
+    protected void initiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
 
-    protected void componentDidUpdate2(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate, ComponentRenderContext beforeRenderCallback) {
-    }
+    protected void updateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {}
+
+    protected void unmounted(ComponentCompositeKey key, S oldState) {}
 
     public List<Component<?>> directChildren() {
         return children;
@@ -191,7 +190,8 @@ public class Component<S> implements StateUpdate<S> {
 
     public void unmount() {
         recursiveChildren().forEach(c -> c.unmount());
-        componentWillUnmount.apply(key, state);
+        unmounted(key, state);
+        componentUnmounted.apply(key, state);
     }
 
     public List<Component<?>> recursiveChildren() {

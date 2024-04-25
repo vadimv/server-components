@@ -61,7 +61,6 @@ public class LivePageTests {
                                                              rootComponent,
                                                              remoteOut);
         livePage.init();
-        assertInstanceOf(ListenEventOutMessage.class, remoteOut.commands.get(0));
 
         rootComponent.setState(new State(100));
         commandsBuffer.redirectMessagesOut(remoteOut);

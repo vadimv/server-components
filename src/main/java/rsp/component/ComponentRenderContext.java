@@ -5,7 +5,6 @@ import rsp.page.*;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
 import rsp.server.http.PageStateOrigin;
-import rsp.server.http.RelativeUrl;
 
 import java.util.*;
 import java.util.function.*;
@@ -111,15 +110,6 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                                           domPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut);
-    }
-
-    public RelativeUrl getRelativeUrl() {
-        return pageStateOrigin.getRelativeUrl();
-    }
-
-    public void setRelativeUrl(RelativeUrl relativeUrl) {
-        pageStateOrigin.setRelativeUrl(relativeUrl);
-        remotePageMessagesOut.pushHistory(relativeUrl.path().toString());
     }
 }
 

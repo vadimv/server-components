@@ -26,10 +26,10 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     public RelativeUrlStateComponent(final ComponentCompositeKey key,
                                      final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
-                                     final MountCallback<S> componentDidMount,
+                                     final ComponentMountedCallback<S> componentDidMount,
                                      final ComponentView<S> componentView,
-                                     final StateAppliedCallback<S> componentDidUpdate,
-                                     final UnmountCallback<S> componentWillUnmount,
+                                     final ComponentUpdatedCallback<S> componentDidUpdate,
+                                     final ComponentUnmountedCallback<S> componentWillUnmount,
                                      final RenderContextFactory renderContextFactory,
                                      final RemoteOut remotePageMessages,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
@@ -37,8 +37,8 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                                      final PageStateOrigin pageStateOrigin) {
         super(key,
               resolveStateSupplier,
-              componentDidMount,
               componentView,
+              componentDidMount,
               componentDidUpdate,
               componentWillUnmount,
               renderContextFactory,
@@ -49,17 +49,17 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
     }
 
     @Override
-    protected void componentDidMount2(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate, ComponentRenderContext componentRenderContext) {
+    protected void initiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
+
+    @Override
+    protected void updateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {
         addEvent(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
                                             VirtualDomPath.WINDOW),
                            eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
                           true,
                            Event.NO_MODIFIER));
-    }
 
-    @Override
-    protected void componentDidUpdate2(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate, ComponentRenderContext componentRenderContext) {
-        final RelativeUrl oldRelativeUrl = componentRenderContext.getRelativeUrl();
+        final RelativeUrl oldRelativeUrl = pageStateOrigin.getRelativeUrl();
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, oldRelativeUrl);
         if (!newRelativeUrl.equals(oldRelativeUrl)) {
             setRelativeUrl(newRelativeUrl);
