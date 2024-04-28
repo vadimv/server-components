@@ -41,7 +41,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         assert component != null;
         final Tag tag = tagsStack.peek();
         assert tag != null;
-        component.setRootTagIfNotSet(tag);
+        component.setRootTagIfNotSet(domPath, tag);
     }
 
     @Override
@@ -63,7 +63,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                          final Event.Modifier modifier) {
         final Tag tag = tagsStack.peek();
         assert tag != null;
-        addEvent(tag.path(), eventType, eventHandler, preventDefault, modifier);
+        addEvent(domPath, eventType, eventHandler, preventDefault, modifier);
     }
 
     @Override
@@ -72,7 +72,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         assert component != null;
         final Tag tag = tagsStack.peek();
         assert tag != null;
-        component.addRef(ref, tag.path());
+        component.addRef(ref, domPath);
     }
 
     public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {

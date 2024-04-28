@@ -5,19 +5,10 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
 
-    public static void diff(final Tag current, final Tag work, final DomChangesContext performer) {
-        Objects.requireNonNull(current);
-        Objects.requireNonNull(work);
-        Objects.requireNonNull(performer);
-
-        if (!current.path().equals(work.path())) {
-            throw new IllegalArgumentException("Root paths for a diff expected to be equal");
-        }
-
-        diff(current, work, current.path(), performer);
-    }
-
-    private static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesContext changesPerformer) {
+    public static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesContext changesPerformer) {
+        Objects.requireNonNull(c);
+        Objects.requireNonNull(w);
+        Objects.requireNonNull(changesPerformer);
         if (!c.name.equals(w.name)) {
             changesPerformer.remove(path.parent().get(), path);
             create(w, path, changesPerformer);
@@ -40,17 +31,17 @@ public final class Diff {
                 if (nc instanceof Tag && nw instanceof Tag) {
                     diff((Tag)nc, (Tag)nw, p, performer);
                 } else if (nw instanceof Tag) {
-                    performer.remove(nc.path().parent().get(), nc.path());
+                    performer.remove(p.parent().get(), p);
                     create(((Tag) nw), parentTagPath, performer);
                 } else if (nc instanceof Tag) {
-                    performer.remove(nc.path().parent().get(), nc.path());
+                    performer.remove(p.parent().get(), p);
                     performer.createText(parentTagPath.parent().get(), parentTagPath, ((Text)nw).text);
                 } else if (!((Text)nc).text.equals(((Text)nw).text)) {
                     performer.createText(parentTagPath.parent().get(), parentTagPath, ((Text)nw).text);
                 }
             } else if (c.hasNext()) {
                 final Node nc = c.next();
-                performer.remove(nc.path().parent().get(), nc.path());
+                performer.remove(p.parent().get(), p);
             } else {
                 final Node nw = w.next();
                 create((Tag)nw, p, performer);

@@ -24,9 +24,4 @@ public final class SequenceDefinition implements SegmentDefinition {
         Arrays.stream(items).forEach(c -> c.render(renderContext));
         return true;
     }
-
-    @Override
-    public boolean isSequence() {
-        return true;
-    }
 }

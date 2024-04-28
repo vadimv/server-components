@@ -10,15 +10,16 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 public class DomTreeRenderContext implements RenderContext {
-    protected final VirtualDomPath rootDomPath;
+    protected final VirtualDomPath rootPath;
 
     protected final Deque<Tag> tagsStack = new ArrayDeque<>();
+    protected VirtualDomPath domPath;
 
     private String docType;
     private Tag rootTag;
 
-    public DomTreeRenderContext(VirtualDomPath rootDomPath) {
-        this.rootDomPath = Objects.requireNonNull(rootDomPath);
+    public DomTreeRenderContext(VirtualDomPath rootPath) {
+        this.rootPath = Objects.requireNonNull(rootPath);
     }
 
     @Override
@@ -37,21 +38,24 @@ public class DomTreeRenderContext implements RenderContext {
     @Override
     public void openNode(final XmlNs xmlns, final String name, boolean isSelfClosing) {
         if (rootTag == null) {
-            rootTag = new Tag(rootDomPath, xmlns, name, isSelfClosing);
+            rootTag = new Tag(xmlns, name, isSelfClosing);
             tagsStack.push(rootTag);
+            domPath = rootPath;
         } else {
             final Tag parent = tagsStack.peek();
             assert parent != null;
             final int nextChild = parent.children.size() + 1;
-            final Tag newTag = new Tag(parent.path().childNumber(nextChild), xmlns, name, isSelfClosing);
+            final Tag newTag = new Tag(xmlns, name, isSelfClosing);
             parent.addChild(newTag);
             tagsStack.push(newTag);
+            domPath = domPath.childNumber(nextChild);
         }
     }
 
     @Override
     public void closeNode(final String name, final boolean upgrade) {
         tagsStack.pop();
+        domPath = domPath.parent().orElseThrow();
     }
 
     @Override
@@ -66,7 +70,7 @@ public class DomTreeRenderContext implements RenderContext {
 
     @Override
     public void addTextNode(final String text) {
-        tagsStack.peek().addChild(new Text(tagsStack.peek().path(), text));
+        tagsStack.peek().addChild(new Text(text));
     }
 
 

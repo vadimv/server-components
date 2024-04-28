@@ -39,11 +39,11 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     @Override
     public Component<S> createComponent(final QualifiedSessionId sessionId,
-                                        final ComponentPath path,
+                                        final ComponentPath componentPath,
                                         final PageStateOrigin pageStateOrigin,
                                         final RenderContextFactory renderContextFactory,
                                         final RemoteOut remotePageMessagesOut) {
-        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, path);
+        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key,
                                                                                                              pageStateOrigin.httpStateOrigin());
         return new Component<>(key,

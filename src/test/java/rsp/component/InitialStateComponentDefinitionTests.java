@@ -61,7 +61,7 @@ public class InitialStateComponentDefinitionTests {
 
         assertEquals(1, renderContext.rootComponent().recursiveEvents().size());
         assertEquals("click", renderContext.rootComponent().recursiveEvents().get(0).eventTarget.eventType);
-
+        assertEquals(VirtualDomPath.of("0_2_1"), renderContext.rootComponent().recursiveEvents().get(0).eventTarget.elementPath);
         // Set state
         renderContext.rootComponent().setState("state-1");
 

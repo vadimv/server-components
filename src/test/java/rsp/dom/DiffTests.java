@@ -11,137 +11,137 @@ public class DiffTests {
 
     @Test
     public void should_be_empty_diff_for_same_single_tags() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "html", false);
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "html", false);
+        final Tag tree1 = new Tag(XmlNs.html, "html", false);
+        final Tag tree2 = new Tag(XmlNs.html, "html", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("", cp.resultAsString());
     }
 
     @Test
     public void should_remove_and_create_for_different_single_tags() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "html", false);
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree1 = new Tag(XmlNs.html, "html", false);
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath,  cp);
         assertEquals("-TAG:0:1 +TAG:1:div", cp.resultAsString());
     }
 
     @Test
     public void should_create_tags_for_added_children() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
 
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
-        tree2.addChild(new Tag(basePath.incLevel(), XmlNs.html, "span", false));
-        tree2.addChild(new Tag(basePath.incLevel(), XmlNs.html, "span", false));
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        tree2.addChild(new Tag(XmlNs.html, "span", false));
+        tree2.addChild(new Tag(XmlNs.html, "span", false));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("+TAG:1_1:span +TAG:1_2:span", cp.resultAsString());
     }
 
     @Test
     public void should_remove_and_add_for_replaced_tag() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "div", false);
-        tree1.addChild(new Tag(basePath.incLevel(), XmlNs.html, "span", false));
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        tree1.addChild(new Tag(XmlNs.html, "span", false));
 
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
-        tree2.addChild(new Tag(basePath.incLevel(), XmlNs.html, "a", false));
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        tree2.addChild(new Tag(XmlNs.html, "a", false));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("-TAG:1:1_1 +TAG:1_1:a", cp.resultAsString());
     }
 
     @Test
     public void should_remove_and_add_for_replaced_tag_with_children() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "body", false);
+        final Tag tree1 = new Tag(XmlNs.html, "body", false);
 
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
-        final Tag child21 = new Tag(basePath.incLevel(), XmlNs.html, "a", false);
-        child21.addChild(new Tag(basePath.incLevel().incLevel(), XmlNs.html, "canvas", false));
-        child21.addChild(new Tag(basePath.incLevel().incLevel().incSibling(), XmlNs.html, "span", false));
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        final Tag child21 = new Tag(XmlNs.html, "a", false);
+        child21.addChild(new Tag(XmlNs.html, "canvas", false));
+        child21.addChild(new Tag(XmlNs.html, "span", false));
         tree2.addChild(child21);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
 
     @Test
     public void should_add_for_a_new_child() {
-        final Tag ul1 = new Tag(basePath, XmlNs.html, "ul", false);
-        final Tag li11 = new Tag(basePath.incLevel(), XmlNs.html, "li", false);
-        li11.addChild(new Text(li11.path().incLevel(), "first"));
+        final Tag ul1 = new Tag(XmlNs.html, "ul", false);
+        final Tag li11 = new Tag(XmlNs.html, "li", false);
+        li11.addChild(new Text("first"));
         ul1.addChild(li11);
-        final Tag li12 = new Tag(basePath.incLevel(), XmlNs.html, "li", false);
-        li12.addChild(new Text(li12.path().incLevel(), "second"));
+        final Tag li12 = new Tag(XmlNs.html, "li", false);
+        li12.addChild(new Text("second"));
         ul1.addChild(li12);
 
-        final Tag ul2 = new Tag(basePath, XmlNs.html, "ul", false);
-        final Tag li21 = new Tag(basePath.incLevel(), XmlNs.html, "li", false);
-        li21.addChild(new Text(li21.path().incLevel(), "first"));
+        final Tag ul2 = new Tag(XmlNs.html, "ul", false);
+        final Tag li21 = new Tag(XmlNs.html, "li", false);
+        li21.addChild(new Text("first"));
         ul2.addChild(li21);
-        final Tag li22 = new Tag(basePath.incLevel(), XmlNs.html, "li", false);
-        li22.addChild(new Text(li22.path().incLevel(), "second"));
+        final Tag li22 = new Tag(XmlNs.html, "li", false);
+        li22.addChild(new Text("second"));
         ul2.addChild(li22);
-        final Tag li23 = new Tag(basePath.incLevel(), XmlNs.html, "li", false);
-        li23.addChild(new Text(li23.path().incLevel(), "third"));
+        final Tag li23 = new Tag(XmlNs.html, "li", false);
+        li23.addChild(new Text("third"));
         ul2.addChild(li23);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(ul1, ul2,  cp);
+        Diff.diff(ul1, ul2, basePath, cp);
         assertEquals("+TAG:1_3:li+TEXT:1_3:1_3_1=third", cp.resultAsString());
     }
 
 
     @Test
     public void should_add_attribute() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
 
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
         tree2.addAttribute("attr1", "value1", true);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("+ATTR:1:attr1=value1:true", cp.resultAsString());
     }
 
     @Test
     public void should_remove_attribute() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
         tree1.addAttribute("attr1", "value1", true);
 
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("-ATTR:1:attr1", cp.resultAsString());
     }
 
     @Test
     public void should_add_style() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
 
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
         tree2.addStyle("style1", "value1");
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("+STYLE:1:style1=value1", cp.resultAsString());
     }
 
     @Test
     public void should_remove_style() {
-        final Tag tree1 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
         tree1.addStyle("style1", "value1");
 
-        final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2,  cp);
+        Diff.diff(tree1, tree2, basePath, cp);
         assertEquals("-STYLE:1:style1", cp.resultAsString());
     }
 

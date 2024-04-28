@@ -35,6 +35,7 @@ public class Component<S> implements StateUpdate<S> {
 
     private S state;
     private Tag tag;
+    private VirtualDomPath domPath;
 
     public Component(final ComponentCompositeKey key,
                      final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
@@ -64,8 +65,9 @@ public class Component<S> implements StateUpdate<S> {
         children.add(component);
     }
 
-    public void setRootTagIfNotSet(Tag newTag) {
+    public void setRootTagIfNotSet(VirtualDomPath domPath, Tag newTag) {
       if (this.tag == null) {
+            this.domPath = domPath;
             this.tag = newTag;
       }
     }
@@ -121,7 +123,7 @@ public class Component<S> implements StateUpdate<S> {
         state = newStateFunction.apply(state);
         logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
-        final ComponentRenderContext renderContext = renderContextFactory.newContext(oldTag.path());
+        final ComponentRenderContext renderContext = renderContextFactory.newContext(domPath);
 
         events.clear();
         refs.clear();
@@ -141,7 +143,7 @@ public class Component<S> implements StateUpdate<S> {
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        Diff.diff(oldTag, renderContext.rootTag(), domChangePerformer);
+        Diff.diff(oldTag, renderContext.rootTag(), domPath, domChangePerformer);
         final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
         remoteOut.modifyDom(domChangePerformer.commands);
 

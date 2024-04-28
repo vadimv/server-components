@@ -6,8 +6,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Tag implements Node {
 
-    private final VirtualDomPath path;
-
     public final XmlNs xmlns;
     public final String name;
     private final boolean isSelfClosing;
@@ -16,8 +14,7 @@ public final class Tag implements Node {
     public final CopyOnWriteArraySet<Style> styles = new CopyOnWriteArraySet<>();
     public final List<Node> children = new ArrayList<>();
 
-    public Tag(final VirtualDomPath path, final XmlNs xmlns, final String name, boolean isSelfClosing) {
-        this.path = path;
+    public Tag(final XmlNs xmlns, final String name, boolean isSelfClosing) {
         this.xmlns = xmlns;
         this.name = name;
         this.isSelfClosing = isSelfClosing;
@@ -35,10 +32,6 @@ public final class Tag implements Node {
         styles.add(new Style(name, value));
     }
 
-    @Override
-    public VirtualDomPath path() {
-        return path;
-    }
 
     @Override
     public void appendString(final StringBuilder sb) {
