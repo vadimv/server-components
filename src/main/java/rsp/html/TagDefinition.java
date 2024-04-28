@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * A definition of an XML tag.
  */
-public class TagDefinition extends BaseSegmentDefinition {
+public class TagDefinition implements SegmentDefinition {
     protected final XmlNs ns;
     protected final String name;
     protected final SegmentDefinition[] children;

@@ -7,7 +7,7 @@ import java.util.Arrays;
 /**
  * A sequence of definitions.
  */
-public final class SequenceDefinition extends BaseSegmentDefinition {
+public final class SequenceDefinition implements SegmentDefinition {
     public final SegmentDefinition[] items;
 
     /**
@@ -22,6 +22,11 @@ public final class SequenceDefinition extends BaseSegmentDefinition {
     @Override
     public boolean render(final RenderContext renderContext) {
         Arrays.stream(items).forEach(c -> c.render(renderContext));
+        return true;
+    }
+
+    @Override
+    public boolean isSequence() {
         return true;
     }
 }

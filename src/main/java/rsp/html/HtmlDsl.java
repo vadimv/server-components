@@ -569,10 +569,19 @@ public final class HtmlDsl {
 
     /**
      * Inserts a zero or more definitions provided as a stream.
+     * @param items varargs of definitions
+     * @return a document part definition representing a sequence of definitions
+     */
+    public static SegmentDefinition of(SegmentDefinition... items) {
+        return new SequenceDefinition(items);
+    }
+
+    /**
+     * Inserts a zero or more definitions provided as a stream.
      * @param items a {@link Stream} of definitions
      * @return a document part definition representing a sequence of definitions
      */
-    public static SequenceDefinition of(final Stream<SegmentDefinition> items) {
+    public static SegmentDefinition of(final Stream<SegmentDefinition> items) {
         return new SequenceDefinition(items.toArray(SegmentDefinition[]::new));
     }
 
@@ -582,7 +591,7 @@ public final class HtmlDsl {
      * @param itemSupplier a code block
      * @return a result definition
      */
-    public static SequenceDefinition of(final Supplier<SegmentDefinition> itemSupplier) {
+    public static SegmentDefinition of(final Supplier<SegmentDefinition> itemSupplier) {
         return new SequenceDefinition(new SegmentDefinition[] { itemSupplier.get() });
     }
 

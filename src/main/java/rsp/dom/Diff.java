@@ -59,11 +59,11 @@ public final class Diff {
         w.forEach(attribute -> performer.setStyle(path, attribute.name, attribute.value));
     }
 
-    private static void diffChildren(final List<Node> cc, final List<Node> wc, final VirtualDomPath path, final DomChangesContext performer) {
-        final ListIterator<Node> c = cc.listIterator();
-        final ListIterator<Node> w = wc.listIterator();
+    private static void diffChildren(final List<? extends Node> cc, final List<? extends Node> wc, final VirtualDomPath parentTagPath, final DomChangesContext performer) {
+        final ListIterator<? extends Node> c = cc.listIterator();
+        final ListIterator<? extends Node> w = wc.listIterator();
 
-        VirtualDomPath p = path;
+        VirtualDomPath p = parentTagPath;
         while(c.hasNext() || w.hasNext()) {
             if (c.hasNext() && w.hasNext()) {
                 final Node nc = c.next();
@@ -72,12 +72,12 @@ public final class Diff {
                     diff((Tag)nc, (Tag)nw, p, performer);
                 } else if (nw instanceof Tag) {
                     performer.remove(nc.path().parent().get(), nc.path());
-                    create(((Tag) nw), path, performer);
+                    create(((Tag) nw), parentTagPath, performer);
                 } else if (nc instanceof Tag) {
                     performer.remove(nc.path().parent().get(), nc.path());
-                    performer.createText(path.parent().get(), path, ((Text)nw).text);
+                    performer.createText(parentTagPath.parent().get(), parentTagPath, ((Text)nw).text);
                 } else if (!((Text)nc).text.equals(((Text)nw).text)) {
-                    performer.createText(path.parent().get(), path, ((Text)nw).text);
+                    performer.createText(parentTagPath.parent().get(), parentTagPath, ((Text)nw).text);
                 }
             } else if (c.hasNext()) {
                 final Node nc = c.next();

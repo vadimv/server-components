@@ -5,7 +5,7 @@ import rsp.page.RenderContext;
 /**
  * A definition of an HTML element's inline style.
  */
-public final class StyleDefinition extends BaseSegmentDefinition {
+public final class StyleDefinition implements SegmentDefinition {
     /**
      * The style's name.
      */

@@ -5,7 +5,7 @@ import rsp.page.RenderContext;
 
 import java.util.Arrays;
 
-public class SelfClosingTagDefinition extends BaseSegmentDefinition {
+public class SelfClosingTagDefinition implements SegmentDefinition {
 
     protected final XmlNs ns;
     protected final String name;

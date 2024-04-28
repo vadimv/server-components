@@ -5,7 +5,7 @@ import rsp.page.RenderContext;
 /**
  * A definition of an HTML tag text content.
  */
-public final class TextDefinition extends BaseSegmentDefinition {
+public final class TextDefinition implements SegmentDefinition {
     private final String text;
 
     /**
