@@ -26,10 +26,8 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     public RelativeUrlStateComponent(final ComponentCompositeKey key,
                                      final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
-                                     final ComponentMountedCallback<S> componentDidMount,
                                      final ComponentView<S> componentView,
-                                     final ComponentUpdatedCallback<S> componentDidUpdate,
-                                     final ComponentUnmountedCallback<S> componentWillUnmount,
+                                     final ComponentCallbacks<S> componentCallbacks,
                                      final RenderContextFactory renderContextFactory,
                                      final RemoteOut remotePageMessages,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
@@ -38,9 +36,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
         super(key,
               resolveStateSupplier,
               componentView,
-              componentDidMount,
-              componentDidUpdate,
-              componentWillUnmount,
+              componentCallbacks,
               renderContextFactory,
               remotePageMessages);
         this.stateToRelativeUrl = Objects.requireNonNull(stateToRelativeUrl);

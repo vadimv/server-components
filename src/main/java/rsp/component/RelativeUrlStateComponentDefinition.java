@@ -35,10 +35,10 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
                                                                                                              pageStateOrigin.httpStateOrigin());
         return new RelativeUrlStateComponent<>(key,
                                                resolveStateSupplier,
-                                               componentDidMount(),
                                                componentView(),
-                                               componentDidUpdate(),
-                                               componentWillUnmount(),
+                                               new ComponentCallbacks<>(componentDidMount(),
+                                                                        componentDidUpdate(),
+                                                                        componentWillUnmount()),
                                                renderContextFactory,
                                                remotePageMessagesOut,
                                                stateToRelativeUrl(),

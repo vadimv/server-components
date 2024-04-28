@@ -40,7 +40,7 @@ public class StoredStateComponentDefinitionTests {
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
-                                                                                VirtualDomPath.of("0"),
+                                                                                VirtualDomPath.of("1"),
                                                                                 pageStateOrigin,
                                                                                 remoteOut);
         final StatefulComponentDefinition<Boolean> scd = new InitialStateComponentDefinition<>(true,

@@ -49,9 +49,9 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
         return new Component<>(key,
                                resolveStateSupplier,
                                componentView(),
-                               componentDidMount(),
-                               componentDidUpdate(),
-                               componentWillUnmount(),
+                               new ComponentCallbacks<>(componentDidMount(),
+                                                        componentDidUpdate(),
+                                                        componentWillUnmount()),
                                renderContextFactory,
                                remotePageMessagesOut);
     }

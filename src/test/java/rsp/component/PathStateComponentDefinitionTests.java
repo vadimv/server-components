@@ -39,7 +39,7 @@ public class PathStateComponentDefinitionTests {
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
-                                                                                VirtualDomPath.of("0"),
+                                                                                VirtualDomPath.of("1"),
                                                                                 pageStateOrigin,
                                                                                 remoteOut);
         final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(path -> CompletableFuture.completedFuture(path.get(0)),

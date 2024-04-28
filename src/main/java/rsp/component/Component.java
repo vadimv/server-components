@@ -40,17 +40,15 @@ public class Component<S> implements StateUpdate<S> {
     public Component(final ComponentCompositeKey key,
                      final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
                      final ComponentView<S> componentView,
-                     final ComponentMountedCallback<S> componentMounted,
-                     final ComponentUpdatedCallback<S> componentUpdatedCallback,
-                     final ComponentUnmountedCallback<S> componentUnmountedCallback,
+                     final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
                      final RemoteOut remotePageMessages) {
         this.key = Objects.requireNonNull(key);
         this.resolveStateFunction = Objects.requireNonNull(resolveStateSupplier);
-        this.componentMounted = Objects.requireNonNull(componentMounted);
+        this.componentMounted = Objects.requireNonNull(componentCallbacks.componentMountedCallback());
         this.componentView = Objects.requireNonNull(componentView);
-        this.componentUpdated = Objects.requireNonNull(componentUpdatedCallback);
-        this.componentUnmounted = Objects.requireNonNull(componentUnmountedCallback);
+        this.componentUpdated = Objects.requireNonNull(componentCallbacks.componentUpdatedCallback());
+        this.componentUnmounted = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
 

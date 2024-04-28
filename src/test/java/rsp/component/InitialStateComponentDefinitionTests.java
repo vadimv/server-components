@@ -40,7 +40,7 @@ public class InitialStateComponentDefinitionTests {
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
-                                                                                VirtualDomPath.of("0"),
+                                                                                VirtualDomPath.of("1"),
                                                                                 pageStateOrigin,
                                                                                 remoteOut);
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
@@ -61,7 +61,7 @@ public class InitialStateComponentDefinitionTests {
 
         assertEquals(1, renderContext.rootComponent().recursiveEvents().size());
         assertEquals("click", renderContext.rootComponent().recursiveEvents().get(0).eventTarget.eventType);
-        assertEquals(VirtualDomPath.of("0_2_1"), renderContext.rootComponent().recursiveEvents().get(0).eventTarget.elementPath);
+        assertEquals(VirtualDomPath.of("1_2_1"), renderContext.rootComponent().recursiveEvents().get(0).eventTarget.elementPath);
         // Set state
         renderContext.rootComponent().setState("state-1");
 

@@ -40,7 +40,7 @@ public final class Diff {
                     performer.createText(parentTagPath.parent().get(), parentTagPath, ((Text)nw).text);
                 }
             } else if (c.hasNext()) {
-                final Node nc = c.next();
+                c.next();
                 performer.remove(p.parent().get(), p);
             } else {
                 final Node nw = w.next();
