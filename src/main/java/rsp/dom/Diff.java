@@ -4,24 +4,17 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
-    private final Optional<Tag> current;
-    private final Tag work;
-    private final DomChangesContext performer;
 
-    public Diff(final Optional<Tag> current, final Tag work, final DomChangesContext performer) {
-        this.current = Objects.requireNonNull(current);
-        this.work = Objects.requireNonNull(work);
-        current.ifPresent(c -> {
-            if (!c.path().equals(work.path())) {
-                throw new IllegalArgumentException("Root paths for a diff expected to be equal");
-            }
-        });
-        this.performer = Objects.requireNonNull(performer);
-    }
+    public static void diff(final Tag current, final Tag work, final DomChangesContext performer) {
+        Objects.requireNonNull(current);
+        Objects.requireNonNull(work);
+        Objects.requireNonNull(performer);
 
-    public void run() {
-        current.ifPresentOrElse(c -> diff(c, work, c.path(), performer),
-                                () -> create(work, work.path(), performer));
+        if (!current.path().equals(work.path())) {
+            throw new IllegalArgumentException("Root paths for a diff expected to be equal");
+        }
+
+        diff(current, work, current.path(), performer);
     }
 
     private static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesContext changesPerformer) {
@@ -33,30 +26,6 @@ public final class Diff {
             diffAttributes(c.attributes, w.attributes, path, changesPerformer);
             diffChildren(c.children, w.children, path.incLevel(), changesPerformer);
         }
-    }
-
-    private static void diffAttributes(final CopyOnWriteArraySet<Attribute> ca,
-                                       final CopyOnWriteArraySet<Attribute> wa,
-                                       final VirtualDomPath path,
-                                       final DomChangesContext performer) {
-        final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
-        final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
-        c.removeAll(wa);
-        c.forEach(attribute -> performer.removeAttr(path, XmlNs.html, attribute.name, attribute.isProperty));
-        w.removeAll(ca);
-        w.forEach(attribute -> performer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty));
-    }
-
-    private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
-                                   final CopyOnWriteArraySet<Style> wa,
-                                   final VirtualDomPath path,
-                                   final DomChangesContext performer) {
-        final Set<Style> c = new CopyOnWriteArraySet<>(ca);
-        final Set<Style> w = new CopyOnWriteArraySet<>(wa);
-        c.removeAll(wa);
-        c.forEach(attribute -> performer.removeStyle(path, attribute.name));
-        w.removeAll(ca);
-        w.forEach(attribute -> performer.setStyle(path, attribute.name, attribute.value));
     }
 
     private static void diffChildren(final List<? extends Node> cc, final List<? extends Node> wc, final VirtualDomPath parentTagPath, final DomChangesContext performer) {
@@ -89,6 +58,30 @@ public final class Diff {
             p = p.incSibling();
         }
 
+    }
+
+    private static void diffAttributes(final CopyOnWriteArraySet<Attribute> ca,
+                                       final CopyOnWriteArraySet<Attribute> wa,
+                                       final VirtualDomPath path,
+                                       final DomChangesContext performer) {
+        final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
+        final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
+        c.removeAll(wa);
+        c.forEach(attribute -> performer.removeAttr(path, XmlNs.html, attribute.name, attribute.isProperty));
+        w.removeAll(ca);
+        w.forEach(attribute -> performer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty));
+    }
+
+    private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
+                                   final CopyOnWriteArraySet<Style> wa,
+                                   final VirtualDomPath path,
+                                   final DomChangesContext performer) {
+        final Set<Style> c = new CopyOnWriteArraySet<>(ca);
+        final Set<Style> w = new CopyOnWriteArraySet<>(wa);
+        c.removeAll(wa);
+        c.forEach(attribute -> performer.removeStyle(path, attribute.name));
+        w.removeAll(ca);
+        w.forEach(attribute -> performer.setStyle(path, attribute.name, attribute.value));
     }
 
     private static void create(final Tag tag, final VirtualDomPath path, final DomChangesContext changesPerformer) {

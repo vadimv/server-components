@@ -141,7 +141,7 @@ public class Component<S> implements StateUpdate<S> {
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        new Diff(Optional.ofNullable(oldTag), renderContext.rootTag(), domChangePerformer).run();
+        Diff.diff(oldTag, renderContext.rootTag(), domChangePerformer);
         final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
         remoteOut.modifyDom(domChangePerformer.commands);
 

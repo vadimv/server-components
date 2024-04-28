@@ -15,7 +15,7 @@ public class DiffTests {
         final Tag tree2 = new Tag(basePath, XmlNs.html, "html", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2, cp).run();
+        Diff.diff(tree1, tree2, cp);
         assertEquals("", cp.resultAsString());
     }
 
@@ -25,7 +25,7 @@ public class DiffTests {
         final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("-TAG:0:1 +TAG:1:div", cp.resultAsString());
     }
 
@@ -38,7 +38,7 @@ public class DiffTests {
         tree2.addChild(new Tag(basePath.incLevel(), XmlNs.html, "span", false));
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("+TAG:1_1:span +TAG:1_2:span", cp.resultAsString());
     }
 
@@ -51,7 +51,7 @@ public class DiffTests {
         tree2.addChild(new Tag(basePath.incLevel(), XmlNs.html, "a", false));
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("-TAG:1:1_1 +TAG:1_1:a", cp.resultAsString());
     }
 
@@ -66,7 +66,7 @@ public class DiffTests {
         tree2.addChild(child21);
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
 
@@ -92,7 +92,7 @@ public class DiffTests {
         ul2.addChild(li23);
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(ul1), ul2,  cp).run();
+        Diff.diff(ul1, ul2,  cp);
         assertEquals("+TAG:1_3:li+TEXT:1_3:1_3_1=third", cp.resultAsString());
     }
 
@@ -105,7 +105,7 @@ public class DiffTests {
         tree2.addAttribute("attr1", "value1", true);
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("+ATTR:1:attr1=value1:true", cp.resultAsString());
     }
 
@@ -117,7 +117,7 @@ public class DiffTests {
         final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("-ATTR:1:attr1", cp.resultAsString());
     }
 
@@ -129,7 +129,7 @@ public class DiffTests {
         tree2.addStyle("style1", "value1");
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("+STYLE:1:style1=value1", cp.resultAsString());
     }
 
@@ -141,7 +141,7 @@ public class DiffTests {
         final Tag tree2 = new Tag(basePath, XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        new Diff(Optional.of(tree1), tree2,  cp).run();
+        Diff.diff(tree1, tree2,  cp);
         assertEquals("-STYLE:1:style1", cp.resultAsString());
     }
 
