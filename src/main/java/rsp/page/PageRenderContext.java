@@ -20,11 +20,13 @@ public final class PageRenderContext extends ComponentRenderContext {
                              final String pageConfigScript,
                              final VirtualDomPath rootDomPath,
                              final PageStateOrigin httpStateOriginSupplier,
-                             final TemporaryBufferedPageCommands remotePageMessagesOut) {
+                             final TemporaryBufferedPageCommands remotePageMessagesOut,
+                             final Object sessionLock) {
         super(sessionId,
               rootDomPath,
               httpStateOriginSupplier,
-              remotePageMessagesOut);
+              remotePageMessagesOut,
+              sessionLock);
         this.pageConfigScript = Objects.requireNonNull(pageConfigScript);
     }
 

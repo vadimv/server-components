@@ -24,7 +24,7 @@ public class Component<S> implements StateUpdate<S> {
     private final List<Component<?>> children = new ArrayList<>();
 
     private final ComponentCompositeKey key;
-    private final Supplier<CompletableFuture<? extends S>> resolveStateFunction;
+    private final Supplier<CompletableFuture<? extends S>> stateResolver;
     private final ComponentMountedCallback<S> componentMounted;
     private final ComponentUpdatedCallback<S> componentUpdated;
     private final ComponentUnmountedCallback<S> componentUnmounted;
@@ -32,25 +32,28 @@ public class Component<S> implements StateUpdate<S> {
     private final RenderContextFactory renderContextFactory;
 
     protected final RemoteOut remotePageMessages;
+    private final Object sessionLock;
 
     private S state;
     private Tag tag;
     private VirtualDomPath domPath;
 
     public Component(final ComponentCompositeKey key,
-                     final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
+                     final Supplier<CompletableFuture<? extends S>> stateResolver,
                      final ComponentView<S> componentView,
                      final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
-                     final RemoteOut remotePageMessages) {
+                     final RemoteOut remotePageMessages,
+                     final Object sessionLock) {
         this.key = Objects.requireNonNull(key);
-        this.resolveStateFunction = Objects.requireNonNull(resolveStateSupplier);
+        this.stateResolver = Objects.requireNonNull(stateResolver);
         this.componentMounted = Objects.requireNonNull(componentCallbacks.componentMountedCallback());
         this.componentView = Objects.requireNonNull(componentView);
         this.componentUpdated = Objects.requireNonNull(componentCallbacks.componentUpdatedCallback());
         this.componentUnmounted = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
+        this.sessionLock = Objects.requireNonNull(sessionLock);
 
         logger.log(TRACE, "New component is created with key " + this);
     }
@@ -71,17 +74,19 @@ public class Component<S> implements StateUpdate<S> {
     }
 
     public void render(final ComponentRenderContext renderContext) {
-        final CompletableFuture<? extends S> statePromise = resolveStateFunction.get();
+        final CompletableFuture<? extends S> statePromise = stateResolver.get();
         statePromise.whenComplete((s, stateEx) -> {
             if (stateEx == null) {
-                state = s;
-                try {
-                    final SegmentDefinition view = componentView.apply(state).apply(this);
-                    view.render(renderContext);
-                    initiallyRendered(key, state, this);
-                    componentMounted.apply(key, state, this);
-                } catch (Throwable renderEx) {
-                    logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
+                synchronized (sessionLock) {
+                    state = s;
+                    try {
+                        final SegmentDefinition view = componentView.apply(state).apply(this);
+                        view.render(renderContext);
+                        initiallyRendered(key, state, this);
+                        componentMounted.apply(key, state, this);
+                    } catch (Throwable renderEx) {
+                        logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
+                    }
                 }
             } else {
                 logger.log(ERROR, "Component " + this + " state exception", stateEx);
@@ -105,77 +110,81 @@ public class Component<S> implements StateUpdate<S> {
 
     @Override
     public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
-        stateTransformer.apply(state).ifPresent(this::setState);
+        synchronized (sessionLock) {
+            stateTransformer.apply(state).ifPresent(this::setState);
+        }
     }
 
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
-        if (tag == null) {
-            throw new IllegalStateException("Component " + this + " root tag is not rendered");
-        }
-        final Tag oldTag = tag;
-        tag = null;
-        final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
-        final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
-        final S oldState = state;
-        state = newStateFunction.apply(state);
-        logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
-
-        final ComponentRenderContext renderContext = renderContextFactory.newContext(domPath);
-
-        events.clear();
-        refs.clear();
-        children.clear();
-
-        renderContext.openComponent(this);
-        final SegmentDefinition view = componentView.apply(state).apply(this);
-        view.render(renderContext);
-        renderContext.closeComponent();
-
-        updateRendered(key, oldState, state, this);
-
-        tag = renderContext.rootTag();
-
-        final RemoteOut remoteOut = remotePageMessages;
-        assert remoteOut != null;
-
-        // Calculate diff between an old and new DOM trees
-        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        Diff.diff(oldTag, renderContext.rootTag(), domPath, domChangePerformer);
-        final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
-        remoteOut.modifyDom(domChangePerformer.commands);
-
-        // Unregister events
-        final List<Event> eventsToRemove = new ArrayList<>();
-        final Set<Event> newEvents = new HashSet<>(recursiveEvents());
-        for (Event event : oldEvents) {
-            if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
-                eventsToRemove.add(event);
+        synchronized (sessionLock) {
+            if (tag == null) {
+                throw new IllegalStateException("Component " + this + " root tag is not rendered");
             }
-        }
-        for (Event event : eventsToRemove) {
-            final Event.Target eventTarget = event.eventTarget;
-            remoteOut.forgetEvent(eventTarget.eventType,
-                                  eventTarget.elementPath);
-        }
+            final Tag oldTag = tag;
+            tag = null;
+            final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
+            final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
+            final S oldState = state;
+            state = newStateFunction.apply(state);
+            logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
-        // Register new event types on client
-        final List<Event> eventsToAdd = new ArrayList<>();
-        for (final Event event : newEvents) {
-            if(!oldEvents.contains(event)) {
-                eventsToAdd.add(event);
-            }
-        }
-        remoteOut.listenEvents(eventsToAdd);
+            final ComponentRenderContext renderContext = renderContextFactory.newContext(domPath);
 
-        // Notify unmounted child components
-        final Set<Component<?>> mountedComponents = new HashSet<>(children);
-        for (final Component<?> child : oldChildren) {
-            if (!mountedComponents.contains(child)) {
-                child.unmount();
+            events.clear();
+            refs.clear();
+            children.clear();
+
+            renderContext.openComponent(this);
+            final SegmentDefinition view = componentView.apply(state).apply(this);
+            view.render(renderContext);
+            renderContext.closeComponent();
+
+            updateRendered(key, oldState, state, this);
+
+            tag = renderContext.rootTag();
+
+            final RemoteOut remoteOut = remotePageMessages;
+            assert remoteOut != null;
+
+            // Calculate diff between an old and new DOM trees
+            final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
+            Diff.diff(oldTag, renderContext.rootTag(), domPath, domChangePerformer);
+            final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
+            remoteOut.modifyDom(domChangePerformer.commands);
+
+            // Unregister events
+            final List<Event> eventsToRemove = new ArrayList<>();
+            final Set<Event> newEvents = new HashSet<>(recursiveEvents());
+            for (Event event : oldEvents) {
+                if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
+                    eventsToRemove.add(event);
+                }
             }
+            for (Event event : eventsToRemove) {
+                final Event.Target eventTarget = event.eventTarget;
+                remoteOut.forgetEvent(eventTarget.eventType,
+                        eventTarget.elementPath);
+            }
+
+            // Register new event types on client
+            final List<Event> eventsToAdd = new ArrayList<>();
+            for (final Event event : newEvents) {
+                if (!oldEvents.contains(event)) {
+                    eventsToAdd.add(event);
+                }
+            }
+            remoteOut.listenEvents(eventsToAdd);
+
+            // Notify unmounted child components
+            final Set<Component<?>> mountedComponents = new HashSet<>(children);
+            for (final Component<?> child : oldChildren) {
+                if (!mountedComponents.contains(child)) {
+                    child.unmount();
+                }
+            }
+            componentUpdated.apply(key, oldState, state, this);
         }
-        componentUpdated.apply(key, oldState, state, this);
     }
 
     protected void initiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}

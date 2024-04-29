@@ -42,11 +42,13 @@ public class LivePageTests {
                                                                        1000);
         final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
         final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
+        final Object sessionLock = new Object();
         final PageRenderContext domTreeContext = new PageRenderContext(new QualifiedSessionId("device0", "session0"),
                                                                        pageConfigScript.toString(),
                                                                        VirtualDomPath.DOCUMENT,
                                                                        httpStateOrigin,
-                                                                       commandsBuffer);
+                                                                       commandsBuffer,
+                                                                       sessionLock);
 
         final StatefulComponentDefinition<State> componentDefinition = ComponentDsl.pathComponent(p -> CompletableFuture.completedFuture(initialState),
                                                                                                   (s, p) -> p,
@@ -59,7 +61,8 @@ public class LivePageTests {
 
         final LivePageSession livePage = new LivePageSession(QID,
                                                              rootComponent,
-                                                             remoteOut);
+                                                             remoteOut,
+                                                             sessionLock);
         livePage.init();
 
         rootComponent.setState(new State(100));

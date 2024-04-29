@@ -10,7 +10,7 @@ public class PageStateOrigin {
 
     public PageStateOrigin(final HttpRequest httpRequest) {
         this.httpRequest = Objects.requireNonNull(httpRequest);
-        relativeUrl = RelativeUrl.of(httpRequest);
+        this.relativeUrl = RelativeUrl.of(httpRequest);
     }
 
     public void setRelativeUrl(final RelativeUrl relativeUrl) {

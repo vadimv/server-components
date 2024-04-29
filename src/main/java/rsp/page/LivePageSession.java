@@ -28,6 +28,7 @@ public final class LivePageSession implements RemoteIn {
     private final QualifiedSessionId qsid;
     private final Component<?> rootComponent;
     private final RemoteOut remoteOut;
+    private final Object sessionLock;
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
 
@@ -35,10 +36,12 @@ public final class LivePageSession implements RemoteIn {
 
     public LivePageSession(final QualifiedSessionId qsid,
                            final Component<?> rootComponent,
-                           final RemoteOut remoteOut) {
+                           final RemoteOut remoteOut,
+                           final Object sessionLock) {
         this.qsid = Objects.requireNonNull(qsid);
         this.rootComponent = Objects.requireNonNull(rootComponent);
         this.remoteOut = Objects.requireNonNull(remoteOut);
+        this.sessionLock = Objects.requireNonNull(sessionLock);
     }
 
     public synchronized void init() {
@@ -47,7 +50,7 @@ public final class LivePageSession implements RemoteIn {
 
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
-        synchronized (this) {
+        synchronized (sessionLock) {
             rootComponent.unmount();
         }
     }
@@ -61,7 +64,7 @@ public final class LivePageSession implements RemoteIn {
     public void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
         if (result instanceof ExtractPropertyResponse.NotFound) {
             logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " failed");
-            synchronized (this) {
+            synchronized (sessionLock) {
                 final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
                 if (cf != null) {
                     cf.completeExceptionally(new RuntimeException("Extract property: " + descriptorId + " not found"));
@@ -70,7 +73,7 @@ public final class LivePageSession implements RemoteIn {
             }
         } else if (result instanceof ExtractPropertyResponse.Value v) {
             logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.value());
-            synchronized (this) {
+            synchronized (sessionLock) {
                 final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
                 if (cf != null) {
                     cf.complete(v.value());
@@ -83,7 +86,7 @@ public final class LivePageSession implements RemoteIn {
     @Override
     public void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
         logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toStringValue());
-        synchronized (this) {
+        synchronized (sessionLock) {
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
             if (cf != null) {
                 cf.complete(value);
@@ -95,7 +98,7 @@ public final class LivePageSession implements RemoteIn {
     @Override
     public void handleDomEvent(final int renderNumber, final VirtualDomPath eventPath, final String eventType, final JsonDataType.Object eventObject) {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
-        synchronized (this) {
+        synchronized (sessionLock) {
             VirtualDomPath eventElementPath = eventPath;
             while (eventElementPath.level() > 0) {
                 for (final Event event: rootComponent.recursiveEvents()) {
@@ -140,7 +143,7 @@ public final class LivePageSession implements RemoteIn {
 
     public CompletableFuture<JsonDataType> evalJs(final String js) {
         logger.log(DEBUG, () -> "Called an JS evaluation: " + js);
-        synchronized (this) {
+        synchronized (sessionLock) {
             final int newDescriptor = ++descriptorsCounter;
             final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
             registeredEventHandlers.put(newDescriptor, resultHandler);

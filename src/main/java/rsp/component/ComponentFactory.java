@@ -11,5 +11,6 @@ public interface ComponentFactory<S> {
                                  ComponentPath path,
                                  PageStateOrigin pageStateOrigin,
                                  RenderContextFactory renderContextFactory,
-                                 RemoteOut remotePageMessagesOut);
+                                 RemoteOut remotePageMessagesOut,
+                                 Object sessionLock);
 }

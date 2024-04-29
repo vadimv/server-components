@@ -38,7 +38,8 @@ public class HttpRequestStateComponentDefinitionTests {
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 VirtualDomPath.of("1"),
                                                                                 pageStateOrigin,
-                                                                                remoteOut);
+                                                                                remoteOut,
+                                                                                new Object());
         final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(
                 request-> CompletableFuture.completedFuture(request.header("header-0").orElseThrow()),
                                                             view);

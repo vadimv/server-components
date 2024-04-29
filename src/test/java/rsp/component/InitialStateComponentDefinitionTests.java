@@ -42,7 +42,8 @@ public class InitialStateComponentDefinitionTests {
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 VirtualDomPath.of("1"),
                                                                                 pageStateOrigin,
-                                                                                remoteOut);
+                                                                                remoteOut,
+                                                                                new Object());
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
                                                                                               view);
         // Initial render

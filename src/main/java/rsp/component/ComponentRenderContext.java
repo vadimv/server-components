@@ -14,6 +14,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     private final QualifiedSessionId sessionId;
     private final PageStateOrigin pageStateOrigin;
     private final RemoteOut remotePageMessagesOut;
+    private final Object sessionLock;
 
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private Component<?> rootComponent;
@@ -21,11 +22,13 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final VirtualDomPath rootDomPath,
                                   final PageStateOrigin pageStateOrigin,
-                                  final RemoteOut remotePageMessagesOut) {
+                                  final RemoteOut remotePageMessagesOut,
+                                  final Object sessionLock) {
         super(rootDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
+        this.sessionLock = Objects.requireNonNull(sessionLock);
     }
     
     @SuppressWarnings("unchecked")
@@ -79,12 +82,14 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
 
         final Component<?> parent = componentsStack.peek();
         final ComponentPath path = parent == null ?
+
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            path,
                                                                            pageStateOrigin,
                                                                           this,
-                                                                           remotePageMessagesOut);
+                                                                           remotePageMessagesOut,
+                                                                           sessionLock);
         openComponent(newComponent);
         return newComponent;
     }
@@ -109,7 +114,8 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         return new ComponentRenderContext(sessionId,
                                           domPath,
                                           pageStateOrigin,
-                                          remotePageMessagesOut);
+                                          remotePageMessagesOut,
+                                          sessionLock);
     }
 }
 

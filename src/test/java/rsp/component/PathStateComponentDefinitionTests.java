@@ -41,7 +41,8 @@ public class PathStateComponentDefinitionTests {
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 VirtualDomPath.of("1"),
                                                                                 pageStateOrigin,
-                                                                                remoteOut);
+                                                                                remoteOut,
+                                                                                new Object());
         final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(path -> CompletableFuture.completedFuture(path.get(0)),
                                                                                            (state, path) -> Path.of("/" + state),
                                                                                             view);

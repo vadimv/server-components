@@ -32,13 +32,15 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                                      final RemoteOut remotePageMessages,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
                                      final Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState,
-                                     final PageStateOrigin pageStateOrigin) {
+                                     final PageStateOrigin pageStateOrigin,
+                                     final Object sessionLock) {
         super(key,
               resolveStateSupplier,
               componentView,
               componentCallbacks,
               renderContextFactory,
-              remotePageMessages);
+              remotePageMessages,
+              sessionLock);
         this.stateToRelativeUrl = Objects.requireNonNull(stateToRelativeUrl);
         this.relativeUrlToState = Objects.requireNonNull(relativeUrlToState);
         this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);

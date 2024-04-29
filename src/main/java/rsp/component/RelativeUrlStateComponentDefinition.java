@@ -29,7 +29,12 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
     protected abstract Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState();
 
     @Override
-    public Component<S> createComponent(QualifiedSessionId sessionId, ComponentPath componentPath, PageStateOrigin pageStateOrigin, RenderContextFactory renderContextFactory, RemoteOut remotePageMessagesOut) {
+    public Component<S> createComponent(QualifiedSessionId sessionId,
+                                        ComponentPath componentPath,
+                                        PageStateOrigin pageStateOrigin,
+                                        RenderContextFactory renderContextFactory,
+                                        RemoteOut remotePageMessagesOut,
+                                        Object sessionLock) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key,
                                                                                                              pageStateOrigin.httpStateOrigin());
@@ -43,6 +48,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
                                                remotePageMessagesOut,
                                                stateToRelativeUrl(),
                                                relativeUrlToState(),
-                                               pageStateOrigin);
+                                               pageStateOrigin,
+                                               sessionLock);
     }
 }

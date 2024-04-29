@@ -42,7 +42,8 @@ public class StoredStateComponentDefinitionTests {
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 VirtualDomPath.of("1"),
                                                                                 pageStateOrigin,
-                                                                                remoteOut);
+                                                                                remoteOut,
+                                                                                new Object());
         final StatefulComponentDefinition<Boolean> scd = new InitialStateComponentDefinition<>(true,
                                                                                                view);
         // Initial render

@@ -42,7 +42,8 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                         final ComponentPath componentPath,
                                         final PageStateOrigin pageStateOrigin,
                                         final RenderContextFactory renderContextFactory,
-                                        final RemoteOut remotePageMessagesOut) {
+                                        final RemoteOut remotePageMessagesOut,
+                                        final Object sessionLock) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key,
                                                                                                              pageStateOrigin.httpStateOrigin());
@@ -53,7 +54,8 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                                         componentDidUpdate(),
                                                         componentWillUnmount()),
                                renderContextFactory,
-                               remotePageMessagesOut);
+                               remotePageMessagesOut,
+                               sessionLock);
     }
 
     @Override

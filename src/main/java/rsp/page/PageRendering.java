@@ -81,18 +81,19 @@ public final class PageRendering<S> {
                                                                            heartBeatIntervalMs);
 
             final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
-
+            final Object sessionLock = new Object();
             final PageRenderContext domTreeContext = new PageRenderContext(pageId,
                                                                            pageConfigScript.toString(),
                                                                            VirtualDomPath.DOCUMENT,
                                                                            httpStateOrigin,
-                                                                           commandsBuffer);
+                                                                           commandsBuffer,
+                                                                           sessionLock);
 
             rootComponentDefinition.render(domTreeContext);
 
-            final RenderedPage<S> pageSnapshot = new RenderedPage<>(httpStateOrigin,
-                                                                    domTreeContext.rootComponent(),
-                                                                    commandsBuffer);
+            final RenderedPage<S> pageSnapshot = new RenderedPage<>(domTreeContext.rootComponent(),
+                                                                    commandsBuffer,
+                                                                    sessionLock);
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = domTreeContext.toString();
 
