@@ -26,7 +26,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath,  cp);
-        assertEquals("-TAG:0:1 +TAG:1:div", cp.resultAsString());
+        assertEquals("-TAG::1 +TAG:1:div", cp.resultAsString());
     }
 
     @Test
@@ -67,7 +67,7 @@ public class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp);
-        assertEquals("-TAG:0:1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
+        assertEquals("-TAG::1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
 
     @Test

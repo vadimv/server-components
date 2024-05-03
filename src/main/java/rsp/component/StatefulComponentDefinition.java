@@ -36,7 +36,6 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
         return (key, state) -> {};
     }
 
-
     @Override
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final ComponentPath componentPath,

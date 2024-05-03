@@ -2,6 +2,7 @@ package rsp.component;
 
 import org.junit.jupiter.api.Test;
 import rsp.dom.Event;
+import rsp.dom.NodeList;
 import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
@@ -49,7 +50,9 @@ public class PathStateComponentDefinitionTests {
         // Initial render
         scd.render(renderContext);
 
-        final String html0 = renderContext.rootTag().toString();
+        final StringBuilder sb = new StringBuilder();
+        renderContext.rootNodes().appendString(sb);
+        final String html0 = sb.toString();
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>state-0</span>\n" +
                                  "</div>",

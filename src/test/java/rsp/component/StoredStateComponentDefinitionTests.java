@@ -1,6 +1,7 @@
 package rsp.component;
 
 import org.junit.jupiter.api.Test;
+import rsp.dom.NodeList;
 import rsp.dom.VirtualDomPath;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
@@ -49,7 +50,9 @@ public class StoredStateComponentDefinitionTests {
         // Initial render
         scd.render(renderContext);
 
-        final String html0 = renderContext.rootTag().toString();
+        final StringBuilder sb = new StringBuilder();
+        renderContext.rootNodes().appendString(sb);
+        final String html0 = sb.toString();
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>true</span>\n" +
                                  " <div>\n" +
@@ -57,7 +60,6 @@ public class StoredStateComponentDefinitionTests {
                                  " </div>\n" +
                                  "</div>",
                                  html0);
-
 
         assertEquals(0, renderContext.rootComponent().recursiveEvents().size());
 

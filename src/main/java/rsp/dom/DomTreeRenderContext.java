@@ -4,22 +4,22 @@ import rsp.page.EventContext;
 import rsp.page.RenderContext;
 import rsp.ref.Ref;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Consumer;
 
 public class DomTreeRenderContext implements RenderContext {
-    protected final VirtualDomPath rootPath;
+    protected final VirtualDomPath parentDomPath;
+    private String docType;
 
     protected final Deque<Tag> tagsStack = new ArrayDeque<>();
+    protected List<Tag> rootNodes = new ArrayList<>();
+
     protected VirtualDomPath domPath;
 
-    private String docType;
-    private Tag rootTag;
 
-    public DomTreeRenderContext(VirtualDomPath rootPath) {
-        this.rootPath = Objects.requireNonNull(rootPath);
+    public DomTreeRenderContext(VirtualDomPath startDomPath) {
+        this.parentDomPath = startDomPath;
+        this.domPath = startDomPath;
     }
 
     @Override
@@ -31,31 +31,31 @@ public class DomTreeRenderContext implements RenderContext {
         return docType;
     }
 
-    public Tag rootTag() {
-        return rootTag;
+    public NodeList rootNodes() {
+        return new NodeList(rootNodes);
     }
 
     @Override
     public void openNode(final XmlNs xmlns, final String name, boolean isSelfClosing) {
-        if (rootTag == null) {
-            rootTag = new Tag(xmlns, name, isSelfClosing);
-            tagsStack.push(rootTag);
-            domPath = rootPath;
+        final Tag parent = tagsStack.peek();
+        if (rootNodes.isEmpty()) {
+            Tag tag = new Tag(xmlns, name, isSelfClosing);
+            tagsStack.push(tag);
+            rootNodes.add(tag);
         } else {
-            final Tag parent = tagsStack.peek();
             assert parent != null;
             final int nextChild = parent.children.size() + 1;
+            domPath = domPath.childNumber(nextChild);
             final Tag newTag = new Tag(xmlns, name, isSelfClosing);
             parent.addChild(newTag);
             tagsStack.push(newTag);
-            domPath = domPath.childNumber(nextChild);
         }
     }
 
     @Override
     public void closeNode(final String name, final boolean upgrade) {
         tagsStack.pop();
-        domPath = domPath.parent().orElseThrow();
+        domPath = domPath.parent();
     }
 
     @Override
@@ -92,14 +92,11 @@ public class DomTreeRenderContext implements RenderContext {
 
     @Override
     public String toString() {
-        if (rootTag == null) {
-            throw new IllegalStateException("DOM tree not initialized");
-        }
         final StringBuilder sb = new StringBuilder();
         if (docType != null) {
-            sb.append(docType);
+            sb.append(docType); // TODO check
         }
-        rootTag.appendString(sb);
+        rootNodes.forEach(t -> t.appendString(sb));
         return sb.toString();
     }
 }

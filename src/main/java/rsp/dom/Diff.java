@@ -10,7 +10,7 @@ public final class Diff {
         Objects.requireNonNull(w);
         Objects.requireNonNull(changesPerformer);
         if (!c.name.equals(w.name)) {
-            changesPerformer.remove(path.parent().get(), path);
+            changesPerformer.remove(path.parent(), path);
             create(w, path, changesPerformer);
         } else {
             diffStyles(c.styles, w.styles, path, changesPerformer);
@@ -19,7 +19,7 @@ public final class Diff {
         }
     }
 
-    private static void diffChildren(final List<? extends Node> cc, final List<? extends Node> wc, final VirtualDomPath parentTagPath, final DomChangesContext performer) {
+    public static void diffChildren(final List<? extends Node> cc, final List<? extends Node> wc, final VirtualDomPath parentTagPath, final DomChangesContext performer) {
         final ListIterator<? extends Node> c = cc.listIterator();
         final ListIterator<? extends Node> w = wc.listIterator();
 
@@ -31,22 +31,23 @@ public final class Diff {
                 if (nc instanceof Tag && nw instanceof Tag) {
                     diff((Tag)nc, (Tag)nw, p, performer);
                 } else if (nw instanceof Tag) {
-                    performer.remove(p.parent().get(), p);
+                    performer.remove(p.parent(), p);
                     create(((Tag) nw), parentTagPath, performer);
                 } else if (nc instanceof Tag) {
-                    performer.remove(p.parent().get(), p);
-                    performer.createText(parentTagPath.parent().get(), parentTagPath, ((Text)nw).text);
+                    performer.remove(p.parent(), p);
+                    performer.createText(parentTagPath.parent(), parentTagPath, ((Text)nw).text);
                 } else if (!((Text)nc).text.equals(((Text)nw).text)) {
-                    performer.createText(parentTagPath.parent().get(), parentTagPath, ((Text)nw).text);
+                    performer.createText(parentTagPath.parent(), parentTagPath, ((Text)nw).text);
                 }
             } else if (c.hasNext()) {
                 c.next();
-                performer.remove(p.parent().get(), p);
+                performer.remove(p.parent(), p);
             } else {
                 final Node nw = w.next();
                 create((Tag)nw, p, performer);
             }
-            p = p.incSibling();
+            if (c.hasNext() || w.hasNext())
+            if (p.level() > 0) p = p.incSibling();
         }
 
     }

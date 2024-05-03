@@ -51,11 +51,11 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     @Override
     protected void updateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {
-        addEvent(new Event(new Event.Target(LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                                            VirtualDomPath.WINDOW),
-                           eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
-                          true,
-                           Event.NO_MODIFIER));
+        addEvent(VirtualDomPath.WINDOW,
+                LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
+               true,
+                Event.NO_MODIFIER);
 
         final RelativeUrl oldRelativeUrl = pageStateOrigin.getRelativeUrl();
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, oldRelativeUrl);

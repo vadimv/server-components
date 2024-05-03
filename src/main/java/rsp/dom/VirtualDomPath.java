@@ -6,7 +6,7 @@ import java.util.Optional;
 public final class VirtualDomPath {
     public static final String SEPARATOR = "_";
     public static final VirtualDomPath DOCUMENT = VirtualDomPath.of("1");
-    public static final VirtualDomPath WINDOW = VirtualDomPath.of("0");
+    public static final VirtualDomPath WINDOW = VirtualDomPath.of("");
 
     private final int[] array;
 
@@ -15,7 +15,7 @@ public final class VirtualDomPath {
     }
 
     public static VirtualDomPath of(final String path) {
-        return new VirtualDomPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());
+        return path.isBlank() ? new VirtualDomPath() : new VirtualDomPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());
     }
 
     public int level() {
@@ -34,7 +34,18 @@ public final class VirtualDomPath {
         return new VirtualDomPath(a);
     }
 
-    public Optional<VirtualDomPath> parent() {
+    public VirtualDomPath parent() {
+        return take(array.length - 1);
+    }
+
+    public VirtualDomPath add(final VirtualDomPath otherPath) {
+        final int[] a = new int[array.length + otherPath.array.length];
+        System.arraycopy(array, 0, a, 0, array.length);
+        System.arraycopy(otherPath.array, 0, a, array.length, otherPath.array.length);
+        return new VirtualDomPath(a);
+    }
+
+/*    public Optional<VirtualDomPath> parent() {
         if (this.equals(WINDOW)) {
             return Optional.empty();
         } else if (this.equals(DOCUMENT)) {
@@ -42,7 +53,7 @@ public final class VirtualDomPath {
         } else {
             return Optional.of(take(array.length - 1));
         }
-    }
+    }*/
 
     public VirtualDomPath childNumber(final int num) {
         final VirtualDomPath childPath = incLevel();

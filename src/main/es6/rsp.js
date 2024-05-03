@@ -54,7 +54,7 @@ const EventModifierType = {
 
 /** @enum {string} */
 const VirtualDomPaths = {
-  WINDOW_PATH: '0',
+  WINDOW_PATH: '',
   DOCUMENT_PATH: '1'
 };
 
@@ -93,16 +93,14 @@ export class RSP {
 
     this.listen = (target, name, preventDefault, eventModifier) => {
       var listener = (event) => {
-        if (event.target.vId) {
           if (preventDefault) {
             event.preventDefault();
           }
           this.eventData[this.renderNum] = event;
-
           this.callback(CallbackType.DOM_EVENT,
                         this.renderNum + ':' + event.target.vId + ':' + event.type,
                         this.eventObject(event.type, event));
-        }
+
       };
 
       /**

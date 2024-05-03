@@ -2,6 +2,7 @@ package rsp.component;
 
 import rsp.dom.*;
 import rsp.html.SegmentDefinition;
+import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
@@ -19,10 +20,6 @@ import static java.lang.System.Logger.Level.*;
 public class Component<S> implements StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final List<Event> events = new ArrayList<>();
-    private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
-    private final List<Component<?>> children = new ArrayList<>();
-
     private final ComponentCompositeKey key;
     private final Supplier<CompletableFuture<? extends S>> stateResolver;
     private final ComponentMountedCallback<S> componentMounted;
@@ -30,12 +27,14 @@ public class Component<S> implements StateUpdate<S> {
     private final ComponentUnmountedCallback<S> componentUnmounted;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
-
     protected final RemoteOut remotePageMessages;
     private final Object sessionLock;
 
+    private final List<Event> events = new ArrayList<>();
+    private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
+    private final List<Component<?>> children = new ArrayList<>();
+    private final List<Tag> tags = new ArrayList<>();
     private S state;
-    private Tag tag;
     private VirtualDomPath domPath;
 
     public Component(final ComponentCompositeKey key,
@@ -66,10 +65,10 @@ public class Component<S> implements StateUpdate<S> {
         children.add(component);
     }
 
-    public void setRootTagIfNotSet(VirtualDomPath domPath, Tag newTag) {
-      if (this.tag == null) {
-            this.domPath = domPath;
-            this.tag = newTag;
+    public void addNode(VirtualDomPath domPath, Tag newTag) {
+      if (tags.isEmpty() || domPath.level() == this.domPath.level()) {
+          this.domPath = domPath;
+          tags.add(newTag);
       }
     }
 
@@ -118,18 +117,16 @@ public class Component<S> implements StateUpdate<S> {
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
         synchronized (sessionLock) {
-            if (tag == null) {
-                throw new IllegalStateException("Component " + this + " root tag is not rendered");
-            }
-            final Tag oldTag = tag;
-            tag = null;
+            final List<Tag> oldTags = new ArrayList<>(tags);
+            tags.clear();
             final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
             final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
             final S oldState = state;
             state = newStateFunction.apply(state);
+
             logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
-            final ComponentRenderContext renderContext = renderContextFactory.newContext(domPath);
+            final ComponentRenderContext renderContext = renderContextFactory.newContext(domPath); // TODO check
 
             events.clear();
             refs.clear();
@@ -142,14 +139,12 @@ public class Component<S> implements StateUpdate<S> {
 
             updateRendered(key, oldState, state, this);
 
-            tag = renderContext.rootTag();
-
             final RemoteOut remoteOut = remotePageMessages;
             assert remoteOut != null;
 
             // Calculate diff between an old and new DOM trees
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-            Diff.diff(oldTag, renderContext.rootTag(), domPath, domChangePerformer);
+            Diff.diffChildren(oldTags, tags, domPath, domChangePerformer);
             final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
             remoteOut.modifyDom(domChangePerformer.commands);
 
@@ -229,8 +224,13 @@ public class Component<S> implements StateUpdate<S> {
         return recursiveRefs;
     }
 
-    public void addEvent(final Event event) {
-        events.add(event);
+    public void addEvent(final VirtualDomPath elementPath,
+                         final String eventType,
+                         final Consumer<EventContext> eventHandler,
+                         final boolean preventDefault,
+                         final Event.Modifier modifier) {
+        final Event.Target eventTarget = new Event.Target(eventType, elementPath);
+        events.add(new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     public void addRef(final Ref ref, final VirtualDomPath path) {
@@ -256,4 +256,5 @@ public class Component<S> implements StateUpdate<S> {
     public int hashCode() {
         return Objects.hash(key);
     }
+
 }

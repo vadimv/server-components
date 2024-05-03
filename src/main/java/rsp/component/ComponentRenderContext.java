@@ -20,11 +20,11 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     private Component<?> rootComponent;
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
-                                  final VirtualDomPath rootDomPath,
+                                  final VirtualDomPath startDomPath,
                                   final PageStateOrigin pageStateOrigin,
                                   final RemoteOut remotePageMessagesOut,
                                   final Object sessionLock) {
-        super(rootDomPath);
+        super(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
@@ -44,7 +44,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         assert component != null;
         final Tag tag = tagsStack.peek();
         assert tag != null;
-        component.setRootTagIfNotSet(domPath, tag);
+        component.addNode(domPath, tag);
     }
 
     @Override
@@ -53,10 +53,9 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final Event.Modifier modifier) {
-        final Event.Target eventTarget = new Event.Target(eventType, elementPath);
         final Component<?> component = componentsStack.peek();
         assert component != null;
-        component.addEvent(new Event(eventTarget, eventHandler, preventDefault, modifier));
+        component.addEvent(elementPath, eventType, eventHandler, preventDefault, modifier);
     }
 
     @Override
@@ -81,11 +80,11 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {
 
         final Component<?> parent = componentsStack.peek();
-        final ComponentPath path = parent == null ?
+        final ComponentPath componentPath = parent == null ?
 
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
-                                                                           path,
+                                                                           componentPath,
                                                                            pageStateOrigin,
                                                                           this,
                                                                            remotePageMessagesOut,

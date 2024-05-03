@@ -96,18 +96,21 @@ public final class LivePageSession implements RemoteIn {
     }
 
     @Override
-    public void handleDomEvent(final int renderNumber, final VirtualDomPath eventPath, final String eventType, final JsonDataType.Object eventObject) {
+    public void handleDomEvent(final int renderNumber,
+                               final VirtualDomPath eventPath,
+                               final String eventType,
+                               final JsonDataType.Object eventObject) {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (sessionLock) {
             VirtualDomPath eventElementPath = eventPath;
-            while (eventElementPath.level() > 0) {
+            while (eventElementPath.level() >= 0) {
                 for (final Event event: rootComponent.recursiveEvents()) {
                     if (event.eventTarget.elementPath.equals(eventElementPath) && event.eventTarget.eventType.equals(eventType)) {
                         event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                     }
                 }
-                if (eventElementPath.parent().isPresent()) {
-                    eventElementPath = eventElementPath.parent().get();
+                if (eventElementPath.level() > 0) {
+                    eventElementPath = eventElementPath.parent();
                 } else {
                     break;
                 }

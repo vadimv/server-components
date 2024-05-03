@@ -151,7 +151,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
             return joinString(CREATE_TEXT, quote(c.parentPath), quote(c.path), quote(escape(c.text)));
         } else if (domChange instanceof Create) {
             final Create c = (Create)domChange;
-            return joinString(CREATE, quote(c.path.parent().get()),
+            return joinString(CREATE, quote(c.path.parent()),
                     quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.tag)));
         } else {
             throw new IllegalStateException("Unsupported DomChange object type:" + domChange);
