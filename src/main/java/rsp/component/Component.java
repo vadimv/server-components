@@ -65,9 +65,14 @@ public class Component<S> implements StateUpdate<S> {
         children.add(component);
     }
 
+    public void setOpenPath(VirtualDomPath componentOpenTag) {
+        if (domPath == null) {
+            domPath = componentOpenTag;
+        }
+    }
+
     public void addNode(VirtualDomPath domPath, Tag newTag) {
       if (tags.isEmpty() || domPath.level() == this.domPath.level()) {
-          this.domPath = domPath;
           tags.add(newTag);
       }
     }
@@ -159,7 +164,7 @@ public class Component<S> implements StateUpdate<S> {
             for (Event event : eventsToRemove) {
                 final Event.Target eventTarget = event.eventTarget;
                 remoteOut.forgetEvent(eventTarget.eventType,
-                        eventTarget.elementPath);
+                                      eventTarget.elementPath);
             }
 
             // Register new event types on client

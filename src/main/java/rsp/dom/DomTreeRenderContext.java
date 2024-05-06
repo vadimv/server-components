@@ -13,7 +13,7 @@ public class DomTreeRenderContext implements RenderContext {
 
     protected final Deque<Tag> tagsStack = new ArrayDeque<>();
     protected List<Tag> rootNodes = new ArrayList<>();
-
+    protected List<VirtualDomPath> rootNodesPaths = new ArrayList<>();
     protected VirtualDomPath domPath;
 
 
@@ -38,18 +38,20 @@ public class DomTreeRenderContext implements RenderContext {
     @Override
     public void openNode(final XmlNs xmlns, final String name, boolean isSelfClosing) {
         final Tag parent = tagsStack.peek();
-        if (rootNodes.isEmpty()) {
-            Tag tag = new Tag(xmlns, name, isSelfClosing);
-            tagsStack.push(tag);
+        final Tag tag = new Tag(xmlns, name, isSelfClosing);
+        if (parent == null) {
+            if (!rootNodes.isEmpty()) {
+                final VirtualDomPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
+                domPath = prevTag.incSibling();
+            }
             rootNodes.add(tag);
+            rootNodesPaths.add(domPath);
         } else {
-            assert parent != null;
             final int nextChild = parent.children.size() + 1;
             domPath = domPath.childNumber(nextChild);
-            final Tag newTag = new Tag(xmlns, name, isSelfClosing);
-            parent.addChild(newTag);
-            tagsStack.push(newTag);
+            parent.addChild(tag);
         }
+        tagsStack.push(tag);
     }
 
     @Override

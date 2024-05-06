@@ -51,7 +51,8 @@ public class SimpleServer {
     }
 
     private static ComponentView<Integer> counterView(String name) {
-        return state -> newState ->
+        return state -> newState ->of(
+                span(name),
                 div(div(button(attr("type", "button"),
                                 attr("id", name + "_b0"),
                                 text("+1"),
@@ -59,7 +60,7 @@ public class SimpleServer {
                                         d -> newState.setState(state + 1)))),
                         div(span(attr("id", name + "_s0"),
                                  attr("class", state % 2 == 0 ? "red" : "blue"),
-                                 text(state))));
+                                 text(state)))));
     }
 
     private static SegmentDefinition storedCounter(final String name) {
