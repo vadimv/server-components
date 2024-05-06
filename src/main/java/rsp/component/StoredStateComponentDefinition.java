@@ -42,6 +42,11 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
+    protected ComponentUpdatedCallback<S> componentDidUpdate() {
+        return (key, oldState, state, newState) -> stateStore.put(key, state);
+    }
+
+    @Override
     protected ComponentView<S> componentView() {
         return view;
     }
