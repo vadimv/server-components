@@ -11,25 +11,20 @@
 * [Page HTTP status code and HTTP headers](#page-http-status-code-and-http-headers)
 * [UI components](#ui-components)
 * [How to use components](#how-to-use-components)
-* [How to write your own component](#how-to-use-components)
-* [Stateful components with navigation bar URL path state mapping](#navigation-bar-url-path-and-components-state-mapping)
-* [DOM elements references](#dom-elements-references)
+* [How to implement a component](#how-to-implement-a-component)
 * [Evaluating code on the client-side](#evaluating-js-code-on-client-side)
-* [Page lifecycle events](#page-lifecycle-events)
 * [Web server's configuration](#web-servers-configuration)
 * [Logging](#logging)
-* [How to build the project and run tests](#how-to-build-the-project-and-run-tests)
 
 
 rsp is a lightweight web framework for Java.
-
 
 
 ### Maven Central
 
 This project requires Java version 17 or newer.
 
-To start using it, add the dependency:
+To start using it, add the Maven Central dependency:
 ```xml
     <dependency>
         <groupId>io.github.vadimv</groupId>
@@ -52,7 +47,7 @@ To start using it, add the dependency:
 
 rsp provides a Java internal domain-specific language (DSL) for definition of HTML templates as a composition of functions.
 
-For example, to re-write the HTML fragment:
+For example, the HTML fragment:
 
 ```html
 <!DOCTYPE html>
@@ -103,6 +98,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
 
 Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments
 with imperative logic.
+
 ```java
     import static rsp.html.HtmlDsl.*;
     ...
@@ -183,7 +179,7 @@ The ``window().on(eventType, handler)`` DSL function registers an event handler 
 ```java
     html(window().on("click", ctx -> {
             System.out.println("window clicked");
-        }),
+        })
         ...
     )
 ```
@@ -295,12 +291,12 @@ A view is a pure function from an input state to a DOM fragment's definition.
      appView.apply(new UserState("Username"));
 ```
 
-A stateful component state, an object of an immutable class or a record, is managed by the framework.
-A component's state can be set:
+A stateful component has its own state, an object of an immutable class or a record, is managed by the framework.
+A state is set:
 - on a component's initialization during its first render and mount to the components tree
 - on an update as a result of events handling
 
-A state update is initiated by invoking of one of a component view's parameter's ``StateUpdate`` interface methods, e.g. ``setState()``.
+An update is initiated by invoking of one of a component view's parameter's ``StateUpdate`` interface methods, e.g. ``setState()``.
 State transitions are can be triggered by browser events, custom events or asynchronous events, e.g. timers.
 
 ### How to use components
@@ -313,23 +309,15 @@ Include a new instance of component definition class to the DSL alongside HTML t
         new Counter(2))
 ```
 
-Warning: note that a component's code is executed on the server, use only components you trust.
+Note that a component's code is executed on the server, use only components you trust.
 
 ### How to implement a component
 
-Component's classes inherit from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``.
-For common types of components use components DSL helpers like ``component()``.
-
-### Stateful components with navigation bar URL path state mapping
-
-For components inherited from ``RelativeUrlStateComponentDefinition`` class state is mapped to the browser's navigation bar path and query. 
-With that, the current navigation path can be converted to a component's state and the state update will cause the navigation path to be updated accordingly.
-The "Back" and "Forward" browser's history buttons clicks initiate state transitions.
-
+Extend from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``.
 
 ### DOM elements references
 
-The ``propertiesByRef()`` method of the event context object's allows access to client-side document elements properties values providing elements references.
+An event's context object ``propertiesByRef()`` method provides access to the client-side document elements properties.
 
 ```java
     final ElementRef inputRef = createElementRef();
@@ -388,19 +376,4 @@ On the client-side, to enable detailed diagnostic data exchange logging, enter i
 
 ```javascript
   RSP.setProtocolDebugEnabled(true)
-```
-
-### How to build the project and run tests
-
-To build the project from the sources, run:
-
-```shell script
-$ mvn clean package
-```
-
-Run all the system tests:
-
-```shell script
-
-$ mvn clean test -Ptest-all
 ```
