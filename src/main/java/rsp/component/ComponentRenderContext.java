@@ -44,7 +44,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         assert component != null;
         final Tag tag = tagsStack.peek();
         assert tag != null;
-        component.setOpenPath(domPath);
+        component.setStartNodeDomPath(domPath);
         component.addNode(domPath, tag);
     }
 
@@ -82,7 +82,6 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
 
         final Component<?> parent = componentsStack.peek();
         final ComponentPath componentPath = parent == null ?
-
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
@@ -110,9 +109,9 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     }
 
     @Override
-    public ComponentRenderContext newContext(final VirtualDomPath domPath) {
+    public ComponentRenderContext newContext(final VirtualDomPath startDomPath) {
         return new ComponentRenderContext(sessionId,
-                                          domPath,
+                                          startDomPath,
                                           pageStateOrigin,
                                           remotePageMessagesOut,
                                           sessionLock);

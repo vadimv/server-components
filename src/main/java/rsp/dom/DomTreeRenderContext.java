@@ -16,9 +16,8 @@ public class DomTreeRenderContext implements RenderContext {
     protected List<VirtualDomPath> rootNodesPaths = new ArrayList<>();
     protected VirtualDomPath domPath;
 
-
     public DomTreeRenderContext(VirtualDomPath startDomPath) {
-        this.parentDomPath = startDomPath;
+        this.parentDomPath = Objects.requireNonNull(startDomPath);
         this.domPath = startDomPath;
     }
 

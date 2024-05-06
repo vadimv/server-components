@@ -34,8 +34,8 @@ public class Component<S> implements StateUpdate<S> {
     private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
     private final List<Tag> tags = new ArrayList<>();
+    private VirtualDomPath startNodeDomPath;
     private S state;
-    private VirtualDomPath domPath;
 
     public Component(final ComponentCompositeKey key,
                      final Supplier<CompletableFuture<? extends S>> stateResolver,
@@ -65,14 +65,14 @@ public class Component<S> implements StateUpdate<S> {
         children.add(component);
     }
 
-    public void setOpenPath(VirtualDomPath componentOpenTag) {
-        if (domPath == null) {
-            domPath = componentOpenTag;
+    public void setStartNodeDomPath(VirtualDomPath componentOpenTag) {
+        if (startNodeDomPath == null) {
+            startNodeDomPath = componentOpenTag;
         }
     }
 
     public void addNode(VirtualDomPath domPath, Tag newTag) {
-      if (tags.isEmpty() || domPath.level() == this.domPath.level()) {
+      if (tags.isEmpty() || domPath.level() == this.startNodeDomPath.level()) {
           tags.add(newTag);
       }
     }
@@ -131,7 +131,7 @@ public class Component<S> implements StateUpdate<S> {
 
             logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
-            final ComponentRenderContext renderContext = renderContextFactory.newContext(domPath); // TODO check
+            final ComponentRenderContext renderContext = renderContextFactory.newContext(startNodeDomPath);
 
             events.clear();
             refs.clear();
@@ -149,7 +149,7 @@ public class Component<S> implements StateUpdate<S> {
 
             // Calculate diff between an old and new DOM trees
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-            Diff.diffChildren(oldTags, tags, domPath, domChangePerformer);
+            Diff.diffChildren(oldTags, tags, startNodeDomPath, domChangePerformer);
             final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
             remoteOut.modifyDom(domChangePerformer.commands);
 
