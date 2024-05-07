@@ -17,14 +17,14 @@
 * [Logging](#logging)
 
 
-rsp is a lightweight web framework for Java.
-
+rsp is a Java web framework for real-time UIs.
 
 ### Maven Central
 
 This project requires Java version 17 or newer.
 
-To start using it, add the Maven Central dependency:
+Add the Maven Central dependency:
+
 ```xml
     <dependency>
         <groupId>io.github.vadimv</groupId>
@@ -36,7 +36,6 @@ To start using it, add the Maven Central dependency:
 ### Code examples
 
 * [Hello World](src/main/java/rsp/examples/HelloWorld.java)
-* [Plain form](src/main/java/rsp/examples/PlainForm.java)
 * [TODOs list](https://github.com/vadimv/rsp-todo-list)
 * [Tetris](https://github.com/vadimv/rsp-tetris)
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
@@ -62,7 +61,7 @@ For example, the HTML fragment:
 </html> 
 ```
 
-to be represented in the DSL Java code as below:
+to be represented in the Java DSL as the code fragment below:
 
 ```java
     import static rsp.html.HtmlDsl.*;
@@ -81,7 +80,7 @@ where:
 - HTML attributes are the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
 - the lambda's parameter `state` is the current state object
 
-The utility ``of()`` DSL function renders a ``Stream<T>`` of objects, e.g. a list, or a table rows:
+The  ``of()`` DSL function takes a ``Stream<T>`` of objects, e.g. a sequence of tags, or a table rows:
 ```java
     import static rsp.html.HtmlDsl.*;
     ...
@@ -96,8 +95,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
     state -> stateUpdate -> div(of(lookupService.apply(state.user.id).map(str -> text(str))))
 ```
 
-Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments
-with imperative logic.
+Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments.
 
 ```java
     import static rsp.html.HtmlDsl.*;
@@ -122,10 +120,11 @@ The ``when()`` DSL function conditionally renders (or not) an element:
 To respond to browser events, register a DOM event handler by adding an ``on(eventType, handler)`` on an HTML element:
 
 ```java
-    var view = state -> stateUpdate-> a("#","Click me",on("click", ctx-> {
-                                                        System.out.println("Clicked " + state.counter() + " times");
-                                                        stateUpdate.setState(new State(s.counter() + 1));
-    }));
+    var view = state -> stateUpdate-> a("#", "Click me", on("click",
+                                                            ctx-> { 
+                                                              System.out.println("Clicked " + state.counter() + " times");
+                                                              stateUpdate.setState(new State(s.counter() + 1));
+                                                            }));
 
     record State(int counter) {}
 ```
@@ -138,14 +137,12 @@ To filter the events use the following event object's methods:
 - ``debounce(int waitMs, boolean immediate)``
 
 ```java
-    html(window().on("scroll", ctx -> {
+    window().on("scroll", ctx -> {
             System.out.println("A throtteld page scroll event");
-            }).throttle(500),
-        ...
-        )
+            }).throttle(500)
 ```
 
-The context's ``eventObject()`` method provides its event's object as a JSON data structure:
+The ``ctx.eventObject()`` method provides its event's object as a JSON data structure:
 
 ```java
     form(on("submit", ctx -> {
@@ -157,7 +154,7 @@ The context's ``eventObject()`` method provides its event's object as a JSON dat
     )
 ```
 
-To send a custom event use ``ctx.dispatchEvent()`` method:
+To send a custom event use the ``ctx.dispatchEvent()`` method:
 
 ```java
 
@@ -166,13 +163,13 @@ To send a custom event use ``ctx.dispatchEvent()`` method:
             System.out.println("Custom event object: " + ctx.eventObject());
         })
     ...
-            on("click",
-                ctx -> ctx.dispatchEvent(new CustomEvent("custom-event",
-                                                         JsonDataType.Object.EMPTY.put("key",
-                                                                                       new JsonDataType.String("value")))))
+        on("click",
+            ctx -> ctx.dispatchEvent(new CustomEvent("custom-event",
+                                                     JsonDataType.Object.EMPTY.put("key",
+                                                                                   new JsonDataType.String("value")))))
 
 ```
-A custom event is bubbled from a child element and can be handled by an ancestor.
+A custom event is bubbled from a child element and can be handled by its ancestor's event handler.
 
 The ``window().on(eventType, handler)`` DSL function registers an event handler on the browser's window object:
 
@@ -187,7 +184,7 @@ The ``window().on(eventType, handler)`` DSL function registers an event handler 
 ### SPAs, plain pages and the head tag
 
 rsp supports two types of web pages:
-- single-page applications (SPAs), written in Java, e.g. for an admin UI
+- server-side single-page applications (SPAs), written in Java, e.g. for an admin UI
 - plain server-rendered detached HTML pages
 
 The page's ``<head>`` tag DSL determines if this page is an interactive Single-Page-Application or a plain HTML page.
@@ -218,9 +215,10 @@ For example:
                     )
                 ).statusCode(404);
 ```
+
 ### Routing
 
-A page's HTML generation consists of two phases:
+A page's components tree HTML generation consists of two phases:
 - a routing function maps an incoming HTTP request to the root component state
 - the root component and its descendants render this state to HTML markup
 
@@ -270,10 +268,9 @@ Use ``match()`` DSL function routing to implement custom matching logic, for exa
 
 The ``any()`` route matches every request.
 
-
 ### UI components
 
-Pages are composed of components:
+Pages are composed of components of two types:
 
 - views or stateless components
 - stateful components
@@ -291,17 +288,17 @@ A view is a pure function from an input state to a DOM fragment's definition.
      appView.apply(new UserState("Username"));
 ```
 
-A stateful component has its own state, an object of an immutable class or a record, is managed by the framework.
+A stateful component has its own state snapshot, an object of an immutable class or a record, which is managed by the framework.
 A state is set:
-- on a component's initialization during its first render and mount to the components tree
-- on an update as a result of events handling
+- on a component's initialization during its first render
+- on an update as a result of an event
 
-An update is initiated by invoking of one of a component view's parameter's ``StateUpdate`` interface methods, e.g. ``setState()``.
-State transitions are can be triggered by browser events, custom events or asynchronous events, e.g. timers.
+A component state update is initiated by invoking of one of a component view's parameter's ``StateUpdate`` interface methods, e.g. ``setState()``.
+State transitions are can be triggered by browser events or asynchronous events, e.g. timers.
 
 ### How to use components
 
-Include a new instance of component definition class to the DSL alongside HTML tags.
+Include a new instance of component definition class to the DSL alongside HTML definition tags.
 
 ```java
     div(span("Two counters"),
@@ -317,7 +314,7 @@ Extend from one of the subclasses of the base component definition class ``State
 
 ### DOM elements references
 
-An event's context object ``propertiesByRef()`` method provides access to the client-side document elements properties.
+The ``propertiesByRef()`` method of an event context object provides access to the client-side elements properties.
 
 ```java
     final ElementRef inputRef = createElementRef();
@@ -333,13 +330,13 @@ An event's context object ``propertiesByRef()`` method provides access to the cl
     }))
 ```
 
-A reference to an object also can be created on-the-fly using ``RefDefinition.withKey()`` method.
+A reference to an object can be created on-the-fly using ``RefDefinition.withKey()`` method.
 
 There is also the special ``window().ref()`` reference for the page's window object.
 
 ### Evaluating JS code on client-side
 
-To invoke arbitrary EcmaScript code in the browser use the ``evalJs()`` method of an event's context object.
+To invoke arbitrary EcmaScript code in the browser use the ``ctx.evalJs()`` method.
 ``evalJs()`` sends a code fragment to the client and returns its evaluation result as a  ``CompletableFuture<JsonDataType>``.
 
 ```java
@@ -357,7 +354,7 @@ To invoke arbitrary EcmaScript code in the browser use the ``evalJs()`` method o
 
 ### Web server's configuration
 
-A web server's ``rsp.jetty.WebServer`` class' constructor accepts extra parameters like an optional static resources' handler 
+The ``rsp.jetty.WebServer`` class constructor accepts extra parameters like an optional static resources' handler 
 and a TLS/SSL configuration:
 
 ```java
