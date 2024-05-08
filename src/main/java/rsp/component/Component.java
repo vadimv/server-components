@@ -65,14 +65,12 @@ public class Component<S> implements StateUpdate<S> {
         children.add(component);
     }
 
-    public void setStartNodeDomPath(VirtualDomPath componentOpenTag) {
+    public void notifyNodeOpened(final VirtualDomPath domPath, Tag newTag) {
         if (startNodeDomPath == null) {
-            startNodeDomPath = componentOpenTag;
+            startNodeDomPath = domPath;
         }
-    }
 
-    public void addNode(VirtualDomPath domPath, Tag newTag) {
-      if (tags.isEmpty() || domPath.level() == this.startNodeDomPath.level()) {
+        if (tags.isEmpty() || domPath.level() == this.startNodeDomPath.level()) {
           tags.add(newTag);
       }
     }

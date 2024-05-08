@@ -44,8 +44,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
         assert component != null;
         final Tag tag = tagsStack.peek();
         assert tag != null;
-        component.setStartNodeDomPath(domPath);
-        component.addNode(domPath, tag);
+        component.notifyNodeOpened(domPath, tag);
     }
 
     @Override
