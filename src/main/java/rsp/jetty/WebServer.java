@@ -30,7 +30,7 @@ import static java.lang.System.Logger.Level.INFO;
  * An embedded server for an RSP application,
  * Jetty provides a servlet container and a JSR 356 WebSockets API implementation.
  */
-public final class WebServer<S> {
+public final class WebServer {
     private static final System.Logger logger = System.getLogger(WebServer.class.getName());
 
     /**
@@ -48,7 +48,7 @@ public final class WebServer<S> {
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
-    public WebServer(final int port,
+    public <S> WebServer(final int port,
                      final App<S> app,
                      final Optional<StaticResources> staticResources,
                      final Optional<SslConfiguration> sslConfiguration,
@@ -136,7 +136,7 @@ public final class WebServer<S> {
      * @param app an RSP application
      * @param staticResources a setup object for an optional static resources handler
      */
-    public WebServer(final int port,
+    public <S> WebServer(final int port,
                      final App<S> app,
                      final StaticResources staticResources) {
         this(port, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
@@ -149,7 +149,7 @@ public final class WebServer<S> {
      * @param staticResources a setup object for an optional static resources handler
      * @param sslConfiguration the server's TLS configuration
      */
-    public WebServer(final int port,
+    public <S> WebServer(final int port,
                      final App<S> app,
                      final StaticResources staticResources,
                      final SslConfiguration sslConfiguration) {
@@ -161,7 +161,7 @@ public final class WebServer<S> {
      * @param port a web server's listening port
      * @param app an RSP application
      */
-    public WebServer(final int port, final App<S> app) {
+    public <S> WebServer(final int port, final App<S> app) {
         this(port, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 

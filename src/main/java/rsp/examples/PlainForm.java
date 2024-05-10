@@ -26,7 +26,7 @@ public class PlainForm {
     public static void main(final String[] args) {
         final App<Name> app = new App<>(new Routing<>(route(), new EmptyName()),
                                                       pages());
-        final var server = new WebServer<>(8080, app);
+        final var server = new WebServer(8080, app);
         server.start();
         server.join();
     }

@@ -27,7 +27,7 @@ public class SimpleServer {
     private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
 
     public static final int PORT = 8085;
-    public final WebServer<AppState> jetty;
+    public final WebServer jetty;
 
 
 
@@ -107,7 +107,7 @@ public class SimpleServer {
         }
     };
 
-    public SimpleServer(final WebServer<AppState> jetty) {
+    public SimpleServer(final WebServer jetty) {
         this.jetty = jetty;
     }
 
@@ -118,10 +118,10 @@ public class SimpleServer {
     public static SimpleServer run(final boolean blockCurrentThread) {
         final App<AppState> app = new App<>(appRouting(),
                                             appComponentView);
-        final SimpleServer s = new SimpleServer(new WebServer<>(8085,
-                                                                   app,
-                                                                   new StaticResources(new File("src/test/java/rsp/browserautomation"),
-                                                                                       "/res/*")));
+        final SimpleServer s = new SimpleServer(new WebServer(8085,
+                                                              app,
+                                                              new StaticResources(new File("src/test/java/rsp/browserautomation"),
+                                                                                 "/res/*")));
         s.jetty.start();
         if (blockCurrentThread) {
             s.jetty.join();
