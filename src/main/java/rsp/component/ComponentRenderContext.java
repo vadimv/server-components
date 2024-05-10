@@ -9,7 +9,7 @@ import rsp.server.http.PageStateOrigin;
 import java.util.*;
 import java.util.function.*;
 
-public class ComponentRenderContext implements RenderContext, RenderContextFactory {
+public class ComponentRenderContext implements RenderContextFactory {
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final QualifiedSessionId sessionId;
@@ -42,7 +42,6 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
         return (Component<S>) rootComponent;
     }
 
-    @Override
     public void setDocType(final String docType) {
         this.docType = docType;
     }
@@ -55,7 +54,6 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
         return new NodeList(rootNodes);
     }
 
-    @Override
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
         final Tag parent = tagsStack.peek();
         final Tag tag = new Tag(xmlns, name, isSelfClosing);
@@ -78,28 +76,23 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
         component.notifyNodeOpened(domPath, tag);
     }
 
-    @Override
     public void closeNode(final String name, final boolean upgrade) {
         tagsStack.pop();
         domPath = domPath.parent();
     }
 
-    @Override
     public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
-    @Override
     public void setStyle(final String name, final String value) {
         tagsStack.peek().addStyle(name, value);
     }
 
-    @Override
     public void addTextNode(final String text) {
         tagsStack.peek().addChild(new Text(text));
     }
 
-    @Override
     public void addEvent(final VirtualDomPath elementPath,
                          final String eventType,
                          final Consumer<EventContext> eventHandler,
@@ -110,7 +103,6 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
         component.addEvent(elementPath, eventType, eventHandler, preventDefault, modifier);
     }
 
-    @Override
     public void addEvent(final String eventType,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
@@ -120,7 +112,6 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
         addEvent(domPath, eventType, eventHandler, preventDefault, modifier);
     }
 
-    @Override
     public void addRef(final Ref ref) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
@@ -130,7 +121,6 @@ public class ComponentRenderContext implements RenderContext, RenderContextFacto
     }
 
     public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {
-
         final Component<?> parent = componentsStack.peek();
         final ComponentPath componentPath = parent == null ?
                                    ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);

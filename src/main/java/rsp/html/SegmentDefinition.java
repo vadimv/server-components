@@ -1,6 +1,7 @@
 package rsp.html;
 
-import rsp.page.RenderContext;
+
+import rsp.component.ComponentRenderContext;
 
 /**
  * Represents a building block in the domain-specific language definition.
@@ -13,6 +14,6 @@ public interface SegmentDefinition {
      * @param renderContext the renderer
      * @return true, instead of void, used to make the compiler make more strict checks on the DSL
      */
-    boolean render(RenderContext renderContext);
+    boolean render(ComponentRenderContext renderContext);
 
 }

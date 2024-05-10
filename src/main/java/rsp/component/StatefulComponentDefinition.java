@@ -2,7 +2,6 @@ package rsp.component;
 
 import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;
-import rsp.page.RenderContext;
 import rsp.page.RenderContextFactory;
 import rsp.server.RemoteOut;
 import rsp.server.http.PageStateOrigin;
@@ -58,16 +57,10 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
-        if (renderContext instanceof ComponentRenderContext componentRenderContext) {
-            final Component<S> component = componentRenderContext.openComponent(this);
-
-            component.render(componentRenderContext);
-
-            componentRenderContext.closeComponent();
-            return true;
-        } else {
-            return false;
-        }
+    public boolean render(final ComponentRenderContext renderContext) {
+        final Component<S> component = renderContext.openComponent(this);
+        component.render(renderContext);
+        renderContext.closeComponent();
+        return true;
     }
 }

@@ -1,7 +1,7 @@
 package rsp.html;
 
+import rsp.component.ComponentRenderContext;
 import rsp.ref.ElementRef;
-import rsp.page.RenderContext;
 
 import java.util.Objects;
 
@@ -16,7 +16,7 @@ public final class ElementRefDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         renderContext.addRef(id);
         return true;
     }
@@ -35,7 +35,7 @@ public final class ElementRefDefinition implements SegmentDefinition {
         }
 
         @Override
-        public boolean render(final RenderContext renderContext) {
+        public boolean render(final ComponentRenderContext renderContext) {
             renderContext.addRef(this);
             return true;
         }

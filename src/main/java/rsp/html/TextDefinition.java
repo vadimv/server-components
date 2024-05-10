@@ -1,6 +1,6 @@
 package rsp.html;
 
-import rsp.page.RenderContext;
+import rsp.component.ComponentRenderContext;
 
 /**
  * A definition of an HTML tag text content.
@@ -18,7 +18,7 @@ public final class TextDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         renderContext.addTextNode(text);
         return true;
     }

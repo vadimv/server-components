@@ -1,6 +1,6 @@
 package rsp.html;
 
-import rsp.page.RenderContext;
+import rsp.component.ComponentRenderContext;
 
 import java.util.Arrays;
 
@@ -20,7 +20,7 @@ public final class SequenceDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         Arrays.stream(items).forEach(c -> c.render(renderContext));
         return true;
     }

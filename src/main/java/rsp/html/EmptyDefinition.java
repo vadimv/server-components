@@ -1,6 +1,6 @@
 package rsp.html;
 
-import rsp.page.RenderContext;
+import rsp.component.ComponentRenderContext;
 
 /**
  * The void definition, without any representation in the result DOM tree.
@@ -19,7 +19,7 @@ final class EmptyDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         return true;
     }
 }

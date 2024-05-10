@@ -1,7 +1,7 @@
 package rsp.html;
 
+import rsp.component.ComponentRenderContext;
 import rsp.dom.XmlNs;
-import rsp.page.RenderContext;
 
 import java.util.Arrays;
 
@@ -18,7 +18,7 @@ public class SelfClosingTagDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         renderContext.openNode(ns, name, true);
         Arrays.stream(attributeDefinitions).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);

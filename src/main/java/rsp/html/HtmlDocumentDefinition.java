@@ -1,8 +1,8 @@
 package rsp.html;
 
+import rsp.component.ComponentRenderContext;
 import rsp.dom.XmlNs;
 import rsp.page.PageRenderContext;
-import rsp.page.RenderContext;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,7 +25,7 @@ public final class HtmlDocumentDefinition extends TagDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         if (renderContext instanceof PageRenderContext pageRenderContext) {
             pageRenderContext.setStatusCode(statusCode);
             pageRenderContext.setHeaders(headers);

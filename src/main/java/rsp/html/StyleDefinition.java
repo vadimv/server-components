@@ -1,6 +1,6 @@
 package rsp.html;
 
-import rsp.page.RenderContext;
+import rsp.component.ComponentRenderContext;
 
 /**
  * A definition of an HTML element's inline style.
@@ -28,7 +28,7 @@ public final class StyleDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         renderContext.setStyle(name, value);
         return true;
     }

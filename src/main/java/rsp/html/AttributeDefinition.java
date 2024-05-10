@@ -1,6 +1,6 @@
 package rsp.html;
 
-import rsp.page.RenderContext;
+import rsp.component.ComponentRenderContext;
 import rsp.dom.XmlNs;
 
 /**
@@ -37,7 +37,7 @@ public final class AttributeDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
         return true;
     }

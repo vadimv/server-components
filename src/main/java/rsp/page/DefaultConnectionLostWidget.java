@@ -2,6 +2,7 @@ package rsp.page;
 
 import rsp.component.ComponentDsl;
 import rsp.component.ComponentRenderContext;
+import rsp.component.StatefulComponentDefinition;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
@@ -41,7 +42,7 @@ public final class DefaultConnectionLostWidget {
         HTML = rc.toString();
     }
 
-    private static SegmentDefinition widgetComponent() {
+    private static StatefulComponentDefinition<String> widgetComponent() {
         return ComponentDsl.component("", __ -> ___ -> widget());
     }
 

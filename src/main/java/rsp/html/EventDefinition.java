@@ -1,9 +1,9 @@
 package rsp.html;
 
+import rsp.component.ComponentRenderContext;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
-import rsp.page.RenderContext;
 
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -108,7 +108,7 @@ public final class EventDefinition implements SegmentDefinition {
     }
 
     @Override
-    public boolean render(final RenderContext renderContext) {
+    public boolean render(final ComponentRenderContext renderContext) {
         if (elementPath.isPresent()) {
             renderContext.addEvent(elementPath.get(), eventType, handler, preventDefault, modifier);
         } else {
