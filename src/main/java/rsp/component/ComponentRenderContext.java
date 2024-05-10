@@ -9,14 +9,20 @@ import rsp.server.http.PageStateOrigin;
 import java.util.*;
 import java.util.function.*;
 
-public class ComponentRenderContext extends DomTreeRenderContext implements RenderContextFactory {
+public class ComponentRenderContext implements RenderContext, RenderContextFactory {
 
+    private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final QualifiedSessionId sessionId;
     private final PageStateOrigin pageStateOrigin;
     private final RemoteOut remotePageMessagesOut;
     private final Object sessionLock;
 
+    private final List<Tag> rootNodes = new ArrayList<>();
+    private final List<VirtualDomPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
+    private String docType;
+    private VirtualDomPath domPath;
+
     private Component<?> rootComponent;
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
@@ -24,7 +30,7 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                                   final PageStateOrigin pageStateOrigin,
                                   final RemoteOut remotePageMessagesOut,
                                   final Object sessionLock) {
-        super(startDomPath);
+        this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
@@ -37,14 +43,60 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
     }
 
     @Override
+    public void setDocType(final String docType) {
+        this.docType = docType;
+    }
+
+    public String docType() {
+        return docType;
+    }
+
+    public NodeList rootNodes() {
+        return new NodeList(rootNodes);
+    }
+
+    @Override
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
-        super.openNode(xmlns, name, isSelfClosing);
+        final Tag parent = tagsStack.peek();
+        final Tag tag = new Tag(xmlns, name, isSelfClosing);
+        if (parent == null) {
+            if (!rootNodes.isEmpty()) {
+                final VirtualDomPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
+                domPath = prevTag.incSibling();
+            }
+            rootNodes.add(tag);
+            rootNodesPaths.add(domPath);
+        } else {
+            final int nextChild = parent.children.size() + 1;
+            domPath = domPath.childNumber(nextChild);
+            parent.addChild(tag);
+        }
+        tagsStack.push(tag);
 
         final Component<?> component = componentsStack.peek();
         assert component != null;
-        final Tag tag = tagsStack.peek();
-        assert tag != null;
         component.notifyNodeOpened(domPath, tag);
+    }
+
+    @Override
+    public void closeNode(final String name, final boolean upgrade) {
+        tagsStack.pop();
+        domPath = domPath.parent();
+    }
+
+    @Override
+    public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+        tagsStack.peek().addAttribute(name, value, isProperty);
+    }
+
+    @Override
+    public void setStyle(final String name, final String value) {
+        tagsStack.peek().addStyle(name, value);
+    }
+
+    @Override
+    public void addTextNode(final String text) {
+        tagsStack.peek().addChild(new Text(text));
     }
 
     @Override
@@ -114,6 +166,16 @@ public class ComponentRenderContext extends DomTreeRenderContext implements Rend
                                           pageStateOrigin,
                                           remotePageMessagesOut,
                                           sessionLock);
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        if (docType != null) {
+            sb.append(docType); // TODO check
+        }
+        rootNodes.forEach(t -> t.appendString(sb));
+        return sb.toString();
     }
 }
 
