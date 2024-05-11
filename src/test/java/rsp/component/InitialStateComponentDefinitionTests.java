@@ -55,7 +55,7 @@ public class InitialStateComponentDefinitionTests {
                                  "  <a>test-link-100</a>\n" +
                                  " </div>\n" +
                                  "</div>",
-                                 renderContext.toString());
+                                 renderContext.html());
 
         assertEquals(1, renderContext.recursiveEvents().size());
         assertEquals("click", renderContext.recursiveEvents().get(0).eventTarget.eventType);

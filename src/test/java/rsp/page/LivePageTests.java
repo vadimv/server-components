@@ -56,7 +56,7 @@ public class LivePageTests {
                                                                                                   (s, p) -> p,
                                                                                                   view);
         componentDefinition.render(domTreeContext);
-        assertFalse(domTreeContext.toString().isBlank());
+        assertFalse(domTreeContext.html().isBlank());
 
         final LivePageSession livePage = new LivePageSession(QID,
                                                              domTreeContext,

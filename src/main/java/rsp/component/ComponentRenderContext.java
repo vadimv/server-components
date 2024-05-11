@@ -151,11 +151,10 @@ public class ComponentRenderContext implements RenderContextFactory {
                                           sessionLock);
     }
 
-    @Override
-    public String toString() {
+    public String html() {
         final StringBuilder sb = new StringBuilder();
         if (docType != null) {
-            sb.append(docType); // TODO check
+            sb.append(docType);
         }
         rootNodes.forEach(t -> t.appendString(sb));
         return sb.toString();

@@ -98,7 +98,7 @@ public final class PageRendering<S> {
                                                                commandsBuffer,
                                                                sessionLock);
             renderedPages.put(pageId, pageSnapshot);
-            final String responseBody = pageRenderContext.toString();
+            final String responseBody = pageRenderContext.html();
 
             logger.log(TRACE, () -> "Page body: " + responseBody);
 

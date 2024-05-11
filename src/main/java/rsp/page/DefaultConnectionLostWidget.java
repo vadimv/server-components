@@ -37,7 +37,7 @@ public final class DefaultConnectionLostWidget {
                                                                      new SilentRemoteOut(),
                                                                      new Object());
         widgetComponent().render(rc);
-        HTML = rc.toString();
+        HTML = rc.html();
     }
 
     private static StatefulComponentDefinition<String> widgetComponent() {

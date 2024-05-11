@@ -53,7 +53,7 @@ public class PathStateComponentDefinitionTests {
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>state-0</span>\n" +
                                  "</div>",
-                                 renderContext.toString());
+                                 renderContext.html());
 
         // Click
         final Event clickEvent = renderContext.recursiveEvents().get(0);

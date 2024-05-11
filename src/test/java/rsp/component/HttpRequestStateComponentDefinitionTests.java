@@ -49,6 +49,6 @@ public class HttpRequestStateComponentDefinitionTests {
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>header-0-value</span>\n" +
                                  "</div>",
-                                 renderContext.toString());
+                                 renderContext.html());
     }
 }
