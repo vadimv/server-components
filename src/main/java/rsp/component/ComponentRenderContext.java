@@ -39,10 +39,6 @@ public class ComponentRenderContext implements RenderContextFactory {
         this.sessionLock = Objects.requireNonNull(sessionLock);
     }
 
-    public Object getSessionLock() {
-        return sessionLock;
-    }
-
     public void setDocType(final String docType) {
         this.docType = docType;
     }
