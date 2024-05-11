@@ -3,6 +3,7 @@ package rsp.html;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
+import rsp.page.PageRendering;
 import rsp.ref.ElementRef;
 
 import java.util.Optional;
@@ -33,7 +34,7 @@ public final class WindowDefinition {
      * @return an event definition
      */
     public EventDefinition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
-        return new EventDefinition(Optional.of(VirtualDomPath.WINDOW), eventType, handler, preventDefault, Event.NO_MODIFIER);
+        return new EventDefinition(Optional.of(PageRendering.WINDOW_DOM_PATH), eventType, handler, preventDefault, Event.NO_MODIFIER);
     }
 
     public ElementRef ref() {

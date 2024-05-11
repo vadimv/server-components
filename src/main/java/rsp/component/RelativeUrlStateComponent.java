@@ -1,8 +1,8 @@
 package rsp.component;
 
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
 import rsp.page.LivePageSession;
+import rsp.page.PageRendering;
 import rsp.page.RenderContextFactory;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
@@ -51,7 +51,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     @Override
     protected void updateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {
-        addEvent(VirtualDomPath.WINDOW,
+        addEvent(PageRendering.WINDOW_DOM_PATH,
                 LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
                 eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
                true,

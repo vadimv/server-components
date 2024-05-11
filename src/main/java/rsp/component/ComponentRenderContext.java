@@ -36,10 +36,9 @@ public class ComponentRenderContext implements RenderContextFactory {
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
         this.sessionLock = Objects.requireNonNull(sessionLock);
     }
-    
-    @SuppressWarnings("unchecked")
-    public <S> Component<S> rootComponent() {
-        return (Component<S>) rootComponent;
+
+    public Object getSessionLock() {
+        return sessionLock;
     }
 
     public void setDocType(final String docType) {
@@ -166,6 +165,28 @@ public class ComponentRenderContext implements RenderContextFactory {
         }
         rootNodes.forEach(t -> t.appendString(sb));
         return sb.toString();
+    }
+
+    public List<Event> recursiveEvents() {
+        if (rootComponent != null) {
+            return rootComponent.recursiveEvents();
+        } else {
+            return List.of();
+        }
+    }
+
+    public void shutdown() {
+        if (rootComponent != null) {
+            rootComponent.unmount();
+        }
+    }
+
+    public Map<Ref, VirtualDomPath> recursiveRefs() {
+        if (rootComponent != null) {
+            return rootComponent.recursiveRefs();
+        } else {
+            return Map.of();
+        }
     }
 }
 

@@ -1,12 +1,9 @@
 package rsp.dom;
 
 import java.util.Arrays;
-import java.util.Optional;
 
 public final class VirtualDomPath {
     public static final String SEPARATOR = "_";
-    public static final VirtualDomPath DOCUMENT = VirtualDomPath.of("1");
-    public static final VirtualDomPath WINDOW = VirtualDomPath.of("");
 
     private final int[] array;
 
@@ -44,16 +41,6 @@ public final class VirtualDomPath {
         System.arraycopy(otherPath.array, 0, a, array.length, otherPath.array.length);
         return new VirtualDomPath(a);
     }
-
-/*    public Optional<VirtualDomPath> parent() {
-        if (this.equals(WINDOW)) {
-            return Optional.empty();
-        } else if (this.equals(DOCUMENT)) {
-            return Optional.of(WINDOW);
-        } else {
-            return Optional.of(take(array.length - 1));
-        }
-    }*/
 
     public VirtualDomPath childNumber(final int num) {
         final VirtualDomPath childPath = incLevel();

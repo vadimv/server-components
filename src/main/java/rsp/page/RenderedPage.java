@@ -1,20 +1,17 @@
 package rsp.page;
 
-import rsp.component.Component;
-import rsp.server.http.PageStateOrigin;
-
 import java.util.Objects;
 
-public final class RenderedPage<S> {
-    public final Component<S> rootComponent;
+public final class RenderedPage {  // TODO
+    public final PageRenderContext pageRenderContext;
     public final TemporaryBufferedPageCommands commandsBuffer;
     public final Object sessionLock;
 
-    public RenderedPage(final Component<S> rootComponent,
+    public RenderedPage(final PageRenderContext pageRenderContext,
                         final TemporaryBufferedPageCommands commandsBuffer,
                         final Object sessionLock) {
 
-        this.rootComponent = Objects.requireNonNull(rootComponent);
+        this.pageRenderContext = Objects.requireNonNull(pageRenderContext);
         this.commandsBuffer = Objects.requireNonNull(commandsBuffer);
         this.sessionLock = Objects.requireNonNull(sessionLock);
     }

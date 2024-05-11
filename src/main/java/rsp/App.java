@@ -34,7 +34,7 @@ public final class App<S> {
      */
     public final StatefulComponentDefinition<S> rootComponentDefinition;
 
-    public final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage = new ConcurrentHashMap<>();
+    public final Map<QualifiedSessionId, RenderedPage> pagesStorage = new ConcurrentHashMap<>();
 
     /**
      * Creates an instance of an application.

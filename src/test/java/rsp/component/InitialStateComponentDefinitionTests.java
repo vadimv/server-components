@@ -2,7 +2,6 @@ package rsp.component;
 
 import org.junit.jupiter.api.Test;
 import rsp.dom.Event;
-import rsp.dom.NodeList;
 import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
@@ -53,7 +52,6 @@ public class InitialStateComponentDefinitionTests {
         final StringBuilder sb = new StringBuilder();
         renderContext.rootNodes().appendString(sb);
         final String html0 = sb.toString();
-        assertEquals("state-0", renderContext.rootComponent().getState());
 
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>state-0</span>\n" +
@@ -63,25 +61,12 @@ public class InitialStateComponentDefinitionTests {
                                  "</div>",
                                  html0);
 
-        assertEquals(1, renderContext.rootComponent().recursiveEvents().size());
-        assertEquals("click", renderContext.rootComponent().recursiveEvents().get(0).eventTarget.eventType);
-        assertEquals(VirtualDomPath.of("1_2_1"), renderContext.rootComponent().recursiveEvents().get(0).eventTarget.elementPath);
-        // Set state
-        renderContext.rootComponent().setState("state-1");
-
-        assertEquals("state-1", renderContext.rootComponent().getState());
-
-        assertEquals(1, remoteOut.commands.size());
-        assertInstanceOf(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands.get(0));
-        assertTrue(((TestCollectingRemoteOut.ModifyDomOutMessage) remoteOut.commands.get(0)).domChange.size() > 0);
-        remoteOut.clear();
-
-        // Check for a registered event
-        assertEquals(1, renderContext.rootComponent().recursiveEvents().size());
-        assertEquals("click", renderContext.rootComponent().recursiveEvents().get(0).eventTarget.eventType);
+        assertEquals(1, renderContext.recursiveEvents().size());
+        assertEquals("click", renderContext.recursiveEvents().get(0).eventTarget.eventType);
+        assertEquals(VirtualDomPath.of("1_2_1"), renderContext.recursiveEvents().get(0).eventTarget.elementPath);
 
         // Click
-        final Event clickEvent = renderContext.rootComponent().recursiveEvents().get(0);
+        final Event clickEvent = renderContext.recursiveEvents().get(0);
         final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath,
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,

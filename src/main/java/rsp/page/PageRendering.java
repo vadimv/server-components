@@ -16,16 +16,19 @@ import static java.lang.System.Logger.Level.TRACE;
 public final class PageRendering<S> {
     private static final System.Logger logger = System.getLogger(PageRendering.class.getName());
 
+    public static final VirtualDomPath DOCUMENT_DOM_PATH = VirtualDomPath.of("1");
+    public static final VirtualDomPath WINDOW_DOM_PATH = VirtualDomPath.of("");
+
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
-    private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
+    private final Map<QualifiedSessionId, RenderedPage> renderedPages;
     private final StatefulComponentDefinition<S> rootComponentDefinition;
     private final int heartBeatIntervalMs;
 
-    public PageRendering(final Map<QualifiedSessionId, RenderedPage<S>> pagesStorage,
+    public PageRendering(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
                          final StatefulComponentDefinition<S> rootComponentDefinition,
                          final int heartBeatIntervalMs) {
 
@@ -82,25 +85,25 @@ public final class PageRendering<S> {
 
             final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
             final Object sessionLock = new Object();
-            final PageRenderContext domTreeContext = new PageRenderContext(pageId,
-                                                                           pageConfigScript.toString(),
-                                                                           VirtualDomPath.DOCUMENT,
-                                                                           httpStateOrigin,
-                                                                           commandsBuffer,
-                                                                           sessionLock);
+            final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
+                                                                              pageConfigScript.toString(),
+                    DOCUMENT_DOM_PATH,
+                                                                              httpStateOrigin,
+                                                                              commandsBuffer,
+                                                                              sessionLock);
 
-            rootComponentDefinition.render(domTreeContext);
+            rootComponentDefinition.render(pageRenderContext);
 
-            final RenderedPage<S> pageSnapshot = new RenderedPage<>(domTreeContext.rootComponent(),
-                                                                    commandsBuffer,
-                                                                    sessionLock);
+            final RenderedPage pageSnapshot = new RenderedPage(pageRenderContext,
+                                                               commandsBuffer,
+                                                               sessionLock);
             renderedPages.put(pageId, pageSnapshot);
-            final String responseBody = domTreeContext.toString();
+            final String responseBody = pageRenderContext.toString();
 
             logger.log(TRACE, () -> "Page body: " + responseBody);
 
-            return CompletableFuture.completedFuture(new HttpResponse(domTreeContext.statusCode(),
-                                                                      headers(domTreeContext.headers(), deviceId),
+            return CompletableFuture.completedFuture(new HttpResponse(pageRenderContext.statusCode(),
+                                                                      headers(pageRenderContext.headers(), deviceId),
                                                                       responseBody));
 
         } catch (final Exception ex) {

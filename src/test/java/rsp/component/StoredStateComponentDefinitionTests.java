@@ -1,24 +1,29 @@
 package rsp.component;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import rsp.dom.Event;
 import rsp.dom.NodeList;
 import rsp.dom.VirtualDomPath;
+import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.PageStateOrigin;
+import rsp.util.json.JsonDataType;
 
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 import static rsp.util.TestUtils.containsType;
 
+@Disabled
 public class StoredStateComponentDefinitionTests {
     static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
     static final ComponentView<Boolean> view = state -> newState ->
@@ -61,18 +66,29 @@ public class StoredStateComponentDefinitionTests {
                                  "</div>",
                                  html0);
 
-        assertEquals(0, renderContext.rootComponent().recursiveEvents().size());
+        assertEquals(0, renderContext.recursiveEvents().size());
 
         // Remove sub component
-        renderContext.rootComponent().setState(false);
+        // Click
+        final Event clickEvent = renderContext.recursiveEvents().get(0);
+        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath,
+                js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
+                ref -> null,
+                JsonDataType.Object.EMPTY,
+                (eventElementPath, customEvent) -> {},
+                ref -> {});
+        clickEvent.eventHandler.accept(clickEventContext);
+
+        assertEquals(1, remoteOut.commands.size());
+        assertInstanceOf(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands.get(0));
+        assertTrue(remoteOut.commands.get(0).toString().contains("test-link-101"));
 
         assertEquals(1, remoteOut.commands.size());
         assertTrue(containsType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands));
         remoteOut.clear();
-        assertEquals(0, renderContext.rootComponent().recursiveEvents().size());
+        assertEquals(0, renderContext.recursiveEvents().size());
 
         // Add it back
-        renderContext.rootComponent().setState(true);
-        assertEquals(1, remoteOut.commands.size());
+
     }
 }

@@ -1,6 +1,5 @@
 package rsp.javax.web;
 
-import rsp.component.Component;
 import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -24,13 +23,13 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
-    private final Map<QualifiedSessionId, RenderedPage<S>> renderedPages;
+    private final Map<QualifiedSessionId, RenderedPage> renderedPages;
 
     private final JsonParser jsonParser = JsonSimpleUtils.createParser();
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage<S>> renderedPages) {
+    public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage> renderedPages) {
         this.renderedPages = Objects.requireNonNull(renderedPages);
     }
 
@@ -42,7 +41,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
 
-        final RenderedPage<S> renderedPage = renderedPages.remove(qsid);
+        final RenderedPage renderedPage = renderedPages.remove(qsid);
 
         if (renderedPage == null) {
             logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
@@ -51,10 +50,9 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
                 remoteOut.evalJs(-1, "RSP.reload()");
             }
         } else {
-            final Component<S> rootComponent = renderedPage.rootComponent;
 
             final LivePageSession livePage = new LivePageSession(qsid,
-                                                                 rootComponent,
+                                                                 renderedPage.pageRenderContext,
                                                                  remoteOut,
                                                                  renderedPage.sessionLock);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);

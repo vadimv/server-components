@@ -1,6 +1,5 @@
 package rsp.page;
 
-import rsp.component.Component;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
 import rsp.html.WindowDefinition;
@@ -16,6 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import static java.lang.System.Logger.Level.DEBUG;
+import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
 
 /**
  * A server-side session object representing an open browser's page.
@@ -26,7 +26,7 @@ public final class LivePageSession implements RemoteIn {
     public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     private final QualifiedSessionId qsid;
-    private final Component<?> rootComponent;
+    private final PageRenderContext pageRenderContext;
     private final RemoteOut remoteOut;
     private final Object sessionLock;
 
@@ -35,23 +35,25 @@ public final class LivePageSession implements RemoteIn {
     private int descriptorsCounter;
 
     public LivePageSession(final QualifiedSessionId qsid,
-                           final Component<?> rootComponent,
+                           final PageRenderContext pageRenderContext,
                            final RemoteOut remoteOut,
                            final Object sessionLock) {
         this.qsid = Objects.requireNonNull(qsid);
-        this.rootComponent = Objects.requireNonNull(rootComponent);
+        this.pageRenderContext = Objects.requireNonNull(pageRenderContext);
         this.remoteOut = Objects.requireNonNull(remoteOut);
         this.sessionLock = Objects.requireNonNull(sessionLock);
     }
 
-    public synchronized void init() {
-        remoteOut.listenEvents(rootComponent.recursiveEvents());
+    public void init() {
+        synchronized (sessionLock) {
+            remoteOut.listenEvents(pageRenderContext.recursiveEvents());
+        }
   }
 
     public void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
         synchronized (sessionLock) {
-            rootComponent.unmount();
+            pageRenderContext.shutdown();
         }
     }
 
@@ -104,7 +106,7 @@ public final class LivePageSession implements RemoteIn {
         synchronized (sessionLock) {
             VirtualDomPath eventElementPath = eventPath;
             while (eventElementPath.level() >= 0) {
-                for (final Event event: rootComponent.recursiveEvents()) {
+                for (final Event event: pageRenderContext.recursiveEvents()) {
                     if (event.eventTarget.elementPath.equals(eventElementPath) && event.eventTarget.eventType.equals(eventType)) {
                         event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                     }
@@ -141,7 +143,7 @@ public final class LivePageSession implements RemoteIn {
     }
 
     private VirtualDomPath resolveRef(final Ref ref) {
-        return ref instanceof WindowDefinition.WindowRef ? VirtualDomPath.DOCUMENT : rootComponent.recursiveRefs().get(ref); //TODO check for null
+        return ref instanceof WindowDefinition.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
     }
 
     public CompletableFuture<JsonDataType> evalJs(final String js) {

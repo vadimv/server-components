@@ -6,7 +6,6 @@ import rsp.component.StatefulComponentDefinition;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.VirtualDomPath;
-import rsp.html.SegmentDefinition;
 import rsp.html.TagDefinition;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
@@ -32,11 +31,10 @@ public final class DefaultConnectionLostWidget {
                                                         uri.toString(),
                                                         Path.ROOT);
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
-        final RemoteOut remoteOut = new SilentRemoteOut();
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      VirtualDomPath.of("1"),
                                                                      pageStateOrigin,
-                                                                     remoteOut,
+                                                                     new SilentRemoteOut(),
                                                                      new Object());
         widgetComponent().render(rc);
         HTML = rc.toString();
@@ -60,27 +58,43 @@ public final class DefaultConnectionLostWidget {
     private static class SilentRemoteOut implements RemoteOut {
 
         @Override
-        public void setRenderNum(int renderNum) {}
+        public void setRenderNum(int renderNum) {
+            // no-op
+        }
 
         @Override
-        public void listenEvents(List<Event> events) {}
+        public void listenEvents(List<Event> events) {
+            // no-op
+        }
 
         @Override
-        public void forgetEvent(String eventType, VirtualDomPath elementPath) {}
+        public void forgetEvent(String eventType, VirtualDomPath elementPath) {
+            // no-op
+        }
 
         @Override
-        public void extractProperty(int descriptor, VirtualDomPath path, String name) {}
+        public void extractProperty(int descriptor, VirtualDomPath path, String name) {
+            // no-op
+        }
 
         @Override
-        public void modifyDom(List<DefaultDomChangesContext.DomChange> domChange) {}
+        public void modifyDom(List<DefaultDomChangesContext.DomChange> domChange) {
+            // no-op
+        }
 
         @Override
-        public void setHref(String path) {}
+        public void setHref(String path) {
+            // no-op
+        }
 
         @Override
-        public void pushHistory(String path) {}
+        public void pushHistory(String path) {
+            // no-op
+        }
 
         @Override
-        public void evalJs(int descriptor, String js) {}
+        public void evalJs(int descriptor, String js) {
+            // no-op
+        }
     }
 }
