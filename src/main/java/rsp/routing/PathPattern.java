@@ -7,7 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Represents a path matching pattern.
+ * Represents a componentPath matching pattern.
  */
 public final class PathPattern {
     public final List<String> patternSegments;
@@ -24,9 +24,9 @@ public final class PathPattern {
     }
 
     /**
-     * Creates a new instance of a path pattern from a string.
+     * Creates a new instance of a componentPath pattern from a string.
      * The string can be empty or consist of explicit match segments, wildcard symbols "*" and up to two parameters definitions:
-     * A path parameter definition consists of ":", parameter name and optional regular expression in parentheses.
+     * A componentPath parameter definition consists of ":", parameter name and optional regular expression in parentheses.
      * For example:
      *
      * "/segment1/segment2"
@@ -34,8 +34,8 @@ public final class PathPattern {
      * "/segment1/:param1/:param2"
      * "/segment1/:param1/:param2(^\\d+$)"
      *
-     * @param pattern the path pattern
-     * @return a result path pattern
+     * @param pattern the componentPath pattern
+     * @return a result componentPath pattern
      */
     public static PathPattern of(final String pattern) {
         return parse(pattern);

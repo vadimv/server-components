@@ -12,8 +12,8 @@ import java.util.function.Predicate;
 
 /**
  * Contains routing DSL.
- * The DSL functions define routes for an incoming request on the base of an HTTP method and a URL's path.
- * The framework tries to match the HTTP request's method and path match and in case of success calls the matching function
+ * The DSL functions define routes for an incoming request on the base of an HTTP method and a URL's componentPath.
+ * The framework tries to match the HTTP request's method and componentPath match and in case of success calls the matching function
  * to obtain a CompletableFuture with a global state object.
  * The class contains explicit routing for GET and POST HTTP verbs,
  * use the {@link RoutingDsl#match} for other verbs.
@@ -48,8 +48,8 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a path-specific route.
-     * @param pathPattern the match path pattern
+     * Creates a componentPath-specific route.
+     * @param pathPattern the match componentPath pattern
      * @param value the result state
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
@@ -63,9 +63,9 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a path-specific route with one matching path parameter.
-     * @param pathPattern the match path pattern
-     * @param matchFun the function taking a path parameter as its argument,
+     * Creates a componentPath-specific route with one matching componentPath parameter.
+     * @param pathPattern the match componentPath pattern
+     * @param matchFun the function taking a componentPath parameter as its argument,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
@@ -79,9 +79,9 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a path-specific route with two matching path parameters.
-     * @param pathPattern the match path pattern
-     * @param matchFun the function taking a path parameter as its argument,
+     * Creates a componentPath-specific route with two matching componentPath parameters.
+     * @param pathPattern the match componentPath pattern
+     * @param matchFun the function taking a componentPath parameter as its argument,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
@@ -95,7 +95,7 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a route which delegates matching of GET requests to the provided path matching sub-routes.
+     * Creates a route which delegates matching of GET requests to the provided componentPath matching sub-routes.
      * @param subRoutes the function from an HTTP request to sub routes.
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
@@ -105,8 +105,8 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a route which matches a GET request and the provided path.
-     * @param pathPattern the match path pattern
+     * Creates a route which matches a GET request and the provided componentPath.
+     * @param pathPattern the match componentPath pattern
      * @param matchFun the function taking a request object as its argument,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
@@ -121,9 +121,9 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a route which matches a GET request and the provided path with one path parameter.
-     * @param pathPattern the match path pattern
-     * @param matchFun the function taking a request object and the first matched path parameter its arguments,
+     * Creates a route which matches a GET request and the provided componentPath with one componentPath parameter.
+     * @param pathPattern the match componentPath pattern
+     * @param matchFun the function taking a request object and the first matched componentPath parameter its arguments,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
@@ -139,9 +139,9 @@ public final class RoutingDsl {
 
 
     /**
-     * Creates a route which matches a GET request and the provided path with two path parameters.
-     * @param pathPattern the match path pattern
-     * @param matchFun the function taking a request object, the first and second matched path parameters its arguments,
+     * Creates a route which matches a GET request and the provided componentPath with two componentPath parameters.
+     * @param pathPattern the match componentPath pattern
+     * @param matchFun the function taking a request object, the first and second matched componentPath parameters its arguments,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
@@ -155,8 +155,8 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a route which matches a POST request and the provided path.
-     * @param pathPattern the match path pattern
+     * Creates a route which matches a POST request and the provided componentPath.
+     * @param pathPattern the match componentPath pattern
      * @param matchFun the function taking a request object as its argument,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
@@ -171,9 +171,9 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a route which matches a GET request and the provided path with two path parameters.
-     * @param pathPattern the match path pattern
-     * @param matchFun the function taking a request object, the first matched path parameters its arguments,
+     * Creates a route which matches a GET request and the provided componentPath with two componentPath parameters.
+     * @param pathPattern the match componentPath pattern
+     * @param matchFun the function taking a request object, the first matched componentPath parameters its arguments,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition
@@ -187,9 +187,9 @@ public final class RoutingDsl {
     }
 
     /**
-     * Creates a route which matches a GET request and the provided path with two path parameters.
-     * @param pathPattern the match path pattern
-     * @param matchFun the function taking a request object, the first and second matched path parameters its arguments,
+     * Creates a route which matches a GET request and the provided componentPath with two componentPath parameters.
+     * @param pathPattern the match componentPath pattern
+     * @param matchFun the function taking a request object, the first and second matched componentPath parameters its arguments,
      *                 returning the result state as a CompletableFuture
      * @param <S> the type of the applications a component's state, should be an immutable class
      * @return the result route definition

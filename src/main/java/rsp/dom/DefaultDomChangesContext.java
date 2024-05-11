@@ -3,54 +3,54 @@ package rsp.dom;
 import java.util.*;
 
 public final class DefaultDomChangesContext implements DomChangesContext {
-    public final Set<VirtualDomPath> elementsToRemove = new HashSet<>();
+    public final Set<TreePositionPath> elementsToRemove = new HashSet<>();
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override
-    public void removeAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
+    public void removeAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
         commands.add(new RemoveAttr(path, xmlNs, name, isProperty));
     }
 
     @Override
-    public void removeStyle(final VirtualDomPath path, final String name) {
+    public void removeStyle(final TreePositionPath path, final String name) {
         commands.add(new RemoveStyle(path, name));
     }
 
     @Override
-    public void remove(final VirtualDomPath parentPath, final VirtualDomPath path) {
+    public void remove(final TreePositionPath parentPath, final TreePositionPath path) {
         commands.add(new Remove(parentPath, path));
         elementsToRemove.add(path);
     }
 
     @Override
-    public void setAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+    public void setAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         commands.add(new SetAttr(path, xmlNs, name, value, isProperty));
     }
 
     @Override
-    public void setStyle(final VirtualDomPath path, final String name, final String value) {
+    public void setStyle(final TreePositionPath path, final String name, final String value) {
         commands.add(new SetStyle(path, name, value));
     }
 
     @Override
-    public void createText(final VirtualDomPath parentPath, final VirtualDomPath path, final String text) {
+    public void createText(final TreePositionPath parentPath, final TreePositionPath path, final String text) {
         commands.add(new CreateText(parentPath, path, text));
     }
 
     @Override
-    public void create(final VirtualDomPath path, final XmlNs xmlNs, final String tag) {
+    public void create(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
         commands.add(new Create(path, xmlNs, tag));
     }
 
     public interface DomChange {}
 
     public static final class RemoveAttr implements DomChange {
-        public final VirtualDomPath path;
+        public final TreePositionPath path;
         public final XmlNs xmlNs;
         public final String name;
         public final boolean isProperty;
 
-        public RemoveAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
+        public RemoveAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
@@ -76,7 +76,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         @Override
         public String toString() {
             return "RemoveAttr{" +
-                    "path=" + path +
+                    "componentPath=" + path +
                     ", xmlNs=" + xmlNs +
                     ", name='" + name + '\'' +
                     ", isProperty=" + isProperty +
@@ -85,9 +85,9 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     public static final class RemoveStyle implements DomChange {
-        public final VirtualDomPath path;
+        public final TreePositionPath path;
         public final String name;
-        public RemoveStyle(final VirtualDomPath path, final String name) {
+        public RemoveStyle(final TreePositionPath path, final String name) {
             this.path = path;
             this.name = name;
         }
@@ -109,16 +109,16 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         @Override
         public String toString() {
             return "RemoveStyle{" +
-                    "path=" + path +
+                    "componentPath=" + path +
                     ", name='" + name + '\'' +
                     '}';
         }
     }
 
     public static final class Remove implements DomChange {
-        public final VirtualDomPath parentPath;
-        public final VirtualDomPath path;
-        public Remove(final VirtualDomPath parentPath, final VirtualDomPath path) {
+        public final TreePositionPath parentPath;
+        public final TreePositionPath path;
+        public Remove(final TreePositionPath parentPath, final TreePositionPath path) {
             this.parentPath = parentPath;
             this.path = path;
         }
@@ -141,19 +141,19 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         public String toString() {
             return "Remove{" +
                     "parentPath=" + parentPath +
-                    ", path=" + path +
+                    ", componentPath=" + path +
                     '}';
         }
     }
 
     public static final class SetAttr implements DomChange {
-        public final VirtualDomPath path;
+        public final TreePositionPath path;
         public final XmlNs xmlNs;
         public final String name;
         public final String value;
         public final boolean isProperty;
 
-        public SetAttr(final VirtualDomPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+        public SetAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.name = name;
@@ -181,7 +181,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         @Override
         public String toString() {
             return "SetAttr{" +
-                    "path=" + path +
+                    "componentPath=" + path +
                     ", xmlNs=" + xmlNs +
                     ", name='" + name + '\'' +
                     ", value='" + value + '\'' +
@@ -191,10 +191,10 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     public static final class SetStyle implements DomChange {
-        public final VirtualDomPath path;
+        public final TreePositionPath path;
         public final String name;
         public final String value;
-        public SetStyle(final VirtualDomPath path, final String name, final String value) {
+        public SetStyle(final TreePositionPath path, final String name, final String value) {
             this.path = path;
             this.name = name;
             this.value = value;
@@ -218,7 +218,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         @Override
         public String toString() {
             return "SetStyle{" +
-                    "path=" + path +
+                    "componentPath=" + path +
                     ", name='" + name + '\'' +
                     ", value='" + value + '\'' +
                     '}';
@@ -226,10 +226,10 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     public static final class CreateText implements DomChange {
-        public final VirtualDomPath parentPath;
-        public final VirtualDomPath path;
+        public final TreePositionPath parentPath;
+        public final TreePositionPath path;
         public final String text;
-        public CreateText(final VirtualDomPath parentPath, final VirtualDomPath path, final String text) {
+        public CreateText(final TreePositionPath parentPath, final TreePositionPath path, final String text) {
             this.parentPath = parentPath;
             this.path = path;
             this.text = text;
@@ -254,17 +254,17 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         public String toString() {
             return "CreateText{" +
                     "parentPath=" + parentPath +
-                    ", path=" + path +
+                    ", componentPath=" + path +
                     ", text='" + text + '\'' +
                     '}';
         }
     }
 
     public static final class Create implements DomChange {
-        public final VirtualDomPath path;
+        public final TreePositionPath path;
         public final XmlNs xmlNs;
         public final String tag;
-        public Create(final VirtualDomPath path, final XmlNs xmlNs, final String tag) {
+        public Create(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
             this.path = path;
             this.xmlNs = xmlNs;
             this.tag = tag;
@@ -288,7 +288,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         @Override
         public String toString() {
             return "Create{" +
-                    "path=" + path +
+                    "componentPath=" + path +
                     ", xmlNs=" + xmlNs +
                     ", tag='" + tag + '\'' +
                     '}';

@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.component.ComponentRenderContext;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
 import rsp.server.http.PageStateOrigin;
 
@@ -18,7 +18,7 @@ public final class PageRenderContext extends ComponentRenderContext {
 
     public PageRenderContext(final QualifiedSessionId sessionId,
                              final String pageConfigScript,
-                             final VirtualDomPath rootDomPath,
+                             final TreePositionPath rootDomPath,
                              final PageStateOrigin httpStateOriginSupplier,
                              final TemporaryBufferedPageCommands remotePageMessagesOut,
                              final Object sessionLock) {

@@ -2,12 +2,10 @@ package rsp.dom;
 
 import org.junit.jupiter.api.Test;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class DiffTests {
-    final VirtualDomPath basePath = new VirtualDomPath(1);
+    final TreePositionPath basePath = new TreePositionPath(1);
 
     @Test
     public void should_be_empty_diff_for_same_single_tags() {
@@ -153,43 +151,43 @@ public class DiffTests {
         }
 
         @Override
-        public void remove(final VirtualDomPath parentId, final VirtualDomPath id) {
+        public void remove(final TreePositionPath parentId, final TreePositionPath id) {
             insertDelimiter(sb);
             sb.append("-TAG:" + parentId + ":" + id);
         }
 
         @Override
-        public void create(final VirtualDomPath id, final XmlNs xmlNs, final String tag) {
+        public void create(final TreePositionPath id, final XmlNs xmlNs, final String tag) {
             insertDelimiter(sb);
             sb.append("+TAG:" + id + ":" + tag);
         }
 
         @Override
-        public void removeAttr(final VirtualDomPath id, final XmlNs xmlNs, final String name, final boolean isProperty) {
+        public void removeAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final boolean isProperty) {
             insertDelimiter(sb);
             sb.append("-ATTR:" + id + ":" + name);
         }
 
         @Override
-        public void setAttr(final VirtualDomPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+        public void setAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             insertDelimiter(sb);
             sb.append("+ATTR:" + id + ":" + name + "=" + value + ":" + isProperty);
         }
 
         @Override
-        public void removeStyle(final VirtualDomPath id, final String name) {
+        public void removeStyle(final TreePositionPath id, final String name) {
             insertDelimiter(sb);
             sb.append("-STYLE:" + id + ":" + name);
         }
 
         @Override
-        public void setStyle(final VirtualDomPath id, final String name, final String value) {
+        public void setStyle(final TreePositionPath id, final String name, final String value) {
             sb.append("+STYLE:" + id + ":" + name + "=" + value);
             insertDelimiter(sb);
         }
 
         @Override
-        public void createText(final VirtualDomPath parenPath, final VirtualDomPath path, final String text) {
+        public void createText(final TreePositionPath parenPath, final TreePositionPath path, final String text) {
             sb.append("+TEXT:" + parenPath + ":" + path + "=" + text);
             insertDelimiter(sb);
         }

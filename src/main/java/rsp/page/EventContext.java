@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.ref.ElementRef;
 import rsp.ref.Ref;
 import rsp.util.json.JsonDataType;
@@ -14,7 +14,7 @@ import java.util.function.Function;
  * This is the main object for an application's code to interact with RSP internals and access data.
  */
 public final class EventContext {
-    private final VirtualDomPath eventElementPath;
+    private final TreePositionPath eventElementPath;
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<JsonDataType>> jsEvaluation;
     private final JsonDataType.Object eventObject;
@@ -28,7 +28,7 @@ public final class EventContext {
      * @param eventObject the event's object
      * @param setHref the proxy object for setting browser's URL
      */
-    public EventContext(final VirtualDomPath eventElementPath,
+    public EventContext(final TreePositionPath eventElementPath,
                         final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
                         final Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         final JsonDataType.Object eventObject,

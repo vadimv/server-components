@@ -6,8 +6,8 @@ import java.util.*;
 import java.util.stream.Stream;
 
 /**
- * Represents a path.
- * A path could be either absolute or relative.
+ * Represents a componentPath.
+ * A componentPath could be either absolute or relative.
  */
 public final class Path {
     public static final Path EMPTY = Path.of("");
@@ -17,8 +17,8 @@ public final class Path {
     private final String[] elements;
 
     /**
-     * Creates a new instance of a path.
-     * @param elements the path's elements
+     * Creates a new instance of a componentPath.
+     * @param elements the componentPath's elements
      */
     private Path(final boolean isAbsolute, final String[] elements) {
         this.isAbsolute = isAbsolute;
@@ -26,10 +26,10 @@ public final class Path {
     }
 
     /**
-     * Creates a new instance of a path from a string.
-     * @param pathStr a path string where path elements separated by '/';
-     *                 if it starts with '/' then the created path is absolute, otherwise it is relative
-     * @return a path object
+     * Creates a new instance of a componentPath from a string.
+     * @param pathStr a componentPath string where componentPath elements separated by '/';
+     *                 if it starts with '/' then the created componentPath is absolute, otherwise it is relative
+     * @return a componentPath object
      */
     public static Path of(final String pathStr) {
         Objects.requireNonNull(pathStr);
@@ -48,10 +48,10 @@ public final class Path {
     }
 
     /**
-     * Resolves a path to another path.
-     * If the provided path is absolute the result is this path, otherwise append its elements.
-     * @param path the path to resolve
-     * @return the result path
+     * Resolves a componentPath to another componentPath.
+     * If the provided componentPath is absolute the result is this componentPath, otherwise append its elements.
+     * @param path the componentPath to resolve
+     * @return the result componentPath
      */
     public Path resolve(final Path path) {
         if (path.isAbsolute) {
@@ -61,11 +61,11 @@ public final class Path {
     }
 
     /**
-     * Returns the element at the specified position in this path.
+     * Returns the element at the specified position in this componentPath.
      * @param index index of the element to return
-     * @return the element at the specified position in this path
-     * @throws IllegalArgumentException if index is out of this path elements number,
-     *         or this path has zero elements
+     * @return the element at the specified position in this componentPath
+     * @throws IllegalArgumentException if index is out of this componentPath elements number,
+     *         or this componentPath has zero elements
      */
     public String get(final int index) {
         if (index >=0 && index < elements.length) {
@@ -76,16 +76,16 @@ public final class Path {
     }
 
     /**
-     * The path's elements number.
-     * @return the path's length
+     * The componentPath's elements number.
+     * @return the componentPath's length
      */
     public int size() {
         return elements.length;
     }
 
     /**
-     * Checks if the path is empty or not.
-     * @return true if this path is empty, false otherwise
+     * Checks if the componentPath is empty or not.
+     * @return true if this componentPath is empty, false otherwise
      */
     public boolean isEmpty() {
         return EMPTY.equals(this);
@@ -93,7 +93,7 @@ public final class Path {
 
 
     /**
-     * Converts the path to the stream of its elements
+     * Converts the componentPath to the stream of its elements
      * @return
      */
     public Stream<String> stream() {
@@ -106,7 +106,7 @@ public final class Path {
     }
 
     /**
-     * Gets the last element of the path.
+     * Gets the last element of the componentPath.
      * @return the last element
      */
     public Optional<String> last() {
@@ -114,18 +114,18 @@ public final class Path {
     }
 
     /**
-     * Checks if the path's last element equals to the provided string.
+     * Checks if the componentPath's last element equals to the provided string.
      * @param s the string to check
-     * @return true if the path ends with the element and false if it is not
+     * @return true if the componentPath ends with the element and false if it is not
      */
     public boolean endsWith(final String s) {
         return elements.length != 0 && elements[elements.length - 1].equals(s);
     }
 
     /**
-     * Checks if the path's first element equals to the provided string.
+     * Checks if the componentPath's first element equals to the provided string.
      * @param s the string to check
-     * @return true if the path starts with the element and false if it is not
+     * @return true if the componentPath starts with the element and false if it is not
      */
     public boolean startsWith(final String s) {
         return elements.length != 0 && elements[0].equals(s);

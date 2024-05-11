@@ -1,7 +1,6 @@
 package rsp.html;
 
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
 import rsp.page.EventContext;
 import rsp.page.PageRendering;
 import rsp.ref.ElementRef;

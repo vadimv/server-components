@@ -27,7 +27,7 @@ public final class HttpRequest {
      * @param method the HTTP verb
      * @param uri the request's URI
      * @param url the request's URL
-     * @param path the request's path
+     * @param path the request's componentPath
      * @param queryParam the function that provides access the request's query parameters
      * @param getHeader the function that provides access to the request's headers
      */
@@ -50,7 +50,7 @@ public final class HttpRequest {
      * @param method the HTTP verb
      * @param uri the request's URI
      * @param url the request's URL
-     * @param path the request's path
+     * @param path the request's componentPath
      */
     public HttpRequest(final HttpMethod method,
                        final URI uri,

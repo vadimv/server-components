@@ -1,5 +1,6 @@
 package rsp.component;
 
+import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
@@ -37,7 +38,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     @Override
     public Component<S> createComponent(final QualifiedSessionId sessionId,
-                                        final ComponentPath componentPath,
+                                        final TreePositionPath componentPath,
                                         final PageStateOrigin pageStateOrigin,
                                         final RenderContextFactory renderContextFactory,
                                         final RemoteOut remotePageMessagesOut,

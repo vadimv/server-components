@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.component.StatefulComponentDefinition;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.server.http.*;
 import rsp.server.Path;
 import rsp.util.RandomString;
@@ -16,8 +16,8 @@ import static java.lang.System.Logger.Level.TRACE;
 public final class PageRendering<S> {
     private static final System.Logger logger = System.getLogger(PageRendering.class.getName());
 
-    public static final VirtualDomPath DOCUMENT_DOM_PATH = VirtualDomPath.of("1");
-    public static final VirtualDomPath WINDOW_DOM_PATH = VirtualDomPath.of("");
+    public static final TreePositionPath DOCUMENT_DOM_PATH = TreePositionPath.of("1");
+    public static final TreePositionPath WINDOW_DOM_PATH = TreePositionPath.of("");
 
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";

@@ -31,10 +31,10 @@ public class Component<S> implements StateUpdate<S> {
     private final Object sessionLock;
 
     private final List<Event> events = new ArrayList<>();
-    private final Map<Ref, VirtualDomPath> refs = new HashMap<>();
+    private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
     private final List<Tag> tags = new ArrayList<>();
-    private VirtualDomPath startNodeDomPath;
+    private TreePositionPath startNodeDomPath;
     private S state;
 
     public Component(final ComponentCompositeKey key,
@@ -57,15 +57,15 @@ public class Component<S> implements StateUpdate<S> {
         logger.log(TRACE, "New component is created with key " + this);
     }
 
-    public ComponentPath path() {
-        return key.path();
+    public TreePositionPath path() {
+        return key.componentPath();
     }
 
     public void addChild(final Component<?> component) {
         children.add(component);
     }
 
-    public void notifyNodeOpened(final VirtualDomPath domPath, Tag newTag) {
+    public void notifyNodeOpened(final TreePositionPath domPath, Tag newTag) {
         if (startNodeDomPath == null) {
             startNodeDomPath = domPath;
         }
@@ -148,7 +148,7 @@ public class Component<S> implements StateUpdate<S> {
             // Calculate diff between an old and new DOM trees
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
             Diff.diffChildren(oldTags, tags, startNodeDomPath, domChangePerformer);
-            final Set<VirtualDomPath> elementsToRemove = domChangePerformer.elementsToRemove;
+            final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
             remoteOut.modifyDom(domChangePerformer.commands);
 
             // Unregister events
@@ -219,15 +219,15 @@ public class Component<S> implements StateUpdate<S> {
         return recursiveEvents;
     }
 
-    public Map<Ref, VirtualDomPath> recursiveRefs() {
-        final Map<Ref, VirtualDomPath> recursiveRefs = new HashMap<>(refs);
+    public Map<Ref, TreePositionPath> recursiveRefs() {
+        final Map<Ref, TreePositionPath> recursiveRefs = new HashMap<>(refs);
         for (Component<?> childComponent : children) {
             recursiveRefs.putAll(childComponent.recursiveRefs());
         }
         return recursiveRefs;
     }
 
-    public void addEvent(final VirtualDomPath elementPath,
+    public void addEvent(final TreePositionPath elementPath,
                          final String eventType,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
@@ -236,7 +236,7 @@ public class Component<S> implements StateUpdate<S> {
         events.add(new Event(eventTarget, eventHandler, preventDefault, modifier));
     }
 
-    public void addRef(final Ref ref, final VirtualDomPath path) {
+    public void addRef(final Ref ref, final TreePositionPath path) {
         refs.put(ref, path);
     }
 

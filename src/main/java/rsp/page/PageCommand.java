@@ -2,7 +2,7 @@ package rsp.page;
 
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.server.RemoteOut;
 
 import java.util.List;
@@ -25,14 +25,14 @@ public sealed interface PageCommand {
         }
     }
 
-    record ForgetEvent(String eventType, VirtualDomPath elementPath) implements PageCommand {
+    record ForgetEvent(String eventType, TreePositionPath elementPath) implements PageCommand {
         @Override
         public void accept(RemoteOut remoteOut) {
             remoteOut.forgetEvent(eventType, elementPath);
         }
     }
 
-    record ExtractProperty(int descriptor, VirtualDomPath path, String name) implements PageCommand {
+    record ExtractProperty(int descriptor, TreePositionPath path, String name) implements PageCommand {
         @Override
         public void accept(RemoteOut remoteOut) {
             remoteOut.extractProperty(descriptor, path, name);

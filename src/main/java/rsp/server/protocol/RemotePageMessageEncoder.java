@@ -2,7 +2,7 @@ package rsp.server.protocol;
 
 import rsp.dom.Event;
 import rsp.dom.XmlNs;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext.*;
 import rsp.server.RemoteOut;
 
@@ -22,7 +22,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     private static final int EXTRACT_PROPERTY = 3; // (descriptor, id, propertyName )
     private static final int MODIFY_DOM = 4; // (commands)
     private static final int FOCUS = 5; // (id) {
-    private static final int CHANGE_PAGE_URL = 6; // (path)
+    private static final int CHANGE_PAGE_URL = 6; // (componentPath)
     private static final int UPLOAD_FORM = 7; // (id, descriptor)
     private static final int RELOAD_CSS = 8; // ()
     private static final int KEEP_ALIVE = 9; // ()
@@ -80,7 +80,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     }
 
     @Override
-    public void forgetEvent(final String eventType, final VirtualDomPath path) {
+    public void forgetEvent(final String eventType, final TreePositionPath path) {
         final String message = addSquareBrackets(joinString(FORGET_EVENT,
                                                             quote(escape(eventType)),
                                                             quote(path.toString())));
@@ -100,7 +100,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     }
 
     @Override
-    public void extractProperty(final int descriptor, final VirtualDomPath path, final String name) {
+    public void extractProperty(final int descriptor, final TreePositionPath path, final String name) {
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
                                                             quote(descriptor),
                                                             quote(path),

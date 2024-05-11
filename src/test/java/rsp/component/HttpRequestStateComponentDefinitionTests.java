@@ -1,8 +1,7 @@
 package rsp.component;
 
 import org.junit.jupiter.api.Test;
-import rsp.dom.NodeList;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
@@ -37,7 +36,7 @@ public class HttpRequestStateComponentDefinitionTests {
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
-                                                                                VirtualDomPath.of("1"),
+                                                                                TreePositionPath.of("1"),
                                                                                 pageStateOrigin,
                                                                                 remoteOut,
                                                                                 new Object());

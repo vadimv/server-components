@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.html.WindowDefinition;
 import rsp.ref.Ref;
 import rsp.server.ExtractPropertyResponse;
@@ -99,12 +99,12 @@ public final class LivePageSession implements RemoteIn {
 
     @Override
     public void handleDomEvent(final int renderNumber,
-                               final VirtualDomPath eventPath,
+                               final TreePositionPath eventPath,
                                final String eventType,
                                final JsonDataType.Object eventObject) {
-        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", path: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
+        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         synchronized (sessionLock) {
-            VirtualDomPath eventElementPath = eventPath;
+            TreePositionPath eventElementPath = eventPath;
             while (eventElementPath.level() >= 0) {
                 for (final Event event: pageRenderContext.recursiveEvents()) {
                     if (event.eventTarget.elementPath.equals(eventElementPath) && event.eventTarget.eventType.equals(eventType)) {
@@ -120,7 +120,7 @@ public final class LivePageSession implements RemoteIn {
         }
     }
 
-    private EventContext createEventContext(final VirtualDomPath eventElementPath,
+    private EventContext createEventContext(final TreePositionPath eventElementPath,
                                             final JsonDataType.Object eventObject) {
         return new EventContext(eventElementPath,
                                 this::evalJs,
@@ -131,18 +131,18 @@ public final class LivePageSession implements RemoteIn {
     }
 
     private PropertiesHandle createPropertiesHandle(final Ref ref) {
-        final VirtualDomPath path = resolveRef(ref);
+        final TreePositionPath path = resolveRef(ref);
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
         }
         return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, remoteOut);
     }
 
-    private void dispatchEvent(VirtualDomPath eventElementPath, CustomEvent customEvent) {
+    private void dispatchEvent(TreePositionPath eventElementPath, CustomEvent customEvent) {
         handleDomEvent(0, eventElementPath, customEvent.eventName(), customEvent.eventData());
     }
 
-    private VirtualDomPath resolveRef(final Ref ref) {
+    private TreePositionPath resolveRef(final Ref ref) {
         return ref instanceof WindowDefinition.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
     }
 

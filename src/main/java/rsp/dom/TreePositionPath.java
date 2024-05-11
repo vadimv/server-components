@@ -2,56 +2,62 @@ package rsp.dom;
 
 import java.util.Arrays;
 
-public final class VirtualDomPath {
+public final class TreePositionPath {
     public static final String SEPARATOR = "_";
 
     private final int[] array;
 
-    public VirtualDomPath(final int... xs) {
+    public TreePositionPath(final int... xs) {
         array = xs;
     }
 
-    public static VirtualDomPath of(final String path) {
-        return path.isBlank() ? new VirtualDomPath() : new VirtualDomPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());
+    public static TreePositionPath of(final String path) {
+        return path.isBlank() ? new TreePositionPath() : new TreePositionPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());
     }
 
     public int level() {
         return array.length;
     }
 
-    public VirtualDomPath incLevel() {
+    public TreePositionPath incLevel() {
         final int[] a = Arrays.copyOf(array, array.length + 1);
         a[a.length - 1] = 1;
-        return new VirtualDomPath(a);
+        return new TreePositionPath(a);
     }
 
-    public VirtualDomPath incSibling() {
+    public TreePositionPath incSibling() {
         final int[] a = Arrays.copyOf(array, array.length);
         a[a.length - 1]++;
-        return new VirtualDomPath(a);
+        return new TreePositionPath(a);
     }
 
-    public VirtualDomPath parent() {
+    public TreePositionPath parent() {
         return take(array.length - 1);
     }
 
-    public VirtualDomPath add(final VirtualDomPath otherPath) {
+    public TreePositionPath add(final TreePositionPath otherPath) {
         final int[] a = new int[array.length + otherPath.array.length];
         System.arraycopy(array, 0, a, 0, array.length);
         System.arraycopy(otherPath.array, 0, a, array.length, otherPath.array.length);
-        return new VirtualDomPath(a);
+        return new TreePositionPath(a);
     }
 
-    public VirtualDomPath childNumber(final int num) {
-        final VirtualDomPath childPath = incLevel();
+    public TreePositionPath addChild(final int num) {
+        final TreePositionPath childPath = incLevel();
         childPath.array[childPath.level() - 1] = num;
         return childPath;
     }
 
-    private VirtualDomPath take(final int level) {
+    public TreePositionPath childNumber(final int num) {
+        final TreePositionPath childPath = incLevel();
+        childPath.array[childPath.level() - 1] = num;
+        return childPath;
+    }
+
+    private TreePositionPath take(final int level) {
         final int[] na = new int[level];
         System.arraycopy(array, 0, na, 0, level);
-        return new VirtualDomPath(na);
+        return new TreePositionPath(na);
     }
 
     @Override
@@ -65,8 +71,8 @@ public final class VirtualDomPath {
 
     @Override
     public boolean equals(final Object other) {
-        if (other instanceof VirtualDomPath) {
-            return Arrays.equals(array, ((VirtualDomPath) other).array);
+        if (other instanceof TreePositionPath) {
+            return Arrays.equals(array, ((TreePositionPath) other).array);
         }
         return false;
     }

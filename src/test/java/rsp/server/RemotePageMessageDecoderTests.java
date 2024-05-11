@@ -3,7 +3,7 @@ package rsp.server;
 
 
 import org.junit.jupiter.api.Test;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.server.protocol.MessageDecoder;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.util.json.JsonDataType;
@@ -22,7 +22,7 @@ public class RemotePageMessageDecoderTests {
         assertTrue(collector.result instanceof DomEvent);
         final DomEvent result = (DomEvent) collector.result;
         assertEquals("click", result.eventType);
-        assertEquals(VirtualDomPath.of("1_2_1_2_2_1"), result.path);
+        assertEquals(TreePositionPath.of("1_2_1_2_2_1"), result.path);
         assertEquals(new JsonDataType.Object(),  result.eventObject);
     }
 
@@ -60,11 +60,11 @@ public class RemotePageMessageDecoderTests {
 
     private static final class DomEvent {
         final int renderNumber;
-        final VirtualDomPath path;
+        final TreePositionPath path;
         final String eventType;
         final JsonDataType.Object eventObject;
 
-        public DomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
+        public DomEvent(final int renderNumber, final TreePositionPath path, final String eventType, final JsonDataType.Object eventObject) {
             this.renderNumber = renderNumber;
             this.path = path;
             this.eventType = eventType;
@@ -101,7 +101,7 @@ public class RemotePageMessageDecoderTests {
         }
 
         @Override
-        public void handleDomEvent(final int renderNumber, final VirtualDomPath path, final String eventType, final JsonDataType.Object eventObject) {
+        public void handleDomEvent(final int renderNumber, final TreePositionPath path, final String eventType, final JsonDataType.Object eventObject) {
             result = new DomEvent(renderNumber, path, eventType, eventObject);
         }
 

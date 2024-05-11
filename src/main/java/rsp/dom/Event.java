@@ -39,13 +39,13 @@ public final class Event {
     }
 
     public static final class Target {
-        public Target(final String eventType, final VirtualDomPath elementPath) {
+        public Target(final String eventType, final TreePositionPath elementPath) {
             this.eventType = Objects.requireNonNull(eventType);
             this.elementPath = Objects.requireNonNull(elementPath);
         }
 
         public final String eventType;
-        public final VirtualDomPath elementPath;
+        public final TreePositionPath elementPath;
 
         @Override
         public boolean equals(final Object o) {

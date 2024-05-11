@@ -71,7 +71,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
         final Path path = eventObject.value("path").map(p -> Path.of(p.toString()))
-                .orElseThrow(() -> new JsonDataType.JsonException("The 'path' property not found in the event object" + eventObject));
+                .orElseThrow(() -> new JsonDataType.JsonException("The 'componentPath' property not found in the event object" + eventObject));
         final Query query = eventObject.value("query").map(q -> new Query(q.toString()))
                 .orElseThrow(() -> new JsonDataType.JsonException("The 'query' property not found in the event object" + eventObject));
         final Fragment fragment = eventObject.value("fragment").map(f -> new Fragment(f.toString()))

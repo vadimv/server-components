@@ -1,17 +1,11 @@
 package rsp.component;
 
-import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
-import rsp.page.LivePageSession;
+import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
-import rsp.server.Path;
 import rsp.server.RemoteOut;
-import rsp.server.http.Fragment;
 import rsp.server.http.PageStateOrigin;
-import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
-import rsp.util.json.JsonDataType;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
@@ -30,7 +24,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
 
     @Override
     public Component<S> createComponent(QualifiedSessionId sessionId,
-                                        ComponentPath componentPath,
+                                        TreePositionPath componentPath,
                                         PageStateOrigin pageStateOrigin,
                                         RenderContextFactory renderContextFactory,
                                         RemoteOut remotePageMessagesOut,

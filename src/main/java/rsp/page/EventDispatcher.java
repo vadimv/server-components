@@ -1,7 +1,7 @@
 package rsp.page;
 
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 
 public interface EventDispatcher {
-    void dispatchEvent(VirtualDomPath eventElementPath, CustomEvent customEvent);
+    void dispatchEvent(TreePositionPath eventElementPath, CustomEvent customEvent);
 }

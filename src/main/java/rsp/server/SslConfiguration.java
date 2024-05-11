@@ -7,7 +7,7 @@ package rsp.server;
  */
 public final class SslConfiguration {
     /**
-     * A path to a Java keystore file.
+     * A componentPath to a Java keystore file.
      */
     public final String keyStorePath;
     /**
@@ -17,7 +17,7 @@ public final class SslConfiguration {
 
     /**
      * Creates a new instance of an SSL/TLS configuration.
-     * @param keyStorePath a path to a keystore.jks file
+     * @param keyStorePath a componentPath to a keystore.jks file
      * @param keyStorePassword a keystore password
      */
     public SslConfiguration(final String keyStorePath, final String keyStorePassword) {

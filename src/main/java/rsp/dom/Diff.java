@@ -5,7 +5,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
 
-    public static void diff(final Tag c, final Tag w, final VirtualDomPath path, final DomChangesContext changesPerformer) {
+    public static void diff(final Tag c, final Tag w, final TreePositionPath path, final DomChangesContext changesPerformer) {
         Objects.requireNonNull(c);
         Objects.requireNonNull(w);
         Objects.requireNonNull(changesPerformer);
@@ -19,11 +19,11 @@ public final class Diff {
         }
     }
 
-    public static void diffChildren(final List<? extends Node> cc, final List<? extends Node> wc, final VirtualDomPath parentTagPath, final DomChangesContext performer) {
+    public static void diffChildren(final List<? extends Node> cc, final List<? extends Node> wc, final TreePositionPath parentTagPath, final DomChangesContext performer) {
         final ListIterator<? extends Node> c = cc.listIterator();
         final ListIterator<? extends Node> w = wc.listIterator();
 
-        VirtualDomPath p = parentTagPath;
+        TreePositionPath p = parentTagPath;
         while(c.hasNext() || w.hasNext()) {
             if (c.hasNext() && w.hasNext()) {
                 final Node nc = c.next();
@@ -54,7 +54,7 @@ public final class Diff {
 
     private static void diffAttributes(final CopyOnWriteArraySet<Attribute> ca,
                                        final CopyOnWriteArraySet<Attribute> wa,
-                                       final VirtualDomPath path,
+                                       final TreePositionPath path,
                                        final DomChangesContext performer) {
         final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
         final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
@@ -66,7 +66,7 @@ public final class Diff {
 
     private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
                                    final CopyOnWriteArraySet<Style> wa,
-                                   final VirtualDomPath path,
+                                   final TreePositionPath path,
                                    final DomChangesContext performer) {
         final Set<Style> c = new CopyOnWriteArraySet<>(ca);
         final Set<Style> w = new CopyOnWriteArraySet<>(wa);
@@ -76,7 +76,7 @@ public final class Diff {
         w.forEach(attribute -> performer.setStyle(path, attribute.name, attribute.value));
     }
 
-    private static void create(final Tag tag, final VirtualDomPath path, final DomChangesContext changesPerformer) {
+    private static void create(final Tag tag, final TreePositionPath path, final DomChangesContext changesPerformer) {
         changesPerformer.create(path, tag.xmlns, tag.name);
         for (final Style style: tag.styles) {
             changesPerformer.setStyle(path, style.name, style.value);
@@ -84,7 +84,7 @@ public final class Diff {
         for (final Attribute attribute: tag.attributes) {
             changesPerformer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
         }
-        VirtualDomPath p = path.incLevel();
+        TreePositionPath p = path.incLevel();
         for (final Node child:tag.children) {
             if (child instanceof Tag) {
                 final Tag newTag = (Tag) child;

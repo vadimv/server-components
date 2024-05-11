@@ -2,7 +2,7 @@ package rsp.page;
 
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.server.RemoteOut;
 
 import java.util.*;
@@ -27,12 +27,12 @@ public final class TemporaryBufferedPageCommands implements RemoteOut {
                 }
 
                 @Override
-                public void forgetEvent(final String eventType, final VirtualDomPath elementPath) {
+                public void forgetEvent(final String eventType, final TreePositionPath elementPath) {
                     queue.add(new PageCommand.ForgetEvent(eventType, elementPath));
                 }
 
                 @Override
-                public void extractProperty(final int descriptor, final VirtualDomPath path, final String name) {
+                public void extractProperty(final int descriptor, final TreePositionPath path, final String name) {
                     queue.add(new PageCommand.ExtractProperty(descriptor, path, name));
                 }
 
@@ -78,12 +78,12 @@ public final class TemporaryBufferedPageCommands implements RemoteOut {
     }
 
     @Override
-    public synchronized void forgetEvent(final String eventType, final VirtualDomPath elementPath) {
+    public synchronized void forgetEvent(final String eventType, final TreePositionPath elementPath) {
         remoteOut.forgetEvent(eventType, elementPath);
     }
 
     @Override
-    public synchronized void extractProperty(final int descriptor, final VirtualDomPath path, final String name) {
+    public synchronized void extractProperty(final int descriptor, final TreePositionPath path, final String name) {
         remoteOut.extractProperty(descriptor, path, name);
     }
 

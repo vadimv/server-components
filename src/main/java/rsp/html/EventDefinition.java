@@ -2,7 +2,7 @@ package rsp.html;
 
 import rsp.component.ComponentRenderContext;
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 
 import java.util.Optional;
@@ -19,9 +19,9 @@ public final class EventDefinition implements SegmentDefinition {
     public static final boolean PREVENT_DEFAULT_DEFAULT_VALUE = true;
 
     /**
-     * The path to the element the event generated on.
+     * The componentPath to the element the event generated on.
      */
-    public final Optional<VirtualDomPath> elementPath;
+    public final Optional<TreePositionPath> elementPath;
 
     /**
      * The event's type.
@@ -47,7 +47,7 @@ public final class EventDefinition implements SegmentDefinition {
 
     /**
      * Creates a new instance of an event.
-     * @param elementPath the path to the element the event generated on
+     * @param elementPath the componentPath to the element the event generated on
      * @param eventType the type of the event
      * @param handler the event's handler
      * @param preventDefault if true, then Event.preventDefault() JavaScript method is called on the event object
@@ -55,7 +55,7 @@ public final class EventDefinition implements SegmentDefinition {
      *                       if false Event.preventDefault() is not called.
      * @param modifier the events filter modifier
      */
-    public EventDefinition(final Optional<VirtualDomPath> elementPath,
+    public EventDefinition(final Optional<TreePositionPath> elementPath,
                            final String eventType,
                            final Consumer<EventContext> handler,
                            final boolean preventDefault,

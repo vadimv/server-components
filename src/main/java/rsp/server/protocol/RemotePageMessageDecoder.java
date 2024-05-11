@@ -1,7 +1,7 @@
 package rsp.server.protocol;
 
 
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.server.ExtractPropertyResponse;
 import rsp.server.RemoteIn;
 import rsp.util.json.JsonDataType;
@@ -76,7 +76,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     private void parseDomEvent(final String str, final JsonDataType.Object eventObject) {
         final String[] tokens = str.split(":");
         remoteIn.handleDomEvent(Integer.parseInt(tokens[0]),
-                                VirtualDomPath.of(tokens[1]),
+                                TreePositionPath.of(tokens[1]),
                                 tokens[2],
                                 eventObject);
     }

@@ -2,7 +2,7 @@ package rsp.server;
 
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,13 +26,13 @@ public class TestCollectingRemoteOut implements RemoteOut {
     }
 
     @Override
-    public void forgetEvent(final String eventType, final VirtualDomPath elementPath) {
+    public void forgetEvent(final String eventType, final TreePositionPath elementPath) {
         commands.add(new ForgetEventOutMessage(eventType, elementPath));
 
     }
 
     @Override
-    public void extractProperty(final int descriptor, final VirtualDomPath path, final String name) {
+    public void extractProperty(final int descriptor, final TreePositionPath path, final String name) {
         commands.add(new ExtractPropertyOutMessage(descriptor, path, name));
     }
 
@@ -85,10 +85,10 @@ public class TestCollectingRemoteOut implements RemoteOut {
     public final static class ListenEventOutMessage implements Message {
         public final String eventType;
         public final boolean preventDefault;
-        public final VirtualDomPath path;
+        public final TreePositionPath path;
         public final Event.Modifier modifier;
 
-        public ListenEventOutMessage(final String eventType, final boolean preventDefault, final VirtualDomPath path, final Event.Modifier modifier) {
+        public ListenEventOutMessage(final String eventType, final boolean preventDefault, final TreePositionPath path, final Event.Modifier modifier) {
             this.eventType = eventType;
             this.preventDefault = preventDefault;
             this.path = path;
@@ -116,7 +116,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
             return "ListenEventOutMessage{" +
                     "eventType='" + eventType + '\'' +
                     ", preventDefault=" + preventDefault +
-                    ", path=" + path +
+                    ", componentPath=" + path +
                     ", modifier=" + modifier +
                     '}';
         }
@@ -124,9 +124,9 @@ public class TestCollectingRemoteOut implements RemoteOut {
 
     public static final class ForgetEventOutMessage implements Message {
         public final String eventType;
-        public final VirtualDomPath elementPath;
+        public final TreePositionPath elementPath;
 
-        public ForgetEventOutMessage(final String eventType, final VirtualDomPath elementPath) {
+        public ForgetEventOutMessage(final String eventType, final TreePositionPath elementPath) {
             this.eventType = eventType;
             this.elementPath = elementPath;
         }
@@ -156,10 +156,10 @@ public class TestCollectingRemoteOut implements RemoteOut {
 
     public static final class ExtractPropertyOutMessage implements Message {
         public final int descriptor;
-        public final VirtualDomPath path;
+        public final TreePositionPath path;
         public final String name;
 
-        public ExtractPropertyOutMessage(final int descriptor, final VirtualDomPath path, final String name) {
+        public ExtractPropertyOutMessage(final int descriptor, final TreePositionPath path, final String name) {
             this.descriptor = descriptor;
             this.path = path;
             this.name = name;
@@ -232,7 +232,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         @Override
         public String toString() {
             return "PushHistoryMessage{" +
-                    "path='" + path + '\'' +
+                    "componentPath='" + path + '\'' +
                     '}';
         }
     }

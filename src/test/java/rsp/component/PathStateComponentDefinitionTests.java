@@ -3,7 +3,7 @@ package rsp.component;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
@@ -40,7 +40,7 @@ public class PathStateComponentDefinitionTests {
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
-                                                                                VirtualDomPath.of("1"),
+                                                                                TreePositionPath.of("1"),
                                                                                 pageStateOrigin,
                                                                                 remoteOut,
                                                                                 new Object());

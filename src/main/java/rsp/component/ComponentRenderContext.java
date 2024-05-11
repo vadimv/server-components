@@ -11,6 +11,8 @@ import java.util.function.*;
 
 public class ComponentRenderContext implements RenderContextFactory {
 
+    private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
+
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final QualifiedSessionId sessionId;
     private final PageStateOrigin pageStateOrigin;
@@ -18,15 +20,15 @@ public class ComponentRenderContext implements RenderContextFactory {
     private final Object sessionLock;
 
     private final List<Tag> rootNodes = new ArrayList<>();
-    private final List<VirtualDomPath> rootNodesPaths = new ArrayList<>();
+    private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private String docType;
-    private VirtualDomPath domPath;
+    private TreePositionPath domPath;
 
     private Component<?> rootComponent;
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
-                                  final VirtualDomPath startDomPath,
+                                  final TreePositionPath startDomPath,
                                   final PageStateOrigin pageStateOrigin,
                                   final RemoteOut remotePageMessagesOut,
                                   final Object sessionLock) {
@@ -58,7 +60,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Tag tag = new Tag(xmlns, name, isSelfClosing);
         if (parent == null) {
             if (!rootNodes.isEmpty()) {
-                final VirtualDomPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
+                final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
                 domPath = prevTag.incSibling();
             }
             rootNodes.add(tag);
@@ -92,7 +94,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         tagsStack.peek().addChild(new Text(text));
     }
 
-    public void addEvent(final VirtualDomPath elementPath,
+    public void addEvent(final TreePositionPath elementPath,
                          final String eventType,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
@@ -121,8 +123,8 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {
         final Component<?> parent = componentsStack.peek();
-        final ComponentPath componentPath = parent == null ?
-                                   ComponentPath.ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
+        final TreePositionPath componentPath = parent == null ?
+                                   ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
                                                                            pageStateOrigin,
@@ -149,7 +151,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     }
 
     @Override
-    public ComponentRenderContext newContext(final VirtualDomPath startDomPath) {
+    public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
         return new ComponentRenderContext(sessionId,
                                           startDomPath,
                                           pageStateOrigin,
@@ -181,7 +183,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         }
     }
 
-    public Map<Ref, VirtualDomPath> recursiveRefs() {
+    public Map<Ref, TreePositionPath> recursiveRefs() {
         if (rootComponent != null) {
             return rootComponent.recursiveRefs();
         } else {

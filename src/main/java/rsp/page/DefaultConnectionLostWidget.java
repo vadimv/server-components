@@ -5,7 +5,7 @@ import rsp.component.ComponentRenderContext;
 import rsp.component.StatefulComponentDefinition;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.html.TagDefinition;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
@@ -32,7 +32,7 @@ public final class DefaultConnectionLostWidget {
                                                         Path.ROOT);
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
-                                                                     VirtualDomPath.of("1"),
+                                                                     TreePositionPath.of("1"),
                                                                      pageStateOrigin,
                                                                      new SilentRemoteOut(),
                                                                      new Object());
@@ -68,12 +68,12 @@ public final class DefaultConnectionLostWidget {
         }
 
         @Override
-        public void forgetEvent(String eventType, VirtualDomPath elementPath) {
+        public void forgetEvent(String eventType, TreePositionPath elementPath) {
             // no-op
         }
 
         @Override
-        public void extractProperty(int descriptor, VirtualDomPath path, String name) {
+        public void extractProperty(int descriptor, TreePositionPath path, String name) {
             // no-op
         }
 

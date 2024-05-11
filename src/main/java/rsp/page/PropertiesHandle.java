@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.dom.XmlNs;
-import rsp.dom.VirtualDomPath;
+import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.server.RemoteOut;
 import rsp.util.json.JsonDataType;
@@ -14,12 +14,12 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Supplier;
 
 public final class PropertiesHandle {
-    private final VirtualDomPath path;
+    private final TreePositionPath path;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers;
     private final RemoteOut remoteOut;
 
-    public PropertiesHandle(final VirtualDomPath path,
+    public PropertiesHandle(final TreePositionPath path,
                             final Supplier<Integer> descriptorSupplier,
                             final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
                             final RemoteOut remoteOut) {
