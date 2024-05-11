@@ -46,13 +46,9 @@ public class HttpRequestStateComponentDefinitionTests {
 
         // Initial render
         scd.render(renderContext);
-
-        final StringBuilder sb = new StringBuilder();
-        renderContext.rootNodes().appendString(sb);
-        final String html0 = sb.toString();
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>header-0-value</span>\n" +
                                  "</div>",
-                                 html0);
+                                 renderContext.toString());
     }
 }

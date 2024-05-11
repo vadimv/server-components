@@ -51,10 +51,6 @@ public class ComponentRenderContext implements RenderContextFactory {
         return docType;
     }
 
-    public NodeList rootNodes() {
-        return new NodeList(rootNodes);
-    }
-
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
         final Tag parent = tagsStack.peek();
         final Tag tag = new Tag(xmlns, name, isSelfClosing);

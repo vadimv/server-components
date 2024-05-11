@@ -54,16 +54,13 @@ public class StoredStateComponentDefinitionTests {
         // Initial render
         scd.render(renderContext);
 
-        final StringBuilder sb = new StringBuilder();
-        renderContext.rootNodes().appendString(sb);
-        final String html0 = sb.toString();
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>true</span>\n" +
                                  " <div>\n" +
                                  "  test-store-100\n" +
                                  " </div>\n" +
                                  "</div>",
-                                 html0);
+                                renderContext.toString());
 
         assertEquals(0, renderContext.recursiveEvents().size());
 

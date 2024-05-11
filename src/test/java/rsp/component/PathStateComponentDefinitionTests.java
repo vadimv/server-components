@@ -50,13 +50,10 @@ public class PathStateComponentDefinitionTests {
         // Initial render
         scd.render(renderContext);
 
-        final StringBuilder sb = new StringBuilder();
-        renderContext.rootNodes().appendString(sb);
-        final String html0 = sb.toString();
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>state-0</span>\n" +
                                  "</div>",
-                                 html0);
+                                 renderContext.toString());
 
         // Click
         final Event clickEvent = renderContext.recursiveEvents().get(0);

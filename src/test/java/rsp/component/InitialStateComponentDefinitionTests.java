@@ -49,17 +49,13 @@ public class InitialStateComponentDefinitionTests {
         // Initial render
         scd.render(renderContext);
 
-        final StringBuilder sb = new StringBuilder();
-        renderContext.rootNodes().appendString(sb);
-        final String html0 = sb.toString();
-
         assertHtmlFragmentsEqual("<div>\n" +
                                  " <span>state-0</span>\n" +
                                  " <div>\n" +
                                  "  <a>test-link-100</a>\n" +
                                  " </div>\n" +
                                  "</div>",
-                                 html0);
+                                 renderContext.toString());
 
         assertEquals(1, renderContext.recursiveEvents().size());
         assertEquals("click", renderContext.recursiveEvents().get(0).eventTarget.eventType);
