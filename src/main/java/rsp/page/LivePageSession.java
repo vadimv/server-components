@@ -87,7 +87,7 @@ public final class LivePageSession implements RemoteIn {
 
     @Override
     public void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
-        logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toStringValue());
+        logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toString());
         synchronized (sessionLock) {
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
             if (cf != null) {

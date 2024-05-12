@@ -1,7 +1,6 @@
 package rsp.util.json;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * A representation of the JSON data types.
@@ -129,12 +128,7 @@ public interface JsonDataType {
 
         @Override
         public java.lang.String toString() {
-            return value;
-        }
-
-        @Override
-        public java.lang.String toStringValue() {
-            return "\"" + this.toString() + "\"";
+            return "\"" + value + "\"";
         }
 
         @Override
@@ -191,7 +185,7 @@ public interface JsonDataType {
                     + java.lang.String.join(",",
                                             values.entrySet().stream().map(e -> "\"" + e.getKey()
                                                                                      + "\": "
-                                                                                     + e.getValue().toStringValue())
+                                                                                     + e.getValue().toString())
                                                              .toList())
                     + '}';
         }
@@ -232,7 +226,7 @@ public interface JsonDataType {
         public java.lang.String toString() {
             return "["
                     + java.lang.String.join(",",
-                                            Arrays.stream(elements).map(JsonDataType::toStringValue).toList())
+                                            Arrays.stream(elements).map(JsonDataType::toString).toList())
                     + ']';
         }
 
@@ -284,14 +278,6 @@ public interface JsonDataType {
         public JsonException(final java.lang.String message, final Throwable cause, final boolean enableSuppression, final boolean writableStackTrace) {
             super(message, cause, enableSuppression, writableStackTrace);
         }
-    }
-
-    /**
-     * Gives a string representation to be used in a JSON data field, quotes if needed.
-     * @return the result string
-     */
-    default java.lang.String toStringValue() {
-        return this.toString();
     }
 
     default Boolean asJsonBoolean() {

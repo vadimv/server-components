@@ -45,7 +45,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
             final JsonDataType.Array messageJson = (JsonDataType.Array) jsonParser.parse(message);
             final int messageType = Math.toIntExact(messageJson.get(0).asJsonNumber().asLong());
             switch (messageType) {
-                case DOM_EVENT -> parseDomEvent(messageJson.get(1).toString(),
+                case DOM_EVENT -> parseDomEvent(messageJson.get(1).asJsonString().value(),
                                                 messageJson.get(2).asJsonObject());
                 case EXTRACT_PROPERTY_RESPONSE -> parseExtractPropertyResponse(messageJson.get(1).toString(),
                                                                                messageJson.get(2));
