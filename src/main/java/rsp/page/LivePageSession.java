@@ -23,8 +23,6 @@ import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
 public final class LivePageSession implements RemoteIn {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
 
-    public static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
-
     private final QualifiedSessionId qsid;
     private final PageRenderContext pageRenderContext;
     private final RemoteOut remoteOut;

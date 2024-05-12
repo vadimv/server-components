@@ -1,7 +1,6 @@
 package rsp.component;
 
 import rsp.dom.Event;
-import rsp.page.LivePageSession;
 import rsp.page.PageRendering;
 import rsp.page.RenderContextFactory;
 import rsp.server.Path;
@@ -19,6 +18,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class RelativeUrlStateComponent<S> extends Component<S> {
+
+    private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     protected final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl;
     protected final Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState;
@@ -52,10 +53,10 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
     @Override
     protected void updateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {
         addEvent(PageRendering.WINDOW_DOM_PATH,
-                LivePageSession.HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
-               true,
-                Event.NO_MODIFIER);
+                 HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                 eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
+                true,
+                 Event.NO_MODIFIER);
 
         final RelativeUrl oldRelativeUrl = pageStateOrigin.getRelativeUrl();
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, oldRelativeUrl);

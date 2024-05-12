@@ -59,7 +59,7 @@ public class ComponentRenderContext implements RenderContextFactory {
             rootNodesPaths.add(domPath);
         } else {
             final int nextChild = parent.children.size() + 1;
-            domPath = domPath.childNumber(nextChild);
+            domPath = domPath.addChild(nextChild);
             parent.addChild(tag);
         }
         tagsStack.push(tag);

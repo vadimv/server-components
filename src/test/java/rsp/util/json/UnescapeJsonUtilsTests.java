@@ -1,7 +1,6 @@
-package rsp.util;
+package rsp.util.json;
 
 import org.junit.jupiter.api.Test;
-import rsp.util.json.JsonUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

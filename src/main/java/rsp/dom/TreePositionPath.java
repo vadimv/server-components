@@ -26,29 +26,24 @@ public final class TreePositionPath {
     }
 
     public TreePositionPath incSibling() {
-        final int[] a = Arrays.copyOf(array, array.length);
-        a[a.length - 1]++;
-        return new TreePositionPath(a);
+        if (array.length > 0) {
+            final int[] a = Arrays.copyOf(array, array.length);
+            a[a.length - 1]++;
+            return new TreePositionPath(a);
+        } else {
+            throw new IllegalStateException("It is not possible to get a sibling of a root path");
+        }
     }
 
     public TreePositionPath parent() {
-        return take(array.length - 1);
-    }
-
-    public TreePositionPath add(final TreePositionPath otherPath) {
-        final int[] a = new int[array.length + otherPath.array.length];
-        System.arraycopy(array, 0, a, 0, array.length);
-        System.arraycopy(otherPath.array, 0, a, array.length, otherPath.array.length);
-        return new TreePositionPath(a);
+        if (array.length > 0) {
+            return take(array.length - 1);
+        } else {
+            throw new IllegalStateException("It is not possible to get a parent of a root path");
+        }
     }
 
     public TreePositionPath addChild(final int num) {
-        final TreePositionPath childPath = incLevel();
-        childPath.array[childPath.level() - 1] = num;
-        return childPath;
-    }
-
-    public TreePositionPath childNumber(final int num) {
         final TreePositionPath childPath = incLevel();
         childPath.array[childPath.level() - 1] = num;
         return childPath;
