@@ -44,7 +44,16 @@ public class JsonDataTypeTests {
     @Test
     public void produces_valid_empty_object_json() {
         final JsonDataType json = new JsonDataType.Object();
+        Assertions.assertEquals(0, json.asJsonObject().keys().size());
         Assertions.assertEquals("{}", json.toString());
+    }
+
+    @Test
+    public void produces_valid_object_json() {
+        final JsonDataType.Object json = new JsonDataType.Object().put("key0", new JsonDataType.Boolean(true));
+        Assertions.assertEquals(1, json.asJsonObject().keys().size());
+        Assertions.assertEquals(true, json.value("key0").orElseThrow().asJsonBoolean().value());
+        Assertions.assertEquals("{\"key0\": true}", json.toString());
     }
 
     @Test
