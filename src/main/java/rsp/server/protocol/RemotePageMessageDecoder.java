@@ -47,9 +47,9 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
             switch (messageType) {
                 case DOM_EVENT -> parseDomEvent(messageJson.get(1).asJsonString().value(),
                                                 messageJson.get(2).asJsonObject());
-                case EXTRACT_PROPERTY_RESPONSE -> parseExtractPropertyResponse(messageJson.get(1).toString(),
+                case EXTRACT_PROPERTY_RESPONSE -> parseExtractPropertyResponse(messageJson.get(1).asJsonString().value(),
                                                                                messageJson.get(2));
-                case EVAL_JS_RESPONSE -> parseEvalJsResponse(messageJson.get(1).toString(),
+                case EVAL_JS_RESPONSE -> parseEvalJsResponse(messageJson.get(1).asJsonString().value(),
                                                              messageJson.size() > 2 ? messageJson.get(2) : JsonDataType.String.EMPTY);
                 case HEARTBEAT -> heartBeat();
             }
