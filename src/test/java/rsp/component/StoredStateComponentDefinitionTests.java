@@ -1,7 +1,7 @@
 package rsp.component;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
@@ -20,14 +20,13 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
-import static rsp.util.TestUtils.containsType;
+import static rsp.util.TestUtils.findFirstListElementByType;
 
-@Disabled
 public class StoredStateComponentDefinitionTests {
     static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
     static final ComponentView<Boolean> view = state -> newState ->
             div(
-                    span(Boolean.toString(state)),
+                    span(text("toggle"), on("click", ctx -> newState.setState(!state))),
                     when(state, () ->
                          new StoredStateComponentDefinition<>(100,
                                                               s -> ns -> div(text("test-store-" + s)),
@@ -55,36 +54,38 @@ public class StoredStateComponentDefinitionTests {
         scd.render(renderContext);
 
         assertHtmlFragmentsEqual("<div>\n" +
-                                 " <span>true</span>\n" +
+                                 " <span>toggle</span>\n" +
                                  " <div>\n" +
                                  "  test-store-100\n" +
                                  " </div>\n" +
                                  "</div>",
-                                renderContext.toString());
+                                renderContext.html());
 
-        assertEquals(0, renderContext.recursiveEvents().size());
+        assertEquals(1, renderContext.recursiveEvents().size());
 
         // Remove sub component
         // Click
         final Event clickEvent = renderContext.recursiveEvents().get(0);
         final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath,
-                js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
-                ref -> null,
-                JsonDataType.Object.EMPTY,
-                (eventElementPath, customEvent) -> {},
-                ref -> {});
+                                                                js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
+                                                                ref -> null,
+                                                                JsonDataType.Object.EMPTY,
+                                                                (eventElementPath, customEvent) -> {},
+                                                                ref -> {});
         clickEvent.eventHandler.accept(clickEventContext);
 
         assertEquals(1, remoteOut.commands.size());
-        assertInstanceOf(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands.get(0));
-        assertTrue(remoteOut.commands.get(0).toString().contains("test-link-101"));
+        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
+        assertEquals(1, modifyDomOutMessage.domChange.size());
+        assertInstanceOf(DefaultDomChangesContext.Remove.class, modifyDomOutMessage.domChange.get(0));
 
-        assertEquals(1, remoteOut.commands.size());
-        assertTrue(containsType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands));
         remoteOut.clear();
-        assertEquals(0, renderContext.recursiveEvents().size());
 
-        // Add it back
-
+        // Add the hidden stateful component back
+        final Event clickEvent2 = renderContext.recursiveEvents().get(0);
+        clickEvent2.eventHandler.accept(clickEventContext);
+        assertEquals(1, remoteOut.commands.size());
+        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage2 = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
+        assertTrue(modifyDomOutMessage2.toString().contains("test-store-100"));
     }
 }

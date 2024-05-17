@@ -1,6 +1,5 @@
 package rsp.component;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
@@ -16,17 +15,15 @@ import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static rsp.html.HtmlDsl.div;
-import static rsp.html.HtmlDsl.span;
+import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
-import static rsp.util.TestUtils.containsType;
+import static rsp.util.TestUtils.findFirstListElementByType;
 
-@Disabled
 public class PathStateComponentDefinitionTests {
 
     static final ComponentView<String> view = state -> newState ->
             div(
-                    span(state)
+                    span(text(state), on("click", ctx -> newState.setState("state-1")))
             );
 
     @Test
@@ -58,24 +55,28 @@ public class PathStateComponentDefinitionTests {
         // Click
         final Event clickEvent = renderContext.recursiveEvents().get(0);
         final EventContext clickEventContext1 = new EventContext(clickEvent.eventTarget.elementPath,
-                js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
-                ref -> null,
-                JsonDataType.Object.EMPTY,
-                (eventElementPath, customEvent) -> {},
-                ref -> {});
+                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
+                                                                 ref -> null,
+                                                                 JsonDataType.Object.EMPTY,
+                                                                 (eventElementPath, customEvent) -> {},
+                                                                 ref -> {});
         clickEvent.eventHandler.accept(clickEventContext1);
 
-        assertEquals(1, remoteOut.commands.size());
-        assertInstanceOf(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands.get(0));
-        assertTrue(remoteOut.commands.get(0).toString().contains("test-link-101"));
+        assertEquals(3, remoteOut.commands.size());
+        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
+        assertTrue(modifyDomOutMessage.toString().contains("state-1"));
+
+        final TestCollectingRemoteOut.PushHistoryMessage pushHistoryMessage = findFirstListElementByType(TestCollectingRemoteOut.PushHistoryMessage.class, remoteOut.commands).orElseThrow();
+        assertTrue(pushHistoryMessage.toString().contains("state-1"));
+
+        final TestCollectingRemoteOut.ListenEventOutMessage listenEventOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ListenEventOutMessage.class, remoteOut.commands).orElseThrow();
+        assertTrue(listenEventOutMessage.toString().contains("popstate"));
 
         remoteOut.clear();
-        assertEquals(1, renderContext.recursiveEvents().size());
-        assertEquals("popstate", renderContext.recursiveEvents().get(0).eventTarget.eventType);
 
         // History backward
-        final Event popstateEvent = renderContext.recursiveEvents().get(0);
-        final EventContext clickEventContext2 = new EventContext(popstateEvent.eventTarget.elementPath,
+        final Event popstateEvent = renderContext.recursiveEvents().stream().filter(e -> "popstate".equals(e.eventTarget.eventType)).findFirst().orElseThrow();
+        final EventContext popstateEventContext = new EventContext(popstateEvent.eventTarget.elementPath,
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,
                                                                 JsonDataType.Object.EMPTY.put("path",
@@ -86,11 +87,14 @@ public class PathStateComponentDefinitionTests {
                                                                                               new JsonDataType.String("")),
                                                                 (eventElementPath, customEvent) -> {},
                                                                 ref -> {});
-        popstateEvent.eventHandler.accept(clickEventContext2);
+        popstateEvent.eventHandler.accept(popstateEventContext);
 
         assertEquals(2, remoteOut.commands.size());
-        assertTrue(containsType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands));
-        assertTrue(remoteOut.commands.get(0).toString().contains("state-0"));
 
+        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage2 = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
+        assertTrue(modifyDomOutMessage2.toString().contains("state-0"));
+
+        final TestCollectingRemoteOut.PushHistoryMessage pushHistoryMessage2 = findFirstListElementByType(TestCollectingRemoteOut.PushHistoryMessage.class, remoteOut.commands).orElseThrow();
+        assertTrue(pushHistoryMessage2.toString().contains("state-0"));
     }
 }

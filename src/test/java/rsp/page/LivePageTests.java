@@ -13,8 +13,6 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
 import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
-import static rsp.server.TestCollectingRemoteOut.*;
-import static rsp.util.TestUtils.containsType;
 
 @Disabled
 public class LivePageTests {
@@ -63,9 +61,7 @@ public class LivePageTests {
                                                              remoteOut,
                                                              sessionLock);
         livePage.init();
-
-        assertTrue(containsType(ModifyDomOutMessage.class, remoteOut.commands));
-        assertTrue(containsType(PushHistoryMessage.class, remoteOut.commands));
+        livePage.shutdown();
     }
 
     static final class State {
