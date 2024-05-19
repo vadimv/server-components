@@ -22,7 +22,7 @@ import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 import static rsp.util.TestUtils.findFirstListElementByType;
 
-public class StoredStateComponentDefinitionTests {
+class StoredStateComponentDefinitionTests {
     static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
     static final ComponentView<Boolean> view = state -> newState ->
             div(

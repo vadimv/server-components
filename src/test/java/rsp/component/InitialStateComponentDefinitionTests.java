@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
-public class InitialStateComponentDefinitionTests {
+class InitialStateComponentDefinitionTests {
 
     static final ComponentView<String> view = state -> newState ->
             div(

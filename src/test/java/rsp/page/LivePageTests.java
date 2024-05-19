@@ -15,7 +15,7 @@ import static rsp.html.HtmlDsl.*;
 import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
 
 @Disabled
-public class LivePageTests {
+class LivePageTests {
 
     static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
@@ -26,7 +26,7 @@ public class LivePageTests {
     );
 
     @Test
-    public void should_generate_html_listen_event_and_update_commands_for_new_state() {
+    void should_generate_html_listen_event_and_update_commands_for_new_state() {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final State initialState = new State(10);
 

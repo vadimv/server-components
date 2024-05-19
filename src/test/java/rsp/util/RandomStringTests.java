@@ -3,9 +3,9 @@ package rsp.util;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class RandomStringTests {
+class RandomStringTests {
     @Test
-    public void should_create_random_strings() {
+    void should_create_random_strings() {
         final int stringLength = 16;
         final RandomString rs = new RandomString(stringLength);
 

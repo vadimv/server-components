@@ -12,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.routing.RoutingDsl.*;
 
-public class RoutingTests {
+class RoutingTests {
 
     @Test
-    public void should_correctly_route_simple_for_method() throws ExecutionException, InterruptedException {
+    void should_correctly_route_simple_for_method() throws ExecutionException, InterruptedException {
         final Route<HttpRequest, String> r = concat(
                 get("/*", req -> CompletableFuture.completedFuture("A")),
                 post("/*", req -> CompletableFuture.completedFuture("B")),
@@ -30,7 +30,7 @@ public class RoutingTests {
     }
 
     @Test
-    public void should_correctly_route_simple_for_path() throws ExecutionException, InterruptedException {
+    void should_correctly_route_simple_for_path() throws ExecutionException, InterruptedException {
         final Route<HttpRequest, String> r = concat(
                 get("/A", req -> CompletableFuture.completedFuture("A")),
                 get("/B", req -> CompletableFuture.completedFuture("B")),
@@ -45,7 +45,7 @@ public class RoutingTests {
     }
 
     @Test
-    public void should_correctly_route_simple_for_sub_path() throws ExecutionException, InterruptedException {
+    void should_correctly_route_simple_for_sub_path() throws ExecutionException, InterruptedException {
         final Route<HttpRequest, String> r = concat(get(req -> paths()),
                                                     post("/B", req -> CompletableFuture.completedFuture("C")));
         final URI requestUri = URI.create("http://localhost/B");

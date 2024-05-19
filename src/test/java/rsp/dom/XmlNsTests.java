@@ -4,9 +4,9 @@ import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
 
-public class XmlNsTests {
+class XmlNsTests {
     @Test
-    public void should_comply_to_equals_hash_contract() {
+    void should_comply_to_equals_hash_contract() {
         EqualsVerifier.forClass(XmlNs.class).verify();
     }
 }

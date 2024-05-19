@@ -9,9 +9,9 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class HttpRequestTests {
+class HttpRequestTests {
     @Test
-    public void should_parse_cookies_header_correctly() throws URISyntaxException {
+    void should_parse_cookies_header_correctly() throws URISyntaxException {
         final String cookieHeader = "Cookie: name=value; name2=value2; name3=value3";
         final URI uri = new URI("http://foo/bar");
         final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,
@@ -27,7 +27,7 @@ public class HttpRequestTests {
 
 
     @Test
-    public void should_parse_cookies_header_correctly_for_empty() throws URISyntaxException {
+    void should_parse_cookies_header_correctly_for_empty() throws URISyntaxException {
         final String cookieHeader = "Cookie: name=value; name2=value2; name3=value3";
         final URI uri = new URI("http://foo/bar");
         final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,

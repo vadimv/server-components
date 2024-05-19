@@ -4,11 +4,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class DiffTests {
+class DiffTests {
     final TreePositionPath basePath = new TreePositionPath(1);
 
     @Test
-    public void should_be_empty_diff_for_same_single_tags() {
+    void should_be_empty_diff_for_same_single_tags() {
         final Tag tree1 = new Tag(XmlNs.html, "html", false);
         final Tag tree2 = new Tag(XmlNs.html, "html", false);
 
@@ -18,7 +18,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_remove_and_create_for_different_single_tags() {
+    void should_remove_and_create_for_different_single_tags() {
         final Tag tree1 = new Tag(XmlNs.html, "html", false);
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
 
@@ -28,7 +28,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_create_tags_for_added_children() {
+    void should_create_tags_for_added_children() {
         final Tag tree1 = new Tag(XmlNs.html, "div", false);
 
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
@@ -41,7 +41,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_remove_and_add_for_replaced_tag() {
+    void should_remove_and_add_for_replaced_tag() {
         final Tag tree1 = new Tag(XmlNs.html, "div", false);
         tree1.addChild(new Tag(XmlNs.html, "span", false));
 
@@ -54,7 +54,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_remove_and_add_for_replaced_tag_with_children() {
+    void should_remove_and_add_for_replaced_tag_with_children() {
         final Tag tree1 = new Tag(XmlNs.html, "body", false);
 
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
@@ -69,7 +69,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_add_for_a_new_child() {
+    void should_add_for_a_new_child() {
         final Tag ul1 = new Tag(XmlNs.html, "ul", false);
         final Tag li11 = new Tag(XmlNs.html, "li", false);
         li11.addChild(new Text("first"));
@@ -96,7 +96,7 @@ public class DiffTests {
 
 
     @Test
-    public void should_add_attribute() {
+    void should_add_attribute() {
         final Tag tree1 = new Tag(XmlNs.html, "div", false);
 
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
@@ -108,7 +108,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_remove_attribute() {
+    void should_remove_attribute() {
         final Tag tree1 = new Tag(XmlNs.html, "div", false);
         tree1.addAttribute("attr1", "value1", true);
 
@@ -120,7 +120,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_add_style() {
+    void should_add_style() {
         final Tag tree1 = new Tag(XmlNs.html, "div", false);
 
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
@@ -132,7 +132,7 @@ public class DiffTests {
     }
 
     @Test
-    public void should_remove_style() {
+    void should_remove_style() {
         final Tag tree1 = new Tag(XmlNs.html, "div", false);
         tree1.addStyle("style1", "value1");
 

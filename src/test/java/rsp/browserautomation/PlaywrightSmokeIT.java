@@ -14,7 +14,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @net.jcip.annotations.NotThreadSafe
-public class PlaywrightSmokeIT {
+class PlaywrightSmokeIT {
 
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final int COUNTER_1_INITIAL_VALUE = 100;
@@ -31,7 +31,7 @@ public class PlaywrightSmokeIT {
 
     @ParameterizedTest
     @MethodSource("browserTypes")
-    public void should_pass_smoke_tests(final BrowserType browserType) throws Exception {
+    void should_pass_smoke_tests(final BrowserType browserType) throws Exception {
        final Browser browser = browserType.launch();
        final BrowserContext context = browser.newContext();
        final Page page = context.newPage();

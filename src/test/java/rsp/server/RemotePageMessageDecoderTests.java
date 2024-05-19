@@ -11,10 +11,10 @@ import rsp.util.json.JsonSimpleUtils;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class RemotePageMessageDecoderTests {
+class RemotePageMessageDecoderTests {
 
     @Test
-    public void should_deserialize_dom_event_correctly() {
+    void should_deserialize_dom_event_correctly() {
         final TestRemoteIn collector = new TestRemoteIn();
         final MessageDecoder p = createDecoder(collector);
         p.decode("[0,\"0:1_2_1_2_2_1:click\",{}]");
@@ -27,7 +27,7 @@ public class RemotePageMessageDecoderTests {
     }
 
     @Test
-    public void should_deserialize_extract_property() {
+    void should_deserialize_extract_property() {
         final TestRemoteIn collector = new TestRemoteIn();
         final RemotePageMessageDecoder p = createDecoder(collector);
         p.decode("[2,\"1:0\",\"bar\"]");
@@ -43,7 +43,7 @@ public class RemotePageMessageDecoderTests {
     }
 
     @Test
-    public void should_deserialize_eval_js_response() {
+    void should_deserialize_eval_js_response() {
         final TestRemoteIn collector = new TestRemoteIn();
         final RemotePageMessageDecoder p = createDecoder(collector);
         p.decode("[4,\"1:0\",\"foo\"]");

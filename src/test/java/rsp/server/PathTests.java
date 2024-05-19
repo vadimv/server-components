@@ -6,14 +6,14 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-public class PathTests {
+class PathTests {
     @Test
-    public void should_comply_to_equals_hash_contract() {
+    void should_comply_to_equals_hash_contract() {
         EqualsVerifier.forClass(Path.class).verify();
     }
 
     @Test
-    public void should_correctly_create_new_empty_relative_path_from_empty_string() {
+    void should_correctly_create_new_empty_relative_path_from_empty_string() {
         final Path path = Path.of("");
         assertFalse(path.isAbsolute());
         assertTrue(path.isEmpty());
@@ -21,7 +21,7 @@ public class PathTests {
     }
 
     @Test
-    public void should_correctly_create_new_empty_absolute_from_string() {
+    void should_correctly_create_new_empty_absolute_from_string() {
         final Path path = Path.of("/");
         assertTrue(path.isAbsolute());
         assertFalse(path.isEmpty());
@@ -29,7 +29,7 @@ public class PathTests {
     }
 
     @Test
-    public void should_correctly_create_new_relative_path_from_string() {
+    void should_correctly_create_new_relative_path_from_string() {
         final Path path = Path.of("foo/bar");
         assertFalse(path.isAbsolute());
         final String[] expectedElements = {"foo", "bar"};
@@ -37,7 +37,7 @@ public class PathTests {
     }
 
     @Test
-    public void should_correctly_create_new_absolute_from_string() {
+    void should_correctly_create_new_absolute_from_string() {
         final Path path = Path.of("/foo/bar");
         assertTrue(path.isAbsolute());
         final String[] expectedElements = {"foo", "bar"};

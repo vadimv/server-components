@@ -19,7 +19,7 @@ import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 import static rsp.util.TestUtils.findFirstListElementByType;
 
-public class PathStateComponentDefinitionTests {
+class PathStateComponentDefinitionTests {
 
     static final ComponentView<String> view = state -> newState ->
             div(

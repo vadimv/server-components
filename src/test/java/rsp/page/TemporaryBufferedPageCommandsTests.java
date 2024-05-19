@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.function.Consumer;
 
 
-public class TemporaryBufferedPageCommandsTests {
+class TemporaryBufferedPageCommandsTests {
 
     @Test
-    public void buffers_messages_and_after_switch_sends_all_to_out() {
+    void buffers_messages_and_after_switch_sends_all_to_out() {
         final TemporaryBufferedPageCommands remoteOutWithBuffer = new TemporaryBufferedPageCommands();
         final TestMessages testConsumer = new TestMessages();
         remoteOutWithBuffer.evalJs(1, "1");
