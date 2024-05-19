@@ -65,6 +65,10 @@ public class Component<S> implements StateUpdate<S> {
         children.add(component);
     }
 
+    public boolean isRootNodesEmpty() {
+        return tags.isEmpty();
+    }
+
     public void notifyNodeOpened(final TreePositionPath domPath, Tag newTag) {
         if (startNodeDomPath == null) {
             startNodeDomPath = domPath;
@@ -238,6 +242,10 @@ public class Component<S> implements StateUpdate<S> {
 
     public void addRef(final Ref ref, final TreePositionPath path) {
         refs.put(ref, path);
+    }
+
+    public void html(final StringBuilder sb) {
+        tags.forEach(t -> t.appendString(sb));
     }
 
     @Override

@@ -19,7 +19,6 @@ public class ComponentRenderContext implements RenderContextFactory {
     private final RemoteOut remotePageMessagesOut;
     private final Object sessionLock;
 
-    private final List<Tag> rootNodes = new ArrayList<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private String docType;
@@ -48,14 +47,16 @@ public class ComponentRenderContext implements RenderContextFactory {
     }
 
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
+        final Component<?> component = componentsStack.peek();
+        assert component != null;
+
         final Tag parent = tagsStack.peek();
         final Tag tag = new Tag(xmlns, name, isSelfClosing);
         if (parent == null) {
-            if (!rootNodes.isEmpty()) {
+            if (!component.isRootNodesEmpty()) {
                 final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
                 domPath = prevTag.incSibling();
             }
-            rootNodes.add(tag);
             rootNodesPaths.add(domPath);
         } else {
             final int nextChild = parent.children.size() + 1;
@@ -64,8 +65,6 @@ public class ComponentRenderContext implements RenderContextFactory {
         }
         tagsStack.push(tag);
 
-        final Component<?> component = componentsStack.peek();
-        assert component != null;
         component.notifyNodeOpened(domPath, tag);
     }
 
@@ -156,7 +155,9 @@ public class ComponentRenderContext implements RenderContextFactory {
         if (docType != null) {
             sb.append(docType);
         }
-        rootNodes.forEach(t -> t.appendString(sb));
+        if (rootComponent != null) {
+            rootComponent.html(sb);
+        }
         return sb.toString();
     }
 
