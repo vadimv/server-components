@@ -41,32 +41,32 @@ public final class PageRendering<S> {
         if (request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.emptyList(), "No favicon.ico"));
         } else if (request.path.startsWith("static")) {
-            return staticFileResponse(request.path);
+            return CompletableFuture.completedFuture(staticFileResponse(request.path));
         } else {
             return rspResponse(request);
         }
     }
 
-    private CompletableFuture<HttpResponse> staticFileResponse(final Path path) {
+    private HttpResponse staticFileResponse(final Path path) {
         if (!path.contains("..")) {
             final URL fileUrl =  this.getClass().getResource(path.toString());
             if (fileUrl != null) {
                 try {
-                    return CompletableFuture.completedFuture(new HttpResponse(200,
-                                                                               Collections.emptyList(),
-                                                                               fileUrl.openStream()));
+                    return new HttpResponse(200,
+                                            Collections.emptyList(),
+                                            fileUrl.openStream());
                 } catch (final IOException e) {
-                    return CompletableFuture.completedFuture(new HttpResponse(500,
-                                                                                Collections.emptyList(),
-                                                                                "Exception on loading a static resource: "
-                                                                                        + path
-                                                                                        + " " + e.getMessage()));
+                    return new HttpResponse(500,
+                                            Collections.emptyList(),
+                                            "Exception on loading a static resource: "
+                                                    + path
+                                                    + " " + e.getMessage());
                 }
             }
         }
-        return CompletableFuture.completedFuture(new HttpResponse(404,
-                                                                    Collections.emptyList(),
-                                                                    "Resource not found: " + path));
+        return new HttpResponse(404,
+                                Collections.emptyList(),
+                                "Resource not found: " + path);
 
     }
 
