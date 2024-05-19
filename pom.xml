@@ -106,7 +106,7 @@
                     <mainClass>rsp.util.JsCompiler</mainClass>
                     <arguments>
                         <argument>./src/main/es6</argument>
-                        <argument>./target/classes</argument>
+                        <argument>./target/classes/static</argument>
                         <argument>rsp-client</argument>
                     </arguments>
                 </configuration>

@@ -29,8 +29,8 @@ public final class JsCompiler {
             throw new IllegalStateException(sourceDir.getAbsolutePath() + " sources directory expected");
         }
 
-        if (!targetDir.isDirectory()) {
-            throw new IllegalStateException(sourceDir.getAbsolutePath() + " target directory expected");
+        if (!targetDir.exists()) {
+            targetDir.mkdirs();
         }
 
         final File sourceOutputFile = new File(targetDir, baseName + ".min.js");

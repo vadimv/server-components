@@ -48,26 +48,25 @@ public final class PageRendering<S> {
     }
 
     private CompletableFuture<HttpResponse> staticFileResponse(final Path path) {
-            return path.last().flatMap(fileName -> {
-                final URL fileUrl =  this.getClass().getResource("/" + fileName);
-                if (fileUrl != null) {
-                    try {
-                        return Optional.of(CompletableFuture.completedFuture(new HttpResponse(200,
-                                                                                              Collections.emptyList(),
-                                                                                              fileUrl.openStream())));
-                    } catch (final IOException e) {
-                        return Optional.of(CompletableFuture.completedFuture(new HttpResponse(500,
-                                            Collections.emptyList(),
-                                            "Exception on loading a static resource: "
-                                                    + path
-                                                    + " " + e.getMessage())));
-                    }
-                } else {
-                    return Optional.empty();
+        if (!path.contains("..")) {
+            final URL fileUrl =  this.getClass().getResource(path.toString());
+            if (fileUrl != null) {
+                try {
+                    return CompletableFuture.completedFuture(new HttpResponse(200,
+                                                                               Collections.emptyList(),
+                                                                               fileUrl.openStream()));
+                } catch (final IOException e) {
+                    return CompletableFuture.completedFuture(new HttpResponse(500,
+                                                                                Collections.emptyList(),
+                                                                                "Exception on loading a static resource: "
+                                                                                        + path
+                                                                                        + " " + e.getMessage()));
                 }
-            }).orElse(CompletableFuture.completedFuture(new HttpResponse(404,
-                                                                            Collections.emptyList(),
-                                                                            "Resource not found: " + path)));
+            }
+        }
+        return CompletableFuture.completedFuture(new HttpResponse(404,
+                                                                    Collections.emptyList(),
+                                                                    "Resource not found: " + path));
 
     }
 
