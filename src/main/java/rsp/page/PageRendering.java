@@ -86,7 +86,7 @@ public final class PageRendering<S> {
             final Object sessionLock = new Object();
             final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
                                                                               pageConfigScript.toString(),
-                    DOCUMENT_DOM_PATH,
+                                                                              DOCUMENT_DOM_PATH,
                                                                               httpStateOrigin,
                                                                               commandsBuffer,
                                                                               sessionLock);

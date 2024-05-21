@@ -17,7 +17,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     @Override
-    public void remove(final TreePositionPath parentPath, final TreePositionPath path) {
+    public void removeNode(final TreePositionPath parentPath, final TreePositionPath path) {
         commands.add(new Remove(parentPath, path));
         elementsToRemove.add(path);
     }
@@ -38,7 +38,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     @Override
-    public void create(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
+    public void createTag(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
         commands.add(new Create(path, xmlNs, tag));
     }
 

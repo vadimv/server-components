@@ -1,7 +1,7 @@
 package rsp.dom;
 
 
-public interface Node {
+public sealed interface Node permits Tag, Text {
 
      void appendString(StringBuilder sb);
 }

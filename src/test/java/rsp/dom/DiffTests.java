@@ -24,7 +24,7 @@ class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath,  cp);
-        assertEquals("-TAG::1 +TAG:1:div", cp.resultAsString());
+        assertEquals("-NODE::1 +TAG:1:div", cp.resultAsString());
     }
 
     @Test
@@ -50,7 +50,47 @@ class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp);
-        assertEquals("-TAG:1:1_1 +TAG:1_1:a", cp.resultAsString());
+        assertEquals("-NODE:1:1_1 +TAG:1_1:a", cp.resultAsString());
+    }
+
+    @Test
+    void should_replace_text_with_text() {
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        tree1.addChild(new Text("abc"));
+
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        tree2.addChild(new Text("123"));
+
+        final TestChangesContext cp = new TestChangesContext();
+        Diff.diff(tree1, tree2, basePath, cp);
+        assertEquals("+TEXT:1:1_1=123", cp.resultAsString());
+    }
+
+
+    @Test
+    void should_replace_tag_with_text() {
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        tree1.addChild(new Tag(XmlNs.html, "span", false));
+
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        tree2.addChild(new Text("abc"));
+
+        final TestChangesContext cp = new TestChangesContext();
+        Diff.diff(tree1, tree2, basePath, cp);
+        assertEquals("-NODE:1:1_1+TEXT:1:1_1=abc", cp.resultAsString());
+    }
+
+    @Test
+    void should_replace_text_with_tag() {
+        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        tree1.addChild(new Text("abc"));
+
+        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        tree2.addChild(new Tag(XmlNs.html, "span", false));
+
+        final TestChangesContext cp = new TestChangesContext();
+        Diff.diff(tree1, tree2, basePath, cp);
+        assertEquals("-NODE:1:1_1 +TAG:1_1:span", cp.resultAsString());
     }
 
     @Test
@@ -65,7 +105,7 @@ class DiffTests {
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp);
-        assertEquals("-TAG::1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
+        assertEquals("-NODE::1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
 
     @Test
@@ -151,13 +191,13 @@ class DiffTests {
         }
 
         @Override
-        public void remove(final TreePositionPath parentId, final TreePositionPath id) {
+        public void removeNode(final TreePositionPath parentId, final TreePositionPath id) {
             insertDelimiter(sb);
-            sb.append("-TAG:" + parentId + ":" + id);
+            sb.append("-NODE:" + parentId + ":" + id);
         }
 
         @Override
-        public void create(final TreePositionPath id, final XmlNs xmlNs, final String tag) {
+        public void createTag(final TreePositionPath id, final XmlNs xmlNs, final String tag) {
             insertDelimiter(sb);
             sb.append("+TAG:" + id + ":" + tag);
         }

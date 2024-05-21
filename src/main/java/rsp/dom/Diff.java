@@ -10,7 +10,7 @@ public final class Diff {
         Objects.requireNonNull(w);
         Objects.requireNonNull(changesPerformer);
         if (!c.name.equals(w.name)) {
-            changesPerformer.remove(path.parent(), path);
+            changesPerformer.removeNode(path.parent(), path);
             create(w, path, changesPerformer);
         } else {
             diffStyles(c.styles, w.styles, path, changesPerformer);
@@ -31,20 +31,25 @@ public final class Diff {
                 if (nc instanceof Tag && nw instanceof Tag) {
                     diff((Tag)nc, (Tag)nw, p, performer);
                 } else if (nw instanceof Tag) {
-                    performer.remove(p.parent(), p);
+                    performer.removeNode(p.parent(), p);
                     create(((Tag) nw), parentTagPath, performer);
                 } else if (nc instanceof Tag) {
-                    performer.remove(p.parent(), p);
+                    performer.removeNode(p.parent(), p);
                     performer.createText(parentTagPath.parent(), parentTagPath, ((Text)nw).text);
                 } else if (!((Text)nc).text.equals(((Text)nw).text)) {
                     performer.createText(parentTagPath.parent(), parentTagPath, ((Text)nw).text);
                 }
             } else if (c.hasNext()) {
                 c.next();
-                performer.remove(p.parent(), p);
+                performer.removeNode(p.parent(), p);
             } else {
                 final Node nw = w.next();
-                create((Tag)nw, p, performer);
+                if (nw instanceof Tag) {
+                    create((Tag)nw, p, performer);
+                } else {
+                    performer.createText(parentTagPath.parent(), parentTagPath, ((Text)nw).text);
+                }
+
             }
             if (c.hasNext() || w.hasNext())
             if (p.level() > 0) p = p.incSibling();
@@ -77,7 +82,7 @@ public final class Diff {
     }
 
     private static void create(final Tag tag, final TreePositionPath path, final DomChangesContext changesPerformer) {
-        changesPerformer.create(path, tag.xmlns, tag.name);
+        changesPerformer.createTag(path, tag.xmlns, tag.name);
         for (final Style style: tag.styles) {
             changesPerformer.setStyle(path, style.name, style.value);
         }
