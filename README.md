@@ -78,7 +78,7 @@ to be represented in the Java DSL as the code fragment below:
 where:
 - HTML tags are the ``rsp.html.HtmlDsl`` class' methods with same names, e.g. ``<div></div>``  translates to ``div()``
 - HTML attributes are the ``rsp.html.HtmlDsl.attr(name, value)`` function, e.g. ``class="par"`` translates to ``attr("class", "par")``
-- the lambda's parameter `state` is the current state object
+- Text nodes are represented either by tags methods' String parameter or by the ``rsp.html.HtmlDsl.text(string)`` wrapper
 
 The  ``of()`` DSL function takes a ``Stream<T>`` of objects, e.g. a sequence of tags, or a table rows:
 ```java
