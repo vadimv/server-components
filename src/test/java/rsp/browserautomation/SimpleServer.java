@@ -29,8 +29,6 @@ public class SimpleServer {
     public static final int PORT = 8085;
     public final WebServer jetty;
 
-
-
     private static Routing<HttpRequest, AppState> appRouting() {
         return new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
                              new NotFoundState());
@@ -50,7 +48,7 @@ public class SimpleServer {
                             counterView(name));
     }
 
-    private static ComponentView<Integer> counterView(String name) {
+    private static ComponentView<Integer> counterView(final String name) {
         return state -> newState ->of(
                 span(name),
                 div(div(button(attr("type", "button"),

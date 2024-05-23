@@ -46,6 +46,35 @@ public class ComponentRenderContext implements RenderContextFactory {
         return docType;
     }
 
+    public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {
+        final Component<?> parent = componentsStack.peek();
+        final TreePositionPath componentPath = parent == null ?
+                ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
+        final Component<S> newComponent = componentFactory.createComponent(sessionId,
+                                                                           componentPath,
+                                                                           pageStateOrigin,
+                                                                           this,
+                                                                           remotePageMessagesOut,
+                                                                           sessionLock);
+        openComponent(newComponent);
+        return newComponent;
+    }
+
+    public <S> void openComponent(final Component<S> component) {
+        if (rootComponent == null) {
+            rootComponent = component;
+        } else {
+            final Component<?> parentComponent = componentsStack.peek();
+            assert parentComponent != null;
+            parentComponent.addChild(component);
+        }
+        componentsStack.push(component);
+    }
+
+    public void closeComponent() {
+        componentsStack.pop();
+    }
+
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
@@ -73,16 +102,45 @@ public class ComponentRenderContext implements RenderContextFactory {
         domPath = domPath.parent();
     }
 
+    public void addTextNode(final String text) {
+        final Component<?> component = componentsStack.peek();
+        assert component != null;
+
+        final Tag parentTag = tagsStack.peek();
+        if (parentTag == null) {
+            if (!component.isRootNodesEmpty()) {
+                if (component.getLastRootNode() instanceof Text prevTextNode) {
+                    prevTextNode.addPart(text);
+                } else {
+                    final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
+                    domPath = prevTag.incSibling();
+                    rootNodesPaths.add(domPath);
+                    component.notifyNodeOpened(domPath, new Text(text));
+                }
+            } else {
+                rootNodesPaths.add(domPath);
+                component.notifyNodeOpened(domPath, new Text(text));
+            }
+        } else {
+            if (!parentTag.children.isEmpty() && parentTag.children.get(parentTag.children.size() - 1) instanceof Text prevTextNode) {
+                prevTextNode.addPart(text);
+            } else {
+                final int nextChild = parentTag.children.size() + 1;
+                domPath = domPath.addChild(nextChild);
+                final Text newText = new Text(text);
+                parentTag.addChild(newText);
+                component.notifyNodeOpened(domPath, newText);
+                domPath  = domPath.parent();
+            }
+        }
+    }
+
     public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
     public void setStyle(final String name, final String value) {
         tagsStack.peek().addStyle(name, value);
-    }
-
-    public void addTextNode(final String text) {
-        tagsStack.peek().addChild(new Text(text));
     }
 
     public void addEvent(final TreePositionPath elementPath,
@@ -110,35 +168,6 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Tag tag = tagsStack.peek();
         assert tag != null;
         component.addRef(ref, domPath);
-    }
-
-    public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {
-        final Component<?> parent = componentsStack.peek();
-        final TreePositionPath componentPath = parent == null ?
-                                   ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
-        final Component<S> newComponent = componentFactory.createComponent(sessionId,
-                                                                           componentPath,
-                                                                           pageStateOrigin,
-                                                                          this,
-                                                                           remotePageMessagesOut,
-                                                                           sessionLock);
-        openComponent(newComponent);
-        return newComponent;
-    }
-
-    public <S> void openComponent(final Component<S> component) {
-        if (rootComponent == null) {
-            rootComponent = component;
-        } else {
-            final Component<?> parentComponent = componentsStack.peek();
-            assert parentComponent != null;
-            parentComponent.addChild(component);
-        }
-        componentsStack.push(component);
-    }
-
-    public void closeComponent() {
-        componentsStack.pop();
     }
 
     @Override

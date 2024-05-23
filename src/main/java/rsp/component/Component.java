@@ -33,7 +33,7 @@ public class Component<S> implements StateUpdate<S> {
     private final List<Event> events = new ArrayList<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
-    private final List<Tag> tags = new ArrayList<>();
+    private final List<Node> rootNodes = new ArrayList<>();
     private TreePositionPath startNodeDomPath;
     private S state;
 
@@ -66,17 +66,21 @@ public class Component<S> implements StateUpdate<S> {
     }
 
     public boolean isRootNodesEmpty() {
-        return tags.isEmpty();
+        return rootNodes.isEmpty();
     }
 
-    public void notifyNodeOpened(final TreePositionPath domPath, Tag newTag) {
+    public Node getLastRootNode() {
+        return rootNodes.get(rootNodes.size() - 1);
+    }
+
+    public void notifyNodeOpened(final TreePositionPath domPath, final Node newNode) {
         if (startNodeDomPath == null) {
             startNodeDomPath = domPath;
         }
 
-        if (tags.isEmpty() || domPath.level() == this.startNodeDomPath.level()) {
-          tags.add(newTag);
-      }
+        if (rootNodes.isEmpty() || domPath.level() == this.startNodeDomPath.level()) {
+            rootNodes.add(newNode);
+        }
     }
 
     public void render(final ComponentRenderContext renderContext) {
@@ -124,8 +128,8 @@ public class Component<S> implements StateUpdate<S> {
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
         synchronized (sessionLock) {
-            final List<Tag> oldTags = new ArrayList<>(tags);
-            tags.clear();
+            final List<Node> oldRootNodes = new ArrayList<>(rootNodes);
+            rootNodes.clear();
             final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
             final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
             final S oldState = state;
@@ -151,7 +155,7 @@ public class Component<S> implements StateUpdate<S> {
 
             // Calculate diff between an old and new DOM trees
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-            Diff.diffChildren(oldTags, tags, startNodeDomPath, domChangePerformer);
+            Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new StringBuilder());
             final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
             remoteOut.modifyDom(domChangePerformer.commands);
 
@@ -245,7 +249,7 @@ public class Component<S> implements StateUpdate<S> {
     }
 
     public void html(final StringBuilder sb) {
-        tags.forEach(t -> t.appendString(sb));
+        rootNodes.forEach(t -> t.appendString(sb));
     }
 
     @Override

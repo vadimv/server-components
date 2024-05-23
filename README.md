@@ -120,7 +120,8 @@ The ``when()`` DSL function conditionally renders (or not) an element:
 To respond to browser events, register a DOM event handler by adding an ``on(eventType, handler)`` on an HTML element:
 
 ```java
-    var view = state -> stateUpdate-> a("#", "Click me", on("click",
+    final ComponentView<State> view = state -> stateUpdate -> 
+                                      a("#", "Click me", on("click",
                                                             ctx-> { 
                                                               System.out.println("Clicked " + state.counter() + " times");
                                                               stateUpdate.setState(new State(s.counter() + 1));
@@ -288,13 +289,13 @@ A view is a pure function from an input state to a DOM fragment's definition.
      appView.apply(new UserState("Username"));
 ```
 
-A stateful component has its own state snapshot, an object of an immutable class or a record, which is managed by the framework.
+A stateful component has its associated current state snapshot, an object of an immutable class or a record , which is managed by the framework.
+
 A state is set:
 - on a component's initialization during its first render
-- on an update as a result of an event
+- on an update as a result of an event, triggered by browser events or asynchronous events, e.g. timers
 
-A component state update is initiated by invoking of one of a component view's parameter's ``StateUpdate`` interface methods, e.g. ``setState()``.
-State transitions are can be triggered by browser events or asynchronous events, e.g. timers.
+A component state update is initiated by invoking of a ``ComponentView<S>`` parameter's ``StateUpdate`` interface methods, e.g. ``setState(newState)``.
 
 ### How to use components
 
@@ -314,7 +315,7 @@ Extend from one of the subclasses of the base component definition class ``State
 
 ### DOM elements references
 
-The ``propertiesByRef()`` method of an event context object provides access to the client-side elements properties.
+The ``propertiesByRef()`` method of a DOM event context object provides access to the client-side elements properties.
 
 ```java
     final ElementRef inputRef = createElementRef();
