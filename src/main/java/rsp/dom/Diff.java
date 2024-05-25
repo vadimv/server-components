@@ -15,7 +15,7 @@ public final class Diff {
         Objects.requireNonNull(changesPerformer);
         if (!c.name.equals(w.name)) {
             changesPerformer.removeNode(path.parent(), path);
-            create(w, path, changesPerformer, sb);
+            createTag(w, path, changesPerformer, sb);
         } else {
             diffStyles(c.styles, w.styles, path, changesPerformer);
             diffAttributes(c.attributes, w.attributes, path, changesPerformer);
@@ -39,7 +39,7 @@ public final class Diff {
                     diff((Tag)nc, (Tag)nw, p, performer, sb);
                 } else if (nw instanceof Tag) {
                     performer.removeNode(p.parent(), p);
-                    create(((Tag) nw), parentTagPath, performer, sb);
+                    createTag(((Tag) nw), parentTagPath, performer, sb);
                 } else if (nc instanceof Tag) {
                     performer.removeNode(p.parent(), p);
                     sb.setLength(0);
@@ -53,7 +53,7 @@ public final class Diff {
                     nw.appendString(sb);
                     final String nwText = sb.toString();
                     if (!ncText.equals(nwText)) {
-                        performer.createText(parentTagPath.parent(), parentTagPath, nwText);
+                        performer.createText(p.parent(), p, nwText);
                     }
                 }
             } else if (c.hasNext()) {
@@ -62,11 +62,11 @@ public final class Diff {
             } else {
                 final Node nw = w.next();
                 if (nw instanceof Tag) {
-                    create((Tag)nw, p, performer, sb);
+                    createTag((Tag)nw, p, performer, sb);
                 } else {
                     sb.setLength(0);
                     nw.appendString(sb);
-                    performer.createText(parentTagPath.parent(), parentTagPath, sb.toString());
+                    performer.createText(p.parent(), p, sb.toString());
                 }
             }
             if (p.level() > 0) p = p.incSibling();
@@ -97,10 +97,10 @@ public final class Diff {
         w.forEach(attribute -> performer.setStyle(path, attribute.name, attribute.value));
     }
 
-    private static void create(final Tag tag,
-                               final TreePositionPath path,
-                               final DomChangesContext changesPerformer,
-                               final StringBuilder sb) {
+    private static void createTag(final Tag tag,
+                                  final TreePositionPath path,
+                                  final DomChangesContext changesPerformer,
+                                  final StringBuilder sb) {
         changesPerformer.createTag(path, tag.xmlns, tag.name);
         for (final Style style: tag.styles) {
             changesPerformer.setStyle(path, style.name, style.value);
@@ -112,7 +112,7 @@ public final class Diff {
         for (final Node child:tag.children) {
             if (child instanceof Tag) {
                 final Tag newTag = (Tag) child;
-                create(newTag, p, changesPerformer, sb);
+                createTag(newTag, p, changesPerformer, sb);
             } else if (child instanceof Text) {
                 sb.setLength(0);
                 child.appendString(sb);

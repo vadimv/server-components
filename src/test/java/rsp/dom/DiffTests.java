@@ -21,10 +21,11 @@ class DiffTests {
     void should_remove_and_create_for_different_single_tags() {
         final Tag tree1 = new Tag(XmlNs.html, "html", false);
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        tree2.addAttribute("attr0", "value0", true);
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath,  cp, new StringBuilder());
-        assertEquals("-NODE::1 +TAG:1:div", cp.resultAsString());
+        assertEquals("-NODE::1 +TAG:1:div +ATTR:1:attr0=value0:true", cp.resultAsString());
     }
 
     @Test
@@ -91,6 +92,55 @@ class DiffTests {
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
         assertEquals("-NODE:1:1_1 +TAG:1_1:span", cp.resultAsString());
+    }
+
+    @Test
+    void should_remove_text_node() {
+        final Tag tree1 = new Tag(XmlNs.html, "p", false);
+        tree1.addChild(new Text("abc"));
+        tree1.addChild(new Tag(XmlNs.html, "br", true));
+        tree1.addChild(new Text("xyz"));
+
+        final Tag tree2 = new Tag(XmlNs.html, "p", false);
+        tree2.addChild(new Text("abc"));
+        tree2.addChild(new Tag(XmlNs.html, "br", true));
+
+        final TestChangesContext cp = new TestChangesContext();
+        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        assertEquals("-NODE:1:1_3", cp.resultAsString());
+    }
+
+    @Test
+    void should_add_text_node() {
+        final Tag tree1 = new Tag(XmlNs.html, "p", false);
+        tree1.addChild(new Text("abc"));
+        tree1.addChild(new Tag(XmlNs.html, "br", true));
+
+        final Tag tree2 = new Tag(XmlNs.html, "p", false);
+        tree2.addChild(new Text("abc"));
+        tree2.addChild(new Tag(XmlNs.html, "br", true));
+        tree2.addChild(new Text("xyz"));
+
+        final TestChangesContext cp = new TestChangesContext();
+        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        assertEquals("+TEXT:1:1_3=xyz", cp.resultAsString());
+    }
+
+    @Test
+    void should_modify_text_node() {
+        final Tag tree1 = new Tag(XmlNs.html, "p", false);
+        tree1.addChild(new Text("abc"));
+        tree1.addChild(new Tag(XmlNs.html, "br", true));
+        tree1.addChild(new Text("xyz"));
+
+        final Tag tree2 = new Tag(XmlNs.html, "p", false);
+        tree2.addChild(new Text("abc"));
+        tree2.addChild(new Tag(XmlNs.html, "br", true));
+        tree2.addChild(new Text("klm"));
+
+        final TestChangesContext cp = new TestChangesContext();
+        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        assertEquals("+TEXT:1:1_3=klm", cp.resultAsString());
     }
 
     @Test
