@@ -11,7 +11,7 @@
 * [Page HTTP status code and HTTP headers](#page-http-status-code-and-http-headers)
 * [UI components](#ui-components)
 * [How to use components](#how-to-use-components)
-* [How to implement a component](#how-to-implement-a-component)
+* [How to implement a stateful component](#how-to-implement-a-component)
 * [Evaluating code on the client-side](#evaluating-js-code-on-client-side)
 * [Web server's configuration](#web-servers-configuration)
 * [Logging](#logging)
@@ -309,9 +309,10 @@ Include a new instance of component definition class to the DSL alongside HTML d
 
 Note that a component's code is executed on the server, use only components you trust.
 
-### How to implement a component
+### How to implement a stateful component
 
-Extend from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``.
+- extend from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``
+- for simple cases use ``ComponentDsl`` helper methods
 
 ### DOM elements references
 

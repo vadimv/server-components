@@ -55,11 +55,6 @@ public final class LivePageSession implements RemoteIn {
         }
     }
 
-    public QualifiedSessionId getId() {
-        return qsid;
-    }
-
-
     @Override
     public void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
         if (result instanceof ExtractPropertyResponse.NotFound) {
