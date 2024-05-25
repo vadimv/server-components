@@ -3,6 +3,7 @@ package rsp.page;
 import rsp.component.ComponentRenderContext;
 import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
+import rsp.server.RemoteOut;
 import rsp.server.http.PageStateOrigin;
 
 import java.util.Map;
@@ -20,7 +21,7 @@ public final class PageRenderContext extends ComponentRenderContext {
                              final String pageConfigScript,
                              final TreePositionPath rootDomPath,
                              final PageStateOrigin httpStateOriginSupplier,
-                             final TemporaryBufferedPageCommands remotePageMessagesOut,
+                             final RemoteOut remotePageMessagesOut,
                              final Object sessionLock) {
         super(sessionId,
               rootDomPath,
@@ -77,5 +78,16 @@ public final class PageRenderContext extends ComponentRenderContext {
         super.setAttr(XmlNs.html, "src", "/static/rsp-client.min.js", false);
         super.setAttr(XmlNs.html, "defer", "defer", true);
         super.closeNode("script", true);
+    }
+
+    @Override
+    public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
+        return startDomPath.equals(PageRendering.DOCUMENT_DOM_PATH) ? new PageRenderContext(sessionId,
+                                                                                            pageConfigScript,
+                                                                                            startDomPath,
+                                                                                            pageStateOrigin,
+                                                                                            remotePageMessagesOut,
+                                                                                            sessionLock)
+                                                             : super.newContext(startDomPath);
     }
 }

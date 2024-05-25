@@ -32,7 +32,7 @@ public final class DefaultConnectionLostWidget {
                                                         Path.ROOT);
         final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
-                                                                     TreePositionPath.of("1"),
+                                                                     PageRendering.DOCUMENT_DOM_PATH,
                                                                      pageStateOrigin,
                                                                      new SilentRemoteOut(),
                                                                      new Object());

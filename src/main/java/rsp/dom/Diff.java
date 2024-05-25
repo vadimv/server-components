@@ -68,12 +68,9 @@ public final class Diff {
                     nw.appendString(sb);
                     performer.createText(parentTagPath.parent(), parentTagPath, sb.toString());
                 }
-
             }
-            if (c.hasNext() || w.hasNext())
             if (p.level() > 0) p = p.incSibling();
         }
-
     }
 
     private static void diffAttributes(final CopyOnWriteArraySet<Attribute> ca,

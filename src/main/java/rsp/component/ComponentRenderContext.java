@@ -13,12 +13,12 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
-    private final Deque<Tag> tagsStack = new ArrayDeque<>();
-    private final QualifiedSessionId sessionId;
-    private final PageStateOrigin pageStateOrigin;
-    private final RemoteOut remotePageMessagesOut;
-    private final Object sessionLock;
+    protected final QualifiedSessionId sessionId;
+    protected final PageStateOrigin pageStateOrigin;
+    protected final RemoteOut remotePageMessagesOut;
+    protected final Object sessionLock;
 
+    private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private String docType;
