@@ -5,21 +5,21 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
 
-    public static void diff(final Tag c,
-                            final Tag w,
+    public static void diff(final Tag ct,
+                            final Tag wt,
                             final TreePositionPath path,
                             final DomChangesContext changesPerformer,
                             final StringBuilder sb) {
-        Objects.requireNonNull(c);
-        Objects.requireNonNull(w);
+        Objects.requireNonNull(ct);
+        Objects.requireNonNull(wt);
         Objects.requireNonNull(changesPerformer);
-        if (!c.name.equals(w.name)) {
+        if (!ct.name.equals(wt.name)) {
             changesPerformer.removeNode(path.parent(), path);
-            createTag(w, path, changesPerformer, sb);
+            createTag(wt, path, changesPerformer, sb);
         } else {
-            diffStyles(c.styles, w.styles, path, changesPerformer);
-            diffAttributes(c.attributes, w.attributes, path, changesPerformer);
-            diffChildren(c.children, w.children, path.incLevel(), changesPerformer, sb);
+            diffStyles(ct.styles, wt.styles, path, changesPerformer);
+            diffAttributes(ct.attributes, wt.attributes, path, changesPerformer);
+            diffChildren(ct.children, wt.children, path.incLevel(), changesPerformer, sb);
         }
     }
 
@@ -28,44 +28,44 @@ public final class Diff {
                                     final TreePositionPath parentTagPath,
                                     final DomChangesContext performer,
                                     final StringBuilder sb) {
-        final ListIterator<? extends Node> c = cc.listIterator();
-        final ListIterator<? extends Node> w = wc.listIterator();
+        final ListIterator<? extends Node> cci = cc.listIterator();
+        final ListIterator<? extends Node> wci = wc.listIterator();
         TreePositionPath p = parentTagPath;
-        while(c.hasNext() || w.hasNext()) {
-            if (c.hasNext() && w.hasNext()) {
-                final Node nc = c.next();
-                final Node nw = w.next();
-                if (nc instanceof Tag && nw instanceof Tag) {
-                    diff((Tag)nc, (Tag)nw, p, performer, sb);
-                } else if (nw instanceof Tag) {
+        while(cci.hasNext() || wci.hasNext()) {
+            if (cci.hasNext() && wci.hasNext()) {
+                final Node cn = cci.next();
+                final Node wn = wci.next();
+                if (cn instanceof Tag ct && wn instanceof Tag wt) {
+                    diff(ct, wt, p, performer, sb);
+                } else if (wn instanceof Tag t) {
                     performer.removeNode(p.parent(), p);
-                    createTag(((Tag) nw), parentTagPath, performer, sb);
-                } else if (nc instanceof Tag) {
+                    createTag(t, parentTagPath, performer, sb);
+                } else if (cn instanceof Tag) {
                     performer.removeNode(p.parent(), p);
                     sb.setLength(0);
-                    nw.appendString(sb);
+                    wn.appendString(sb);
                     performer.createText(parentTagPath.parent(), parentTagPath, sb.toString());
                 } else {
                     sb.setLength(0);
-                    nc.appendString(sb);
+                    cn.appendString(sb);
                     final String ncText = sb.toString();
                     sb.setLength(0);
-                    nw.appendString(sb);
+                    wn.appendString(sb);
                     final String nwText = sb.toString();
                     if (!ncText.equals(nwText)) {
                         performer.createText(p.parent(), p, nwText);
                     }
                 }
-            } else if (c.hasNext()) {
-                c.next();
+            } else if (cci.hasNext()) {
+                cci.next();
                 performer.removeNode(p.parent(), p);
             } else {
-                final Node nw = w.next();
-                if (nw instanceof Tag) {
-                    createTag((Tag)nw, p, performer, sb);
+                final Node wn = wci.next();
+                if (wn instanceof Tag t) {
+                    createTag(t, p, performer, sb);
                 } else {
                     sb.setLength(0);
-                    nw.appendString(sb);
+                    wn.appendString(sb);
                     performer.createText(p.parent(), p, sb.toString());
                 }
             }
@@ -110,9 +110,8 @@ public final class Diff {
         }
         TreePositionPath p = path.incLevel();
         for (final Node child:tag.children) {
-            if (child instanceof Tag) {
-                final Tag newTag = (Tag) child;
-                createTag(newTag, p, changesPerformer, sb);
+            if (child instanceof Tag t) {
+                createTag(t, p, changesPerformer, sb);
             } else if (child instanceof Text) {
                 sb.setLength(0);
                 child.appendString(sb);
