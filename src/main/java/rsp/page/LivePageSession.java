@@ -23,7 +23,6 @@ import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
 public final class LivePageSession implements RemoteIn {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
 
-    private final QualifiedSessionId qsid;
     private final PageRenderContext pageRenderContext;
     private final RemoteOut remoteOut;
     private final Object sessionLock;
@@ -32,11 +31,9 @@ public final class LivePageSession implements RemoteIn {
 
     private int descriptorsCounter;
 
-    public LivePageSession(final QualifiedSessionId qsid,
-                           final PageRenderContext pageRenderContext,
+    public LivePageSession(final PageRenderContext pageRenderContext,
                            final RemoteOut remoteOut,
                            final Object sessionLock) {
-        this.qsid = Objects.requireNonNull(qsid);
         this.pageRenderContext = Objects.requireNonNull(pageRenderContext);
         this.remoteOut = Objects.requireNonNull(remoteOut);
         this.sessionLock = Objects.requireNonNull(sessionLock);

@@ -20,9 +20,9 @@ public class TestCollectingRemoteOut implements RemoteOut {
     @Override
     public void listenEvents(final List<Event> events) {
         commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType,
-                e.preventDefault,
-                e.eventTarget.elementPath,
-                e.modifier)).collect(Collectors.toList()));
+                                                                           e.preventDefault,
+                                                                           e.eventTarget.elementPath,
+                                                                           e.modifier)).collect(Collectors.toList()));
     }
 
     @Override
@@ -53,14 +53,16 @@ public class TestCollectingRemoteOut implements RemoteOut {
 
     @Override
     public void evalJs(final int descriptor, final String js) {
-        throw new IllegalStateException();
+        commands.add(new EvalJsMessage(descriptor, js));
     }
 
     public void clear() {
         commands.clear();
     }
 
-    final static class SetRenderNumOutMessage implements Message {
+    public sealed interface Message {}
+
+    public final static class SetRenderNumOutMessage implements Message {
         public final int renderNum;
         SetRenderNumOutMessage(final int renderNum) {
             this.renderNum = renderNum;
@@ -79,8 +81,6 @@ public class TestCollectingRemoteOut implements RemoteOut {
             return Objects.hash(renderNum);
         }
     }
-
-    public interface Message {}
 
     public final static class ListenEventOutMessage implements Message {
         public final String eventType;
@@ -237,4 +237,22 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
+    public static final class EvalJsMessage implements Message {
+
+        public final int descriptor;
+        public final String js;
+
+        public EvalJsMessage(int descriptor, String js) {
+            this.descriptor = descriptor;
+            this.js = js;
+        }
+
+        @Override
+        public String toString() {
+            return "EvalJsMessage{" +
+                    "descriptor=" + descriptor +
+                    ", js='" + js + '\'' +
+                    '}';
+        }
+    }
 }

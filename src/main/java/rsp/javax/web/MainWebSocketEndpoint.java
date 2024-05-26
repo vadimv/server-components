@@ -51,8 +51,7 @@ public final class MainWebSocketEndpoint<S> extends Endpoint {
             }
         } else {
 
-            final LivePageSession livePage = new LivePageSession(qsid,
-                                                                 renderedPage.pageRenderContext,
+            final LivePageSession livePage = new LivePageSession(renderedPage.pageRenderContext,
                                                                  remoteOut,
                                                                  renderedPage.sessionLock);
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);

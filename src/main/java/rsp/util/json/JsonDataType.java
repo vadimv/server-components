@@ -5,7 +5,7 @@ import java.util.*;
 /**
  * A representation of the JSON data types.
  */
-public interface JsonDataType {
+public sealed interface JsonDataType {
 
     /**
      * A boolean JSON data type.

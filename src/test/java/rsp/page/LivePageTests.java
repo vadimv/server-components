@@ -1,11 +1,13 @@
 package rsp.page;
 
-import org.junit.jupiter.api.Disabled;
+import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 import rsp.component.*;
+import rsp.dom.TreePositionPath;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.*;
+import rsp.util.json.JsonDataType;
 
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
@@ -13,15 +15,17 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
 import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
+import static rsp.util.TestUtils.findFirstListElementByType;
 
-@Disabled
 class LivePageTests {
 
     static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
     static final ComponentView<State> view = state -> newState -> html(
             body(
-                    span(state.toString())
+                    span(text(state.toString()), on("custom-event-0", eventContext -> {
+                        eventContext.evalJs("1000+1").thenAccept(value -> newState.setState(new State(value.asJsonNumber().asLong())));
+                    }))
             )
     );
 
@@ -43,7 +47,7 @@ class LivePageTests {
         final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
         final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
         final Object sessionLock = new Object();
-        final PageRenderContext domTreeContext = new PageRenderContext(new QualifiedSessionId("device0", "session0"),
+        final PageRenderContext domTreeContext = new PageRenderContext(QID,
                                                                        pageConfigScript.toString(),
                                                                        DOCUMENT_DOM_PATH,
                                                                        httpStateOrigin,
@@ -54,26 +58,43 @@ class LivePageTests {
                                                                                                   (s, p) -> p,
                                                                                                   view);
         componentDefinition.render(domTreeContext);
-        assertFalse(domTreeContext.html().isBlank());
 
-        final LivePageSession livePage = new LivePageSession(QID,
-                                                             domTreeContext,
+        final Document pageHtml = org.jsoup.Jsoup.parse(domTreeContext.html());
+        assertEquals(2, pageHtml.head().children().size());
+        assertEquals("script", pageHtml.head().children().get(0).nodeName());
+        assertEquals("script", pageHtml.head().children().get(1).nodeName());
+
+        final LivePageSession livePage = new LivePageSession(domTreeContext,
                                                              remoteOut,
                                                              sessionLock);
+        assertEquals(0, remoteOut.commands.size());
+
         livePage.init();
-        livePage.shutdown();
+        commandsBuffer.redirectMessagesOut(remoteOut);
+
+        assertEquals(1, remoteOut.commands.size());
+        remoteOut.commands.clear();
+
+        livePage.handleDomEvent(1, TreePositionPath.of("1_2_1"), "custom-event-0", new JsonDataType.Object().put("", new JsonDataType.Number(101)));
+        assertEquals(1, remoteOut.commands.size());
+        assertInstanceOf(TestCollectingRemoteOut.EvalJsMessage.class, remoteOut.commands.get(0));
+        remoteOut.commands.clear();
+
+        livePage.handleEvalJsResponse(1, new JsonDataType.Number(1001));
+        final var modifyDomOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands);
+        assertTrue(modifyDomOutMessage.isPresent() && modifyDomOutMessage.get().domChange.get(0).toString().contains("1001"));
     }
 
     static final class State {
-        public final int value;
+        public final long value;
 
-        private State(final int value) {
+        private State(final long value) {
         this.value = value;
         }
 
         @Override
         public String toString() {
-        return Integer.toString(value);
+        return Long.toString(value);
         }
     }
 }
