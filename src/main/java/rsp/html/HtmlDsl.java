@@ -215,6 +215,11 @@ public final class HtmlDsl {
         return tag("title", text(text));
     }
 
+
+    public static TagDefinition script(final SegmentDefinition... children) {
+        return tag("script", children);
+    }
+
     /**
      * A HTML {@literal <link>} element of a HTML document.
      * @param children the element's attributes
