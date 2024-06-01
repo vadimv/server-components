@@ -29,7 +29,7 @@ Add the Maven Central dependency:
     <dependency>
         <groupId>io.github.vadimv</groupId>
         <artifactId>rsp</artifactId>
-        <version>2.0</version>
+        <version>2.0.0</version>
     </dependency>
 ```
 
