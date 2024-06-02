@@ -155,7 +155,7 @@ public class Component<S> implements StateUpdate<S> {
 
             // Calculate diff between an old and new DOM trees
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-            Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new StringBuilder());
+            Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
             final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
             remoteOut.modifyDom(domChangePerformer.commands);
 
@@ -248,8 +248,8 @@ public class Component<S> implements StateUpdate<S> {
         refs.put(ref, path);
     }
 
-    public void html(final StringBuilder sb) {
-        rootNodes.forEach(t -> t.appendString(sb));
+    public void html(final HtmlBuilder hb) {
+        rootNodes.forEach(node -> hb.buildHtml(node));
     }
 
     @Override

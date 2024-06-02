@@ -13,7 +13,7 @@ class DiffTests {
         final Tag tree2 = new Tag(XmlNs.html, "html", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("", cp.resultAsString());
     }
 
@@ -24,7 +24,7 @@ class DiffTests {
         tree2.addAttribute("attr0", "value0", true);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath,  cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath,  cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-NODE::1 +TAG:1:div +ATTR:1:attr0=value0:true", cp.resultAsString());
     }
 
@@ -37,7 +37,7 @@ class DiffTests {
         tree2.addChild(new Tag(XmlNs.html, "span", false));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("+TAG:1_1:span +TAG:1_2:span", cp.resultAsString());
     }
 
@@ -50,7 +50,7 @@ class DiffTests {
         tree2.addChild(new Tag(XmlNs.html, "a", false));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-NODE:1:1_1 +TAG:1_1:a", cp.resultAsString());
     }
 
@@ -63,7 +63,7 @@ class DiffTests {
         tree2.addChild(new Text("123"));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("+TEXT:1:1_1=123", cp.resultAsString());
     }
 
@@ -77,7 +77,7 @@ class DiffTests {
         tree2.addChild(new Text("abc"));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-NODE:1:1_1+TEXT:1:1_1=abc", cp.resultAsString());
     }
 
@@ -90,7 +90,7 @@ class DiffTests {
         tree2.addChild(new Tag(XmlNs.html, "span", false));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-NODE:1:1_1 +TAG:1_1:span", cp.resultAsString());
     }
 
@@ -106,7 +106,7 @@ class DiffTests {
         tree2.addChild(new Tag(XmlNs.html, "br", true));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-NODE:1:1_3", cp.resultAsString());
     }
 
@@ -122,7 +122,7 @@ class DiffTests {
         tree2.addChild(new Text("xyz"));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("+TEXT:1:1_3=xyz", cp.resultAsString());
     }
 
@@ -139,7 +139,7 @@ class DiffTests {
         tree2.addChild(new Text("klm"));
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("+TEXT:1:1_3=klm", cp.resultAsString());
     }
 
@@ -154,7 +154,7 @@ class DiffTests {
         tree2.addChild(child21);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-NODE::1 +TAG:1:div +TAG:1_1:a +TAG:1_1_1:canvas +TAG:1_1_2:span", cp.resultAsString());
     }
 
@@ -180,7 +180,7 @@ class DiffTests {
         ul2.addChild(li23);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(ul1, ul2, basePath, cp, new StringBuilder());
+        Diff.diff(ul1, ul2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("+TAG:1_3:li+TEXT:1_3:1_3_1=third", cp.resultAsString());
     }
 
@@ -193,7 +193,7 @@ class DiffTests {
         tree2.addAttribute("attr1", "value1", true);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("+ATTR:1:attr1=value1:true", cp.resultAsString());
     }
 
@@ -205,7 +205,7 @@ class DiffTests {
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-ATTR:1:attr1", cp.resultAsString());
     }
 
@@ -217,7 +217,7 @@ class DiffTests {
         tree2.addStyle("style1", "value1");
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("+STYLE:1:style1=value1", cp.resultAsString());
     }
 
@@ -229,7 +229,7 @@ class DiffTests {
         final Tag tree2 = new Tag(XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
-        Diff.diff(tree1, tree2, basePath, cp, new StringBuilder());
+        Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-STYLE:1:style1", cp.resultAsString());
     }
 

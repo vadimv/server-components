@@ -181,13 +181,14 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public String html() {
         final StringBuilder sb = new StringBuilder();
+        final HtmlBuilder hb = new HtmlBuilder(sb);
         if (docType != null) {
             sb.append(docType);
         }
         if (rootComponent != null) {
-            rootComponent.html(sb);
+            rootComponent.html(hb);
         }
-        return sb.toString();
+        return hb.toString();
     }
 
     public List<Event> recursiveEvents() {
