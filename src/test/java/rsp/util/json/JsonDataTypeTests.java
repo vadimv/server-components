@@ -100,12 +100,17 @@ public class JsonDataTypeTests {
 
     @Test
     public void should_comply_to_equals_hash_contract_object() {
-        EqualsVerifier.forClass(JsonDataType.Object.class).suppress(Warning.NULL_FIELDS).verify();
+        EqualsVerifier.forClass(JsonDataType.Object.class).withNonnullFields("values")
+                                                          .withPrefabValues(JsonDataType.class,
+                                                                            new JsonDataType.Array(),
+                                                                            new JsonDataType.Array(JsonDataType.Null.INSTANCE)).verify();
     }
 
     @Test
     public void should_comply_to_equals_hash_contract_array() {
-        EqualsVerifier.forClass(JsonDataType.Array.class).verify();
+        EqualsVerifier.forClass(JsonDataType.Array.class).withPrefabValues(JsonDataType.class,
+                                                                            new JsonDataType.Object(),
+                                                                            new JsonDataType.Array(JsonDataType.Null.INSTANCE)).verify();
     }
 
 
