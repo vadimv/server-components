@@ -1,6 +1,7 @@
 package rsp.util.json;
 
 import nl.jqno.equalsverifier.EqualsVerifier;
+import nl.jqno.equalsverifier.Warning;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -99,7 +100,7 @@ public class JsonDataTypeTests {
 
     @Test
     public void should_comply_to_equals_hash_contract_object() {
-        EqualsVerifier.forClass(JsonDataType.Object.class).verify();
+        EqualsVerifier.forClass(JsonDataType.Object.class).suppress(Warning.NULL_FIELDS).verify();
     }
 
     @Test

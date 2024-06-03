@@ -39,7 +39,7 @@ public class JsonSimpleUtils {
             for (final Map.Entry<?, ?> entry : entrySet) {
                 m.put((String) entry.getKey(), convertToJsonType(entry.getValue()));
             }
-            return new JsonDataType.Object(Collections.unmodifiableMap(m));
+            return new JsonDataType.Object(m);
         } else if (j instanceof org.json.simple.JSONArray){
             final org.json.simple.JSONArray jsonArray = (org.json.simple.JSONArray) j;
             final List<JsonDataType> a = new ArrayList<>();

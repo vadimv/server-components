@@ -52,19 +52,19 @@ public sealed interface JsonDataType {
         }
 
         public Number(final int value) {
-            this.value = Long.valueOf(value);
+            this.value = (long) value;
         }
 
         public Number(final byte value) {
-            this.value = Long.valueOf(value);
+            this.value = (long) value;
         }
 
         public Number(final short value) {
-            this.value = Long.valueOf(value);
+            this.value = (long) value;
         }
 
         public Number(final float value) {
-            this.value = Double.valueOf(value);
+            this.value = (double) value;
         }
 
         public Number(final double value) {
@@ -153,16 +153,12 @@ public sealed interface JsonDataType {
 
         private final Map<java.lang.String, JsonDataType> values;
 
-        Object(final Map<java.lang.String, JsonDataType> values) {
-            this.values = values;
+        public Object(final Map<java.lang.String, JsonDataType> values) {
+            this.values = Map.copyOf(Objects.requireNonNull(values));
         }
 
         public Object() {
             this(Map.of());
-        }
-
-        public static Object of(final Map<java.lang.String, JsonDataType> values) {
-            return new Object(Map.copyOf(values));
         }
 
         public Optional<JsonDataType> value(final java.lang.String name) {
@@ -191,16 +187,16 @@ public sealed interface JsonDataType {
         }
 
         @Override
-        public boolean equals(final java.lang.Object o) {
+        public boolean equals(java.lang.Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
-            final JsonDataType.Object object = (JsonDataType.Object) o;
-            return Objects.equals(values, object.values);
+            final Object object = (Object) o;
+            return values.equals(object.values);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(values);
+            return values.hashCode();
         }
     }
 
