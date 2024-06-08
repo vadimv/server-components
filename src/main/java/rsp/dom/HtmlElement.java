@@ -6,9 +6,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public final class HtmlElement implements Node {
+public final class HtmlElement implements Element {
 
-    public static Set<String> VOID_ELEMENTS_NAMES = Set.of("area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr");
+    public static final Set<String> VOID_ELEMENTS_NAMES = Set.of("area", "base", "br", "col", "command", "embed", "hr", "img", "input", "keygen", "link", "meta", "param", "source", "track", "wbr");
 
     public final String name;
 
@@ -44,10 +44,10 @@ public final class HtmlElement implements Node {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        HtmlElement tag = (HtmlElement) o;
+        final HtmlElement tag = (HtmlElement) o;
         return Objects.equals(name, tag.name) && Objects.equals(attributes, tag.attributes) && Objects.equals(styles, tag.styles) && Objects.equals(children, tag.children);
     }
 
