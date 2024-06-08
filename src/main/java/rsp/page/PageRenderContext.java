@@ -2,7 +2,6 @@ package rsp.page;
 
 import rsp.component.ComponentRenderContext;
 import rsp.dom.TreePositionPath;
-import rsp.dom.XmlNs;
 import rsp.server.RemoteOut;
 import rsp.server.http.PageStateOrigin;
 

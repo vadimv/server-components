@@ -9,8 +9,8 @@ class DiffTests {
 
     @Test
     void should_be_empty_diff_for_same_single_tags() {
-        final Tag tree1 = new Tag("html");
-        final Tag tree2 = new Tag("html");
+        final HtmlElement tree1 = new HtmlElement("html");
+        final HtmlElement tree2 = new HtmlElement("html");
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -19,8 +19,8 @@ class DiffTests {
 
     @Test
     void should_remove_and_create_for_different_single_tags() {
-        final Tag tree1 = new Tag("html");
-        final Tag tree2 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("html");
+        final HtmlElement tree2 = new HtmlElement("div");
         tree2.addAttribute("attr0", "value0", true);
 
         final TestChangesContext cp = new TestChangesContext();
@@ -30,11 +30,11 @@ class DiffTests {
 
     @Test
     void should_create_tags_for_added_children() {
-        final Tag tree1 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("div");
 
-        final Tag tree2 = new Tag("div");
-        tree2.addChild(new Tag("span"));
-        tree2.addChild(new Tag("span"));
+        final HtmlElement tree2 = new HtmlElement("div");
+        tree2.addChild(new HtmlElement("span"));
+        tree2.addChild(new HtmlElement("span"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -43,11 +43,11 @@ class DiffTests {
 
     @Test
     void should_remove_and_add_for_replaced_tag() {
-        final Tag tree1 = new Tag("div");
-        tree1.addChild(new Tag("span"));
+        final HtmlElement tree1 = new HtmlElement("div");
+        tree1.addChild(new HtmlElement("span"));
 
-        final Tag tree2 = new Tag("div");
-        tree2.addChild(new Tag("a"));
+        final HtmlElement tree2 = new HtmlElement("div");
+        tree2.addChild(new HtmlElement("a"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -56,10 +56,10 @@ class DiffTests {
 
     @Test
     void should_replace_text_with_text() {
-        final Tag tree1 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("div");
         tree1.addChild(new Text("abc"));
 
-        final Tag tree2 = new Tag("div");
+        final HtmlElement tree2 = new HtmlElement("div");
         tree2.addChild(new Text("123"));
 
         final TestChangesContext cp = new TestChangesContext();
@@ -70,10 +70,10 @@ class DiffTests {
 
     @Test
     void should_replace_tag_with_text() {
-        final Tag tree1 = new Tag("div");
-        tree1.addChild(new Tag("span"));
+        final HtmlElement tree1 = new HtmlElement("div");
+        tree1.addChild(new HtmlElement("span"));
 
-        final Tag tree2 = new Tag("div");
+        final HtmlElement tree2 = new HtmlElement("div");
         tree2.addChild(new Text("abc"));
 
         final TestChangesContext cp = new TestChangesContext();
@@ -83,11 +83,11 @@ class DiffTests {
 
     @Test
     void should_replace_text_with_tag() {
-        final Tag tree1 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("div");
         tree1.addChild(new Text("abc"));
 
-        final Tag tree2 = new Tag("div");
-        tree2.addChild(new Tag("span"));
+        final HtmlElement tree2 = new HtmlElement("div");
+        tree2.addChild(new HtmlElement("span"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -96,14 +96,14 @@ class DiffTests {
 
     @Test
     void should_remove_text_node() {
-        final Tag tree1 = new Tag("p");
+        final HtmlElement tree1 = new HtmlElement("p");
         tree1.addChild(new Text("abc"));
-        tree1.addChild(new Tag("br"));
+        tree1.addChild(new HtmlElement("br"));
         tree1.addChild(new Text("xyz"));
 
-        final Tag tree2 = new Tag("p");
+        final HtmlElement tree2 = new HtmlElement("p");
         tree2.addChild(new Text("abc"));
-        tree2.addChild(new Tag("br"));
+        tree2.addChild(new HtmlElement("br"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -112,13 +112,13 @@ class DiffTests {
 
     @Test
     void should_add_text_node() {
-        final Tag tree1 = new Tag("p");
+        final HtmlElement tree1 = new HtmlElement("p");
         tree1.addChild(new Text("abc"));
-        tree1.addChild(new Tag("br"));
+        tree1.addChild(new HtmlElement("br"));
 
-        final Tag tree2 = new Tag("p");
+        final HtmlElement tree2 = new HtmlElement("p");
         tree2.addChild(new Text("abc"));
-        tree2.addChild(new Tag("br"));
+        tree2.addChild(new HtmlElement("br"));
         tree2.addChild(new Text("xyz"));
 
         final TestChangesContext cp = new TestChangesContext();
@@ -128,14 +128,14 @@ class DiffTests {
 
     @Test
     void should_modify_text_node() {
-        final Tag tree1 = new Tag("p");
+        final HtmlElement tree1 = new HtmlElement("p");
         tree1.addChild(new Text("abc"));
-        tree1.addChild(new Tag("br"));
+        tree1.addChild(new HtmlElement("br"));
         tree1.addChild(new Text("xyz"));
 
-        final Tag tree2 = new Tag("p");
+        final HtmlElement tree2 = new HtmlElement("p");
         tree2.addChild(new Text("abc"));
-        tree2.addChild(new Tag("br"));
+        tree2.addChild(new HtmlElement("br"));
         tree2.addChild(new Text("klm"));
 
         final TestChangesContext cp = new TestChangesContext();
@@ -145,12 +145,12 @@ class DiffTests {
 
     @Test
     void should_remove_and_add_for_replaced_tag_with_children() {
-        final Tag tree1 = new Tag("body");
+        final HtmlElement tree1 = new HtmlElement("body");
 
-        final Tag tree2 = new Tag("div");
-        final Tag child21 = new Tag("a");
-        child21.addChild(new Tag("canvas"));
-        child21.addChild(new Tag("span"));
+        final HtmlElement tree2 = new HtmlElement("div");
+        final HtmlElement child21 = new HtmlElement("a");
+        child21.addChild(new HtmlElement("canvas"));
+        child21.addChild(new HtmlElement("span"));
         tree2.addChild(child21);
 
         final TestChangesContext cp = new TestChangesContext();
@@ -160,22 +160,22 @@ class DiffTests {
 
     @Test
     void should_add_for_a_new_child() {
-        final Tag ul1 = new Tag("ul");
-        final Tag li11 = new Tag("li");
+        final HtmlElement ul1 = new HtmlElement("ul");
+        final HtmlElement li11 = new HtmlElement("li");
         li11.addChild(new Text("first"));
         ul1.addChild(li11);
-        final Tag li12 = new Tag("li");
+        final HtmlElement li12 = new HtmlElement("li");
         li12.addChild(new Text("second"));
         ul1.addChild(li12);
 
-        final Tag ul2 = new Tag("ul");
-        final Tag li21 = new Tag("li");
+        final HtmlElement ul2 = new HtmlElement("ul");
+        final HtmlElement li21 = new HtmlElement("li");
         li21.addChild(new Text("first"));
         ul2.addChild(li21);
-        final Tag li22 = new Tag("li");
+        final HtmlElement li22 = new HtmlElement("li");
         li22.addChild(new Text("second"));
         ul2.addChild(li22);
-        final Tag li23 = new Tag("li");
+        final HtmlElement li23 = new HtmlElement("li");
         li23.addChild(new Text("third"));
         ul2.addChild(li23);
 
@@ -187,9 +187,9 @@ class DiffTests {
 
     @Test
     void should_add_attribute() {
-        final Tag tree1 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("div");
 
-        final Tag tree2 = new Tag("div");
+        final HtmlElement tree2 = new HtmlElement("div");
         tree2.addAttribute("attr1", "value1", true);
 
         final TestChangesContext cp = new TestChangesContext();
@@ -199,10 +199,10 @@ class DiffTests {
 
     @Test
     void should_remove_attribute() {
-        final Tag tree1 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("div");
         tree1.addAttribute("attr1", "value1", true);
 
-        final Tag tree2 = new Tag("div");
+        final HtmlElement tree2 = new HtmlElement("div");
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -211,9 +211,9 @@ class DiffTests {
 
     @Test
     void should_add_style() {
-        final Tag tree1 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("div");
 
-        final Tag tree2 = new Tag("div");
+        final HtmlElement tree2 = new HtmlElement("div");
         tree2.addStyle("style1", "value1");
 
         final TestChangesContext cp = new TestChangesContext();
@@ -223,10 +223,10 @@ class DiffTests {
 
     @Test
     void should_remove_style() {
-        final Tag tree1 = new Tag("div");
+        final HtmlElement tree1 = new HtmlElement("div");
         tree1.addStyle("style1", "value1");
 
-        final Tag tree2 = new Tag("div");
+        final HtmlElement tree2 = new HtmlElement("div");
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));

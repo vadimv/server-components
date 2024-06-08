@@ -18,7 +18,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     protected final RemoteOut remotePageMessagesOut;
     protected final Object sessionLock;
 
-    private final Deque<Tag> tagsStack = new ArrayDeque<>();
+    private final Deque<HtmlElement> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private String docType = "";
@@ -79,8 +79,8 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Component<?> component = componentsStack.peek();
         assert component != null;
 
-        final Tag parent = tagsStack.peek();
-        final Tag tag = new Tag(name);
+        final HtmlElement parent = tagsStack.peek();
+        final HtmlElement tag = new HtmlElement(name);
         if (parent == null) {
             if (!component.isRootNodesEmpty()) {
                 final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
@@ -106,7 +106,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Component<?> component = componentsStack.peek();
         assert component != null;
 
-        final Tag parentTag = tagsStack.peek();
+        final HtmlElement parentTag = tagsStack.peek();
         if (parentTag == null) {
             if (!component.isRootNodesEmpty()) {
                 if (component.getLastRootNode() instanceof Text prevTextNode) {
@@ -157,7 +157,7 @@ public class ComponentRenderContext implements RenderContextFactory {
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final Event.Modifier modifier) {
-        final Tag tag = tagsStack.peek();
+        final HtmlElement tag = tagsStack.peek();
         assert tag != null;
         addEvent(domPath, eventType, eventHandler, preventDefault, modifier);
     }
@@ -165,7 +165,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     public void addRef(final Ref ref) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
-        final Tag tag = tagsStack.peek();
+        final HtmlElement tag = tagsStack.peek();
         assert tag != null;
         component.addRef(ref, domPath);
     }

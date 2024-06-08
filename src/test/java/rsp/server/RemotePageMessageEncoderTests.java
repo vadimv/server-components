@@ -1,13 +1,10 @@
 package rsp.server;
 
-
-
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.dom.XmlNs;
 import rsp.server.protocol.RemotePageMessageEncoder;
 
 import java.util.List;

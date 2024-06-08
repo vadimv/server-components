@@ -1,7 +1,6 @@
 package rsp.html;
 
 import rsp.component.ComponentRenderContext;
-import rsp.dom.XmlNs;
 
 /**
  * A definition of a HTML element's attribute.

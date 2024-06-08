@@ -5,8 +5,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
 
-    public static void diff(final Tag ct,
-                            final Tag wt,
+    public static void diff(final HtmlElement ct,
+                            final HtmlElement wt,
                             final TreePositionPath path,
                             final DomChangesContext changesPerformer,
                             final HtmlBuilder hb) {
@@ -35,12 +35,12 @@ public final class Diff {
             if (cci.hasNext() && wci.hasNext()) {
                 final Node cn = cci.next();
                 final Node wn = wci.next();
-                if (cn instanceof Tag ct && wn instanceof Tag wt) {
+                if (cn instanceof HtmlElement ct && wn instanceof HtmlElement wt) {
                     diff(ct, wt, p, performer, hb);
-                } else if (wn instanceof Tag t) {
+                } else if (wn instanceof HtmlElement t) {
                     performer.removeNode(p.parent(), p);
                     createTag(t, parentTagPath, performer, hb);
-                } else if (cn instanceof Tag) {
+                } else if (cn instanceof HtmlElement) {
                     performer.removeNode(p.parent(), p);
                     hb.reset();
                     hb.buildHtml(wn);
@@ -61,7 +61,7 @@ public final class Diff {
                 performer.removeNode(p.parent(), p);
             } else {
                 final Node wn = wci.next();
-                if (wn instanceof Tag t) {
+                if (wn instanceof HtmlElement t) {
                     createTag(t, p, performer, hb);
                 } else {
                     hb.reset();
@@ -97,7 +97,7 @@ public final class Diff {
         w.forEach(attribute -> performer.setStyle(path, attribute.name, attribute.value));
     }
 
-    private static void createTag(final Tag tag,
+    private static void createTag(final HtmlElement tag,
                                   final TreePositionPath path,
                                   final DomChangesContext changesPerformer,
                                   final HtmlBuilder hb) {
@@ -110,7 +110,7 @@ public final class Diff {
         }
         TreePositionPath p = path.incLevel();
         for (final Node child:tag.children) {
-            if (child instanceof Tag t) {
+            if (child instanceof HtmlElement t) {
                 createTag(t, p, changesPerformer, hb);
             } else if (child instanceof Text) {
                 hb.reset();

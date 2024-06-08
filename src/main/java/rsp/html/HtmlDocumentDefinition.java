@@ -1,7 +1,6 @@
 package rsp.html;
 
 import rsp.component.ComponentRenderContext;
-import rsp.dom.XmlNs;
 import rsp.page.PageRenderContext;
 
 import java.util.HashMap;

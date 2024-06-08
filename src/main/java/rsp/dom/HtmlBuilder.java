@@ -27,7 +27,7 @@ public class HtmlBuilder {
     }
 
     public void buildHtml(final Node node) {
-        if (node instanceof Tag tagNode) {
+        if (node instanceof HtmlElement tagNode) {
             sb.append(docType);
             if (!isInline) {
                 sb.append("\n");
@@ -38,7 +38,7 @@ public class HtmlBuilder {
         }
      }
 
-    private void buildHtml(final Tag tag, int level) {
+    private void buildHtml(final HtmlElement tag, int level) {
         if (!isInline) {
             sb.append(padString(level));
         }
@@ -72,7 +72,7 @@ public class HtmlBuilder {
             sb.append('>');
             if (tag.children.size() > 0) {
                 for (final Node childNode: tag.children) {
-                    if (childNode instanceof Tag childTag) {
+                    if (childNode instanceof HtmlElement childTag) {
                         if (!isInline) {
                             sb.append("\n");
                         }

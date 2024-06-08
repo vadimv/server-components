@@ -1,9 +1,8 @@
 package rsp.util.html;
 
 import rsp.dom.Node;
-import rsp.dom.Tag;
+import rsp.dom.HtmlElement;
 import rsp.dom.Text;
-import rsp.dom.XmlNs;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -11,7 +10,7 @@ import java.util.Deque;
 import java.util.List;
 
 public class HtmlParser {
-    final Deque<Tag> tagsStack = new ArrayDeque<>();
+    final Deque<HtmlElement> tagsStack = new ArrayDeque<>();
     final List<Node> rootNodes = new ArrayList<>();
     int rootNodeIndex = 0;
 
@@ -22,9 +21,9 @@ public class HtmlParser {
             @Override
             public void head(final org.jsoup.nodes.Node node, final int depth) {
                 if (!(node instanceof org.jsoup.nodes.Document) && node instanceof org.jsoup.nodes.Element elementNode) {
-                    final Tag tag = new Tag(elementNode.nodeName());
+                    final HtmlElement tag = new HtmlElement(elementNode.nodeName());
                     node.attributes().forEach(attribute -> tag.addAttribute(attribute.getKey(), attribute.getValue(), true));
-                    final Tag parentTag = tagsStack.peek();
+                    final HtmlElement parentTag = tagsStack.peek();
                     if (parentTag == null) {
                         rootNodes.add(tag);
                         rootNodeIndex++;
@@ -35,7 +34,7 @@ public class HtmlParser {
                 } else if (node instanceof org.jsoup.nodes.TextNode textNode) {
                     if (!textNode.isBlank()) {
                         final Node text = new Text(textNode.text());
-                        final Tag parentTag = tagsStack.peek();
+                        final HtmlElement parentTag = tagsStack.peek();
                         if (parentTag == null) {
                             rootNodes.add(text);
                             rootNodeIndex++;

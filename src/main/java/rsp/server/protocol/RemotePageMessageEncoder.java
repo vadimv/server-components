@@ -1,7 +1,6 @@
 package rsp.server.protocol;
 
 import rsp.dom.Event;
-import rsp.dom.XmlNs;
 import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext.*;
 import rsp.server.RemoteOut;
