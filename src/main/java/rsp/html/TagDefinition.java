@@ -1,6 +1,5 @@
 package rsp.html;
 import rsp.component.ComponentRenderContext;
-import rsp.dom.XmlNs;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -24,7 +23,7 @@ public class TagDefinition implements SegmentDefinition {
 
     @Override
     public boolean render(final ComponentRenderContext renderContext) {
-        renderContext.openNode(name, false);
+        renderContext.openNode(name);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, true);
         return true;

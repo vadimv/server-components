@@ -21,7 +21,7 @@ public final class PlainTagDefinition extends TagDefinition {
 
     @Override
     public boolean render(final ComponentRenderContext renderContext) {
-        renderContext.openNode(name, false);
+        renderContext.openNode(name);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);
         return true;

@@ -50,16 +50,6 @@ public final class HtmlDsl {
     }
 
     /**
-     * A self closing XML element.
-     * @param name an element name
-     * @param attributes attributes definitions of this element
-     * @return a tag definition
-     */
-    public static SelfClosingTagDefinition selfClosingXmlTag(final String name, final AttributeDefinition... attributes) {
-        return new SelfClosingTagDefinition(name, attributes);
-    }
-
-    /**
      * An arbitrary HTML element.
      * @param name an element name
      * @param children descendants definitions of this element
@@ -67,16 +57,6 @@ public final class HtmlDsl {
      */
     public static TagDefinition tag(final String name, final SegmentDefinition... children) {
         return element(name, children);
-    }
-
-    /**
-     * A void element.
-     * @param name an element name
-     * @param attributes  attributes of this element
-     * @return a tag definition
-     */
-    public static SelfClosingTagDefinition selfClosingTag(final String name, final AttributeDefinition... attributes) {
-        return selfClosingXmlTag(name, attributes);
     }
 
     /**
@@ -566,8 +546,8 @@ public final class HtmlDsl {
      * A HTML {@literal <br />} element of a HTML document.
      * @return a tag definition
      */
-    public static SelfClosingTagDefinition br() {
-        return selfClosingTag("br");
+    public static TagDefinition br() {
+        return tag("br");
     }
 
     /**

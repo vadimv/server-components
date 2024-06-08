@@ -16,7 +16,7 @@ public final class Tag implements Node {
     public final CopyOnWriteArraySet<Style> styles = new CopyOnWriteArraySet<>();
     public final List<Node> children = new ArrayList<>();
 
-    public Tag(final String name, boolean isSelfClosing) {
+    public Tag(final String name) {
         this.name = name;
     }
 

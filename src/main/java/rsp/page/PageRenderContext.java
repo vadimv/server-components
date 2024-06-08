@@ -48,17 +48,17 @@ public final class PageRenderContext extends ComponentRenderContext {
     }
 
     @Override
-    public void openNode(final String name, boolean isSelfClosing) {
+    public void openNode(final String name) {
         if (!headWasOpened && name.equals("body")) {
             // No <head> have opened above
             // it means a programmer didn't include head() in the page
-            super.openNode("head", false);
+            super.openNode("head");
             upgradeHeadTag();
             super.closeNode("head", false);
         } else if (name.equals("head")) {
             headWasOpened = true;
         }
-        super.openNode(name, isSelfClosing);
+        super.openNode(name);
     }
 
     @Override
@@ -70,11 +70,11 @@ public final class PageRenderContext extends ComponentRenderContext {
     }
 
     private void upgradeHeadTag() {
-        super.openNode( "script", false);
+        super.openNode( "script");
         super.addTextNode(pageConfigScript);
         super.closeNode("script", false);
 
-        super.openNode("script", false);
+        super.openNode("script");
         super.setAttr("src", "/static/rsp-client.min.js", false);
         super.setAttr("defer", "defer", true);
         super.closeNode("script", true);

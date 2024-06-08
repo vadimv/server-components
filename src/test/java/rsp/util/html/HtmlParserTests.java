@@ -28,29 +28,29 @@ class HtmlParserTests {
     }
 
     Node expectedNode() {
-        var head = new Tag("head", false);
-        var title = new Tag("title", false);
+        var head = new Tag("head");
+        var title = new Tag("title");
         title.addChild(new Text("title-0"));
         head.addChild(title);
-        var script = new Tag("script", false);
+        var script = new Tag("script");
         script.addAttribute("type", "text/javascript", true);
         head.addChild(script);
 
-        var body = new Tag("body", false);
-        var div = new Tag("div", false);
+        var body = new Tag("body");
+        var div = new Tag("div");
         body.addChild(div);
-        var span = new Tag("span", false);
+        var span = new Tag("span");
         div.addChild(span);
         var text = new Text("text-0");
         span.addChild(text);
-        var br = new Tag("br", true);
+        var br = new Tag("br");
         div.addChild(br);
-        var a = new Tag("a", false);
+        var a = new Tag("a");
         a.addAttribute("href", "link-0", true);
         a.addChild(new Text("link-text-0"));
         div.addChild(a);
 
-        var root = new Tag("html", false);
+        var root = new Tag("html");
         root.addChild(head);
         root.addChild(body);
 

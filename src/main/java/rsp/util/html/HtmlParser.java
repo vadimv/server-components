@@ -22,7 +22,7 @@ public class HtmlParser {
             @Override
             public void head(final org.jsoup.nodes.Node node, final int depth) {
                 if (!(node instanceof org.jsoup.nodes.Document) && node instanceof org.jsoup.nodes.Element elementNode) {
-                    final Tag tag = new Tag(elementNode.nodeName(),false);
+                    final Tag tag = new Tag(elementNode.nodeName());
                     node.attributes().forEach(attribute -> tag.addAttribute(attribute.getKey(), attribute.getValue(), true));
                     final Tag parentTag = tagsStack.peek();
                     if (parentTag == null) {

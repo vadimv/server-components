@@ -75,12 +75,12 @@ public class ComponentRenderContext implements RenderContextFactory {
         componentsStack.pop();
     }
 
-    public void openNode(String name, boolean isSelfClosing) {
+    public void openNode(String name) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
 
         final Tag parent = tagsStack.peek();
-        final Tag tag = new Tag(name, isSelfClosing);
+        final Tag tag = new Tag(name);
         if (parent == null) {
             if (!component.isRootNodesEmpty()) {
                 final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
