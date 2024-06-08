@@ -48,17 +48,17 @@ public final class PageRenderContext extends ComponentRenderContext {
     }
 
     @Override
-    public void openNode(final XmlNs xmlNs, final String name, boolean isSelfClosing) {
-        if (!headWasOpened && xmlNs.equals(XmlNs.html) && name.equals("body")) {
+    public void openNode(final String name, boolean isSelfClosing) {
+        if (!headWasOpened && name.equals("body")) {
             // No <head> have opened above
             // it means a programmer didn't include head() in the page
-            super.openNode(XmlNs.html, "head", false);
+            super.openNode("head", false);
             upgradeHeadTag();
             super.closeNode("head", false);
-        } else if (xmlNs.equals(XmlNs.html) && name.equals("head")) {
+        } else if (name.equals("head")) {
             headWasOpened = true;
         }
-        super.openNode(xmlNs, name, isSelfClosing);
+        super.openNode(name, isSelfClosing);
     }
 
     @Override
@@ -70,13 +70,13 @@ public final class PageRenderContext extends ComponentRenderContext {
     }
 
     private void upgradeHeadTag() {
-        super.openNode(XmlNs.html, "script", false);
+        super.openNode( "script", false);
         super.addTextNode(pageConfigScript);
         super.closeNode("script", false);
 
-        super.openNode(XmlNs.html, "script", false);
-        super.setAttr(XmlNs.html, "src", "/static/rsp-client.min.js", false);
-        super.setAttr(XmlNs.html, "defer", "defer", true);
+        super.openNode("script", false);
+        super.setAttr("src", "/static/rsp-client.min.js", false);
+        super.setAttr("defer", "defer", true);
         super.closeNode("script", true);
     }
 

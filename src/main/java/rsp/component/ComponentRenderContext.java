@@ -21,7 +21,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
-    private String docType;
+    private String docType = "";
     private TreePositionPath domPath;
 
     private Component<?> rootComponent;
@@ -75,12 +75,12 @@ public class ComponentRenderContext implements RenderContextFactory {
         componentsStack.pop();
     }
 
-    public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
+    public void openNode(String name, boolean isSelfClosing) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
 
         final Tag parent = tagsStack.peek();
-        final Tag tag = new Tag(xmlns, name, isSelfClosing);
+        final Tag tag = new Tag(name, isSelfClosing);
         if (parent == null) {
             if (!component.isRootNodesEmpty()) {
                 final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
@@ -135,7 +135,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         }
     }
 
-    public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+    public void setAttr(final String name, final String value, final boolean isProperty) {
         tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
@@ -181,10 +181,7 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public String html() {
         final StringBuilder sb = new StringBuilder();
-        final HtmlBuilder hb = new HtmlBuilder(sb);
-        if (docType != null) {
-            sb.append(docType);
-        }
+        final HtmlBuilder hb = new HtmlBuilder(sb, docType, HtmlLayout.INLINE);
         if (rootComponent != null) {
             rootComponent.html(hb);
         }

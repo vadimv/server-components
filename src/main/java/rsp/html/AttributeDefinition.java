@@ -38,7 +38,7 @@ public final class AttributeDefinition implements SegmentDefinition {
 
     @Override
     public boolean render(final ComponentRenderContext renderContext) {
-        renderContext.setAttr(XmlNs.html, name, value, isProperty);
+        renderContext.setAttr(name, value, isProperty);
         return true;
     }
 }

@@ -19,7 +19,7 @@ public final class HtmlDocumentDefinition extends TagDefinition {
     private final Map<String, String> headers;
 
     public HtmlDocumentDefinition(final int statusCode, final Map<String, String> headers, final SegmentDefinition... children) {
-        super(XmlNs.html, "html", children);
+        super("html", children);
         this.statusCode = statusCode;
         this.headers = Objects.requireNonNull(headers);
     }
@@ -32,6 +32,7 @@ public final class HtmlDocumentDefinition extends TagDefinition {
         }
 
         renderContext.setDocType("<!DOCTYPE html>");
+
         super.render(renderContext);
         return true;
     }

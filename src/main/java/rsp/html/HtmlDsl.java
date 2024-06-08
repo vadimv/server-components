@@ -40,25 +40,23 @@ public final class HtmlDsl {
     }
 
     /**
-     * An XML tag.
-     * @param ns an XML namespace
+     * An XML element.
      * @param name an element name
      * @param children descendants definitions of this element
      * @return a tag definition
      */
-    public static TagDefinition xmlTag(final XmlNs ns, final String name, final SegmentDefinition... children) {
-        return new TagDefinition(ns, name, children);
+    public static TagDefinition element(final String name, final SegmentDefinition... children) {
+        return new TagDefinition(name, children);
     }
 
     /**
-     * A self closing XML tag.
-     * @param ns an XML namespace
+     * A self closing XML element.
      * @param name an element name
      * @param attributes attributes definitions of this element
      * @return a tag definition
      */
-    public static SelfClosingTagDefinition selfClosingXmlTag(final XmlNs ns, final String name, final AttributeDefinition... attributes) {
-        return new SelfClosingTagDefinition(ns, name, attributes);
+    public static SelfClosingTagDefinition selfClosingXmlTag(final String name, final AttributeDefinition... attributes) {
+        return new SelfClosingTagDefinition(name, attributes);
     }
 
     /**
@@ -68,7 +66,7 @@ public final class HtmlDsl {
      * @return a tag definition
      */
     public static TagDefinition tag(final String name, final SegmentDefinition... children) {
-        return xmlTag(XmlNs.html, name, children);
+        return element(name, children);
     }
 
     /**
@@ -78,7 +76,7 @@ public final class HtmlDsl {
      * @return a tag definition
      */
     public static SelfClosingTagDefinition selfClosingTag(final String name, final AttributeDefinition... attributes) {
-        return selfClosingXmlTag(XmlNs.html, name, attributes);
+        return selfClosingXmlTag(name, attributes);
     }
 
     /**
@@ -203,7 +201,7 @@ public final class HtmlDsl {
      * @return a tag definition
      */
     public static TagDefinition head(final HeadType headType, final SegmentDefinition... children) {
-        return headType == HeadType.SPA ? tag("head", children) : new PlainTagDefinition(XmlNs.html, "head", children);
+        return headType == HeadType.SPA ? tag("head", children) : new PlainTagDefinition("head", children);
     }
 
     /**

@@ -47,7 +47,7 @@ public final class PropertiesHandle {
     }
 
     public CompletableFuture<Void> set(final String propertyName, final String value) {
-        remoteOut.modifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true)));
+        remoteOut.modifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, propertyName, value, true)));
         return new CompletableFuture<>();
     }
 

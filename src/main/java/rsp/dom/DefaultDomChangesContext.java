@@ -7,8 +7,8 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     public final List<DomChange> commands = new ArrayList<>();
 
     @Override
-    public void removeAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
-        commands.add(new RemoveAttr(path, xmlNs, name, isProperty));
+    public void removeAttr(final TreePositionPath path, final String name, final boolean isProperty) {
+        commands.add(new RemoveAttr(path, name, isProperty));
     }
 
     @Override
@@ -23,8 +23,8 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     @Override
-    public void setAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
-        commands.add(new SetAttr(path, xmlNs, name, value, isProperty));
+    public void setAttr(final TreePositionPath path, final String name, final String value, final boolean isProperty) {
+        commands.add(new SetAttr(path, name, value, isProperty));
     }
 
     @Override
@@ -38,21 +38,19 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     @Override
-    public void createTag(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
-        commands.add(new Create(path, xmlNs, tag));
+    public void createTag(final TreePositionPath path, final String tag) {
+        commands.add(new Create(path, tag));
     }
 
     public interface DomChange {}
 
     public static final class RemoveAttr implements DomChange {
         public final TreePositionPath path;
-        public final XmlNs xmlNs;
         public final String name;
         public final boolean isProperty;
 
-        public RemoveAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final boolean isProperty) {
+        public RemoveAttr(final TreePositionPath path, final String name, final boolean isProperty) {
             this.path = path;
-            this.xmlNs = xmlNs;
             this.name = name;
             this.isProperty = isProperty;
         }
@@ -64,20 +62,18 @@ public final class DefaultDomChangesContext implements DomChangesContext {
             final RemoveAttr that = (RemoveAttr) o;
             return isProperty == that.isProperty &&
                     Objects.equals(path, that.path) &&
-                    Objects.equals(xmlNs, that.xmlNs) &&
                     Objects.equals(name, that.name);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(path, xmlNs, name, isProperty);
+            return Objects.hash(path, name, isProperty);
         }
 
         @Override
         public String toString() {
             return "RemoveAttr{" +
                     "componentPath=" + path +
-                    ", xmlNs=" + xmlNs +
                     ", name='" + name + '\'' +
                     ", isProperty=" + isProperty +
                     '}';
@@ -148,14 +144,12 @@ public final class DefaultDomChangesContext implements DomChangesContext {
 
     public static final class SetAttr implements DomChange {
         public final TreePositionPath path;
-        public final XmlNs xmlNs;
         public final String name;
         public final String value;
         public final boolean isProperty;
 
-        public SetAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+        public SetAttr(final TreePositionPath path, final String name, final String value, final boolean isProperty) {
             this.path = path;
-            this.xmlNs = xmlNs;
             this.name = name;
             this.value = value;
             this.isProperty = isProperty;
@@ -168,21 +162,19 @@ public final class DefaultDomChangesContext implements DomChangesContext {
             final SetAttr setAttr = (SetAttr) o;
             return isProperty == setAttr.isProperty &&
                     Objects.equals(path, setAttr.path) &&
-                    Objects.equals(xmlNs, setAttr.xmlNs) &&
                     Objects.equals(name, setAttr.name) &&
                     Objects.equals(value, setAttr.value);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(path, xmlNs, name, value, isProperty);
+            return Objects.hash(path, name, value, isProperty);
         }
 
         @Override
         public String toString() {
             return "SetAttr{" +
                     "componentPath=" + path +
-                    ", xmlNs=" + xmlNs +
                     ", name='" + name + '\'' +
                     ", value='" + value + '\'' +
                     ", isProperty=" + isProperty +
@@ -262,11 +254,9 @@ public final class DefaultDomChangesContext implements DomChangesContext {
 
     public static final class Create implements DomChange {
         public final TreePositionPath path;
-        public final XmlNs xmlNs;
         public final String tag;
-        public Create(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
+        public Create(final TreePositionPath path, final String tag) {
             this.path = path;
-            this.xmlNs = xmlNs;
             this.tag = tag;
         }
 
@@ -276,20 +266,18 @@ public final class DefaultDomChangesContext implements DomChangesContext {
             if (o == null || getClass() != o.getClass()) return false;
             final Create create = (Create) o;
             return Objects.equals(path, create.path) &&
-                    Objects.equals(xmlNs, create.xmlNs) &&
                     Objects.equals(tag, create.tag);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(path, xmlNs, tag);
+            return Objects.hash(path, tag);
         }
 
         @Override
         public String toString() {
             return "Create{" +
                     "componentPath=" + path +
-                    ", xmlNs=" + xmlNs +
                     ", tag='" + tag + '\'' +
                     '}';
         }

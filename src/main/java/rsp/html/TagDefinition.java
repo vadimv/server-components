@@ -9,7 +9,6 @@ import java.util.Objects;
  * A definition of an XML tag.
  */
 public class TagDefinition implements SegmentDefinition {
-    protected final XmlNs ns;
     protected final String name;
     protected final SegmentDefinition[] children;
 
@@ -18,15 +17,14 @@ public class TagDefinition implements SegmentDefinition {
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public TagDefinition(final XmlNs ns, final String name, final SegmentDefinition... children) {
-        this.ns = Objects.requireNonNull(ns);
+    public TagDefinition(final String name, final SegmentDefinition... children) {
         this.name = Objects.requireNonNull(name);
         this.children = children;
     }
 
     @Override
     public boolean render(final ComponentRenderContext renderContext) {
-        renderContext.openNode(ns, name, false);
+        renderContext.openNode(name, false);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, true);
         return true;

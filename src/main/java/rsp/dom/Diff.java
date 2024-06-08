@@ -80,9 +80,9 @@ public final class Diff {
         final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
         final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
-        c.forEach(attribute -> performer.removeAttr(path, XmlNs.html, attribute.name, attribute.isProperty));
+        c.forEach(attribute -> performer.removeAttr(path, attribute.name, attribute.isProperty));
         w.removeAll(ca);
-        w.forEach(attribute -> performer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty));
+        w.forEach(attribute -> performer.setAttr(path, attribute.name, attribute.value, attribute.isProperty));
     }
 
     private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
@@ -101,12 +101,12 @@ public final class Diff {
                                   final TreePositionPath path,
                                   final DomChangesContext changesPerformer,
                                   final HtmlBuilder hb) {
-        changesPerformer.createTag(path, tag.xmlns, tag.name);
+        changesPerformer.createTag(path, tag.name);
         for (final Style style: tag.styles) {
             changesPerformer.setStyle(path, style.name, style.value);
         }
         for (final Attribute attribute: tag.attributes) {
-            changesPerformer.setAttr(path, XmlNs.html, attribute.name, attribute.value, attribute.isProperty);
+            changesPerformer.setAttr(path, attribute.name, attribute.value, attribute.isProperty);
         }
         TreePositionPath p = path.incLevel();
         for (final Node child:tag.children) {

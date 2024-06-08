@@ -15,13 +15,13 @@ public final class PlainTagDefinition extends TagDefinition {
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public PlainTagDefinition(final XmlNs ns, final String name, final SegmentDefinition... children) {
-        super(ns, name, children);
+    public PlainTagDefinition(final String name, final SegmentDefinition... children) {
+        super(name, children);
     }
 
     @Override
     public boolean render(final ComponentRenderContext renderContext) {
-        renderContext.openNode(ns, name, false);
+        renderContext.openNode(name, false);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);
         return true;

@@ -133,7 +133,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     private String modifyDomMessageBody(final DomChange domChange) {
         if (domChange instanceof RemoveAttr) {
             final RemoveAttr c = (RemoveAttr)domChange;
-            return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), c.isProperty);
+            return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(), quote(escape(c.name)), c.isProperty);
         } else if (domChange instanceof RemoveStyle) {
             final RemoveStyle c = (RemoveStyle)domChange;
             return joinString(REMOVE_STYLE, quote(c.path), quote(escape(c.name)), false);
@@ -142,7 +142,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
             return joinString(REMOVE, quote(c.parentPath), quote(c.path));
         } else if (domChange instanceof SetAttr) {
             final SetAttr c = (SetAttr)domChange;
-            return joinString(SET_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), quote(c.value), c.isProperty);
+            return joinString(SET_ATTR, quote(c.path), xmlNsString(), quote(escape(c.name)), quote(c.value), c.isProperty);
         } else if (domChange instanceof SetStyle) {
             final SetStyle c = (SetStyle)domChange;
             return joinString(SET_STYLE, quote(c.path), quote(escape(c.name)), quote(escape(c.value)));
@@ -152,14 +152,15 @@ public final class RemotePageMessageEncoder implements RemoteOut {
         } else if (domChange instanceof Create) {
             final Create c = (Create)domChange;
             return joinString(CREATE, quote(c.path.parent()),
-                    quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.tag)));
+                    quote(c.path), xmlNsString(), quote(escape(c.tag)));
         } else {
             throw new IllegalStateException("Unsupported DomChange object type:" + domChange);
         }
     }
 
-    private String xmlNsString(final XmlNs xmlNs) {
-        return xmlNs.uri.equals(XmlNs.html.uri) ? "0" : quote(xmlNs.toString());
+    // TODO remove
+    private String xmlNsString() {
+        return "0";
     }
 
     @Override
