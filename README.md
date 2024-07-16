@@ -1,4 +1,4 @@
-# rsp
+# Server Components
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
@@ -17,7 +17,7 @@
 * [Logging](#logging)
 
 
-rsp is a Java web framework for real-time UIs.
+Server Components is a Java web framework for real-time UIs.
 
 ### Maven Central
 
