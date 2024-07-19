@@ -1,4 +1,4 @@
-# Server Components
+# Admin Server Components
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 [![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
@@ -17,13 +17,9 @@
 * [Logging](#logging)
 
 
-Server Components is a Java web framework for real-time UIs.
+Admin Server Components core is a Java web framework for building real-time admin UIs as server side applications with minimum dependencies.
 
 ### Maven Central
-
-This project requires Java version 17 or newer.
-
-Add the Maven Central dependency:
 
 ```xml
     <dependency>
@@ -32,6 +28,7 @@ Add the Maven Central dependency:
         <version>2.0.0</version>
     </dependency>
 ```
+This project requires Java version 17 or newer.
 
 ### Code examples
 
@@ -44,7 +41,7 @@ Add the Maven Central dependency:
 
 ### HTML markup Java DSL
 
-rsp provides a Java internal domain-specific language (DSL) for definition of HTML templates as a composition of functions.
+ASC core provides a Java internal domain-specific language (DSL) for definition of HTML templates as a composition of functions.
 
 For example, the HTML fragment:
 
@@ -184,7 +181,7 @@ The ``window().on(eventType, handler)`` DSL function registers an event handler 
 
 ### SPAs, plain pages and the head tag
 
-rsp supports two types of web pages:
+ASC core framework supports two types of web pages:
 - server-side single-page applications (SPAs), written in Java, e.g. for an admin UI
 - plain server-rendered detached HTML pages
 
@@ -219,7 +216,7 @@ For example:
 
 ### Routing
 
-A page's components tree HTML generation consists of two phases:
+A web page's components tree HTML generation consists of two phases:
 - a routing function maps an incoming HTTP request to the root component state
 - the root component and its descendants render this state to HTML markup
 
