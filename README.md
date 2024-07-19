@@ -92,7 +92,7 @@ An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
     state -> stateUpdate -> div(of(lookupService.apply(state.user.id).map(str -> text(str))))
 ```
 
-Another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments.
+another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments.
 
 ```java
     import static rsp.html.HtmlDsl.*;
