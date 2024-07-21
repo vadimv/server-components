@@ -17,7 +17,7 @@
 * [Logging](#logging)
 
 
-Admin Server Components core is a Java web framework for building real-time admin UIs as server side applications with minimum dependencies.
+Admin Server Components core is a Java web framework for building real-time admin UIs as server-side applications with minimum dependencies.
 
 ### Maven Central
 
@@ -41,7 +41,7 @@ This project requires Java version 17 or newer.
 
 ### HTML markup Java DSL
 
-ASC core provides a Java internal domain-specific language (DSL) for definition of HTML templates as a composition of functions.
+ASC core provides a Java internal domain-specific language (DSL) to define HTML templates as a composition of functions.
 
 For example, the HTML fragment:
 
@@ -129,7 +129,8 @@ To respond to browser events, register a DOM event handler by adding an ``on(eve
 
 Some types of browser events, like a mouse move, may fire a lot of events' invocations.
 Sending all these notifications over the network and processing them on the server side may cause the system's overload.
-To filter the events use the following event object's methods:
+
+To filter the events use the following event object methods:
 
 - ``throttle(int timeFrameMs)``
 - ``debounce(int waitMs, boolean immediate)``
@@ -237,9 +238,9 @@ To define a routing of an incoming request, create a ``Routing`` and provide it 
     }
 ```
 
-During a dispatch, the routes are verified one by one for a matching HTTP method and a path pattern.
-Route path patterns can include zero, one or two path-extracting variables, possibly combined with regexes and the wildcard symbol "*".
-The matched variables values become available as the correspondent handlers' parameters alongside with the request details object.
+During a dispatch, the routes are verified individually for a matching HTTP method and a path pattern.
+Route path patterns can include zero, one, or two path-extracting variables, possibly combined with regexes and the wildcard symbol "*"
+The matched variable values become available as the correspondent handlers' parameters alongside the request details object.
 The route's handler function should return a ``CompletableFuture`` of the page's state:
 
 ```java
