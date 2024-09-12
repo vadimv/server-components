@@ -17,7 +17,7 @@
 * [Logging](#logging)
 
 
-Admin Server Components core is a Java web framework for building real-time admin UIs as server-side applications with minimum dependencies.
+Admin Server Components core is a Java web Server Side Rendering (SSR) framework for building real-time admin UIs as server-side applications with minimum dependencies.
 
 ### Maven Central
 
@@ -41,7 +41,7 @@ This project requires Java version 17 or newer.
 
 ### HTML markup Java DSL
 
-ASC core provides a Java internal domain-specific language (DSL) to define HTML templates as a composition of functions.
+ASC core provides a Java internal domain-specific language to define HTML templates as a composition of functions.
 
 For example, the HTML fragment:
 
