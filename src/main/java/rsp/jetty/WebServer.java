@@ -21,8 +21,10 @@ import javax.websocket.HandshakeResponse;
 import javax.websocket.server.HandshakeRequest;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -38,6 +40,13 @@ public final class WebServer {
      */
     public static final int DEFAULT_WEB_SERVER_MAX_THREADS = 50;
 
+    /**
+     * The default rate of heartbeat messages from a browser to server.
+     */
+    public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 10_000;
+
+    public final Map<QualifiedSessionId, RenderedPage> pagesStorage = new ConcurrentHashMap<>();
+
     private final int port;
     private final Server server;
 
@@ -49,10 +58,10 @@ public final class WebServer {
      * @param staticResources a setup object for an optional static resources handler
      */
     public <S> WebServer(final int port,
-                     final App<S> app,
-                     final Optional<StaticResources> staticResources,
-                     final Optional<SslConfiguration> sslConfiguration,
-                     final int maxThreads) {
+                         final App<S> app,
+                         final Optional<StaticResources> staticResources,
+                         final Optional<SslConfiguration> sslConfiguration,
+                         final int maxThreads) {
         this.port = port;
         Objects.requireNonNull(app);
 
@@ -95,11 +104,11 @@ public final class WebServer {
 
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(app.pagesStorage,
+        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(pagesStorage,
                                                                                        app.rootComponentDefinition,
-                                                                                       app.heartbeatIntervalMs))),
+                                                                                       DEFAULT_HEARTBEAT_INTERVAL_MS))),
                           "/*");
-        final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(app.pagesStorage);
+        final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(pagesStorage);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)

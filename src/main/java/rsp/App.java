@@ -20,38 +20,16 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class App<S> {
 
     /**
-     * The default rate of heartbeat messages from a browser to server.
-     */
-    public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 10000;
-
-    /**
-     * The application's rate of heartbeat messages from a browser to server.
-     */
-    public final int heartbeatIntervalMs;
-
-    /**
      * The root of the components tree.
      */
     public final StatefulComponentDefinition<S> rootComponentDefinition;
 
-    public final Map<QualifiedSessionId, RenderedPage> pagesStorage = new ConcurrentHashMap<>();
-
-    /**
-     * Creates an instance of an application.
-     * @param rootComponentDefinition the root of the components tree
-     * @param heartbeatIntervalMs The application's rate of heartbeat messages from a browser to server
-     */
-    public App(final StatefulComponentDefinition<S> rootComponentDefinition,
-               final int heartbeatIntervalMs) {
-        this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
-        this.heartbeatIntervalMs = heartbeatIntervalMs;
-    }
     /**
      * Creates an instance of an application.
      * @param rootComponentDefinition the root of the components tree
      */
     public App(final StatefulComponentDefinition<S> rootComponentDefinition) {
-        this(rootComponentDefinition, DEFAULT_HEARTBEAT_INTERVAL_MS);
+        this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
     }
 
     /**
@@ -61,7 +39,7 @@ public final class App<S> {
      */
     public App(final Routing<HttpRequest, S> routing,
                final ComponentView<S> rootComponentView) {
-        this(new HttpRequestStateComponentDefinition<>(routing, rootComponentView), DEFAULT_HEARTBEAT_INTERVAL_MS);
+        this(new HttpRequestStateComponentDefinition<>(routing, rootComponentView));
     }
 
     /**
@@ -72,7 +50,7 @@ public final class App<S> {
      */
     public App(final CompletableFuture<S> initialState,
                final ComponentView<S> rootComponentView) {
-        this(new InitialStateComponentDefinition<>(initialState, rootComponentView), DEFAULT_HEARTBEAT_INTERVAL_MS);
+        this(new InitialStateComponentDefinition<>(initialState, rootComponentView));
     }
 
     /**
@@ -90,15 +68,13 @@ public final class App<S> {
     public App(final S initialState,
                final View<S> rootComponentView) {
         this(new InitialStateComponentDefinition<>(initialState,
-                                                   state -> newState -> rootComponentView.apply(state)),
-             DEFAULT_HEARTBEAT_INTERVAL_MS);
+                                                   state -> newState -> rootComponentView.apply(state)));
     }
 
     public App(final Routing<HttpRequest, S> routing,
                final View<S> rootComponentView) {
         this(new HttpRequestStateComponentDefinition<>(routing,
-                                                       state -> newState -> rootComponentView.apply(state)),
-                DEFAULT_HEARTBEAT_INTERVAL_MS);
+                                                       state -> newState -> rootComponentView.apply(state)));
     }
 
 }
