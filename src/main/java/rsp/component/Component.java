@@ -90,7 +90,7 @@ public class Component<S> implements StateUpdate<S> {
                 synchronized (sessionLock) {
                     state = s;
                     try {
-                        final SegmentDefinition view = componentView.apply(state).apply(this);
+                        final SegmentDefinition view = componentView.apply(this).apply(state);
                         view.render(renderContext);
                         initiallyRendered(key, state, this);
                         componentMounted.apply(key, state, this);
@@ -144,7 +144,7 @@ public class Component<S> implements StateUpdate<S> {
             children.clear();
 
             renderContext.openComponent(this);
-            final SegmentDefinition view = componentView.apply(state).apply(this);
+            final SegmentDefinition view = componentView.apply(this).apply(state);
             view.render(renderContext);
             renderContext.closeComponent();
 

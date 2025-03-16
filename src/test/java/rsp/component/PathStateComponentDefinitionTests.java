@@ -21,7 +21,7 @@ import static rsp.util.TestUtils.findFirstListElementByType;
 
 class PathStateComponentDefinitionTests {
 
-    static final ComponentView<String> view = state -> newState ->
+    static final ComponentView<String> view = newState -> state ->
             div(
                     span(text(state), on("click", ctx -> newState.setState("state-1")))
             );

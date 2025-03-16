@@ -1,6 +1,6 @@
 package rsp.examples;
 
-import rsp.App;
+import rsp.component.ComponentDsl;
 import rsp.jetty.WebServer;
 import rsp.component.View;
 
@@ -17,8 +17,7 @@ public final class HelloWorld {
                                                 )
                                            );
 
-        final var app = new App<>("Hello world!", view);
-        final var server = new WebServer(8080, app);
+        final var server = new WebServer(8080, ComponentDsl.componentForView("Hello world!", view));
         server.start();
         server.join();
     }

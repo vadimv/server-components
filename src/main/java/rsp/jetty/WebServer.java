@@ -9,7 +9,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
-import rsp.App;
+import rsp.component.StatefulComponentDefinition;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.javax.web.HttpRequestUtils;
@@ -53,17 +53,17 @@ public final class WebServer {
     /**
      * Creates a web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param app an RSP application
+     * @param rootComponentDefinition a root component's definition
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
     public <S> WebServer(final int port,
-                         final App<S> app,
+                         final StatefulComponentDefinition<S> rootComponentDefinition,
                          final Optional<StaticResources> staticResources,
                          final Optional<SslConfiguration> sslConfiguration,
                          final int maxThreads) {
         this.port = port;
-        Objects.requireNonNull(app);
+        Objects.requireNonNull(rootComponentDefinition);
 
         final QueuedThreadPool threadPool = new QueuedThreadPool();
         threadPool.setMaxThreads(maxThreads);
@@ -105,7 +105,7 @@ public final class WebServer {
         final ServletContextHandler context = new ServletContextHandler();
         context.setContextPath("/");
         context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(pagesStorage,
-                                                                                       app.rootComponentDefinition,
+                                                                                       rootComponentDefinition,
                                                                                        DEFAULT_HEARTBEAT_INTERVAL_MS))),
                           "/*");
         final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(pagesStorage);
@@ -142,36 +142,37 @@ public final class WebServer {
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param app an RSP application
+     * @param rootComponentDefinition a root component
      * @param staticResources a setup object for an optional static resources handler
      */
     public <S> WebServer(final int port,
-                     final App<S> app,
+                     final StatefulComponentDefinition<S> rootComponentDefinition,
                      final StaticResources staticResources) {
-        this(port, app, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
+        this(port, rootComponentDefinition, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param app an RSP application
+     * @param rootComponentDefinition a root component
      * @param staticResources a setup object for an optional static resources handler
      * @param sslConfiguration the server's TLS configuration
      */
     public <S> WebServer(final int port,
-                     final App<S> app,
+                     final StatefulComponentDefinition<S> rootComponentDefinition,
                      final StaticResources staticResources,
                      final SslConfiguration sslConfiguration) {
-        this(port, app, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
+        this(port, rootComponentDefinition, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**
      * Creates a Jetty web server instance for hosting an RSP application.
      * @param port a web server's listening port
-     * @param app an RSP application
+     * @param rootComponentDefinition a root component
      */
-    public <S> WebServer(final int port, final App<S> app) {
-        this(port, app, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
+    public <S> WebServer(final int port,
+                         final StatefulComponentDefinition<S> rootComponentDefinition) {
+        this(port, rootComponentDefinition, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 
     /**

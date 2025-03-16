@@ -21,7 +21,7 @@ class LivePageTests {
 
     static final QualifiedSessionId QID = new QualifiedSessionId("1", "1");
 
-    static final ComponentView<State> view = state -> newState -> html(
+    static final ComponentView<State> view = newState -> state -> html(
             body(
                     span(text(state.toString()), on("custom-event-0", eventContext -> {
                         eventContext.evalJs("1000+1").thenAccept(value -> newState.setState(new State(value.asJsonNumber().asLong())));

@@ -1,5 +1,6 @@
 package rsp.component;
 
+import rsp.routing.Routing;
 import rsp.server.Path;
 import rsp.server.http.HttpRequest;
 
@@ -25,6 +26,11 @@ public class ComponentDsl {
         return new InitialStateComponentDefinition<>("initial-state", initialState, componentView);
     }
 
+    public static <S> StatefulComponentDefinition<S> componentForView(final S initialState,
+                                                                      final View<S> rootComponentView) {
+        return new InitialStateComponentDefinition<>(initialState,
+                                                    newState -> state -> rootComponentView.apply(state));
+    }
 
     public static <S> StatefulComponentDefinition<S> pathComponent(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
                                                                    final BiFunction<S, Path, Path> stateToPath,
@@ -35,5 +41,11 @@ public class ComponentDsl {
     public static <S> StatefulComponentDefinition<S> webComponent(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
                                                                   final ComponentView<S> componentView) {
         return new HttpRequestStateComponentDefinition<>(initialStateRouting,  componentView);
+    }
+
+    public static <S> StatefulComponentDefinition<S> webComponent(final Routing<HttpRequest, S> routing,
+                                                                  final View<S> rootComponentView) {
+        return new HttpRequestStateComponentDefinition<>(routing,
+                                                         rootComponentView);
     }
 }

@@ -1,6 +1,7 @@
 package rsp.examples;
 
-import rsp.App;
+import rsp.component.HttpRequestStateComponentDefinition;
+import rsp.component.StatefulComponentDefinition;
 import rsp.component.View;
 import rsp.html.TagDefinition;
 import rsp.jetty.WebServer;
@@ -24,9 +25,11 @@ import static rsp.routing.RoutingDsl.*;
  */
 public class PlainForm {
     public static void main(final String[] args) {
-        final App<Name> app = new App<>(new Routing<>(route(), new EmptyName()),
-                                                      pages());
-        final var server = new WebServer(8080, app);
+        final Routing<HttpRequest, Name> routing = new Routing<>(route(), new EmptyName());
+        final View<Name> pagesView = pagesView();
+        final StatefulComponentDefinition<Name> rootComponent = new HttpRequestStateComponentDefinition<>(routing,
+                                                                                                          pagesView);
+        final var server = new WebServer(8080, rootComponent);
         server.start();
         server.join();
     }
@@ -54,7 +57,7 @@ public class PlainForm {
                                                                         req.queryParam("lastname").orElseThrow()))));
     }
 
-    private static View<Name> pages() {
+    private static View<Name> pagesView() {
         return state -> html(
                         head(HeadType.PLAIN, title("Plain Form Pages")),
                         body(

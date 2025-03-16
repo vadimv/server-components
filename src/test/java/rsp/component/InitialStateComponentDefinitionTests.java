@@ -20,12 +20,12 @@ import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
 class InitialStateComponentDefinitionTests {
 
-    static final ComponentView<String> view = state -> newState ->
+    static final ComponentView<String> view = newState -> state ->
             div(
                     span(state),
                     new InitialStateComponentDefinition<>("test",
                                                          100,
-                                                         s -> ns -> div(a(on("click", c -> ns.setState(101)),
+                                                         ns -> s -> div(a(on("click", c -> ns.setState(101)),
                                                                           text("test-link-" + s))))
             );
 

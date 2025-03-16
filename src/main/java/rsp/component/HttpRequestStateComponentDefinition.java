@@ -1,5 +1,6 @@
 package rsp.component;
 
+import rsp.routing.Routing;
 import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
@@ -17,6 +18,18 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
     }
+
+    public HttpRequestStateComponentDefinition(final Routing<HttpRequest, S> routing,
+                                               final View<S> view) {
+        this(routing,
+                componentView(view));
+
+    }
+
+    private static <S> ComponentView<S> componentView(final View<S> rootComponentView) {
+        return newState -> state -> rootComponentView.apply(state);
+    }
+
 
     @Override
     protected ComponentStateSupplier<S> stateSupplier() {

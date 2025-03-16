@@ -9,4 +9,4 @@ import java.util.function.Function;
  * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface
-public interface ComponentView<S> extends Function<S, Function<StateUpdate<S>, SegmentDefinition>> {}
+public interface ComponentView<S> extends Function<StateUpdate<S>, View<S>> {}

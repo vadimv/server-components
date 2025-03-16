@@ -1,16 +1,12 @@
 package rsp.browserautomation;
 
-import rsp.App;
-import rsp.component.ComponentCompositeKey;
-import rsp.component.StoredStateComponentDefinition;
+import rsp.component.*;
 import rsp.html.SegmentDefinition;
 import rsp.jetty.WebServer;
 import rsp.routing.Routing;
 import rsp.server.Path;
 import rsp.server.StaticResources;
-import rsp.component.ComponentView;
 import rsp.server.http.HttpRequest;
-import rsp.component.View;
 
 import java.io.File;
 import java.util.HashMap;
@@ -49,7 +45,7 @@ public class SimpleServer {
     }
 
     private static ComponentView<Integer> counterView(final String name) {
-        return state -> newState ->of(
+        return newState -> state ->of(
                 span(name),
                 div(div(button(attr("type", "button"),
                                 attr("id", name + "_b0"),
@@ -66,7 +62,7 @@ public class SimpleServer {
     }
 
     private  static ComponentView<Boolean> storedCounterView() {
-        return state -> newState ->
+        return newState -> state ->
                 div(
                         when(state, storedCounter("c3")),
                         input(attr("type", "checkbox"),
@@ -114,12 +110,12 @@ public class SimpleServer {
     }
 
     public static SimpleServer run(final boolean blockCurrentThread) {
-        final App<AppState> app = new App<>(appRouting(),
-                                            appComponentView);
+
         final SimpleServer s = new SimpleServer(new WebServer(8085,
-                                                              app,
-                                                              new StaticResources(new File("src/test/java/rsp/browserautomation"),
-                                                                                 "/res/*")));
+                                               ComponentDsl.webComponent(appRouting(),
+                                                                         appComponentView),
+                                               new StaticResources(new File("src/test/java/rsp/browserautomation"),
+                                                                   "/res/*")));
         s.jetty.start();
         if (blockCurrentThread) {
             s.jetty.join();

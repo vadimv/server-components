@@ -24,7 +24,7 @@ import static rsp.util.TestUtils.findFirstListElementByType;
 
 class StoredStateComponentDefinitionTests {
     static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
-    static final ComponentView<Boolean> view = state -> newState ->
+    static final ComponentView<Boolean> view = newState -> state ->
             div(
                     span(text("toggle"), on("click", ctx -> newState.setState(!state))),
                     when(state, () ->
