@@ -92,7 +92,7 @@ public class Component<S> implements StateUpdate<S> {
                     try {
                         final SegmentDefinition view = componentView.apply(this).apply(state);
                         view.render(renderContext);
-                        initiallyRendered(key, state, this);
+                        onInitiallyRendered(key, state, this);
                         componentMounted.apply(key, state, this);
                     } catch (Throwable renderEx) {
                         logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
@@ -148,7 +148,7 @@ public class Component<S> implements StateUpdate<S> {
             view.render(renderContext);
             renderContext.closeComponent();
 
-            updateRendered(key, oldState, state, this);
+            onUpdateRendered(key, oldState, state, this);
 
             final RemoteOut remoteOut = remotePageMessages;
             assert remoteOut != null;
@@ -193,11 +193,11 @@ public class Component<S> implements StateUpdate<S> {
         }
     }
 
-    protected void initiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
+    protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
 
-    protected void updateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {}
+    protected void onUpdateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {}
 
-    protected void unmounted(ComponentCompositeKey key, S oldState) {}
+    protected void onUnmounted(ComponentCompositeKey key, S oldState) {}
 
     public List<Component<?>> directChildren() {
         return children;
@@ -205,7 +205,7 @@ public class Component<S> implements StateUpdate<S> {
 
     public void unmount() {
         recursiveChildren().forEach(c -> c.unmount());
-        unmounted(key, state);
+        onUnmounted(key, state);
         componentUnmounted.apply(key, state);
     }
 

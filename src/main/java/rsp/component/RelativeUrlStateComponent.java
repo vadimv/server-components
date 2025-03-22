@@ -48,10 +48,10 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
     }
 
     @Override
-    protected void initiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
+    protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
 
     @Override
-    protected void updateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {
+    protected void onUpdateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {
         addEvent(PageRendering.WINDOW_DOM_PATH,
                  HISTORY_ENTRY_CHANGE_EVENT_NAME,
                  eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
