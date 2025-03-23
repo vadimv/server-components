@@ -22,9 +22,9 @@ public class Component<S> implements StateUpdate<S> {
 
     private final ComponentCompositeKey key;
     private final Supplier<CompletableFuture<? extends S>> stateResolver;
-    private final ComponentMountedCallback<S> componentMounted;
-    private final ComponentUpdatedCallback<S> componentUpdated;
-    private final ComponentUnmountedCallback<S> componentUnmounted;
+    private final ComponentMountedCallback<S> componentMountedCallback;
+    private final ComponentUpdatedCallback<S> componentUpdatedCallback;
+    private final ComponentUnmountedCallback<S> componentUnmountedCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
     protected final RemoteOut remotePageMessages;
@@ -46,10 +46,10 @@ public class Component<S> implements StateUpdate<S> {
                      final Object sessionLock) {
         this.key = Objects.requireNonNull(key);
         this.stateResolver = Objects.requireNonNull(stateResolver);
-        this.componentMounted = Objects.requireNonNull(componentCallbacks.componentMountedCallback());
+        this.componentMountedCallback = Objects.requireNonNull(componentCallbacks.componentMountedCallback());
         this.componentView = Objects.requireNonNull(componentView);
-        this.componentUpdated = Objects.requireNonNull(componentCallbacks.componentUpdatedCallback());
-        this.componentUnmounted = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
+        this.componentUpdatedCallback = Objects.requireNonNull(componentCallbacks.componentUpdatedCallback());
+        this.componentUnmountedCallback = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
         this.sessionLock = Objects.requireNonNull(sessionLock);
@@ -93,7 +93,7 @@ public class Component<S> implements StateUpdate<S> {
                         final SegmentDefinition view = componentView.apply(this).apply(state);
                         view.render(renderContext);
                         onInitiallyRendered(key, state, this);
-                        componentMounted.apply(key, state, this);
+                        componentMountedCallback.onComponentMounted(key, state, this);
                     } catch (Throwable renderEx) {
                         logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
                     }
@@ -189,7 +189,7 @@ public class Component<S> implements StateUpdate<S> {
                     child.unmount();
                 }
             }
-            componentUpdated.apply(key, oldState, state, this);
+            componentUpdatedCallback.onComponentUpdated(key, oldState, state, this);
         }
     }
 
@@ -206,7 +206,7 @@ public class Component<S> implements StateUpdate<S> {
     public void unmount() {
         recursiveChildren().forEach(c -> c.unmount());
         onUnmounted(key, state);
-        componentUnmounted.apply(key, state);
+        componentUnmountedCallback.onComponentUnmounted(key, state);
     }
 
     public List<Component<?>> recursiveChildren() {

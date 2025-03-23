@@ -1,7 +1,5 @@
 package rsp.component;
 
-import rsp.html.SegmentDefinition;
-
 import java.util.function.Function;
 
 /**

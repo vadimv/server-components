@@ -10,6 +10,6 @@ public interface ComponentMountedCallback<S> {
      * @param state current state
      * @param stateUpdate update state target, must not be called directly, to be called asynchronous only
      */
-    void apply(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate);
+    void onComponentMounted(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate);
 
 }
