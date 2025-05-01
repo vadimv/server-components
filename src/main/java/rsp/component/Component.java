@@ -54,7 +54,7 @@ public class Component<S> implements StateUpdate<S> {
         this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
         this.sessionLock = Objects.requireNonNull(sessionLock);
 
-        logger.log(TRACE, "New component is created with key " + this);
+        logger.log(TRACE, () -> "New component is created with key " + this);
     }
 
     public TreePositionPath path() {

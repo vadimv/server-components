@@ -29,7 +29,7 @@ class StoredStateComponentDefinitionTests {
                     span(text("toggle"), on("click", ctx -> newState.setState(!state))),
                     when(state, () ->
                          new StoredStateComponentDefinition<>(100,
-                                                              s -> ns -> div(text("test-store-" + s)),
+                                                              __ -> s -> div(text("test-store-" + s)),
                                                               stateStore))
             );
 
