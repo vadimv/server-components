@@ -1,10 +1,8 @@
 package rsp.browserautomation;
 
 import com.microsoft.playwright.*;
-import net.bytebuddy.implementation.bind.annotation.IgnoreForBinding;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 

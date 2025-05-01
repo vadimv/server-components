@@ -1,6 +1,6 @@
 package rsp.dom;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 
@@ -8,21 +8,22 @@ class EventTests {
 
     @Test
     void should_comply_to_equals_hash_contract() {
-        EqualsVerifier.forClass(Event.class).withIgnoredFields("eventHandler").verify();
-    }
+        final Event e1 = new Event(new Event.Target("click",  TreePositionPath.of("1")),
+                                   ctx -> {},
+                                   false,
+                                   Event.NO_MODIFIER);
+        final Event e2 = new Event(new Event.Target("click",  TreePositionPath.of("1")),
+                                   ctx -> {},
+                                   false,
+                                   Event.NO_MODIFIER);
+        Assertions.assertEquals(e1, e2);
+        Assertions.assertEquals(e1.hashCode(), e2.hashCode());
 
-    @Test
-    void should_comply_to_equals_hash_contract_for_event_target() {
-        EqualsVerifier.forClass(Event.Target.class).verify();
-    }
+        final Event e3 = new Event(new Event.Target("click",  TreePositionPath.of("1_1")),
+                                  ctx -> {},
+                                  false,
+                                   Event.NO_MODIFIER);
+        Assertions.assertNotEquals(e1, e3);
 
-    @Test
-    void should_comply_to_equals_hash_contract_for_throttle_modifier() {
-        EqualsVerifier.forClass(Event.ThrottleModifier.class).verify();
-    }
-
-    @Test
-    void should_comply_to_equals_hash_contract_for_debounce_modifier() {
-        EqualsVerifier.forClass(Event.DebounceModifier.class).verify();
     }
 }

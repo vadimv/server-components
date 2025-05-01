@@ -25,9 +25,9 @@ public class HtmlBuilder {
         if (tag.styles.size() > 0) {
             sb.append(" style=\"");
             for (final Style style: tag.styles) {
-                sb.append(style.name);
+                sb.append(style.name());
                 sb.append(":");
-                sb.append(style.value);
+                sb.append(style.value());
                 sb.append(";");
             }
             sb.append('"');
@@ -35,10 +35,10 @@ public class HtmlBuilder {
         if (tag.attributes.size() > 0) {
             for (final Attribute attribute: tag.attributes) {
                 sb.append(' ');
-                sb.append(attribute.name);
+                sb.append(attribute.name());
                 sb.append('=');
                 sb.append('"');
-                sb.append(attribute.value);
+                sb.append(attribute.value());
                 sb.append('"');
             }
         }

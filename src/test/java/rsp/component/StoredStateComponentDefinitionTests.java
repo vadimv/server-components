@@ -66,7 +66,7 @@ class StoredStateComponentDefinitionTests {
         // Remove sub component
         // Click
         final Event clickEvent = renderContext.recursiveEvents().get(0);
-        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath,
+        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath(),
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,
                                                                 JsonDataType.Object.EMPTY,

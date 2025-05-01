@@ -97,7 +97,7 @@ public final class LivePageSession implements RemoteIn {
             TreePositionPath eventElementPath = eventPath;
             while (eventElementPath.level() >= 0) {
                 for (final Event event: pageRenderContext.recursiveEvents()) {
-                    if (event.eventTarget.elementPath.equals(eventElementPath) && event.eventTarget.eventType.equals(eventType)) {
+                    if (event.eventTarget.elementPath().equals(eventElementPath) && event.eventTarget.eventType().equals(eventType)) {
                         event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                     }
                 }

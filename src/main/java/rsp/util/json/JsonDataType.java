@@ -7,142 +7,79 @@ import java.util.*;
  */
 public sealed interface JsonDataType {
 
-    /**
-     * A boolean JSON data type.
-     */
-    final class Boolean implements JsonDataType {
-        private final boolean value;
-
-        public Boolean(final boolean value) {
-            this.value = value;
-        }
-
-        public boolean value() {
-            return value;
-        }
+        /**
+         * A boolean JSON data type.
+         */
+        record Boolean(boolean value) implements JsonDataType {
 
         @Override
         public java.lang.String toString() {
-            return java.lang.Boolean.toString(value);
-        }
-
-        @Override
-        public boolean equals(final java.lang.Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final JsonDataType.Boolean aBoolean = (JsonDataType.Boolean) o;
-            return value == aBoolean.value;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(value);
-        }
+                return java.lang.Boolean.toString(value);
+            }
     }
 
     /**
      * A numeric JSON data type.
      * Internally the number represented as a Long or Double value.
      */
-    final class Number implements JsonDataType {
-        private final java.lang.Number value;
+    record Number(double value) implements JsonDataType {
 
-        public Number(final long value) {
-            this.value = value;
+        public static Number of(final long value) {
+            return new Number(value);
         }
 
-        public Number(final int value) {
-            this.value = (long) value;
+        public static Number of(final int value) {
+            return new Number(value);
         }
 
-        public Number(final byte value) {
-            this.value = (long) value;
+        public static Number of(final byte value) {
+            return new Number(value);
         }
 
-        public Number(final short value) {
-            this.value = (long) value;
+        public static Number of(final short value) {
+            return new Number((long) value);
         }
 
-        public Number(final float value) {
-            this.value = (double) value;
+        public static Number of(final float value) {
+            return new Number(value);
         }
 
-        public Number(final double value) {
-            this.value = value;
+        public static Number of(final double value) {
+            return new Number(value);
         }
 
         public boolean isFractional() {
-            return value instanceof Double;
+            return value != Math.floor(value);
+        }
+
+        public boolean isInfinite() {
+            return Double.isInfinite(value);
         }
 
         public long asLong() {
             return (long) value;
         }
 
-        public double asDouble() {
-            return (double) value;
-        }
-
-        public java.lang.Number value() {
+        public double value() {
             return value;
         }
 
         @Override
         public java.lang.String toString() {
-            return value.toString();
-        }
-
-        @Override
-        public boolean equals(final java.lang.Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final JsonDataType.Number number = (JsonDataType.Number) o;
-            return Objects.equals(value, number.value);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(value);
+            return isFractional() ? Double.toString(value) : Long.toString(asLong());
         }
     }
 
-    /**
-     * A string JSON data type.
-     */
-    final class String implements JsonDataType {
-        public static final JsonDataType.String EMPTY = new JsonDataType.String("");
-
-        private final java.lang.String value;
-
         /**
-         * Creates a new instance of a string JSON.
-         * @param value unescaped
+         * A string JSON data type.
          */
-        public String(final java.lang.String value) {
-            this.value = value;
-        }
+        record String(java.lang.String value) implements JsonDataType {
+            public static final JsonDataType.String EMPTY = new JsonDataType.String("");
 
-        public java.lang.String value() {
-            return value;
-        }
-
-        @Override
-        public java.lang.String toString() {
-            return "\"" + value + "\"";
-        }
-
-        @Override
-        public boolean equals(final java.lang.Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final JsonDataType.String string = (JsonDataType.String) o;
-            return Objects.equals(value, string.value);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(value);
-        }
+            @Override
+            public java.lang.String toString() {
+                return "\"" + value + "\"";
+            }
     }
 
     /**

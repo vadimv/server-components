@@ -163,14 +163,14 @@ public class Component<S> implements StateUpdate<S> {
             final List<Event> eventsToRemove = new ArrayList<>();
             final Set<Event> newEvents = new HashSet<>(recursiveEvents());
             for (Event event : oldEvents) {
-                if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath)) {
+                if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath())) {
                     eventsToRemove.add(event);
                 }
             }
             for (Event event : eventsToRemove) {
                 final Event.Target eventTarget = event.eventTarget;
-                remoteOut.forgetEvent(eventTarget.eventType,
-                                      eventTarget.elementPath);
+                remoteOut.forgetEvent(eventTarget.eventType(),
+                        eventTarget.elementPath());
             }
 
             // Register new event types on client

@@ -1,9 +1,9 @@
 package rsp.util.json;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
-import nl.jqno.equalsverifier.Warning;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 
 public class JsonDataTypeTests {
@@ -31,7 +31,7 @@ public class JsonDataTypeTests {
     @Test
     public void produces_valid_int_json() {
         final JsonDataType json = new JsonDataType.Number(1001);
-        Assertions.assertEquals(1001L, json.asJsonNumber().value());
+        Assertions.assertEquals(1001, json.asJsonNumber().asLong());
         Assertions.assertEquals("1001", json.toString());
     }
 
@@ -84,28 +84,23 @@ public class JsonDataTypeTests {
     }
 
     @Test
-    public void should_comply_to_equals_hash_contract_string() {
-        EqualsVerifier.forClass(JsonDataType.String.class).verify();
-    }
-
-    @Test
-    public void should_comply_to_equals_hash_contract_number() {
-        EqualsVerifier.forClass(JsonDataType.Number.class).verify();
-    }
-
-    @Test
-    public void should_comply_to_equals_hash_contract_boolean() {
-        EqualsVerifier.forClass(JsonDataType.Boolean.class).verify();
-    }
-
-    @Test
     public void should_comply_to_equals_hash_contract_object() {
-        EqualsVerifier.forClass(JsonDataType.Object.class).suppress(Warning.NULL_FIELDS).verify();
+        final JsonDataType.Object o1 = new JsonDataType.Object();
+        final JsonDataType.Object o2 = new JsonDataType.Object();
+        Assertions.assertEquals(o1, o2);
+        Assertions.assertEquals(o1.hashCode(), o2.hashCode());
+        final JsonDataType.Object o3= new JsonDataType.Object(Map.of("num0",JsonDataType.Number.of(1.1)));
+        Assertions.assertNotEquals(o1, o3);
     }
 
     @Test
     public void should_comply_to_equals_hash_contract_array() {
-        EqualsVerifier.forClass(JsonDataType.Array.class).verify();
+        final JsonDataType.Array a1 = new JsonDataType.Array(JsonDataType.Number.of(1), new JsonDataType.String("str0"), new JsonDataType.Array());
+        final JsonDataType.Array a2 = new JsonDataType.Array(JsonDataType.Number.of(1), new JsonDataType.String("str0"), new JsonDataType.Array());
+        Assertions.assertEquals(a1, a2);
+        Assertions.assertEquals(a1.hashCode(), a2.hashCode());
+        final JsonDataType.Array a3 = new JsonDataType.Array(JsonDataType.Number.of(1), new JsonDataType.String("str1"), new JsonDataType.Array());
+        Assertions.assertNotEquals(a1, a3);
     }
 
 

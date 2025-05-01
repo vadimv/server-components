@@ -1,16 +1,11 @@
 package rsp.server;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 
 class PathTests {
-    @Test
-    void should_comply_to_equals_hash_contract() {
-        EqualsVerifier.forClass(Path.class).verify();
-    }
 
     @Test
     void should_correctly_create_new_empty_relative_path_from_empty_string() {

@@ -19,7 +19,6 @@
 
         <junit.version>5.10.0</junit.version>
         <jcip-annotations.version>1.0-1</jcip-annotations.version>
-        <equalsverifier.version>3.15</equalsverifier.version>
         <playwright.version>1.35.0</playwright.version>
         <jsoup.version>1.17.2</jsoup.version>
 
@@ -240,12 +239,6 @@
             <groupId>com.github.stephenc.jcip</groupId>
             <artifactId>jcip-annotations</artifactId>
             <version>${jcip-annotations.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>nl.jqno.equalsverifier</groupId>
-            <artifactId>equalsverifier</artifactId>
-            <version>${equalsverifier.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

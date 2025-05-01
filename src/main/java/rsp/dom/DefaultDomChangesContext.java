@@ -84,27 +84,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         }
     }
 
-    public static final class RemoveStyle implements DomChange {
-        public final TreePositionPath path;
-        public final String name;
-        public RemoveStyle(final TreePositionPath path, final String name) {
-            this.path = path;
-            this.name = name;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final RemoveStyle that = (RemoveStyle) o;
-            return Objects.equals(path, that.path) &&
-                    Objects.equals(name, that.name);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path, name);
-        }
+    public record RemoveStyle(TreePositionPath path, String name) implements DomChange {
 
         @Override
         public String toString() {
@@ -113,29 +93,9 @@ public final class DefaultDomChangesContext implements DomChangesContext {
                     ", name='" + name + '\'' +
                     '}';
         }
-    }
-
-    public static final class Remove implements DomChange {
-        public final TreePositionPath parentPath;
-        public final TreePositionPath path;
-        public Remove(final TreePositionPath parentPath, final TreePositionPath path) {
-            this.parentPath = parentPath;
-            this.path = path;
         }
 
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final Remove remove = (Remove) o;
-            return Objects.equals(parentPath, remove.parentPath) &&
-                    Objects.equals(path, remove.path);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(parentPath, path);
-        }
+    public record Remove(TreePositionPath parentPath, TreePositionPath path) implements DomChange {
 
         @Override
         public String toString() {
@@ -144,39 +104,9 @@ public final class DefaultDomChangesContext implements DomChangesContext {
                     ", componentPath=" + path +
                     '}';
         }
-    }
-
-    public static final class SetAttr implements DomChange {
-        public final TreePositionPath path;
-        public final XmlNs xmlNs;
-        public final String name;
-        public final String value;
-        public final boolean isProperty;
-
-        public SetAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
-            this.path = path;
-            this.xmlNs = xmlNs;
-            this.name = name;
-            this.value = value;
-            this.isProperty = isProperty;
         }
 
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final SetAttr setAttr = (SetAttr) o;
-            return isProperty == setAttr.isProperty &&
-                    Objects.equals(path, setAttr.path) &&
-                    Objects.equals(xmlNs, setAttr.xmlNs) &&
-                    Objects.equals(name, setAttr.name) &&
-                    Objects.equals(value, setAttr.value);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path, xmlNs, name, value, isProperty);
-        }
+    public record SetAttr(TreePositionPath path, XmlNs xmlNs, String name, String value, boolean isProperty) implements DomChange {
 
         @Override
         public String toString() {
@@ -187,33 +117,10 @@ public final class DefaultDomChangesContext implements DomChangesContext {
                     ", value='" + value + '\'' +
                     ", isProperty=" + isProperty +
                     '}';
-        }
-    }
-
-    public static final class SetStyle implements DomChange {
-        public final TreePositionPath path;
-        public final String name;
-        public final String value;
-        public SetStyle(final TreePositionPath path, final String name, final String value) {
-            this.path = path;
-            this.name = name;
-            this.value = value;
+            }
         }
 
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final SetStyle setStyle = (SetStyle) o;
-            return Objects.equals(path, setStyle.path) &&
-                    Objects.equals(name, setStyle.name) &&
-                    Objects.equals(value, setStyle.value);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path, name, value);
-        }
+    public record SetStyle(TreePositionPath path, String name, String value) implements DomChange {
 
         @Override
         public String toString() {
@@ -223,32 +130,9 @@ public final class DefaultDomChangesContext implements DomChangesContext {
                     ", value='" + value + '\'' +
                     '}';
         }
-    }
-
-    public static final class CreateText implements DomChange {
-        public final TreePositionPath parentPath;
-        public final TreePositionPath path;
-        public final String text;
-        public CreateText(final TreePositionPath parentPath, final TreePositionPath path, final String text) {
-            this.parentPath = parentPath;
-            this.path = path;
-            this.text = text;
         }
 
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final CreateText that = (CreateText) o;
-            return Objects.equals(parentPath, that.parentPath) &&
-                    Objects.equals(path, that.path) &&
-                    Objects.equals(text, that.text);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(parentPath, path, text);
-        }
+    public record CreateText(TreePositionPath parentPath, TreePositionPath path, String text) implements DomChange {
 
         @Override
         public String toString() {
@@ -260,30 +144,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         }
     }
 
-    public static final class Create implements DomChange {
-        public final TreePositionPath path;
-        public final XmlNs xmlNs;
-        public final String tag;
-        public Create(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
-            this.path = path;
-            this.xmlNs = xmlNs;
-            this.tag = tag;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final Create create = (Create) o;
-            return Objects.equals(path, create.path) &&
-                    Objects.equals(xmlNs, create.xmlNs) &&
-                    Objects.equals(tag, create.tag);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path, xmlNs, tag);
-        }
+    public record Create(TreePositionPath path, XmlNs xmlNs, String tag) implements DomChange {
 
         @Override
         public String toString() {

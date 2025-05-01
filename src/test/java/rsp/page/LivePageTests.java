@@ -40,7 +40,7 @@ class LivePageTests {
                                                         uri.toString(),
                                                         Path.ROOT);
 
-        final PageConfigScript pageConfigScript = new PageConfigScript(QID.sessionId,
+        final PageConfigScript pageConfigScript = new PageConfigScript(QID.sessionId(),
                                                                        "/",
                                                                        DefaultConnectionLostWidget.HTML,
                                                                        1000);

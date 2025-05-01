@@ -69,9 +69,9 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     @Override
     public void listenEvents(final List<Event> events) {
         if (events.size() > 0) {
-            final String[] changes = events.stream().map(e -> joinString(quote(e.eventTarget.eventType),
+            final String[] changes = events.stream().map(e -> joinString(quote(e.eventTarget.eventType()),
                                                                          e.preventDefault,
-                                                                         quote(e.eventTarget.elementPath.toString()),
+                                                                         quote(e.eventTarget.elementPath().toString()),
                                                                          quote(modifierString(e.modifier)))).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(LISTEN_EVENT,
                                                                 joinString(changes)));
@@ -90,10 +90,10 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     private static String modifierString(final Event.Modifier eventModifier) {
         if (eventModifier instanceof Event.ThrottleModifier) {
             final Event.ThrottleModifier m = (Event.ThrottleModifier) eventModifier;
-            return THROTTLE_EVENT_MODIFIER + ":" +  m.timeFrameMs;
+            return THROTTLE_EVENT_MODIFIER + ":" + m.timeFrameMs();
         } else if (eventModifier instanceof Event.DebounceModifier) {
             final Event.DebounceModifier m = (Event.DebounceModifier) eventModifier;
-            return DEBOUNCE_EVENT_MODIFIER + ":" + m.waitMs + ":" + m.immediate;
+            return DEBOUNCE_EVENT_MODIFIER + ":" + m.waitMs() + ":" + m.immediate();
         } else {
             return Integer.toString(NO_EVENT_MODIFIER);
         }
@@ -136,30 +136,30 @@ public final class RemotePageMessageEncoder implements RemoteOut {
             return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), c.isProperty);
         } else if (domChange instanceof RemoveStyle) {
             final RemoveStyle c = (RemoveStyle)domChange;
-            return joinString(REMOVE_STYLE, quote(c.path), quote(escape(c.name)), false);
+            return joinString(REMOVE_STYLE, quote(c.path()), quote(escape(c.name())), false);
         } else if (domChange instanceof Remove) {
             final Remove c = (Remove)domChange;
-            return joinString(REMOVE, quote(c.parentPath), quote(c.path));
+            return joinString(REMOVE, quote(c.parentPath()), quote(c.path()));
         } else if (domChange instanceof SetAttr) {
             final SetAttr c = (SetAttr)domChange;
-            return joinString(SET_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), quote(c.value), c.isProperty);
+            return joinString(SET_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), quote(c.value()), c.isProperty());
         } else if (domChange instanceof SetStyle) {
             final SetStyle c = (SetStyle)domChange;
-            return joinString(SET_STYLE, quote(c.path), quote(escape(c.name)), quote(escape(c.value)));
+            return joinString(SET_STYLE, quote(c.path()), quote(escape(c.name())), quote(escape(c.value())));
         } else if (domChange instanceof CreateText) {
             final CreateText c = (CreateText)domChange;
-            return joinString(CREATE_TEXT, quote(c.parentPath), quote(c.path), quote(escape(c.text)));
+            return joinString(CREATE_TEXT, quote(c.parentPath()), quote(c.path()), quote(escape(c.text())));
         } else if (domChange instanceof Create) {
             final Create c = (Create)domChange;
-            return joinString(CREATE, quote(c.path.parent()),
-                    quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.tag)));
+            return joinString(CREATE, quote(c.path().parent()),
+                    quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.tag())));
         } else {
             throw new IllegalStateException("Unsupported DomChange object type:" + domChange);
         }
     }
 
     private String xmlNsString(final XmlNs xmlNs) {
-        return xmlNs.uri.equals(XmlNs.html.uri) ? "0" : quote(xmlNs.toString());
+        return xmlNs.uri().equals(XmlNs.html.uri()) ? "0" : quote(xmlNs.toString());
     }
 
     @Override

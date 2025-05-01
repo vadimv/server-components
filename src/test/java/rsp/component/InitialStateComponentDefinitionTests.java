@@ -58,12 +58,12 @@ class InitialStateComponentDefinitionTests {
                                  renderContext.html());
 
         assertEquals(1, renderContext.recursiveEvents().size());
-        assertEquals("click", renderContext.recursiveEvents().get(0).eventTarget.eventType);
-        assertEquals(TreePositionPath.of("1_2_1"), renderContext.recursiveEvents().get(0).eventTarget.elementPath);
+        assertEquals("click", renderContext.recursiveEvents().get(0).eventTarget.eventType());
+        assertEquals(TreePositionPath.of("1_2_1"), renderContext.recursiveEvents().get(0).eventTarget.elementPath());
 
         // Click
         final Event clickEvent = renderContext.recursiveEvents().get(0);
-        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath,
+        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath(),
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,
                                                                 JsonDataType.Object.EMPTY,

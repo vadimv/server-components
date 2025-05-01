@@ -7,7 +7,6 @@ import rsp.dom.TreePositionPath;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class TestCollectingRemoteOut implements RemoteOut {
     public final List<Message> commands = new ArrayList<>();
@@ -19,10 +18,10 @@ public class TestCollectingRemoteOut implements RemoteOut {
 
     @Override
     public void listenEvents(final List<Event> events) {
-        commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType,
+        commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType(),
                                                                            e.preventDefault,
-                                                                           e.eventTarget.elementPath,
-                                                                           e.modifier)).collect(Collectors.toList()));
+                                                                           e.eventTarget.elementPath(),
+                                                                           e.modifier)).toList());
     }
 
     @Override
@@ -62,54 +61,10 @@ public class TestCollectingRemoteOut implements RemoteOut {
 
     public sealed interface Message {}
 
-    public final static class SetRenderNumOutMessage implements Message {
-        public final int renderNum;
-        SetRenderNumOutMessage(final int renderNum) {
-            this.renderNum = renderNum;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final SetRenderNumOutMessage that = (SetRenderNumOutMessage) o;
-            return renderNum == that.renderNum;
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(renderNum);
-        }
+    public record SetRenderNumOutMessage(int renderNum) implements Message {
     }
 
-    public final static class ListenEventOutMessage implements Message {
-        public final String eventType;
-        public final boolean preventDefault;
-        public final TreePositionPath path;
-        public final Event.Modifier modifier;
-
-        public ListenEventOutMessage(final String eventType, final boolean preventDefault, final TreePositionPath path, final Event.Modifier modifier) {
-            this.eventType = eventType;
-            this.preventDefault = preventDefault;
-            this.path = path;
-            this.modifier = modifier;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final ListenEventOutMessage that = (ListenEventOutMessage) o;
-            return preventDefault == that.preventDefault &&
-                    Objects.equals(eventType, that.eventType) &&
-                    Objects.equals(path, that.path) &&
-                    Objects.equals(modifier, that.modifier);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(eventType, preventDefault, path, modifier);
-        }
+    public record ListenEventOutMessage(String eventType, boolean preventDefault, TreePositionPath path, Event.Modifier modifier) implements Message {
 
         @Override
         public String toString() {
@@ -122,28 +77,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    public static final class ForgetEventOutMessage implements Message {
-        public final String eventType;
-        public final TreePositionPath elementPath;
-
-        public ForgetEventOutMessage(final String eventType, final TreePositionPath elementPath) {
-            this.eventType = eventType;
-            this.elementPath = elementPath;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final ForgetEventOutMessage that = (ForgetEventOutMessage) o;
-            return Objects.equals(eventType, that.eventType) &&
-                    Objects.equals(elementPath, that.elementPath);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(eventType, elementPath);
-        }
+    public record ForgetEventOutMessage(String eventType, TreePositionPath elementPath) implements Message {
 
         @Override
         public String toString() {
@@ -154,31 +88,8 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    public static final class ExtractPropertyOutMessage implements Message {
-        public final int descriptor;
-        public final TreePositionPath path;
-        public final String name;
+    public record ExtractPropertyOutMessage(int descriptor, TreePositionPath path, String name) implements Message {
 
-        public ExtractPropertyOutMessage(final int descriptor, final TreePositionPath path, final String name) {
-            this.descriptor = descriptor;
-            this.path = path;
-            this.name = name;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final ExtractPropertyOutMessage that = (ExtractPropertyOutMessage) o;
-            return descriptor == that.descriptor &&
-                    Objects.equals(path, that.path) &&
-                    Objects.equals(name, that.name);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(descriptor, path, name);
-        }
     }
 
     public static final class ModifyDomOutMessage implements Message {
@@ -209,25 +120,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    public static final class PushHistoryMessage implements Message {
-        public final String path;
-
-        public PushHistoryMessage(final String path) {
-            this.path = path;
-        }
-
-        @Override
-        public boolean equals(final Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            final PushHistoryMessage that = (PushHistoryMessage) o;
-            return Objects.equals(path, that.path);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(path);
-        }
+    public record PushHistoryMessage(String path) implements Message {
 
         @Override
         public String toString() {
@@ -237,15 +130,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
         }
     }
 
-    public static final class EvalJsMessage implements Message {
-
-        public final int descriptor;
-        public final String js;
-
-        public EvalJsMessage(int descriptor, String js) {
-            this.descriptor = descriptor;
-            this.js = js;
-        }
+    public record EvalJsMessage(int descriptor, String js) implements Message {
 
         @Override
         public String toString() {

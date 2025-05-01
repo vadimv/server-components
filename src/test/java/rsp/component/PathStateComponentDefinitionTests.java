@@ -54,7 +54,7 @@ class PathStateComponentDefinitionTests {
 
         // Click
         final Event clickEvent = renderContext.recursiveEvents().get(0);
-        final EventContext clickEventContext1 = new EventContext(clickEvent.eventTarget.elementPath,
+        final EventContext clickEventContext1 = new EventContext(clickEvent.eventTarget.elementPath(),
                                                                  js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                  ref -> null,
                                                                  JsonDataType.Object.EMPTY,
@@ -75,8 +75,8 @@ class PathStateComponentDefinitionTests {
         remoteOut.clear();
 
         // History backward
-        final Event popstateEvent = renderContext.recursiveEvents().stream().filter(e -> "popstate".equals(e.eventTarget.eventType)).findFirst().orElseThrow();
-        final EventContext popstateEventContext = new EventContext(popstateEvent.eventTarget.elementPath,
+        final Event popstateEvent = renderContext.recursiveEvents().stream().filter(e -> "popstate".equals(e.eventTarget.eventType())).findFirst().orElseThrow();
+        final EventContext popstateEventContext = new EventContext(popstateEvent.eventTarget.elementPath(),
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,
                                                                 JsonDataType.Object.EMPTY.put("path",

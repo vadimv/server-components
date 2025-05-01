@@ -1,6 +1,5 @@
 package rsp.dom;
 
-import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -59,6 +58,11 @@ class TreePositionPathTests {
 
     @Test
     void should_comply_to_equals_hash_contract() {
-        EqualsVerifier.forClass(TreePositionPath.class).verify();
+        final TreePositionPath path1 = TreePositionPath.of("1_2_2_9");
+        final TreePositionPath path2 = TreePositionPath.of("1_2_2_9");
+        Assertions.assertEquals(path1, path2);
+        Assertions.assertEquals(path1.hashCode(), path2.hashCode());
+        final TreePositionPath path3 = TreePositionPath.of("1_2_2_9_1");
+        Assertions.assertNotEquals(path1, path3);
     }
 }

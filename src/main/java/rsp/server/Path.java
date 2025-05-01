@@ -9,21 +9,9 @@ import java.util.stream.Stream;
  * Represents a componentPath.
  * A componentPath could be either absolute or relative.
  */
-public final class Path {
+public record Path(boolean isAbsolute, String[] elements) {
     public static final Path EMPTY = Path.of("");
     public static final Path ROOT = Path.of("/");
-
-    private final boolean isAbsolute;
-    private final String[] elements;
-
-    /**
-     * Creates a new instance of a componentPath.
-     * @param elements the componentPath's elements
-     */
-    private Path(final boolean isAbsolute, final String[] elements) {
-        this.isAbsolute = isAbsolute;
-        this.elements = elements;
-    }
 
     /**
      * Creates a new instance of a componentPath from a string.
@@ -39,13 +27,6 @@ public final class Path {
         return new Path(trimmedStr.startsWith("/"), tokens);
     }
 
-    public boolean isAbsolute() {
-        return isAbsolute;
-    }
-
-    public String[] elements() {
-        return elements;
-    }
 
     /**
      * Resolves a componentPath to another componentPath.
