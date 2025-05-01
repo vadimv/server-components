@@ -22,6 +22,14 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
         this.initialState = CompletableFuture.completedFuture(Objects.requireNonNull(initialState));
     }
 
+    public InitialStateComponentDefinition(final S initialState,
+                                           final View<S> view) {
+        super(InitialStateComponentDefinition.class);
+        Objects.requireNonNull(view);
+        this.view =  __ -> view;
+        this.initialState = CompletableFuture.completedFuture(Objects.requireNonNull(initialState));
+    }
+
     public InitialStateComponentDefinition(final Object componentType,
                                            final S initialState,
                                            final ComponentView<S> view) {

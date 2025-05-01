@@ -54,9 +54,10 @@ class LivePageTests {
                                                                        commandsBuffer,
                                                                        sessionLock);
 
-        final StatefulComponentDefinition<State> componentDefinition = ComponentDsl.pathComponent(p -> CompletableFuture.completedFuture(initialState),
-                                                                                                  (s, p) -> p,
-                                                                                                  view);
+        final StatefulComponentDefinition<State> componentDefinition = new PathStateComponentDefinition<>(p -> CompletableFuture.completedFuture(initialState),
+                                                                                                           (s, p) -> p,
+                                                                                                           view);
+
         componentDefinition.render(domTreeContext);
 
         final Document pageHtml = org.jsoup.Jsoup.parse(domTreeContext.html());

@@ -12,9 +12,9 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-import static rsp.component.ComponentDsl.component;
-import static rsp.component.ComponentDsl.pathComponent;
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
@@ -42,6 +42,12 @@ public class SimpleServer {
                                     -1),
                             (count, path) -> Path.of("/" + path.get(0) + "/" + count),
                             counterView(name));
+    }
+
+    private static <S> StatefulComponentDefinition<S> pathComponent(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
+                                                                   final BiFunction<S, Path, Path> stateToPath,
+                                                                   final ComponentView<S> componentView) {
+        return new PathStateComponentDefinition<>(initialStateRouting, stateToPath, componentView);
     }
 
     private static ComponentView<Integer> counterView(final String name) {
@@ -83,8 +89,7 @@ public class SimpleServer {
                     body(counter1("c1"),
                          counter2("c2"),
                          br(),
-                         component(true, storedCounterView())
-
+                         new InitialStateComponentDefinition<>( true, storedCounterView())
                     ));
 
     private static final View<NotFoundState> notFoundStatelessView = __ ->
@@ -112,8 +117,8 @@ public class SimpleServer {
     public static SimpleServer run(final boolean blockCurrentThread) {
 
         final SimpleServer s = new SimpleServer(new WebServer(8085,
-                                               ComponentDsl.webComponent(appRouting(),
-                                                                         appComponentView),
+                                                new HttpRequestStateComponentDefinition<>(appRouting(),
+                                                                                          appComponentView),
                                                new StaticResources(new File("src/test/java/rsp/browserautomation"),
                                                                    "/res/*")));
         s.jetty.start();

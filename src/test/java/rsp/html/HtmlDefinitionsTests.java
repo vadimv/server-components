@@ -50,7 +50,7 @@ public class HtmlDefinitionsTests {
     }
 
     private static <S> String htmlOf(final View<S> view, final S initialState) {
-        final var component = new InitialStateComponentDefinition<S>(initialState, newState -> state -> view.apply(state));
+        final var component = new InitialStateComponentDefinition<>(initialState, view);
         final ComponentRenderContext rc = createRenderContext();
         component.render(rc);
         return rc.html();

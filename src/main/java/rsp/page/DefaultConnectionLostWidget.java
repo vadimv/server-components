@@ -1,8 +1,9 @@
 package rsp.page;
 
-import rsp.component.ComponentDsl;
 import rsp.component.ComponentRenderContext;
+import rsp.component.InitialStateComponentDefinition;
 import rsp.component.StatefulComponentDefinition;
+import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
@@ -41,11 +42,11 @@ public final class DefaultConnectionLostWidget {
     }
 
     private static StatefulComponentDefinition<String> widgetComponent() {
-        return ComponentDsl.component("", __ -> ___ -> widget());
+        return new InitialStateComponentDefinition<>("", widget());
     }
 
-    private static TagDefinition widget() {
-        return div(style("position", "fixed"),
+    private static View<String> widget() {
+        return __ -> div(style("position", "fixed"),
                    style("top", "0"),
                    style("left", "0"),
                    style("right", "0"),

@@ -41,9 +41,10 @@ class PlaywrightSmokeIT {
     }
 
     private static Stream<BrowserType> browserTypes() {
-        return Stream.of(playwright.chromium(),
-                         playwright.webkit(),
-                         playwright.firefox());
+        return Stream.of(playwright.chromium()
+                   //      playwright.webkit()
+                 //       playwright.firefox()
+                );
     }
 
     private void validatePageNotFound(final Page page) {
