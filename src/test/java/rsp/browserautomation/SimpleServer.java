@@ -12,8 +12,6 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
@@ -30,24 +28,18 @@ public class SimpleServer {
                              new NotFoundState());
     }
 
-    private static SegmentDefinition counter1(final String name) {
-        return pathComponent(routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
-                                          -1),
-                             (count, path) -> Path.of("/" + count + "/" + path.get(1)),
-                             counterView(name));
+    private static SegmentDefinition counter1() {
+        return new PathStateComponentDefinition<>(routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+                                                              -1),
+                                                 (count, path) -> Path.of("/" + count + "/" + path.get(1)),
+                                                 counterView("c1"));
     }
 
-    private static SegmentDefinition counter2(final String name) {
-        return pathComponent(routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
-                                    -1),
-                            (count, path) -> Path.of("/" + path.get(0) + "/" + count),
-                            counterView(name));
-    }
-
-    private static <S> StatefulComponentDefinition<S> pathComponent(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
-                                                                   final BiFunction<S, Path, Path> stateToPath,
-                                                                   final ComponentView<S> componentView) {
-        return new PathStateComponentDefinition<>(initialStateRouting, stateToPath, componentView);
+    private static SegmentDefinition counter2() {
+        return new PathStateComponentDefinition<>(routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+                                                                -1),
+                                                        (count, path) -> Path.of("/" + path.get(0) + "/" + count),
+                                                        counterView("c2"));
     }
 
     private static ComponentView<Integer> counterView(final String name) {
@@ -86,8 +78,8 @@ public class SimpleServer {
             html(head(title("test-server-title"),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
-                    body(counter1("c1"),
-                         counter2("c2"),
+                    body(counter1(),
+                         counter2(),
                          br(),
                          new InitialStateComponentDefinition<>( true, storedCounterView())
                     ));
