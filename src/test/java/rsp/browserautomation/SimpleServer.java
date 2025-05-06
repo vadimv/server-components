@@ -6,7 +6,6 @@ import rsp.jetty.WebServer;
 import rsp.routing.Routing;
 import rsp.server.Path;
 import rsp.server.StaticResources;
-import rsp.server.http.HttpRequest;
 
 import java.io.File;
 import java.util.HashMap;
@@ -22,11 +21,6 @@ public class SimpleServer {
 
     public static final int PORT = 8085;
     public final WebServer jetty;
-
-    private static Routing<HttpRequest, AppState> appRouting() {
-        return new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
-                             new NotFoundState());
-    }
 
     private static SegmentDefinition counter1() {
         return new PathStateComponentDefinition<>(routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
@@ -59,7 +53,7 @@ public class SimpleServer {
         return new StoredStateComponentDefinition<>(123, counterView(name), stateStore);
     }
 
-    private  static ComponentView<Boolean> storedCounterView() {
+    private static ComponentView<Boolean> storedCounterView() {
         return newState -> state ->
                 div(
                         when(state, storedCounter("c3")),
@@ -88,15 +82,22 @@ public class SimpleServer {
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
 
-    private static final View<AppState> appComponentView = state -> {
-        if (state instanceof NotFoundState notFoundState) {
-            return notFoundStatelessView.apply(notFoundState);
-        } else if (state instanceof CountersState countersState) {
-            return countersComponentView.apply(countersState);
-        } else {
-            throw new IllegalStateException();
-        }
-    };
+
+    private static StatefulComponentDefinition<AppState> rootComponent() {
+        final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
+                                             new NotFoundState());
+        final View<AppState> appComponentView = state -> {
+            if (state instanceof NotFoundState notFoundState) {
+                return notFoundStatelessView.apply(notFoundState);
+            } else if (state instanceof CountersState countersState) {
+                return countersComponentView.apply(countersState);
+            } else {
+                throw new IllegalStateException();
+            }
+        };
+        return new HttpRequestStateComponentDefinition<>(appRouting,
+                                                         appComponentView);
+    }
 
     public SimpleServer(final WebServer jetty) {
         this.jetty = jetty;
@@ -109,9 +110,8 @@ public class SimpleServer {
     public static SimpleServer run(final boolean blockCurrentThread) {
 
         final SimpleServer s = new SimpleServer(new WebServer(8085,
-                                                new HttpRequestStateComponentDefinition<>(appRouting(),
-                                                                                          appComponentView),
-                                               new StaticResources(new File("src/test/java/rsp/browserautomation"),
+                                                               rootComponent(),
+                                                              new StaticResources(new File("src/test/java/rsp/browserautomation"),
                                                                    "/res/*")));
         s.jetty.start();
         if (blockCurrentThread) {
