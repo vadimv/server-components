@@ -30,6 +30,19 @@ Admin Server Components core is a Java web Server Side Rendering (SSR) framework
 ```
 This project requires Java version 17 or newer.
 
+To build the project from the sources, run:
+
+```shell script
+$ mvn clean package
+```
+
+to start browser tests:
+
+```shell script
+
+$ mvn clean test -Ptest-all
+```
+
 ### Code examples
 
 * [Hello World](src/main/java/rsp/examples/HelloWorld.java)
