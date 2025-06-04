@@ -16,7 +16,7 @@ import java.util.*;
 
 import static java.lang.System.Logger.Level.*;
 
-public final class MainWebSocketEndpoint<S> extends Endpoint {
+public final class MainWebSocketEndpoint extends Endpoint {
     private static final System.Logger logger = System.getLogger(MainWebSocketEndpoint.class.getName());
 
     public static final String WS_ENDPOINT_PATH = "/bridge/web-socket/{pid}/{sid}";

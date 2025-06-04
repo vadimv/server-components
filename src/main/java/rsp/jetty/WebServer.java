@@ -108,7 +108,7 @@ public final class WebServer {
                                                                                        rootComponentDefinition,
                                                                                        DEFAULT_HEARTBEAT_INTERVAL_MS))),
                           "/*");
-        final MainWebSocketEndpoint<S> webSocketEndpoint = new MainWebSocketEndpoint<>(pagesStorage);
+        final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage);
         WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
