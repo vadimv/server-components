@@ -210,7 +210,7 @@
         <dependency>
             <groupId>com.googlecode.json-simple</groupId>
             <artifactId>json-simple</artifactId>
-            <version>${json-simple.version}</version>
+            <version>1.1.1</version>
             <exclusions>
                 <exclusion>
                     <groupId>*</groupId>
@@ -221,58 +221,58 @@
         <dependency>
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
-            <version>${jsoup.version}</version>
+            <version>1.17.2</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit.version}</version>
+            <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>${junit.version}</version>
+            <version>5.10.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.github.stephenc.jcip</groupId>
             <artifactId>jcip-annotations</artifactId>
-            <version>${jcip-annotations.version}</version>
+            <version>1.0-1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
-            <version>${playwright.version}</version>
+            <version>1.35.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>javax.websocket</groupId>
             <artifactId>javax.websocket-api</artifactId>
-            <version>${javax.websocket.version}</version>
+            <version>1.1</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty.websocket</groupId>
             <artifactId>javax-websocket-server-impl</artifactId>
-            <version>${jetty.version}</version>
+            <version>9.4.57.v20241219</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
+            <version>9.4.57.v20241219</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlet</artifactId>
-            <version>${jetty.version}</version>
+            <version>9.4.57.v20241219</version>
         </dependency>
 
         <!-- build time dependency -->
         <dependency>
             <groupId>com.google.javascript</groupId>
             <artifactId>closure-compiler</artifactId>
-            <version>${closure-compiler.version}</version>
+            <version>v20240317</version>
             <optional>true</optional>
         </dependency>
     </dependencies>
