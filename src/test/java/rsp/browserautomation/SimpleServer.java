@@ -3,6 +3,7 @@ package rsp.browserautomation;
 import rsp.component.*;
 import rsp.html.SegmentDefinition;
 import rsp.jetty.WebServer;
+import rsp.page.EventContext;
 import rsp.routing.Routing;
 import rsp.server.Path;
 import rsp.server.StaticResources;
@@ -11,6 +12,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
@@ -43,10 +45,14 @@ public class SimpleServer {
                                 attr("id", name + "_b0"),
                                 text("+1"),
                                 on("click",
-                                        d -> newState.setState(state + 1)))),
+                                        counterButtonClickHandler(state, newState)))),
                         div(span(attr("id", name + "_s0"),
                                  attr("class", state % 2 == 0 ? "red" : "blue"),
                                  text(state)))));
+    }
+
+    private static Consumer<EventContext> counterButtonClickHandler(Integer state, StateUpdate<Integer> newState) {
+        return  ec -> newState.setState(state + 1);
     }
 
     private static SegmentDefinition storedCounter(final String name) {
@@ -61,13 +67,16 @@ public class SimpleServer {
                                 when(state, attr("checked", "checked")),
                                 attr("id","c3"),
                                 attr("name", "c3"),
-                                on("click", ctx -> {
-                                    newState.setState(!state);
-                                })),
+                                on("click", checkboxClickHandler(state, newState))),
                         label(attr("for", "c3"),
                                 text("Show counter 3"))
                 );
     }
+
+    private static Consumer<EventContext> checkboxClickHandler(Boolean state, StateUpdate<Boolean> newState) {
+        return  __ -> newState.setState(!state);
+    }
+
     private static final View<CountersState> countersComponentView = state ->
             html(head(title("test-server-title"),
                             link(attr("rel", "stylesheet"),
