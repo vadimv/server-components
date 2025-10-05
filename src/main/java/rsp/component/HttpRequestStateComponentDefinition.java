@@ -22,17 +22,17 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
         this.componentView = Objects.requireNonNull(componentView);
     }
 
-    public HttpRequestStateComponentDefinition(final HttpRequest webContext,
-                                                final Routing<HttpRequest, S> routing,
+    public HttpRequestStateComponentDefinition(final HttpRequest httpRequest,
+                                               final Routing<HttpRequest, S> routing,
                                                final View<S> view) {
-        this(webContext,
-                routing,
-                componentView(view));
+        this(httpRequest,
+             routing,
+             componentView(view));
 
     }
 
     private static <S> ComponentView<S> componentView(final View<S> rootComponentView) {
-        return newState -> state -> rootComponentView.apply(state);
+        return newState -> rootComponentView;
     }
 
 

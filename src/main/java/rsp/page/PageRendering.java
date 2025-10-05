@@ -77,7 +77,6 @@ public final class PageRendering<S> {
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
-            final PageStateOrigin httpStateOrigin = new PageStateOrigin(request);
             final PageConfigScript pageConfigScript = new PageConfigScript(sessionId,
                                                                           "/",
                                                                            DefaultConnectionLostWidget.HTML,
@@ -88,7 +87,6 @@ public final class PageRendering<S> {
             final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
                                                                               pageConfigScript.toString(),
                                                                               DOCUMENT_DOM_PATH,
-                                                                              httpStateOrigin,
                                                                               commandsBuffer,
                                                                               sessionLock);
 

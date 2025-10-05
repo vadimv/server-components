@@ -6,7 +6,6 @@ import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.HttpRequest;
-import rsp.server.http.PageStateOrigin;
 
 import java.net.URI;
 import java.util.Optional;
@@ -33,11 +32,9 @@ class HttpRequestStateComponentDefinitionTests {
                                                         Path.of(uri.getPath()),
                                                         name -> Optional.empty(),
                                                         name -> name.equals("header-0") ? Optional.of("header-0-value") : Optional.empty());
-        final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                pageStateOrigin,
                                                                                 remoteOut,
                                                                                 new Object());
         final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(null,

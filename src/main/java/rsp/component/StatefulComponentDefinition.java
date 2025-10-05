@@ -5,8 +5,6 @@ import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.server.RemoteOut;
-import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.PageStateOrigin;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;

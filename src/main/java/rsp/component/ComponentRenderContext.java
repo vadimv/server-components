@@ -4,7 +4,6 @@ import rsp.dom.*;
 import rsp.page.*;
 import rsp.ref.Ref;
 import rsp.server.RemoteOut;
-import rsp.server.http.PageStateOrigin;
 
 import java.util.*;
 import java.util.function.*;
@@ -14,7 +13,6 @@ public class ComponentRenderContext implements RenderContextFactory {
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
     protected final QualifiedSessionId sessionId;
-    protected final PageStateOrigin pageStateOrigin;
     protected final RemoteOut remotePageMessagesOut;
     protected final Object sessionLock;
 
@@ -28,12 +26,10 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
-                                  final PageStateOrigin pageStateOrigin,
                                   final RemoteOut remotePageMessagesOut,
                                   final Object sessionLock) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
-        this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
         this.sessionLock = Objects.requireNonNull(sessionLock);
     }
@@ -173,7 +169,6 @@ public class ComponentRenderContext implements RenderContextFactory {
     public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
         return new ComponentRenderContext(sessionId,
                                           startDomPath,
-                                          pageStateOrigin,
                                           remotePageMessagesOut,
                                           sessionLock);
     }

@@ -10,7 +10,6 @@ import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.HttpRequest;
-import rsp.server.http.PageStateOrigin;
 
 import java.net.URI;
 
@@ -63,10 +62,8 @@ public class HtmlDefinitionsTests {
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);
-        final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     pageStateOrigin,
                                                                      new TestCollectingRemoteOut(),
                                                                      new Object());
         return rc;

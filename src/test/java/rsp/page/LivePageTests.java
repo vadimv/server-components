@@ -44,13 +44,11 @@ class LivePageTests {
                                                                        "/",
                                                                        DefaultConnectionLostWidget.HTML,
                                                                        1000);
-        final PageStateOrigin httpStateOrigin = new PageStateOrigin(httpRequest);
         final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
         final Object sessionLock = new Object();
         final PageRenderContext domTreeContext = new PageRenderContext(QID,
                                                                        pageConfigScript.toString(),
                                                                        DOCUMENT_DOM_PATH,
-                                                                       httpStateOrigin,
                                                                        commandsBuffer,
                                                                        sessionLock);
 

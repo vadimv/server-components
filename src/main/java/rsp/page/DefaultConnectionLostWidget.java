@@ -7,11 +7,9 @@ import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.html.TagDefinition;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
-import rsp.server.http.PageStateOrigin;
 
 import java.net.URI;
 import java.util.List;
@@ -31,10 +29,8 @@ public final class DefaultConnectionLostWidget {
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);
-        final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     pageStateOrigin,
                                                                      new SilentRemoteOut(),
                                                                      new Object());
         widgetComponent().render(rc);

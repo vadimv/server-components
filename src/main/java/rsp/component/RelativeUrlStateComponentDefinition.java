@@ -4,11 +4,8 @@ import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.server.RemoteOut;
-import rsp.server.http.HttpStateOrigin;
-import rsp.server.http.PageStateOrigin;
 import rsp.server.http.RelativeUrl;
 
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;

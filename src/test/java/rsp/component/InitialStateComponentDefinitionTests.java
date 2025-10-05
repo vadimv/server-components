@@ -8,7 +8,6 @@ import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.HttpRequest;
-import rsp.server.http.PageStateOrigin;
 import rsp.util.json.JsonDataType;
 
 import java.net.URI;
@@ -37,11 +36,9 @@ class InitialStateComponentDefinitionTests {
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);
-        final PageStateOrigin pageStateOrigin = new PageStateOrigin(httpRequest);
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                pageStateOrigin,
                                                                                 remoteOut,
                                                                                 new Object());
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
