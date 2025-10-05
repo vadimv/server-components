@@ -31,7 +31,7 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
 
     @Override
     protected ComponentStateSupplier<S> stateSupplier() {
-        return (key, httpStateOrigin) -> {
+        return   key -> {
             if (stateStore.containsKey(key)) {
                 return CompletableFuture.completedFuture(stateStore.get(key));
             } else {

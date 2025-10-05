@@ -104,6 +104,11 @@ public final class HttpRequest {
         return getHeader.apply(headerName);
     }
 
+
+    public RelativeUrl relativeUrl() {
+        return new RelativeUrl(this.path, new Query(this.uri.getQuery()), new Fragment(this.uri.getFragment()));
+    }
+
     /**
      * HTTP verbs.
      */

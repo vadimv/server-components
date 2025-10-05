@@ -11,17 +11,22 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
 
     private final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting;
     private final ComponentView<S> componentView;
+    private final HttpRequest httpRequest;
 
-    public HttpRequestStateComponentDefinition(final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
+    public HttpRequestStateComponentDefinition(final HttpRequest httpRequest,
+                                               final Function<HttpRequest, CompletableFuture<? extends S>> initialStateRouting,
                                                final ComponentView<S> componentView) {
         super(HttpRequestStateComponentDefinition.class);
+        this.httpRequest = httpRequest;
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
     }
 
-    public HttpRequestStateComponentDefinition(final Routing<HttpRequest, S> routing,
+    public HttpRequestStateComponentDefinition(final HttpRequest webContext,
+                                                final Routing<HttpRequest, S> routing,
                                                final View<S> view) {
-        this(routing,
+        this(webContext,
+                routing,
                 componentView(view));
 
     }
@@ -33,7 +38,7 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
 
     @Override
     protected ComponentStateSupplier<S> stateSupplier() {
-        return (key, httpStateOrigin) -> initialStateRouting.apply(httpStateOrigin.httpRequest());
+        return key -> initialStateRouting.apply(httpRequest);
     }
 
     @Override

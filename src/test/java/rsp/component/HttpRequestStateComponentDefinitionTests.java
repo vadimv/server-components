@@ -40,7 +40,7 @@ class HttpRequestStateComponentDefinitionTests {
                                                                                 pageStateOrigin,
                                                                                 remoteOut,
                                                                                 new Object());
-        final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(
+        final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(null,
                 request-> CompletableFuture.completedFuture(request.header("header-0").orElseThrow()),
                                                             view);
 

@@ -10,7 +10,6 @@ import rsp.server.http.PageStateOrigin;
 public interface ComponentFactory<S> {
     Component<S> createComponent(QualifiedSessionId sessionId,
                                  TreePositionPath componentPath,
-                                 PageStateOrigin pageStateOrigin,
                                  RenderContextFactory renderContextFactory,
                                  RemoteOut remotePageMessagesOut,
                                  Object sessionLock);

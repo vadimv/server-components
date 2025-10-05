@@ -23,9 +23,11 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     protected final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl;
     protected final Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState;
-    protected final PageStateOrigin pageStateOrigin;
+
+    private volatile RelativeUrl relativeUrl;
 
     public RelativeUrlStateComponent(final ComponentCompositeKey key,
+                                     final RelativeUrl relativeUrl,
                                      final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
                                      final ComponentView<S> componentView,
                                      final ComponentCallbacks<S> componentCallbacks,
@@ -33,7 +35,6 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                                      final RemoteOut remotePageMessages,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
                                      final Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState,
-                                     final PageStateOrigin pageStateOrigin,
                                      final Object sessionLock) {
         super(key,
               resolveStateSupplier,
@@ -42,9 +43,9 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
               renderContextFactory,
               remotePageMessages,
               sessionLock);
+        this.relativeUrl = relativeUrl;
         this.stateToRelativeUrl = Objects.requireNonNull(stateToRelativeUrl);
         this.relativeUrlToState = Objects.requireNonNull(relativeUrlToState);
-        this.pageStateOrigin = Objects.requireNonNull(pageStateOrigin);
     }
 
     @Override
@@ -58,16 +59,11 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                 true,
                  Event.NO_MODIFIER);
 
-        final RelativeUrl oldRelativeUrl = pageStateOrigin.getRelativeUrl();
-        final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, oldRelativeUrl);
-        if (!newRelativeUrl.equals(oldRelativeUrl)) {
-            setRelativeUrl(newRelativeUrl);
+        final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, relativeUrl);
+        if (!newRelativeUrl.equals(relativeUrl)) {
+            relativeUrl = newRelativeUrl;
+            remotePageMessages.pushHistory(relativeUrl.path().toString());
         }
-    }
-
-    private void setRelativeUrl(RelativeUrl relativeUrl) {
-        pageStateOrigin.setRelativeUrl(relativeUrl);
-        remotePageMessages.pushHistory(relativeUrl.path().toString());
     }
 
     private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {

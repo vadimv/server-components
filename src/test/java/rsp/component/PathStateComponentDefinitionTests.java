@@ -41,7 +41,8 @@ class PathStateComponentDefinitionTests {
                                                                                 pageStateOrigin,
                                                                                 remoteOut,
                                                                                 new Object());
-        final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(path -> CompletableFuture.completedFuture(path.get(0)),
+        final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(null,
+                                                                                       path -> CompletableFuture.completedFuture(path.get(0)),
                                                                                            (state, path) -> Path.of("/" + state),
                                                                                             view);
         // Initial render

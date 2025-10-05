@@ -52,7 +52,6 @@ public class ComponentRenderContext implements RenderContextFactory {
                 ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
-                                                                           pageStateOrigin,
                                                                            this,
                                                                            remotePageMessagesOut,
                                                                            sessionLock);

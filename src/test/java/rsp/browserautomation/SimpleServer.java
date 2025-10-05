@@ -7,6 +7,7 @@ import rsp.page.EventContext;
 import rsp.routing.Routing;
 import rsp.server.Path;
 import rsp.server.StaticResources;
+import rsp.server.http.HttpRequest;
 
 import java.io.File;
 import java.util.HashMap;
@@ -24,15 +25,17 @@ public class SimpleServer {
     public static final int PORT = 8085;
     public final WebServer jetty;
 
-    private static SegmentDefinition counter1() {
-        return new PathStateComponentDefinition<>(routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+    private static SegmentDefinition counter1(HttpRequest webContext) {
+        return new PathStateComponentDefinition<>(webContext,
+                                                  routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
                                                               -1),
                                                  (count, path) -> Path.of("/" + count + "/" + path.get(1)),
                                                  counterView("c1"));
     }
 
-    private static SegmentDefinition counter2() {
-        return new PathStateComponentDefinition<>(routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+    private static SegmentDefinition counter2(HttpRequest webContext) {
+        return new PathStateComponentDefinition<>(webContext,
+                                                  routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
                                                                 -1),
                                                         (count, path) -> Path.of("/" + path.get(0) + "/" + count),
                                                         counterView("c2"));
@@ -77,34 +80,37 @@ public class SimpleServer {
         return  __ -> newState.setState(!state);
     }
 
-    private static final View<CountersState> countersComponentView = state ->
-            html(head(title("test-server-title"),
-                            link(attr("rel", "stylesheet"),
-                                 attr("href", "/res/style.css"))),
-                    body(counter1(),
-                         counter2(),
-                         br(),
-                         new InitialStateComponentDefinition<>( true, storedCounterView())
-                    ));
+    private static final View<CountersState> countersComponentView(final HttpRequest webContext) {
+        return state ->
+                html(head(title("test-server-title"),
+                                link(attr("rel", "stylesheet"),
+                                        attr("href", "/res/style.css"))),
+                        body(counter1(webContext),
+                                counter2(webContext),
+                                br(),
+                                new InitialStateComponentDefinition<>(true, storedCounterView())
+                        ));
+    }
 
     private static final View<NotFoundState> notFoundStatelessView = __ ->
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
 
 
-    private static StatefulComponentDefinition<AppState> rootComponent() {
+    private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest webContext) {
         final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
                                              new NotFoundState());
         final View<AppState> appComponentView = state -> {
             if (state instanceof NotFoundState notFoundState) {
                 return notFoundStatelessView.apply(notFoundState);
             } else if (state instanceof CountersState countersState) {
-                return countersComponentView.apply(countersState);
+                return countersComponentView(webContext).apply(countersState);
             } else {
                 throw new IllegalStateException();
             }
         };
-        return new HttpRequestStateComponentDefinition<>(appRouting,
+        return new HttpRequestStateComponentDefinition<>(webContext,
+                                                         appRouting,
                                                          appComponentView);
     }
 
@@ -119,7 +125,7 @@ public class SimpleServer {
     public static SimpleServer run(final boolean blockCurrentThread) {
 
         final SimpleServer s = new SimpleServer(new WebServer(8085,
-                                                               rootComponent(),
+                                                               ctx -> rootComponent(ctx),
                                                               new StaticResources(new File("src/test/java/rsp/browserautomation"),
                                                                    "/res/*")));
         s.jetty.start();

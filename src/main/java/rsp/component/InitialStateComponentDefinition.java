@@ -2,6 +2,7 @@ package rsp.component;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public class InitialStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
@@ -40,7 +41,7 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
 
     @Override
     protected ComponentStateSupplier<S> stateSupplier() {
-        return (key, httpStateOrigin) -> initialState;
+        return key -> initialState;
     }
 
     @Override

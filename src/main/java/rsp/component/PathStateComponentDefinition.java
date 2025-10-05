@@ -1,24 +1,27 @@
 package rsp.component;
 
 import rsp.server.Path;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.server.http.*;
 
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDefinition<S> {
     private final Function<Path, CompletableFuture<? extends S>> initialStateRouting;
     private final BiFunction<S, Path, Path> stateToPath;
     private final ComponentView<S> componentView;
 
-    public PathStateComponentDefinition(final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
+    private Path path;
+
+    public PathStateComponentDefinition(final HttpRequest httpRequest,
+                                        final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
                                         final BiFunction<S, Path, Path> stateToPath,
                                         final ComponentView<S> componentView) {
-        super(PathStateComponentDefinition.class);
+        super(PathStateComponentDefinition.class, httpRequest.relativeUrl());
+        this.path = httpRequest.path;
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.stateToPath = Objects.requireNonNull(stateToPath);
         this.componentView = Objects.requireNonNull(componentView);
@@ -26,7 +29,7 @@ public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDe
 
     @Override
     protected ComponentStateSupplier<S> stateSupplier() {
-        return (key, httpStateOrigin) -> initialStateRouting.apply(httpStateOrigin.relativeUrl().path());
+        return key -> initialStateRouting.apply(path);
     }
 
     @Override

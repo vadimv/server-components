@@ -5,6 +5,7 @@ import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.server.RemoteOut;
+import rsp.server.http.HttpStateOrigin;
 import rsp.server.http.PageStateOrigin;
 
 import java.util.Objects;
@@ -39,13 +40,11 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     @Override
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
-                                        final PageStateOrigin pageStateOrigin,
                                         final RenderContextFactory renderContextFactory,
                                         final RemoteOut remotePageMessagesOut,
                                         final Object sessionLock) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
-        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key,
-                                                                                                             pageStateOrigin.httpStateOrigin());
+        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key);
         return new Component<>(key,
                                resolveStateSupplier,
                                componentView(),

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -25,11 +26,11 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
-    private final StatefulComponentDefinition<S> rootComponentDefinition;
+    private final Function<HttpRequest, StatefulComponentDefinition<S>> rootComponentDefinition;
     private final int heartBeatIntervalMs;
 
     public PageRendering(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
-                         final StatefulComponentDefinition<S> rootComponentDefinition,
+                         final Function<HttpRequest, StatefulComponentDefinition<S>> rootComponentDefinition,
                          final int heartBeatIntervalMs) {
 
         this.renderedPages = Objects.requireNonNull(pagesStorage);
@@ -91,7 +92,7 @@ public final class PageRendering<S> {
                                                                               commandsBuffer,
                                                                               sessionLock);
 
-            rootComponentDefinition.render(pageRenderContext);
+            rootComponentDefinition.apply(request).render(pageRenderContext);
 
             final RenderedPage pageSnapshot = new RenderedPage(pageRenderContext,
                                                                commandsBuffer,
