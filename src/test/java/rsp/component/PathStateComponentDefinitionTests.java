@@ -38,7 +38,7 @@ class PathStateComponentDefinitionTests {
                                                                                 TreePositionPath.of("1"),
                                                                                 remoteOut,
                                                                                 new Object());
-        final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(null,
+        final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(httpRequest,
                                                                                        path -> CompletableFuture.completedFuture(path.get(0)),
                                                                                            (state, path) -> Path.of("/" + state),
                                                                                             view);

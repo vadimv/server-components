@@ -37,9 +37,9 @@ class HttpRequestStateComponentDefinitionTests {
                                                                                 TreePositionPath.of("1"),
                                                                                 remoteOut,
                                                                                 new Object());
-        final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(null,
-                request-> CompletableFuture.completedFuture(request.header("header-0").orElseThrow()),
-                                                            view);
+        final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(httpRequest,
+                                                                                              request-> CompletableFuture.completedFuture(request.header("header-0").orElseThrow()),
+                                                                                                                                                      view);
 
         // Initial render
         scd.render(renderContext);
