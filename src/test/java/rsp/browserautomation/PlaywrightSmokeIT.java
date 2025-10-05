@@ -20,11 +20,11 @@ class PlaywrightSmokeIT {
 
     private static final Playwright playwright = Playwright.create();
 
-    private static SimpleServer server;
+    private static CountersComponentsServer server;
 
     @BeforeAll
     public static void init() {
-        server = SimpleServer.run(false);
+        server = CountersComponentsServer.run(false);
     }
 
     @ParameterizedTest
@@ -46,12 +46,12 @@ class PlaywrightSmokeIT {
     }
 
     private void validatePageNotFound(final Page page) {
-        assertEquals(404, page.navigate("http://localhost:" + SimpleServer.PORT + "/none").status());
+        assertEquals(404, page.navigate("http://localhost:" + CountersComponentsServer.PORT + "/none").status());
     }
 
     private void validatePage(final Page page) throws InterruptedException {
         assertEquals(200, page.navigate("http://localhost:"
-                                                        + SimpleServer.PORT
+                                                        + CountersComponentsServer.PORT
                                                         + "/" + COUNTER_1_INITIAL_VALUE
                                                         +"/" + COUNTER_2_INITIAL_VALUE).status());
         assertEquals("test-server-title", page.title());

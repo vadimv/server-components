@@ -50,9 +50,9 @@ class RoutingTests {
                                                     post("/B", req -> "C"));
         final URI requestUri = URI.create("http://localhost/B");
         final var s = r.apply(new HttpRequest(HttpRequest.HttpMethod.GET,
-                                                                                  requestUri,
-                                                                                  requestUri.toString(),
-                                                                                  Path.of(requestUri.getPath())));
+                              requestUri,
+                              requestUri.toString(),
+                              Path.of(requestUri.getPath())));
         assertTrue(s.isPresent());
         assertEquals("A", s.get());
 

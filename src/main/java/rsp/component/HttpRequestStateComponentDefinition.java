@@ -4,7 +4,6 @@ import rsp.routing.Routing;
 import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
@@ -27,12 +26,12 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
                                                final View<S> view) {
         this(httpRequest,
              routing,
-             componentView(view));
+             asComponentView(view));
 
     }
 
-    private static <S> ComponentView<S> componentView(final View<S> rootComponentView) {
-        return newState -> rootComponentView;
+    private static <S> ComponentView<S> asComponentView(final View<S> view) {
+        return __ -> view;
     }
 
 

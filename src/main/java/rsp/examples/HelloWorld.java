@@ -11,13 +11,13 @@ import static rsp.html.HtmlDsl.*;
  */
 public final class HelloWorld {
     public static void main(final String[] args) {
-        final View<String> view = state -> html(
+        final View<String> view = message -> html(
                                                 body(
-                                                      p(state)
+                                                      p(message)
                                                 )
                                            );
 
-        final var server = new WebServer(8080, __ -> new InitialStateComponentDefinition<>("Hello world!", view));
+        final var server = new WebServer(8080, __ -> new InitialStateComponentDefinition<>("Hello world", view));
         server.start();
         server.join();
     }

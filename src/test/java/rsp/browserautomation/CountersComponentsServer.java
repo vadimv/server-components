@@ -12,20 +12,19 @@ import rsp.server.http.HttpRequest;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
-public class SimpleServer {
+public class CountersComponentsServer {
 
     private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
 
     public static final int PORT = 8085;
     public final WebServer jetty;
 
-    private static SegmentDefinition counter1(HttpRequest httpRequest) {
+    private static SegmentDefinition counterComponent1(HttpRequest httpRequest) {
         return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                   routing(path("/:c(^\\d+$)/*", c -> Integer.parseInt(c)),
                                                               -1),
@@ -33,7 +32,7 @@ public class SimpleServer {
                                                  counterView("c1"));
     }
 
-    private static SegmentDefinition counter2(HttpRequest httpRequest) {
+    private static SegmentDefinition counterComponent2(HttpRequest httpRequest) {
         return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                   routing(path("/*/:c(^\\d+$)", c -> Integer.parseInt(c)),
                                                                 -1),
@@ -48,7 +47,7 @@ public class SimpleServer {
                                 attr("id", name + "_b0"),
                                 text("+1"),
                                 on("click",
-                                        counterButtonClickHandler(state, newState)))),
+                                   counterButtonClickHandler(state, newState)))),
                         div(span(attr("id", name + "_s0"),
                                  attr("class", state % 2 == 0 ? "red" : "blue"),
                                  text(state)))));
@@ -58,14 +57,14 @@ public class SimpleServer {
         return  ec -> newState.setState(state + 1);
     }
 
-    private static SegmentDefinition storedCounter(final String name) {
+    private static SegmentDefinition storedCounterComponent(final String name) {
         return new StoredStateComponentDefinition<>(123, counterView(name), stateStore);
     }
 
     private static ComponentView<Boolean> storedCounterView() {
         return newState -> state ->
                 div(
-                        when(state, storedCounter("c3")),
+                        when(state, storedCounterComponent("c3")),
                         input(attr("type", "checkbox"),
                                 when(state, attr("checked", "checked")),
                                 attr("id","c3"),
@@ -80,15 +79,19 @@ public class SimpleServer {
         return  __ -> newState.setState(!state);
     }
 
-    private static final View<CountersState> countersComponentView(final HttpRequest httpRequest) {
-        return state ->
+    private static SegmentDefinition storedCounterComponent() {
+        return new InitialStateComponentDefinition<>(true, storedCounterView());
+    }
+
+    private static View<CountersAppState> rootView(final HttpRequest httpRequest) {
+        return __ ->
                 html(head(title("test-server-title"),
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
-                        body(counter1(httpRequest),
-                                counter2(httpRequest),
-                                br(),
-                                new InitialStateComponentDefinition<>(true, storedCounterView())
+                        body(counterComponent1(httpRequest),
+                             counterComponent2(httpRequest),
+                             br(),
+                             storedCounterComponent()
                         ));
     }
 
@@ -97,24 +100,28 @@ public class SimpleServer {
                  body(h1("Not found 404"))).statusCode(404);
 
 
-    private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest httpRequest) {
-        final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> new CountersState()),
-                                             new NotFoundState());
-        final View<AppState> appComponentView = state -> {
-            if (state instanceof NotFoundState notFoundState) {
+    private static View<AppState> appComponentView(final HttpRequest httpRequest) {
+        return state -> {
+            if (state instanceof CountersAppState countersState) {
+                return rootView(httpRequest).apply(countersState);
+            } else if (state instanceof NotFoundState notFoundState) {
                 return notFoundStatelessView.apply(notFoundState);
-            } else if (state instanceof CountersState countersState) {
-                return countersComponentView(httpRequest).apply(countersState);
             } else {
                 throw new IllegalStateException();
             }
         };
-        return new HttpRequestStateComponentDefinition<>(httpRequest,
-                                                         appRouting,
-                                                         appComponentView);
     }
 
-    public SimpleServer(final WebServer jetty) {
+
+    private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest httpRequest) {
+        final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> new CountersAppState()),
+                                             new NotFoundState());
+        return new HttpRequestStateComponentDefinition<>(httpRequest,
+                                                         appRouting,
+                                                         appComponentView(httpRequest));
+    }
+
+    public CountersComponentsServer(final WebServer jetty) {
         this.jetty = jetty;
     }
 
@@ -122,12 +129,12 @@ public class SimpleServer {
         run(true);
     }
 
-    public static SimpleServer run(final boolean blockCurrentThread) {
+    public static CountersComponentsServer run(final boolean blockCurrentThread) {
 
-        final SimpleServer s = new SimpleServer(new WebServer(8085,
-                                                               ctx -> rootComponent(ctx),
-                                                              new StaticResources(new File("src/test/java/rsp/browserautomation"),
-                                                                   "/res/*")));
+        final CountersComponentsServer s = new CountersComponentsServer(new WebServer(8085,
+                                                                                      CountersComponentsServer::rootComponent,
+                                                                                      new StaticResources(new File("src/test/java/rsp/browserautomation"),
+                                                                                      "/res/*")));
         s.jetty.start();
         if (blockCurrentThread) {
             s.jetty.join();
@@ -142,6 +149,6 @@ public class SimpleServer {
     static final class NotFoundState implements AppState {
     }
 
-    static final class CountersState implements AppState {
+    static final class CountersAppState implements AppState {
     }
 }

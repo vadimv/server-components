@@ -25,7 +25,7 @@ public class PlainForm {
     public static void main(final String[] args) {
         final Routing<HttpRequest, Name> routing = new Routing<>(route(), new EmptyName());
         final View<Name> pagesView = pagesView();
-        final var server = new WebServer(8080, webContext -> new HttpRequestStateComponentDefinition<>(webContext, routing, pagesView));
+        final var server = new WebServer(8080, httpRequest -> new HttpRequestStateComponentDefinition<>(httpRequest, routing, pagesView));
         server.start();
         server.join();
     }

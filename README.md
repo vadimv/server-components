@@ -85,8 +85,8 @@ Include a new instance of component definition class to the DSL alongside HTML d
 
 ```java
     div(span("Two counters"),
-        new Counter(1),
-        new Counter(2))
+        new Counter(req, 1),
+        new Counter(req, 2))
 ```
 
 Note that a component's code is executed on the server, use only components you trust.
