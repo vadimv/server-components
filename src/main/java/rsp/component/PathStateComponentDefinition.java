@@ -16,12 +16,12 @@ public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDe
 
     private final Path path;
 
-    public PathStateComponentDefinition(final HttpRequest httpRequest,
+    public PathStateComponentDefinition(final RelativeUrl relativeUrl,
                                         final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
                                         final BiFunction<S, Path, Path> stateToPath,
                                         final ComponentView<S> componentView) {
-        super(PathStateComponentDefinition.class, httpRequest.relativeUrl());
-        this.path = httpRequest.path;
+        super(PathStateComponentDefinition.class, relativeUrl);
+        this.path = relativeUrl.path();
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.stateToPath = Objects.requireNonNull(stateToPath);
         this.componentView = Objects.requireNonNull(componentView);

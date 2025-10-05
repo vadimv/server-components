@@ -25,16 +25,16 @@ public class SimpleServer {
     public static final int PORT = 8085;
     public final WebServer jetty;
 
-    private static SegmentDefinition counter1(HttpRequest webContext) {
-        return new PathStateComponentDefinition<>(webContext,
+    private static SegmentDefinition counter1(HttpRequest httpRequest) {
+        return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                   routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
                                                               -1),
                                                  (count, path) -> Path.of("/" + count + "/" + path.get(1)),
                                                  counterView("c1"));
     }
 
-    private static SegmentDefinition counter2(HttpRequest webContext) {
-        return new PathStateComponentDefinition<>(webContext,
+    private static SegmentDefinition counter2(HttpRequest httpRequest) {
+        return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                   routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
                                                                 -1),
                                                         (count, path) -> Path.of("/" + path.get(0) + "/" + count),
@@ -80,13 +80,13 @@ public class SimpleServer {
         return  __ -> newState.setState(!state);
     }
 
-    private static final View<CountersState> countersComponentView(final HttpRequest webContext) {
+    private static final View<CountersState> countersComponentView(final HttpRequest httpRequest) {
         return state ->
                 html(head(title("test-server-title"),
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
-                        body(counter1(webContext),
-                                counter2(webContext),
+                        body(counter1(httpRequest),
+                                counter2(httpRequest),
                                 br(),
                                 new InitialStateComponentDefinition<>(true, storedCounterView())
                         ));

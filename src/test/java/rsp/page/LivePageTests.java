@@ -52,7 +52,7 @@ class LivePageTests {
                                                                        commandsBuffer,
                                                                        sessionLock);
 
-        final StatefulComponentDefinition<State> componentDefinition = new PathStateComponentDefinition<>(httpRequest,
+        final StatefulComponentDefinition<State> componentDefinition = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                                                                      p -> CompletableFuture.completedFuture(initialState),
                                                                                                           (s, p) -> p,
                                                                                                           view);
