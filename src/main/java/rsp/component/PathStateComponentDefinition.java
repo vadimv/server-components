@@ -10,14 +10,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDefinition<S> {
-    private final Function<Path, CompletableFuture<? extends S>> initialStateRouting;
+    private final Function<Path, S> initialStateRouting;
     private final BiFunction<S, Path, Path> stateToPath;
     private final ComponentView<S> componentView;
 
     private final Path path;
 
     public PathStateComponentDefinition(final RelativeUrl relativeUrl,
-                                        final Function<Path, CompletableFuture<? extends S>> initialStateRouting,
+                                        final Function<Path, S> initialStateRouting,
                                         final BiFunction<S, Path, Path> stateToPath,
                                         final ComponentView<S> componentView) {
         super(PathStateComponentDefinition.class, relativeUrl);
@@ -38,7 +38,7 @@ public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDe
     }
 
     @Override
-    protected Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState() {
+    protected Function<RelativeUrl, S> relativeUrlToState() {
         return relativeUrl -> initialStateRouting.apply(relativeUrl.path());
     }
 

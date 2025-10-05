@@ -39,7 +39,7 @@ class PathStateComponentDefinitionTests {
                                                                                 remoteOut,
                                                                                 new Object());
         final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
-                                                                                       path -> CompletableFuture.completedFuture(path.get(0)),
+                                                                                       path -> path.get(0),
                                                                                            (state, path) -> Path.of("/" + state),
                                                                                             view);
         // Initial render

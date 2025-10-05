@@ -33,10 +33,10 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     protected ComponentStateSupplier<S> stateSupplier() {
         return   key -> {
             if (stateStore.containsKey(key)) {
-                return CompletableFuture.completedFuture(stateStore.get(key));
+                return stateStore.get(key);
             } else {
                 stateStore.put(key, initialState);
-                return CompletableFuture.completedFuture(initialState);
+                return initialState;
             }
         };
     }

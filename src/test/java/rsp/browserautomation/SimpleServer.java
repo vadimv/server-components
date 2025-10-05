@@ -27,7 +27,7 @@ public class SimpleServer {
 
     private static SegmentDefinition counter1(HttpRequest httpRequest) {
         return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
-                                                  routing(path("/:c(^\\d+$)/*", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+                                                  routing(path("/:c(^\\d+$)/*", c -> Integer.parseInt(c)),
                                                               -1),
                                                  (count, path) -> Path.of("/" + count + "/" + path.get(1)),
                                                  counterView("c1"));
@@ -35,7 +35,7 @@ public class SimpleServer {
 
     private static SegmentDefinition counter2(HttpRequest httpRequest) {
         return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
-                                                  routing(path("/*/:c(^\\d+$)", c -> CompletableFuture.completedFuture(Integer.parseInt(c))),
+                                                  routing(path("/*/:c(^\\d+$)", c -> Integer.parseInt(c)),
                                                                 -1),
                                                         (count, path) -> Path.of("/" + path.get(0) + "/" + count),
                                                         counterView("c2"));
@@ -97,19 +97,19 @@ public class SimpleServer {
                  body(h1("Not found 404"))).statusCode(404);
 
 
-    private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest webContext) {
-        final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> CompletableFuture.completedFuture(new CountersState())),
+    private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest httpRequest) {
+        final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> new CountersState()),
                                              new NotFoundState());
         final View<AppState> appComponentView = state -> {
             if (state instanceof NotFoundState notFoundState) {
                 return notFoundStatelessView.apply(notFoundState);
             } else if (state instanceof CountersState countersState) {
-                return countersComponentView(webContext).apply(countersState);
+                return countersComponentView(httpRequest).apply(countersState);
             } else {
                 throw new IllegalStateException();
             }
         };
-        return new HttpRequestStateComponentDefinition<>(webContext,
+        return new HttpRequestStateComponentDefinition<>(httpRequest,
                                                          appRouting,
                                                          appComponentView);
     }

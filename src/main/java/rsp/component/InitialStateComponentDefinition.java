@@ -7,9 +7,9 @@ import java.util.function.Supplier;
 public class InitialStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
     private final ComponentView<S> view;
-    private final CompletableFuture<S> initialState;
+    private final S initialState;
 
-    public InitialStateComponentDefinition(final CompletableFuture<S> initialState,
+    public InitialStateComponentDefinition(final S initialState,
                                            final ComponentView<S> view) {
         super(InitialStateComponentDefinition.class);
         this.view = Objects.requireNonNull(view);
@@ -17,18 +17,11 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
     }
 
     public InitialStateComponentDefinition(final S initialState,
-                                           final ComponentView<S> view) {
-        super(InitialStateComponentDefinition.class);
-        this.view = Objects.requireNonNull(view);
-        this.initialState = CompletableFuture.completedFuture(Objects.requireNonNull(initialState));
-    }
-
-    public InitialStateComponentDefinition(final S initialState,
                                            final View<S> view) {
         super(InitialStateComponentDefinition.class);
         Objects.requireNonNull(view);
         this.view =  __ -> view;
-        this.initialState = CompletableFuture.completedFuture(Objects.requireNonNull(initialState));
+        this.initialState = Objects.requireNonNull(initialState);
     }
 
     public InitialStateComponentDefinition(final Object componentType,
@@ -36,7 +29,7 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
                                            final ComponentView<S> view) {
         super(componentType);
         this.view = Objects.requireNonNull(view);
-        this.initialState = CompletableFuture.completedFuture(Objects.requireNonNull(initialState));
+        this.initialState = Objects.requireNonNull(initialState);
     }
 
     @Override

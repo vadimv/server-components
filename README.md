@@ -282,45 +282,33 @@ A web page's components tree HTML generation consists of two phases:
 To define a routing of an incoming request, create a ``Routing`` and provide it as a parameter:
 
 ```java
-    import static rsp.html.RoutingDsl.*;
-    ...
-    final App<State> app = new App<>(routes(), render());
-    ...
-    private static Routing<HttpRequest, State> routes() {
-        final var db = new Database();
-        return routing(concat(get("/articles", req -> db.getArticles().thenApply(articles -> State.ofArticles(articles))),
-                              get("/articles/:id", (__, id) -> db.getArticle(id).thenApply(article -> State.ofArticle(article))),
-                              get("/users/:id", (__, id) -> db.getUser(id).thenApply(user -> State.ofUser(user))),
-                              post("/users/:id(^\\d+$)", (req, id) -> db.setUser(id, req.queryParam("name")).thenApply(result -> State.userWriteSuccess(result)))),
-                       NotFound.INSTANCE);
+    import static rsp.html.RoutingDsl.*; 
+
+    final var db = new Database();
+    
+    Routing<HttpRequest, State> routes() {
+        return routing(concat(get("/articles", req -> db.getArticles()),
+                              get("/articles/:id", (__, id) -> db.getArticle(id)),
+                              get("/users/:id", (__, id) ->db.getUser(id))),
+                              post("/users/:id(^\\d+$)", (req, id) -> { db.setUser(id, req.queryParam("name"));
+                                                                        return State.userWriteSuccess(); },
+                       State.NOT_FOUND_404));
     }
 ```
 
 During a dispatch, the routes are verified individually for a matching HTTP method and a path pattern.
 Route path patterns can include zero, one, or two path-extracting variables, possibly combined with regexes and the wildcard symbol "*"
 The matched variable values become available as the correspondent handlers' parameters alongside the request details object.
-The route's handler function should return a ``CompletableFuture`` of the page's state:
+The route's handler function should return the page's state:
 
 ```java
-    get("/users/*", req -> CompletableFuture.completedFuture(State.ofUsers(List.of(user1, user2))))
-```
-
-If needed, extract a paths-specific routing section:
-
-```java
-    final Routing<HttpRequest, State> routing = routing(get(__ -> paths()),
-                                                        State.pageNotFound());
-    
-    private static PathRoutes<State> paths() {
-         return concat(path("/articles", db.getArticles().thenApply(articles -> State.ofArticles(articles))),
-                       path("/articles/:id", id -> db.getArticle(id).thenApply(article -> State.ofArticle(article)));
-    }
+    get("/users/*", req -> state.ofUsers(List.of(user1, user2)))
 ```
 
 Use ``match()`` DSL function routing to implement custom matching logic, for example:
 
 ```java
-    match(req -> req.queryParam("name").isPresent(), req -> CompletableFuture.completedFuture(State.of(req.queryParam("name"))))
+    match(req -> req.queryParam("name").isPresent(), req -> State.of(req.queryParam("name")));
 ```
 
 The ``any()`` route matches every request.

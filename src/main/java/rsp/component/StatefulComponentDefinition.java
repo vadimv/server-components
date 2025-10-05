@@ -42,9 +42,8 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                         final RemoteOut remotePageMessagesOut,
                                         final Object sessionLock) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
-        final Supplier<CompletableFuture<? extends S>> resolveStateSupplier = () -> stateSupplier().getState(key);
         return new Component<>(key,
-                               resolveStateSupplier,
+                               stateSupplier(),
                                componentView(),
                                new ComponentCallbacks<>(componentDidMount(),
                                                         componentDidUpdate(),

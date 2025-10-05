@@ -21,7 +21,7 @@ public class Component<S> implements StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final ComponentCompositeKey key;
-    private final Supplier<CompletableFuture<? extends S>> stateResolver;
+    private final ComponentStateSupplier<S> stateResolver;
     private final ComponentMountedCallback<S> componentMountedCallback;
     private final ComponentUpdatedCallback<S> componentUpdatedCallback;
     private final ComponentUnmountedCallback<S> componentUnmountedCallback;
@@ -38,7 +38,7 @@ public class Component<S> implements StateUpdate<S> {
     private S state;
 
     public Component(final ComponentCompositeKey key,
-                     final Supplier<CompletableFuture<? extends S>> stateResolver,
+                     final ComponentStateSupplier<S> stateResolver,
                      final ComponentView<S> componentView,
                      final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
@@ -84,12 +84,9 @@ public class Component<S> implements StateUpdate<S> {
     }
 
     public void render(final ComponentRenderContext renderContext) {
-        final CompletableFuture<? extends S> statePromise = stateResolver.get();
-        statePromise.whenComplete((s, stateEx) -> {
-            if (stateEx == null) {
                 synchronized (sessionLock) {
-                    state = s;
                     try {
+                        state = stateResolver.getState(key);
                         final SegmentDefinition view = componentView.apply(this).apply(state);
                         view.render(renderContext);
                         onInitiallyRendered(key, state, this);
@@ -98,10 +95,6 @@ public class Component<S> implements StateUpdate<S> {
                         logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
                     }
                 }
-            } else {
-                logger.log(ERROR, "Component " + this + " state exception", stateEx);
-            }
-        });
     }
 
     public S getState() {
@@ -114,8 +107,8 @@ public class Component<S> implements StateUpdate<S> {
     }
 
     @Override
-    public void setStateWhenComplete(final CompletableFuture<? extends S> newState) {
-        newState.thenAccept(this::setState);
+    public void setStateWhenComplete(final S newState) {
+        setState(newState);
     }
 
     @Override

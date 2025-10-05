@@ -6,24 +6,24 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public final class PathMatchFunction<S> implements Function<Path, CompletableFuture<S>> {
+public final class PathMatchFunction<S> implements Function<Path, S> {
 
     private final PathPattern pathPattern;
-    private final BiFunction<String, String, CompletableFuture<S>> matchFun;
+    private final BiFunction<String, String, S> matchFun;
 
     public PathMatchFunction(final PathPattern pathPattern,
-                             final BiFunction<String, String, CompletableFuture<S>> matchFun) {
+                             final BiFunction<String, String, S> matchFun) {
         this.pathPattern = pathPattern;
         this.matchFun = matchFun;
     }
 
     @Override
-    public CompletableFuture<S> apply(final Path path) {
+    public S apply(final Path path) {
         return callMatchFun(path);
     }
 
     // TODO
-    private CompletableFuture<S> callMatchFun(final Path path) {
+    private S callMatchFun(final Path path) {
         final int[] pathParameterIndexes = pathPattern.paramsIndexes;
         if (pathParameterIndexes.length == 0) {
             return matchFun.apply("", "");

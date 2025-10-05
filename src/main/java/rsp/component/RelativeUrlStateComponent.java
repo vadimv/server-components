@@ -21,19 +21,19 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     protected final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl;
-    protected final Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState;
+    protected final Function<RelativeUrl, S> relativeUrlToState;
 
     private volatile RelativeUrl relativeUrl;
 
     public RelativeUrlStateComponent(final ComponentCompositeKey key,
                                      final RelativeUrl relativeUrl,
-                                     final Supplier<CompletableFuture<? extends S>> resolveStateSupplier,
+                                     final ComponentStateSupplier<S> resolveStateSupplier,
                                      final ComponentView<S> componentView,
                                      final ComponentCallbacks<S> componentCallbacks,
                                      final RenderContextFactory renderContextFactory,
                                      final RemoteOut remotePageMessages,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
-                                     final Function<RelativeUrl, CompletableFuture<? extends S>> relativeUrlToState,
+                                     final Function<RelativeUrl, S> relativeUrlToState,
                                      final Object sessionLock) {
         super(key,
               resolveStateSupplier,

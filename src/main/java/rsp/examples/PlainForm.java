@@ -1,7 +1,6 @@
 package rsp.examples;
 
 import rsp.component.HttpRequestStateComponentDefinition;
-import rsp.component.StatefulComponentDefinition;
 import rsp.component.View;
 import rsp.html.TagDefinition;
 import rsp.jetty.WebServer;
@@ -11,7 +10,6 @@ import rsp.routing.RoutingDsl;
 import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
@@ -49,10 +47,10 @@ public class PlainForm {
 
     private static Route<HttpRequest, Name> route() {
         return RoutingDsl.concat(
-            get("/*", req -> CompletableFuture.completedFuture(new EmptyName())),
+            get("/*", req -> new EmptyName()),
             post("/*",
-                  req -> CompletableFuture.completedFuture(new FullName(req.queryParam("firstname").orElseThrow(),
-                                                                        req.queryParam("lastname").orElseThrow()))));
+                  req -> new FullName(req.queryParam("firstname").orElseThrow(),
+                                                                        req.queryParam("lastname").orElseThrow())));
     }
 
     private static View<Name> pagesView() {

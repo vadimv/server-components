@@ -12,5 +12,5 @@ import java.util.function.Function;
  * @param <S> the result type state type, should be an immutable class
  */
 @FunctionalInterface
-public interface Route<T, S> extends Function<T, Optional<CompletableFuture<? extends S>>> {
+public interface Route<T, S> extends Function<T, Optional<S>> {
 }
