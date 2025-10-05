@@ -4,14 +4,14 @@
 
 * [Maven Central](#maven-central)
 * [Code examples](#code-examples)
+* [GUI server components](#ui-components)
+* [How to use components](#how-to-use-components)
+* [How to implement a stateful component](#how-to-implement-a-component)
 * [Routing](#routing)  
 * [HTML markup Java DSL](#html-markup-java-dsl)
 * [DOM events](#dom-events)
 * [SPAs, plain pages head tag](#spas-plain-pages-and-the-head-tag)
 * [Page HTTP status code and HTTP headers](#page-http-status-code-and-http-headers)
-* [UI components](#ui-components)
-* [How to use components](#how-to-use-components)
-* [How to implement a stateful component](#how-to-implement-a-component)
 * [Evaluating code on the client-side](#evaluating-js-code-on-client-side)
 * [Web server's configuration](#web-servers-configuration)
 * [Logging](#logging)
@@ -50,6 +50,51 @@ $ mvn clean test -Ptest-all
 * [Tetris](https://github.com/vadimv/rsp-tetris)
 * [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
 * [Hacker News API client](https://github.com/vadimv/rsp-hn)
+
+### GUI server components
+
+Pages are composed of components of two types:
+
+- views or stateless components
+- stateful components
+
+A view is a pure function from an input state to a DOM fragment's definition.
+
+```java
+    public static View<State> appView = state -> 
+        switch (state) {
+            case NotFoundState nf -> statelessComponent(nf, notFoundStatelessView);
+            case UserState   user -> component(user, userComponentView);
+            case UsersState users -> component(users, usersComponentView);
+        }
+        
+     appView.apply(new UserState("Username"));
+```
+
+A stateful component has its associated current state snapshot, an object of an immutable class or a record , which is managed by the framework.
+
+A state is set:
+- on a component's initialization during its first render
+- on an update as a result of an event, triggered by browser events or asynchronous events, e.g. timers
+
+A component state update is initiated by invoking of a ``ComponentView<S>`` parameter's ``StateUpdate`` interface methods, e.g. ``setState(newState)``.
+
+### How to use components
+
+Include a new instance of component definition class to the DSL alongside HTML definition tags.
+
+```java
+    div(span("Two counters"),
+        new Counter(1),
+        new Counter(2))
+```
+
+Note that a component's code is executed on the server, use only components you trust.
+
+### How to implement a stateful component
+
+- extend from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``
+- for simple cases use ``ComponentDsl`` helper methods
 
 
 ### HTML markup Java DSL
@@ -279,51 +324,6 @@ Use ``match()`` DSL function routing to implement custom matching logic, for exa
 ```
 
 The ``any()`` route matches every request.
-
-### UI components
-
-Pages are composed of components of two types:
-
-- views or stateless components
-- stateful components
-
-A view is a pure function from an input state to a DOM fragment's definition.
-
-```java
-    public static View<State> appView = state -> 
-        switch (state) {
-            case NotFoundState nf -> statelessComponent(nf, notFoundStatelessView);
-            case UserState   user -> component(user, userComponentView);
-            case UsersState users -> component(users, usersComponentView);
-        }
-        
-     appView.apply(new UserState("Username"));
-```
-
-A stateful component has its associated current state snapshot, an object of an immutable class or a record , which is managed by the framework.
-
-A state is set:
-- on a component's initialization during its first render
-- on an update as a result of an event, triggered by browser events or asynchronous events, e.g. timers
-
-A component state update is initiated by invoking of a ``ComponentView<S>`` parameter's ``StateUpdate`` interface methods, e.g. ``setState(newState)``.
-
-### How to use components
-
-Include a new instance of component definition class to the DSL alongside HTML definition tags.
-
-```java
-    div(span("Two counters"),
-        new Counter(1),
-        new Counter(2))
-```
-
-Note that a component's code is executed on the server, use only components you trust.
-
-### How to implement a stateful component
-
-- extend from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``
-- for simple cases use ``ComponentDsl`` helper methods
 
 ### DOM elements references
 
