@@ -35,6 +35,7 @@ public class Component<S> implements StateUpdate<S> {
     private final List<Component<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
     private TreePositionPath startNodeDomPath;
+
     private S state;
 
     public Component(final ComponentCompositeKey key,
@@ -95,10 +96,6 @@ public class Component<S> implements StateUpdate<S> {
                         logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
                     }
                 }
-    }
-
-    public S getState() {
-        return state;
     }
 
     @Override

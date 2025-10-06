@@ -7,8 +7,6 @@ import rsp.page.RenderContextFactory;
 import rsp.server.RemoteOut;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 public abstract class StatefulComponentDefinition<S> implements SegmentDefinition, ComponentFactory<S> {
 

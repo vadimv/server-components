@@ -4,10 +4,8 @@ import rsp.server.Path;
 import rsp.server.http.*;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public class PathStateComponentDefinition<S> extends RelativeUrlStateComponentDefinition<S> {
     private final Function<Path, S> initialStateRouting;

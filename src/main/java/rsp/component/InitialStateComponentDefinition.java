@@ -1,8 +1,6 @@
 package rsp.component;
 
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 public class InitialStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 

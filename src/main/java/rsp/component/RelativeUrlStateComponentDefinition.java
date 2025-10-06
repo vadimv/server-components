@@ -6,10 +6,8 @@ import rsp.page.RenderContextFactory;
 import rsp.server.RemoteOut;
 import rsp.server.http.RelativeUrl;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 
