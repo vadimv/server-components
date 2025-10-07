@@ -65,6 +65,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
     private void shutdown() {
         logger.log(DEBUG, () -> "Live Page shutdown: " + this);
         pageRenderContext.shutdown();
+        reactor.stop();
     }
 
     private void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
@@ -95,9 +96,9 @@ public final class LivePageSession implements Consumer<SessionEvent> {
     }
 
     private void handleDomEvent(final int renderNumber,
-                               final TreePositionPath eventPath,
-                               final String eventType,
-                               final JsonDataType.Object eventObject) {
+                                final TreePositionPath eventPath,
+                                final String eventType,
+                                final JsonDataType.Object eventObject) {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         TreePositionPath eventElementPath = eventPath;
         while (eventElementPath.level() >= 0) {

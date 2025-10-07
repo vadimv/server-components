@@ -4,7 +4,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Consumer;
 
-public class Reactor<T> implements Runnable, Consumer<T> {
+import static java.lang.System.Logger;
+
+public final class Reactor<T> implements Runnable, Consumer<T> {
+    private static final Logger logger = System.getLogger(Reactor.class.getName());
+
     private final BlockingQueue<T> eventsQueue = new LinkedBlockingDeque<>();
     private final Consumer<T> consumer;
 
@@ -28,6 +32,7 @@ public class Reactor<T> implements Runnable, Consumer<T> {
         try {
             eventsQueue.put(s);
         } catch (InterruptedException e) {
+            logger.log(Logger.Level.ERROR, "Event loop queue put InterruptedException", e);
         }
     }
 
@@ -37,7 +42,11 @@ public class Reactor<T> implements Runnable, Consumer<T> {
             try {
                 final T event = eventsQueue.take();
                 consumer.accept(event);
-            } catch (InterruptedException e) {}
+            } catch (final InterruptedException e) {
+                // no-op
+            } catch (final Throwable e) {
+                logger.log(Logger.Level.ERROR, "Event loop error", e);
+            }
         }
 
     }
