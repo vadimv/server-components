@@ -2,12 +2,17 @@ package rsp.server.protocol;
 
 
 import rsp.dom.TreePositionPath;
+import rsp.page.events.DomEvent;
+import rsp.page.events.EvalJsResponseEvent;
+import rsp.page.events.ExtractPropertyResponseEvent;
+import rsp.page.events.SessionEvent;
 import rsp.server.ExtractPropertyResponse;
 import rsp.server.RemoteIn;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonParser;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.TRACE;
 
@@ -18,7 +23,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     private static final System.Logger logger = System.getLogger(RemotePageMessageDecoder.class.getName());
 
     private JsonParser jsonParser;
-    private final RemoteIn remoteIn;
+    private final Consumer<SessionEvent> remoteIn;
 
     private static final int DOM_EVENT = 0; // `$renderNum:$elementId:$eventType`
     private static final int CUSTOM_CALLBACK = 1; // `$name:arg`
@@ -33,7 +38,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public RemotePageMessageDecoder(final JsonParser jsonParser, final RemoteIn remoteIn) {
+    public RemotePageMessageDecoder(final JsonParser jsonParser, final Consumer<SessionEvent> remoteIn) {
         this.jsonParser = Objects.requireNonNull(jsonParser);
         this.remoteIn = Objects.requireNonNull(remoteIn);
     }
@@ -65,20 +70,20 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
         final ExtractPropertyResponse result = jsonMetadata == JSON_METADATA_DATA ?
                                         new ExtractPropertyResponse.Value(value) :
                                         ExtractPropertyResponse.NOT_FOUND;
-        remoteIn.handleExtractPropertyResponse(descriptorId, result);
+        remoteIn.accept(new ExtractPropertyResponseEvent(descriptorId, result));
     }
 
     private void parseEvalJsResponse(final String metadata, final JsonDataType value) {
         final String[] tokens = metadata.split(":");
-        remoteIn.handleEvalJsResponse(Integer.parseInt(tokens[0]), value);
+        remoteIn.accept(new EvalJsResponseEvent(Integer.parseInt(tokens[0]), value));
     }
 
     private void parseDomEvent(final String str, final JsonDataType.Object eventObject) {
         final String[] tokens = str.split(":");
-        remoteIn.handleDomEvent(Integer.parseInt(tokens[0]),
-                                TreePositionPath.of(tokens[1]),
-                                tokens[2],
-                                eventObject);
+        remoteIn.accept(new DomEvent(Integer.parseInt(tokens[0]),
+                                     TreePositionPath.of(tokens[1]),
+                                     tokens[2],
+                                     eventObject));
     }
 
     private void heartBeat() {

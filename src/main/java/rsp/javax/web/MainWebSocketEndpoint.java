@@ -3,6 +3,8 @@ package rsp.javax.web;
 import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
+import rsp.page.events.InitSessionEvent;
+import rsp.page.events.ShutdownSessionEvent;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
 import rsp.server.protocol.RemotePageMessageDecoder;
@@ -51,12 +53,12 @@ public final class MainWebSocketEndpoint extends Endpoint {
             }
         } else {
 
-            final LivePageSession livePage = new LivePageSession(renderedPage.pageRenderContext,
-                                                                 remoteOut,
-                                                                 renderedPage.sessionLock);
+            final LivePageSession livePage = new LivePageSession();
+            livePage.eventsConsumer().accept(new InitSessionEvent(renderedPage.pageRenderContext,
+                                                                  remoteOut));
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
-            final RemotePageMessageDecoder in = new RemotePageMessageDecoder(jsonParser, livePage);
+            final RemotePageMessageDecoder in = new RemotePageMessageDecoder(jsonParser, livePage.eventsConsumer());
             session.addMessageHandler(new MessageHandler.Whole<String>() {
                 @Override
                 public void onMessage(final String s) {
@@ -65,7 +67,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
                 }
             });
             remoteOut.setRenderNum(0);
-            livePage.init();
+            livePage.start();
             renderedPage.commandsBuffer.redirectMessagesOut(new RemotePageMessageEncoder(msg -> sendText(session, msg)));
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
@@ -95,7 +97,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
     private void shutdown(final Session session) {
         final LivePageSession livePage = (LivePageSession) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
-            livePage.shutdown();
+            livePage.eventsConsumer().accept(new ShutdownSessionEvent());
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }

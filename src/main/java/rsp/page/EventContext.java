@@ -1,6 +1,7 @@
 package rsp.page;
 
 import rsp.dom.TreePositionPath;
+import rsp.page.events.CustomEvent;
 import rsp.ref.ElementRef;
 import rsp.ref.Ref;
 import rsp.util.json.JsonDataType;

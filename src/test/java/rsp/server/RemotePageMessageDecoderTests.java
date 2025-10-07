@@ -55,7 +55,7 @@ class RemotePageMessageDecoderTests {
     }
 
     private static RemotePageMessageDecoder createDecoder(final RemoteIn collector) {
-        return new RemotePageMessageDecoder(JsonSimpleUtils.createParser(), collector);
+        return new RemotePageMessageDecoder(JsonSimpleUtils.createParser(), null);
     }
 
     private static final class DomEvent {

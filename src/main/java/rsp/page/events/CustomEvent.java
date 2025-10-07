@@ -1,4 +1,4 @@
-package rsp.page;
+package rsp.page.events;
 
 import rsp.util.json.JsonDataType;
 

@@ -3,6 +3,7 @@ package rsp.page;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.html.WindowDefinition;
+import rsp.page.events.*;
 import rsp.ref.Ref;
 import rsp.server.ExtractPropertyResponse;
 import rsp.server.RemoteIn;
@@ -13,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
@@ -20,92 +22,94 @@ import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
 /**
  * A server-side session object representing an open browser's page.
  */
-public final class LivePageSession implements RemoteIn {
+public final class LivePageSession implements Consumer<SessionEvent> {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
 
-    private final PageRenderContext pageRenderContext;
-    private final RemoteOut remoteOut;
-    private final Object sessionLock;
-
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
+    private final Reactor<SessionEvent> reactor;
 
+    private PageRenderContext pageRenderContext;
+    private RemoteOut remoteOut;
     private int descriptorsCounter;
 
-    public LivePageSession(final PageRenderContext pageRenderContext,
-                           final RemoteOut remoteOut,
-                           final Object sessionLock) {
-        this.pageRenderContext = Objects.requireNonNull(pageRenderContext);
-        this.remoteOut = Objects.requireNonNull(remoteOut);
-        this.sessionLock = Objects.requireNonNull(sessionLock);
+    public LivePageSession() {
+        this.reactor = new Reactor<>(this);
     }
 
-    public void init() {
-        synchronized (sessionLock) {
-            remoteOut.listenEvents(pageRenderContext.recursiveEvents());
-        }
-  }
+    public Consumer<SessionEvent> eventsConsumer() {
+        return reactor;
+    }
 
-    public void shutdown() {
-        logger.log(DEBUG, () -> "Live Page shutdown: " + this);
-        synchronized (sessionLock) {
-            pageRenderContext.shutdown();
-        }
+    public void start() {
+        reactor.start();
     }
 
     @Override
-    public void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
+    public void accept(SessionEvent event) {
+        switch (event) {
+            case InitSessionEvent e -> init(e);
+            case SessionCustomEvent e -> handleDomEvent(0, e.path(), e.customEvent().eventName(), e.customEvent().eventData());
+            case DomEvent e -> handleDomEvent(e.renderNumber(), e.path(), e.eventType(), e.eventObject());
+            case EvalJsResponseEvent e -> handleEvalJsResponse(e.descriptorId(), e.value());
+            case ExtractPropertyResponseEvent e -> handleExtractPropertyResponse(e.descriptorId(), e.result());
+            case ShutdownSessionEvent __ -> shutdown();
+        }
+    }
+
+    private void init(InitSessionEvent e) {
+        this.pageRenderContext = Objects.requireNonNull(e.pageRenderContext());
+        this.remoteOut = Objects.requireNonNull(e.remoteOut());
+        remoteOut.listenEvents(pageRenderContext.recursiveEvents());
+    }
+
+    private void shutdown() {
+        logger.log(DEBUG, () -> "Live Page shutdown: " + this);
+        pageRenderContext.shutdown();
+    }
+
+    private void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
         if (result instanceof ExtractPropertyResponse.NotFound) {
             logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " failed");
-            synchronized (sessionLock) {
-                final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
-                if (cf != null) {
-                    cf.completeExceptionally(new RuntimeException("Extract property: " + descriptorId + " not found"));
-                    registeredEventHandlers.remove(descriptorId);
-                }
+            final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+            if (cf != null) {
+                cf.completeExceptionally(new RuntimeException("Extract property: " + descriptorId + " not found"));
+                registeredEventHandlers.remove(descriptorId);
             }
         } else if (result instanceof ExtractPropertyResponse.Value v) {
             logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.value());
-            synchronized (sessionLock) {
-                final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
-                if (cf != null) {
-                    cf.complete(v.value());
-                    registeredEventHandlers.remove(descriptorId);
-                    }
-                }
-            }
-    }
-
-    @Override
-    public void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
-        logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toString());
-        synchronized (sessionLock) {
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
             if (cf != null) {
-                cf.complete(value);
+                cf.complete(v.value());
                 registeredEventHandlers.remove(descriptorId);
             }
         }
     }
 
-    @Override
-    public void handleDomEvent(final int renderNumber,
+    private void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
+        logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toString());
+        final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
+        if (cf != null) {
+            cf.complete(value);
+            registeredEventHandlers.remove(descriptorId);
+        }
+    }
+
+    private void handleDomEvent(final int renderNumber,
                                final TreePositionPath eventPath,
                                final String eventType,
                                final JsonDataType.Object eventObject) {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
-        synchronized (sessionLock) {
-            TreePositionPath eventElementPath = eventPath;
-            while (eventElementPath.level() >= 0) {
-                for (final Event event: pageRenderContext.recursiveEvents()) {
-                    if (event.eventTarget.elementPath().equals(eventElementPath) && event.eventTarget.eventType().equals(eventType)) {
-                        event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
-                    }
+        TreePositionPath eventElementPath = eventPath;
+        while (eventElementPath.level() >= 0) {
+            for (final Event event: pageRenderContext.recursiveEvents()) {
+                if (event.eventTarget.elementPath().equals(eventElementPath) && event.eventTarget.eventType().equals(eventType)) {
+                    event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                 }
-                if (eventElementPath.level() > 0) {
-                    eventElementPath = eventElementPath.parent();
-                } else {
-                    break;
-                }
+            }
+            if (eventElementPath.level() > 0) {
+                eventElementPath = eventElementPath.parent();
+            } else {
+                break;
             }
         }
     }
@@ -116,7 +120,7 @@ public final class LivePageSession implements RemoteIn {
                                 this::evalJs,
                                 this::createPropertiesHandle,
                                 eventObject,
-                                this::dispatchEvent,
+                                (path, customEvent) -> reactor.accept(new SessionCustomEvent(path, customEvent)),
                                 this::setHref);
     }
 
@@ -128,23 +132,17 @@ public final class LivePageSession implements RemoteIn {
         return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, remoteOut);
     }
 
-    private void dispatchEvent(TreePositionPath eventElementPath, CustomEvent customEvent) {
-        handleDomEvent(0, eventElementPath, customEvent.eventName(), customEvent.eventData());
-    }
-
     private TreePositionPath resolveRef(final Ref ref) {
         return ref instanceof WindowDefinition.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
     }
 
-    public CompletableFuture<JsonDataType> evalJs(final String js) {
+    private CompletableFuture<JsonDataType> evalJs(final String js) {
         logger.log(DEBUG, () -> "Called an JS evaluation: " + js);
-        synchronized (sessionLock) {
-            final int newDescriptor = ++descriptorsCounter;
-            final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
-            registeredEventHandlers.put(newDescriptor, resultHandler);
-            remoteOut.evalJs(newDescriptor, js);
-            return resultHandler;
-        }
+        final int newDescriptor = ++descriptorsCounter;
+        final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
+        registeredEventHandlers.put(newDescriptor, resultHandler);
+        remoteOut.evalJs(newDescriptor, js);
+        return resultHandler;
     }
 
     private void setHref(final String path) {
