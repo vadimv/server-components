@@ -6,7 +6,6 @@ import rsp.html.WindowDefinition;
 import rsp.page.events.*;
 import rsp.ref.Ref;
 import rsp.server.ExtractPropertyResponse;
-import rsp.server.RemoteIn;
 import rsp.server.RemoteOut;
 import rsp.util.json.JsonDataType;
 
@@ -20,7 +19,7 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
 
 /**
- * A server-side session object representing an open browser's page.
+ * A server-side session object representing an open and connected browser's page.
  */
 public final class LivePageSession implements Consumer<SessionEvent> {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
@@ -45,18 +44,19 @@ public final class LivePageSession implements Consumer<SessionEvent> {
     }
 
     @Override
-    public void accept(SessionEvent event) {
+    public void accept(final SessionEvent event) {
         switch (event) {
             case InitSessionEvent e -> init(e);
             case SessionCustomEvent e -> handleDomEvent(0, e.path(), e.customEvent().eventName(), e.customEvent().eventData());
             case DomEvent e -> handleDomEvent(e.renderNumber(), e.path(), e.eventType(), e.eventObject());
             case EvalJsResponseEvent e -> handleEvalJsResponse(e.descriptorId(), e.value());
             case ExtractPropertyResponseEvent e -> handleExtractPropertyResponse(e.descriptorId(), e.result());
+            case GenericTaskEvent e -> e.task().run();
             case ShutdownSessionEvent __ -> shutdown();
         }
     }
 
-    private void init(InitSessionEvent e) {
+    private void init(final InitSessionEvent e) {
         this.pageRenderContext = Objects.requireNonNull(e.pageRenderContext());
         this.remoteOut = Objects.requireNonNull(e.remoteOut());
         remoteOut.listenEvents(pageRenderContext.recursiveEvents());
