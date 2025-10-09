@@ -3,7 +3,8 @@ package rsp.page;
 import rsp.dom.XmlNs;
 import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext;
-import rsp.server.RemoteOut;
+import rsp.page.events.RemoteCommand;
+import rsp.page.events.SessionEvent;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -11,18 +12,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class PropertiesHandle {
     private final TreePositionPath path;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers;
-    private final RemoteOut remoteOut;
+    private final Consumer<SessionEvent> remoteOut;
 
     public PropertiesHandle(final TreePositionPath path,
                             final Supplier<Integer> descriptorSupplier,
                             final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
-                            final RemoteOut remoteOut) {
+                            final Consumer<SessionEvent> remoteOut) {
         this.path = Objects.requireNonNull(path);
         this.descriptorSupplier = Objects.requireNonNull(descriptorSupplier);
         this.registeredEventHandlers = Objects.requireNonNull(registeredEventHandlers);
@@ -38,7 +40,7 @@ public final class PropertiesHandle {
         final Integer newDescriptor = descriptorSupplier.get();
         final CompletableFuture<JsonDataType> valueFuture = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, valueFuture);
-        remoteOut.extractProperty(newDescriptor, path, propertyName);
+        remoteOut.accept(new RemoteCommand.ExtractProperty(newDescriptor, path, propertyName));
         return valueFuture;
     }
 
@@ -47,7 +49,7 @@ public final class PropertiesHandle {
     }
 
     public CompletableFuture<Void> set(final String propertyName, final String value) {
-        remoteOut.modifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true)));
+        remoteOut.accept(new RemoteCommand.ModifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true))));
         return new CompletableFuture<>();
     }
 

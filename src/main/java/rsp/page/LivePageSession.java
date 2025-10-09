@@ -51,6 +51,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
             case DomEvent e -> handleDomEvent(e.renderNumber(), e.path(), e.eventType(), e.eventObject());
             case EvalJsResponseEvent e -> handleEvalJsResponse(e.descriptorId(), e.value());
             case ExtractPropertyResponseEvent e -> handleExtractPropertyResponse(e.descriptorId(), e.result());
+            case RemoteCommand e -> e.accept(remoteOut);
             case GenericTaskEvent e -> e.task().run();
             case ShutdownSessionEvent __ -> shutdown();
         }
@@ -59,7 +60,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
     private void init(final InitSessionEvent e) {
         this.pageRenderContext = Objects.requireNonNull(e.pageRenderContext());
         this.remoteOut = Objects.requireNonNull(e.remoteOut());
-        remoteOut.listenEvents(pageRenderContext.recursiveEvents());
+        this.accept(new RemoteCommand.ListenEvent(pageRenderContext.recursiveEvents()));
     }
 
     private void shutdown() {
@@ -130,7 +131,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
         }
-        return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, remoteOut);
+        return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, this);
     }
 
     private TreePositionPath resolveRef(final Ref ref) {
@@ -142,11 +143,11 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         final int newDescriptor = ++descriptorsCounter;
         final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, resultHandler);
-        remoteOut.evalJs(newDescriptor, js);
+        this.accept(new RemoteCommand.EvalJs(newDescriptor, js));
         return resultHandler;
     }
 
     private void setHref(final String path) {
-        remoteOut.setHref(path);
+        this.accept(new RemoteCommand.SetHref(path));
     }
 }

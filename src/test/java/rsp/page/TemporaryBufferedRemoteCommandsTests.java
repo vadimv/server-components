@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 
-class TemporaryBufferedPageCommandsTests {
+class TemporaryBufferedRemoteCommandsTests {
 
     @Test
     void buffers_messages_and_after_switch_sends_all_to_out() {
