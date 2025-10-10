@@ -4,6 +4,7 @@ import rsp.dom.*;
 import rsp.html.SegmentDefinition;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
+import rsp.page.events.GenericTaskEvent;
 import rsp.page.events.RemoteCommand;
 import rsp.page.events.SessionEvent;
 import rsp.ref.Ref;
@@ -27,8 +28,7 @@ public class Component<S> implements StateUpdate<S> {
     private final ComponentUnmountedCallback<S> componentUnmountedCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
-    protected final Consumer<SessionEvent> remotePageMessages;
-    private final Object sessionLock;
+    protected final Consumer<SessionEvent> commandsScheduler;
 
     private final List<Event> events = new ArrayList<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
@@ -43,8 +43,7 @@ public class Component<S> implements StateUpdate<S> {
                      final ComponentView<S> componentView,
                      final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
-                     final Consumer<SessionEvent> remotePageMessages,
-                     final Object sessionLock) {
+                     final Consumer<SessionEvent> commandsScheduler) {
         this.key = Objects.requireNonNull(key);
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.componentMountedCallback = Objects.requireNonNull(componentCallbacks.componentMountedCallback());
@@ -52,8 +51,7 @@ public class Component<S> implements StateUpdate<S> {
         this.componentUpdatedCallback = Objects.requireNonNull(componentCallbacks.componentUpdatedCallback());
         this.componentUnmountedCallback = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
-        this.remotePageMessages = Objects.requireNonNull(remotePageMessages);
-        this.sessionLock = Objects.requireNonNull(sessionLock);
+        this.commandsScheduler = Objects.requireNonNull(commandsScheduler);
 
         logger.log(TRACE, () -> "New component is created with key " + this);
     }
@@ -85,17 +83,15 @@ public class Component<S> implements StateUpdate<S> {
     }
 
     public void render(final ComponentRenderContext renderContext) {
-                synchronized (sessionLock) {
-                    try {
-                        state = stateResolver.getState(key);
-                        final SegmentDefinition view = componentView.apply(this).apply(state);
-                        view.render(renderContext);
-                        onInitiallyRendered(key, state, this);
-                        componentMountedCallback.onComponentMounted(key, state, this);
-                    } catch (Throwable renderEx) {
-                        logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
-                    }
-                }
+        try {
+            state = stateResolver.getState(key);
+            final SegmentDefinition view = componentView.apply(this).apply(state);
+            view.render(renderContext);
+            onInitiallyRendered(key, state, this);
+            componentMountedCallback.onComponentMounted(key, state, new ScheduledStateUpdate());
+        } catch (Throwable renderEx) {
+            logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
+        }
     }
 
     @Override
@@ -110,74 +106,70 @@ public class Component<S> implements StateUpdate<S> {
 
     @Override
     public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
-        synchronized (sessionLock) {
-            stateTransformer.apply(state).ifPresent(this::setState);
-        }
+        stateTransformer.apply(state).ifPresent(this::setState);
     }
 
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
-        synchronized (sessionLock) {
-            final List<Node> oldRootNodes = new ArrayList<>(rootNodes);
-            rootNodes.clear();
-            final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
-            final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
-            final S oldState = state;
-            state = newStateFunction.apply(state);
+        final List<Node> oldRootNodes = new ArrayList<>(rootNodes);
+        rootNodes.clear();
+        final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
+        final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
+        final S oldState = state;
+        state = newStateFunction.apply(state);
 
-            logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
+        logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
-            final ComponentRenderContext renderContext = renderContextFactory.newContext(startNodeDomPath);
+        final ComponentRenderContext renderContext = renderContextFactory.newContext(startNodeDomPath);
 
-            events.clear();
-            refs.clear();
-            children.clear();
+        events.clear();
+        refs.clear();
+        children.clear();
 
-            renderContext.openComponent(this);
-            final SegmentDefinition view = componentView.apply(this).apply(state);
-            view.render(renderContext);
-            renderContext.closeComponent();
+        renderContext.openComponent(this);
+        final SegmentDefinition view = componentView.apply(this).apply(state);
+        view.render(renderContext);
+        renderContext.closeComponent();
 
-            onUpdateRendered(key, oldState, state, this);
+        onUpdateRendered(key, oldState, state, this);
 
-            // Calculate diff between an old and new DOM trees
-            final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-            Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
-            final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
-            remotePageMessages.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
+        // Calculate diff between an old and new DOM trees
+        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
+        Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
+        final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
+        commandsScheduler.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
 
-            // Unregister events
-            final List<Event> eventsToRemove = new ArrayList<>();
-            final Set<Event> newEvents = new HashSet<>(recursiveEvents());
-            for (Event event : oldEvents) {
-                if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath())) {
-                    eventsToRemove.add(event);
-                }
+        // Unregister events
+        final List<Event> eventsToRemove = new ArrayList<>();
+        final Set<Event> newEvents = new HashSet<>(recursiveEvents());
+        for (Event event : oldEvents) {
+            if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath())) {
+                eventsToRemove.add(event);
             }
-            for (Event event : eventsToRemove) {
-                final Event.Target eventTarget = event.eventTarget;
-                remotePageMessages.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(),
-                                                                        eventTarget.elementPath()));
-            }
-
-            // Register new event types on client
-            final List<Event> eventsToAdd = new ArrayList<>();
-            for (final Event event : newEvents) {
-                if (!oldEvents.contains(event)) {
-                    eventsToAdd.add(event);
-                }
-            }
-            remotePageMessages.accept(new RemoteCommand.ListenEvent(eventsToAdd));
-
-            // Notify unmounted child components
-            final Set<Component<?>> mountedComponents = new HashSet<>(children);
-            for (final Component<?> child : oldChildren) {
-                if (!mountedComponents.contains(child)) {
-                    child.unmount();
-                }
-            }
-            componentUpdatedCallback.onComponentUpdated(key, oldState, state, this);
         }
+        for (Event event : eventsToRemove) {
+            final Event.Target eventTarget = event.eventTarget;
+            commandsScheduler.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(),
+                                                                    eventTarget.elementPath()));
+        }
+
+        // Register new event types on client
+        final List<Event> eventsToAdd = new ArrayList<>();
+        for (final Event event : newEvents) {
+            if (!oldEvents.contains(event)) {
+                eventsToAdd.add(event);
+            }
+        }
+        commandsScheduler.accept(new RemoteCommand.ListenEvent(eventsToAdd));
+
+        // Notify unmounted child components
+        final Set<Component<?>> mountedComponents = new HashSet<>(children);
+        for (final Component<?> child : oldChildren) {
+            if (!mountedComponents.contains(child)) {
+                child.unmount();
+            }
+        }
+        componentUpdatedCallback.onComponentUpdated(key, oldState, state, new ScheduledStateUpdate());
     }
 
     protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
@@ -259,4 +251,33 @@ public class Component<S> implements StateUpdate<S> {
         return Objects.hash(key);
     }
 
+    private final class ScheduledStateUpdate implements StateUpdate<S> {
+        @Override
+        public void setState(S newState) {
+            commandsScheduler.accept(new GenericTaskEvent(() -> {
+                Component.this.setState(newState);
+            }));
+        }
+
+        @Override
+        public void setStateWhenComplete(S newState) {
+            commandsScheduler.accept(new GenericTaskEvent(() -> {
+                Component.this.setStateWhenComplete(newState);
+            }));
+        }
+
+        @Override
+        public void applyStateTransformation(UnaryOperator<S> stateTransformer) {
+            commandsScheduler.accept(new GenericTaskEvent(() -> {
+                Component.this.applyStateTransformation(stateTransformer);
+            }));
+        }
+
+        @Override
+        public void applyStateTransformationIfPresent(Function<S, Optional<S>> stateTransformer) {
+            commandsScheduler.accept(new GenericTaskEvent(() -> {
+                Component.this.applyStateTransformationIfPresent(stateTransformer);
+            }));
+        }
+    }
 }

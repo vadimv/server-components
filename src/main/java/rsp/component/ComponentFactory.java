@@ -12,6 +12,5 @@ public interface ComponentFactory<S> {
     Component<S> createComponent(QualifiedSessionId sessionId,
                                  TreePositionPath componentPath,
                                  RenderContextFactory renderContextFactory,
-                                 Consumer<SessionEvent> remotePageMessagesOut,
-                                 Object sessionLock);
+                                 Consumer<SessionEvent> commandsScheduler);
 }

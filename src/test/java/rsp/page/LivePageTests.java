@@ -44,12 +44,10 @@ class LivePageTests {
                                                                        DefaultConnectionLostWidget.HTML,
                                                                        1000);
         final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
-        final Object sessionLock = new Object();
         final PageRenderContext domTreeContext = new PageRenderContext(QID,
                                                                        pageConfigScript.toString(),
                                                                        DOCUMENT_DOM_PATH,
-                                                                       commandsBuffer,
-                                                                       sessionLock);
+                                                                       commandsBuffer);
 
         final StatefulComponentDefinition<State> componentDefinition = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                                                                      p -> initialState,

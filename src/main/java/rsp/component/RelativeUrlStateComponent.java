@@ -6,7 +6,6 @@ import rsp.page.RenderContextFactory;
 import rsp.page.events.RemoteCommand;
 import rsp.page.events.SessionEvent;
 import rsp.server.Path;
-import rsp.server.RemoteOut;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
@@ -32,17 +31,15 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                                      final ComponentView<S> componentView,
                                      final ComponentCallbacks<S> componentCallbacks,
                                      final RenderContextFactory renderContextFactory,
-                                     final Consumer<SessionEvent> remotePageMessages,
+                                     final Consumer<SessionEvent> commandsScheduler,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
-                                     final Function<RelativeUrl, S> relativeUrlToState,
-                                     final Object sessionLock) {
+                                     final Function<RelativeUrl, S> relativeUrlToState) {
         super(key,
               resolveStateSupplier,
               componentView,
               componentCallbacks,
               renderContextFactory,
-              remotePageMessages,
-              sessionLock);
+              commandsScheduler);
         this.relativeUrl = relativeUrl;
         this.stateToRelativeUrl = Objects.requireNonNull(stateToRelativeUrl);
         this.relativeUrlToState = Objects.requireNonNull(relativeUrlToState);
@@ -62,7 +59,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, relativeUrl);
         if (!newRelativeUrl.equals(relativeUrl)) {
             relativeUrl = newRelativeUrl;
-            remotePageMessages.accept(new RemoteCommand.PushHistory(relativeUrl.path().toString()));
+            commandsScheduler.accept(new RemoteCommand.PushHistory(relativeUrl.path().toString()));
         }
     }
 

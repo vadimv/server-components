@@ -21,7 +21,6 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     protected abstract ComponentView<S> componentView();
 
-
     protected ComponentMountedCallback<S> componentDidMount() {
         return (key, state, newState) -> {};
     }
@@ -38,8 +37,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
-                                        final Consumer<SessionEvent> remotePageMessagesOut,
-                                        final Object sessionLock) {
+                                        final Consumer<SessionEvent> commandsScheduler) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         return new Component<>(key,
                                stateSupplier(),
@@ -48,8 +46,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                                         componentDidUpdate(),
                                                         componentWillUnmount()),
                                renderContextFactory,
-                               remotePageMessagesOut,
-                               sessionLock);
+                               commandsScheduler);
     }
 
     @Override

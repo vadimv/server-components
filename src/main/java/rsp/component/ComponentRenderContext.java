@@ -14,7 +14,6 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     protected final QualifiedSessionId sessionId;
     protected final Consumer<SessionEvent> remotePageMessagesOut;
-    protected final Object sessionLock;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
@@ -26,12 +25,10 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
-                                  final Consumer<SessionEvent> remotePageMessagesOut,
-                                  final Object sessionLock) {
+                                  final Consumer<SessionEvent> remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
-        this.sessionLock = Objects.requireNonNull(sessionLock);
     }
 
     public void setDocType(final String docType) {
@@ -49,8 +46,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
                                                                            this,
-                                                                           remotePageMessagesOut,
-                                                                           sessionLock);
+                                                                           remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;
     }
@@ -169,8 +165,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
         return new ComponentRenderContext(sessionId,
                                           startDomPath,
-                                          remotePageMessagesOut,
-                                          sessionLock);
+                                          remotePageMessagesOut);
     }
 
     public String html() {

@@ -64,8 +64,7 @@ public class HtmlDefinitionsTests {
                                                         Path.ROOT);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     __ -> new TestCollectingRemoteOut(),
-                                                                     new Object());
+                                                                     __ -> new TestCollectingRemoteOut());
         return rc;
 
     }
