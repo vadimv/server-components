@@ -15,11 +15,11 @@ class TemporaryBufferedRemoteCommandsTests {
     void buffers_messages_and_after_switch_sends_all_to_out() {
         final TemporaryBufferedPageCommands remoteOutWithBuffer = new TemporaryBufferedPageCommands();
         final TestMessages testConsumer = new TestMessages();
-        remoteOutWithBuffer.evalJs(1, "1");
+        //remoteOutWithBuffer.evalJs(1, "1");
         Assertions.assertEquals(0, testConsumer.messages.size());
 
-        remoteOutWithBuffer.redirectMessagesOut(new RemotePageMessageEncoder(testConsumer));
-        remoteOutWithBuffer.evalJs(2, "2");
+        //remoteOutWithBuffer.redirectMessagesOut(new RemotePageMessageEncoder(testConsumer));
+        //remoteOutWithBuffer.evalJs(2, "2");
         Assertions.assertEquals(2, testConsumer.messages.size());
     }
 

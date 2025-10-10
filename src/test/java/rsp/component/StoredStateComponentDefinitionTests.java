@@ -43,7 +43,7 @@ class StoredStateComponentDefinitionTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                remoteOut,
+                                                                                null,
                                                                                 new Object());
         final StatefulComponentDefinition<Boolean> scd = new InitialStateComponentDefinition<>(true,
                                                                                                view);

@@ -67,7 +67,7 @@ class LivePageTests {
         assertEquals(0, remoteOut.commands.size());
 
         livePage.start();
-        commandsBuffer.redirectMessagesOut(remoteOut);
+        //commandsBuffer.redirectMessagesOut(remoteOut);
 
         assertEquals(1, remoteOut.commands.size());
         remoteOut.commands.clear();

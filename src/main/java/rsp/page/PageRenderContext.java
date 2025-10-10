@@ -3,10 +3,11 @@ package rsp.page;
 import rsp.component.ComponentRenderContext;
 import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
-import rsp.server.RemoteOut;
+import rsp.page.events.SessionEvent;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public final class PageRenderContext extends ComponentRenderContext {
 
@@ -19,7 +20,7 @@ public final class PageRenderContext extends ComponentRenderContext {
     public PageRenderContext(final QualifiedSessionId sessionId,
                              final String pageConfigScript,
                              final TreePositionPath rootDomPath,
-                             final RemoteOut remotePageMessagesOut,
+                             final Consumer<SessionEvent> remotePageMessagesOut,
                              final Object sessionLock) {
         super(sessionId,
               rootDomPath,

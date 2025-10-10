@@ -4,6 +4,7 @@ import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.page.events.InitSessionEvent;
+import rsp.page.events.RemoteCommand;
 import rsp.page.events.ShutdownSessionEvent;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
@@ -68,7 +69,12 @@ public final class MainWebSocketEndpoint extends Endpoint {
             });
             remoteOut.setRenderNum(0);
             livePage.start();
-            renderedPage.commandsBuffer.redirectMessagesOut(new RemotePageMessageEncoder(msg -> sendText(session, msg)));
+            final var remotePageMessageEncoder = new RemotePageMessageEncoder(msg -> sendText(session, msg));
+            renderedPage.commandsBuffer.redirectMessagesOut(event -> {
+                if (event instanceof RemoteCommand remoteCommand) {
+                    remoteCommand.accept(remotePageMessageEncoder);
+                }
+            });
             logger.log(DEBUG, () -> "Live page started: " + this);
         }
     }

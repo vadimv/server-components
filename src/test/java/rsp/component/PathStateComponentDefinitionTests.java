@@ -36,7 +36,7 @@ class PathStateComponentDefinitionTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                remoteOut,
+                                                                                null,
                                                                                 new Object());
         final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                                                        path -> path.get(0),

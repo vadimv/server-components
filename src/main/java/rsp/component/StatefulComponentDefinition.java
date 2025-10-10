@@ -4,9 +4,10 @@ import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
-import rsp.server.RemoteOut;
+import rsp.page.events.SessionEvent;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 public abstract class StatefulComponentDefinition<S> implements SegmentDefinition, ComponentFactory<S> {
 
@@ -37,7 +38,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
-                                        final RemoteOut remotePageMessagesOut,
+                                        final Consumer<SessionEvent> remotePageMessagesOut,
                                         final Object sessionLock) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         return new Component<>(key,

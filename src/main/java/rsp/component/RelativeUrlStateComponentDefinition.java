@@ -3,10 +3,12 @@ package rsp.component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
+import rsp.page.events.SessionEvent;
 import rsp.server.RemoteOut;
 import rsp.server.http.RelativeUrl;
 
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
@@ -27,7 +29,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
     public Component<S> createComponent(QualifiedSessionId sessionId,
                                         TreePositionPath componentPath,
                                         RenderContextFactory renderContextFactory,
-                                        RemoteOut remotePageMessagesOut,
+                                        Consumer<SessionEvent> remotePageMessagesOut,
                                         Object sessionLock) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         return new RelativeUrlStateComponent<>(key,

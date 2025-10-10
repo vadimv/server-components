@@ -3,6 +3,8 @@ package rsp.component;
 import rsp.dom.Event;
 import rsp.page.PageRendering;
 import rsp.page.RenderContextFactory;
+import rsp.page.events.RemoteCommand;
+import rsp.page.events.SessionEvent;
 import rsp.server.Path;
 import rsp.server.RemoteOut;
 import rsp.server.http.Fragment;
@@ -12,6 +14,7 @@ import rsp.util.json.JsonDataType;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RelativeUrlStateComponent<S> extends Component<S> {
@@ -29,7 +32,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                                      final ComponentView<S> componentView,
                                      final ComponentCallbacks<S> componentCallbacks,
                                      final RenderContextFactory renderContextFactory,
-                                     final RemoteOut remotePageMessages,
+                                     final Consumer<SessionEvent> remotePageMessages,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
                                      final Function<RelativeUrl, S> relativeUrlToState,
                                      final Object sessionLock) {
@@ -59,7 +62,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, relativeUrl);
         if (!newRelativeUrl.equals(relativeUrl)) {
             relativeUrl = newRelativeUrl;
-            remotePageMessages.pushHistory(relativeUrl.path().toString());
+            remotePageMessages.accept(new RemoteCommand.PushHistory(relativeUrl.path().toString()));
         }
     }
 

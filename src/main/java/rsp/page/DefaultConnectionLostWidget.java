@@ -31,7 +31,7 @@ public final class DefaultConnectionLostWidget {
                                                         Path.ROOT);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     new SilentRemoteOut(),
+                                                                     __ -> new SilentRemoteOut(),
                                                                      new Object());
         widgetComponent().render(rc);
         HTML = rc.html();

@@ -39,7 +39,7 @@ class InitialStateComponentDefinitionTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                remoteOut,
+                                                                                null,
                                                                                 new Object());
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
                                                                                               view);

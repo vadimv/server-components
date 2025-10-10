@@ -4,11 +4,11 @@ import rsp.dom.*;
 import rsp.html.SegmentDefinition;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
+import rsp.page.events.RemoteCommand;
+import rsp.page.events.SessionEvent;
 import rsp.ref.Ref;
-import rsp.server.RemoteOut;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.*;
 
 import static java.lang.System.Logger.Level.*;
@@ -27,7 +27,7 @@ public class Component<S> implements StateUpdate<S> {
     private final ComponentUnmountedCallback<S> componentUnmountedCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
-    protected final RemoteOut remotePageMessages;
+    protected final Consumer<SessionEvent> remotePageMessages;
     private final Object sessionLock;
 
     private final List<Event> events = new ArrayList<>();
@@ -43,7 +43,7 @@ public class Component<S> implements StateUpdate<S> {
                      final ComponentView<S> componentView,
                      final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
-                     final RemoteOut remotePageMessages,
+                     final Consumer<SessionEvent> remotePageMessages,
                      final Object sessionLock) {
         this.key = Objects.requireNonNull(key);
         this.stateResolver = Objects.requireNonNull(stateResolver);
@@ -140,14 +140,11 @@ public class Component<S> implements StateUpdate<S> {
 
             onUpdateRendered(key, oldState, state, this);
 
-            final RemoteOut remoteOut = remotePageMessages;
-            assert remoteOut != null;
-
             // Calculate diff between an old and new DOM trees
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
             Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
             final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
-            remoteOut.modifyDom(domChangePerformer.commands);
+            remotePageMessages.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
 
             // Unregister events
             final List<Event> eventsToRemove = new ArrayList<>();
@@ -159,8 +156,8 @@ public class Component<S> implements StateUpdate<S> {
             }
             for (Event event : eventsToRemove) {
                 final Event.Target eventTarget = event.eventTarget;
-                remoteOut.forgetEvent(eventTarget.eventType(),
-                        eventTarget.elementPath());
+                remotePageMessages.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(),
+                                                                        eventTarget.elementPath()));
             }
 
             // Register new event types on client
@@ -170,7 +167,7 @@ public class Component<S> implements StateUpdate<S> {
                     eventsToAdd.add(event);
                 }
             }
-            remoteOut.listenEvents(eventsToAdd);
+            remotePageMessages.accept(new RemoteCommand.ListenEvent(eventsToAdd));
 
             // Notify unmounted child components
             final Set<Component<?>> mountedComponents = new HashSet<>(children);

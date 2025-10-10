@@ -35,7 +35,7 @@ class HttpRequestStateComponentDefinitionTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                remoteOut,
+                                                                                null,
                                                                                 new Object());
         final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(httpRequest,
                                                                                               request-> request.header("header-0").orElseThrow(),

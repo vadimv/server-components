@@ -2,8 +2,8 @@ package rsp.component;
 
 import rsp.dom.*;
 import rsp.page.*;
+import rsp.page.events.SessionEvent;
 import rsp.ref.Ref;
-import rsp.server.RemoteOut;
 
 import java.util.*;
 import java.util.function.*;
@@ -13,7 +13,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
     protected final QualifiedSessionId sessionId;
-    protected final RemoteOut remotePageMessagesOut;
+    protected final Consumer<SessionEvent> remotePageMessagesOut;
     protected final Object sessionLock;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
@@ -26,7 +26,7 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
-                                  final RemoteOut remotePageMessagesOut,
+                                  final Consumer<SessionEvent> remotePageMessagesOut,
                                   final Object sessionLock) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
