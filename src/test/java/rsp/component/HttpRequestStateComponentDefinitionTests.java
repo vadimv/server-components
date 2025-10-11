@@ -8,8 +8,8 @@ import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.HttpRequest;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import static rsp.html.HtmlDsl.div;
 import static rsp.html.HtmlDsl.span;
@@ -35,6 +35,7 @@ class HttpRequestStateComponentDefinitionTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
+                                                                                new HashMap<>(),
                                                                                 null);
         final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(httpRequest,
                                                                                               request-> request.header("header-0").orElseThrow(),

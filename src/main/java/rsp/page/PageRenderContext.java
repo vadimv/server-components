@@ -20,9 +20,11 @@ public final class PageRenderContext extends ComponentRenderContext {
     public PageRenderContext(final QualifiedSessionId sessionId,
                              final String pageConfigScript,
                              final TreePositionPath rootDomPath,
+                             final Map<String, Object> sessionObjects,
                              final Consumer<SessionEvent> remotePageMessagesOut) {
         super(sessionId,
               rootDomPath,
+              sessionObjects,
               remotePageMessagesOut);
         this.pageConfigScript = Objects.requireNonNull(pageConfigScript);
     }
@@ -81,6 +83,7 @@ public final class PageRenderContext extends ComponentRenderContext {
         return startDomPath.equals(PageRendering.DOCUMENT_DOM_PATH) ? new PageRenderContext(sessionId,
                                                                                             pageConfigScript,
                                                                                             startDomPath,
+                                                                                            sessionObjects,
                                                                                             remotePageMessagesOut)
                                                              : super.newContext(startDomPath);
     }

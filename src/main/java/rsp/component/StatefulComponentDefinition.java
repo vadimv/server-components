@@ -6,6 +6,7 @@ import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.SessionEvent;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -37,6 +38,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
+                                        final Map<String, Object> sessionObjects,
                                         final Consumer<SessionEvent> commandsScheduler) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         return new Component<>(key,
@@ -46,6 +48,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                                         componentDidUpdate(),
                                                         componentWillUnmount()),
                                renderContextFactory,
+                               sessionObjects,
                                commandsScheduler);
     }
 

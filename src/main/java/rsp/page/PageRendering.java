@@ -87,6 +87,7 @@ public final class PageRendering<S> {
             final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
                                                                               pageConfigScript.toString(),
                                                                               DOCUMENT_DOM_PATH,
+                                                                              new HashMap<>(),
                                                                               commandsBuffer);
 
             rootComponentDefinition.apply(request).render(pageRenderContext);

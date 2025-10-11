@@ -10,6 +10,7 @@ import rsp.server.http.*;
 import rsp.util.json.JsonDataType;
 
 import java.net.URI;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
@@ -47,6 +48,7 @@ class LivePageTests {
         final PageRenderContext domTreeContext = new PageRenderContext(QID,
                                                                        pageConfigScript.toString(),
                                                                        DOCUMENT_DOM_PATH,
+                                                                       new HashMap<>(),
                                                                        commandsBuffer);
 
         final StatefulComponentDefinition<State> componentDefinition = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),

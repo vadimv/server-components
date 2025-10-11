@@ -12,6 +12,7 @@ import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 
 import static rsp.html.HtmlDsl.*;
@@ -31,6 +32,7 @@ public final class DefaultConnectionLostWidget {
                                                         Path.ROOT);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
+                                                                     new HashMap<>(),
                                                                      __ -> new SilentRemoteOut());
         widgetComponent().render(rc);
         HTML = rc.html();

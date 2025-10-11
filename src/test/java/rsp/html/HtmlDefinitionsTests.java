@@ -12,6 +12,7 @@ import rsp.server.TestCollectingRemoteOut;
 import rsp.server.http.HttpRequest;
 
 import java.net.URI;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.html.HtmlDsl.*;
@@ -64,6 +65,7 @@ public class HtmlDefinitionsTests {
                                                         Path.ROOT);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
+                                                                     new HashMap<>(),
                                                                      __ -> new TestCollectingRemoteOut());
         return rc;
 

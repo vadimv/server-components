@@ -14,20 +14,24 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     protected final QualifiedSessionId sessionId;
     protected final Consumer<SessionEvent> remotePageMessagesOut;
+    protected final Map<String, Object> sessionObjects;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private String docType;
+
     private TreePositionPath domPath;
 
     private Component<?> rootComponent;
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
+                                  final Map<String, Object> sessionObjects,
                                   final Consumer<SessionEvent> remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
+        this.sessionObjects = sessionObjects;
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
     }
 
@@ -46,6 +50,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
                                                                            this,
+                                                                           sessionObjects,
                                                                            remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;
@@ -165,6 +170,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
         return new ComponentRenderContext(sessionId,
                                           startDomPath,
+                                          sessionObjects,
                                           remotePageMessagesOut);
     }
 

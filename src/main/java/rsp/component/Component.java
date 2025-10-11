@@ -28,6 +28,8 @@ public class Component<S> implements StateUpdate<S> {
     private final ComponentUnmountedCallback<S> componentUnmountedCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
+
+    protected final Map<String, Object> sessionObjects;
     protected final Consumer<SessionEvent> commandsScheduler;
 
     private final List<Event> events = new ArrayList<>();
@@ -43,6 +45,7 @@ public class Component<S> implements StateUpdate<S> {
                      final ComponentView<S> componentView,
                      final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
+                     final Map<String, Object> sessionObjects,
                      final Consumer<SessionEvent> commandsScheduler) {
         this.key = Objects.requireNonNull(key);
         this.stateResolver = Objects.requireNonNull(stateResolver);
@@ -51,6 +54,7 @@ public class Component<S> implements StateUpdate<S> {
         this.componentUpdatedCallback = Objects.requireNonNull(componentCallbacks.componentUpdatedCallback());
         this.componentUnmountedCallback = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
+        this.sessionObjects = sessionObjects;
         this.commandsScheduler = Objects.requireNonNull(commandsScheduler);
 
         logger.log(TRACE, () -> "New component is created with key " + this);

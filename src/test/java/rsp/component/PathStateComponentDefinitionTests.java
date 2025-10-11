@@ -11,6 +11,7 @@ import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;
 
 import java.net.URI;
+import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -36,6 +37,7 @@ class PathStateComponentDefinitionTests {
         final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
+                                                                                new HashMap<>(),
                                                                                 null);
         final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                                                        path -> path.get(0),

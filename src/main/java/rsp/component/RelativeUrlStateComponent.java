@@ -11,6 +11,7 @@ import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 import rsp.util.json.JsonDataType;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -22,15 +23,13 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     protected final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl;
     protected final Function<RelativeUrl, S> relativeUrlToState;
-
-    private volatile RelativeUrl relativeUrl;
-
     public RelativeUrlStateComponent(final ComponentCompositeKey key,
                                      final RelativeUrl relativeUrl,
                                      final ComponentStateSupplier<S> resolveStateSupplier,
                                      final ComponentView<S> componentView,
                                      final ComponentCallbacks<S> componentCallbacks,
                                      final RenderContextFactory renderContextFactory,
+                                     final Map<String, Object> sessionObjects,
                                      final Consumer<SessionEvent> commandsScheduler,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
                                      final Function<RelativeUrl, S> relativeUrlToState) {
@@ -39,8 +38,13 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
               componentView,
               componentCallbacks,
               renderContextFactory,
+              sessionObjects,
               commandsScheduler);
-        this.relativeUrl = relativeUrl;
+
+        if (!sessionObjects.containsKey("relativeUrl")) {
+            sessionObjects.put("relativeUrl", relativeUrl);
+        }
+
         this.stateToRelativeUrl = Objects.requireNonNull(stateToRelativeUrl);
         this.relativeUrlToState = Objects.requireNonNull(relativeUrlToState);
     }
@@ -55,11 +59,11 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                  eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
                 true,
                  Event.NO_MODIFIER);
-
+        final RelativeUrl relativeUrl = (RelativeUrl) sessionObjects.get("relativeUrl");
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, relativeUrl);
         if (!newRelativeUrl.equals(relativeUrl)) {
-            relativeUrl = newRelativeUrl;
-            commandsScheduler.accept(new RemoteCommand.PushHistory(relativeUrl.path().toString()));
+            sessionObjects.put("relativeUrl", newRelativeUrl);
+            commandsScheduler.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
         }
     }
 
