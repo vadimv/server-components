@@ -50,21 +50,28 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
     }
 
     @Override
-    protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
+    protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {
+        addHistoryEvent(stateUpdate);
+    }
 
     @Override
     protected void onUpdateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {
-        addEvent(PageRendering.WINDOW_DOM_PATH,
-                 HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                 eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
-                true,
-                 Event.NO_MODIFIER);
+        addHistoryEvent(stateUpdate);
+
         final RelativeUrl relativeUrl = (RelativeUrl) sessionObjects.get(RELATIVE_URL_KEY_NAME);
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, relativeUrl);
         if (!newRelativeUrl.equals(relativeUrl)) {
             sessionObjects.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
             commandsScheduler.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
         }
+    }
+
+    private void addHistoryEvent(StateUpdate<S> stateUpdate) {
+        addEvent(PageRendering.WINDOW_DOM_PATH,
+                HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
+                true,
+                Event.NO_MODIFIER);
     }
 
     private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
