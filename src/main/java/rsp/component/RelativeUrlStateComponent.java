@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class RelativeUrlStateComponent<S> extends Component<S> {
-
+    private static final String RELATIVE_URL_KEY_NAME = "relativeUrl";
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     protected final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl;
@@ -59,10 +59,10 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                  eventContext -> stateUpdate.setStateWhenComplete(relativeUrlToState.apply(extractRelativeUrl(eventContext.eventObject()))),
                 true,
                  Event.NO_MODIFIER);
-        final RelativeUrl relativeUrl = (RelativeUrl) sessionObjects.get("relativeUrl");
+        final RelativeUrl relativeUrl = (RelativeUrl) sessionObjects.get(RELATIVE_URL_KEY_NAME);
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, relativeUrl);
         if (!newRelativeUrl.equals(relativeUrl)) {
-            sessionObjects.put("relativeUrl", newRelativeUrl);
+            sessionObjects.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
             commandsScheduler.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
         }
     }
