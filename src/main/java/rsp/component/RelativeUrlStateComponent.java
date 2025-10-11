@@ -41,8 +41,8 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
               sessionObjects,
               commandsScheduler);
 
-        if (!sessionObjects.containsKey("relativeUrl")) {
-            sessionObjects.put("relativeUrl", relativeUrl);
+        if (!sessionObjects.containsKey(RELATIVE_URL_KEY_NAME)) {
+            sessionObjects.put(RELATIVE_URL_KEY_NAME, relativeUrl);
         }
 
         this.stateToRelativeUrl = Objects.requireNonNull(stateToRelativeUrl);
