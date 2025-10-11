@@ -30,7 +30,7 @@ public class Component<S> implements StateUpdate<S> {
     private final RenderContextFactory renderContextFactory;
 
     protected final Map<String, Object> sessionObjects;
-    protected final Consumer<SessionEvent> commandsScheduler;
+    protected final Consumer<SessionEvent> commandsEnqueue;
 
     private final List<Event> events = new ArrayList<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
@@ -46,7 +46,7 @@ public class Component<S> implements StateUpdate<S> {
                      final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
                      final Map<String, Object> sessionObjects,
-                     final Consumer<SessionEvent> commandsScheduler) {
+                     final Consumer<SessionEvent> commandsEnqueue) {
         this.key = Objects.requireNonNull(key);
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.componentMountedCallback = Objects.requireNonNull(componentCallbacks.componentMountedCallback());
@@ -55,7 +55,7 @@ public class Component<S> implements StateUpdate<S> {
         this.componentUnmountedCallback = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.sessionObjects = sessionObjects;
-        this.commandsScheduler = Objects.requireNonNull(commandsScheduler);
+        this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
 
         logger.log(TRACE, () -> "New component is created with key " + this);
     }
@@ -141,7 +141,7 @@ public class Component<S> implements StateUpdate<S> {
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
         final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
-        commandsScheduler.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
+        commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
 
         // Unregister events
         final List<Event> eventsToRemove = new ArrayList<>();
@@ -153,7 +153,7 @@ public class Component<S> implements StateUpdate<S> {
         }
         for (Event event : eventsToRemove) {
             final Event.Target eventTarget = event.eventTarget;
-            commandsScheduler.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(),
+            commandsEnqueue.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(),
                                                                     eventTarget.elementPath()));
         }
 
@@ -164,7 +164,7 @@ public class Component<S> implements StateUpdate<S> {
                 eventsToAdd.add(event);
             }
         }
-        commandsScheduler.accept(new RemoteCommand.ListenEvent(eventsToAdd));
+        commandsEnqueue.accept(new RemoteCommand.ListenEvent(eventsToAdd));
 
         // Notify unmounted child components
         final Set<Component<?>> mountedComponents = new HashSet<>(children);
@@ -258,28 +258,28 @@ public class Component<S> implements StateUpdate<S> {
     private final class ScheduledStateUpdate implements StateUpdate<S> {
         @Override
         public void setState(S newState) {
-            commandsScheduler.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.accept(new GenericTaskEvent(() -> {
                 Component.this.setState(newState);
             }));
         }
 
         @Override
         public void setStateWhenComplete(S newState) {
-            commandsScheduler.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.accept(new GenericTaskEvent(() -> {
                 Component.this.setStateWhenComplete(newState);
             }));
         }
 
         @Override
         public void applyStateTransformation(UnaryOperator<S> stateTransformer) {
-            commandsScheduler.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.accept(new GenericTaskEvent(() -> {
                 Component.this.applyStateTransformation(stateTransformer);
             }));
         }
 
         @Override
         public void applyStateTransformationIfPresent(Function<S, Optional<S>> stateTransformer) {
-            commandsScheduler.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.accept(new GenericTaskEvent(() -> {
                 Component.this.applyStateTransformationIfPresent(stateTransformer);
             }));
         }

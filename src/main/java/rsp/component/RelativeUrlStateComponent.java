@@ -23,6 +23,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
 
     protected final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl;
     protected final Function<RelativeUrl, S> relativeUrlToState;
+
     public RelativeUrlStateComponent(final ComponentCompositeKey key,
                                      final RelativeUrl relativeUrl,
                                      final ComponentStateSupplier<S> resolveStateSupplier,
@@ -30,7 +31,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                                      final ComponentCallbacks<S> componentCallbacks,
                                      final RenderContextFactory renderContextFactory,
                                      final Map<String, Object> sessionObjects,
-                                     final Consumer<SessionEvent> commandsScheduler,
+                                     final Consumer<SessionEvent> commandsEnqueue,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
                                      final Function<RelativeUrl, S> relativeUrlToState) {
         super(key,
@@ -39,7 +40,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
               componentCallbacks,
               renderContextFactory,
               sessionObjects,
-              commandsScheduler);
+              commandsEnqueue);
 
         if (!sessionObjects.containsKey(RELATIVE_URL_KEY_NAME)) {
             sessionObjects.put(RELATIVE_URL_KEY_NAME, relativeUrl);
@@ -62,7 +63,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
         final RelativeUrl newRelativeUrl = stateToRelativeUrl.apply(state, relativeUrl);
         if (!newRelativeUrl.equals(relativeUrl)) {
             sessionObjects.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
-            commandsScheduler.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
+            commandsEnqueue.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
         }
     }
 

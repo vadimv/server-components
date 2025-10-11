@@ -39,7 +39,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
                                         final Map<String, Object> sessionObjects,
-                                        final Consumer<SessionEvent> commandsScheduler) {
+                                        final Consumer<SessionEvent> commandsEnqueue) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         return new Component<>(key,
                                stateSupplier(),
@@ -49,7 +49,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                                         componentWillUnmount()),
                                renderContextFactory,
                                sessionObjects,
-                               commandsScheduler);
+                               commandsEnqueue);
     }
 
     @Override

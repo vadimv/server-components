@@ -31,7 +31,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
                                         TreePositionPath componentPath,
                                         RenderContextFactory renderContextFactory,
                                         Map<String, Object> sessionObjects,
-                                        Consumer<SessionEvent> commandsScheduler) {
+                                        Consumer<SessionEvent> commandsEnqueue) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         return new RelativeUrlStateComponent<>(key,
                                                relativeUrl,
@@ -42,7 +42,7 @@ public abstract class RelativeUrlStateComponentDefinition<S> extends StatefulCom
                                                                         componentWillUnmount()),
                                                renderContextFactory,
                                                sessionObjects,
-                                               commandsScheduler,
+                                               commandsEnqueue,
                                                stateToRelativeUrl(),
                                                relativeUrlToState());
     }

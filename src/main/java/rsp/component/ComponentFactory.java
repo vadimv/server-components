@@ -15,5 +15,5 @@ public interface ComponentFactory<S> {
                                  TreePositionPath componentPath,
                                  RenderContextFactory renderContextFactory,
                                  Map<String, Object> sessionObjects,
-                                 Consumer<SessionEvent> commandsScheduler);
+                                 Consumer<SessionEvent> commandsEnqueue);
 }
