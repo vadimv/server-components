@@ -1,6 +1,7 @@
 package rsp.component;
 
 import rsp.dom.*;
+import rsp.html.Segment;
 import rsp.html.SegmentDefinition;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
@@ -18,7 +19,7 @@ import static java.lang.System.Logger.Level.*;
  * Represents a stateful component.
  * @param <S> a type for this component's state snapshot, should be an immutable class
  */
-public class Component<S> implements StateUpdate<S> {
+public class Component<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final ComponentCompositeKey key;
@@ -91,8 +92,9 @@ public class Component<S> implements StateUpdate<S> {
             state = stateResolver.getState(key);
             final SegmentDefinition view = componentView.apply(this).apply(state);
             view.render(renderContext);
+
             onInitiallyRendered(key, state, this);
-            componentMountedCallback.onComponentMounted(key, state, new ScheduledStateUpdate());
+            componentMountedCallback.onComponentMounted(key, state, new EnqueueTaskStateUpdate());
         } catch (Throwable renderEx) {
             logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
         }
@@ -153,8 +155,7 @@ public class Component<S> implements StateUpdate<S> {
         }
         for (Event event : eventsToRemove) {
             final Event.Target eventTarget = event.eventTarget;
-            commandsEnqueue.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(),
-                                                                    eventTarget.elementPath()));
+            commandsEnqueue.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(), eventTarget.elementPath()));
         }
 
         // Register new event types on client
@@ -173,7 +174,7 @@ public class Component<S> implements StateUpdate<S> {
                 child.unmount();
             }
         }
-        componentUpdatedCallback.onComponentUpdated(key, oldState, state, new ScheduledStateUpdate());
+        componentUpdatedCallback.onComponentUpdated(key, oldState, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
@@ -232,7 +233,12 @@ public class Component<S> implements StateUpdate<S> {
     }
 
     public void html(final HtmlBuilder hb) {
-        rootNodes.forEach(node -> hb.buildHtml(node));
+        // TODO fix
+        if (rootNodes.isEmpty()) {
+            children.forEach( component -> component.html(hb));
+        } else {
+            rootNodes.forEach(node -> hb.buildHtml(node));
+        }
     }
 
     @Override
@@ -255,7 +261,7 @@ public class Component<S> implements StateUpdate<S> {
         return Objects.hash(key);
     }
 
-    private final class ScheduledStateUpdate implements StateUpdate<S> {
+    private final class EnqueueTaskStateUpdate implements StateUpdate<S> {
         @Override
         public void setState(S newState) {
             commandsEnqueue.accept(new GenericTaskEvent(() -> {

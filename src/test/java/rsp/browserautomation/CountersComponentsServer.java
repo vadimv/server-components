@@ -103,9 +103,9 @@ public class CountersComponentsServer {
     private static View<AppState> appComponentView(final HttpRequest httpRequest) {
         return state -> {
             if (state instanceof CountersAppState countersState) {
-                return rootView(httpRequest).apply(countersState);
+                return new InitialStateComponentDefinition<>(countersState, rootView(httpRequest));
             } else if (state instanceof NotFoundState notFoundState) {
-                return notFoundStatelessView.apply(notFoundState);
+                return new InitialStateComponentDefinition<>(notFoundState, notFoundStatelessView);
             } else {
                 throw new IllegalStateException();
             }
