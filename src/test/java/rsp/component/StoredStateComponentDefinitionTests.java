@@ -6,8 +6,9 @@ import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
+import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
-import rsp.server.TestCollectingRemoteOut;
+import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;
 
@@ -40,11 +41,11 @@ class StoredStateComponentDefinitionTests {
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);
-        final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
+        final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
                                                                                 new HashMap<>(),
-                                                                                null);
+                                                                                commands);
         final StatefulComponentDefinition<Boolean> scd = new InitialStateComponentDefinition<>(true,
                                                                                                view);
         // Initial render
@@ -71,18 +72,18 @@ class StoredStateComponentDefinitionTests {
                                                                 ref -> {});
         clickEvent.eventHandler.accept(clickEventContext);
 
-        assertEquals(1, remoteOut.commands.size());
-        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
-        assertEquals(1, modifyDomOutMessage.domChange.size());
-        assertInstanceOf(DefaultDomChangesContext.Remove.class, modifyDomOutMessage.domChange.get(0));
+        assertEquals(1, commands.list.size());
+        final var modifyDomOutMessage = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
+        assertEquals(1, modifyDomOutMessage.domChanges().size());
+        assertInstanceOf(DefaultDomChangesContext.Remove.class, modifyDomOutMessage.domChanges().getFirst());
 
-        remoteOut.clear();
+        commands.list.clear();
 
         // Add the hidden stateful component back
         final Event clickEvent2 = renderContext.recursiveEvents().get(0);
         clickEvent2.eventHandler.accept(clickEventContext);
-        assertEquals(1, remoteOut.commands.size());
-        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage2 = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
+        assertEquals(1, commands.list.size());
+        final RemoteCommand.ModifyDom modifyDomOutMessage2 = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
         assertTrue(modifyDomOutMessage2.toString().contains("test-store-100"));
     }
 }

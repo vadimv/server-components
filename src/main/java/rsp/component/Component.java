@@ -165,7 +165,9 @@ public class Component<S> implements Segment, StateUpdate<S> {
                 eventsToAdd.add(event);
             }
         }
-        commandsEnqueue.accept(new RemoteCommand.ListenEvent(eventsToAdd));
+        if (!eventsToAdd.isEmpty()) {
+            commandsEnqueue.accept(new RemoteCommand.ListenEvent(eventsToAdd));
+        }
 
         // Notify unmounted child components
         final Set<Component<?>> mountedComponents = new HashSet<>(children);

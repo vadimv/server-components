@@ -5,8 +5,10 @@ import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
+import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
+import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;
 
@@ -34,11 +36,11 @@ class PathStateComponentDefinitionTests {
                                                         uri,
                                                         uri.toString(),
                                                         Path.of(uri.getPath()));
-        final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
+        final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
                                                                                 new HashMap<>(),
-                                                                                null);
+                                                                                commands);
         final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                                                        path -> path.get(0),
                                                                                            (state, path) -> Path.of("/" + state),
@@ -51,8 +53,11 @@ class PathStateComponentDefinitionTests {
                                  "</div>",
                                  renderContext.html());
 
+        assertTrue(renderContext.recursiveEvents().stream().map(e -> e.eventTarget.eventType()).anyMatch(s -> s.equals("click")));
+        assertTrue(renderContext.recursiveEvents().stream().map(e -> e.eventTarget.eventType()).anyMatch(s -> s.equals("popstate")));
+
         // Click
-        final Event clickEvent = renderContext.recursiveEvents().get(0);
+        final Event clickEvent = renderContext.recursiveEvents().stream().filter(e -> e.eventTarget.eventType().equals("click")).findFirst().get();
         final EventContext clickEventContext1 = new EventContext(clickEvent.eventTarget.elementPath(),
                                                                  js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                  ref -> null,
@@ -61,17 +66,14 @@ class PathStateComponentDefinitionTests {
                                                                  ref -> {});
         clickEvent.eventHandler.accept(clickEventContext1);
 
-        assertEquals(3, remoteOut.commands.size());
-        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
+        assertEquals(2, commands.list.size());
+        final RemoteCommand.ModifyDom modifyDomOutMessage = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
         assertTrue(modifyDomOutMessage.toString().contains("state-1"));
 
-        final TestCollectingRemoteOut.PushHistoryMessage pushHistoryMessage = findFirstListElementByType(TestCollectingRemoteOut.PushHistoryMessage.class, remoteOut.commands).orElseThrow();
+        final RemoteCommand.PushHistory pushHistoryMessage = findFirstListElementByType(RemoteCommand.PushHistory.class, commands.list).orElseThrow();
         assertTrue(pushHistoryMessage.toString().contains("state-1"));
 
-        final TestCollectingRemoteOut.ListenEventOutMessage listenEventOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ListenEventOutMessage.class, remoteOut.commands).orElseThrow();
-        assertTrue(listenEventOutMessage.toString().contains("popstate"));
-
-        remoteOut.clear();
+        commands.list.clear();
 
         // History backward
         final Event popstateEvent = renderContext.recursiveEvents().stream().filter(e -> "popstate".equals(e.eventTarget.eventType())).findFirst().orElseThrow();
@@ -88,12 +90,12 @@ class PathStateComponentDefinitionTests {
                                                                 ref -> {});
         popstateEvent.eventHandler.accept(popstateEventContext);
 
-        assertEquals(2, remoteOut.commands.size());
+        assertEquals(2, commands.list.size());
 
-        final TestCollectingRemoteOut.ModifyDomOutMessage modifyDomOutMessage2 = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands).orElseThrow();
+        final RemoteCommand.ModifyDom modifyDomOutMessage2 = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
         assertTrue(modifyDomOutMessage2.toString().contains("state-0"));
 
-        final TestCollectingRemoteOut.PushHistoryMessage pushHistoryMessage2 = findFirstListElementByType(TestCollectingRemoteOut.PushHistoryMessage.class, remoteOut.commands).orElseThrow();
+        final RemoteCommand.PushHistory pushHistoryMessage2 = findFirstListElementByType(RemoteCommand.PushHistory.class, commands.list).orElseThrow();
         assertTrue(pushHistoryMessage2.toString().contains("state-0"));
     }
 }

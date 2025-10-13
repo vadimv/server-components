@@ -5,8 +5,10 @@ import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
+import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
+import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;
 
@@ -37,11 +39,11 @@ class InitialStateComponentDefinitionTests {
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);
-        final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
+        final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
                                                                                 new HashMap<>(),
-                                                                                null);
+                                                                                commands);
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
                                                                                               view);
         // Initial render
@@ -69,8 +71,8 @@ class InitialStateComponentDefinitionTests {
                                                                 ref -> {});
         clickEvent.eventHandler.accept(clickEventContext);
 
-        assertEquals(1, remoteOut.commands.size());
-        assertInstanceOf(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands.get(0));
-        assertTrue(remoteOut.commands.get(0).toString().contains("test-link-101"));
+        assertEquals(1, commands.list.size());
+        assertInstanceOf(RemoteCommand.ModifyDom.class, commands.list.get(0));
+        assertTrue(commands.list.get(0).toString().contains("test-link-101"));
     }
 }

@@ -1,12 +1,19 @@
 package rsp.page;
 
 import org.jsoup.nodes.Document;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import rsp.component.*;
 import rsp.dom.TreePositionPath;
+import rsp.page.events.InitSessionEvent;
+import rsp.page.events.ShutdownSessionEvent;
 import rsp.server.Path;
+import rsp.server.RemoteOut;
 import rsp.server.TestCollectingRemoteOut;
+import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.*;
+import rsp.server.protocol.RemotePageMessageEncoder;
 import rsp.util.json.JsonDataType;
 
 import java.net.URI;
@@ -29,9 +36,11 @@ class LivePageTests {
             )
     );
 
+    LivePageSession livePage;
+
     @Test
     void should_generate_html_listen_event_and_update_commands_for_new_state() {
-        final TestCollectingRemoteOut remoteOut = new TestCollectingRemoteOut();
+
         final State initialState = new State(10);
 
         final URI uri = URI.create("http://localhost");
@@ -63,23 +72,29 @@ class LivePageTests {
         assertEquals("script", pageHtml.head().children().get(0).nodeName());
         assertEquals("script", pageHtml.head().children().get(1).nodeName());
 
-        final LivePageSession livePage = new LivePageSession();
-        assertEquals(0, remoteOut.commands.size());
-
+        livePage = new LivePageSession();
+        final TestCollectingRemoteOut ro = new TestCollectingRemoteOut();
+        livePage.eventsConsumer().accept(new InitSessionEvent(domTreeContext, ro));
         livePage.start();
-        //commandsBuffer.redirectMessagesOut(remoteOut);
+        final TestSessonEventsConsumer remoteOut = new TestSessonEventsConsumer();
+        commandsBuffer.redirectMessagesOut(remoteOut);
 
-        assertEquals(1, remoteOut.commands.size());
-        remoteOut.commands.clear();
+        assertEquals(1, ro.commands.size());
+        remoteOut.list.clear();
 
         //livePage.handleDomEvent(1, TreePositionPath.of("1_2_1"), "custom-event-0", new JsonDataType.Object().put("", new JsonDataType.Number(101)));
-        assertEquals(1, remoteOut.commands.size());
-        assertInstanceOf(TestCollectingRemoteOut.EvalJsMessage.class, remoteOut.commands.get(0));
-        remoteOut.commands.clear();
+        assertEquals(1, remoteOut.list.size());
+        assertInstanceOf(TestCollectingRemoteOut.EvalJsMessage.class, remoteOut.list.get(0));
+        remoteOut.list.clear();
 
         //livePage.handleEvalJsResponse(1, new JsonDataType.Number(1001));
-        final var modifyDomOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.commands);
+        final var modifyDomOutMessage = findFirstListElementByType(TestCollectingRemoteOut.ModifyDomOutMessage.class, remoteOut.list);
         assertTrue(modifyDomOutMessage.isPresent() && modifyDomOutMessage.get().domChange.get(0).toString().contains("1001"));
+    }
+
+    @AfterEach
+    void shutdown() {
+        livePage.eventsConsumer().accept(new ShutdownSessionEvent());
     }
 
     static final class State {

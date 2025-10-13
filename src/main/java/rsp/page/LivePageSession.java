@@ -60,6 +60,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
     private void init(final InitSessionEvent e) {
         this.pageRenderContext = Objects.requireNonNull(e.pageRenderContext());
         this.remoteOut = Objects.requireNonNull(e.remoteOut());
+
         this.accept(new RemoteCommand.ListenEvent(pageRenderContext.recursiveEvents()));
     }
 
