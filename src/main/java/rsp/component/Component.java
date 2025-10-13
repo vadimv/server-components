@@ -1,7 +1,7 @@
 package rsp.component;
 
 import rsp.dom.*;
-import rsp.html.Segment;
+import rsp.dom.Segment;
 import rsp.html.SegmentDefinition;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
@@ -55,7 +55,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
         this.componentUpdatedCallback = Objects.requireNonNull(componentCallbacks.componentUpdatedCallback());
         this.componentUnmountedCallback = Objects.requireNonNull(componentCallbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
-        this.sessionObjects = sessionObjects;
+        this.sessionObjects = Objects.requireNonNull(sessionObjects);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
 
         logger.log(TRACE, () -> "New component is created with key " + this);

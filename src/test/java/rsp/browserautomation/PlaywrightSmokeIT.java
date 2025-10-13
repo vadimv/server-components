@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import rsp.app.counters.CountersApp;
 
 import java.util.stream.Stream;
 
@@ -20,11 +21,11 @@ class PlaywrightSmokeIT {
 
     private static final Playwright playwright = Playwright.create();
 
-    private static CountersComponentsServer server;
+    private static CountersApp server;
 
     @BeforeAll
     public static void init() {
-        server = CountersComponentsServer.run(false);
+        server = CountersApp.run(false);
     }
 
     @ParameterizedTest
@@ -46,12 +47,12 @@ class PlaywrightSmokeIT {
     }
 
     private void validatePageNotFound(final Page page) {
-        assertEquals(404, page.navigate("http://localhost:" + CountersComponentsServer.PORT + "/none").status());
+        assertEquals(404, page.navigate("http://localhost:" + CountersApp.PORT + "/none").status());
     }
 
     private void validatePage(final Page page) throws InterruptedException {
         assertEquals(200, page.navigate("http://localhost:"
-                                                        + CountersComponentsServer.PORT
+                                                        + CountersApp.PORT
                                                         + "/" + COUNTER_1_INITIAL_VALUE
                                                         +"/" + COUNTER_2_INITIAL_VALUE).status());
         assertEquals("test-server-title", page.title());
@@ -109,7 +110,7 @@ class PlaywrightSmokeIT {
 
     @AfterAll
     public static void shutdown() throws Exception {
-        server.jetty.stop();
+        server.webServer.stop();
         Thread.sleep(2000);
     }
 }

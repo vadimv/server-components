@@ -1,6 +1,7 @@
-package rsp.browserautomation;
+package rsp.app.counters;
 
 import rsp.component.*;
+import rsp.component.definitions.*;
 import rsp.html.SegmentDefinition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
@@ -17,12 +18,12 @@ import java.util.function.Consumer;
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
-public class CountersComponentsServer {
+public final class CountersApp {
 
     private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
 
     public static final int PORT = 8085;
-    public final WebServer jetty;
+    public final WebServer webServer;
 
     private static SegmentDefinition counterComponent1(HttpRequest httpRequest) {
         return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
@@ -112,7 +113,6 @@ public class CountersComponentsServer {
         };
     }
 
-
     private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest httpRequest) {
         final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> new CountersAppState()),
                                              new NotFoundState());
@@ -121,27 +121,26 @@ public class CountersComponentsServer {
                                                          appComponentView(httpRequest));
     }
 
-    public CountersComponentsServer(final WebServer jetty) {
-        this.jetty = jetty;
+    public CountersApp(final WebServer webServer) {
+        this.webServer = webServer;
+    }
+
+    public static CountersApp run(final boolean blockCurrentThread) {
+
+        final CountersApp s = new CountersApp(new WebServer(8085,
+                                                            CountersApp::rootComponent,
+                                                            new StaticResources(new File("src/test/java/rsp/browserautomation"),
+                                                           "/res/*")));
+        s.webServer.start();
+        if (blockCurrentThread) {
+            s.webServer.join();
+        }
+        return s;
     }
 
     public static void main(final String[] args) {
         run(true);
     }
-
-    public static CountersComponentsServer run(final boolean blockCurrentThread) {
-
-        final CountersComponentsServer s = new CountersComponentsServer(new WebServer(8085,
-                                                                                      CountersComponentsServer::rootComponent,
-                                                                                      new StaticResources(new File("src/test/java/rsp/browserautomation"),
-                                                                                      "/res/*")));
-        s.jetty.start();
-        if (blockCurrentThread) {
-            s.jetty.join();
-        }
-        return s;
-    }
-
 
     sealed interface AppState {
     }

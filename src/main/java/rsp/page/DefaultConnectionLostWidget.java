@@ -1,8 +1,8 @@
 package rsp.page;
 
 import rsp.component.ComponentRenderContext;
-import rsp.component.InitialStateComponentDefinition;
-import rsp.component.StatefulComponentDefinition;
+import rsp.component.definitions.InitialStateComponentDefinition;
+import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
@@ -25,11 +25,6 @@ public final class DefaultConnectionLostWidget {
 
     static {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
-        final URI uri = URI.create("http://localhost");
-        final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
-                                                        uri,
-                                                        uri.toString(),
-                                                        Path.ROOT);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
                                                                      new HashMap<>(),

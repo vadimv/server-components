@@ -3,7 +3,7 @@ package rsp.html;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentRenderContext;
-import rsp.component.InitialStateComponentDefinition;
+import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.View;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;

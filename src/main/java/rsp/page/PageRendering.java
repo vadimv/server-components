@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.component.StatefulComponentDefinition;
+import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.TreePositionPath;
 import rsp.server.http.*;
 import rsp.server.Path;
@@ -82,8 +82,7 @@ public final class PageRendering<S> {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
-            final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
-            final Object sessionLock = new Object();
+            final RedirectableEventsConsumer commandsBuffer = new RedirectableEventsConsumer();
             final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
                                                                               pageConfigScript.toString(),
                                                                               DOCUMENT_DOM_PATH,
@@ -92,9 +91,7 @@ public final class PageRendering<S> {
 
             rootComponentDefinition.apply(request).render(pageRenderContext);
 
-            final RenderedPage pageSnapshot = new RenderedPage(pageRenderContext,
-                                                               commandsBuffer,
-                                                               sessionLock);
+            final RenderedPage pageSnapshot = new RenderedPage(pageRenderContext, commandsBuffer);
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = pageRenderContext.html();
 

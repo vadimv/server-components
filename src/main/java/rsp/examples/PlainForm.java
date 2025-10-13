@@ -1,6 +1,6 @@
 package rsp.examples;
 
-import rsp.component.HttpRequestStateComponentDefinition;
+import rsp.component.definitions.HttpRequestStateComponentDefinition;
 import rsp.component.View;
 import rsp.html.TagDefinition;
 import rsp.jetty.WebServer;

@@ -1,5 +1,6 @@
-package rsp.component;
+package rsp.component.definitions;
 
+import rsp.component.*;
 import rsp.dom.Event;
 import rsp.page.PageRendering;
 import rsp.page.RenderContextFactory;

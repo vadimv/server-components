@@ -1,8 +1,12 @@
-package rsp.component;
+package rsp.component.definitions;
+
+import rsp.component.ComponentCompositeKey;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentUpdatedCallback;
+import rsp.component.ComponentView;
 
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
 
 public class StoredStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
 

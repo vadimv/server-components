@@ -39,13 +39,13 @@ public final class MainWebSocketEndpoint extends Endpoint {
     @Override
     public void onOpen(final Session session, final EndpointConfig endpointConfig) {
         logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
-        final RemoteOut remoteOut = new RemotePageMessageEncoder(msg -> sendText(session, msg));
+
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
                                                                session.getPathParameters().get("sid"));
 
+        final RemoteOut remoteOut = new RemotePageMessageEncoder(msg -> sendText(session, msg));
         final RenderedPage renderedPage = renderedPages.remove(qsid);
-
         if (renderedPage == null) {
             logger.log(TRACE, () -> "Pre-rendered page not found for SID: " + qsid);
             if (!isKnownLostSession(qsid)) {
@@ -56,6 +56,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
 
             final LivePageSession livePage = new LivePageSession();
             livePage.eventsConsumer().accept(new InitSessionEvent(renderedPage.pageRenderContext,
+                                                                  renderedPage.commandsBuffer,
                                                                   remoteOut));
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
@@ -69,13 +70,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
             });
             remoteOut.setRenderNum(0);
             livePage.start();
-            final var remotePageMessageEncoder = new RemotePageMessageEncoder(msg -> sendText(session, msg));
-            renderedPage.commandsBuffer.redirectMessagesOut(event -> {
-                if (event instanceof RemoteCommand remoteCommand) {
-                    remoteCommand.accept(remotePageMessageEncoder);
-                }
-            });
-            logger.log(DEBUG, () -> "Live page started: " + this);
+            logger.log(DEBUG, () -> "Live page session started: " + this);
         }
     }
 

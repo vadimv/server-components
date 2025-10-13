@@ -1,10 +1,12 @@
-package rsp.component;
+package rsp.component.definitions;
 
+import rsp.component.Component;
+import rsp.component.ComponentCallbacks;
+import rsp.component.ComponentCompositeKey;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.SessionEvent;
-import rsp.server.RemoteOut;
 import rsp.server.http.RelativeUrl;
 
 import java.util.Map;

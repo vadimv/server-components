@@ -9,7 +9,7 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
-import rsp.component.StatefulComponentDefinition;
+import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.javax.web.HttpRequestUtils;

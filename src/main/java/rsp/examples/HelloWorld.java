@@ -1,6 +1,6 @@
 package rsp.examples;
 
-import rsp.component.InitialStateComponentDefinition;
+import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.jetty.WebServer;
 import rsp.component.View;
 

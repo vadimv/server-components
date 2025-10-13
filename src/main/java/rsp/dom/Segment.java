@@ -1,4 +1,4 @@
-package rsp.html;
+package rsp.dom;
 
 public interface Segment {
 }

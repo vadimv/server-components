@@ -1,5 +1,8 @@
-package rsp.component;
+package rsp.component.definitions;
 
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
+import rsp.component.View;
 import rsp.routing.Routing;
 import rsp.server.http.HttpRequest;
 
@@ -16,7 +19,7 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
                                                final Function<HttpRequest, S> initialStateRouting,
                                                final ComponentView<S> componentView) {
         super(HttpRequestStateComponentDefinition.class);
-        this.httpRequest = httpRequest;
+        this.httpRequest = Objects.requireNonNull(httpRequest);
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
     }

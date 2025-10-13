@@ -1,5 +1,7 @@
-package rsp.component;
+package rsp.component.definitions;
 
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
 import rsp.server.Path;
 import rsp.server.http.*;
 

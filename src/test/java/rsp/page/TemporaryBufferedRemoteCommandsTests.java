@@ -2,7 +2,6 @@ package rsp.page;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import rsp.server.protocol.RemotePageMessageEncoder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +12,7 @@ class TemporaryBufferedRemoteCommandsTests {
 
     @Test
     void buffers_messages_and_after_switch_sends_all_to_out() {
-        final TemporaryBufferedPageCommands remoteOutWithBuffer = new TemporaryBufferedPageCommands();
+        final RedirectableEventsConsumer remoteOutWithBuffer = new RedirectableEventsConsumer();
         final TestMessages testConsumer = new TestMessages();
         //remoteOutWithBuffer.evalJs(1, "1");
         Assertions.assertEquals(0, testConsumer.messages.size());

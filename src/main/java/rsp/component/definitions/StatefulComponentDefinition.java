@@ -1,5 +1,6 @@
-package rsp.component;
+package rsp.component.definitions;
 
+import rsp.component.*;
 import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;

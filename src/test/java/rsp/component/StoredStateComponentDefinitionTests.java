@@ -1,6 +1,9 @@
 package rsp.component;
 
 import org.junit.jupiter.api.Test;
+import rsp.component.definitions.InitialStateComponentDefinition;
+import rsp.component.definitions.StatefulComponentDefinition;
+import rsp.component.definitions.StoredStateComponentDefinition;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;

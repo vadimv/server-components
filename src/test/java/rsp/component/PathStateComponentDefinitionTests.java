@@ -1,13 +1,13 @@
 package rsp.component;
 
 import org.junit.jupiter.api.Test;
+import rsp.component.definitions.PathStateComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
-import rsp.server.TestCollectingRemoteOut;
 import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;

@@ -1,20 +1,17 @@
 package rsp.page;
 
 import org.jsoup.nodes.Document;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import rsp.component.*;
-import rsp.dom.TreePositionPath;
+import rsp.component.definitions.PathStateComponentDefinition;
+import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.page.events.InitSessionEvent;
 import rsp.page.events.ShutdownSessionEvent;
 import rsp.server.Path;
-import rsp.server.RemoteOut;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.*;
-import rsp.server.protocol.RemotePageMessageEncoder;
-import rsp.util.json.JsonDataType;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -53,7 +50,7 @@ class LivePageTests {
                                                                        "/",
                                                                        DefaultConnectionLostWidget.HTML,
                                                                        1000);
-        final TemporaryBufferedPageCommands commandsBuffer = new TemporaryBufferedPageCommands();
+        final RedirectableEventsConsumer commandsBuffer = new RedirectableEventsConsumer();
         final PageRenderContext domTreeContext = new PageRenderContext(QID,
                                                                        pageConfigScript.toString(),
                                                                        DOCUMENT_DOM_PATH,
@@ -74,10 +71,10 @@ class LivePageTests {
 
         livePage = new LivePageSession();
         final TestCollectingRemoteOut ro = new TestCollectingRemoteOut();
-        livePage.eventsConsumer().accept(new InitSessionEvent(domTreeContext, ro));
+        livePage.eventsConsumer().accept(new InitSessionEvent(domTreeContext, null, ro));
         livePage.start();
         final TestSessonEventsConsumer remoteOut = new TestSessonEventsConsumer();
-        commandsBuffer.redirectMessagesOut(remoteOut);
+        commandsBuffer.redirect(remoteOut);
 
         assertEquals(1, ro.commands.size());
         remoteOut.list.clear();
