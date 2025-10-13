@@ -20,7 +20,7 @@ public final class Reactor<T> implements Runnable, Consumer<T> {
 
     public void start() {
         isRunning = true;
-        Thread.ofVirtual().start(this);
+        new Thread(this).start();
     }
 
     public void stop()  {
