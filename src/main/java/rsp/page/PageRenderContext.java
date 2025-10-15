@@ -20,7 +20,7 @@ public final class PageRenderContext extends ComponentRenderContext {
     public PageRenderContext(final QualifiedSessionId sessionId,
                              final String pageConfigScript,
                              final TreePositionPath rootDomPath,
-                             final Map<String, Object> sessionObjects,
+                             final PageObjects sessionObjects,
                              final Consumer<SessionEvent> remotePageMessagesOut) {
         super(sessionId,
               rootDomPath,

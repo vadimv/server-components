@@ -3,6 +3,7 @@ package rsp.component;
 import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.html.SegmentDefinition;
+import rsp.page.PageObjects;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.GenericTaskEvent;
@@ -22,7 +23,7 @@ import static java.lang.System.Logger.Level.*;
 public class Component<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final ComponentCompositeKey key;
+    private final ComponentCompositeKey componentId;
     private final ComponentStateSupplier<S> stateResolver;
     private final ComponentMountedCallback<S> componentMountedCallback;
     private final ComponentUpdatedCallback<S> componentUpdatedCallback;
@@ -30,7 +31,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
 
-    protected final Map<String, Object> sessionObjects;
+    protected final PageObjects sessionObjects;
     protected final Consumer<SessionEvent> commandsEnqueue;
 
     private final List<Event> events = new ArrayList<>();
@@ -41,14 +42,14 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
     private S state;
 
-    public Component(final ComponentCompositeKey key,
+    public Component(final ComponentCompositeKey componentId,
                      final ComponentStateSupplier<S> stateResolver,
                      final ComponentView<S> componentView,
                      final ComponentCallbacks<S> componentCallbacks,
                      final RenderContextFactory renderContextFactory,
-                     final Map<String, Object> sessionObjects,
+                     final PageObjects sessionObjects,
                      final Consumer<SessionEvent> commandsEnqueue) {
-        this.key = Objects.requireNonNull(key);
+        this.componentId = Objects.requireNonNull(componentId);
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.componentMountedCallback = Objects.requireNonNull(componentCallbacks.componentMountedCallback());
         this.componentView = Objects.requireNonNull(componentView);
@@ -62,7 +63,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
     public TreePositionPath path() {
-        return key.componentPath();
+        return componentId.componentPath();
     }
 
     public void addChild(final Component<?> component) {
@@ -89,12 +90,12 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
     public void render(final ComponentRenderContext renderContext) {
         try {
-            state = stateResolver.getState(key);
+            state = stateResolver.getState(componentId);
             final SegmentDefinition view = componentView.apply(this).apply(state);
             view.render(renderContext);
 
-            onInitiallyRendered(key, state, this);
-            componentMountedCallback.onComponentMounted(key, state, new EnqueueTaskStateUpdate());
+            onInitiallyRendered(componentId, state, this);
+            componentMountedCallback.onComponentMounted(componentId, sessionObjects.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
         } catch (Throwable renderEx) {
             logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
         }
@@ -137,7 +138,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
         view.render(renderContext);
         renderContext.closeComponent();
 
-        onUpdateRendered(key, oldState, state, this);
+        onUpdateRendered(componentId, oldState, state, this);
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -176,7 +177,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
                 child.unmount();
             }
         }
-        componentUpdatedCallback.onComponentUpdated(key, oldState, state, new EnqueueTaskStateUpdate());
+        componentUpdatedCallback.onComponentUpdated(componentId, sessionObjects.ofComponent(componentId), oldState, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
@@ -191,8 +192,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
     public void unmount() {
         recursiveChildren().forEach(c -> c.unmount());
-        onUnmounted(key, state);
-        componentUnmountedCallback.onComponentUnmounted(key, state);
+        onUnmounted(componentId, state);
+        componentUnmountedCallback.onComponentUnmounted(componentId, sessionObjects.ofComponent(componentId), state);
     }
 
     public List<Component<?>> recursiveChildren() {
@@ -246,7 +247,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     @Override
     public String toString() {
         return "Component{" +
-                "key=" + key +
+                "key=" + componentId +
                 '}';
     }
 
@@ -255,12 +256,12 @@ public class Component<S> implements Segment, StateUpdate<S> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Component<?> component = (Component<?>) o;
-        return key.equals(component.key);
+        return componentId.equals(component.componentId);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(key);
+        return Objects.hash(componentId);
     }
 
     private final class EnqueueTaskStateUpdate implements StateUpdate<S> {

@@ -7,12 +7,8 @@ import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.server.Path;
 import rsp.server.RemoteOut;
-import rsp.server.http.HttpRequest;
 
-import java.net.URI;
-import java.util.HashMap;
 import java.util.List;
 
 import static rsp.html.HtmlDsl.*;
@@ -27,7 +23,7 @@ public final class DefaultConnectionLostWidget {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     new HashMap<>(),
+                                                                     new PageObjects(__ -> {}),
                                                                      __ -> new SilentRemoteOut());
         widgetComponent().render(rc);
         HTML = rc.html();

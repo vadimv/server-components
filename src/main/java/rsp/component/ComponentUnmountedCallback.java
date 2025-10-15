@@ -1,8 +1,10 @@
 package rsp.component;
 
+import rsp.page.PageObjects;
+
 @FunctionalInterface
 public interface ComponentUnmountedCallback<S> {
 
-    void onComponentUnmounted(ComponentCompositeKey key, S state);
+    void onComponentUnmounted(ComponentCompositeKey componentId, PageObjects.ComponentContext sessionPageObjects, S state);
 
 }

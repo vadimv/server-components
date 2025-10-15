@@ -7,11 +7,12 @@ import java.util.function.Consumer;
 
 public final class RedirectableEventsConsumer implements Consumer<SessionEvent> {
 
+    private final Queue<SessionEvent> queue = new LinkedList<>();
     private Consumer<SessionEvent> eventConsumer;
 
     public RedirectableEventsConsumer() {
         this.eventConsumer = event -> {
-            throw new IllegalStateException("A session's event loop is not initialized, receiving event: " + event);
+            queue.add(event);
         };
     }
 
@@ -20,7 +21,12 @@ public final class RedirectableEventsConsumer implements Consumer<SessionEvent> 
        this.eventConsumer.accept(event);
     }
 
-    public synchronized void redirect(final Consumer<SessionEvent> directRemoteOut) {
-        eventConsumer = Objects.requireNonNull(directRemoteOut);
+    public synchronized void redirect(final Consumer<SessionEvent> newCommandsEnqueue) {
+        eventConsumer = Objects.requireNonNull(newCommandsEnqueue);
+        while (!queue.isEmpty()) {
+            final SessionEvent e = queue.remove();
+            eventConsumer.accept(e);
+
+        }
     }
 }

@@ -82,16 +82,16 @@ public final class PageRendering<S> {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
-            final RedirectableEventsConsumer commandsBuffer = new RedirectableEventsConsumer();
+            final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
             final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
                                                                               pageConfigScript.toString(),
                                                                               DOCUMENT_DOM_PATH,
-                                                                              new HashMap<>(),
-                                                                              commandsBuffer);
+                                                                              new PageObjects(commandsEnqueue),
+                                                                              commandsEnqueue);
 
             rootComponentDefinition.apply(request).render(pageRenderContext);
 
-            final RenderedPage pageSnapshot = new RenderedPage(pageRenderContext, commandsBuffer);
+            final RenderedPage pageSnapshot = new RenderedPage(pageRenderContext, commandsEnqueue);
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = pageRenderContext.html();
 

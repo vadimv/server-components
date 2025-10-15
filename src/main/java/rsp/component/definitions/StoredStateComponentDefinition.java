@@ -1,9 +1,6 @@
 package rsp.component.definitions;
 
-import rsp.component.ComponentCompositeKey;
-import rsp.component.ComponentStateSupplier;
-import rsp.component.ComponentUpdatedCallback;
-import rsp.component.ComponentView;
+import rsp.component.*;
 
 import java.util.Map;
 import java.util.Objects;
@@ -47,7 +44,27 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
 
     @Override
     protected ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key, oldState, state, newState) -> stateStore.put(key, state);
+        return (key, sessionBag, oldState, state, newState) -> stateStore.put(key, state);
+    }
+
+    @Override
+    protected ComponentMountedCallback<S> onComponentMountedCallback() {
+        return (key, sessionBag, state, newState) -> {
+            System.out.println("mounted!");
+            System.out.println("URL: " + sessionBag.get("relativeUrl"));
+            sessionBag.onValueUpdated("relativeUrl", obj -> {
+                System.out.println("Update URL:" + obj);
+            });
+        };
+    }
+
+    @Override
+    protected ComponentUnmountedCallback<S> onComponentUnmountedCallback() {
+
+        return (key, sessionBag, state) -> {
+            System.out.println("un-mounted!");
+            sessionBag.removeCallbacks();
+        };
     }
 
     @Override

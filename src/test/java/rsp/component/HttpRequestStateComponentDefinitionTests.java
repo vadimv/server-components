@@ -3,13 +3,13 @@ package rsp.component;
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.HttpRequestStateComponentDefinition;
 import rsp.dom.TreePositionPath;
+import rsp.page.PageObjects;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.HttpRequest;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.Optional;
 
 import static rsp.html.HtmlDsl.div;
@@ -36,7 +36,7 @@ class HttpRequestStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new HashMap<>(),
+                                                                                new PageObjects(null),
                                                                                 commands);
         final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(httpRequest,
                                                                                               request-> request.header("header-0").orElseThrow(),

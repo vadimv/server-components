@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import rsp.component.definitions.PathStateComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
+import rsp.page.PageObjects;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.RemoteCommand;
@@ -13,7 +14,6 @@ import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,7 +39,7 @@ class PathStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new HashMap<>(),
+                                                                                new PageObjects(null),
                                                                                 commands);
         final PathStateComponentDefinition<String> scd = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
                                                                                        path -> path.get(0),

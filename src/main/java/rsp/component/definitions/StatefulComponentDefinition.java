@@ -3,11 +3,11 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
+import rsp.page.PageObjects;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.SessionEvent;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -48,7 +48,8 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
     protected ComponentMountedCallback<S> onComponentMountedCallback() {
-        return (key, state, newState) -> {};
+        return (key, sessionBag, state, newState) -> {
+        };
     }
 
     /**
@@ -58,7 +59,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
     protected ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key, oldState, state, newState) -> {};
+        return (key,  sessionBag, oldState, state, newState) -> {};
     }
 
     /**
@@ -66,14 +67,14 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving a key and a current state.
      */
     protected ComponentUnmountedCallback<S> onComponentUnmountedCallback() {
-        return (key, state) -> {};
+        return (key, sessionBag, state) -> {};
     }
 
     @Override
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
-                                        final Map<String, Object> sessionObjects,
+                                        final PageObjects sessionObjects,
                                         final Consumer<SessionEvent> commandsEnqueue) {
         final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
         return new Component<>(key,

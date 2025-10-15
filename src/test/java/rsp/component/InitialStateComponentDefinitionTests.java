@@ -5,6 +5,7 @@ import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
+import rsp.page.PageObjects;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.RemoteCommand;
@@ -14,7 +15,6 @@ import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;
 
 import java.net.URI;
-import java.util.HashMap;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,7 +43,7 @@ class InitialStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new HashMap<>(),
+                                                                                new PageObjects(null),
                                                                                 commands);
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
                                                                                               view);

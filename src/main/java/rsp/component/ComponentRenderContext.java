@@ -14,7 +14,7 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     protected final QualifiedSessionId sessionId;
     protected final Consumer<SessionEvent> remotePageMessagesOut;
-    protected final Map<String, Object> sessionObjects;
+    protected final PageObjects sessionObjects;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
@@ -27,7 +27,7 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
-                                  final Map<String, Object> sessionObjects,
+                                  final PageObjects sessionObjects,
                                   final Consumer<SessionEvent> remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);

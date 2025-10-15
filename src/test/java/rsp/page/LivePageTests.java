@@ -14,7 +14,6 @@ import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.*;
 
 import java.net.URI;
-import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
@@ -54,7 +53,7 @@ class LivePageTests {
         final PageRenderContext domTreeContext = new PageRenderContext(QID,
                                                                        pageConfigScript.toString(),
                                                                        DOCUMENT_DOM_PATH,
-                                                                       new HashMap<>(),
+                                                                       new PageObjects(null),
                                                                        commandsBuffer);
 
         final StatefulComponentDefinition<State> componentDefinition = new PathStateComponentDefinition<>(httpRequest.relativeUrl(),

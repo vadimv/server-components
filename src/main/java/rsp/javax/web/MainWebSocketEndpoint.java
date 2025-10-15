@@ -4,7 +4,6 @@ import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
 import rsp.page.events.InitSessionEvent;
-import rsp.page.events.RemoteCommand;
 import rsp.page.events.ShutdownSessionEvent;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
@@ -56,7 +55,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
 
             final LivePageSession livePage = new LivePageSession();
             livePage.eventsConsumer().accept(new InitSessionEvent(renderedPage.pageRenderContext,
-                                                                  renderedPage.commandsBuffer,
+                                                                  renderedPage.commandsEnqueue,
                                                                   remoteOut));
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 

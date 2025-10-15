@@ -2,6 +2,7 @@ package rsp.component.definitions;
 
 import rsp.component.*;
 import rsp.dom.Event;
+import rsp.page.PageObjects;
 import rsp.page.PageRendering;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.RemoteCommand;
@@ -12,7 +13,6 @@ import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 import rsp.util.json.JsonDataType;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -31,7 +31,7 @@ public class RelativeUrlStateComponent<S> extends Component<S> {
                                      final ComponentView<S> componentView,
                                      final ComponentCallbacks<S> componentCallbacks,
                                      final RenderContextFactory renderContextFactory,
-                                     final Map<String, Object> sessionObjects,
+                                     final PageObjects sessionObjects,
                                      final Consumer<SessionEvent> commandsEnqueue,
                                      final BiFunction<S, RelativeUrl, RelativeUrl> stateToRelativeUrl,
                                      final Function<RelativeUrl, S> relativeUrlToState) {
