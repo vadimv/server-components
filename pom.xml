@@ -22,10 +22,10 @@
         <playwright.version>1.35.0</playwright.version>
         <jsoup.version>1.17.2</jsoup.version>
 
-        <jetty.version>9.4.31.v20200723</jetty.version>
+        <jetty.version>12.0.27</jetty.version>
         <slf4j.version>1.7.30</slf4j.version>
         <json-simple.version>1.1.1</json-simple.version>
-        <javax.websocket.version>1.1</javax.websocket.version>
+        <jakarta.websocket.version>2.1.0</jakarta.websocket.version>
         <closure-compiler.version>v20220601</closure-compiler.version>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
@@ -248,23 +248,23 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>javax.websocket</groupId>
-            <artifactId>javax.websocket-api</artifactId>
-            <version>${javax.websocket.version}</version>
+            <groupId>org.eclipse.jetty.ee10.websocket</groupId>
+            <artifactId>jetty-ee10-websocket-jakarta-server</artifactId>
+            <version>${jetty.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.eclipse.jetty.websocket</groupId>
-            <artifactId>javax-websocket-server-impl</artifactId>
+            <groupId>org.eclipse.jetty.ee10</groupId>
+            <artifactId>jetty-ee10-servlet</artifactId>
             <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.websocket</groupId>
+            <artifactId>jakarta.websocket-api</artifactId>
+            <version>${jakarta.websocket.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
             <version>${jetty.version}</version>
         </dependency>
 

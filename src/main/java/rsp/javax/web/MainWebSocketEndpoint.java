@@ -1,5 +1,6 @@
 package rsp.javax.web;
 
+import jakarta.websocket.*;
 import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -12,7 +13,6 @@ import rsp.server.protocol.RemotePageMessageEncoder;
 import rsp.util.json.JsonParser;
 import rsp.util.json.JsonSimpleUtils;
 
-import javax.websocket.*;
 import java.io.IOException;
 import java.util.*;
 

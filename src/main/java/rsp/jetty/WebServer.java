@@ -1,14 +1,14 @@
 package rsp.jetty;
 
+import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.handler.HandlerList;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.server.handler.ResourceHandler;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
@@ -18,10 +18,10 @@ import rsp.server.SslConfiguration;
 import rsp.server.StaticResources;
 import rsp.server.http.HttpRequest;
 
-import javax.websocket.HandshakeResponse;
-import javax.websocket.server.HandshakeRequest;
-import javax.websocket.server.ServerEndpointConfig;
-import javax.websocket.server.ServerEndpointConfig.Configurator;
+import jakarta.websocket.HandshakeResponse;
+import jakarta.websocket.server.HandshakeRequest;
+import jakarta.websocket.server.ServerEndpointConfig;
+import jakarta.websocket.server.ServerEndpointConfig.Configurator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -76,7 +76,7 @@ public final class WebServer {
                     final HttpConfiguration https = new HttpConfiguration();
                     https.addCustomizer(new SecureRequestCustomizer());
 
-                    final SslContextFactory sslContextFactory = new SslContextFactory.Server();
+                    final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
                     sslContextFactory.setKeyStorePath(ssl.keyStorePath);
                     sslContextFactory.setKeyStorePassword(ssl.keyStorePassword);
                     sslContextFactory.setKeyManagerPassword(ssl.keyStorePassword);
@@ -93,11 +93,10 @@ public final class WebServer {
                     server.setConnectors(new Connector[] { connector });
                 });
 
-        final HandlerList handlers = new HandlerList();
+        final ContextHandlerCollection handlers = new ContextHandlerCollection();
         staticResources.ifPresent(sr -> {
             final ResourceHandler resourcesHandler = new ResourceHandler();
-            resourcesHandler.setDirectoriesListed(true);
-            resourcesHandler.setResourceBase(sr.resourcesBaseDir().getAbsolutePath());
+            resourcesHandler.setBaseResourceAsString(sr.resourcesBaseDir().getAbsolutePath());
             final ContextHandler resourceContextHandler = new ContextHandler();
             resourceContextHandler.setHandler(resourcesHandler);
             resourceContextHandler.setContextPath(sr.contextPath());
@@ -111,7 +110,7 @@ public final class WebServer {
                                                                                        DEFAULT_HEARTBEAT_INTERVAL_MS))),
                           "/*");
         final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage);
-        WebSocketServerContainerInitializer.configure(context, (servletContext, serverContainer) -> {
+        JakartaWebSocketServletContainerInitializer.configure(context, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
                             .configurator(new Configurator() {

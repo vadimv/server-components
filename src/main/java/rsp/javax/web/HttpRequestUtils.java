@@ -1,10 +1,10 @@
 package rsp.javax.web;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.websocket.server.HandshakeRequest;
 import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.websocket.server.HandshakeRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;

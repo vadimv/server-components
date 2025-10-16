@@ -128,8 +128,7 @@ public final class CountersApp {
 
     public static CountersApp run(final boolean blockCurrentThread) {
 
-        final CountersApp s = new CountersApp(new WebServer(PORT
-                ,
+        final CountersApp s = new CountersApp(new WebServer(PORT,
                                                             CountersApp::rootComponent,
                                                             new StaticResources(new File("src/test/java/rsp/app/counters"),
                                                            "/res/*")));
