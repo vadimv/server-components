@@ -180,7 +180,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
                 child.unmount();
             }
         }
-        onComponentUpdated(state);
+        onComponentUpdated(oldState, state);
 
     }
 
@@ -192,8 +192,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
         componentMountedCallback.onComponentMounted(componentId, sessionObjects.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
     }
 
-    protected void onComponentUpdated(S state) {
-        componentUpdatedCallback.onComponentUpdated(componentId, sessionObjects.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
+    protected void onComponentUpdated(S oldState, S state) {
+        componentUpdatedCallback.onComponentUpdated(componentId, sessionObjects.ofComponent(componentId), oldState, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onUpdateRendered(S state) {}

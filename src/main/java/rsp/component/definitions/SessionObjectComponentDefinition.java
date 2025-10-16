@@ -51,7 +51,7 @@ public class SessionObjectComponentDefinition<S> extends StatefulComponentDefini
 
     @Override
     protected ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key, sessionBag, state, newState) -> {
+        return (key, sessionBag, oldState, state, newState) -> {
             sessionBag.put(name, stateToKeyFunction.apply(state));
         };
     }

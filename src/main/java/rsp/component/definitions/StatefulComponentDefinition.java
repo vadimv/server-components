@@ -23,7 +23,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * This constructor to be called from the inherited classes.
      * @param componentType a unique object for this component's type
      */
-    protected StatefulComponentDefinition(final Object componentType) {
+    public StatefulComponentDefinition(final Object componentType) {
         this.componentType = Objects.requireNonNull(componentType);
     }
 
@@ -59,7 +59,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
     protected ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key,  sessionBag, state, newState) -> {};
+        return (key,  sessionBag, oldState, state, newState) -> {};
     }
 
     /**
