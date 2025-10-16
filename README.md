@@ -1,13 +1,8 @@
-# Admin Server Components
+# Server Components
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
-[![maven version](https://img.shields.io/maven-central/v/io.github.vadimv/rsp)](https://search.maven.org/search?q=io.github.vadimv)
 
-* [Maven Central](#maven-central)
-* [Code examples](#code-examples)
-* [GUI server components](#ui-components)
-* [How to use components](#how-to-use-components)
-* [How to implement a stateful component](#how-to-implement-a-component)
-* [Routing](#routing)  
+* [UI server components](#ui-components)
+* [Routing](#routing)
 * [HTML markup Java DSL](#html-markup-java-dsl)
 * [DOM events](#dom-events)
 * [SPAs, plain pages head tag](#spas-plain-pages-and-the-head-tag)
@@ -16,85 +11,19 @@
 * [Web server's configuration](#web-servers-configuration)
 * [Logging](#logging)
 
+Server Components is a Java web Server Side Rendering (SSR) framework for building responsive UIs with minimal dependencies.
 
-Admin Server Components core is a Java web Server Side Rendering (SSR) framework for building real-time admin UIs as server-side applications with minimum dependencies.
+### UI server components
 
-### Maven Central
+Web UIs are composed of components. Components may contain HTML DSL and/or other components. Every web page has its root component.
+Every component is associated with an immutable state snapshot which is set during an initialization and can be updated a result of this browser's page or an external events.
+A change of a component's state results with re-rendering of the relevant component and all it children components.
+All components on a page share a session objects basket which can be used to exchange information between components.
 
-```xml
-    <dependency>
-        <groupId>io.github.vadimv</groupId>
-        <artifactId>rsp</artifactId>
-        <version>2.0.0</version>
-    </dependency>
-```
-This project requires Java version 17 or newer.
+Every component has its view which may contain conditional rendering logic and events' handlers.
+A simple view is a pure function from an input state to a DOM tree definition.
 
-To build the project from the sources, run:
-
-```shell script
-$ mvn clean package
-```
-
-to start browser tests:
-
-```shell script
-
-$ mvn clean test -Ptest-all
-```
-
-### Code examples
-
-* [Hello World](src/main/java/rsp/examples/HelloWorld.java)
-* [TODOs list](https://github.com/vadimv/rsp-todo-list)
-* [Tetris](https://github.com/vadimv/rsp-tetris)
-* [Conway's Game of Life](https://github.com/vadimv/rsp-game-of-life)
-* [Hacker News API client](https://github.com/vadimv/rsp-hn)
-
-### GUI server components
-
-Pages are composed of components of two types:
-
-- views or stateless components
-- stateful components
-
-A view is a pure function from an input state to a DOM fragment's definition.
-
-```java
-    public static View<State> appView = state -> 
-        switch (state) {
-            case NotFoundState nf -> statelessComponent(nf, notFoundStatelessView);
-            case UserState   user -> component(user, userComponentView);
-            case UsersState users -> component(users, usersComponentView);
-        }
-        
-     appView.apply(new UserState("Username"));
-```
-
-A stateful component has its associated current state snapshot, an object of an immutable class or a record , which is managed by the framework.
-
-A state is set:
-- on a component's initialization during its first render
-- on an update as a result of an event, triggered by browser events or asynchronous events, e.g. timers
-
-A component state update is initiated by invoking of a ``ComponentView<S>`` parameter's ``StateUpdate`` interface methods, e.g. ``setState(newState)``.
-
-### How to use components
-
-Include a new instance of component definition class to the DSL alongside HTML definition tags.
-
-```java
-    div(span("Two counters"),
-        new Counter(req, 1),
-        new Counter(req, 2))
-```
-
-Note that a component's code is executed on the server, use only components you trust.
-
-### How to implement a stateful component
-
-- extend from one of the subclasses of the base component definition class ``StatefulComponentDefinition<S>``
-- for simple cases use ``ComponentDsl`` helper methods
+Besides basic components types a custom component could be created by extending ``StatefulComponentDefinition<S>`` class or some of the basic types.
 
 
 ### HTML markup Java DSL
@@ -211,7 +140,7 @@ The ``ctx.eventObject()`` method provides its event's object as a JSON data stru
     )
 ```
 
-To send a custom event use the ``ctx.dispatchEvent()`` method:
+To send a custom event to parent components use the ``ctx.dispatchEvent()`` method:
 
 ```java
 
@@ -238,9 +167,9 @@ The ``window().on(eventType, handler)`` DSL function registers an event handler 
     )
 ```
 
-### SPAs, plain pages and the head tag
+### Single Page Applications, plain pages and the head tag
 
-ASC core framework supports two types of web pages:
+Thre are two types of web pages:
 - server-side single-page applications (SPAs), written in Java, e.g. for an admin UI
 - plain server-rendered detached HTML pages
 
@@ -251,7 +180,7 @@ If the ``head()`` is not present in the page's markup, the simple SPA-type heade
 This type of head injects a script, which establishes a WebSocket connection between the browser's page and the server
 and enables reacting to the browser events.
 
- ``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag without injecting of init script
+``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag without injecting of init script
 to establish a connection with server and enable server side events handling for SPA.
 This results in rendering of a plain detached HTML page.
 
@@ -273,7 +202,7 @@ For example:
                 ).statusCode(404);
 ```
 
-### Routing
+### HTTP request routing
 
 A web page's components tree HTML generation consists of two phases:
 - a routing function maps an incoming HTTP request to the root component state
@@ -294,6 +223,9 @@ To define a routing of an incoming request, create a ``Routing`` and provide it 
                                                                         return State.userWriteSuccess(); },
                        State.NOT_FOUND_404));
     }
+    
+    
+    
 ```
 
 During a dispatch, the routes are verified individually for a matching HTTP method and a path pattern.
@@ -355,7 +287,7 @@ To invoke arbitrary EcmaScript code in the browser use the ``ctx.evalJs()`` meth
 
 ### Web server's configuration
 
-The ``rsp.jetty.WebServer`` class constructor accepts extra parameters like an optional static resources' handler 
+The ``rsp.jetty.WebServer`` class constructor accepts extra parameters like an optional static resources' handler
 and a TLS/SSL configuration:
 
 ```java
