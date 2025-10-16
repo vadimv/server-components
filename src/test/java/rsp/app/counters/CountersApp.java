@@ -1,12 +1,14 @@
 package rsp.app.counters;
 
-import rsp.component.*;
+import rsp.component.ComponentCompositeKey;
+import rsp.component.ComponentView;
+import rsp.component.StateUpdate;
+import rsp.component.View;
 import rsp.component.definitions.*;
 import rsp.html.SegmentDefinition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
 import rsp.routing.Routing;
-import rsp.server.Path;
 import rsp.server.StaticResources;
 import rsp.server.http.HttpRequest;
 
@@ -19,26 +21,23 @@ import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
 public final class CountersApp {
-
+    public static final int PORT = 8085;
     private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
 
-    public static final int PORT = 8085;
     public final WebServer webServer;
 
-    private static SegmentDefinition counterComponent1(HttpRequest httpRequest) {
-        return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
-                                                  routing(path("/:c(^\\d+$)/*", c -> Integer.parseInt(c)),
-                                                              -1),
-                                                 (count, path) -> Path.of("/" + count + "/" + path.get(1)),
-                                                 counterView("c1"));
+    private static SegmentDefinition counterComponent1() {
+        return new SessionObjectComponentDefinition<>("p0",
+                                                      Integer::parseInt,
+                                                      Object::toString,
+                                                      counterView("c1"));
     }
 
-    private static SegmentDefinition counterComponent2(HttpRequest httpRequest) {
-        return new PathStateComponentDefinition<>(httpRequest.relativeUrl(),
-                                                  routing(path("/*/:c(^\\d+$)", c -> Integer.parseInt(c)),
-                                                                -1),
-                                                        (count, path) -> Path.of("/" + path.get(0) + "/" + count),
-                                                        counterView("c2"));
+    private static SegmentDefinition counterComponent2() {
+        return new SessionObjectComponentDefinition<>("p1",
+                                                      Integer::parseInt,
+                                                      Object::toString,
+                                                      counterView("c2"));
     }
 
     private static ComponentView<Integer> counterView(final String name) {
@@ -84,13 +83,13 @@ public final class CountersApp {
         return new InitialStateComponentDefinition<>(true, storedCounterView());
     }
 
-    private static View<CountersAppState> rootView(final HttpRequest httpRequest) {
+    private static View<CountersAppState> rootView() {
         return __ ->
                 html(head(title("test-server-title"),
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
-                        body(counterComponent1(httpRequest),
-                             counterComponent2(httpRequest),
+                        body(counterComponent1(),
+                             counterComponent2(),
                              br(),
                              storedCounterComponent()
                         ));
@@ -104,7 +103,9 @@ public final class CountersApp {
     private static View<AppState> appComponentView(final HttpRequest httpRequest) {
         return state -> {
             if (state instanceof CountersAppState countersState) {
-                return new InitialStateComponentDefinition<>(countersState, rootView(httpRequest));
+                return new SessionObjectPathDispatcherComponentDefinition<>(httpRequest.relativeUrl(),
+                                                                            new InitialStateComponentDefinition<>(countersState, rootView()),
+                                                                           "p0", "p1");
             } else if (state instanceof NotFoundState notFoundState) {
                 return new InitialStateComponentDefinition<>(notFoundState, notFoundStatelessView);
             } else {
@@ -127,9 +128,10 @@ public final class CountersApp {
 
     public static CountersApp run(final boolean blockCurrentThread) {
 
-        final CountersApp s = new CountersApp(new WebServer(8085,
+        final CountersApp s = new CountersApp(new WebServer(PORT
+                ,
                                                             CountersApp::rootComponent,
-                                                            new StaticResources(new File("src/test/java/rsp/browserautomation"),
+                                                            new StaticResources(new File("src/test/java/rsp/app/counters"),
                                                            "/res/*")));
         s.webServer.start();
         if (blockCurrentThread) {

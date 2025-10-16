@@ -35,12 +35,12 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
     }
 
     @Override
-    protected ComponentStateSupplier<S> stateSupplier() {
-        return key -> initialState;
+    public ComponentStateSupplier<S> stateSupplier() {
+        return (key, session) -> initialState;
     }
 
     @Override
-    protected ComponentView<S> componentView() {
+    public ComponentView<S> componentView() {
         return view;
     }
 }

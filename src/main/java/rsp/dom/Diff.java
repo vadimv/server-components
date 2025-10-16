@@ -60,7 +60,7 @@ public final class Diff {
                 cci.next();
                 performer.removeNode(p.parent(), p);
             } else {
-                final Node wn = wci.next();
+                    final Node wn = wci.next();
                 if (wn instanceof Tag t) {
                     createTag(t, p, performer, hb);
                 } else {

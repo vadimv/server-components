@@ -59,7 +59,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
     protected ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key,  sessionBag, oldState, state, newState) -> {};
+        return (key,  sessionBag, state, newState) -> {};
     }
 
     /**

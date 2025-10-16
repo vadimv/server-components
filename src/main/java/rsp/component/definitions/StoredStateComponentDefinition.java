@@ -31,8 +31,8 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
-    protected ComponentStateSupplier<S> stateSupplier() {
-        return   key -> {
+    public ComponentStateSupplier<S> stateSupplier() {
+        return   (key, session) -> {
             if (stateStore.containsKey(key)) {
                 return stateStore.get(key);
             } else {
@@ -43,12 +43,12 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
-    protected ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key, sessionBag, oldState, state, newState) -> stateStore.put(key, state);
+    public ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
+        return (key, sessionBag, state, newState) -> stateStore.put(key, state);
     }
 
     @Override
-    protected ComponentMountedCallback<S> onComponentMountedCallback() {
+    public ComponentMountedCallback<S> onComponentMountedCallback() {
         return (key, sessionBag, state, newState) -> {
             System.out.println("mounted!");
             System.out.println("URL: " + sessionBag.get("relativeUrl"));

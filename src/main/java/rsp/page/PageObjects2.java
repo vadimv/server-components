@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public final class PageObjects {
+public final class PageObjects2 {
 
     final Map<String, Object> map = new HashMap<>();
     final Map<ComponentCompositeKey, Map<String, Consumer<Object>>> componentsOnValueUpdatedCallbacks = new HashMap<>();
@@ -17,7 +17,7 @@ public final class PageObjects {
 
     private final Consumer<SessionEvent> commandsEnqueue;
 
-    public PageObjects(Consumer<SessionEvent> commandsEnqueue) {
+    public PageObjects2(Consumer<SessionEvent> commandsEnqueue) {
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
     }
 
@@ -29,10 +29,10 @@ public final class PageObjects {
     public void put(String key, Object value) {
         Objects.requireNonNull(key);
         Objects.requireNonNull(value);
-        final Object oldValue = map.get(key);
-        map.put(key, value);
         commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            final Object oldValue = map.get(key);
             if (!value.equals(oldValue)) {
+                map.put(key, Objects.requireNonNull(value));
                 for (ComponentCompositeKey componentId : componentsOnValueUpdatedCallbacks.keySet()) {
                     final Map<String, Consumer<Object>> onValueUpdatedCallbacks = componentsOnValueUpdatedCallbacks.get(componentId);
                     if (onValueUpdatedCallbacks != null) {
@@ -48,10 +48,10 @@ public final class PageObjects {
 
     public void remove(String key) {
         Objects.requireNonNull(key);
-        map.remove(key);
         commandsEnqueue.accept(new GenericTaskEvent(() -> {
             final Object oldValue = map.get(key);
             if (oldValue != null) {
+                map.remove(key);
                 for (ComponentCompositeKey componentId : componentsOnRemovedCallbacks.keySet()) {
                     final Map<String, Runnable> onRemovedCallbacks = componentsOnRemovedCallbacks.get(componentId);
                     if (onRemovedCallbacks != null) {
@@ -74,78 +74,86 @@ public final class PageObjects {
     }
 
     public void onValueUpdated(String key, ComponentCompositeKey componentId, Consumer<Object> callback) {
-        final Map<String, Consumer<Object>> onValueUpdatedCallbacks;
-        if (componentsOnValueUpdatedCallbacks.containsKey(componentId)) {
-            onValueUpdatedCallbacks = componentsOnValueUpdatedCallbacks.get(componentId);
-        } else {
-            onValueUpdatedCallbacks = new HashMap<>();
-            componentsOnValueUpdatedCallbacks.put(componentId, onValueUpdatedCallbacks);
-        }
-        onValueUpdatedCallbacks.put(key, callback);
+        commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            final Map<String, Consumer<Object>> onValueUpdatedCallbacks;
+            if (componentsOnValueUpdatedCallbacks.containsKey(componentId)) {
+                onValueUpdatedCallbacks = componentsOnValueUpdatedCallbacks.get(componentId);
+            } else {
+                onValueUpdatedCallbacks = new HashMap<>();
+                componentsOnValueUpdatedCallbacks.put(componentId, onValueUpdatedCallbacks);
+            }
+            onValueUpdatedCallbacks.put(key, callback);
+        }));
     }
 
     public void onValueRemoved(String key, ComponentCompositeKey componentId, Runnable callback) {
-        final Map<String, Runnable> onRemovedCallbacks;
-        if (componentsOnRemovedCallbacks.containsKey(componentId)) {
-            onRemovedCallbacks = componentsOnRemovedCallbacks.get(componentId);
-        } else {
-            onRemovedCallbacks = new HashMap<>();
-        }
-        onRemovedCallbacks.put(key, callback);
+        commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            final Map<String, Runnable> onRemovedCallbacks;
+            if (componentsOnRemovedCallbacks.containsKey(componentId)) {
+                onRemovedCallbacks = componentsOnRemovedCallbacks.get(componentId);
+            } else {
+                onRemovedCallbacks = new HashMap<>();
+            }
+            onRemovedCallbacks.put(key, callback);
+        }));
     }
 
     public void removeCallbacks(String key, ComponentCompositeKey componentId) {
-        var onValueUpdatedCallbacks = componentsOnValueUpdatedCallbacks.get(componentId);
-        if (onValueUpdatedCallbacks != null) {
-            onValueUpdatedCallbacks.remove(key);
-        }
+        commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            var onValueUpdatedCallbacks = componentsOnValueUpdatedCallbacks.get(componentId);
+            if (onValueUpdatedCallbacks != null) {
+                onValueUpdatedCallbacks.remove(key);
+            }
+        }));
     }
 
     public void removeCallbacks(ComponentCompositeKey componentId) {
-        componentsOnValueUpdatedCallbacks.remove(componentId);
-        componentsOnRemovedCallbacks.remove(componentId);
+        commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            componentsOnValueUpdatedCallbacks.remove(componentId);
+            componentsOnRemovedCallbacks.remove(componentId);
+        }));
     }
 
     public ComponentContext ofComponent(ComponentCompositeKey componentId) {
         return new ComponentContext() {
             @Override
             public void put(String key, Object value) {
-                PageObjects.this.put(key, value);
+                PageObjects2.this.put(key, value);
             }
 
             @Override
             public void remove(String key) {
-                PageObjects.this.remove(key);
+                PageObjects2.this.remove(key);
             }
 
             @Override
             public Object get(String key) {
-                return PageObjects.this.get(key);
+                return PageObjects2.this.get(key);
             }
 
             @Override
             public boolean containsKey(String key) {
-                return PageObjects.this.containsKey(key);
+                return PageObjects2.this.containsKey(key);
             }
 
             @Override
             public void onValueUpdated(String key, Consumer<Object> callback) {
-                PageObjects.this.onValueUpdated(key, componentId, callback);
+                PageObjects2.this.onValueUpdated(key, componentId, callback);
             }
 
             @Override
             public void onValueRemoved(String key, ComponentCompositeKey componentId, Runnable callback) {
-                PageObjects.this.onValueRemoved(key, componentId, callback);
+                PageObjects2.this.onValueRemoved(key, componentId, callback);
             }
 
             @Override
             public void removeCallbacks(String key) {
-                PageObjects.this.removeCallbacks(key, componentId);
+                PageObjects2.this.removeCallbacks(key, componentId);
             }
 
             @Override
             public void removeCallbacks() {
-                PageObjects.this.removeCallbacks(componentId);
+                PageObjects2.this.removeCallbacks(componentId);
             }
         };
     }

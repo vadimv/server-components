@@ -23,16 +23,16 @@ import static java.lang.System.Logger.Level.*;
 public class Component<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final ComponentCompositeKey componentId;
+    protected final ComponentCompositeKey componentId;
+    protected final PageObjects sessionObjects;
+    protected final Consumer<SessionEvent> commandsEnqueue;
+
     private final ComponentStateSupplier<S> stateResolver;
     private final ComponentMountedCallback<S> componentMountedCallback;
     private final ComponentUpdatedCallback<S> componentUpdatedCallback;
     private final ComponentUnmountedCallback<S> componentUnmountedCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
-
-    protected final PageObjects sessionObjects;
-    protected final Consumer<SessionEvent> commandsEnqueue;
 
     private final List<Event> events = new ArrayList<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
@@ -41,6 +41,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
     private TreePositionPath startNodeDomPath;
 
     private S state;
+
+
 
     public Component(final ComponentCompositeKey componentId,
                      final ComponentStateSupplier<S> stateResolver,
@@ -90,12 +92,13 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
     public void render(final ComponentRenderContext renderContext) {
         try {
-            state = stateResolver.getState(componentId);
+            onBeforeComponentMount();
+            state = stateResolver.getState(componentId, (key) -> sessionObjects.ofComponent(componentId).get(key));
             final SegmentDefinition view = componentView.apply(this).apply(state);
             view.render(renderContext);
 
-            onInitiallyRendered(componentId, state, this);
-            componentMountedCallback.onComponentMounted(componentId, sessionObjects.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
+            onComponentMounted(state);
+
         } catch (Throwable renderEx) {
             logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
         }
@@ -138,7 +141,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
         view.render(renderContext);
         renderContext.closeComponent();
 
-        onUpdateRendered(componentId, oldState, state, this);
+        onUpdateRendered(state);
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -177,12 +180,23 @@ public class Component<S> implements Segment, StateUpdate<S> {
                 child.unmount();
             }
         }
-        componentUpdatedCallback.onComponentUpdated(componentId, sessionObjects.ofComponent(componentId), oldState, state, new EnqueueTaskStateUpdate());
+        onComponentUpdated(state);
+
     }
 
-    protected void onInitiallyRendered(ComponentCompositeKey key, S state, StateUpdate<S> stateUpdate) {}
+    protected void onBeforeComponentMount() {
+        //componentBeforeMountCallback.onBeforeComponentMount(componentId, sessionObjects.ofComponent(componentId));
+    }
 
-    protected void onUpdateRendered(ComponentCompositeKey key, S oldState, S state, StateUpdate<S> stateUpdate) {}
+    protected void onComponentMounted(S state) {
+        componentMountedCallback.onComponentMounted(componentId, sessionObjects.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
+    }
+
+    protected void onComponentUpdated(S state) {
+        componentUpdatedCallback.onComponentUpdated(componentId, sessionObjects.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
+    }
+
+    protected void onUpdateRendered(S state) {}
 
     protected void onUnmounted(ComponentCompositeKey key, S oldState) {}
 
