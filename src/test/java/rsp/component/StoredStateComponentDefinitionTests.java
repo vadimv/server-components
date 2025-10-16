@@ -48,7 +48,7 @@ class StoredStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new PageObjects(null),
+                                                                                new PageObjects(command -> {}),
                                                                                 commands);
         final StatefulComponentDefinition<Boolean> scd = new InitialStateComponentDefinition<>(true,
                                                                                                view);

@@ -36,7 +36,7 @@ class HttpRequestStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new PageObjects(null),
+                                                                                new PageObjects(command -> {}),
                                                                                 commands);
         final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(httpRequest,
                                                                                               request-> request.header("header-0").orElseThrow(),
