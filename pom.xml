@@ -26,7 +26,7 @@
         <slf4j.version>1.7.30</slf4j.version>
         <json-simple.version>1.1.1</json-simple.version>
         <jakarta.websocket.version>2.1.0</jakarta.websocket.version>
-        <closure-compiler.version>v20220601</closure-compiler.version>
+        <closure-compiler.version>v20250820</closure-compiler.version>
 
         <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.0.0-M5</maven-surefire-plugin.version>
