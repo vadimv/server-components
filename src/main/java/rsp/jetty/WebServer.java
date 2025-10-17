@@ -1,12 +1,16 @@
 package rsp.jetty;
 
 import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
+import org.eclipse.jetty.http.HttpURI;
+import org.eclipse.jetty.http.pathmap.PathSpec;
 import org.eclipse.jetty.server.*;
-import org.eclipse.jetty.server.handler.ContextHandler;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.PathMappingsHandler;
 import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.util.Callback;
+import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import rsp.component.definitions.StatefulComponentDefinition;
@@ -22,6 +26,9 @@ import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.ServerEndpointConfig;
 import jakarta.websocket.server.ServerEndpointConfig.Configurator;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -93,24 +100,37 @@ public final class WebServer {
                     server.setConnectors(new Connector[] { connector });
                 });
 
-        final ContextHandlerCollection handlers = new ContextHandlerCollection();
+        // See a Jetty server example at:
+        // https://github.com/jetty/jetty-examples/blob/12.0.x/embedded/path-mapping-handler/src/main/java/examples/PathMappingServer.java
+        final PathMappingsHandler mappingsHandler = new PathMappingsHandler();
         staticResources.ifPresent(sr -> {
-            final ResourceHandler resourcesHandler = new ResourceHandler();
-            resourcesHandler.setBaseResourceAsString(sr.resourcesBaseDir().getAbsolutePath());
-            final ContextHandler resourceContextHandler = new ContextHandler();
-            resourceContextHandler.setHandler(resourcesHandler);
-            resourceContextHandler.setContextPath(sr.contextPath());
-            handlers.addHandler(resourceContextHandler);
+            final ResourceFactory resourceFactory = ResourceFactory.of(server);
+            final Path staticResourcesDirectory = sr.resourcesBaseDir().toPath();
+
+            if (!Files.exists(staticResourcesDirectory) || !Files.isDirectory(staticResourcesDirectory)) {
+                throw new RuntimeException("Unable to find static files directory: " + staticResourcesDirectory.toAbsolutePath());
+            }
+            if (!Files.isReadable(staticResourcesDirectory)) {
+                throw new RuntimeException( "Unable to read static files directory: " + staticResourcesDirectory.toAbsolutePath());
+            }
+
+            final Resource staticResourcesDirectoryResource = resourceFactory.newResource(staticResourcesDirectory);
+            final ResourceHandler staticResourcesDirectoryResourceHandler = new ResourceHandler();
+            staticResourcesDirectoryResourceHandler.setBaseResource(staticResourcesDirectoryResource);
+            staticResourcesDirectoryResourceHandler.setDirAllowed(true);
+            mappingsHandler.addMapping(PathSpec.from(sr.contextPath()),
+                                       new StripContextPath(stripTrailingWildcardSymbols(sr.contextPath()),
+                                                            staticResourcesDirectoryResourceHandler));
         });
 
-        final ServletContextHandler context = new ServletContextHandler();
-        context.setContextPath("/");
-        context.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(pagesStorage,
-                                                                                       rootComponentDefinition,
-                                                                                       DEFAULT_HEARTBEAT_INTERVAL_MS))),
-                          "/*");
+        final ServletContextHandler servletContextHandler = new ServletContextHandler();
+        servletContextHandler.setContextPath("/");
+        servletContextHandler.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(pagesStorage,
+                                                                                 rootComponentDefinition,
+                                                                                 DEFAULT_HEARTBEAT_INTERVAL_MS))),
+                                         "/*");
         final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage);
-        JakartaWebSocketServletContainerInitializer.configure(context, (servletContext, serverContainer) -> {
+        JakartaWebSocketServletContainerInitializer.configure(servletContextHandler, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
                             .configurator(new Configurator() {
@@ -135,9 +155,50 @@ public final class WebServer {
                             }).build();
             serverContainer.addEndpoint(config);
         });
-        handlers.addHandler(context);
+        mappingsHandler.addMapping(PathSpec.from("/"), servletContextHandler);
 
-        server.setHandler(handlers);
+        server.setHandler(mappingsHandler);
+    }
+
+    private static String stripTrailingWildcardSymbols(String path) {
+        return path.replaceAll("\\*+$", "").replaceAll("/+$", "");
+    }
+
+    private static final class StripContextPath extends PathNameWrapper
+    {
+        public StripContextPath(String contextPath, Handler handler)
+        {
+            super(path -> path.startsWith(contextPath) ? path.substring(contextPath.length()) : path, handler);
+        }
+    }
+
+    private static class PathNameWrapper extends Handler.Wrapper
+    {
+        private final Function<String, String> nameFunction;
+
+        public PathNameWrapper(Function<String, String> nameFunction, Handler handler)
+        {
+            super(handler);
+            this.nameFunction = nameFunction;
+        }
+
+        @Override
+        public boolean handle(Request request, Response response, Callback callback) throws Exception
+        {
+            final String originalPath = request.getHttpURI().getPath();
+            final String newPath = nameFunction.apply(originalPath);
+            final HttpURI newURI = HttpURI.build(request.getHttpURI()).path(newPath);
+
+            final Request wrappedRequest = new Request.Wrapper(request)
+            {
+                @Override
+                public HttpURI getHttpURI()
+                {
+                    return newURI;
+                }
+            };
+            return super.handle(wrappedRequest, response, callback);
+        }
     }
 
     /**

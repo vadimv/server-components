@@ -131,7 +131,7 @@ public final class CountersApp {
         final CountersApp s = new CountersApp(new WebServer(PORT,
                                                             CountersApp::rootComponent,
                                                             new StaticResources(new File("src/test/java/rsp/app/counters"),
-                                                           "/res/*")));
+                                                            "/res/*")));
         s.webServer.start();
         if (blockCurrentThread) {
             s.webServer.join();
