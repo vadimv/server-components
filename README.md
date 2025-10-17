@@ -15,20 +15,16 @@ Server Components is a Java web Server Side Rendering (SSR) framework for buildi
 
 ### UI server components
 
-Web UIs are composed of components. Components may contain HTML DSL and/or other components. Every web page has its root component.
-Every component is associated with an immutable state snapshot which is set during an initialization and can be updated a result of this browser's page or an external events.
-A change of a component's state results with re-rendering of the relevant component and all it children components.
-All components on a page share a session objects basket which can be used to exchange information between components.
+- Web UIs are composed of components. Components may contain HTML DSL and/or other components. Every web page has its root component.
+- Every component is associated with an immutable state snapshot, which is set during initialization and can be updated as a result of this browser's page or external events.
+A change in a component's state results in the re-rendering of the relevant component and all its child components.
+- All components on a page share a session object basket, which can be used to exchange information between components.
+- Every component has its view, which may contain conditional rendering logic and event handlers. A simple view is a pure function from an input state to a DOM tree definition.
 
-Every component has its view which may contain conditional rendering logic and events' handlers.
-A simple view is a pure function from an input state to a DOM tree definition.
-
-Besides basic components types a custom component could be created by extending ``StatefulComponentDefinition<S>`` class or some of the basic types.
-
-
+Besides basic component type, a custom component could be created by extending ``StatefulComponentDefinition<S>`` class or some of the basic types.
 ### HTML markup Java DSL
 
-ASC core provides a Java internal domain-specific language to define HTML templates as a composition of functions.
+The Java internal domain-specific language to define HTML templates as a composition of functions.
 
 For example, the HTML fragment:
 
