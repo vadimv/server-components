@@ -22,20 +22,37 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
     private static final String RELATIVE_URL_KEY_NAME = SessionObjectPathDispatcherComponentDefinition.class.getName() + ".relativeUrl";
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
-    private final Map<String, Integer> keysIndices = new HashMap<>();
-    private final Map<Integer, String> indicesKeys = new HashMap<>();
-    private final StatefulComponentDefinition<S> componentDefinition;
-    private final String[] keys;
 
-    public SessionObjectPathDispatcherComponentDefinition(RelativeUrl initialRelativeUrl, StatefulComponentDefinition<S> componentDefinition, String... keys) {
+
+    private final StatefulComponentDefinition<S> componentDefinition;
+    private final List<String> pathElementsKeys;
+    private final List<ParameterNameKey> queryParametersNameKeys;
+
+    SessionObjectPathDispatcherComponentDefinition(RelativeUrl initialRelativeUrl,
+                                                   StatefulComponentDefinition<S> componentDefinition,
+                                                   List<String> pathElementsKeys,
+                                                   List<ParameterNameKey> queryParametersNameKeys) {
         super(SessionObjectPathDispatcherComponentDefinition.class);
         this.initialRelativeUrl = Objects.requireNonNull(initialRelativeUrl);
         this.componentDefinition = Objects.requireNonNull(componentDefinition);
-        this.keys = keys;
-        for (int i = 0; i < keys.length; i++) {
-            keysIndices.put(keys[i], i);
-            indicesKeys.put(i, keys[i]);
-        }
+        this.pathElementsKeys = Objects.requireNonNull(pathElementsKeys);
+        this.queryParametersNameKeys = Objects.requireNonNull(queryParametersNameKeys);
+    }
+
+    public static <S> SessionObjectPathDispatcherComponentDefinition<S> of(RelativeUrl initialRelativeUrl, StatefulComponentDefinition<S> componentDefinition) {
+        return new SessionObjectPathDispatcherComponentDefinition<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
+    }
+
+    public SessionObjectPathDispatcherComponentDefinition<S> withPathElement(String key) {
+        final List<String> l = new ArrayList<>(this.pathElementsKeys);
+        l.add(key);
+        return new SessionObjectPathDispatcherComponentDefinition<>(this.initialRelativeUrl, this.componentDefinition, l, this.queryParametersNameKeys);
+    }
+
+    public SessionObjectPathDispatcherComponentDefinition<S> withQueryParameter(String parameterName, String key) {
+        final List<ParameterNameKey> l = new ArrayList<>(queryParametersNameKeys);
+        l.add(new ParameterNameKey(parameterName, key));
+        return new SessionObjectPathDispatcherComponentDefinition<>(this.initialRelativeUrl, this.componentDefinition, this.pathElementsKeys, l);
     }
 
     @Override
@@ -48,9 +65,6 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
         return componentDefinition.componentView();
     }
 
-    public void onRelativeUrlChanged(PageObjects.ComponentContext sessionBag, RelativeUrl relativeUrl) {
-        // extract fields and put them in the session bag
-    }
 
     @Override
     public Component<S> createComponent(QualifiedSessionId sessionId,
@@ -58,27 +72,46 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                                         RenderContextFactory renderContextFactory,
                                         PageObjects sessionObjects,
                                         Consumer<SessionEvent> commandsEnqueue) {
-        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
+        final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
 
-        return new Component<>(key,
-                            stateSupplier(),
-                            componentView(),
-                            new ComponentCallbacks<>(onComponentMountedCallback(),
-                                                    onComponentUpdatedCallback(),
-                                                    onComponentUnmountedCallback()),
-                            renderContextFactory,
-                            sessionObjects,
-                            commandsEnqueue) {
+        // prepare indices for path elements session keys
+        final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
+        final Map<Integer, String> pathElementsIndicesKeys = new HashMap<>();
+        for (int i = 0; i < pathElementsKeys.size(); i++) {
+            pathElementsKeysIndices.put(pathElementsKeys.get(i), i);
+            pathElementsIndicesKeys.put(i, pathElementsKeys.get(i));
+        }
+
+        // prepare a map for query parameters
+        final Map<String, String> parameterNameKeyMap = new HashMap<>();
+        for (ParameterNameKey p: queryParametersNameKeys) {
+            parameterNameKeyMap.put(p.parameterName(), p.key());
+        }
+
+        return new Component<>(componentId,
+                               stateSupplier(),
+                               componentView(),
+                               new ComponentCallbacks<>(onComponentMountedCallback(),
+                                                        onComponentUpdatedCallback(),
+                                                        onComponentUnmountedCallback()),
+                               renderContextFactory,
+                               sessionObjects,
+                               commandsEnqueue) {
 
             @Override
             protected void onBeforeComponentMount() {
                 if (!sessionObjects.containsKey(RELATIVE_URL_KEY_NAME)) {
                     sessionObjects.put(RELATIVE_URL_KEY_NAME, initialRelativeUrl);
-                    for(int i = 0; i < keys.length;i++) {
-                        sessionObjects.put(keys[i], initialRelativeUrl.path().get(i));
+
+                    for (int i = 0; i < pathElementsKeys.size(); i++) {
+                        sessionObjects.put(pathElementsKeys.get(i), initialRelativeUrl.path().get(i));
+                    }
+
+                    for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
+                        sessionObjects.put(queryParametersNameKey.key(),
+                                           initialRelativeUrl.query().parameterValue(queryParametersNameKey.parameterName()));
                     }
                 }
-
             }
 
             @Override
@@ -89,10 +122,14 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
 
             private void subscribeForSessionObjectsUpdates() {
                 final PageObjects.ComponentContext sessionObjectsBag = sessionObjects.ofComponent(componentId);
-                for (final String key : keys) {
-                    sessionObjectsBag.onValueUpdated(key, obj -> {
+
+                // subscribe for path elements changes
+                for (final String pathElementKey : pathElementsKeys) {
+                    sessionObjectsBag.onValueUpdated(pathElementKey, obj -> {
                         if (obj instanceof String value) {
-                            final RelativeUrl newRelativeUrl = updatedRelativeUrlFor(key, value);
+                            final RelativeUrl oldRelativeUrl = (RelativeUrl) sessionObjects.get(RELATIVE_URL_KEY_NAME);
+                            final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey);
+                            final RelativeUrl newRelativeUrl = updatedRelativeUrlForPathElement(oldRelativeUrl, pathElementKey, value, pathElementIndex);
                             sessionObjects.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
                             this.commandsEnqueue.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
                         } else {
@@ -101,12 +138,26 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                     });
                 }
 
+                // subscribe for query parameters changes
+                for (final ParameterNameKey parameterNameKey : queryParametersNameKeys) {
+                    sessionObjectsBag.onValueUpdated(parameterNameKey.key(), obj -> {
+                        if (obj instanceof String value) {
+                            final RelativeUrl oldRelativeUrl = (RelativeUrl) sessionObjects.get(RELATIVE_URL_KEY_NAME);
+                            assert oldRelativeUrl != null;
+                            final RelativeUrl newRelativeUrl = updatedRelativeUrlForParameter(oldRelativeUrl, parameterNameKey.key(), value);
+                            sessionObjects.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
+                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
+                        } else {
+                            throw new IllegalStateException("A path element session object is not a string");
+                        }
+                    });
+                }
             }
 
-            private RelativeUrl updatedRelativeUrlFor(String key, String value) {
-                final int pathElementIndex = keysIndices.get(key);
-                final RelativeUrl oldRelativeUrl = (RelativeUrl) sessionObjects.get(RELATIVE_URL_KEY_NAME);
-                assert oldRelativeUrl != null;
+            private RelativeUrl updatedRelativeUrlForPathElement(RelativeUrl oldRelativeUrl,
+                                                                 String pathElementKey,
+                                                                 String value, int pathElementIndex) {
+
                 final List<String> pathElements = new ArrayList<>();
                 for (int j = 0; j < oldRelativeUrl.path().size(); j++) {
                     pathElements.add(oldRelativeUrl.path().get(j));
@@ -117,6 +168,17 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                 return new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment());
             }
 
+            private RelativeUrl updatedRelativeUrlForParameter(RelativeUrl oldRelativeUrl, String parameterName, String parameterValue) {
+                final List<Query.Parameter> parameters = new ArrayList<>(oldRelativeUrl.query().parameters);
+                int i = 0;
+                for (; i < parameters.size(); i++) {
+                    if (parameters.get(i).name().equals(parameterName)) break;
+                }
+                parameters.set(i, new Query.Parameter(parameterName, parameterValue));
+
+                return new RelativeUrl(oldRelativeUrl.path(), new Query(parameters), oldRelativeUrl.fragment());
+            }
+
             private void subscribeForBrowserHistoryEvents() {
                 this.addEvent(PageRendering.WINDOW_DOM_PATH,
                               HISTORY_ENTRY_CHANGE_EVENT_NAME,
@@ -125,12 +187,20 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                                  final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
                                  final RelativeUrl oldRelativeUrl = (RelativeUrl) session.get(RELATIVE_URL_KEY_NAME);
                                  session.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
-
-                                 for (int i=0; i< oldRelativeUrl.path().size(); i++) {
+                                 // update path elements
+                                 for (int i=0; i < oldRelativeUrl.path().size(); i++) {
                                      final String oldElement = oldRelativeUrl.path().get(i);
                                      final String newElement = newRelativeUrl.path().get(i);
                                      if (!oldElement.equals(newElement)) {
-                                         session.put(indicesKeys.get(i), newElement);
+                                         session.put(pathElementsIndicesKeys.get(i), newElement);
+                                     }
+                                 }
+
+                                 // update query parameters
+                                 for (Query.Parameter parameter: oldRelativeUrl.query().parameters) {
+                                     final Optional<String>  newParameterValue = newRelativeUrl.query().parameterValue(parameter.name());
+                                     if (newParameterValue.isPresent() && !newParameterValue.get().equals(parameter.value())) {
+                                         session.put(parameterNameKeyMap.get(parameter.name()), newParameterValue);
                                      }
                                  }
                              },
@@ -141,7 +211,7 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
             private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
                 final Path path = eventObject.value("path").map(p -> Path.of(p.asJsonString().value()))
                         .orElseThrow(() -> new JsonDataType.JsonException("The 'componentPath' property not found in the event object" + eventObject));
-                final Query query = eventObject.value("query").map(q -> new Query(q.asJsonString().value()))
+                final Query query = eventObject.value("query").map(q -> Query.of(q.asJsonString().value()))
                         .orElseThrow(() -> new JsonDataType.JsonException("The 'query' property not found in the event object" + eventObject));
                 final Fragment fragment = eventObject.value("fragment").map(f -> new Fragment(f.asJsonString().value()))
                         .orElseThrow(() -> new JsonDataType.JsonException("The 'fragment' property not found in the event object" + eventObject));
@@ -151,5 +221,6 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
         };
     }
 
-
+    private record ParameterNameKey(String parameterName, String key) {
+    }
 }

@@ -27,14 +27,14 @@ public final class CountersApp {
     public final WebServer webServer;
 
     private static SegmentDefinition counterComponent1() {
-        return new SessionObjectComponentDefinition<>("p0",
+        return new SessionObjectComponentDefinition<>("c1",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c1"));
     }
 
     private static SegmentDefinition counterComponent2() {
-        return new SessionObjectComponentDefinition<>("p1",
+        return new SessionObjectComponentDefinition<>("c2",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c2"));
@@ -103,9 +103,10 @@ public final class CountersApp {
     private static View<AppState> appComponentView(final HttpRequest httpRequest) {
         return state -> {
             if (state instanceof CountersAppState countersState) {
-                return new SessionObjectPathDispatcherComponentDefinition<>(httpRequest.relativeUrl(),
-                                                                            new InitialStateComponentDefinition<>(countersState, rootView()),
-                                                                           "p0", "p1");
+                return SessionObjectPathDispatcherComponentDefinition.of(httpRequest.relativeUrl(),
+                                                                         new InitialStateComponentDefinition<>(countersState, rootView()))
+                                                                     .withPathElement("c1")
+                                                                     .withPathElement("c2");
             } else if (state instanceof NotFoundState notFoundState) {
                 return new InitialStateComponentDefinition<>(notFoundState, notFoundStatelessView);
             } else {

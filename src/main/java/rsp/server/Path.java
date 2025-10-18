@@ -69,7 +69,7 @@ public record Path(boolean isAbsolute, String[] elements) {
      * @return true if this componentPath is empty, false otherwise
      */
     public boolean isEmpty() {
-        return EMPTY.equals(this);
+        return elements.length == 0;
     }
 
 

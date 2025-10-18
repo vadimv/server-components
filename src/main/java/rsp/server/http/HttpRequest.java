@@ -56,12 +56,7 @@ public final class HttpRequest {
                        final URI uri,
                        final String url,
                        final Path path) {
-        this.method = method;
-        this.uri = uri;
-        this.url = url;
-        this.path = path;
-        this.getQueryParam = n -> Optional.empty();
-        this.getHeader = n -> Optional.empty();
+        this(method, uri, url, path, __ -> Optional.empty(), __ -> Optional.empty());
     }
 
     /**
@@ -106,7 +101,7 @@ public final class HttpRequest {
 
 
     public RelativeUrl relativeUrl() {
-        return new RelativeUrl(this.path, new Query(this.uri.getQuery()), new Fragment(this.uri.getFragment()));
+        return new RelativeUrl(this.path, Query.of(this.uri.getQuery()), new Fragment(this.uri.getFragment()));
     }
 
     /**
