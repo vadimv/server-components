@@ -3,7 +3,6 @@ package rsp.routing;
 import rsp.server.http.HttpRequest;
 import rsp.util.TriFunction;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 public final class HttpRequestMatchFunction<S> implements Function<HttpRequest, S> {
@@ -27,11 +26,11 @@ public final class HttpRequestMatchFunction<S> implements Function<HttpRequest, 
         if (pathParameterIndexes.length == 0) {
             return matchFun.apply(request, "", "");
         } else if (pathParameterIndexes.length == 1) {
-            assert pathParameterIndexes[0] < request.path.size();
+            assert pathParameterIndexes[0] < request.path.elementsCount();
             return matchFun.apply(request, request.path.get(pathParameterIndexes[0]), "");
         } else {
             assert pathParameterIndexes[0] < pathParameterIndexes[1];
-            assert pathParameterIndexes[1] < request.path.size();
+            assert pathParameterIndexes[1] < request.path.elementsCount();
             return matchFun.apply(request, request.path.get(pathParameterIndexes[0]), request.path.get(pathParameterIndexes[1]));
         }
     }

@@ -83,15 +83,15 @@ public final class PathPattern {
         }
 
         int i;
-        for(i = 0; i < path.size() && i < patternSegments.size(); i++) {
+        for(i = 0; i < path.elementsCount() && i < patternSegments.size(); i++) {
             if (!(path.get(i).equals(patternSegments.get(i))
                     || isWildcard(patternSegments.get(i))
                     || (isParam(patternSegments.get(i)) && (regexes.get(i) == null || regexes.get(i).matcher(path.get(i)).find())))) {
                 return false;
             }
         }
-        return (path.size() == patternSegments.size())
-                || (path.size() > patternSegments.size() && isWildcard(patternSegments.get(i -1))) ;
+        return (path.elementsCount() == patternSegments.size())
+                || (path.elementsCount() > patternSegments.size() && isWildcard(patternSegments.get(i -1))) ;
     }
 
     private static boolean isParam(final String str) {

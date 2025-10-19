@@ -2,7 +2,6 @@ package rsp.routing;
 
 import rsp.server.Path;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -28,11 +27,11 @@ public final class PathMatchFunction<S> implements Function<Path, S> {
         if (pathParameterIndexes.length == 0) {
             return matchFun.apply("", "");
         } else if (pathParameterIndexes.length == 1) {
-            assert pathParameterIndexes[0] < path.size();
+            assert pathParameterIndexes[0] < path.elementsCount();
             return matchFun.apply(path.get(pathParameterIndexes[0]), "");
         } else {
             assert pathParameterIndexes[0] < pathParameterIndexes[1];
-            assert pathParameterIndexes[1] < path.size();
+            assert pathParameterIndexes[1] < path.elementsCount();
             return matchFun.apply(path.get(pathParameterIndexes[0]), path.get(pathParameterIndexes[1]));
         }
     }

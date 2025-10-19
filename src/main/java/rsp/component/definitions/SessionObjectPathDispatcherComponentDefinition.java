@@ -157,7 +157,7 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                                                                  String value, int pathElementIndex) {
 
                 final List<String> pathElements = new ArrayList<>();
-                for (int j = 0; j < oldRelativeUrl.path().size(); j++) {
+                for (int j = 0; j < oldRelativeUrl.path().elementsCount(); j++) {
                     pathElements.add(oldRelativeUrl.path().get(j));
                 }
                 pathElements.set(pathElementIndex, value);
@@ -186,7 +186,7 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                                  final RelativeUrl oldRelativeUrl = relativeUrl;
                                  relativeUrl = newRelativeUrl;
                                  // update path elements
-                                 for (int i=0; i < oldRelativeUrl.path().size(); i++) {
+                                 for (int i = 0; i < oldRelativeUrl.path().elementsCount(); i++) {
                                      final String oldElement = oldRelativeUrl.path().get(i);
                                      final String newElement = newRelativeUrl.path().get(i);
                                      if (!oldElement.equals(newElement)) {

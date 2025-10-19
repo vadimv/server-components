@@ -60,7 +60,7 @@ public record Path(boolean isAbsolute, String[] elements) {
      * The componentPath's elements number.
      * @return the componentPath's length
      */
-    public int size() {
+    public int elementsCount() {
         return elements.length;
     }
 

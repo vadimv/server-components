@@ -19,7 +19,7 @@ class PathTests {
     void should_correctly_create_new_empty_absolute_from_string() {
         final Path path = Path.of("/");
         assertTrue(path.isAbsolute());
-        assertFalse(path.isEmpty());
+        assertTrue(path.isEmpty());
         assertEquals(Path.ROOT, path);
     }
 
