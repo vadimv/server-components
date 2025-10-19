@@ -8,6 +8,7 @@ import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.HttpRequest;
+import rsp.server.http.Query;
 
 import java.net.URI;
 import java.util.Optional;
@@ -31,7 +32,7 @@ class HttpRequestStateComponentDefinitionTests {
                                                         uri,
                                                         uri.toString(),
                                                         Path.of(uri.getPath()),
-                                                        name -> Optional.empty(),
+                                                        Query.EMPTY,
                                                         name -> name.equals("header-0") ? Optional.of("header-0-value") : Optional.empty());
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,

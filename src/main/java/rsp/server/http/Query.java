@@ -3,32 +3,37 @@ package rsp.server.http;
 
 import java.util.*;
 
-public final class Query {
-    public final List<Parameter> parameters;
+public record Query(List<Parameter> parameters) {
 
-    public Query(List<Parameter> parameters) {
-        this.parameters = parameters;
-    }
+    public static final Query EMPTY = new Query(List.of());
 
     public static Query of(final String queryString) {
-        if (queryString == null) {
-            return new Query(List.of());
-        }
-        final String trimmedStr = queryString.trim();
+        Objects.requireNonNull(queryString);
+        final String trimmedStr = queryString.trim().replaceFirst("^\\?", "");
         final List<Parameter> params = Arrays.stream(trimmedStr.split("&")).filter(s -> !s.isEmpty()).map(paramString -> {
             final String[] tokens = paramString.split("=");
-            return tokens.length > 1 ? new Parameter(tokens[0], tokens[1]) :new Parameter(tokens[0], "");
+            return tokens.length > 1 ? new Parameter(tokens[0], tokens[1]) : new Parameter(tokens[0], "");
         }).toList();
         return new Query(params);
     }
 
     public Optional<String> parameterValue(String name) {
-        for ( Parameter param : parameters) {
+        for (Parameter param : parameters) {
             if (param.name.equals(name)) {
                 return Optional.of(param.value);
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    public String toString() {
+        if (parameters.isEmpty()) {
+            return "";
+        }
+        final var paramStrings = parameters.stream().map(parameter -> parameter.name + '=' + parameter.value).toArray(String[]::new);
+        System.out.println("?" + String.join("&", paramStrings));
+        return "?" + String.join("&", paramStrings);
     }
 
     public record Parameter(String name, String value) {

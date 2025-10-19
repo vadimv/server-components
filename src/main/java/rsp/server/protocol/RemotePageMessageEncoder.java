@@ -130,6 +130,12 @@ public final class RemotePageMessageEncoder implements RemoteOut {
         messagesOut.accept(message);
     }
 
+/*    @Override
+    public void setQueryString(final String queryString) {
+        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, SEARCH_LOCATION_TYPE, quote(path)));
+        messagesOut.accept(message);
+    }*/
+
     private String modifyDomMessageBody(final DomChange domChange) {
         if (domChange instanceof RemoveAttr) {
             final RemoveAttr c = (RemoveAttr)domChange;

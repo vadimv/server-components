@@ -109,6 +109,11 @@ public class Component<S> implements Segment, StateUpdate<S> {
         applyStateTransformation(s -> newState);
     }
 
+
+    protected void setState(S newState, Object obj) {
+        applyStateTransformation(s -> newState, obj);
+    }
+
     @Override
     public void setStateWhenComplete(final S newState) {
         setState(newState);
@@ -119,8 +124,17 @@ public class Component<S> implements Segment, StateUpdate<S> {
         stateTransformer.apply(state).ifPresent(this::setState);
     }
 
+    protected void applyStateTransformationIfPresent(Function<S, Optional<S>> stateTransformer, Object obj) {
+        stateTransformer.apply(state).ifPresent(this::setState);
+    }
+
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
+        applyStateTransformation(newStateFunction, null);
+
+    }
+
+    public void applyStateTransformation(UnaryOperator<S> newStateFunction, Object obj) {
         final List<Node> oldRootNodes = new ArrayList<>(rootNodes);
         rootNodes.clear();
         final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
@@ -180,8 +194,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
                 child.unmount();
             }
         }
-        onComponentUpdated(oldState, state);
-
+        onComponentUpdated(oldState, state, obj);
     }
 
     protected void onBeforeComponentMount() {
@@ -192,7 +205,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
         componentMountedCallback.onComponentMounted(componentId, sessionObjects.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
     }
 
-    protected void onComponentUpdated(S oldState, S state) {
+    protected void onComponentUpdated(S oldState, S state, Object obj) {
         componentUpdatedCallback.onComponentUpdated(componentId, sessionObjects.ofComponent(componentId), oldState, state, new EnqueueTaskStateUpdate());
     }
 
@@ -236,11 +249,11 @@ public class Component<S> implements Segment, StateUpdate<S> {
         return recursiveRefs;
     }
 
-    public void addEvent(final TreePositionPath elementPath,
-                         final String eventType,
-                         final Consumer<EventContext> eventHandler,
-                         final boolean preventDefault,
-                         final Event.Modifier modifier) {
+    public void addEventHandler(final TreePositionPath elementPath,
+                                final String eventType,
+                                final Consumer<EventContext> eventHandler,
+                                final boolean preventDefault,
+                                final Event.Modifier modifier) {
         final Event.Target eventTarget = new Event.Target(eventType, elementPath);
         events.add(new Event(eventTarget, eventHandler, preventDefault, modifier));
     }

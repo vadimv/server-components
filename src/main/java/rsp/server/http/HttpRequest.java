@@ -19,7 +19,7 @@ public final class HttpRequest {
     public final String url;
     public final Path path;
 
-    private final Function<String, Optional<String>> getQueryParam;
+    public final Query queryParameters;
     private final Function<String, Optional<String>> getHeader;
 
     /**
@@ -28,20 +28,20 @@ public final class HttpRequest {
      * @param uri the request's URI
      * @param url the request's URL
      * @param path the request's componentPath
-     * @param queryParam the function that provides access the request's query parameters
+     * @param queryParameters the function that provides access the request's query parameters
      * @param getHeader the function that provides access to the request's headers
      */
     public HttpRequest(final HttpMethod method,
                        final URI uri,
                        final String url,
                        final Path path,
-                       final Function<String, Optional<String>> queryParam,
+                       final Query queryParameters,
                        final Function<String, Optional<String>> getHeader) {
         this.method = Objects.requireNonNull(method);
         this.uri = Objects.requireNonNull(uri);
         this.url = Objects.requireNonNull(url);
         this.path = Objects.requireNonNull(path);
-        this.getQueryParam = Objects.requireNonNull(queryParam);
+        this.queryParameters = Objects.requireNonNull(queryParameters);
         this.getHeader = Objects.requireNonNull(getHeader);
     }
 
@@ -56,7 +56,7 @@ public final class HttpRequest {
                        final URI uri,
                        final String url,
                        final Path path) {
-        this(method, uri, url, path, __ -> Optional.empty(), __ -> Optional.empty());
+        this(method, uri, url, path, Query.EMPTY, __ -> Optional.empty());
     }
 
     /**
@@ -81,14 +81,6 @@ public final class HttpRequest {
         return cookie(PageRendering.DEVICE_ID_COOKIE_NAME);
     }
 
-    /**
-     * Gets the request's query parameter by name.
-     * @param name the parameter's name
-     * @return the Optional with the parameter's value or the empty
-     */
-    public Optional<String> queryParam(final String name) {
-        return getQueryParam.apply(name);
-    }
 
     /**
      * Get the request's header by name.
@@ -101,7 +93,7 @@ public final class HttpRequest {
 
 
     public RelativeUrl relativeUrl() {
-        return new RelativeUrl(this.path, Query.of(this.uri.getQuery()), new Fragment(this.uri.getFragment()));
+        return new RelativeUrl(this.path, this.queryParameters, Fragment.EMPTY);
     }
 
     /**

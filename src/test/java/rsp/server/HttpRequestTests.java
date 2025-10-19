@@ -2,6 +2,7 @@ package rsp.server;
 
 import org.junit.jupiter.api.Test;
 import rsp.server.http.HttpRequest;
+import rsp.server.http.Query;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -18,7 +19,7 @@ class HttpRequestTests {
                                                     uri,
                                                     uri.toString(),
                                                     Path.EMPTY,
-                                                    s -> Optional.empty(),
+                                                    Query.EMPTY,
                                                     s -> Optional.of(cookieHeader));
 
         final Optional<String> cookieValue = request.cookie("name2");
@@ -34,7 +35,7 @@ class HttpRequestTests {
                                                     uri,
                                                     uri.toString(),
                                                     Path.EMPTY,
-                                                    s -> Optional.empty(),
+                                                    Query.EMPTY,
                                                     s -> Optional.of(cookieHeader));
 
         final Optional<String> cookieValue = request.cookie("name4");

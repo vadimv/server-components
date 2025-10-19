@@ -12,6 +12,11 @@ public record RelativeUrl(Path path, Query query, Fragment fragment) {
     }
 
     public static RelativeUrl of(HttpRequest httpRequest) {
-        return new RelativeUrl(httpRequest.path, Query.of(httpRequest.uri.getQuery()), new Fragment(httpRequest.uri.getFragment()));
+        return new RelativeUrl(httpRequest.path, httpRequest.queryParameters, new Fragment(httpRequest.uri.getFragment()));
+    }
+
+    @Override
+    public String toString() {
+        return path.toString() + query.toString() + fragment.toString();
     }
 }

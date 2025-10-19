@@ -146,7 +146,7 @@ public class ComponentRenderContext implements RenderContextFactory {
                          final Event.Modifier modifier) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
-        component.addEvent(elementPath, eventType, eventHandler, preventDefault, modifier);
+        component.addEventHandler(elementPath, eventType, eventHandler, preventDefault, modifier);
     }
 
     public void addEvent(final String eventType,

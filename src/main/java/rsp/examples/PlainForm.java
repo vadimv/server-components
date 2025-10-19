@@ -49,8 +49,8 @@ public class PlainForm {
         return RoutingDsl.concat(
             get("/*", req -> new EmptyName()),
             post("/*",
-                  req -> new FullName(req.queryParam("firstname").orElseThrow(),
-                                                                        req.queryParam("lastname").orElseThrow())));
+                  req -> new FullName(req.queryParameters.parameterValue("firstname").orElseThrow(),
+                                                  req.queryParameters.parameterValue("lastname").orElseThrow())));
     }
 
     private static View<Name> pagesView() {

@@ -7,6 +7,7 @@ import rsp.page.PageObjects;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
+import rsp.page.events.DomEvent;
 import rsp.page.events.RemoteCommand;
 import rsp.page.events.SessionEvent;
 import rsp.server.Path;
@@ -19,7 +20,6 @@ import java.util.*;
 import java.util.function.Consumer;
 
 public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulComponentDefinition<S> {
-    private static final String RELATIVE_URL_KEY_NAME = SessionObjectPathDispatcherComponentDefinition.class.getName() + ".relativeUrl";
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
 
@@ -98,19 +98,20 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                                sessionObjects,
                                commandsEnqueue) {
 
+            private RelativeUrl relativeUrl;
+
             @Override
             protected void onBeforeComponentMount() {
-                if (!sessionObjects.containsKey(RELATIVE_URL_KEY_NAME)) {
-                    sessionObjects.put(RELATIVE_URL_KEY_NAME, initialRelativeUrl);
+                relativeUrl = initialRelativeUrl;
+                for (int i = 0; i < pathElementsKeys.size(); i++) {
+                    sessionObjects.put(pathElementsKeys.get(i), initialRelativeUrl.path().get(i));
+                }
 
-                    for (int i = 0; i < pathElementsKeys.size(); i++) {
-                        sessionObjects.put(pathElementsKeys.get(i), initialRelativeUrl.path().get(i));
-                    }
-
-                    for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
-                        sessionObjects.put(queryParametersNameKey.key(),
-                                           initialRelativeUrl.query().parameterValue(queryParametersNameKey.parameterName()));
-                    }
+                for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
+                    final Optional<String> optionalParameter = initialRelativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
+                    optionalParameter.ifPresent(p -> {
+                        sessionObjects.put(queryParametersNameKey.key(), p);
+                    });
                 }
             }
 
@@ -120,38 +121,35 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                 subscribeForSessionObjectsUpdates();
             }
 
-            private void subscribeForSessionObjectsUpdates() {
-                final PageObjects.ComponentContext sessionObjectsBag = sessionObjects.ofComponent(componentId);
+            @Override
+            protected void onUnmounted(ComponentCompositeKey key, S oldState) {
+                sessionObjects.ofComponent(componentId).removeCallbacks();
+            }
 
+            private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
                 for (final String pathElementKey : pathElementsKeys) {
-                    sessionObjectsBag.onValueUpdated(pathElementKey, obj -> {
-                        if (obj instanceof String value) {
-                            final RelativeUrl oldRelativeUrl = (RelativeUrl) sessionObjects.get(RELATIVE_URL_KEY_NAME);
-                            final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey);
-                            final RelativeUrl newRelativeUrl = updatedRelativeUrlForPathElement(oldRelativeUrl, pathElementKey, value, pathElementIndex);
-                            sessionObjects.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
-                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
-                        } else {
-                            throw new IllegalStateException("A path element session object is not a string");
-                        }
-                    });
+                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,"stateUpdated." + pathElementKey, eventContext -> {
+                        final String value = eventContext.eventObject().value("value").get().asJsonString().value();
+                        final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey);
+                        relativeUrl = updatedRelativeUrlForPathElement(relativeUrl, pathElementKey, value, pathElementIndex);
+                        this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                    },
+                            true,
+                            Event.NO_MODIFIER);
                 }
 
                 // subscribe for query parameters changes
                 for (final ParameterNameKey parameterNameKey : queryParametersNameKeys) {
-                    sessionObjectsBag.onValueUpdated(parameterNameKey.key(), obj -> {
-                        if (obj instanceof String value) {
-                            final RelativeUrl oldRelativeUrl = (RelativeUrl) sessionObjects.get(RELATIVE_URL_KEY_NAME);
-                            assert oldRelativeUrl != null;
-                            final RelativeUrl newRelativeUrl = updatedRelativeUrlForParameter(oldRelativeUrl, parameterNameKey.key(), value);
-                            sessionObjects.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
-                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(newRelativeUrl.path().toString()));
-                        } else {
-                            throw new IllegalStateException("A path element session object is not a string");
-                        }
-                    });
+                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,"stateUpdated." + parameterNameKey.key(), eventContext -> {
+                        final String value = eventContext.eventObject().value("value").get().asJsonString().value();
+                        relativeUrl = updatedRelativeUrlForParameter(relativeUrl, parameterNameKey.key(), value);
+                        this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+
+                    },true,
+                            Event.NO_MODIFIER);
                 }
+
             }
 
             private RelativeUrl updatedRelativeUrlForPathElement(RelativeUrl oldRelativeUrl,
@@ -169,7 +167,7 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
             }
 
             private RelativeUrl updatedRelativeUrlForParameter(RelativeUrl oldRelativeUrl, String parameterName, String parameterValue) {
-                final List<Query.Parameter> parameters = new ArrayList<>(oldRelativeUrl.query().parameters);
+                final List<Query.Parameter> parameters = new ArrayList<>(oldRelativeUrl.query().parameters());
                 int i = 0;
                 for (; i < parameters.size(); i++) {
                     if (parameters.get(i).name().equals(parameterName)) break;
@@ -180,27 +178,35 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
             }
 
             private void subscribeForBrowserHistoryEvents() {
-                this.addEvent(PageRendering.WINDOW_DOM_PATH,
+                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
                               HISTORY_ENTRY_CHANGE_EVENT_NAME,
                              eventContext -> {
                                  final var session = sessionObjects.ofComponent(componentId);
                                  final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
-                                 final RelativeUrl oldRelativeUrl = (RelativeUrl) session.get(RELATIVE_URL_KEY_NAME);
-                                 session.put(RELATIVE_URL_KEY_NAME, newRelativeUrl);
+                                 final RelativeUrl oldRelativeUrl = relativeUrl;
+                                 relativeUrl = newRelativeUrl;
                                  // update path elements
                                  for (int i=0; i < oldRelativeUrl.path().size(); i++) {
                                      final String oldElement = oldRelativeUrl.path().get(i);
                                      final String newElement = newRelativeUrl.path().get(i);
                                      if (!oldElement.equals(newElement)) {
                                          session.put(pathElementsIndicesKeys.get(i), newElement);
+                                         // enqueue history event "historyUndo"
+                                         commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + pathElementsIndicesKeys.get(i),
+                                                 new JsonDataType.Object().put("value", new JsonDataType.String(newElement))));
+                                         return;
                                      }
                                  }
 
                                  // update query parameters
-                                 for (Query.Parameter parameter: oldRelativeUrl.query().parameters) {
+                                 for (Query.Parameter parameter: oldRelativeUrl.query().parameters()) {
                                      final Optional<String>  newParameterValue = newRelativeUrl.query().parameterValue(parameter.name());
                                      if (newParameterValue.isPresent() && !newParameterValue.get().equals(parameter.value())) {
-                                         session.put(parameterNameKeyMap.get(parameter.name()), newParameterValue);
+                                         session.put(parameterNameKeyMap.get(parameter.name()), newParameterValue.get());
+                                         // enqueue history event "historyUndo"
+                                         commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + parameter.name(),
+                                                 new JsonDataType.Object().put("value", new JsonDataType.String(newParameterValue.get()))));
+                                         return;
                                      }
                                  }
                              },
