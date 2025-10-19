@@ -123,7 +123,6 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
 
             @Override
             protected void onUnmounted(ComponentCompositeKey key, S oldState) {
-                sessionObjects.ofComponent(componentId).removeCallbacks();
             }
 
             private void subscribeForSessionObjectsUpdates() {

@@ -32,7 +32,6 @@ public record Query(List<Parameter> parameters) {
             return "";
         }
         final var paramStrings = parameters.stream().map(parameter -> parameter.name + '=' + parameter.value).toArray(String[]::new);
-        System.out.println("?" + String.join("&", paramStrings));
         return "?" + String.join("&", paramStrings);
     }
 

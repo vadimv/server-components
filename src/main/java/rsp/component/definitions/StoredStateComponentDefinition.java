@@ -50,20 +50,6 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     @Override
     public ComponentMountedCallback<S> onComponentMountedCallback() {
         return (key, sessionBag, state, newState) -> {
-            System.out.println("mounted!");
-            System.out.println("URL: " + sessionBag.get("relativeUrl"));
-            sessionBag.onValueUpdated("relativeUrl", obj -> {
-                System.out.println("Update URL:" + obj);
-            });
-        };
-    }
-
-    @Override
-    protected ComponentUnmountedCallback<S> onComponentUnmountedCallback() {
-
-        return (key, sessionBag, state) -> {
-            System.out.println("un-mounted!");
-            sessionBag.removeCallbacks();
         };
     }
 

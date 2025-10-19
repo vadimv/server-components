@@ -23,7 +23,7 @@ public final class DefaultConnectionLostWidget {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     new PageObjects(__ -> {}),
+                                                                     new PageObjects(),
                                                                      __ -> new SilentRemoteOut());
         widgetComponent().render(rc);
         HTML = rc.html();
