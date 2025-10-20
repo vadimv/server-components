@@ -14,7 +14,7 @@ import rsp.util.json.JsonDataType;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class SessionObjectComponentDefinition<S> extends StatefulComponentDefinition<S> {
+public class LookupStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final String name;
@@ -22,11 +22,11 @@ public class SessionObjectComponentDefinition<S> extends StatefulComponentDefini
     private final Function<S, String> stateToKeyFunction;
     private final ComponentView<S> view;
 
-    public SessionObjectComponentDefinition(String name,
-                                            Function<String, S> keyToStateFunction,
-                                            Function<S, String> stateToKeyFunction,
-                                            final ComponentView<S> view) {
-        super(SessionObjectComponentDefinition.class);
+    public LookupStateComponentDefinition(String name,
+                                          Function<String, S> keyToStateFunction,
+                                          Function<S, String> stateToKeyFunction,
+                                          final ComponentView<S> view) {
+        super(LookupStateComponentDefinition.class);
         this.name = name;
         this.keyToStateFunction = keyToStateFunction;
         this.stateToKeyFunction = stateToKeyFunction;

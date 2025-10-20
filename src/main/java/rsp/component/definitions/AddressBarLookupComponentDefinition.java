@@ -19,7 +19,7 @@ import rsp.util.json.JsonDataType;
 import java.util.*;
 import java.util.function.Consumer;
 
-public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulComponentDefinition<S> {
+public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDefinition<S> {
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
 
@@ -28,31 +28,31 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
     private final List<String> pathElementsKeys;
     private final List<ParameterNameKey> queryParametersNameKeys;
 
-    SessionObjectPathDispatcherComponentDefinition(RelativeUrl initialRelativeUrl,
-                                                   StatefulComponentDefinition<S> componentDefinition,
-                                                   List<String> pathElementsKeys,
-                                                   List<ParameterNameKey> queryParametersNameKeys) {
-        super(SessionObjectPathDispatcherComponentDefinition.class);
+    AddressBarLookupComponentDefinition(RelativeUrl initialRelativeUrl,
+                                        StatefulComponentDefinition<S> componentDefinition,
+                                        List<String> pathElementsKeys,
+                                        List<ParameterNameKey> queryParametersNameKeys) {
+        super(AddressBarLookupComponentDefinition.class);
         this.initialRelativeUrl = Objects.requireNonNull(initialRelativeUrl);
         this.componentDefinition = Objects.requireNonNull(componentDefinition);
         this.pathElementsKeys = Objects.requireNonNull(pathElementsKeys);
         this.queryParametersNameKeys = Objects.requireNonNull(queryParametersNameKeys);
     }
 
-    public static <S> SessionObjectPathDispatcherComponentDefinition<S> of(RelativeUrl initialRelativeUrl, StatefulComponentDefinition<S> componentDefinition) {
-        return new SessionObjectPathDispatcherComponentDefinition<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
+    public static <S> AddressBarLookupComponentDefinition<S> of(RelativeUrl initialRelativeUrl, StatefulComponentDefinition<S> componentDefinition) {
+        return new AddressBarLookupComponentDefinition<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
     }
 
-    public SessionObjectPathDispatcherComponentDefinition<S> withPathElement(String key) {
+    public AddressBarLookupComponentDefinition<S> withPathElement(String key) {
         final List<String> l = new ArrayList<>(this.pathElementsKeys);
         l.add(key);
-        return new SessionObjectPathDispatcherComponentDefinition<>(this.initialRelativeUrl, this.componentDefinition, l, this.queryParametersNameKeys);
+        return new AddressBarLookupComponentDefinition<>(this.initialRelativeUrl, this.componentDefinition, l, this.queryParametersNameKeys);
     }
 
-    public SessionObjectPathDispatcherComponentDefinition<S> withQueryParameter(String parameterName, String key) {
+    public AddressBarLookupComponentDefinition<S> withQueryParameter(String parameterName, String key) {
         final List<ParameterNameKey> l = new ArrayList<>(queryParametersNameKeys);
         l.add(new ParameterNameKey(parameterName, key));
-        return new SessionObjectPathDispatcherComponentDefinition<>(this.initialRelativeUrl, this.componentDefinition, this.pathElementsKeys, l);
+        return new AddressBarLookupComponentDefinition<>(this.initialRelativeUrl, this.componentDefinition, this.pathElementsKeys, l);
     }
 
     @Override
@@ -128,19 +128,23 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
                 for (final String pathElementKey : pathElementsKeys) {
-                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,"stateUpdated." + pathElementKey, eventContext -> {
+                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
+                                        "stateUpdated." + pathElementKey,
+                                        eventContext -> {
                         final String value = eventContext.eventObject().value("value").get().asJsonString().value();
                         final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey);
                         relativeUrl = updatedRelativeUrlForPathElement(relativeUrl, pathElementKey, value, pathElementIndex);
                         this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
                     },
-                            true,
-                            Event.NO_MODIFIER);
+                                        true,
+                                        Event.NO_MODIFIER);
                 }
 
                 // subscribe for query parameters changes
                 for (final ParameterNameKey parameterNameKey : queryParametersNameKeys) {
-                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,"stateUpdated." + parameterNameKey.key(), eventContext -> {
+                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
+                                        "stateUpdated." + parameterNameKey.key(),
+                                        eventContext -> {
                         final String value = eventContext.eventObject().value("value").get().asJsonString().value();
                         relativeUrl = updatedRelativeUrlForParameter(relativeUrl, parameterNameKey.key(), value);
                         this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));

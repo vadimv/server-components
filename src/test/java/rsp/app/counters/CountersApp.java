@@ -27,14 +27,14 @@ public final class CountersApp {
     public final WebServer webServer;
 
     private static SegmentDefinition counterComponent1() {
-        return new SessionObjectComponentDefinition<>("c1",
+        return new LookupStateComponentDefinition<>("c1",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c1"));
     }
 
     private static SegmentDefinition counterComponent2() {
-        return new SessionObjectComponentDefinition<>("c2",
+        return new LookupStateComponentDefinition<>("c2",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c2"));
@@ -103,7 +103,7 @@ public final class CountersApp {
     private static View<AppState> appComponentView(final HttpRequest httpRequest) {
         return state -> {
             if (state instanceof CountersAppState countersState) {
-                return SessionObjectPathDispatcherComponentDefinition.of(httpRequest.relativeUrl(),
+                return AddressBarLookupComponentDefinition.of(httpRequest.relativeUrl(),
                                                                          new InitialStateComponentDefinition<>(countersState, rootView()))
                                                                      .withPathElement("c1")
                                                                      .withPathElement("c2");
