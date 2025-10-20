@@ -16,10 +16,10 @@ Server Components is a Java web Server Side Rendering (SSR) framework for buildi
 ### UI server components
 
 - Web UIs are composed of components. Components may contain HTML DSL and/or other components. Every web page has its root component.
-- Every component is associated with an immutable state snapshot, which is set during initialization and can be updated as a result of this browser's page or external events.
+- Every component is associated with an immutable state snapshot, which is set during initialization and can be updated independently as a result of a user's action on this browser's page or some external events.
 A change in a component's state results in the re-rendering of the relevant component and all its child components.
-- All components on a page share a session object basket, which can be used to exchange information between components.
-- Every component has its view, which may contain conditional rendering logic and event handlers. A simple view is a pure function from an input state to a DOM tree definition.
+- Child components on a share a key-value lookup, which can be used to share additional information from parent components to its children.
+- Every component has its DOM fragment view, which may contain conditional rendering logic and event handlers. A simple view is a pure function from an input state to a DOM tree definition.
 
 Besides basic component type, a custom component could be created by extending ``StatefulComponentDefinition<S>`` class or some of the basic types.
 ### HTML markup Java DSL
@@ -62,17 +62,7 @@ where:
 
 The  ``of()`` DSL function takes a ``Stream<T>`` of objects, e.g. a sequence of tags, or a table rows:
 ```java
-    import static rsp.html.HtmlDsl.*;
-    ...
     state -> ul(of(state.items.stream().map(item -> li(item.name))))
-```
-
-An overloaded variant of ``of()`` accepts a ``CompletableFuture<S>``:
-```java
-    final Function<Long, CompletableFuture<String>> lookupService = userDetailsByIdService(); 
-    ...
-     // consider that at this moment we know the current user's Id
-    state -> stateUpdate -> div(of(lookupService.apply(state.user.id).map(str -> text(str))))
 ```
 
 another overloaded ``of()`` function takes a ``Supplier<S>`` as its argument and allows inserting code fragments.
