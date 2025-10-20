@@ -20,7 +20,7 @@ public final class Reactor<T> implements Runnable, Consumer<T> {
 
     public void start() {
         isRunning = true;
-        new Thread(this).start();
+        Thread.startVirtualThread(this);
     }
 
     public void stop()  {
@@ -48,6 +48,5 @@ public final class Reactor<T> implements Runnable, Consumer<T> {
                 logger.log(Logger.Level.ERROR, "Event loop error", e);
             }
         }
-
     }
 }
