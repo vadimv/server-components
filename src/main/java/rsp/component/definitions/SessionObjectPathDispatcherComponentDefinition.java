@@ -3,7 +3,7 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
@@ -70,7 +70,7 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
     public Component<S> createComponent(QualifiedSessionId sessionId,
                                         TreePositionPath componentPath,
                                         RenderContextFactory renderContextFactory,
-                                        PageObjects sessionObjects,
+                                        Lookup sessionObjects,
                                         Consumer<SessionEvent> commandsEnqueue) {
         final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
 
@@ -101,28 +101,28 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
             private RelativeUrl relativeUrl;
 
             @Override
-            protected void onBeforeComponentMount() {
+            protected void onBeforeInitiallyRendered() {
                 relativeUrl = initialRelativeUrl;
                 for (int i = 0; i < pathElementsKeys.size(); i++) {
-                    sessionObjects.put(pathElementsKeys.get(i), initialRelativeUrl.path().get(i));
+                    lookup.put(pathElementsKeys.get(i), initialRelativeUrl.path().get(i));
                 }
 
                 for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
                     final Optional<String> optionalParameter = initialRelativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
                     optionalParameter.ifPresent(p -> {
-                        sessionObjects.put(queryParametersNameKey.key(), p);
+                        lookup.put(queryParametersNameKey.key(), p);
                     });
                 }
             }
 
             @Override
-            protected void onComponentMounted(S state) {
+            protected void onAfterInitiallyRendered(S state) {
                 subscribeForBrowserHistoryEvents();
                 subscribeForSessionObjectsUpdates();
             }
 
             @Override
-            protected void onUnmounted(ComponentCompositeKey key, S oldState) {
+            protected void onAfterUnmounted(ComponentCompositeKey key, S oldState) {
             }
 
             private void subscribeForSessionObjectsUpdates() {
@@ -180,7 +180,7 @@ public class SessionObjectPathDispatcherComponentDefinition<S> extends StatefulC
                 this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
                               HISTORY_ENTRY_CHANGE_EVENT_NAME,
                              eventContext -> {
-                                 final var session = sessionObjects.ofComponent(componentId);
+                                 final var session = lookup.ofComponent(componentId);
                                  final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
                                  final RelativeUrl oldRelativeUrl = relativeUrl;
                                  relativeUrl = newRelativeUrl;

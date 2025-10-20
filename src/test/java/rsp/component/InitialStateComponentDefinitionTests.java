@@ -5,7 +5,7 @@ import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.RemoteCommand;
@@ -43,7 +43,7 @@ class InitialStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new PageObjects(),
+                                                                                new Lookup(),
                                                                                 commands);
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
                                                                                               view);

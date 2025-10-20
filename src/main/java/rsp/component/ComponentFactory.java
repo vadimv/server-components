@@ -1,7 +1,7 @@
 package rsp.component;
 
 import rsp.dom.TreePositionPath;
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.SessionEvent;
@@ -14,6 +14,6 @@ public interface ComponentFactory<S> {
     Component<S> createComponent(QualifiedSessionId sessionId,
                                  TreePositionPath componentPath,
                                  RenderContextFactory renderContextFactory,
-                                 PageObjects sessionObjects,
+                                 Lookup sessionObjects,
                                  Consumer<SessionEvent> commandsEnqueue);
 }

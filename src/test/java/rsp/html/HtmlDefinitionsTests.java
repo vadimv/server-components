@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import rsp.component.ComponentRenderContext;
 import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.View;
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
@@ -65,7 +65,7 @@ public class HtmlDefinitionsTests {
                                                         Path.ROOT);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     new PageObjects(),
+                                                                     new Lookup(),
                                                                      __ -> new TestCollectingRemoteOut());
         return rc;
 

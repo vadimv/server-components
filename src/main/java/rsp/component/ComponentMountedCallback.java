@@ -1,6 +1,6 @@
 package rsp.component;
 
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 
 @FunctionalInterface
 public interface ComponentMountedCallback<S> {
@@ -13,6 +13,6 @@ public interface ComponentMountedCallback<S> {
      * @param state       current state
      * @param stateUpdate update state target, must not be called directly, to be called asynchronous only
      */
-    void onComponentMounted(ComponentCompositeKey componentId, PageObjects.ComponentContext sessionPageObjects, S state, StateUpdate<S> stateUpdate);
+    void onComponentMounted(ComponentCompositeKey componentId, Lookup.ComponentContext sessionPageObjects, S state, StateUpdate<S> stateUpdate);
 
 }

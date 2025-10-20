@@ -3,7 +3,7 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.SessionEvent;
@@ -74,10 +74,9 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
-                                        final PageObjects sessionObjects,
+                                        final Lookup sessionObjects,
                                         final Consumer<SessionEvent> commandsEnqueue) {
-        final ComponentCompositeKey key = new ComponentCompositeKey(sessionId, componentType, componentPath);
-        return new Component<>(key,
+        return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                stateSupplier(),
                                componentView(),
                                new ComponentCallbacks<>(onComponentMountedCallback(),

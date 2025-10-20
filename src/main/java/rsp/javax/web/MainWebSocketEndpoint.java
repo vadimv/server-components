@@ -14,6 +14,7 @@ import rsp.util.json.JsonParser;
 import rsp.util.json.JsonSimpleUtils;
 
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 import java.util.*;
 
 import static java.lang.System.Logger.Level.*;
@@ -77,8 +78,11 @@ public final class MainWebSocketEndpoint extends Endpoint {
         try {
             logger.log(TRACE, () -> session.getId() + " <- " + text);
             session.getBasicRemote().sendText(text);
-        } catch (final IOException ioException) {
-            throw new RuntimeException(ioException);
+        } catch (ClosedChannelException e) {
+            logger.log(DEBUG, () -> "WebSocket channel closed for the session: " + session.getId());
+            shutdown(session);
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

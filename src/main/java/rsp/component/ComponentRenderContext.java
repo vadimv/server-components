@@ -14,7 +14,7 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     protected final QualifiedSessionId sessionId;
     protected final Consumer<SessionEvent> remotePageMessagesOut;
-    protected final PageObjects sessionObjects;
+    protected final Lookup lookup;
 
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
@@ -27,11 +27,11 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
-                                  final PageObjects sessionObjects,
+                                  final Lookup lookup,
                                   final Consumer<SessionEvent> remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
-        this.sessionObjects = sessionObjects;
+        this.lookup = lookup;
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
     }
 
@@ -50,7 +50,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
                                                                            this,
-                                                                           sessionObjects,
+                                                                           lookup,
                                                                            remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;
@@ -170,7 +170,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
         return new ComponentRenderContext(sessionId,
                                           startDomPath,
-                                          sessionObjects,
+                lookup,
                                           remotePageMessagesOut);
     }
 

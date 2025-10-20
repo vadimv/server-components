@@ -7,7 +7,7 @@ import rsp.component.definitions.StoredStateComponentDefinition;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.RemoteCommand;
@@ -48,7 +48,7 @@ class StoredStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new PageObjects(),
+                                                                                new Lookup(),
                                                                                 commands);
         final StatefulComponentDefinition<Boolean> scd = new InitialStateComponentDefinition<>(true,
                                                                                                view);

@@ -6,12 +6,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public final class PageObjects {
+public final class Lookup {
 
     final Map<String, Object> map = new HashMap<>();
 
 
-    public PageObjects() {
+    public Lookup() {
     }
 
     /**
@@ -44,22 +44,22 @@ public final class PageObjects {
         return new ComponentContext() {
             @Override
             public void put(String key, Object value) {
-                PageObjects.this.put(key, value);
+                Lookup.this.put(key, value);
             }
 
             @Override
             public void remove(String key) {
-                PageObjects.this.remove(key);
+                Lookup.this.remove(key);
             }
 
             @Override
             public Object get(String key) {
-                return PageObjects.this.get(key);
+                return Lookup.this.get(key);
             }
 
             @Override
             public boolean containsKey(String key) {
-                return PageObjects.this.containsKey(key);
+                return Lookup.this.containsKey(key);
             }
         };
     }

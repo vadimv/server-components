@@ -3,7 +3,7 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.page.PageObjects;
+import rsp.page.Lookup;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
@@ -52,51 +52,50 @@ public class SessionObjectComponentDefinition<S> extends StatefulComponentDefini
     public Component<S> createComponent(QualifiedSessionId sessionId,
                                         TreePositionPath componentPath,
                                         RenderContextFactory renderContextFactory,
-                                        PageObjects sessionObjects,
+                                        Lookup sessionObjects,
                                         Consumer<SessionEvent> commandsEnqueue) {
-        final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
-                        return new Component<>(componentId,
-                                                stateSupplier(),
-                                                componentView(),
-                                                new ComponentCallbacks<>(onComponentMountedCallback(),
+        return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
+                               stateSupplier(),
+                               componentView(),
+                               new ComponentCallbacks<>(onComponentMountedCallback(),
                                                         onComponentUpdatedCallback(),
                                                         onComponentUnmountedCallback()),
-                                                renderContextFactory,
-                                                sessionObjects,
-                                                commandsEnqueue) {
+                               renderContextFactory,
+                               sessionObjects,
+                               commandsEnqueue) {
 
-                            @Override
-                            protected void onComponentMounted(S state) {
-                                //subscribe for history events
-                                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                                        "historyUndo." + name,
-                                        eventContext -> {
-                                            final String value = sessionObjects.get("value").toString();
-                                            this.setState(keyToStateFunction.apply(value))  ;
-                                        },
-                                        true,
-                                        Event.NO_MODIFIER);
-                            }
+            @Override
+            protected void onAfterInitiallyRendered(S state) {
+                //subscribe for history events
+                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
+                        "historyUndo." + name,
+                        eventContext -> {
+                            final String value = lookup.get("value").toString();
+                            this.setState(keyToStateFunction.apply(value))  ;
+                        },
+                        true,
+                        Event.NO_MODIFIER);
+            }
 
-                            @Override
-                            protected void onComponentUpdated(S oldState, S state, Object obj) {
-                                //subscribe for history events
-                                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                                        "historyUndo." + name,
-                                        eventContext -> {
-                                            final String value = eventContext.eventObject().value("value").get().asJsonString().value();
-                                            this.setState(keyToStateFunction.apply(value), "history")  ;
-                                        },
-                                        true,
-                                        Event.NO_MODIFIER);
+            @Override
+            protected void onAfterUpdated(S oldState, S state, Object obj) {
+                //subscribe for history events
+                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
+                        "historyUndo." + name,
+                        eventContext -> {
+                            final String value = eventContext.eventObject().value("value").get().asJsonString().value();
+                            this.setState(keyToStateFunction.apply(value), "history")  ;
+                        },
+                        true,
+                        Event.NO_MODIFIER);
 
-                                if (obj == null) { // is not from an history undo
-                                    commandsEnqueue.accept(new DomEvent(1,
-                                            PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
-                                            new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
-                                }
+                if (obj == null) { // is not from an history undo
+                    commandsEnqueue.accept(new DomEvent(1,
+                                           PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
+                                           new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
+                }
 
-                            }
-                        };
+            }
+        };
     }
 }
