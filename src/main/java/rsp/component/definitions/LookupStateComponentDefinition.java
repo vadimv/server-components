@@ -37,7 +37,6 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
     protected ComponentStateSupplier<S> stateSupplier() {
         return (key, sessionLookup) -> {
             final String value = (String) sessionLookup.apply(name);
-            logger.log(System.Logger.Level.TRACE, () -> "");
             return keyToStateFunction.apply(value);
         };
     }

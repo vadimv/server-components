@@ -20,6 +20,9 @@ import java.util.function.Consumer;
 import static rsp.html.HtmlDsl.*;
 import static rsp.routing.RoutingDsl.*;
 
+/**
+ * http://localhost:8085/16/-1?c4=27
+ */
 public final class CountersApp {
     public static final int PORT = 8085;
     private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
@@ -38,6 +41,13 @@ public final class CountersApp {
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c2"));
+    }
+
+    private static SegmentDefinition counterComponent4() {
+        return new LookupStateComponentDefinition<>("c4",
+                Integer::parseInt,
+                Object::toString,
+                counterView("c4"));
     }
 
     private static ComponentView<Integer> counterView(final String name) {
@@ -101,7 +111,8 @@ public final class CountersApp {
                              br(),
                              counterComponent2(),
                              br(),
-                             storedCounterComponent()
+                             storedCounterComponent(),
+                             counterComponent4()
                         ));
     }
 
@@ -116,7 +127,8 @@ public final class CountersApp {
                 return AddressBarLookupComponentDefinition.of(httpRequest.relativeUrl(),
                                                                          new InitialStateComponentDefinition<>(countersState, rootView()))
                                                                      .withPathElement("c1")
-                                                                     .withPathElement("c2");
+                                                                     .withPathElement("c2")
+                                                                     .withQueryParameter("c4", "c4");
             } else if (state instanceof NotFoundState notFoundState) {
                 return new InitialStateComponentDefinition<>(notFoundState, notFoundStatelessView);
             } else {
