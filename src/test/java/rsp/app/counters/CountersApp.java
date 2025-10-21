@@ -5,6 +5,8 @@ import rsp.component.ComponentView;
 import rsp.component.StateUpdate;
 import rsp.component.View;
 import rsp.component.definitions.*;
+import rsp.component.definitions.lookup.AddressBarLookupComponentDefinition;
+import rsp.component.definitions.lookup.LookupStateComponentDefinition;
 import rsp.html.SegmentDefinition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
@@ -104,7 +106,7 @@ public final class CountersApp {
 
     private static View<CountersAppState> rootView() {
         return _ ->
-                html(head(title("test-server-title"),
+                html(head(title("Counters"),
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
                         body(counterComponent1(),
@@ -112,6 +114,7 @@ public final class CountersApp {
                              counterComponent2(),
                              br(),
                              storedCounterComponent(),
+                             br(),
                              counterComponent4()
                         ));
     }

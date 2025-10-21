@@ -1,6 +1,7 @@
-package rsp.component.definitions;
+package rsp.component.definitions.lookup;
 
 import rsp.component.*;
+import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.Lookup;
@@ -34,7 +35,7 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
-    protected ComponentStateSupplier<S> stateSupplier() {
+    public ComponentStateSupplier<S> stateSupplier() {
         return (key, sessionLookup) -> {
             final String value = (String) sessionLookup.apply(name);
             return keyToStateFunction.apply(value);
@@ -42,7 +43,7 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
-    protected ComponentView<S> componentView() {
+    public ComponentView<S> componentView() {
         return view;
     }
 

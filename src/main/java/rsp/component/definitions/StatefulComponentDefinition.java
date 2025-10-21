@@ -32,14 +32,14 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * The state could be retrieved from a cache.
      * @return a function for an initial state
      */
-    protected abstract ComponentStateSupplier<S> stateSupplier();
+    public abstract ComponentStateSupplier<S> stateSupplier();
 
     /**
      * This method provides this component's view, a tree of segments definitions.
      * The view together with the state will be used for rendering.
      * @return a view for this component
      */
-    protected abstract ComponentView<S> componentView();
+    public abstract ComponentView<S> componentView();
 
     /**
      * This method provides a callback for the event when this component is mounted to the segments tree.
@@ -47,7 +47,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      *
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
-    protected ComponentMountedCallback<S> onComponentMountedCallback() {
+    public ComponentMountedCallback<S> onComponentMountedCallback() {
         return (key, sessionBag, state, newState) -> {
         };
     }
@@ -58,7 +58,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      *
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
-    protected ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
+    public ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
         return (key,  sessionBag, oldState, state, newState) -> {};
     }
 
@@ -66,7 +66,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * This method provides a callback for the event when this component's will be unmounted from the rendered tree.
      * @return a callback receiving a key and a current state.
      */
-    protected ComponentUnmountedCallback<S> onComponentUnmountedCallback() {
+    public ComponentUnmountedCallback<S> onComponentUnmountedCallback() {
         return (key, sessionBag, state) -> {};
     }
 

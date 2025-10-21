@@ -39,12 +39,12 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
 
 
     @Override
-    protected ComponentStateSupplier<S> stateSupplier() {
+    public ComponentStateSupplier<S> stateSupplier() {
         return (key, session) -> initialStateRouting.apply(httpRequest);
     }
 
     @Override
-    protected ComponentView<S> componentView() {
+    public ComponentView<S> componentView() {
         return componentView;
     }
 }

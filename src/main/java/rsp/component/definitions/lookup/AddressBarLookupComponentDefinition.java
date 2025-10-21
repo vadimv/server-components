@@ -1,6 +1,7 @@
-package rsp.component.definitions;
+package rsp.component.definitions.lookup;
 
 import rsp.component.*;
+import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.Lookup;

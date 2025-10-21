@@ -54,7 +54,7 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
-    protected ComponentView<S> componentView() {
+    public ComponentView<S> componentView() {
         return view;
     }
 }
