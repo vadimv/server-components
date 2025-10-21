@@ -41,20 +41,29 @@ public final class CountersApp {
     }
 
     private static ComponentView<Integer> counterView(final String name) {
-        return newState -> state ->of(
-                span(name),
-                div(div(button(attr("type", "button"),
-                                attr("id", name + "_b0"),
-                                text("+1"),
-                                on("click",
-                                   counterButtonClickHandler(state, newState)))),
-                        div(span(attr("id", name + "_s0"),
-                                 attr("class", state % 2 == 0 ? "red" : "blue"),
-                                 text(state)))));
+        return newState -> state ->
+                         div(span(name),
+                              button(attr("type", "button"),
+                                     attr("id", name + "_b0"),
+                                     text("+"),
+                                     on("click",
+                                         counterButtonClickHandlerPlus(state, newState))),
+                              span(attr("id", name + "_s0"),
+                                   attr("class", state % 2 == 0 ? "red" : "blue"),
+                                   text(state)),
+                              button(attr("type", "button"),
+                                     attr("id", name + "_b1"),
+                                     text("-"),
+                                     on("click",
+                                         counterButtonClickHandlerMinus(state, newState))));
     }
 
-    private static Consumer<EventContext> counterButtonClickHandler(Integer state, StateUpdate<Integer> newState) {
-        return  ec -> newState.setState(state + 1);
+    private static Consumer<EventContext> counterButtonClickHandlerPlus(Integer state, StateUpdate<Integer> newState) {
+        return  _ -> newState.setState(state + 1);
+    }
+
+    private static Consumer<EventContext> counterButtonClickHandlerMinus(Integer state, StateUpdate<Integer> newState) {
+        return  _ -> newState.setState(state - 1);
     }
 
     private static SegmentDefinition storedCounterComponent(final String name) {
@@ -76,7 +85,7 @@ public final class CountersApp {
     }
 
     private static Consumer<EventContext> checkboxClickHandler(Boolean state, StateUpdate<Boolean> newState) {
-        return  __ -> newState.setState(!state);
+        return  _ -> newState.setState(!state);
     }
 
     private static SegmentDefinition storedCounterComponent() {
@@ -84,18 +93,19 @@ public final class CountersApp {
     }
 
     private static View<CountersAppState> rootView() {
-        return __ ->
+        return _ ->
                 html(head(title("test-server-title"),
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
                         body(counterComponent1(),
+                             br(),
                              counterComponent2(),
                              br(),
                              storedCounterComponent()
                         ));
     }
 
-    private static final View<NotFoundState> notFoundStatelessView = __ ->
+    private static final View<NotFoundState> notFoundStatelessView = _ ->
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
 
@@ -116,7 +126,7 @@ public final class CountersApp {
     }
 
     private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest httpRequest) {
-        final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", __ -> new CountersAppState()),
+        final var appRouting = new Routing<>(get("/:c1(^\\d+$)/:c2(^\\d+$)", _ -> new CountersAppState()),
                                              new NotFoundState());
         return new HttpRequestStateComponentDefinition<>(httpRequest,
                                                          appRouting,
