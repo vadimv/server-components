@@ -2,16 +2,14 @@ package rsp.javax.web;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.websocket.server.HandshakeRequest;
+import rsp.server.http.Header;
 import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 import rsp.server.http.Query;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public final class HttpRequestUtils {
 
@@ -28,12 +26,16 @@ public final class HttpRequestUtils {
         for (final Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
             parameters.add(new Query.Parameter(entry.getKey(), entry.getValue()[0])); // TODO support parameter arrays
         }
+        final List<Header> headers = new ArrayList<>();
+        for (String headerName : Collections.list(request.getHeaderNames()) ) {
+            headers.add(new Header(headerName, request.getHeader(headerName)));
+        }
         return new HttpRequest(httpMethod(request.getMethod()),
                                stringToURI(request.getRequestURI()),
                                request.getRequestURL().toString(),
                                Path.of(request.getPathInfo()),
                                new Query(parameters),
-                               h -> Optional.ofNullable(request.getHeader(h)));
+                               headers);
     }
 
     /**
@@ -47,12 +49,16 @@ public final class HttpRequestUtils {
         for (final Map.Entry<String, List<String>> entry : parameterMap.entrySet()) {
             parameters.add(new Query.Parameter(entry.getKey(), entry.getValue().get(0))); // TODO support parameter arrays
         }
+        final List<Header> headers = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry: handshakeRequest.getHeaders().entrySet()) {
+            headers.add(new Header(entry.getKey(), entry.getValue().get(0)));
+        }
         return new HttpRequest(HttpRequest.HttpMethod.GET,
                                handshakeRequest.getRequestURI(),
                                handshakeRequest.getRequestURI().toString(),
                                Path.of(handshakeRequest.getRequestURI().getPath()),
                                new Query(parameters),
-                               name -> Optional.ofNullable(handshakeRequest.getHeaders().get(name)).map(val -> val.get(0)));
+                               headers);
     }
 
     private static URI stringToURI(final String str) {

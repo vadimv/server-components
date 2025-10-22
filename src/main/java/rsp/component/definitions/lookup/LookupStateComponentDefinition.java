@@ -36,8 +36,8 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
 
     @Override
     public ComponentStateSupplier<S> stateSupplier() {
-        return (key, sessionLookup) -> {
-            final String value = (String) sessionLookup.apply(name);
+        return (key, lookup) -> {
+            final String value = (String) lookup.get(name);
             return keyToStateFunction.apply(value);
         };
     }

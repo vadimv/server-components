@@ -185,7 +185,6 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                 this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
                               HISTORY_ENTRY_CHANGE_EVENT_NAME,
                              eventContext -> {
-                                 final var session = lookup.ofComponent(componentId);
                                  final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
                                  final RelativeUrl oldRelativeUrl = relativeUrl;
                                  relativeUrl = newRelativeUrl;
@@ -194,7 +193,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                                      final String oldElement = oldRelativeUrl.path().get(i);
                                      final String newElement = newRelativeUrl.path().get(i);
                                      if (!oldElement.equals(newElement)) {
-                                         session.put(pathElementsIndicesKeys.get(i), newElement);
+                                         lookup.put(pathElementsIndicesKeys.get(i), newElement);
                                          // enqueue history event "historyUndo"
                                          commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + pathElementsIndicesKeys.get(i),
                                                  new JsonDataType.Object().put("value", new JsonDataType.String(newElement))));
@@ -206,7 +205,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                                  for (Query.Parameter parameter: oldRelativeUrl.query().parameters()) {
                                      final Optional<String>  newParameterValue = newRelativeUrl.query().parameterValue(parameter.name());
                                      if (newParameterValue.isPresent() && !newParameterValue.get().equals(parameter.value())) {
-                                         session.put(parameterNameKeyMap.get(parameter.name()), newParameterValue.get());
+                                         lookup.put(parameterNameKeyMap.get(parameter.name()), newParameterValue.get());
                                          // enqueue history event "historyUndo"
                                          commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + parameter.name(),
                                                  new JsonDataType.Object().put("value", new JsonDataType.String(newParameterValue.get()))));

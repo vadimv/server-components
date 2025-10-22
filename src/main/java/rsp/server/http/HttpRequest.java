@@ -4,10 +4,7 @@ import rsp.page.PageRendering;
 import rsp.server.Path;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.function.Function;
+import java.util.*;
 
 /**
  * Represents an HTTP request.
@@ -20,7 +17,7 @@ public final class HttpRequest {
     public final Path path;
 
     public final Query queryParameters;
-    private final Function<String, Optional<String>> getHeader;
+    private final List<Header> headers;
 
     /**
      * Creates a new instance of an HTTP request.
@@ -29,20 +26,20 @@ public final class HttpRequest {
      * @param url the request's URL
      * @param path the request's componentPath
      * @param queryParameters the function that provides access the request's query parameters
-     * @param getHeader the function that provides access to the request's headers
+     * @param headers the request's headers
      */
     public HttpRequest(final HttpMethod method,
                        final URI uri,
                        final String url,
                        final Path path,
                        final Query queryParameters,
-                       final Function<String, Optional<String>> getHeader) {
+                       final List<Header> headers) {
         this.method = Objects.requireNonNull(method);
         this.uri = Objects.requireNonNull(uri);
         this.url = Objects.requireNonNull(url);
         this.path = Objects.requireNonNull(path);
         this.queryParameters = Objects.requireNonNull(queryParameters);
-        this.getHeader = Objects.requireNonNull(getHeader);
+        this.headers = Objects.requireNonNull(headers);
     }
 
     /**
@@ -56,21 +53,21 @@ public final class HttpRequest {
                        final URI uri,
                        final String url,
                        final Path path) {
-        this(method, uri, url, path, Query.EMPTY, __ -> Optional.empty());
+        this(method, uri, url, path, Query.EMPTY, List.of());
     }
 
     /**
-     * Gets a request's HTTP cookie by name.
+     * Gets a request's HTTP cookies by name.
      * @param cookieName the cookie name
      * @return the Optional with the cookie value or the empty
      */
-    public Optional<String> cookie(final String cookieName) {
-        return getHeader.apply("Cookie").flatMap(headerValue ->
-                Arrays.stream(headerValue.split(";"))
+    public List<String> cookies(final String cookieName) {
+        return headers.stream().filter(header -> "Cookie".equals(header.name())).flatMap(header ->
+                Arrays.stream(header.value().split(";"))
                       .map(String::trim)
                       .map(pairStr -> Arrays.stream(pairStr.split("=")).toArray(String[]::new))
-                      .filter(pair -> pair.length == 2 && pair[0].equals(cookieName)).findFirst()
-                      .map(pair -> pair[1]));
+                      .filter(pair -> pair.length == 2 && pair[0].equals(cookieName))
+                      .map(pair -> pair[1])).toList();
     }
 
     /**
@@ -78,7 +75,7 @@ public final class HttpRequest {
      * @return the Optional with the device ID value or the empty
      */
     public Optional<String> deviceId() {
-        return cookie(PageRendering.DEVICE_ID_COOKIE_NAME);
+        return cookies(PageRendering.DEVICE_ID_COOKIE_NAME).stream().findFirst();
     }
 
 
@@ -88,7 +85,7 @@ public final class HttpRequest {
      * @return an optional with the header's value or empty
      */
     public Optional<String> header(final String headerName) {
-        return getHeader.apply(headerName);
+        return headers.stream().filter(h -> headerName.equals(h.name())).map(Header::value).findFirst();
     }
 
 

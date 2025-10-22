@@ -5,6 +5,7 @@ import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
 import rsp.page.events.SessionEvent;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -14,7 +15,7 @@ public final class PageRenderContext extends ComponentRenderContext {
     private final String pageConfigScript;
 
     private int statusCode;
-    private Map<String, String> headers;
+    private Map<String, List<String>> headers;
     private boolean headWasOpened;
 
     public PageRenderContext(final QualifiedSessionId sessionId,
@@ -37,11 +38,11 @@ public final class PageRenderContext extends ComponentRenderContext {
         this.statusCode = statusCode;
     }
 
-    public Map<String, String> headers() {
+    public Map<String, List<String>> headers() {
         return headers;
     }
 
-    public void setHeaders(final Map<String, String> headers) {
+    public void setHeaders(final Map<String, List<String>> headers) {
         this.headers = headers;
     }
 

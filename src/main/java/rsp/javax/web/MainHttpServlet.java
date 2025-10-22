@@ -69,12 +69,12 @@ public final class MainHttpServlet<S>  extends HttpServlet {
         return sb.toString();
     }
 
-    private void setServletResponse(final HttpResponse resp, final HttpServletResponse response) {
-        response.setStatus(resp.status);
+    private void setServletResponse(final HttpResponse sourceResponse, final HttpServletResponse destinationResponse) {
+        destinationResponse.setStatus(sourceResponse.status);
 
-        resp.headers.stream().forEach(h -> response.addHeader(h.name(), h.value()));
+        sourceResponse.headers.stream().forEach(h -> destinationResponse.addHeader(h.name(), h.value()));
 
-        try(final var inputStream = resp.bodyStream; final var outputStream = response.getOutputStream()) {
+        try(final var inputStream = sourceResponse.bodyStream; final var outputStream = destinationResponse.getOutputStream()) {
             copy(inputStream, outputStream);
         } catch (final IOException e) {
             throw new RuntimeException(e);

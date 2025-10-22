@@ -93,7 +93,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     public void render(final ComponentRenderContext renderContext) {
         try {
             onBeforeInitiallyRendered();
-            state = stateResolver.getState(componentId, (key) -> lookup.ofComponent(componentId).get(key));
+            state = stateResolver.getState(componentId, lookup);
             final SegmentDefinition view = componentView.apply(this).apply(state);
             view.render(renderContext);
             onAfterInitiallyRendered(state);
@@ -199,18 +199,18 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterInitiallyRendered(S state) {
-        componentMountedCallback.onComponentMounted(componentId, lookup.ofComponent(componentId), state, new EnqueueTaskStateUpdate());
+        componentMountedCallback.onComponentMounted(componentId, lookup, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onBeforeUpdated(S state, Object obj) {
     }
 
     protected void onAfterUpdated(S oldState, S state, Object obj) {
-        componentUpdatedCallback.onComponentUpdated(componentId, lookup.ofComponent(componentId), oldState, state, new EnqueueTaskStateUpdate());
+        componentUpdatedCallback.onComponentUpdated(componentId, lookup, oldState, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterUnmounted(ComponentCompositeKey key, S oldState) {
-        componentUnmountedCallback.onComponentUnmounted(componentId, lookup.ofComponent(componentId), state);
+        componentUnmountedCallback.onComponentUnmounted(componentId, lookup, state);
     }
 
     public List<Component<?>> directChildren() {

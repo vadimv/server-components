@@ -5,6 +5,6 @@ import rsp.page.Lookup;
 @FunctionalInterface
 public interface ComponentUnmountedCallback<S> {
 
-    void onComponentUnmounted(ComponentCompositeKey componentId, Lookup.ComponentContext sessionPageObjects, S state);
+    void onComponentUnmounted(ComponentCompositeKey componentId, Lookup lookup, S state);
 
 }

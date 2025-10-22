@@ -4,9 +4,7 @@ import rsp.component.ComponentRenderContext;
 import rsp.dom.XmlNs;
 import rsp.page.PageRenderContext;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static rsp.server.http.HttpResponse.MOVED_TEMPORARILY_STATUS_CODE;
 
@@ -16,9 +14,9 @@ import static rsp.server.http.HttpResponse.MOVED_TEMPORARILY_STATUS_CODE;
 public final class HtmlDocumentDefinition extends TagDefinition {
 
     private final int statusCode;
-    private final Map<String, String> headers;
+    private final Map<String, List<String>> headers;
 
-    public HtmlDocumentDefinition(final int statusCode, final Map<String, String> headers, final SegmentDefinition... children) {
+    public HtmlDocumentDefinition(final int statusCode, final Map<String, List<String>> headers, final SegmentDefinition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
         this.headers = Objects.requireNonNull(headers);
@@ -50,7 +48,7 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      * @param headers the map containing headers
      * @return an instance with added headers
      */
-    public HtmlDocumentDefinition addHeaders(final Map<String, String> headers) {
+    public HtmlDocumentDefinition addHeaders(final Map<String, List<String>> headers) {
         return new HtmlDocumentDefinition(this.statusCode, mergeMaps(this.headers, headers), this.children);
     }
 
@@ -61,11 +59,25 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      */
     public HtmlDocumentDefinition redirect(final String location) {
         return new HtmlDocumentDefinition(MOVED_TEMPORARILY_STATUS_CODE,
-                                          mergeMaps(this.headers, Map.of("Location", location)), this.children);
+                                          addHeader(this.headers, "Location", location), this.children);
     }
 
-    private static Map<String, String> mergeMaps(final Map<String, String> m1, final Map<String, String> m2) {
-        final Map<String, String> result = new HashMap<>(m1);
+    private static Map<String, List<String>> addHeader(Map<String, List<String>> headers, String name, String value) {
+        final Map<String, List<String>> result = new HashMap<>(headers);
+        final List<String> values = headers.get(name);
+        if (values == null) {
+            result.put(name, List.of(value));
+        } else {
+            final List<String> tmpList = new ArrayList<>(values);
+            tmpList.add(value);
+            result.put(name, Collections.unmodifiableList(tmpList));
+        }
+
+        return result;
+    }
+
+    private static Map<String, List<String>> mergeMaps(final Map<String, List<String>> m1, final Map<String, List<String>> m2) {
+        final Map<String, List<String>> result = new HashMap<>(m1);
         result.putAll(m2);
         return result;
     }

@@ -7,11 +7,12 @@ import rsp.page.Lookup;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
+import rsp.server.http.Header;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.Query;
 
 import java.net.URI;
-import java.util.Optional;
+import java.util.List;
 
 import static rsp.html.HtmlDsl.div;
 import static rsp.html.HtmlDsl.span;
@@ -33,7 +34,7 @@ class HttpRequestStateComponentDefinitionTests {
                                                         uri.toString(),
                                                         Path.of(uri.getPath()),
                                                         Query.EMPTY,
-                                                        name -> name.equals("header-0") ? Optional.of("header-0-value") : Optional.empty());
+                                                        List.of(new Header("header-0", "header-0-value")));
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),

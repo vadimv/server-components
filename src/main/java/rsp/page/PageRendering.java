@@ -73,7 +73,7 @@ public final class PageRendering<S> {
 
     private CompletableFuture<HttpResponse> rspResponse(final HttpRequest request) {
         try {
-            final String deviceId = request.cookie(DEVICE_ID_COOKIE_NAME).orElse(randomStringGenerator.newString());
+            final String deviceId = request.cookies(DEVICE_ID_COOKIE_NAME).stream().findFirst().orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
@@ -98,7 +98,7 @@ public final class PageRendering<S> {
             logger.log(TRACE, () -> "Page body: " + responseBody);
 
             return CompletableFuture.completedFuture(new HttpResponse(pageRenderContext.statusCode(),
-                                                                      headers(pageRenderContext.headers(), deviceId),
+                                                                      renderedHeaders(pageRenderContext.headers(), deviceId),
                                                                       responseBody));
 
         } catch (final Exception ex) {
@@ -106,10 +106,12 @@ public final class PageRendering<S> {
         }
     }
 
-    private List<Header> headers(final Map<String, String> headers, final String deviceId) {
+    private List<Header> renderedHeaders(final Map<String, List<String>> headers, final String deviceId) {
         final List<Header> resultHeaders = new ArrayList<>();
-        for (final Map.Entry<String, String> entry : headers.entrySet() ) {
-            resultHeaders.add(new Header(entry.getKey(), entry.getValue()));
+        for (final Map.Entry<String, List<String>> entry : headers.entrySet() ) {
+            for (final String value : entry.getValue()) {
+                resultHeaders.add(new Header(entry.getKey(), value));
+            }
         }
         resultHeaders.add(new Header("content-type", "text/html; charset=utf-8"));
         resultHeaders.add(new Header("cache-control", "no-store, no-cache, must-revalidate"));
