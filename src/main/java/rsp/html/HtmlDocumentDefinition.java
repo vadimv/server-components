@@ -45,11 +45,13 @@ public final class HtmlDocumentDefinition extends TagDefinition {
 
     /**
      * Adds the HTTP headers to be rendered in the response.
-     * @param headers the map containing headers
+     * @param name a header's name
+     * @param value a headers' value
      * @return an instance with added headers
      */
-    public HtmlDocumentDefinition addHeaders(final Map<String, List<String>> headers) {
-        return new HtmlDocumentDefinition(this.statusCode, mergeMaps(this.headers, headers), this.children);
+
+    public HtmlDocumentDefinition addHeader(String name, String value) {
+        return new HtmlDocumentDefinition(this.statusCode, addHeader(this.headers, name, value), this.children);
     }
 
     /**
@@ -73,12 +75,6 @@ public final class HtmlDocumentDefinition extends TagDefinition {
             result.put(name, Collections.unmodifiableList(tmpList));
         }
 
-        return result;
-    }
-
-    private static Map<String, List<String>> mergeMaps(final Map<String, List<String>> m1, final Map<String, List<String>> m2) {
-        final Map<String, List<String>> result = new HashMap<>(m1);
-        result.putAll(m2);
         return result;
     }
 }

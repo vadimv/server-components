@@ -82,11 +82,16 @@ public final class PageRendering<S> {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
+            final Lookup lookup = new Lookup();
+            lookup.put("deviceId", deviceId);
+            lookup.put("sessionId", sessionId);
+
             final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
+
             final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
                                                                               pageConfigScript.toString(),
                                                                               DOCUMENT_DOM_PATH,
-                                                                              new Lookup(),
+                                                                              lookup,
                                                                               commandsEnqueue);
 
             rootComponentDefinition.apply(request).render(pageRenderContext);
