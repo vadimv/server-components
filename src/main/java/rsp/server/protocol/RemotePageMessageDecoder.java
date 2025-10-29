@@ -7,7 +7,6 @@ import rsp.page.events.EvalJsResponseEvent;
 import rsp.page.events.ExtractPropertyResponseEvent;
 import rsp.page.events.SessionEvent;
 import rsp.server.ExtractPropertyResponse;
-import rsp.server.RemoteIn;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonParser;
 
@@ -47,17 +46,43 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     public void decode(final String message) {
         Objects.requireNonNull(message);
         try {
-            final JsonDataType.Array messageJson = jsonParser.parse(message).asJsonArray();
-            final int messageType = Math.toIntExact(messageJson.get(0).asJsonNumber().asLong());
-            switch (messageType) {
-                case DOM_EVENT -> parseDomEvent(messageJson.get(1).asJsonString().value(),
-                                                messageJson.get(2).asJsonObject());
-                case EXTRACT_PROPERTY_RESPONSE -> parseExtractPropertyResponse(messageJson.get(1).asJsonString().value(),
-                                                                               messageJson.get(2));
-                case EVAL_JS_RESPONSE -> parseEvalJsResponse(messageJson.get(1).asJsonString().value(),
-                                                             messageJson.size() > 2 ? messageJson.get(2) : JsonDataType.String.EMPTY);
-                case HEARTBEAT -> heartBeat();
+            if (jsonParser.parse(message) instanceof JsonDataType.Array(JsonDataType[] messageJson) && messageJson.length >= 1) {
+                final JsonDataType messageTypeJson = messageJson[0];
+                if (messageTypeJson instanceof JsonDataType.Number messageTypeJsonNumber) {
+                    final int messageType = Math.toIntExact(messageTypeJsonNumber.asLong());
+                    switch (messageType) {
+                        case DOM_EVENT -> {
+                            if (messageJson.length == 3
+                                && messageJson[1] instanceof JsonDataType.String(String str)
+                                && messageJson[2] instanceof JsonDataType.Object eventObject) {
+                                parseDomEvent(str, eventObject);
+                            } else {
+                                throw new JsonDataType.JsonException();
+                            }
+                        }
+                        case EXTRACT_PROPERTY_RESPONSE -> {
+                            if (messageJson.length == 3 && messageJson[1] instanceof JsonDataType.String(String str)) {
+                                parseExtractPropertyResponse(str, messageJson[2]);
+                            } else {
+                                throw new JsonDataType.JsonException();
+                            }
+                        }
+                        case EVAL_JS_RESPONSE -> {
+                            if (messageJson[1] instanceof JsonDataType.String(String metadata)) {
+                                if (messageJson.length == 2) {
+                                    parseEvalJsResponse(metadata, JsonDataType.String.EMPTY);
+                                } else if (messageJson.length == 3) {
+                                    parseEvalJsResponse(metadata, messageJson[2]);
+                                } else {
+                                    throw new JsonDataType.JsonException();
+                                }
+                            }
+                        }
+                        case HEARTBEAT -> heartBeat();
+                    }
+                }
             }
+
         } catch (final Exception ex) {
             logger.log(System.Logger.Level.ERROR, "Incoming message parse exception", ex);
         }

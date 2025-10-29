@@ -17,59 +17,63 @@ public class JsonDataTypeTests {
     @Test
     public void produces_valid_string_json() {
         final JsonDataType json = new JsonDataType.String("value-0");
-        Assertions.assertEquals("value-0", json.asJsonString().value());
+        Assertions.assertTrue(json instanceof JsonDataType.String(String s) && "value-0".equals(s));
         Assertions.assertEquals("\"value-0\"", json.toString());
     }
 
     @Test
     public void produces_valid_boolean_json() {
         final JsonDataType json = new JsonDataType.Boolean(true);
-        Assertions.assertEquals(true, json.asJsonBoolean().value());
+        Assertions.assertTrue(json instanceof JsonDataType.Boolean b && b.value());
         Assertions.assertEquals("true", json.toString());
     }
 
     @Test
     public void produces_valid_int_json() {
-        final JsonDataType json = new JsonDataType.Number(1001);
-        Assertions.assertEquals(1001, json.asJsonNumber().asLong());
+        final JsonDataType.Number json = new JsonDataType.Number(1001);
+       Assertions.assertEquals(1001, json.asLong());
         Assertions.assertEquals("1001", json.toString());
     }
 
     @Test
     public void produces_valid_double_json() {
-        final JsonDataType json = new JsonDataType.Number(1001.01D);
-        Assertions.assertEquals(1001.01D, json.asJsonNumber().value());
+        final JsonDataType.Number json = new JsonDataType.Number(1001.01D);
+        Assertions.assertEquals(1001.01D, json.value());
         Assertions.assertEquals("1001.01", json.toString());
     }
 
     @Test
     public void produces_valid_empty_object_json() {
-        final JsonDataType json = new JsonDataType.Object();
-        Assertions.assertEquals(0, json.asJsonObject().keys().size());
+        final JsonDataType.Object json = new JsonDataType.Object();
+        Assertions.assertEquals(0, json.keys().size());
         Assertions.assertEquals("{}", json.toString());
     }
 
     @Test
     public void produces_valid_object_json() {
         final JsonDataType.Object json = new JsonDataType.Object().put("key0", new JsonDataType.Boolean(true));
-        Assertions.assertEquals(1, json.asJsonObject().keys().size());
-        Assertions.assertEquals(true, json.value("key0").orElseThrow().asJsonBoolean().value());
+        Assertions.assertEquals(1, json.keys().size());
+        if (json.value("key0") instanceof JsonDataType.Boolean(boolean value)) {
+            Assertions.assertTrue(value);
+        } else {
+            Assertions.fail();
+        }
         Assertions.assertEquals("{\"key0\": true}", json.toString());
     }
 
     @Test
     public void produces_valid_empty_array_json() {
-        final JsonDataType json = new JsonDataType.Array();
-        Assertions.assertEquals(0, json.asJsonArray().size());
+        final JsonDataType.Array json = new JsonDataType.Array();
+        Assertions.assertEquals(0, json.size());
         Assertions.assertEquals("[]", json.toString());
     }
 
     @Test
     public void produces_valid_array_json() {
-        final JsonDataType json = new JsonDataType.Array(new JsonDataType.Array(), new JsonDataType.Object());
-        Assertions.assertEquals(2, json.asJsonArray().size());
-        Assertions.assertEquals(json.asJsonArray().get(0), new JsonDataType.Array());
-        Assertions.assertEquals(json.asJsonArray().get(1), new JsonDataType.Object());
+        final JsonDataType.Array json = new JsonDataType.Array(new JsonDataType.Array(), new JsonDataType.Object());
+        Assertions.assertEquals(2, json.size());
+        Assertions.assertEquals(new JsonDataType.Array(), json.get(0));
+        Assertions.assertEquals(new JsonDataType.Object(), json.get(1));
         Assertions.assertEquals("[[],{}]", json.toString());
     }
 

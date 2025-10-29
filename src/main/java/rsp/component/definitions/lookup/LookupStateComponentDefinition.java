@@ -83,8 +83,11 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
                 this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
                         "historyUndo." + name,
                         eventContext -> {
-                            final String value = eventContext.eventObject().value("value").get().asJsonString().value();
-                            this.setState(keyToStateFunction.apply(value), "history")  ;
+                            if (eventContext.eventObject().value("value") instanceof JsonDataType.String(String value)) {
+                                this.setState(keyToStateFunction.apply(value), "history")  ;
+                            } else {
+                                throw new JsonDataType.JsonException();
+                            }
                         },
                         true,
                         Event.NO_MODIFIER);

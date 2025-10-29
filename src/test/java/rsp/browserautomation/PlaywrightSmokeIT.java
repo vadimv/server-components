@@ -55,7 +55,7 @@ class PlaywrightSmokeIT {
                                                         + CountersApp.PORT
                                                         + "/" + COUNTER_1_INITIAL_VALUE
                                                         +"/" + COUNTER_2_INITIAL_VALUE).status());
-        assertEquals("test-server-title", page.title());
+        assertEquals("Counters", page.title());
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
         validateComponent1(page);
         validateComponent2(page);

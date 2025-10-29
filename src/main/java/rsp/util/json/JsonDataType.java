@@ -98,8 +98,8 @@ public sealed interface JsonDataType {
             this(Map.of());
         }
 
-        public Optional<JsonDataType> value(final java.lang.String name) {
-            return Optional.ofNullable(values.get(name));
+        public JsonDataType value(final java.lang.String name) {
+            return values.get(name);
         }
 
         public Object put(final java.lang.String name, final JsonDataType value) {
@@ -140,12 +140,7 @@ public sealed interface JsonDataType {
     /**
      * A JSON array, an ordered list of values.
      */
-    final class Array implements JsonDataType {
-        private final JsonDataType[] elements;
-
-        public Array(final JsonDataType... elements) {
-            this.elements = elements;
-        }
+    record Array(JsonDataType... elements) implements JsonDataType {
 
         public JsonDataType get(int index) {
             return elements[index];
@@ -153,6 +148,10 @@ public sealed interface JsonDataType {
 
         public int size() {
             return elements.length;
+        }
+
+        public boolean isEmpty() {
+            return elements.length == 0;
         }
 
         @Override
@@ -213,6 +212,7 @@ public sealed interface JsonDataType {
         }
     }
 
+/*
     default Boolean asJsonBoolean() {
         if (this instanceof Boolean) {
             return (Boolean) this;
@@ -252,6 +252,7 @@ public sealed interface JsonDataType {
             throw new JsonException("Unexpected JSON data type: " + this.getClass());
         }
     }
+*/
 
 
 }

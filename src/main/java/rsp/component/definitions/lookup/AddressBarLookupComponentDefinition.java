@@ -132,10 +132,15 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                     this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
                                         "stateUpdated." + pathElementKey,
                                         eventContext -> {
-                        final String value = eventContext.eventObject().value("value").get().asJsonString().value();
-                        final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey);
-                        relativeUrl = updatedRelativeUrlForPathElement(relativeUrl, pathElementKey, value, pathElementIndex);
-                        this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                        final JsonDataType valueJson = eventContext.eventObject().value("value");
+                        if (valueJson instanceof JsonDataType.String(String value)) {
+                            final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey);
+                            relativeUrl = updatedRelativeUrlForPathElement(relativeUrl, pathElementKey, value, pathElementIndex);
+                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                        } else {
+                            throw new IllegalStateException();
+                        }
+
                     },
                                         true,
                                         Event.NO_MODIFIER);
@@ -146,10 +151,13 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                     this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
                                         "stateUpdated." + parameterNameKey.key(),
                                         eventContext -> {
-                        final String value = eventContext.eventObject().value("value").get().asJsonString().value();
-                        relativeUrl = updatedRelativeUrlForParameter(relativeUrl, parameterNameKey.key(), value);
-                        this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
-
+                        final JsonDataType valueJson = eventContext.eventObject().value("value");
+                        if (valueJson instanceof JsonDataType.String(String value)) {
+                            relativeUrl = updatedRelativeUrlForParameter(relativeUrl, parameterNameKey.key(), value);
+                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                        } else {
+                            throw new IllegalStateException();
+                        }
                     },true,
                             Event.NO_MODIFIER);
                 }
@@ -218,13 +226,13 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
             }
 
             private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
-                final Path path = eventObject.value("path").map(p -> Path.of(p.asJsonString().value()))
-                        .orElseThrow(() -> new JsonDataType.JsonException("The 'componentPath' property not found in the event object" + eventObject));
-                final Query query = eventObject.value("query").map(q -> Query.of(q.asJsonString().value()))
-                        .orElseThrow(() -> new JsonDataType.JsonException("The 'query' property not found in the event object" + eventObject));
-                final Fragment fragment = eventObject.value("fragment").map(f -> new Fragment(f.asJsonString().value()))
-                        .orElseThrow(() -> new JsonDataType.JsonException("The 'fragment' property not found in the event object" + eventObject));
-                return new RelativeUrl(path, query, fragment);
+                if (eventObject.value("path") instanceof JsonDataType.String(String path)
+                    && eventObject.value("query") instanceof JsonDataType.String(String query)
+                    && eventObject.value("fragment") instanceof JsonDataType.String(String fragment)) {
+                    return new RelativeUrl(Path.of(path), Query.of(query), new Fragment(fragment));
+                } else {
+                    throw new JsonDataType.JsonException("Error unpacking JSON event object:" + eventObject);
+                }
             }
 
         };
