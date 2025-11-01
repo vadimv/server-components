@@ -26,12 +26,12 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
 
     private final StatefulComponentDefinition<S> componentDefinition;
-    private final List<String> pathElementsKeys;
+    private final List<PositionKey> pathElementsKeys;
     private final List<ParameterNameKey> queryParametersNameKeys;
 
     AddressBarLookupComponentDefinition(RelativeUrl initialRelativeUrl,
                                         StatefulComponentDefinition<S> componentDefinition,
-                                        List<String> pathElementsKeys,
+                                        List<PositionKey> pathElementsKeys,
                                         List<ParameterNameKey> queryParametersNameKeys) {
         super(AddressBarLookupComponentDefinition.class);
         this.initialRelativeUrl = Objects.requireNonNull(initialRelativeUrl);
@@ -44,9 +44,9 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
         return new AddressBarLookupComponentDefinition<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
     }
 
-    public AddressBarLookupComponentDefinition<S> withPathElement(String key) {
-        final List<String> l = new ArrayList<>(this.pathElementsKeys);
-        l.add(key);
+    public AddressBarLookupComponentDefinition<S> withPathElement(int position, String key) {
+        final List<PositionKey> l = new ArrayList<>(this.pathElementsKeys);
+        l.add(new PositionKey(position, key));
         return new AddressBarLookupComponentDefinition<>(this.initialRelativeUrl, this.componentDefinition, l, this.queryParametersNameKeys);
     }
 
@@ -79,8 +79,8 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
         final Map<Integer, String> pathElementsIndicesKeys = new HashMap<>();
         for (int i = 0; i < pathElementsKeys.size(); i++) {
-            pathElementsKeysIndices.put(pathElementsKeys.get(i), i);
-            pathElementsIndicesKeys.put(i, pathElementsKeys.get(i));
+            pathElementsKeysIndices.put(pathElementsKeys.get(i).key, pathElementsKeys.get(i).position);
+            pathElementsIndicesKeys.put(pathElementsKeys.get(i).position, pathElementsKeys.get(i).key);
         }
 
         // prepare a map for query parameters
@@ -104,8 +104,8 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
             @Override
             protected void onBeforeInitiallyRendered() {
                 relativeUrl = initialRelativeUrl;
-                for (int i = 0; i < pathElementsKeys.size(); i++) {
-                    lookup.put(pathElementsKeys.get(i), initialRelativeUrl.path().get(i));
+                for (PositionKey pathElementsKey : pathElementsKeys) {
+                    lookup.put(pathElementsKey.key, initialRelativeUrl.path().get(pathElementsKey.position));
                 }
 
                 for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
@@ -128,14 +128,14 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
-                for (final String pathElementKey : pathElementsKeys) {
+                for (final PositionKey pathElementKey : pathElementsKeys) {
                     this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                                        "stateUpdated." + pathElementKey,
+                                        "stateUpdated." + pathElementKey.key,
                                         eventContext -> {
                         final JsonDataType valueJson = eventContext.eventObject().value("value");
                         if (valueJson instanceof JsonDataType.String(String value)) {
-                            final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey);
-                            relativeUrl = updatedRelativeUrlForPathElement(relativeUrl, pathElementKey, value, pathElementIndex);
+                            final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
+                            relativeUrl = updatedRelativeUrlForPathElement(relativeUrl, pathElementKey.key, value, pathElementIndex);
                             this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
                         } else {
                             throw new IllegalStateException();
@@ -238,6 +238,11 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
         };
     }
 
+    private record PositionKey(int position, String key) {
+    }
+
     private record ParameterNameKey(String parameterName, String key) {
     }
+
+
 }

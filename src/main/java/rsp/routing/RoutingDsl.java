@@ -5,7 +5,6 @@ import rsp.server.Path;
 import rsp.util.TriFunction;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;

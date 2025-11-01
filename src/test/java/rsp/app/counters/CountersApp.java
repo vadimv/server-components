@@ -129,8 +129,8 @@ public final class CountersApp {
             if (state instanceof CountersAppState countersState) {
                 return AddressBarLookupComponentDefinition.of(httpRequest.relativeUrl(),
                                                                          new InitialStateComponentDefinition<>(countersState, rootView()))
-                                                                     .withPathElement("c1")
-                                                                     .withPathElement("c2")
+                                                                     .withPathElement(0, "c1")
+                                                                     .withPathElement(1, "c2")
                                                                      .withQueryParameter("c4", "c4");
             } else if (state instanceof NotFoundState notFoundState) {
                 return new InitialStateComponentDefinition<>(notFoundState, notFoundStatelessView);

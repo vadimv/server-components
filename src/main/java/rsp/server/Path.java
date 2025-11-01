@@ -112,6 +112,19 @@ public record Path(boolean isAbsolute, String[] elements) {
         return elements.length != 0 && elements[0].equals(s);
     }
 
+    public boolean startsWith(final Path path) {
+        if (this.isAbsolute != path.isAbsolute || this.elements.length < path.elements.length) {
+            return false;
+        }
+
+        for (int i = 0; i < path.elements.length; i++) {
+            if (!path.elements[i].equals(this.elements[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public boolean contains(final String s) {
         for (int i = 0; i < elements.length;i++) {
             if (elements[i].equals(s)) return true;
