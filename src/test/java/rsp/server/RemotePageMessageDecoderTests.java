@@ -6,7 +6,7 @@ import rsp.page.events.*;
 import rsp.server.protocol.MessageDecoder;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.util.json.JsonDataType;
-import rsp.util.json.JsonSimpleUtils;
+import rsp.util.json.JsonUtils;
 
 import java.util.function.Consumer;
 
@@ -59,7 +59,7 @@ class RemotePageMessageDecoderTests {
 
 
     private static RemotePageMessageDecoder createDecoder(final Consumer<SessionEvent> collector) {
-        return new RemotePageMessageDecoder(JsonSimpleUtils.createParser(), collector);
+        return new RemotePageMessageDecoder(JsonUtils.createParser(), collector);
     }
 
 }

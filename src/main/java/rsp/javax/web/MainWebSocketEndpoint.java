@@ -11,7 +11,7 @@ import rsp.server.http.HttpRequest;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.server.protocol.RemotePageMessageEncoder;
 import rsp.util.json.JsonParser;
-import rsp.util.json.JsonSimpleUtils;
+import rsp.util.json.JsonUtils;
 
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
@@ -28,7 +28,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
 
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
 
-    private final JsonParser jsonParser = JsonSimpleUtils.createParser();
+    private final JsonParser jsonParser = JsonUtils.createParser();
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 

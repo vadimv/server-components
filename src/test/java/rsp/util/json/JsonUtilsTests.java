@@ -11,45 +11,45 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class JsonSimpleUtilsTests {
+public class JsonUtilsTests {
 
     @Test
     public void should_correctly_create_new_json_dt_from_simple_json_for_string() {
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType("bar");
+        final JsonDataType result = JsonUtils.convertToJsonType("bar");
 
         assertEquals(new JsonDataType.String("bar"), result);
     }
 
     @Test
     public void should_correctly_create_new_json_dt_from_simple_json_for_null() {
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType(null);
+        final JsonDataType result = JsonUtils.convertToJsonType(null);
 
         assertEquals(JsonDataType.Null.INSTANCE, result);
     }
 
     @Test
     public void should_correctly_create_new_json_dt_fromm_simple_json_for_boolean() {
-        assertEquals(new JsonDataType.Boolean(false), JsonSimpleUtils.convertToJsonType(false));
-        assertEquals(new JsonDataType.Boolean(true), JsonSimpleUtils.convertToJsonType(true));
+        assertEquals(new JsonDataType.Boolean(false), JsonUtils.convertToJsonType(false));
+        assertEquals(new JsonDataType.Boolean(true), JsonUtils.convertToJsonType(true));
     }
 
     @Test
     public void should_correctly_create_new_json_dt_from_simple_json_for_number_integer() {
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType(101);
+        final JsonDataType result = JsonUtils.convertToJsonType(101);
 
         assertEquals(new JsonDataType.Number(101), result);
     }
 
     @Test
     public void should_correctly_create_new_json_dt_from_simple_json_for_number_integer_long() {
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType(101);
+        final JsonDataType result = JsonUtils.convertToJsonType(101);
 
         assertEquals(new JsonDataType.Number(101L), result);
     }
 
     @Test
     public void should_correctly_create_new_json_dt_from_simple_json_for_number_float() {
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType(1001.01F);
+        final JsonDataType result = JsonUtils.convertToJsonType(1001.01F);
 
         assertEquals(new JsonDataType.Number(1001.01F), result);
     }
@@ -58,7 +58,7 @@ public class JsonSimpleUtilsTests {
     public void should_correctly_create_new_json_dt_from_simple_empty_json_object() throws ParseException {
         final JSONParser jsonParser = new JSONParser();
         final JSONObject json = (JSONObject) jsonParser.parse("{}");
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType(json);
+        final JsonDataType result = JsonUtils.convertToJsonType(json);
 
 
         final JsonDataType.Object expected = new JsonDataType.Object();
@@ -69,7 +69,7 @@ public class JsonSimpleUtilsTests {
     public void should_correctly_create_new_json_dt_from_simple_json_object() throws ParseException {
         final JSONParser jsonParser = new JSONParser();
         final JSONObject json = (JSONObject) jsonParser.parse("{ \"key1\":\"value1\", \"key2\":\"value2\" }");
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType(json);
+        final JsonDataType result = JsonUtils.convertToJsonType(json);
 
         final JsonDataType.Object expected = new JsonDataType.Object(Map.of("key1", new JsonDataType.String("value1"),
                                                                             "key2", new JsonDataType.String("value2")));
@@ -80,7 +80,7 @@ public class JsonSimpleUtilsTests {
     public void should_correctly_create_new_json_dt_from_json_array() throws ParseException {
         final JSONParser jsonParser = new JSONParser();
         final JSONArray json = (JSONArray) jsonParser.parse("[\"value1\", 64]");
-        final JsonDataType result = JsonSimpleUtils.convertToJsonType(json);
+        final JsonDataType result = JsonUtils.convertToJsonType(json);
 
         final JsonDataType.Array expected = new JsonDataType.Array(new JsonDataType.String("value1"),
                                                                    new JsonDataType.Number(64));
