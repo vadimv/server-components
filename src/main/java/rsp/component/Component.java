@@ -26,7 +26,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     protected final ComponentCompositeKey componentId;
-    protected final Lookup lookup;
+    protected final ComponentContext componentContext;
     protected final Consumer<SessionEvent> commandsEnqueue;
 
     private final ComponentStateSupplier<S> stateResolver;
@@ -46,10 +46,11 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
     public Component(final ComponentCompositeKey componentId,
                      final ComponentStateSupplier<S> stateResolver,
+                     final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
                      final ComponentView<S> componentView,
                      final ComponentCallbacks<S> callbacks,
                      final RenderContextFactory renderContextFactory,
-                     final Lookup lookup,
+                     final ComponentContext componentContext,
                      final Consumer<SessionEvent> commandsEnqueue) {
         this.componentId = Objects.requireNonNull(componentId);
         this.stateResolver = Objects.requireNonNull(stateResolver);
@@ -58,7 +59,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
         this.componentUpdatedCallback = Objects.requireNonNull(callbacks.componentUpdatedCallback());
         this.componentUnmountedCallback = Objects.requireNonNull(callbacks.componentUnmountedCallback());
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
-        this.lookup = Objects.requireNonNull(lookup);
+        this.componentContext = Objects.requireNonNull(componentContext);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
 
         logger.log(TRACE, () -> "New component is created with key " + this);
@@ -93,7 +94,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     public void render(final ComponentRenderContext renderContext) {
         try {
             onBeforeInitiallyRendered();
-            state = stateResolver.getState(componentId, lookup);
+            state = stateResolver.getState(componentContext);
             final SegmentDefinition view = componentView.apply(this).apply(state);
             view.render(renderContext);
             onAfterInitiallyRendered(state);
@@ -199,18 +200,18 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterInitiallyRendered(S state) {
-        componentMountedCallback.onComponentMounted(componentId, lookup, state, new EnqueueTaskStateUpdate());
+        componentMountedCallback.onComponentMounted(componentId, null, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onBeforeUpdated(S state, Object obj) {
     }
 
     protected void onAfterUpdated(S oldState, S state, Object obj) {
-        componentUpdatedCallback.onComponentUpdated(componentId, lookup, oldState, state, new EnqueueTaskStateUpdate());
+        componentUpdatedCallback.onComponentUpdated(componentId, null, oldState, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterUnmounted(ComponentCompositeKey key, S oldState) {
-        componentUnmountedCallback.onComponentUnmounted(componentId, lookup, state);
+        componentUnmountedCallback.onComponentUnmounted(componentId, null, state);
     }
 
     public List<Component<?>> directChildren() {

@@ -34,13 +34,13 @@ public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDef
     }
 
     private static <S> ComponentView<S> asComponentView(final View<S> view) {
-        return __ -> view;
+        return _ -> view;
     }
 
 
     @Override
     public ComponentStateSupplier<S> stateSupplier() {
-        return (key, session) -> initialStateRouting.apply(httpRequest);
+        return _ -> initialStateRouting.apply(httpRequest);
     }
 
     @Override

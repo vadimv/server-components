@@ -36,8 +36,8 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
 
     @Override
     public ComponentStateSupplier<S> stateSupplier() {
-        return (key, lookup) -> {
-            final String value = (String) lookup.get(name);
+        return componentContext -> {
+            final String value = (String) componentContext.get(name);
             return keyToStateFunction.apply(value);
         };
     }
@@ -52,10 +52,11 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
     public Component<S> createComponent(QualifiedSessionId sessionId,
                                         TreePositionPath componentPath,
                                         RenderContextFactory renderContextFactory,
-                                        Lookup sessionObjects,
+                                        ComponentContext sessionObjects,
                                         Consumer<SessionEvent> commandsEnqueue) {
         return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                stateSupplier(),
+                               componentContext(),
                                componentView(),
                                new ComponentCallbacks<>(onComponentMountedCallback(),
                                                         onComponentUpdatedCallback(),
@@ -70,7 +71,7 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
                 this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
                         "historyUndo." + name,
                         eventContext -> {
-                            final String value = lookup.get("value").toString();
+                            final String value = componentContext.get("value").toString();
                             this.setState(keyToStateFunction.apply(value))  ;
                         },
                         true,
@@ -92,12 +93,17 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
                         true,
                         Event.NO_MODIFIER);
 
-                if (obj == null) { // is not from an history undo
+                if (obj == null) { // is not from a history undo
                     commandsEnqueue.accept(new DomEvent(1,
                                            PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
                                            new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
                 }
 
+            }
+
+            @Override
+            protected void onAfterUnmounted(ComponentCompositeKey key, S oldState) {
+                //
             }
         };
     }

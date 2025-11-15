@@ -8,6 +8,6 @@ import java.util.function.Supplier;
 @FunctionalInterface
 public interface ComponentStateSupplier<S> {
 
-    S getState(ComponentCompositeKey componentId, Lookup lookup);
+    S getState(ComponentContext componentContext);
 
 }

@@ -14,6 +14,6 @@ public interface ComponentFactory<S> {
     Component<S> createComponent(QualifiedSessionId sessionId,
                                  TreePositionPath componentPath,
                                  RenderContextFactory renderContextFactory,
-                                 Lookup sessionObjects,
+                                 ComponentContext componentContext,
                                  Consumer<SessionEvent> commandsEnqueue);
 }

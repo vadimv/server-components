@@ -3,13 +3,14 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
-import rsp.page.Lookup;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.SessionEvent;
 
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * This is the base class for all components definitions.
@@ -40,6 +41,11 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a view for this component
      */
     public abstract ComponentView<S> componentView();
+
+
+    public BiFunction<ComponentContext, S, ComponentContext> componentContext() {
+        return (c, s) -> c;
+    }
 
     /**
      * This method provides a callback for the event when this component is mounted to the segments tree.
@@ -74,16 +80,17 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     public Component<S> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
-                                        final Lookup sessionObjects,
+                                        final ComponentContext componentContext,
                                         final Consumer<SessionEvent> commandsEnqueue) {
         return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                stateSupplier(),
+                               componentContext(),
                                componentView(),
                                new ComponentCallbacks<>(onComponentMountedCallback(),
                                                         onComponentUpdatedCallback(),
                                                         onComponentUnmountedCallback()),
                                renderContextFactory,
-                               sessionObjects,
+                               componentContext,
                                commandsEnqueue);
     }
 

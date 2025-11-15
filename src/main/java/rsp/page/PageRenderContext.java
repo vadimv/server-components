@@ -84,7 +84,7 @@ public final class PageRenderContext extends ComponentRenderContext {
         return startDomPath.equals(PageRendering.DOCUMENT_DOM_PATH) ? new PageRenderContext(sessionId,
                                                                                             pageConfigScript,
                                                                                             startDomPath,
-                lookup,
+                componentContext,
                                                                                             remotePageMessagesOut)
                                                              : super.newContext(startDomPath);
     }

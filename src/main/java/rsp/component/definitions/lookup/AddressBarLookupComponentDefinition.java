@@ -68,11 +68,11 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
 
     @Override
-    public Component<S> createComponent(QualifiedSessionId sessionId,
-                                        TreePositionPath componentPath,
-                                        RenderContextFactory renderContextFactory,
-                                        Lookup sessionObjects,
-                                        Consumer<SessionEvent> commandsEnqueue) {
+    public Component<S> createComponent(final QualifiedSessionId sessionId,
+                                        final TreePositionPath componentPath,
+                                        final RenderContextFactory renderContextFactory,
+                                        final ComponentContext componentContext,
+                                        final Consumer<SessionEvent> commandsEnqueue) {
         final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
 
         // prepare indices for path elements session keys
@@ -91,12 +91,13 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
         return new Component<>(componentId,
                                stateSupplier(),
+                               componentContext(),
                                componentView(),
                                new ComponentCallbacks<>(onComponentMountedCallback(),
                                                         onComponentUpdatedCallback(),
                                                         onComponentUnmountedCallback()),
                                renderContextFactory,
-                               sessionObjects,
+                               componentContext,
                                commandsEnqueue) {
 
             private RelativeUrl relativeUrl;

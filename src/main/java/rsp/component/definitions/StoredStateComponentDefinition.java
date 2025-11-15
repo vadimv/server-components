@@ -32,11 +32,11 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
 
     @Override
     public ComponentStateSupplier<S> stateSupplier() {
-        return   (key, session) -> {
-            if (stateStore.containsKey(key)) {
-                return stateStore.get(key);
+        return   componentContext -> {
+            if (stateStore.containsKey(componentContext.componentKey())) {
+                return stateStore.get(componentContext.componentKey());
             } else {
-                stateStore.put(key, initialState);
+                stateStore.put(componentContext.componentKey(), initialState);
                 return initialState;
             }
         };
