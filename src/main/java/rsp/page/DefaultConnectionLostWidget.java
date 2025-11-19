@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.component.ComponentContext;
 import rsp.component.ComponentRenderContext;
 import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.definitions.StatefulComponentDefinition;
@@ -23,7 +24,7 @@ public final class DefaultConnectionLostWidget {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     new Lookup(),
+                                                                     new ComponentContext(),
                                                                      __ -> new SilentRemoteOut());
         widgetComponent().render(rc);
         HTML = rc.html();

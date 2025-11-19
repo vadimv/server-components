@@ -4,7 +4,6 @@ import rsp.component.*;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.page.Lookup;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
@@ -12,6 +11,7 @@ import rsp.page.events.DomEvent;
 import rsp.page.events.SessionEvent;
 import rsp.util.json.JsonDataType;
 
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -35,10 +35,10 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
     }
 
     @Override
-    public ComponentStateSupplier<S> stateSupplier() {
+    public ComponentStateSupplier<S> initStateSupplier() {
         return componentContext -> {
-            final String value = (String) componentContext.get(name);
-            return keyToStateFunction.apply(value);
+            final String value = (String) componentContext.getAttribute(name);
+                return keyToStateFunction.apply(value);
         };
     }
 
@@ -55,8 +55,8 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
                                         ComponentContext sessionObjects,
                                         Consumer<SessionEvent> commandsEnqueue) {
         return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
-                               stateSupplier(),
-                               componentContext(),
+                               initStateSupplier(),
+                               subComponentsContext(),
                                componentView(),
                                new ComponentCallbacks<>(onComponentMountedCallback(),
                                                         onComponentUpdatedCallback(),
@@ -65,46 +65,16 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
                                sessionObjects,
                                commandsEnqueue) {
 
-            @Override
-            protected void onAfterInitiallyRendered(S state) {
-                //subscribe for history events
-                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                        "historyUndo." + name,
-                        eventContext -> {
-                            final String value = componentContext.get("value").toString();
-                            this.setState(keyToStateFunction.apply(value))  ;
-                        },
-                        true,
-                        Event.NO_MODIFIER);
-            }
 
-            @Override
-            protected void onAfterUpdated(S oldState, S state, Object obj) {
-                //subscribe for history events
-                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                        "historyUndo." + name,
-                        eventContext -> {
-                            if (eventContext.eventObject().value("value") instanceof JsonDataType.String(String value)) {
-                                this.setState(keyToStateFunction.apply(value), "history")  ;
-                            } else {
-                                throw new JsonDataType.JsonException();
-                            }
-                        },
-                        true,
-                        Event.NO_MODIFIER);
-
-                if (obj == null) { // is not from a history undo
-                    commandsEnqueue.accept(new DomEvent(1,
-                                           PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
-                                           new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
+            protected boolean onBeforeUpdated(S state, Object hint) {
+                if (hint == null) { // is not from a history undo, propagate it to browser history
+                        commandsEnqueue.accept(new DomEvent(1,
+                            PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
+                                new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
                 }
-
+                return false;
             }
 
-            @Override
-            protected void onAfterUnmounted(ComponentCompositeKey key, S oldState) {
-                //
-            }
         };
     }
 }

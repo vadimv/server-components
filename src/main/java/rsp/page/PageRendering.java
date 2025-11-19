@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.component.ComponentContext;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.TreePositionPath;
 import rsp.server.http.*;
@@ -82,16 +83,15 @@ public final class PageRendering<S> {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
-            final Lookup lookup = new Lookup();
-            lookup.put("deviceId", deviceId);
-            lookup.put("sessionId", sessionId);
+            final ComponentContext componentContext = new ComponentContext().with(Map.of("deviceId", deviceId,
+                                                                                                          "sessionId", sessionId));
 
             final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
 
             final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
                                                                               pageConfigScript.toString(),
                                                                               DOCUMENT_DOM_PATH,
-                                                                              lookup,
+                                                                              componentContext,
                                                                               commandsEnqueue);
 
             rootComponentDefinition.apply(request).render(pageRenderContext);

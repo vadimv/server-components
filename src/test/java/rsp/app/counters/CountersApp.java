@@ -104,21 +104,31 @@ public final class CountersApp {
         return new InitialStateComponentDefinition<>(true, storedCounterView());
     }
 
-    private static View<CountersAppState> rootView() {
+    private static View<CountersAppState> rootView(HttpRequest httpRequest, CountersAppState countersState) {
         return _ ->
                 html(head(title("Counters"),
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
-                        body(counterComponent1(),
-                             br(),
-                             counterComponent2(),
-                             br(),
-                             storedCounterComponent(),
-                             br(),
-                             counterComponent4()
+                        body(
+                                AddressBarLookupComponentDefinition.of(httpRequest.relativeUrl(),
+                                                new InitialStateComponentDefinition<>(countersState, mainView(countersState)))
+                                        .withPathElement(0, "c1")
+                                        .withPathElement(1, "c2")
+                                        .withQueryParameter("c4", "c4")
+
                         ));
     }
 
+    private static View<CountersAppState> mainView(CountersAppState countersState) {
+        return  _ -> div(counterComponent1(),
+                                br(),
+                                counterComponent2(),
+                                br(),
+                                storedCounterComponent(),
+                                br(),
+                                counterComponent4()
+                        );
+    }
     private static final View<NotFoundState> notFoundStatelessView = _ ->
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
@@ -127,11 +137,7 @@ public final class CountersApp {
     private static View<AppState> appComponentView(final HttpRequest httpRequest) {
         return state -> {
             if (state instanceof CountersAppState countersState) {
-                return AddressBarLookupComponentDefinition.of(httpRequest.relativeUrl(),
-                                                                         new InitialStateComponentDefinition<>(countersState, rootView()))
-                                                                     .withPathElement(0, "c1")
-                                                                     .withPathElement(1, "c2")
-                                                                     .withQueryParameter("c4", "c4");
+                return rootView(httpRequest, countersState).apply(countersState);
             } else if (state instanceof NotFoundState notFoundState) {
                 return new InitialStateComponentDefinition<>(notFoundState, notFoundStatelessView);
             } else {

@@ -4,11 +4,10 @@ import rsp.component.*;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.page.Lookup;
+import rsp.html.HtmlDsl;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
-import rsp.page.events.DomEvent;
 import rsp.page.events.RemoteCommand;
 import rsp.page.events.SessionEvent;
 import rsp.server.Path;
@@ -18,12 +17,15 @@ import rsp.server.http.RelativeUrl;
 import rsp.util.json.JsonDataType;
 
 import java.util.*;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDefinition<S> {
+import static rsp.html.HtmlDsl.attr;
+import static rsp.html.HtmlDsl.div;
+
+public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDefinition<RelativeUrl> {
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
-
 
     private final StatefulComponentDefinition<S> componentDefinition;
     private final List<PositionKey> pathElementsKeys;
@@ -57,18 +59,38 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
     }
 
     @Override
-    public ComponentStateSupplier<S> stateSupplier() {
-        return componentDefinition.stateSupplier();
-    }
-
-    @Override
-    public ComponentView<S> componentView() {
-        return componentDefinition.componentView();
+    public ComponentStateSupplier<RelativeUrl> initStateSupplier() {
+        return _ -> initialRelativeUrl;
     }
 
 
+    public BiFunction<ComponentContext, RelativeUrl, ComponentContext> subComponentsContext() {
+        return (componentContext, relativeUrl) -> {
+            final Map<String, Object> m = new HashMap<>();
+            for (PositionKey pathElementsKey : pathElementsKeys) {
+                m.put(pathElementsKey.key, relativeUrl.path().get(pathElementsKey.position));
+            }
+
+            for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
+                final Optional<String> optionalParameter = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
+                optionalParameter.ifPresent(p -> {
+                    m.put(queryParametersNameKey.key(), p);
+                });
+            }
+            return componentContext.with(m);
+        };
+    }
+
+
     @Override
-    public Component<S> createComponent(final QualifiedSessionId sessionId,
+    public ComponentView<RelativeUrl> componentView() {
+        return _ -> _ -> HtmlDsl.of(div(attr("address", "bar"),componentDefinition));
+    }
+
+
+
+    @Override
+    public Component<RelativeUrl> createComponent(final QualifiedSessionId sessionId,
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
                                         final ComponentContext componentContext,
@@ -90,8 +112,8 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
         }
 
         return new Component<>(componentId,
-                               stateSupplier(),
-                               componentContext(),
+                               initStateSupplier(),
+                               subComponentsContext(),
                                componentView(),
                                new ComponentCallbacks<>(onComponentMountedCallback(),
                                                         onComponentUpdatedCallback(),
@@ -100,32 +122,12 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                                componentContext,
                                commandsEnqueue) {
 
-            private RelativeUrl relativeUrl;
-
             @Override
-            protected void onBeforeInitiallyRendered() {
-                relativeUrl = initialRelativeUrl;
-                for (PositionKey pathElementsKey : pathElementsKeys) {
-                    lookup.put(pathElementsKey.key, initialRelativeUrl.path().get(pathElementsKey.position));
-                }
-
-                for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
-                    final Optional<String> optionalParameter = initialRelativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
-                    optionalParameter.ifPresent(p -> {
-                        lookup.put(queryParametersNameKey.key(), p);
-                    });
-                }
-            }
-
-            @Override
-            protected void onAfterInitiallyRendered(S state) {
+            protected void onAfterRendered(RelativeUrl state) {
                 subscribeForBrowserHistoryEvents();
                 subscribeForSessionObjectsUpdates();
             }
 
-            @Override
-            protected void onAfterUnmounted(ComponentCompositeKey key, S oldState) {
-            }
 
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
@@ -136,8 +138,10 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                         final JsonDataType valueJson = eventContext.eventObject().value("value");
                         if (valueJson instanceof JsonDataType.String(String value)) {
                             final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
-                            relativeUrl = updatedRelativeUrlForPathElement(relativeUrl, pathElementKey.key, value, pathElementIndex);
+                            final RelativeUrl relativeUrl = updatedRelativeUrlForPathElement(getState(), pathElementKey.key, value, pathElementIndex);
                             this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                            //this.state = relativeUrl;
+                            setState(relativeUrl);
                         } else {
                             throw new IllegalStateException();
                         }
@@ -154,8 +158,10 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                                         eventContext -> {
                         final JsonDataType valueJson = eventContext.eventObject().value("value");
                         if (valueJson instanceof JsonDataType.String(String value)) {
-                            relativeUrl = updatedRelativeUrlForParameter(relativeUrl, parameterNameKey.key(), value);
+                            final RelativeUrl relativeUrl = updatedRelativeUrlForParameter(getState(), parameterNameKey.key(), value);
                             this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                           // this.state = relativeUrl;
+                            setState(relativeUrl);
                         } else {
                             throw new IllegalStateException();
                         }
@@ -195,18 +201,16 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                               HISTORY_ENTRY_CHANGE_EVENT_NAME,
                              eventContext -> {
                                  final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
-                                 final RelativeUrl oldRelativeUrl = relativeUrl;
-                                 relativeUrl = newRelativeUrl;
+                                 final RelativeUrl oldRelativeUrl = getState();
                                  // update path elements
                                  for (int i = 0; i < oldRelativeUrl.path().elementsCount(); i++) {
                                      final String oldElement = oldRelativeUrl.path().get(i);
                                      final String newElement = newRelativeUrl.path().get(i);
                                      if (!oldElement.equals(newElement)) {
-                                         lookup.put(pathElementsIndicesKeys.get(i), newElement);
+                                         //lookup.put(pathElementsIndicesKeys.get(i), newElement);
                                          // enqueue history event "historyUndo"
-                                         commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + pathElementsIndicesKeys.get(i),
-                                                 new JsonDataType.Object().put("value", new JsonDataType.String(newElement))));
-                                         return;
+                                        /* commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + pathElementsIndicesKeys.get(i),
+                                                 new JsonDataType.Object().put("value", new JsonDataType.String(newElement))));*/
                                      }
                                  }
 
@@ -214,13 +218,13 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                                  for (Query.Parameter parameter: oldRelativeUrl.query().parameters()) {
                                      final Optional<String>  newParameterValue = newRelativeUrl.query().parameterValue(parameter.name());
                                      if (newParameterValue.isPresent() && !newParameterValue.get().equals(parameter.value())) {
-                                         lookup.put(parameterNameKeyMap.get(parameter.name()), newParameterValue.get());
+                                         //lookup.put(parameterNameKeyMap.get(parameter.name()), newParameterValue.get());
                                          // enqueue history event "historyUndo"
-                                         commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + parameter.name(),
-                                                 new JsonDataType.Object().put("value", new JsonDataType.String(newParameterValue.get()))));
-                                         return;
+                                         /*commandsEnqueue.accept(new DomEvent(1, PageRendering.WINDOW_DOM_PATH, "historyUndo." + parameter.name(),
+                                                 new JsonDataType.Object().put("value", new JsonDataType.String(newParameterValue.get()))));*/
                                      }
                                  }
+                                 setState(newRelativeUrl);
                              },
                              true,
                               Event.NO_MODIFIER);

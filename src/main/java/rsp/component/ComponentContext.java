@@ -1,15 +1,29 @@
 package rsp.component;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public final class ComponentContext {
 
+
+    private final Map<String, Object> attributes;
+
     public ComponentContext() {
+        this(new HashMap<>());
     }
 
-    public ComponentCompositeKey componentKey() {
-        return null;
+    ComponentContext(Map<String, Object> attributes) {
+        this.attributes = attributes;
     }
 
-    public Object get(final String key) {
-        return null;
+    public Object getAttribute(final String name) {
+        return attributes.get(name);
     }
+
+    public ComponentContext with(final Map<String, Object> overlayAttributes) {
+        final Map<String, Object> newAttributes = new HashMap<>(attributes);
+        newAttributes.putAll(overlayAttributes);
+        return new ComponentContext(newAttributes);
+    }
+
 }

@@ -3,7 +3,6 @@ package rsp.component;
 import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.html.SegmentDefinition;
-import rsp.page.Lookup;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.GenericTaskEvent;
@@ -30,19 +29,21 @@ public class Component<S> implements Segment, StateUpdate<S> {
     protected final Consumer<SessionEvent> commandsEnqueue;
 
     private final ComponentStateSupplier<S> stateResolver;
+    private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
     private final ComponentMountedCallback<S> componentMountedCallback;
     private final ComponentUpdatedCallback<S> componentUpdatedCallback;
     private final ComponentUnmountedCallback<S> componentUnmountedCallback;
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
 
-    private final List<Event> events = new ArrayList<>();
+    private final Set<Event> events = new HashSet<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
+
     private TreePositionPath startNodeDomPath;
 
-    private S state;
+    protected S state;
 
     public Component(final ComponentCompositeKey componentId,
                      final ComponentStateSupplier<S> stateResolver,
@@ -54,6 +55,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
                      final Consumer<SessionEvent> commandsEnqueue) {
         this.componentId = Objects.requireNonNull(componentId);
         this.stateResolver = Objects.requireNonNull(stateResolver);
+        this.contextResolver = Objects.requireNonNull(contextResolver);
         this.componentMountedCallback = Objects.requireNonNull(callbacks.componentMountedCallback());
         this.componentView = Objects.requireNonNull(componentView);
         this.componentUpdatedCallback = Objects.requireNonNull(callbacks.componentUpdatedCallback());
@@ -95,12 +97,19 @@ public class Component<S> implements Segment, StateUpdate<S> {
         try {
             onBeforeInitiallyRendered();
             state = stateResolver.getState(componentContext);
+            renderContext.setComponentContext(contextResolver.apply(componentContext, state));
             final SegmentDefinition view = componentView.apply(this).apply(state);
+
             view.render(renderContext);
-            onAfterInitiallyRendered(state);
+            onAfterRendered(state);
+            onAfterMounted(state);
         } catch (Throwable renderEx) {
             logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
         }
+    }
+
+    protected S getState() {
+        return state;
     }
 
     @Override
@@ -109,8 +118,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
 
-    protected void setState(S newState, Object obj) {
-        applyStateTransformation(_ -> newState, obj);
+    protected void setState(S newState, Object hint) {
+        applyStateTransformation(_ -> newState, hint);
     }
 
     @Override
@@ -133,27 +142,39 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
     }
 
-    public void applyStateTransformation(UnaryOperator<S> newStateFunction, Object obj) {
-        onBeforeUpdated(state, obj);
+    public void applyStateTransformation(UnaryOperator<S> newStateFunction, Object hint) {
+        final S newState = newStateFunction.apply(state);
+
+        if (!onBeforeUpdated(newState, hint)) {
+            return;
+        }
+
+        final S oldState = state;
+        state = newState;
+
+        refs.clear();
+
+        final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
+        events.clear();
+
+        final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
+        children.clear();
+
         final List<Node> oldRootNodes = new ArrayList<>(rootNodes);
         rootNodes.clear();
-        final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
-        final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
-        final S oldState = state;
-        state = newStateFunction.apply(state);
+
+
 
         logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
         final ComponentRenderContext renderContext = renderContextFactory.newContext(startNodeDomPath);
 
-        events.clear();
-        refs.clear();
-        children.clear();
-
+        renderContext.setComponentContext(contextResolver.apply(componentContext, state));
         renderContext.openComponent(this);
         final SegmentDefinition view = componentView.apply(this).apply(state);
         view.render(renderContext);
         renderContext.closeComponent();
+        onAfterRendered(state);
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -192,21 +213,25 @@ public class Component<S> implements Segment, StateUpdate<S> {
                 child.unmount();
             }
         }
-        onAfterUpdated(oldState, state, obj);
+        onAfterUpdated(oldState, state, hint);
+
     }
 
     protected void onBeforeInitiallyRendered() {
-        //componentBeforeMountCallback.onBeforeComponentMount(componentId, sessionObjects.ofComponent(componentId));
     }
 
-    protected void onAfterInitiallyRendered(S state) {
+    protected void onAfterMounted(S state) {
         componentMountedCallback.onComponentMounted(componentId, null, state, new EnqueueTaskStateUpdate());
     }
 
-    protected void onBeforeUpdated(S state, Object obj) {
+    protected void onAfterRendered(S state) {
     }
 
-    protected void onAfterUpdated(S oldState, S state, Object obj) {
+    protected boolean onBeforeUpdated(S state, Object hint) {
+        return true;
+    }
+
+    protected void onAfterUpdated(S oldState, S state, Object hint) {
         componentUpdatedCallback.onComponentUpdated(componentId, null, oldState, state, new EnqueueTaskStateUpdate());
     }
 

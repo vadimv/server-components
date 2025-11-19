@@ -2,6 +2,7 @@ package rsp.html;
 
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
+import rsp.component.ComponentContext;
 import rsp.component.ComponentRenderContext;
 import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.View;
@@ -65,7 +66,7 @@ public class HtmlDefinitionsTests {
                                                         Path.ROOT);
         final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
                                                                      PageRendering.DOCUMENT_DOM_PATH,
-                                                                     new Lookup(),
+                                                                     new ComponentContext(),
                                                                      __ -> new TestCollectingRemoteOut());
         return rc;
 

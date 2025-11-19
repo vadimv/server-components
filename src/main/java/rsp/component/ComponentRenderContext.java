@@ -14,12 +14,12 @@ public class ComponentRenderContext implements RenderContextFactory {
 
     protected final QualifiedSessionId sessionId;
     protected final Consumer<SessionEvent> remotePageMessagesOut;
-    protected final ComponentContext componentContext;
-
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
     private String docType;
+
+    protected ComponentContext componentContext;
 
     private TreePositionPath domPath;
 
@@ -33,6 +33,10 @@ public class ComponentRenderContext implements RenderContextFactory {
         this.sessionId = Objects.requireNonNull(sessionId);
         this.componentContext = componentContext;
         this.remotePageMessagesOut = Objects.requireNonNull(remotePageMessagesOut);
+    }
+
+    public void setComponentContext(final ComponentContext componentContext) {
+        this.componentContext = componentContext;
     }
 
     public void setDocType(final String docType) {
@@ -207,6 +211,7 @@ public class ComponentRenderContext implements RenderContextFactory {
             return Map.of();
         }
     }
+
 }
 
 

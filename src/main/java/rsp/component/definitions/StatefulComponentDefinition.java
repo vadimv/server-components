@@ -10,7 +10,6 @@ import rsp.page.events.SessionEvent;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * This is the base class for all components definitions.
@@ -33,7 +32,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * The state could be retrieved from a cache.
      * @return a function for an initial state
      */
-    public abstract ComponentStateSupplier<S> stateSupplier();
+    public abstract ComponentStateSupplier<S> initStateSupplier();
 
     /**
      * This method provides this component's view, a tree of segments definitions.
@@ -43,7 +42,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     public abstract ComponentView<S> componentView();
 
 
-    public BiFunction<ComponentContext, S, ComponentContext> componentContext() {
+    public BiFunction<ComponentContext, S, ComponentContext> subComponentsContext() {
         return (c, s) -> c;
     }
 
@@ -83,8 +82,8 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                         final ComponentContext componentContext,
                                         final Consumer<SessionEvent> commandsEnqueue) {
         return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
-                               stateSupplier(),
-                               componentContext(),
+                               initStateSupplier(),
+                               subComponentsContext(),
                                componentView(),
                                new ComponentCallbacks<>(onComponentMountedCallback(),
                                                         onComponentUpdatedCallback(),

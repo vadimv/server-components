@@ -43,7 +43,7 @@ class InitialStateComponentDefinitionTests {
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
-                                                                                new Lookup(),
+                                                                                new ComponentContext(),
                                                                                 commands);
         final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
                                                                                               view);
