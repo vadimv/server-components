@@ -113,13 +113,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
     @Override
-    public void setState(final S newState) {
+    public void setState(S newState) {
         applyStateTransformation(_ -> newState);
-    }
-
-
-    protected void setState(S newState, Object hint) {
-        applyStateTransformation(_ -> newState, hint);
     }
 
     @Override
@@ -137,15 +132,10 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
     @Override
-    public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
-        applyStateTransformation(newStateFunction, null);
-
-    }
-
-    public void applyStateTransformation(UnaryOperator<S> newStateFunction, Object hint) {
+    public void applyStateTransformation(UnaryOperator<S> newStateFunction) {
         final S newState = newStateFunction.apply(state);
 
-        if (!onBeforeUpdated(newState, hint)) {
+        if (!onBeforeUpdated(newState)) {
             return;
         }
 
@@ -213,7 +203,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
                 child.unmount();
             }
         }
-        onAfterUpdated(oldState, state, hint);
+        onAfterUpdated(oldState, state);
 
     }
 
@@ -227,11 +217,11 @@ public class Component<S> implements Segment, StateUpdate<S> {
     protected void onAfterRendered(S state) {
     }
 
-    protected boolean onBeforeUpdated(S state, Object hint) {
+    protected boolean onBeforeUpdated(S state) {
         return true;
     }
 
-    protected void onAfterUpdated(S oldState, S state, Object hint) {
+    protected void onAfterUpdated(S oldState, S state) {
         componentUpdatedCallback.onComponentUpdated(componentId, null, oldState, state, new EnqueueTaskStateUpdate());
     }
 

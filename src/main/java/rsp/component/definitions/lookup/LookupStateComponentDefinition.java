@@ -66,12 +66,10 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
                                commandsEnqueue) {
 
 
-            protected boolean onBeforeUpdated(S state, Object hint) {
-                if (hint == null) { // is not from a history undo, propagate it to browser history
-                        commandsEnqueue.accept(new DomEvent(1,
-                            PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
-                                new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
-                }
+            protected boolean onBeforeUpdated(S state) {
+                commandsEnqueue.accept(new DomEvent(1,
+                                       PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
+                                       new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
                 return false;
             }
 
