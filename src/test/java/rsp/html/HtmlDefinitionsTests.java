@@ -6,7 +6,6 @@ import rsp.component.ComponentContext;
 import rsp.component.ComponentRenderContext;
 import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.View;
-import rsp.page.Lookup;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;

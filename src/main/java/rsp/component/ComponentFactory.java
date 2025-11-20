@@ -1,7 +1,6 @@
 package rsp.component;
 
 import rsp.dom.TreePositionPath;
-import rsp.page.Lookup;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.SessionEvent;

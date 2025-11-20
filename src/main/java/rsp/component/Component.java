@@ -211,7 +211,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterMounted(S state) {
-        componentMountedCallback.onComponentMounted(componentId, null, state, new EnqueueTaskStateUpdate());
+        componentMountedCallback.onComponentMounted(componentId, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterRendered(S state) {
@@ -222,11 +222,11 @@ public class Component<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterUpdated(S oldState, S state) {
-        componentUpdatedCallback.onComponentUpdated(componentId, null, oldState, state, new EnqueueTaskStateUpdate());
+        componentUpdatedCallback.onComponentUpdated(componentId, oldState, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterUnmounted(ComponentCompositeKey key, S oldState) {
-        componentUnmountedCallback.onComponentUnmounted(componentId, null, state);
+        componentUnmountedCallback.onComponentUnmounted(componentId, state);
     }
 
     public List<Component<?>> directChildren() {

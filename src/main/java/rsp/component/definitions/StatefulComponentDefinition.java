@@ -53,7 +53,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
     public ComponentMountedCallback<S> onComponentMountedCallback() {
-        return (key, sessionBag, state, newState) -> {
+        return (key,  state, newState) -> {
         };
     }
 
@@ -64,7 +64,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
     public ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key,  sessionBag, oldState, state, newState) -> {};
+        return (key,  oldState, state, newState) -> {};
     }
 
     /**
@@ -72,7 +72,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * @return a callback receiving a key and a current state.
      */
     public ComponentUnmountedCallback<S> onComponentUnmountedCallback() {
-        return (key, sessionBag, state) -> {};
+        return (key, state) -> {};
     }
 
     @Override

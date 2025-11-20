@@ -48,12 +48,12 @@ public class StoredStateComponentDefinition<S> extends StatefulComponentDefiniti
 
     @Override
     public ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key, sessionBag, odlState, state, newState) -> stateStore.put(key, state);
+        return (key,  odlState, state, newState) -> stateStore.put(key, state);
     }
 
     @Override
     public ComponentMountedCallback<S> onComponentMountedCallback() {
-        return (key, sessionBag, state, newState) -> {
+        return (key, state, newState) -> {
         };
     }
 

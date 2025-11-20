@@ -3,7 +3,6 @@ package rsp.component;
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.HttpRequestStateComponentDefinition;
 import rsp.dom.TreePositionPath;
-import rsp.page.Lookup;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;

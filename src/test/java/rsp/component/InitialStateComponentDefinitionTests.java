@@ -5,7 +5,6 @@ import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
-import rsp.page.Lookup;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.RemoteCommand;
