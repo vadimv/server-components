@@ -36,7 +36,7 @@ public class InitialStateComponentDefinition<S> extends StatefulComponentDefinit
 
     @Override
     public ComponentStateSupplier<S> initStateSupplier() {
-        return _ -> initialState;
+        return (_, _) -> initialState;
     }
 
     @Override

@@ -36,14 +36,14 @@ public class Component<S> implements Segment, StateUpdate<S> {
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
 
-    private final Set<Event> events = new HashSet<>();
+    private final List<Event> events = new ArrayList<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
 
     private TreePositionPath startNodeDomPath;
 
-    protected S state;
+    private S state;
 
     public Component(final ComponentCompositeKey componentId,
                      final ComponentStateSupplier<S> stateResolver,
@@ -96,7 +96,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     public void render(final ComponentRenderContext renderContext) {
         try {
             onBeforeInitiallyRendered();
-            state = stateResolver.getState(componentContext);
+            state = stateResolver.getState(componentId, componentContext);
             renderContext.setComponentContext(contextResolver.apply(componentContext, state));
             final SegmentDefinition view = componentView.apply(this).apply(state);
 

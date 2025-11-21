@@ -36,9 +36,9 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
 
     @Override
     public ComponentStateSupplier<S> initStateSupplier() {
-        return componentContext -> {
+        return (_, componentContext) -> {
             final String value = (String) componentContext.getAttribute(name);
-                return keyToStateFunction.apply(value);
+            return keyToStateFunction.apply(value);
         };
     }
 

@@ -61,7 +61,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
     @Override
     public ComponentStateSupplier<RelativeUrl> initStateSupplier() {
-        return _ -> initialRelativeUrl;
+        return (_, _) -> initialRelativeUrl;
     }
 
 
