@@ -83,11 +83,17 @@ public class Component<S> implements Segment, StateUpdate<S> {
         return rootNodes.get(rootNodes.size() - 1);
     }
 
-    public void notifyNodeOpened(final TreePositionPath domPath, final Node newNode) {
+    public void setStartNodeDomPath(final TreePositionPath domPath) {
         if (startNodeDomPath == null) {
             startNodeDomPath = domPath;
         }
+    }
 
+    public boolean hasStartNodeDomPath() {
+        return startNodeDomPath != null;
+    }
+
+    public void addRootDomNode(final TreePositionPath domPath, final Node newNode) {
         if (rootNodes.isEmpty() || domPath.level() == this.startNodeDomPath.level()) {
             rootNodes.add(newNode);
         }
@@ -144,16 +150,14 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
         refs.clear();
 
+        final List<Node> oldRootNodes = new ArrayList<>(rootNodes());
+        rootNodes.clear();
+
         final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
         events.clear();
 
         final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
         children.clear();
-
-        final List<Node> oldRootNodes = new ArrayList<>(rootNodes);
-        rootNodes.clear();
-
-
 
         logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
@@ -168,7 +172,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        Diff.diffChildren(oldRootNodes, rootNodes, startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
+        Diff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
         final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
         commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
 
@@ -237,6 +241,18 @@ public class Component<S> implements Segment, StateUpdate<S> {
         recursiveChildren().forEach(c -> c.unmount());
         onAfterUnmounted(componentId, state);
 
+    }
+
+    private final List<Node> rootNodes() {
+        if (!rootNodes.isEmpty()) {
+            return rootNodes;
+        } else {
+            final List<Node> nodes = new ArrayList<>();
+            for (final Component<?> comp : this.children) {
+                nodes.addAll(comp.rootNodes());
+            }
+            return nodes;
+        }
     }
 
     public List<Component<?>> recursiveChildren() {

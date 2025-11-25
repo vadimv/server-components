@@ -94,7 +94,22 @@ public class ComponentRenderContext implements RenderContextFactory {
         }
         tagsStack.push(tag);
 
-        component.notifyNodeOpened(domPath, tag);
+        component.setStartNodeDomPath(domPath);
+        component.addRootDomNode(domPath, tag);
+
+        if (componentsStack.size() > 1) {
+            var ascendantComponentsIterator = componentsStack.iterator();
+            ascendantComponentsIterator.next();// skip a current component
+            while (ascendantComponentsIterator.hasNext()) {
+                final Component<?> ascedantComponent = ascendantComponentsIterator.next();
+                if (!ascedantComponent.hasStartNodeDomPath()) {
+                    ascedantComponent.setStartNodeDomPath(domPath);
+                } else {
+                    break;
+                }
+            }
+        }
+
     }
 
     public void closeNode(final String name, final boolean upgrade) {
@@ -115,11 +130,13 @@ public class ComponentRenderContext implements RenderContextFactory {
                     final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
                     domPath = prevTag.incSibling();
                     rootNodesPaths.add(domPath);
-                    component.notifyNodeOpened(domPath, new Text(text));
+                    component.setStartNodeDomPath(domPath);
+                    component.addRootDomNode(domPath, new Text(text));
                 }
             } else {
                 rootNodesPaths.add(domPath);
-                component.notifyNodeOpened(domPath, new Text(text));
+                component.setStartNodeDomPath(domPath);
+                component.addRootDomNode(domPath, new Text(text));
             }
         } else {
             if (!parentTag.children.isEmpty() && parentTag.children.get(parentTag.children.size() - 1) instanceof Text prevTextNode) {
@@ -129,7 +146,8 @@ public class ComponentRenderContext implements RenderContextFactory {
                 domPath = domPath.addChild(nextChild);
                 final Text newText = new Text(text);
                 parentTag.addChild(newText);
-                component.notifyNodeOpened(domPath, newText);
+                component.setStartNodeDomPath(domPath);
+                component.addRootDomNode(domPath, newText);
                 domPath  = domPath.parent();
             }
         }
