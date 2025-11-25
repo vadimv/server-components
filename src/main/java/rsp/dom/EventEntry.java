@@ -48,7 +48,7 @@ public final class EventEntry {
 
     }
 
-    public interface Modifier {
+    public sealed interface Modifier {
     }
 
     public static final class NoModifier implements Modifier {

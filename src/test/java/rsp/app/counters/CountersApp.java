@@ -47,9 +47,9 @@ public final class CountersApp {
 
     private static SegmentDefinition counterComponent4() {
         return new LookupStateComponentDefinition<>("c4",
-                Integer::parseInt,
-                Object::toString,
-                counterView("c4"));
+                                                   v -> v == null ? 0 : Integer.parseInt(v),
+                                                    Object::toString,
+                                                    counterView("c4"));
     }
 
     private static ComponentView<Integer> counterView(final String name) {

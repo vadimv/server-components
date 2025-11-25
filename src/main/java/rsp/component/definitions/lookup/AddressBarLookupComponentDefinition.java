@@ -20,9 +20,6 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-import static rsp.html.HtmlDsl.attr;
-import static rsp.html.HtmlDsl.div;
-
 public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDefinition<RelativeUrl> {
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
@@ -177,12 +174,13 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
             private RelativeUrl updatedRelativeUrlForParameter(RelativeUrl oldRelativeUrl, String parameterName, String parameterValue) {
                 final List<Query.Parameter> parameters = new ArrayList<>(oldRelativeUrl.query().parameters());
-                int i = 0;
-                for (; i < parameters.size(); i++) {
-                    if (parameters.get(i).name().equals(parameterName)) break;
+                for (int i = 0; i < parameters.size(); i++) {
+                    if (parameters.get(i).name().equals(parameterName)) {
+                        parameters.set(i, new Query.Parameter(parameterName, parameterValue));
+                        return new RelativeUrl(oldRelativeUrl.path(), new Query(parameters), oldRelativeUrl.fragment());
+                    }
                 }
-                parameters.set(i, new Query.Parameter(parameterName, parameterValue));
-
+                parameters.add(new Query.Parameter(parameterName, parameterValue));
                 return new RelativeUrl(oldRelativeUrl.path(), new Query(parameters), oldRelativeUrl.fragment());
             }
 

@@ -7,6 +7,10 @@ public record Query(List<Parameter> parameters) {
 
     public static final Query EMPTY = new Query(List.of());
 
+    public Query(final List<Parameter> parameters) {
+        this.parameters = Collections.unmodifiableList(Objects.requireNonNull(parameters));
+    }
+
     public static Query of(final String queryString) {
         Objects.requireNonNull(queryString);
         final String trimmedStr = queryString.trim().replaceFirst("^\\?", "");
@@ -17,7 +21,7 @@ public record Query(List<Parameter> parameters) {
         return new Query(params);
     }
 
-    public Optional<String> parameterValue(String name) {
+    public Optional<String> parameterValue(final String name) {
         for (Parameter param : parameters) {
             if (param.name.equals(name)) {
                 return Optional.of(param.value);

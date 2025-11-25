@@ -88,12 +88,10 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     }
 
     private static String modifierString(final EventEntry.Modifier eventModifier) {
-        if (eventModifier instanceof EventEntry.ThrottleModifier) {
-            final EventEntry.ThrottleModifier m = (EventEntry.ThrottleModifier) eventModifier;
-            return THROTTLE_EVENT_MODIFIER + ":" + m.timeFrameMs();
-        } else if (eventModifier instanceof EventEntry.DebounceModifier) {
-            final EventEntry.DebounceModifier m = (EventEntry.DebounceModifier) eventModifier;
-            return DEBOUNCE_EVENT_MODIFIER + ":" + m.waitMs() + ":" + m.immediate();
+        if (eventModifier instanceof EventEntry.ThrottleModifier(int timeFrameMs)) {
+            return THROTTLE_EVENT_MODIFIER + ":" + timeFrameMs;
+        } else if (eventModifier instanceof EventEntry.DebounceModifier(int waitMs, boolean immediate)) {
+            return DEBOUNCE_EVENT_MODIFIER + ":" + waitMs + ":" + immediate;
         } else {
             return Integer.toString(NO_EVENT_MODIFIER);
         }
@@ -130,38 +128,16 @@ public final class RemotePageMessageEncoder implements RemoteOut {
         messagesOut.accept(message);
     }
 
-/*    @Override
-    public void setQueryString(final String queryString) {
-        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, SEARCH_LOCATION_TYPE, quote(path)));
-        messagesOut.accept(message);
-    }*/
-
     private String modifyDomMessageBody(final DomChange domChange) {
-        if (domChange instanceof RemoveAttr) {
-            final RemoveAttr c = (RemoveAttr)domChange;
-            return joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), c.isProperty);
-        } else if (domChange instanceof RemoveStyle) {
-            final RemoveStyle c = (RemoveStyle)domChange;
-            return joinString(REMOVE_STYLE, quote(c.path()), quote(escape(c.name())), false);
-        } else if (domChange instanceof Remove) {
-            final Remove c = (Remove)domChange;
-            return joinString(REMOVE, quote(c.parentPath()), quote(c.path()));
-        } else if (domChange instanceof SetAttr) {
-            final SetAttr c = (SetAttr)domChange;
-            return joinString(SET_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), quote(c.value()), c.isProperty());
-        } else if (domChange instanceof SetStyle) {
-            final SetStyle c = (SetStyle)domChange;
-            return joinString(SET_STYLE, quote(c.path()), quote(escape(c.name())), quote(escape(c.value())));
-        } else if (domChange instanceof CreateText) {
-            final CreateText c = (CreateText)domChange;
-            return joinString(CREATE_TEXT, quote(c.parentPath()), quote(c.path()), quote(escape(c.text())));
-        } else if (domChange instanceof Create) {
-            final Create c = (Create)domChange;
-            return joinString(CREATE, quote(c.path().parent()),
-                    quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.tag())));
-        } else {
-            throw new IllegalStateException("Unsupported DomChange object type:" + domChange);
-        }
+        return switch (domChange) {
+            case RemoveAttr c -> joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), c.isProperty);
+            case RemoveStyle(TreePositionPath path, String name) -> joinString(REMOVE_STYLE, quote(path), quote(escape(name)), false);
+            case Remove c -> joinString(REMOVE, quote(c.parentPath()), quote(c.path()));
+            case SetAttr c -> joinString(SET_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), quote(c.value()), c.isProperty());
+            case SetStyle c -> joinString(SET_STYLE, quote(c.path()), quote(escape(c.name())), quote(escape(c.value())));
+            case CreateText c -> joinString(CREATE_TEXT, quote(c.parentPath()), quote(c.path()), quote(escape(c.text())));
+            case Create c -> joinString(CREATE, quote(c.path().parent()), quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.tag())));
+        };
     }
 
     private String xmlNsString(final XmlNs xmlNs) {

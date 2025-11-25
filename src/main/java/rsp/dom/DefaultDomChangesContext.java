@@ -42,7 +42,7 @@ public final class DefaultDomChangesContext implements DomChangesContext {
         commands.add(new Create(path, xmlNs, tag));
     }
 
-    public interface DomChange {}
+    public sealed interface DomChange {}
 
     public static final class RemoveAttr implements DomChange {
         public final TreePositionPath path;
