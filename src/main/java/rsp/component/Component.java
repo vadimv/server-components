@@ -36,7 +36,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
 
-    private final List<Event> events = new ArrayList<>();
+    private final List<EventEntry> eventEntries = new ArrayList<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
@@ -133,10 +133,6 @@ public class Component<S> implements Segment, StateUpdate<S> {
         stateTransformer.apply(state).ifPresent(this::setState);
     }
 
-    protected void applyStateTransformationIfPresent(Function<S, Optional<S>> stateTransformer, Object obj) {
-        stateTransformer.apply(state).ifPresent(this::setState);
-    }
-
     @Override
     public void applyStateTransformation(UnaryOperator<S> newStateFunction) {
         final S newState = newStateFunction.apply(state);
@@ -153,8 +149,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
         final List<Node> oldRootNodes = new ArrayList<>(rootNodes());
         rootNodes.clear();
 
-        final Set<Event> oldEvents = new HashSet<>(recursiveEvents());
-        events.clear();
+        final Set<EventEntry> oldEvents = new HashSet<>(recursiveEvents());
+        eventEntries.clear();
 
         final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
         children.clear();
@@ -177,21 +173,21 @@ public class Component<S> implements Segment, StateUpdate<S> {
         commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
 
         // Unregister events
-        final List<Event> eventsToRemove = new ArrayList<>();
-        final Set<Event> newEvents = new HashSet<>(recursiveEvents());
-        for (Event event : oldEvents) {
+        final List<EventEntry> eventsToRemove = new ArrayList<>();
+        final Set<EventEntry> newEvents = new HashSet<>(recursiveEvents());
+        for (final EventEntry event : oldEvents) {
             if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath())) {
                 eventsToRemove.add(event);
             }
         }
-        for (Event event : eventsToRemove) {
-            final Event.Target eventTarget = event.eventTarget;
+        for (final EventEntry event : eventsToRemove) {
+            final EventEntry.Target eventTarget = event.eventTarget;
             commandsEnqueue.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(), eventTarget.elementPath()));
         }
 
         // Register new event types on client
-        final List<Event> eventsToAdd = new ArrayList<>();
-        for (final Event event : newEvents) {
+        final List<EventEntry> eventsToAdd = new ArrayList<>();
+        for (final EventEntry event : newEvents) {
             if (!oldEvents.contains(event)) {
                 eventsToAdd.add(event);
             }
@@ -243,7 +239,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
 
     }
 
-    private final List<Node> rootNodes() {
+    private List<Node> rootNodes() {
         if (!rootNodes.isEmpty()) {
             return rootNodes;
         } else {
@@ -264,9 +260,9 @@ public class Component<S> implements Segment, StateUpdate<S> {
         return recursiveChildren;
     }
 
-    public List<Event> recursiveEvents() {
-        final List<Event> recursiveEvents = new ArrayList<>();
-        recursiveEvents.addAll(events);
+    public List<EventEntry> recursiveEvents() {
+        final List<EventEntry> recursiveEvents = new ArrayList<>();
+        recursiveEvents.addAll(eventEntries);
         for (final Component<?> childComponent : children) {
             recursiveEvents.addAll(childComponent.recursiveEvents());
         }
@@ -285,9 +281,9 @@ public class Component<S> implements Segment, StateUpdate<S> {
                                 final String eventType,
                                 final Consumer<EventContext> eventHandler,
                                 final boolean preventDefault,
-                                final Event.Modifier modifier) {
-        final Event.Target eventTarget = new Event.Target(eventType, elementPath);
-        events.add(new Event(eventTarget, eventHandler, preventDefault, modifier));
+                                final EventEntry.Modifier modifier) {
+        final EventEntry.Target eventTarget = new EventEntry.Target(eventType, elementPath);
+        eventEntries.add(new EventEntry(eventTarget, eventHandler, preventDefault, modifier));
     }
 
     public void addRef(final Ref ref, final TreePositionPath path) {

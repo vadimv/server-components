@@ -1,7 +1,7 @@
 package rsp.page.events;
 
 import rsp.dom.DefaultDomChangesContext;
-import rsp.dom.Event;
+import rsp.dom.EventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.server.RemoteOut;
 
@@ -18,7 +18,7 @@ public sealed interface RemoteCommand {
         }
     }
 
-    record ListenEvent(List<Event> events) implements RemoteCommand, SessionEvent {
+    record ListenEvent(List<EventEntry> events) implements RemoteCommand, SessionEvent {
         @Override
         public void accept(RemoteOut remoteOut) {
             remoteOut.listenEvents(events);

@@ -165,7 +165,7 @@ public class ComponentRenderContext implements RenderContextFactory {
                          final String eventType,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
-                         final Event.Modifier modifier) {
+                         final EventEntry.Modifier modifier) {
         final Component<?> component = componentsStack.peek();
         assert component != null;
         component.addEventHandler(elementPath, eventType, eventHandler, preventDefault, modifier);
@@ -174,7 +174,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     public void addEvent(final String eventType,
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
-                         final Event.Modifier modifier) {
+                         final EventEntry.Modifier modifier) {
         final Tag tag = tagsStack.peek();
         assert tag != null;
         addEvent(domPath, eventType, eventHandler, preventDefault, modifier);
@@ -208,7 +208,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         return hb.toString();
     }
 
-    public List<Event> recursiveEvents() {
+    public List<EventEntry> recursiveEvents() {
         if (rootComponent != null) {
             return rootComponent.recursiveEvents();
         } else {

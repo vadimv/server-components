@@ -2,7 +2,6 @@ package rsp.component.definitions.lookup;
 
 import rsp.component.*;
 import rsp.component.definitions.StatefulComponentDefinition;
-import rsp.dom.Event;
 import rsp.dom.TreePositionPath;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
@@ -11,7 +10,6 @@ import rsp.page.events.DomEvent;
 import rsp.page.events.SessionEvent;
 import rsp.util.json.JsonDataType;
 
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 

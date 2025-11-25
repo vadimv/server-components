@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.dom.Event;
+import rsp.dom.EventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.html.WindowDefinition;
 import rsp.page.events.*;
@@ -104,7 +104,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         TreePositionPath eventElementPath = eventPath;
         while (eventElementPath.level() >= 0) {
-            for (final Event event: pageRenderContext.recursiveEvents()) {
+            for (final EventEntry event: pageRenderContext.recursiveEvents()) {
                 if (event.eventTarget.elementPath().equals(eventElementPath) && event.eventTarget.eventType().equals(eventType)) {
                     event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                 }

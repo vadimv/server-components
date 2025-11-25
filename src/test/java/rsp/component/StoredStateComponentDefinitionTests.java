@@ -6,7 +6,7 @@ import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.component.definitions.StoredStateComponentDefinition;
 import rsp.dom.DefaultDomChangesContext;
-import rsp.dom.Event;
+import rsp.dom.EventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
@@ -67,7 +67,7 @@ class StoredStateComponentDefinitionTests {
 
         // Remove sub component
         // Click
-        final Event clickEvent = renderContext.recursiveEvents().get(0);
+        final EventEntry clickEvent = renderContext.recursiveEvents().get(0);
         final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath(),
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,
@@ -84,7 +84,7 @@ class StoredStateComponentDefinitionTests {
         commands.list.clear();
 
         // Add the hidden stateful component back
-        final Event clickEvent2 = renderContext.recursiveEvents().get(0);
+        final EventEntry clickEvent2 = renderContext.recursiveEvents().get(0);
         clickEvent2.eventHandler.accept(clickEventContext);
         assertEquals(1, commands.list.size());
         final RemoteCommand.ModifyDom modifyDomOutMessage2 = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();

@@ -3,7 +3,7 @@ package rsp.component;
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.definitions.StatefulComponentDefinition;
-import rsp.dom.Event;
+import rsp.dom.EventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
@@ -62,7 +62,7 @@ class InitialStateComponentDefinitionTests {
         assertEquals(TreePositionPath.of("1_2_1"), renderContext.recursiveEvents().get(0).eventTarget.elementPath());
 
         // Click
-        final Event clickEvent = renderContext.recursiveEvents().get(0);
+        final EventEntry clickEvent = renderContext.recursiveEvents().get(0);
         final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath(),
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,

@@ -2,9 +2,8 @@ package rsp.component.definitions.lookup;
 
 import rsp.component.*;
 import rsp.component.definitions.StatefulComponentDefinition;
-import rsp.dom.Event;
+import rsp.dom.EventEntry;
 import rsp.dom.TreePositionPath;
-import rsp.html.HtmlDsl;
 import rsp.html.SegmentDefinition;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
@@ -85,7 +84,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
     @Override
     public ComponentView<RelativeUrl> componentView() {
-        return _ -> _ -> HtmlDsl.of(div(attr("address", "bar"), subTreeDefinition));
+        return _ -> _ -> subTreeDefinition;
     }
 
 
@@ -100,16 +99,8 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
         // prepare indices for path elements session keys
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
-        final Map<Integer, String> pathElementsIndicesKeys = new HashMap<>();
         for (int i = 0; i < pathElementsKeys.size(); i++) {
             pathElementsKeysIndices.put(pathElementsKeys.get(i).key, pathElementsKeys.get(i).position);
-            pathElementsIndicesKeys.put(pathElementsKeys.get(i).position, pathElementsKeys.get(i).key);
-        }
-
-        // prepare a map for query parameters
-        final Map<String, String> parameterNameKeyMap = new HashMap<>();
-        for (ParameterNameKey p: queryParametersNameKeys) {
-            parameterNameKeyMap.put(p.parameterName(), p.key());
         }
 
         return new Component<>(componentId,
@@ -143,12 +134,12 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                             this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
                             setState(relativeUrl);
                         } else {
-                            throw new IllegalStateException();
+                            throw new IllegalStateException("Value is missing in a state update event");
                         }
 
                     },
                                         true,
-                                        Event.NO_MODIFIER);
+                                        EventEntry.NO_MODIFIER);
                 }
 
                 // subscribe for query parameters changes
@@ -165,7 +156,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                             throw new IllegalStateException();
                         }
                     },true,
-                            Event.NO_MODIFIER);
+                            EventEntry.NO_MODIFIER);
                 }
 
             }
@@ -203,7 +194,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                                  setState(newRelativeUrl);
                              },
                              true,
-                              Event.NO_MODIFIER);
+                              EventEntry.NO_MODIFIER);
             }
 
             private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {

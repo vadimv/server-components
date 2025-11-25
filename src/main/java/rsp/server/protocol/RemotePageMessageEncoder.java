@@ -1,6 +1,6 @@
 package rsp.server.protocol;
 
-import rsp.dom.Event;
+import rsp.dom.EventEntry;
 import rsp.dom.XmlNs;
 import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext.*;
@@ -67,7 +67,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     }
 
     @Override
-    public void listenEvents(final List<Event> events) {
+    public void listenEvents(final List<EventEntry> events) {
         if (events.size() > 0) {
             final String[] changes = events.stream().map(e -> joinString(quote(e.eventTarget.eventType()),
                                                                          e.preventDefault,
@@ -87,12 +87,12 @@ public final class RemotePageMessageEncoder implements RemoteOut {
         messagesOut.accept(message);
     }
 
-    private static String modifierString(final Event.Modifier eventModifier) {
-        if (eventModifier instanceof Event.ThrottleModifier) {
-            final Event.ThrottleModifier m = (Event.ThrottleModifier) eventModifier;
+    private static String modifierString(final EventEntry.Modifier eventModifier) {
+        if (eventModifier instanceof EventEntry.ThrottleModifier) {
+            final EventEntry.ThrottleModifier m = (EventEntry.ThrottleModifier) eventModifier;
             return THROTTLE_EVENT_MODIFIER + ":" + m.timeFrameMs();
-        } else if (eventModifier instanceof Event.DebounceModifier) {
-            final Event.DebounceModifier m = (Event.DebounceModifier) eventModifier;
+        } else if (eventModifier instanceof EventEntry.DebounceModifier) {
+            final EventEntry.DebounceModifier m = (EventEntry.DebounceModifier) eventModifier;
             return DEBOUNCE_EVENT_MODIFIER + ":" + m.waitMs() + ":" + m.immediate();
         } else {
             return Integer.toString(NO_EVENT_MODIFIER);

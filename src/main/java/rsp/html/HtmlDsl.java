@@ -1,6 +1,6 @@
 package rsp.html;
 
-import rsp.dom.Event;
+import rsp.dom.EventEntry;
 import rsp.dom.XmlNs;
 import rsp.page.EventContext;
 import rsp.ref.ElementRef;
@@ -130,7 +130,7 @@ public final class HtmlDsl {
      * @return a DOM event handler definition
      */
     public static EventDefinition on(final String eventType, final Consumer<EventContext> handler) {
-        return new EventDefinition(eventType, handler, Event.NO_MODIFIER);
+        return new EventDefinition(eventType, handler, EventEntry.NO_MODIFIER);
     }
 
     /**
@@ -142,7 +142,7 @@ public final class HtmlDsl {
      * @return a DOM event handler definition
      */
     public static EventDefinition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
-        return new EventDefinition(eventType, handler, preventDefault, Event.NO_MODIFIER);
+        return new EventDefinition(eventType, handler, preventDefault, EventEntry.NO_MODIFIER);
     }
 
     /**

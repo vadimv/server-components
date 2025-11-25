@@ -6,9 +6,9 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * Represents a page event.
+ * Represents an event interest entry.
  */
-public final class Event {
+public final class EventEntry {
     public static final Modifier NO_MODIFIER = new NoModifier();
 
     public final Target eventTarget;
@@ -16,7 +16,7 @@ public final class Event {
     public final boolean preventDefault;
     public final Modifier modifier;
 
-    public Event(final Event.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
+    public EventEntry(final EventEntry.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
         this.eventTarget = Objects.requireNonNull(eventTarget);
         this.eventHandler = Objects.requireNonNull(eventHandler);
         this.preventDefault = preventDefault;
@@ -27,7 +27,7 @@ public final class Event {
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final Event event = (Event) o;
+        final EventEntry event = (EventEntry) o;
         // ignore eventHandler
         return preventDefault == event.preventDefault &&
                 Objects.equals(eventTarget, event.eventTarget) &&
