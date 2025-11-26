@@ -11,12 +11,14 @@ import java.util.function.Consumer;
 public final class EventEntry {
     public static final Modifier NO_MODIFIER = new NoModifier();
 
+    public final String eventName;
     public final Target eventTarget;
     public final Consumer<EventContext> eventHandler;
     public final boolean preventDefault;
     public final Modifier modifier;
 
-    public EventEntry(final EventEntry.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
+    public EventEntry(final String eventName, final EventEntry.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
+        this.eventName = Objects.requireNonNull(eventName);
         this.eventTarget = Objects.requireNonNull(eventTarget);
         this.eventHandler = Objects.requireNonNull(eventHandler);
         this.preventDefault = preventDefault;
@@ -40,9 +42,8 @@ public final class EventEntry {
         return Objects.hash(eventTarget, preventDefault, modifier);
     }
 
-    public record Target(String eventType, TreePositionPath elementPath) {
-        public Target(final String eventType, final TreePositionPath elementPath) {
-            this.eventType = Objects.requireNonNull(eventType);
+    public record Target(TreePositionPath elementPath) {
+        public Target(final TreePositionPath elementPath) {
             this.elementPath = Objects.requireNonNull(elementPath);
         }
 

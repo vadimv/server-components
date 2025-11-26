@@ -182,7 +182,7 @@ public class Component<S> implements Segment, StateUpdate<S> {
         }
         for (final EventEntry event : eventsToRemove) {
             final EventEntry.Target eventTarget = event.eventTarget;
-            commandsEnqueue.accept(new RemoteCommand.ForgetEvent(eventTarget.eventType(), eventTarget.elementPath()));
+            commandsEnqueue.accept(new RemoteCommand.ForgetEvent(event.eventName, eventTarget.elementPath()));
         }
 
         // Register new event types on client
@@ -282,8 +282,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
                                 final Consumer<EventContext> eventHandler,
                                 final boolean preventDefault,
                                 final EventEntry.Modifier modifier) {
-        final EventEntry.Target eventTarget = new EventEntry.Target(eventType, elementPath);
-        eventEntries.add(new EventEntry(eventTarget, eventHandler, preventDefault, modifier));
+        final EventEntry.Target eventTarget = new EventEntry.Target(elementPath);
+        eventEntries.add(new EventEntry(eventType, eventTarget, eventHandler, preventDefault, modifier));
     }
 
     public void addRef(final Ref ref, final TreePositionPath path) {

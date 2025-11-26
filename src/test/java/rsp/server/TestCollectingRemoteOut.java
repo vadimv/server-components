@@ -18,7 +18,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
 
     @Override
     public void listenEvents(final List<EventEntry> events) {
-        commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventTarget.eventType(),
+        commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventName,
                                                                            e.preventDefault,
                                                                            e.eventTarget.elementPath(),
                                                                            e.modifier)).toList());

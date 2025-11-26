@@ -26,7 +26,7 @@ class RemotePageMessageEncoderTests {
     @Test
     void should_listen_event() {
         final MessagesConsumer c = new MessagesConsumer();
-        final EventEntry e = new EventEntry(new EventEntry.Target("click", TreePositionPath.of("1_1")),
+        final EventEntry e = new EventEntry("click", new EventEntry.Target(TreePositionPath.of("1_1")),
                                   ec -> {},
                                   true,
                                   new EventEntry.DebounceModifier(100, false));

@@ -69,7 +69,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     @Override
     public void listenEvents(final List<EventEntry> events) {
         if (events.size() > 0) {
-            final String[] changes = events.stream().map(e -> joinString(quote(e.eventTarget.eventType()),
+            final String[] changes = events.stream().map(e -> joinString(quote(e.eventName),
                                                                          e.preventDefault,
                                                                          quote(e.eventTarget.elementPath().toString()),
                                                                          quote(modifierString(e.modifier)))).toArray(String[]::new);

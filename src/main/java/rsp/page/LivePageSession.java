@@ -105,7 +105,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         TreePositionPath eventElementPath = eventPath;
         while (eventElementPath.level() >= 0) {
             for (final EventEntry event: pageRenderContext.recursiveEvents()) {
-                if (event.eventTarget.elementPath().equals(eventElementPath) && event.eventTarget.eventType().equals(eventType)) {
+                if (event.eventTarget.elementPath().equals(eventElementPath) && event.eventName.equals(eventType)) {
                     event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                 }
             }

@@ -58,7 +58,7 @@ class InitialStateComponentDefinitionTests {
                                  renderContext.html());
 
         assertEquals(1, renderContext.recursiveEvents().size());
-        assertEquals("click", renderContext.recursiveEvents().get(0).eventTarget.eventType());
+        assertEquals("click", renderContext.recursiveEvents().get(0).eventName);
         assertEquals(TreePositionPath.of("1_2_1"), renderContext.recursiveEvents().get(0).eventTarget.elementPath());
 
         // Click
