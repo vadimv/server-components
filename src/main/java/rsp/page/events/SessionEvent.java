@@ -1,7 +1,8 @@
 package rsp.page.events;
 
 public sealed interface SessionEvent permits
-        DomEvent,
+        DomEventNotification,
+        ComponentEventNotification,
         EvalJsResponseEvent,
         ExtractPropertyResponseEvent,
         GenericTaskEvent,

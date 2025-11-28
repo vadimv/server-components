@@ -6,7 +6,7 @@ import rsp.component.definitions.InitialStateComponentDefinition;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
-import rsp.dom.EventEntry;
+import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.server.RemoteOut;
 
@@ -53,7 +53,7 @@ public final class DefaultConnectionLostWidget {
         }
 
         @Override
-        public void listenEvents(List<EventEntry> events) {
+        public void listenEvents(List<DomEventEntry> events) {
             // no-op
         }
 

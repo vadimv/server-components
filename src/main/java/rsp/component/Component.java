@@ -17,7 +17,7 @@ import static java.lang.System.Logger.Level.*;
 
 /**
  * Represents a stateful component which is a part of a components tree.
- * All methods this class must to be called from a page's event loop thread.
+ * All methods of this class must be called from its page's event loop thread.
  *
  * @param <S> a type for this component's state snapshot, should be an immutable class
  */
@@ -36,7 +36,8 @@ public class Component<S> implements Segment, StateUpdate<S> {
     private final ComponentView<S> componentView;
     private final RenderContextFactory renderContextFactory;
 
-    private final List<EventEntry> eventEntries = new ArrayList<>();
+    private final List<DomEventEntry> domEventEntries = new ArrayList<>();
+    private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<Component<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
@@ -144,13 +145,15 @@ public class Component<S> implements Segment, StateUpdate<S> {
         final S oldState = state;
         state = newState;
 
+        componentEventEntries.clear();
+
         refs.clear();
 
         final List<Node> oldRootNodes = new ArrayList<>(rootNodes());
         rootNodes.clear();
 
-        final Set<EventEntry> oldEvents = new HashSet<>(recursiveEvents());
-        eventEntries.clear();
+        final Set<DomEventEntry> oldEvents = new HashSet<>(recursiveDomEvents());
+        domEventEntries.clear();
 
         final Set<Component<?>> oldChildren = new HashSet<>(recursiveChildren());
         children.clear();
@@ -173,23 +176,21 @@ public class Component<S> implements Segment, StateUpdate<S> {
         commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
 
         // Unregister events
-        final List<EventEntry> eventsToRemove = new ArrayList<>();
-        final Set<EventEntry> newEvents = new HashSet<>(recursiveEvents());
-        for (final EventEntry event : oldEvents) {
-            if (!newEvents.contains(event) && !elementsToRemove.contains(event.eventTarget.elementPath())) {
-                eventsToRemove.add(event);
+        final List<DomEventEntry> eventsToRemove = new ArrayList<>();
+        final Set<DomEventEntry> newEvents = new HashSet<>(recursiveDomEvents());
+        for (final DomEventEntry event : oldEvents) {
+            if (!newEvents.contains(event)
+                && event instanceof DomEventEntry domEventEntry
+                && !elementsToRemove.contains(domEventEntry.eventTarget.elementPath())) {
+                commandsEnqueue.accept(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.elementPath()));
             }
-        }
-        for (final EventEntry event : eventsToRemove) {
-            final EventEntry.Target eventTarget = event.eventTarget;
-            commandsEnqueue.accept(new RemoteCommand.ForgetEvent(event.eventName, eventTarget.elementPath()));
         }
 
         // Register new event types on client
-        final List<EventEntry> eventsToAdd = new ArrayList<>();
-        for (final EventEntry event : newEvents) {
-            if (!oldEvents.contains(event)) {
-                eventsToAdd.add(event);
+        final List<DomEventEntry> eventsToAdd = new ArrayList<>();
+        for (final DomEventEntry event : newEvents) {
+            if (!oldEvents.contains(event) && event instanceof DomEventEntry domEventEntry) {
+                eventsToAdd.add(domEventEntry);
             }
         }
         if (!eventsToAdd.isEmpty()) {
@@ -260,14 +261,22 @@ public class Component<S> implements Segment, StateUpdate<S> {
         return recursiveChildren;
     }
 
-    public List<EventEntry> recursiveEvents() {
-        final List<EventEntry> recursiveEvents = new ArrayList<>();
-        recursiveEvents.addAll(eventEntries);
+    public List<DomEventEntry> recursiveDomEvents() {
+        final List<DomEventEntry> recursiveEvents = new ArrayList<>(domEventEntries);
         for (final Component<?> childComponent : children) {
-            recursiveEvents.addAll(childComponent.recursiveEvents());
+            recursiveEvents.addAll(childComponent.recursiveDomEvents());
         }
         return recursiveEvents;
     }
+
+    public List<ComponentEventEntry> recursiveComponentEvents() {
+        final List<ComponentEventEntry> recursiveEvents = new ArrayList<>(componentEventEntries);
+        for (final Component<?> childComponent : children) {
+            recursiveEvents.addAll(childComponent.recursiveComponentEvents());
+        }
+        return recursiveEvents;
+    }
+
 
     public Map<Ref, TreePositionPath> recursiveRefs() {
         final Map<Ref, TreePositionPath> recursiveRefs = new HashMap<>(refs);
@@ -277,13 +286,19 @@ public class Component<S> implements Segment, StateUpdate<S> {
         return recursiveRefs;
     }
 
-    public void addEventHandler(final TreePositionPath elementPath,
-                                final String eventType,
-                                final Consumer<EventContext> eventHandler,
-                                final boolean preventDefault,
-                                final EventEntry.Modifier modifier) {
-        final EventEntry.Target eventTarget = new EventEntry.Target(elementPath);
-        eventEntries.add(new EventEntry(eventType, eventTarget, eventHandler, preventDefault, modifier));
+    public void addDomEventHandler(final TreePositionPath elementPath,
+                                   final String eventType,
+                                   final Consumer<EventContext> eventHandler,
+                                   final boolean preventDefault,
+                                   final DomEventEntry.Modifier modifier) {
+        final DomEventEntry.Target eventTarget = new DomEventEntry.Target(elementPath);
+        domEventEntries.add(new DomEventEntry(eventType, eventTarget, eventHandler, preventDefault, modifier));
+    }
+
+    public void addComponentEventHandler(final String eventType,
+                                         final Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                         final boolean preventDefault) {
+        componentEventEntries.add(new ComponentEventEntry(eventType, eventHandler, preventDefault));
     }
 
     public void addRef(final Ref ref, final TreePositionPath path) {

@@ -1,7 +1,7 @@
 package rsp.html;
 
 import rsp.component.ComponentRenderContext;
-import rsp.dom.EventEntry;
+import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 
@@ -43,7 +43,7 @@ public final class EventDefinition implements SegmentDefinition {
     /**
      * Defines how multiple events to be handled in a given period of time.
      */
-    public final EventEntry.Modifier modifier;
+    public final DomEventEntry.Modifier modifier;
 
     /**
      * Creates a new instance of an event.
@@ -59,7 +59,7 @@ public final class EventDefinition implements SegmentDefinition {
                            final String eventType,
                            final Consumer<EventContext> handler,
                            final boolean preventDefault,
-                           final EventEntry.Modifier modifier) {
+                           final DomEventEntry.Modifier modifier) {
         super();
         this.elementPath = elementPath;
         this.eventType = eventType;
@@ -77,7 +77,7 @@ public final class EventDefinition implements SegmentDefinition {
      */
     public EventDefinition(final String eventType,
                            final Consumer<EventContext> handler,
-                           final EventEntry.Modifier modifier) {
+                           final DomEventEntry.Modifier modifier) {
         super();
         this.elementPath = Optional.empty();
         this.eventType = eventType;
@@ -98,7 +98,7 @@ public final class EventDefinition implements SegmentDefinition {
     public EventDefinition(final String eventType,
                            final Consumer<EventContext> handler,
                            final boolean preventDefault,
-                           final EventEntry.Modifier modifier) {
+                           final DomEventEntry.Modifier modifier) {
         super();
         this.elementPath = Optional.empty();
         this.eventType = eventType;
@@ -126,7 +126,7 @@ public final class EventDefinition implements SegmentDefinition {
      * @return a throttle filtered event definition
      */
     public EventDefinition throttle(final int timeFrameMs) {
-        return new EventDefinition(elementPath, eventType, handler, preventDefault, new EventEntry.ThrottleModifier(timeFrameMs));
+        return new EventDefinition(elementPath, eventType, handler, preventDefault, new DomEventEntry.ThrottleModifier(timeFrameMs));
     }
 
     /**
@@ -141,7 +141,7 @@ public final class EventDefinition implements SegmentDefinition {
      * @return a debounce filtered event definition
      */
     public EventDefinition debounce(final int waitMs, final boolean immediate) {
-        return new EventDefinition(elementPath, eventType, handler, preventDefault, new EventEntry.DebounceModifier(waitMs, immediate));
+        return new EventDefinition(elementPath, eventType, handler, preventDefault, new DomEventEntry.DebounceModifier(waitMs, immediate));
     }
 
     /**
@@ -151,6 +151,6 @@ public final class EventDefinition implements SegmentDefinition {
      * @return a debounce filtered event definition
      */
     public EventDefinition debounce(final int waitMs) {
-        return new EventDefinition(elementPath, eventType, handler, preventDefault, new EventEntry.DebounceModifier(waitMs, false));
+        return new EventDefinition(elementPath, eventType, handler, preventDefault, new DomEventEntry.DebounceModifier(waitMs, false));
     }
 }

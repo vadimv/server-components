@@ -1,6 +1,6 @@
 package rsp.html;
 
-import rsp.dom.EventEntry;
+import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 import rsp.page.PageRendering;
 import rsp.ref.ElementRef;
@@ -33,7 +33,7 @@ public final class WindowDefinition {
      * @return an event definition
      */
     public EventDefinition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
-        return new EventDefinition(Optional.of(PageRendering.WINDOW_DOM_PATH), eventType, handler, preventDefault, EventEntry.NO_MODIFIER);
+        return new EventDefinition(Optional.of(PageRendering.WINDOW_DOM_PATH), eventType, handler, preventDefault, DomEventEntry.NO_MODIFIER);
     }
 
     public ElementRef ref() {

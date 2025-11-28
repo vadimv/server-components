@@ -1,6 +1,7 @@
 package rsp.page;
 
-import rsp.dom.EventEntry;
+import rsp.component.ComponentEventEntry;
+import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.html.WindowDefinition;
 import rsp.page.events.*;
@@ -48,7 +49,8 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         switch (event) {
             case InitSessionEvent e -> init(e);
             case SessionCustomEvent e -> handleDomEvent(0, e.path(), e.customEvent().eventName(), e.customEvent().eventData());
-            case DomEvent e -> handleDomEvent(e.renderNumber(), e.path(), e.eventType(), e.eventObject());
+            case ComponentEventNotification e -> handleComponentEvent(e.eventType(), e.eventObject());
+            case DomEventNotification e -> handleDomEvent(e.renderNumber(), e.path(), e.eventType(), e.eventObject());
             case EvalJsResponseEvent e -> handleEvalJsResponse(e.descriptorId(), e.value());
             case ExtractPropertyResponseEvent e -> handleExtractPropertyResponse(e.descriptorId(), e.result());
             case RemoteCommand e -> e.accept(remoteOut);
@@ -61,7 +63,10 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         this.pageRenderContext = Objects.requireNonNull(initSessionEvent.pageRenderContext());
         this.remoteOut = Objects.requireNonNull(initSessionEvent.remoteOut());
         initSessionEvent.commandsEnqueue().redirect(reactor);
-        this.accept(new RemoteCommand.ListenEvent(pageRenderContext.recursiveEvents()));
+        this.accept(new RemoteCommand.ListenEvent(pageRenderContext.recursiveEvents()
+                                                                    .stream()
+                                                                    .filter(eventEntry -> eventEntry instanceof DomEventEntry)
+                                                                    .map( eventEntry -> (DomEventEntry) eventEntry).toList()));
     }
 
     private void shutdown() {
@@ -104,8 +109,10 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         TreePositionPath eventElementPath = eventPath;
         while (eventElementPath.level() >= 0) {
-            for (final EventEntry event: pageRenderContext.recursiveEvents()) {
-                if (event.eventTarget.elementPath().equals(eventElementPath) && event.eventName.equals(eventType)) {
+            for (final DomEventEntry event: pageRenderContext.recursiveEvents()) {
+                if (event instanceof DomEventEntry domEventEntry
+                    && domEventEntry.eventTarget.elementPath().equals(eventElementPath)
+                    && event.eventName.equals(eventType)) {
                     event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                 }
             }
@@ -113,6 +120,16 @@ public final class LivePageSession implements Consumer<SessionEvent> {
                 eventElementPath = eventElementPath.parent();
             } else {
                 break;
+            }
+        }
+    }
+
+    private void handleComponentEvent(final String eventType,
+                                      final JsonDataType.Object eventObject) {
+        logger.log(DEBUG, () -> "Component event, type: " + eventType + ", event data: " + eventObject);
+        for (final ComponentEventEntry event: pageRenderContext.recursiveComponentEvents()) {
+            if (event.eventName().equals(eventType)) {
+                event.eventHandler().accept(new ComponentEventEntry.EventContext(eventObject));
             }
         }
     }

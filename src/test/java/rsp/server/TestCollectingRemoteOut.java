@@ -1,7 +1,7 @@
 package rsp.server;
 
 import rsp.dom.DefaultDomChangesContext;
-import rsp.dom.EventEntry;
+import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 
 import java.util.ArrayList;
@@ -17,7 +17,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
     }
 
     @Override
-    public void listenEvents(final List<EventEntry> events) {
+    public void listenEvents(final List<DomEventEntry> events) {
         commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventName,
                                                                            e.preventDefault,
                                                                            e.eventTarget.elementPath(),
@@ -64,7 +64,7 @@ public class TestCollectingRemoteOut implements RemoteOut {
     public record SetRenderNumOutMessage(int renderNum) implements Message {
     }
 
-    public record ListenEventOutMessage(String eventType, boolean preventDefault, TreePositionPath path, EventEntry.Modifier modifier) implements Message {
+    public record ListenEventOutMessage(String eventType, boolean preventDefault, TreePositionPath path, DomEventEntry.Modifier modifier) implements Message {
 
         @Override
         public String toString() {

@@ -2,7 +2,7 @@ package rsp.component.definitions.lookup;
 
 import rsp.component.*;
 import rsp.component.definitions.StatefulComponentDefinition;
-import rsp.dom.EventEntry;
+import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
 import rsp.page.PageRendering;
@@ -121,8 +121,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
                 for (final PositionKey pathElementKey : pathElementsKeys) {
-                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                                        "stateUpdated." + pathElementKey.key,
+                    this.addComponentEventHandler("stateUpdated." + pathElementKey.key,
                                         eventContext -> {
                         final JsonDataType valueJson = eventContext.eventObject().value("value");
                         if (valueJson instanceof JsonDataType.String(String value)) {
@@ -135,14 +134,12 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                         }
 
                     },
-                                        true,
-                                        EventEntry.NO_MODIFIER);
+                                        true);
                 }
 
                 // subscribe for query parameters changes
                 for (final ParameterNameKey parameterNameKey : queryParametersNameKeys) {
-                    this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                                        "stateUpdated." + parameterNameKey.key(),
+                    this.addComponentEventHandler("stateUpdated." + parameterNameKey.key(),
                                         eventContext -> {
                         final JsonDataType valueJson = eventContext.eventObject().value("value");
                         if (valueJson instanceof JsonDataType.String(String value)) {
@@ -152,8 +149,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                         } else {
                             throw new IllegalStateException();
                         }
-                    },true,
-                            EventEntry.NO_MODIFIER);
+                    },true);
                 }
 
             }
@@ -185,14 +181,14 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
             }
 
             private void subscribeForBrowserHistoryEvents() {
-                this.addEventHandler(PageRendering.WINDOW_DOM_PATH,
-                              HISTORY_ENTRY_CHANGE_EVENT_NAME,
+                this.addDomEventHandler(PageRendering.WINDOW_DOM_PATH,
+                                        HISTORY_ENTRY_CHANGE_EVENT_NAME,
                              eventContext -> {
                                  final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
                                  setState(newRelativeUrl);
                              },
                              true,
-                              EventEntry.NO_MODIFIER);
+                              DomEventEntry.NO_MODIFIER);
             }
 
             private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {

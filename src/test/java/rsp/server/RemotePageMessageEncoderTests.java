@@ -3,10 +3,7 @@ package rsp.server;
 
 
 import org.junit.jupiter.api.Test;
-import rsp.dom.DefaultDomChangesContext;
-import rsp.dom.EventEntry;
-import rsp.dom.TreePositionPath;
-import rsp.dom.XmlNs;
+import rsp.dom.*;
 import rsp.server.protocol.RemotePageMessageEncoder;
 
 import java.util.List;
@@ -26,10 +23,10 @@ class RemotePageMessageEncoderTests {
     @Test
     void should_listen_event() {
         final MessagesConsumer c = new MessagesConsumer();
-        final EventEntry e = new EventEntry("click", new EventEntry.Target(TreePositionPath.of("1_1")),
+        final DomEventEntry e = new DomEventEntry("click", new DomEventEntry.Target(TreePositionPath.of("1_1")),
                                   ec -> {},
                                   true,
-                                  new EventEntry.DebounceModifier(100, false));
+                                  new DomEventEntry.DebounceModifier(100, false));
         create(c).listenEvents(List.of(e));
         assertEquals("[2,\"click\",true,\"1_1\",\"2:100:false\"]", c.result);
     }

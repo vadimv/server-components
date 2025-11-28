@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 /**
  * Represents an event interest entry.
  */
-public final class EventEntry {
+public final class DomEventEntry {
     public static final Modifier NO_MODIFIER = new NoModifier();
 
     public final String eventName;
@@ -17,7 +17,7 @@ public final class EventEntry {
     public final boolean preventDefault;
     public final Modifier modifier;
 
-    public EventEntry(final String eventName, final EventEntry.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
+    public DomEventEntry(final String eventName, final DomEventEntry.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
         this.eventName = Objects.requireNonNull(eventName);
         this.eventTarget = Objects.requireNonNull(eventTarget);
         this.eventHandler = Objects.requireNonNull(eventHandler);
@@ -29,9 +29,10 @@ public final class EventEntry {
     public boolean equals(final Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        final EventEntry event = (EventEntry) o;
+        final DomEventEntry event = (DomEventEntry) o;
         // ignore eventHandler
-        return preventDefault == event.preventDefault &&
+        return Objects.equals(eventName, event.eventName) &&
+                preventDefault == event.preventDefault &&
                 Objects.equals(eventTarget, event.eventTarget) &&
                 Objects.equals(modifier, event.modifier);
     }
@@ -39,14 +40,13 @@ public final class EventEntry {
     @Override
     public int hashCode() {
         //ignore eventHandler
-        return Objects.hash(eventTarget, preventDefault, modifier);
+        return Objects.hash(eventName, eventTarget, preventDefault, modifier);
     }
 
     public record Target(TreePositionPath elementPath) {
         public Target(final TreePositionPath elementPath) {
             this.elementPath = Objects.requireNonNull(elementPath);
         }
-
     }
 
     public sealed interface Modifier {

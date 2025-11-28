@@ -3,10 +3,9 @@ package rsp.component.definitions.lookup;
 import rsp.component.*;
 import rsp.component.definitions.StatefulComponentDefinition;
 import rsp.dom.TreePositionPath;
-import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
-import rsp.page.events.DomEvent;
+import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.SessionEvent;
 import rsp.util.json.JsonDataType;
 
@@ -65,8 +64,7 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
 
 
             protected boolean onBeforeUpdated(S state) {
-                commandsEnqueue.accept(new DomEvent(1,
-                                       PageRendering.WINDOW_DOM_PATH, "stateUpdated." + name,
+                commandsEnqueue.accept(new ComponentEventNotification("stateUpdated." + name,
                                        new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
                 return false;
             }

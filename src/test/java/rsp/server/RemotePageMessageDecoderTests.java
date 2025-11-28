@@ -21,8 +21,8 @@ class RemotePageMessageDecoderTests {
 
         decoder.decode("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
-        assertTrue(collector.list.get(0) instanceof DomEvent);
-        final DomEvent result = (DomEvent) collector.list.getFirst();
+        assertTrue(collector.list.get(0) instanceof DomEventNotification);
+        final DomEventNotification result = (DomEventNotification) collector.list.getFirst();
         assertEquals("click", result.eventType());
         assertEquals(TreePositionPath.of("1_2_1_2_2_1"), result.path());
         assertEquals(new JsonDataType.Object(),  result.eventObject());
