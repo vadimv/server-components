@@ -1,8 +1,6 @@
 # Server Components
 [![javadoc](https://javadoc.io/badge2/io.github.vadimv/rsp/javadoc.svg)](https://javadoc.io/doc/io.github.vadimv/rsp)
 
-* [UI server components](#ui-components)
-* [Routing](#routing)
 * [HTML markup Java DSL](#html-markup-java-dsl)
 * [DOM events](#dom-events)
 * [SPAs, plain pages head tag](#spas-plain-pages-and-the-head-tag)
@@ -11,17 +9,8 @@
 * [Web server's configuration](#web-servers-configuration)
 * [Logging](#logging)
 
-Server Components is a Java web Server Side Rendering (SSR) framework for building responsive UIs with minimal dependencies.
+Server Components is a Java web Server Side Rendering framework with minimal dependencies.
 
-### UI server components
-
-- Web UIs are composed of components. Components may contain HTML DSL and/or other components. Every web page has its root component.
-- Every component is associated with an immutable state snapshot, which is set during initialization and can be updated independently as a result of a user's action on this browser's page or some external events.
-A change in a component's state results in the re-rendering of the relevant component and all its child components.
-- Child components on a share a key-value lookup, which can be used to share additional information from parent components to its children.
-- Every component has its DOM fragment view, which may contain conditional rendering logic and event handlers. A simple view is a pure function from an input state to a DOM tree definition.
-
-Besides basic component type, a custom component could be created by extending ``StatefulComponentDefinition<S>`` class or some of the basic types.
 ### HTML markup Java DSL
 
 The Java internal domain-specific language to define HTML templates as a composition of functions.
@@ -41,7 +30,7 @@ For example, the HTML fragment:
 </html> 
 ```
 
-to be represented in the Java DSL as the code fragment below:
+can be represented in the Java DSL as the code fragment below:
 
 ```java
     import static rsp.html.HtmlDsl.*;
@@ -155,7 +144,7 @@ The ``window().on(eventType, handler)`` DSL function registers an event handler 
 
 ### Single Page Applications, plain pages and the head tag
 
-Thre are two types of web pages:
+There are two types of web pages:
 - server-side single-page applications (SPAs), written in Java, e.g. for an admin UI
 - plain server-rendered detached HTML pages
 

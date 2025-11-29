@@ -16,10 +16,17 @@ import java.util.function.*;
 import static java.lang.System.Logger.Level.*;
 
 /**
- * Represents a stateful component which is a part of a components tree.
+ * Represents a stateful component which is a part of a UI components tree.
+ * Components may contain one or more HTML tags and/or other components.
+ * Every component is associated with a state snapshot, which is set during initialization and can be updated independently as a result of a user's action on this browser's page or events
+ * like timers or services callbacks.
+ * A change in a component's state results in re-rendering of the relevant component and all its child components.
+ * A key-value context is provided to its child components, which can be used to share information from parent components to its children.
+ * Every component has its DOM fragment view, which may contain conditional rendering logic and event handlers.
+ * A simpler view is a pure function from an input state to a DOM tree definition.
  * All methods of this class must be called from its page's event loop thread.
  *
- * @param <S> a type for this component's state snapshot, should be an immutable class
+ * @param <S> a type for this component's state snapshot
  */
 public class Component<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
