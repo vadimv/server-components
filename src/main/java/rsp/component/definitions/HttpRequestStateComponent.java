@@ -9,24 +9,24 @@ import rsp.server.http.HttpRequest;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class HttpRequestStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
+public class HttpRequestStateComponent<S> extends StatefulComponent<S> {
 
     private final Function<HttpRequest, S> initialStateRouting;
     private final ComponentView<S> componentView;
     private final HttpRequest httpRequest;
 
-    public HttpRequestStateComponentDefinition(final HttpRequest httpRequest,
-                                               final Function<HttpRequest, S> initialStateRouting,
-                                               final ComponentView<S> componentView) {
-        super(HttpRequestStateComponentDefinition.class);
+    public HttpRequestStateComponent(final HttpRequest httpRequest,
+                                     final Function<HttpRequest, S> initialStateRouting,
+                                     final ComponentView<S> componentView) {
+        super(HttpRequestStateComponent.class);
         this.httpRequest = Objects.requireNonNull(httpRequest);
         this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
         this.componentView = Objects.requireNonNull(componentView);
     }
 
-    public HttpRequestStateComponentDefinition(final HttpRequest httpRequest,
-                                               final Routing<HttpRequest, S> routing,
-                                               final View<S> view) {
+    public HttpRequestStateComponent(final HttpRequest httpRequest,
+                                     final Routing<HttpRequest, S> routing,
+                                     final View<S> view) {
         this(httpRequest,
              routing,
              asComponentView(view));

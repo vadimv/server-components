@@ -6,7 +6,7 @@ import rsp.dom.XmlNs;
 /**
  * A definition of a HTML element's attribute.
  */
-public final class AttributeDefinition implements SegmentDefinition {
+public final class Attribute implements SegmentDefinition {
     /**
      * The attribute's name.
      */
@@ -29,7 +29,7 @@ public final class AttributeDefinition implements SegmentDefinition {
      * @param value the attribute's value
      * @param isProperty true if this attribute is an HTML property and false otherwise
      */
-    public AttributeDefinition(final String name, final String value, final boolean isProperty) {
+    public Attribute(final String name, final String value, final boolean isProperty) {
         super();
         this.name = name;
         this.value = value;

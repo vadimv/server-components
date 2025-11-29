@@ -6,6 +6,7 @@ import rsp.component.ComponentRenderContext;
 /**
  * Represents a building block in the domain-specific language definition.
  * For example a definition of a fragment of HTML, tag, attribute, event, style etc.
+ * May contain conditional rendering and event handlers.
  */
 public interface SegmentDefinition {
 

@@ -8,14 +8,14 @@ import java.util.Arrays;
 /**
  * A definition of an XML tag.
  */
-public final class PlainTagDefinition extends TagDefinition {
+public final class PlainTag extends Tag {
 
     /**
      * Creates a new instance of an XML tag's definition.
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public PlainTagDefinition(final XmlNs ns, final String name, final SegmentDefinition... children) {
+    public PlainTag(final XmlNs ns, final String name, final SegmentDefinition... children) {
         super(ns, name, children);
     }
 

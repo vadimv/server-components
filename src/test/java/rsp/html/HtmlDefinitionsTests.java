@@ -4,7 +4,7 @@ import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentRenderContext;
-import rsp.component.definitions.InitialStateComponentDefinition;
+import rsp.component.definitions.InitialStateComponent;
 import rsp.component.View;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
@@ -50,7 +50,7 @@ public class HtmlDefinitionsTests {
     }
 
     private static <S> String htmlOf(final View<S> view, final S initialState) {
-        final var component = new InitialStateComponentDefinition<>(initialState, view);
+        final var component = new InitialStateComponent<>(initialState, view);
         final ComponentRenderContext rc = createRenderContext();
         component.render(rc);
         return rc.html();

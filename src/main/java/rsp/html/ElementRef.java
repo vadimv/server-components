@@ -1,17 +1,16 @@
 package rsp.html;
 
 import rsp.component.ComponentRenderContext;
-import rsp.ref.ElementRef;
 
 import java.util.Objects;
 
 /**
  * A reference to an element.
  */
-public final class ElementRefDefinition implements SegmentDefinition {
+public final class ElementRef implements SegmentDefinition {
 
-    private final ElementRef id;
-    public ElementRefDefinition(final ElementRef id) {
+    private final rsp.ref.ElementRef id;
+    public ElementRef(final rsp.ref.ElementRef id) {
         this.id = Objects.requireNonNull(id);
     }
 
@@ -25,10 +24,10 @@ public final class ElementRefDefinition implements SegmentDefinition {
         return new KeyRef<>(this, key);
     }
 
-    public static class KeyRef<K> implements ElementRef, SegmentDefinition {
-        private final ElementRefDefinition parentRef;
+    public static class KeyRef<K> implements rsp.ref.ElementRef, SegmentDefinition {
+        private final ElementRef parentRef;
         private final K key;
-        public KeyRef(final ElementRefDefinition parentRef, final K key) {
+        public KeyRef(final ElementRef parentRef, final K key) {
             super();
             this.parentRef = Objects.requireNonNull(parentRef);
             this.key = Objects.requireNonNull(key);

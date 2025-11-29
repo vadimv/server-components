@@ -1,8 +1,8 @@
 package rsp.component;
 
 import org.junit.jupiter.api.Test;
-import rsp.component.definitions.InitialStateComponentDefinition;
-import rsp.component.definitions.StatefulComponentDefinition;
+import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.StatefulComponent;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
@@ -15,12 +15,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
-class InitialStateComponentDefinitionTests {
+class InitialStateComponentSegmentDefinitionTests {
 
     static final ComponentView<String> view = newState -> state ->
             div(
                     span(state),
-                    new InitialStateComponentDefinition<>("test",
+                    new InitialStateComponent<>("test",
                                                          100,
                                                          ns -> s -> div(a(on("click", c -> ns.setState(101)),
                                                                           text("test-link-" + s))))
@@ -39,7 +39,7 @@ class InitialStateComponentDefinitionTests {
                                                                                 TreePositionPath.of("1"),
                                                                                 new ComponentContext(),
                                                                                 commands);
-        final StatefulComponentDefinition<String> scd = new InitialStateComponentDefinition<>("state-0",
+        final StatefulComponent<String> scd = new InitialStateComponent<>("state-0",
                                                                                               view);
         // Initial render
         scd.render(renderContext);

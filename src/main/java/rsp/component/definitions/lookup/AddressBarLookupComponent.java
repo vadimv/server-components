@@ -1,7 +1,7 @@
 package rsp.component.definitions.lookup;
 
 import rsp.component.*;
-import rsp.component.definitions.StatefulComponentDefinition;
+import rsp.component.definitions.StatefulComponent;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
@@ -9,7 +9,7 @@ import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.RemoteCommand;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
@@ -20,7 +20,11 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDefinition<RelativeUrl> {
+public class AddressBarLookupComponent<S> extends StatefulComponent<RelativeUrl> {
+
+    public static final String STATE_UPDATED_EVENT_PREFIX = "stateUpdated.";
+    public static final String STATE_VALUE_ATTRIBUTE_NAME = "value";
+
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
 
@@ -28,31 +32,31 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
     private final List<PositionKey> pathElementsKeys;
     private final List<ParameterNameKey> queryParametersNameKeys;
 
-    AddressBarLookupComponentDefinition(RelativeUrl initialRelativeUrl,
-                                        SegmentDefinition subTreeDefinition,
-                                        List<PositionKey> pathElementsKeys,
-                                        List<ParameterNameKey> queryParametersNameKeys) {
-        super(AddressBarLookupComponentDefinition.class);
+    AddressBarLookupComponent(final RelativeUrl initialRelativeUrl,
+                              final SegmentDefinition subTreeDefinition,
+                              final List<PositionKey> pathElementsKeys,
+                              final List<ParameterNameKey> queryParametersNameKeys) {
+        super(AddressBarLookupComponent.class);
         this.initialRelativeUrl = Objects.requireNonNull(initialRelativeUrl);
         this.subTreeDefinition = Objects.requireNonNull(subTreeDefinition);
         this.pathElementsKeys = Objects.requireNonNull(pathElementsKeys);
         this.queryParametersNameKeys = Objects.requireNonNull(queryParametersNameKeys);
     }
 
-    public static <S> AddressBarLookupComponentDefinition<S> of(RelativeUrl initialRelativeUrl, StatefulComponentDefinition<S> componentDefinition) {
-        return new AddressBarLookupComponentDefinition<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
+    public static <S> AddressBarLookupComponent<S> of(RelativeUrl initialRelativeUrl, StatefulComponent<S> componentDefinition) {
+        return new AddressBarLookupComponent<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
     }
 
-    public AddressBarLookupComponentDefinition<S> withPathElement(int position, String key) {
+    public AddressBarLookupComponent<S> withPathElement(int position, String key) {
         final List<PositionKey> l = new ArrayList<>(this.pathElementsKeys);
         l.add(new PositionKey(position, key));
-        return new AddressBarLookupComponentDefinition<>(this.initialRelativeUrl, this.subTreeDefinition, l, this.queryParametersNameKeys);
+        return new AddressBarLookupComponent<>(this.initialRelativeUrl, this.subTreeDefinition, l, this.queryParametersNameKeys);
     }
 
-    public AddressBarLookupComponentDefinition<S> withQueryParameter(String parameterName, String key) {
+    public AddressBarLookupComponent<S> withQueryParameter(String parameterName, String key) {
         final List<ParameterNameKey> l = new ArrayList<>(queryParametersNameKeys);
         l.add(new ParameterNameKey(parameterName, key));
-        return new AddressBarLookupComponentDefinition<>(this.initialRelativeUrl, this.subTreeDefinition, this.pathElementsKeys, l);
+        return new AddressBarLookupComponent<>(this.initialRelativeUrl, this.subTreeDefinition, this.pathElementsKeys, l);
     }
 
     @Override
@@ -87,11 +91,11 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
 
 
     @Override
-    public Component<RelativeUrl> createComponent(final QualifiedSessionId sessionId,
-                                        final TreePositionPath componentPath,
-                                        final RenderContextFactory renderContextFactory,
-                                        final ComponentContext componentContext,
-                                        final Consumer<SessionEvent> commandsEnqueue) {
+    public ComponentSegment<RelativeUrl> createComponent(final QualifiedSessionId sessionId,
+                                                         final TreePositionPath componentPath,
+                                                         final RenderContextFactory renderContextFactory,
+                                                         final ComponentContext componentContext,
+                                                         final Consumer<Command> commandsEnqueue) {
         final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
 
         // prepare indices for path elements session keys
@@ -100,7 +104,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
             pathElementsKeysIndices.put(pathElementsKeys.get(i).key, pathElementsKeys.get(i).position);
         }
 
-        return new Component<>(componentId,
+        return new ComponentSegment<>(componentId,
                                initStateSupplier(),
                                subComponentsContext(),
                                componentView(),
@@ -121,9 +125,9 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
                 for (final PositionKey pathElementKey : pathElementsKeys) {
-                    this.addComponentEventHandler("stateUpdated." + pathElementKey.key,
+                    this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + pathElementKey.key,
                                         eventContext -> {
-                        final JsonDataType valueJson = eventContext.eventObject().value("value");
+                        final JsonDataType valueJson = eventContext.eventObject().value(STATE_VALUE_ATTRIBUTE_NAME);
                         if (valueJson instanceof JsonDataType.String(String value)) {
                             final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
                             final RelativeUrl relativeUrl = updatedRelativeUrlForPathElement(getState(), pathElementKey.key, value, pathElementIndex);

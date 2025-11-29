@@ -5,8 +5,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 
 public final class Diff {
 
-    public static void diff(final Tag ct,
-                            final Tag wt,
+    public static void diff(final TagNode ct,
+                            final TagNode wt,
                             final TreePositionPath path,
                             final DomChangesContext changesPerformer,
                             final HtmlBuilder hb) {
@@ -35,12 +35,12 @@ public final class Diff {
             if (cci.hasNext() && wci.hasNext()) {
                 final Node cn = cci.next();
                 final Node wn = wci.next();
-                if (cn instanceof Tag ct && wn instanceof Tag wt) {
+                if (cn instanceof TagNode ct && wn instanceof TagNode wt) {
                     diff(ct, wt, p, performer, hb);
-                } else if (wn instanceof Tag t) {
+                } else if (wn instanceof TagNode t) {
                     performer.removeNode(p.parent(), p);
                     createTag(t, parentTagPath, performer, hb);
-                } else if (cn instanceof Tag) {
+                } else if (cn instanceof TagNode) {
                     performer.removeNode(p.parent(), p);
                     hb.reset();
                     hb.buildHtml(wn);
@@ -61,7 +61,7 @@ public final class Diff {
                 performer.removeNode(p.parent(), p);
             } else {
                     final Node wn = wci.next();
-                if (wn instanceof Tag t) {
+                if (wn instanceof TagNode t) {
                     createTag(t, p, performer, hb);
                 } else {
                     hb.reset();
@@ -73,12 +73,12 @@ public final class Diff {
         }
     }
 
-    private static void diffAttributes(final CopyOnWriteArraySet<Attribute> ca,
-                                       final CopyOnWriteArraySet<Attribute> wa,
+    private static void diffAttributes(final CopyOnWriteArraySet<AttributeNode> ca,
+                                       final CopyOnWriteArraySet<AttributeNode> wa,
                                        final TreePositionPath path,
                                        final DomChangesContext performer) {
-        final Set<Attribute> c = new CopyOnWriteArraySet<>(ca);
-        final Set<Attribute> w = new CopyOnWriteArraySet<>(wa);
+        final Set<AttributeNode> c = new CopyOnWriteArraySet<>(ca);
+        final Set<AttributeNode> w = new CopyOnWriteArraySet<>(wa);
         c.removeAll(wa);
         c.forEach(attribute -> performer.removeAttr(path, XmlNs.html, attribute.name(), attribute.isProperty()));
         w.removeAll(ca);
@@ -97,7 +97,7 @@ public final class Diff {
         w.forEach(attribute -> performer.setStyle(path, attribute.name(), attribute.value()));
     }
 
-    private static void createTag(final Tag tag,
+    private static void createTag(final TagNode tag,
                                   final TreePositionPath path,
                                   final DomChangesContext changesPerformer,
                                   final HtmlBuilder hb) {
@@ -105,14 +105,14 @@ public final class Diff {
         for (final Style style: tag.styles) {
             changesPerformer.setStyle(path, style.name(), style.value());
         }
-        for (final Attribute attribute: tag.attributes) {
+        for (final AttributeNode attribute: tag.attributes) {
             changesPerformer.setAttr(path, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty());
         }
         TreePositionPath p = path.incLevel();
         for (final Node child:tag.children) {
-            if (child instanceof Tag t) {
+            if (child instanceof TagNode t) {
                 createTag(t, p, changesPerformer, hb);
-            } else if (child instanceof Text) {
+            } else if (child instanceof TextNode) {
                 hb.reset();
                 hb.buildHtml(child);
                 changesPerformer.createText(path, p, hb.toString());

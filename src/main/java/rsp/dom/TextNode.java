@@ -3,11 +3,11 @@ package rsp.dom;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class Text implements Node {
+public final class TextNode implements Node {
 
     public final List<String> parts = new ArrayList<>();
 
-    public Text(final String text) {
+    public TextNode(final String text) {
         parts.add(text);
     }
 

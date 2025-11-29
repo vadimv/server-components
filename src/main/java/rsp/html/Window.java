@@ -11,9 +11,10 @@ import java.util.function.Consumer;
 /**
  * Represents a browser's page window object.
  */
-public final class WindowDefinition {
+public final class Window {
 
     private final ElementRef WINDOW_REFERENCE = new WindowRef();
+
     /**
      * Registers a listener on a window object event with the 'prevent-default' property set to true
      * @param eventType a event's name

@@ -5,7 +5,7 @@ import rsp.dom.TreePositionPath;
 import rsp.page.events.DomEventNotification;
 import rsp.page.events.EvalJsResponseEvent;
 import rsp.page.events.ExtractPropertyResponseEvent;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 import rsp.server.ExtractPropertyResponse;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonParser;
@@ -22,7 +22,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     private static final System.Logger logger = System.getLogger(RemotePageMessageDecoder.class.getName());
 
     private JsonParser jsonParser;
-    private final Consumer<SessionEvent> remoteIn;
+    private final Consumer<Command> remoteIn;
 
     private static final int DOM_EVENT = 0; // `$renderNum:$elementId:$eventType`
     private static final int CUSTOM_CALLBACK = 1; // `$name:arg`
@@ -37,7 +37,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     private static final int JSON_METADATA_FUNCTION = 2;
     private static final int JSON_METADATA_ERROR = 3;
 
-    public RemotePageMessageDecoder(final JsonParser jsonParser, final Consumer<SessionEvent> remoteIn) {
+    public RemotePageMessageDecoder(final JsonParser jsonParser, final Consumer<Command> remoteIn) {
         this.jsonParser = Objects.requireNonNull(jsonParser);
         this.remoteIn = Objects.requireNonNull(remoteIn);
     }

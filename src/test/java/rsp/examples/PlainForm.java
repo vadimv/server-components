@@ -1,8 +1,8 @@
 package rsp.examples;
 
-import rsp.component.definitions.HttpRequestStateComponentDefinition;
+import rsp.component.definitions.HttpRequestStateComponent;
 import rsp.component.View;
-import rsp.html.TagDefinition;
+import rsp.html.Tag;
 import rsp.jetty.WebServer;
 import rsp.routing.Routing;
 import rsp.routing.Route;
@@ -22,10 +22,10 @@ import static rsp.routing.RoutingDsl.*;
  * </ul>
  */
 public class PlainForm {
-    public static void main(final String[] args) {
+    static void main(final String[] args) {
         final Routing<HttpRequest, Name> routing = new Routing<>(route(), new EmptyName());
         final View<Name> pagesView = pagesView();
-        final var server = new WebServer(8080, httpRequest -> new HttpRequestStateComponentDefinition<>(httpRequest, routing, pagesView));
+        final var server = new WebServer(8080, httpRequest -> new HttpRequestStateComponent<>(httpRequest, routing, pagesView));
         server.start();
         server.join();
     }
@@ -62,7 +62,7 @@ public class PlainForm {
         );
     }
 
-    private static TagDefinition formComponent() {
+    private static Tag formComponent() {
         return div(
                 h2(text("HTML Form")),
                 form(attr("action", "page0"), attr("method", "post"),
@@ -76,7 +76,7 @@ public class PlainForm {
                 p("If you click the 'Submit' button, the form-data will be sent to page0."));
     }
 
-    private static TagDefinition formResult(FullName state) {
+    private static Tag formResult(FullName state) {
         return div(h2(text("HTML Form result")),
                       div(p("The submitted name is " + state)));
     }

@@ -2,9 +2,9 @@ package rsp.component;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import rsp.component.definitions.InitialStateComponentDefinition;
-import rsp.component.definitions.StatefulComponentDefinition;
-import rsp.component.definitions.StoredStateComponentDefinition;
+import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.StatefulComponent;
+import rsp.component.definitions.StoredStateComponent;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
@@ -26,13 +26,13 @@ import static rsp.html.HtmlDsl.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 import static rsp.util.TestUtils.findFirstListElementByType;
 @Disabled
-class StoredStateComponentDefinitionTests {
+class StoredStateComponentSegmentDefinitionTests {
     static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
     static final ComponentView<Boolean> view = newState -> state ->
             div(
                     span(text("toggle"), on("click", ctx -> newState.setState(!state))),
                     when(state, () ->
-                         new StoredStateComponentDefinition<>(100,
+                         new StoredStateComponent<>(100,
                                                               __ -> s -> div(text("test-store-" + s)),
                                                               stateStore))
             );
@@ -50,7 +50,7 @@ class StoredStateComponentDefinitionTests {
                                                                                 TreePositionPath.of("1"),
                                                                                 new ComponentContext(),
                                                                                 commands);
-        final StatefulComponentDefinition<Boolean> scd = new InitialStateComponentDefinition<>(true,
+        final StatefulComponent<Boolean> scd = new InitialStateComponent<>(true,
                                                                                                view);
         // Initial render
         scd.render(renderContext);

@@ -1,7 +1,7 @@
 package rsp.component;
 
 import org.junit.jupiter.api.Test;
-import rsp.component.definitions.HttpRequestStateComponentDefinition;
+import rsp.component.definitions.HttpRequestStateComponent;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
@@ -17,7 +17,7 @@ import static rsp.html.HtmlDsl.div;
 import static rsp.html.HtmlDsl.span;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
-class HttpRequestStateComponentDefinitionTests {
+class HttpRequestStateComponentSegmentDefinitionTests {
 
     static final ComponentView<String> view = newState -> state ->
             div(
@@ -39,7 +39,7 @@ class HttpRequestStateComponentDefinitionTests {
                                                                                 TreePositionPath.of("1"),
                                                                                 new ComponentContext(),
                                                                                 commands);
-        final HttpRequestStateComponentDefinition<String> scd = new HttpRequestStateComponentDefinition<>(httpRequest,
+        final HttpRequestStateComponent<String> scd = new HttpRequestStateComponent<>(httpRequest,
                                                                                               request-> request.header("header-0").orElseThrow(),
                                                                                                                                                       view);
 

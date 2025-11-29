@@ -11,12 +11,12 @@ import static rsp.server.http.HttpResponse.MOVED_TEMPORARILY_STATUS_CODE;
 /**
  * A definition of an HTML document.
  */
-public final class HtmlDocumentDefinition extends TagDefinition {
+public final class HtmlDocument extends Tag {
 
     private final int statusCode;
     private final Map<String, List<String>> headers;
 
-    public HtmlDocumentDefinition(final int statusCode, final Map<String, List<String>> headers, final SegmentDefinition... children) {
+    public HtmlDocument(final int statusCode, final Map<String, List<String>> headers, final SegmentDefinition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
         this.headers = Objects.requireNonNull(headers);
@@ -39,8 +39,8 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      * @param statusCode status code
      * @return an instance with the status code
      */
-    public HtmlDocumentDefinition statusCode(final int statusCode) {
-        return new HtmlDocumentDefinition(statusCode, this.headers, this.children);
+    public HtmlDocument statusCode(final int statusCode) {
+        return new HtmlDocument(statusCode, this.headers, this.children);
     }
 
     /**
@@ -50,8 +50,8 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      * @return an instance with added headers
      */
 
-    public HtmlDocumentDefinition addHeader(String name, String value) {
-        return new HtmlDocumentDefinition(this.statusCode, addHeader(this.headers, name, value), this.children);
+    public HtmlDocument addHeader(String name, String value) {
+        return new HtmlDocument(this.statusCode, addHeader(this.headers, name, value), this.children);
     }
 
     /**
@@ -59,8 +59,8 @@ public final class HtmlDocumentDefinition extends TagDefinition {
      * @param location Location header for redirection
      * @return and instance with the redirection status code and header
      */
-    public HtmlDocumentDefinition redirect(final String location) {
-        return new HtmlDocumentDefinition(MOVED_TEMPORARILY_STATUS_CODE,
+    public HtmlDocument redirect(final String location) {
+        return new HtmlDocument(MOVED_TEMPORARILY_STATUS_CODE,
                                           addHeader(this.headers, "Location", location), this.children);
     }
 

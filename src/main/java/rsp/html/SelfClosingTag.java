@@ -5,13 +5,13 @@ import rsp.dom.XmlNs;
 
 import java.util.Arrays;
 
-public class SelfClosingTagDefinition implements SegmentDefinition {
+public class SelfClosingTag implements SegmentDefinition {
 
     protected final XmlNs ns;
     protected final String name;
-    protected final AttributeDefinition[] attributeDefinitions;
+    protected final Attribute[] attributeDefinitions;
 
-    public SelfClosingTagDefinition(XmlNs ns, String name, AttributeDefinition... attributeDefinitions) {
+    public SelfClosingTag(XmlNs ns, String name, Attribute... attributeDefinitions) {
         this.ns = ns;
         this.name = name;
         this.attributeDefinitions = attributeDefinitions;

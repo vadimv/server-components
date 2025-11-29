@@ -5,7 +5,7 @@ import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * This is the base class for all components definitions.
  * @param <S> this component's state type, should be an immutable class
  */
-public abstract class StatefulComponentDefinition<S> implements SegmentDefinition, ComponentFactory<S> {
+public abstract class StatefulComponent<S> implements SegmentDefinition, ComponentFactory<S> {
 
     protected final Object componentType;
 
@@ -23,7 +23,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
      * This constructor to be called from the inherited classes.
      * @param componentType a unique object for this component's type
      */
-    public StatefulComponentDefinition(final Object componentType) {
+    public StatefulComponent(final Object componentType) {
         this.componentType = Objects.requireNonNull(componentType);
     }
 
@@ -76,12 +76,12 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
     }
 
     @Override
-    public Component<S> createComponent(final QualifiedSessionId sessionId,
-                                        final TreePositionPath componentPath,
-                                        final RenderContextFactory renderContextFactory,
-                                        final ComponentContext componentContext,
-                                        final Consumer<SessionEvent> commandsEnqueue) {
-        return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
+    public ComponentSegment<S> createComponent(final QualifiedSessionId sessionId,
+                                               final TreePositionPath componentPath,
+                                               final RenderContextFactory renderContextFactory,
+                                               final ComponentContext componentContext,
+                                               final Consumer<Command> commandsEnqueue) {
+        return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                initStateSupplier(),
                                subComponentsContext(),
                                componentView(),
@@ -95,7 +95,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
 
     @Override
     public boolean render(final ComponentRenderContext renderContext) {
-        final Component<S> component = renderContext.openComponent(this);
+        final ComponentSegment<S> component = renderContext.openComponent(this);
         component.render(renderContext);
         renderContext.closeComponent();
         return true;

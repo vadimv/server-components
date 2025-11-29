@@ -5,25 +5,25 @@ import rsp.component.*;
 import java.util.Map;
 import java.util.Objects;
 
-public class StoredStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
+public class StoredStateComponent<S> extends StatefulComponent<S> {
 
     private final ComponentView<S> view;
     private final S initialState;
     private final Map<ComponentCompositeKey, S> stateStore;
 
-    public StoredStateComponentDefinition(final S initialState,
-                                          final ComponentView<S> view,
-                                          final Map<ComponentCompositeKey, S> stateStore) {
-        super(StoredStateComponentDefinition.class);
+    public StoredStateComponent(final S initialState,
+                                final ComponentView<S> view,
+                                final Map<ComponentCompositeKey, S> stateStore) {
+        super(StoredStateComponent.class);
         this.view = Objects.requireNonNull(view);
         this.initialState = Objects.requireNonNull(initialState);
         this.stateStore = Objects.requireNonNull(stateStore);
     }
 
-    public StoredStateComponentDefinition(final Object componentType,
-                                          final S initialState,
-                                          final ComponentView<S> view,
-                                          final Map<ComponentCompositeKey, S> stateStore) {
+    public StoredStateComponent(final Object componentType,
+                                final S initialState,
+                                final ComponentView<S> view,
+                                final Map<ComponentCompositeKey, S> stateStore) {
         super(componentType);
         this.view = Objects.requireNonNull(view);
         this.initialState = Objects.requireNonNull(initialState);

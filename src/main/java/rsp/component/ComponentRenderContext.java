@@ -2,7 +2,7 @@ package rsp.component;
 
 import rsp.dom.*;
 import rsp.page.*;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 import rsp.ref.Ref;
 
 import java.util.*;
@@ -13,22 +13,22 @@ public class ComponentRenderContext implements RenderContextFactory {
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
     protected final QualifiedSessionId sessionId;
-    protected final Consumer<SessionEvent> remotePageMessagesOut;
-    private final Deque<Tag> tagsStack = new ArrayDeque<>();
+    protected final Consumer<Command> remotePageMessagesOut;
+    private final Deque<TagNode> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
-    private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
+    private final Deque<ComponentSegment<?>> componentsStack = new ArrayDeque<>();
     private String docType;
 
     protected ComponentContext componentContext;
 
     private TreePositionPath domPath;
 
-    private Component<?> rootComponent;
+    private ComponentSegment<?> rootComponent;
 
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
                                   final ComponentContext componentContext,
-                                  final Consumer<SessionEvent> remotePageMessagesOut) {
+                                  final Consumer<Command> remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.componentContext = componentContext;
@@ -47,24 +47,24 @@ public class ComponentRenderContext implements RenderContextFactory {
         return docType;
     }
 
-    public <S> Component<S> openComponent(final ComponentFactory<S> componentFactory) {
-        final Component<?> parent = componentsStack.peek();
+    public <S> ComponentSegment<S> openComponent(final ComponentFactory<S> componentFactory) {
+        final ComponentSegment<?> parent = componentsStack.peek();
         final TreePositionPath componentPath = parent == null ?
                 ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
-        final Component<S> newComponent = componentFactory.createComponent(sessionId,
+        final ComponentSegment<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
                                                                            this,
-                componentContext,
+                                                                           componentContext,
                                                                            remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;
     }
 
-    public <S> void openComponent(final Component<S> component) {
+    public <S> void openComponent(final ComponentSegment<S> component) {
         if (rootComponent == null) {
             rootComponent = component;
         } else {
-            final Component<?> parentComponent = componentsStack.peek();
+            final ComponentSegment<?> parentComponent = componentsStack.peek();
             assert parentComponent != null;
             parentComponent.addChild(component);
         }
@@ -76,11 +76,11 @@ public class ComponentRenderContext implements RenderContextFactory {
     }
 
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
-        final Component<?> component = componentsStack.peek();
+        final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
 
-        final Tag parent = tagsStack.peek();
-        final Tag tag = new Tag(xmlns, name, isSelfClosing);
+        final TagNode parent = tagsStack.peek();
+        final TagNode tag = new TagNode(xmlns, name, isSelfClosing);
         if (parent == null) {
             if (!component.isRootNodesEmpty()) {
                 final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
@@ -101,7 +101,7 @@ public class ComponentRenderContext implements RenderContextFactory {
             var ascendantComponentsIterator = componentsStack.iterator();
             ascendantComponentsIterator.next();// skip a current component
             while (ascendantComponentsIterator.hasNext()) {
-                final Component<?> ascedantComponent = ascendantComponentsIterator.next();
+                final ComponentSegment<?> ascedantComponent = ascendantComponentsIterator.next();
                 if (!ascedantComponent.hasStartNodeDomPath()) {
                     ascedantComponent.setStartNodeDomPath(domPath);
                 } else {
@@ -118,33 +118,33 @@ public class ComponentRenderContext implements RenderContextFactory {
     }
 
     public void addTextNode(final String text) {
-        final Component<?> component = componentsStack.peek();
+        final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
 
-        final Tag parentTag = tagsStack.peek();
+        final TagNode parentTag = tagsStack.peek();
         if (parentTag == null) {
             if (!component.isRootNodesEmpty()) {
-                if (component.getLastRootNode() instanceof Text prevTextNode) {
+                if (component.getLastRootNode() instanceof TextNode prevTextNode) {
                     prevTextNode.addPart(text);
                 } else {
                     final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
                     domPath = prevTag.incSibling();
                     rootNodesPaths.add(domPath);
                     component.setStartNodeDomPath(domPath);
-                    component.addRootDomNode(domPath, new Text(text));
+                    component.addRootDomNode(domPath, new TextNode(text));
                 }
             } else {
                 rootNodesPaths.add(domPath);
                 component.setStartNodeDomPath(domPath);
-                component.addRootDomNode(domPath, new Text(text));
+                component.addRootDomNode(domPath, new TextNode(text));
             }
         } else {
-            if (!parentTag.children.isEmpty() && parentTag.children.get(parentTag.children.size() - 1) instanceof Text prevTextNode) {
+            if (!parentTag.children.isEmpty() && parentTag.children.get(parentTag.children.size() - 1) instanceof TextNode prevTextNode) {
                 prevTextNode.addPart(text);
             } else {
                 final int nextChild = parentTag.children.size() + 1;
                 domPath = domPath.addChild(nextChild);
-                final Text newText = new Text(text);
+                final TextNode newText = new TextNode(text);
                 parentTag.addChild(newText);
                 component.setStartNodeDomPath(domPath);
                 component.addRootDomNode(domPath, newText);
@@ -166,7 +166,7 @@ public class ComponentRenderContext implements RenderContextFactory {
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final DomEventEntry.Modifier modifier) {
-        final Component<?> component = componentsStack.peek();
+        final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
         component.addDomEventHandler(elementPath, eventType, eventHandler, preventDefault, modifier);
     }
@@ -175,15 +175,15 @@ public class ComponentRenderContext implements RenderContextFactory {
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final DomEventEntry.Modifier modifier) {
-        final Tag tag = tagsStack.peek();
+        final TagNode tag = tagsStack.peek();
         assert tag != null;
         addEvent(domPath, eventType, eventHandler, preventDefault, modifier);
     }
 
     public void addRef(final Ref ref) {
-        final Component<?> component = componentsStack.peek();
+        final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
-        final Tag tag = tagsStack.peek();
+        final TagNode tag = tagsStack.peek();
         assert tag != null;
         component.addRef(ref, domPath);
     }

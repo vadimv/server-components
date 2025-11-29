@@ -58,7 +58,7 @@ class RemotePageMessageDecoderTests {
     }
 
 
-    private static RemotePageMessageDecoder createDecoder(final Consumer<SessionEvent> collector) {
+    private static RemotePageMessageDecoder createDecoder(final Consumer<Command> collector) {
         return new RemotePageMessageDecoder(JsonUtils.createParser(), collector);
     }
 

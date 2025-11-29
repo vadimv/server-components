@@ -5,14 +5,13 @@ import java.util.Map;
 
 public final class ComponentContext {
 
-
     private final Map<String, Object> attributes;
 
     public ComponentContext() {
         this(new HashMap<>());
     }
 
-    ComponentContext(Map<String, Object> attributes) {
+    private ComponentContext(final Map<String, Object> attributes) {
         this.attributes = attributes;
     }
 
