@@ -22,11 +22,11 @@ import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
 /**
  * A server-side session object representing an open and connected browser's page.
  */
-public final class LivePageSession implements Consumer<SessionEvent> {
+public final class LivePageSession implements Consumer<Command> {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
 
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
-    private final Reactor<SessionEvent> reactor;
+    private final Reactor<Command> reactor;
 
     private PageRenderContext pageRenderContext;
     private RemoteOut remoteOut;
@@ -36,7 +36,7 @@ public final class LivePageSession implements Consumer<SessionEvent> {
         this.reactor = new Reactor<>(this);
     }
 
-    public Consumer<SessionEvent> eventsConsumer() {
+    public Consumer<Command> eventsConsumer() {
         return reactor;
     }
 
@@ -45,9 +45,9 @@ public final class LivePageSession implements Consumer<SessionEvent> {
     }
 
     @Override
-    public void accept(final SessionEvent event) {
+    public void accept(final Command event) {
         switch (event) {
-            case InitSessionEvent e -> init(e);
+            case InitSessionCommand e -> init(e);
             case SessionCustomEvent e -> handleDomEvent(0, e.path(), e.customEvent().eventName(), e.customEvent().eventData());
             case ComponentEventNotification e -> handleComponentEvent(e.eventType(), e.eventObject());
             case DomEventNotification e -> handleDomEvent(e.renderNumber(), e.path(), e.eventType(), e.eventObject());
@@ -55,11 +55,11 @@ public final class LivePageSession implements Consumer<SessionEvent> {
             case ExtractPropertyResponseEvent e -> handleExtractPropertyResponse(e.descriptorId(), e.result());
             case RemoteCommand e -> e.accept(remoteOut);
             case GenericTaskEvent e -> e.task().run();
-            case ShutdownSessionEvent __ -> shutdown();
+            case ShutdownSessionCommand __ -> shutdown();
         }
     }
 
-    private void init(final InitSessionEvent initSessionEvent) {
+    private void init(final InitSessionCommand initSessionEvent) {
         this.pageRenderContext = Objects.requireNonNull(initSessionEvent.pageRenderContext());
         this.remoteOut = Objects.requireNonNull(initSessionEvent.remoteOut());
         initSessionEvent.commandsEnqueue().redirect(reactor);

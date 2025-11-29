@@ -5,7 +5,7 @@ import rsp.dom.TreePositionPath;
 import rsp.html.SegmentDefinition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -80,7 +80,7 @@ public abstract class StatefulComponentDefinition<S> implements SegmentDefinitio
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
                                         final ComponentContext componentContext,
-                                        final Consumer<SessionEvent> commandsEnqueue) {
+                                        final Consumer<Command> commandsEnqueue) {
         return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                initStateSupplier(),
                                subComponentsContext(),

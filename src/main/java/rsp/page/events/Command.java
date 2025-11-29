@@ -1,12 +1,12 @@
 package rsp.page.events;
 
-public sealed interface SessionEvent permits
+public sealed interface Command permits
         DomEventNotification,
         ComponentEventNotification,
         EvalJsResponseEvent,
         ExtractPropertyResponseEvent,
         GenericTaskEvent,
-        InitSessionEvent,
+        InitSessionCommand,
         RemoteCommand.EvalJs,
         RemoteCommand.ExtractProperty,
         RemoteCommand.ForgetEvent,
@@ -16,5 +16,5 @@ public sealed interface SessionEvent permits
         RemoteCommand.SetHref,
         RemoteCommand.SetRenderNum,
         SessionCustomEvent,
-        ShutdownSessionEvent {
+        ShutdownSessionCommand {
 }

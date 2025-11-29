@@ -4,7 +4,7 @@ import rsp.dom.XmlNs;
 import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.page.events.RemoteCommand;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -19,12 +19,12 @@ public final class PropertiesHandle {
     private final TreePositionPath path;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers;
-    private final Consumer<SessionEvent> remoteOut;
+    private final Consumer<Command> remoteOut;
 
     public PropertiesHandle(final TreePositionPath path,
                             final Supplier<Integer> descriptorSupplier,
                             final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
-                            final Consumer<SessionEvent> remoteOut) {
+                            final Consumer<Command> remoteOut) {
         this.path = Objects.requireNonNull(path);
         this.descriptorSupplier = Objects.requireNonNull(descriptorSupplier);
         this.registeredEventHandlers = Objects.requireNonNull(registeredEventHandlers);

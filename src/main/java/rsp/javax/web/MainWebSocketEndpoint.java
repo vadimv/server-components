@@ -4,8 +4,8 @@ import jakarta.websocket.*;
 import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
-import rsp.page.events.InitSessionEvent;
-import rsp.page.events.ShutdownSessionEvent;
+import rsp.page.events.InitSessionCommand;
+import rsp.page.events.ShutdownSessionCommand;
 import rsp.server.RemoteOut;
 import rsp.server.http.HttpRequest;
 import rsp.server.protocol.RemotePageMessageDecoder;
@@ -55,7 +55,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
         } else {
 
             final LivePageSession livePage = new LivePageSession();
-            livePage.eventsConsumer().accept(new InitSessionEvent(renderedPage.pageRenderContext,
+            livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageRenderContext,
                                                                   renderedPage.commandsEnqueue,
                                                                   remoteOut));
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
@@ -101,7 +101,7 @@ public final class MainWebSocketEndpoint extends Endpoint {
     private void shutdown(final Session session) {
         final LivePageSession livePage = (LivePageSession) session.getUserProperties().get(LIVE_PAGE_SESSION_USER_PROPERTY_NAME);
         if (livePage != null) {
-            livePage.eventsConsumer().accept(new ShutdownSessionEvent());
+            livePage.eventsConsumer().accept(new ShutdownSessionCommand());
             logger.log(DEBUG, () -> "Shutdown session: " + session.getId());
         }
     }

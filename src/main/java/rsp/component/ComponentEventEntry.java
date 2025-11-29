@@ -24,6 +24,5 @@ public record ComponentEventEntry(String eventName, Consumer<EventContext> event
     }
 
     public record EventContext(JsonDataType.Object eventObject) {
-
     }
 }

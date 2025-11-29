@@ -3,7 +3,7 @@ package rsp.component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 
 
 import java.util.function.Consumer;
@@ -14,5 +14,5 @@ public interface ComponentFactory<S> {
                                  TreePositionPath componentPath,
                                  RenderContextFactory renderContextFactory,
                                  ComponentContext componentContext,
-                                 Consumer<SessionEvent> commandsEnqueue);
+                                 Consumer<Command> commandsEnqueue);
 }

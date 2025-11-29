@@ -2,7 +2,7 @@ package rsp.component;
 
 import rsp.dom.*;
 import rsp.page.*;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 import rsp.ref.Ref;
 
 import java.util.*;
@@ -13,7 +13,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
     protected final QualifiedSessionId sessionId;
-    protected final Consumer<SessionEvent> remotePageMessagesOut;
+    protected final Consumer<Command> remotePageMessagesOut;
     private final Deque<Tag> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<Component<?>> componentsStack = new ArrayDeque<>();
@@ -28,7 +28,7 @@ public class ComponentRenderContext implements RenderContextFactory {
     public ComponentRenderContext(final QualifiedSessionId sessionId,
                                   final TreePositionPath startDomPath,
                                   final ComponentContext componentContext,
-                                  final Consumer<SessionEvent> remotePageMessagesOut) {
+                                  final Consumer<Command> remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.componentContext = componentContext;
@@ -54,7 +54,7 @@ public class ComponentRenderContext implements RenderContextFactory {
         final Component<S> newComponent = componentFactory.createComponent(sessionId,
                                                                            componentPath,
                                                                            this,
-                componentContext,
+                                                                           componentContext,
                                                                            remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;

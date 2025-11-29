@@ -1,14 +1,14 @@
 package rsp.page;
 
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 
 import java.util.*;
 import java.util.function.Consumer;
 
-public final class RedirectableEventsConsumer implements Consumer<SessionEvent> {
+public final class RedirectableEventsConsumer implements Consumer<Command> {
 
-    private final Queue<SessionEvent> queue = new LinkedList<>();
-    private Consumer<SessionEvent> eventConsumer;
+    private final Queue<Command> queue = new LinkedList<>();
+    private Consumer<Command> eventConsumer;
 
     public RedirectableEventsConsumer() {
         this.eventConsumer = event -> {
@@ -17,14 +17,14 @@ public final class RedirectableEventsConsumer implements Consumer<SessionEvent> 
     }
 
     @Override
-    public synchronized void accept(SessionEvent event) {
+    public synchronized void accept(Command event) {
        this.eventConsumer.accept(event);
     }
 
-    public synchronized void redirect(final Consumer<SessionEvent> newCommandsEnqueue) {
+    public synchronized void redirect(final Consumer<Command> newCommandsEnqueue) {
         eventConsumer = Objects.requireNonNull(newCommandsEnqueue);
         while (!queue.isEmpty()) {
-            final SessionEvent e = queue.remove();
+            final Command e = queue.remove();
             eventConsumer.accept(e);
 
         }

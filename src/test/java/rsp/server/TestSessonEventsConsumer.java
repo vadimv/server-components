@@ -1,16 +1,16 @@
 package rsp.server;
 
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class TestSessonEventsConsumer implements Consumer<SessionEvent> {
-    public final List<SessionEvent> list = new ArrayList<>();
+public class TestSessonEventsConsumer implements Consumer<Command> {
+    public final List<Command> list = new ArrayList<>();
 
     @Override
-    public void accept(SessionEvent event) {
+    public void accept(Command event) {
         list.add(event);
     }
 }

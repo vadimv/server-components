@@ -9,7 +9,7 @@ import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.RemoteCommand;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
@@ -21,6 +21,9 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDefinition<RelativeUrl> {
+    public static final String STATE_UPDATED_EVENT_PREFIX = "stateUpdated.";
+    public static final String STATE_VALUE_ATTRIBUTE_NAME = "value";
+
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
 
@@ -91,7 +94,7 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
                                         final TreePositionPath componentPath,
                                         final RenderContextFactory renderContextFactory,
                                         final ComponentContext componentContext,
-                                        final Consumer<SessionEvent> commandsEnqueue) {
+                                        final Consumer<Command> commandsEnqueue) {
         final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
 
         // prepare indices for path elements session keys
@@ -121,9 +124,9 @@ public class AddressBarLookupComponentDefinition<S> extends StatefulComponentDef
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
                 for (final PositionKey pathElementKey : pathElementsKeys) {
-                    this.addComponentEventHandler("stateUpdated." + pathElementKey.key,
+                    this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + pathElementKey.key,
                                         eventContext -> {
-                        final JsonDataType valueJson = eventContext.eventObject().value("value");
+                        final JsonDataType valueJson = eventContext.eventObject().value(STATE_VALUE_ATTRIBUTE_NAME);
                         if (valueJson instanceof JsonDataType.String(String value)) {
                             final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
                             final RelativeUrl relativeUrl = updatedRelativeUrlForPathElement(getState(), pathElementKey.key, value, pathElementIndex);

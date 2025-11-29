@@ -4,7 +4,7 @@ import rsp.component.ComponentContext;
 import rsp.component.ComponentRenderContext;
 import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 
 import java.util.List;
 import java.util.Map;
@@ -23,7 +23,7 @@ public final class PageRenderContext extends ComponentRenderContext {
                              final String pageConfigScript,
                              final TreePositionPath rootDomPath,
                              final ComponentContext componentContext,
-                             final Consumer<SessionEvent> remotePageMessagesOut) {
+                             final Consumer<Command> remotePageMessagesOut) {
         super(sessionId,
               rootDomPath,
               componentContext,

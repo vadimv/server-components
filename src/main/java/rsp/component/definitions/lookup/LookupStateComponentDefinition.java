@@ -6,11 +6,13 @@ import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.ComponentEventNotification;
-import rsp.page.events.SessionEvent;
+import rsp.page.events.Command;
 import rsp.util.json.JsonDataType;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import static rsp.component.definitions.lookup.AddressBarLookupComponentDefinition.*;
 
 public class LookupStateComponentDefinition<S> extends StatefulComponentDefinition<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
@@ -50,7 +52,7 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
                                         TreePositionPath componentPath,
                                         RenderContextFactory renderContextFactory,
                                         ComponentContext sessionObjects,
-                                        Consumer<SessionEvent> commandsEnqueue) {
+                                        Consumer<Command> commandsEnqueue) {
         return new Component<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                initStateSupplier(),
                                subComponentsContext(),
@@ -64,9 +66,10 @@ public class LookupStateComponentDefinition<S> extends StatefulComponentDefiniti
 
 
             protected boolean onBeforeUpdated(S state) {
-                commandsEnqueue.accept(new ComponentEventNotification("stateUpdated." + name,
-                                       new JsonDataType.Object().put("value", new JsonDataType.String(stateToKeyFunction.apply(state)))));
-                return false;
+                commandsEnqueue.accept(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + name,
+                                       new JsonDataType.Object().put(STATE_VALUE_ATTRIBUTE_NAME,
+                                                                     new JsonDataType.String(stateToKeyFunction.apply(state)))));
+                return false; // do not render this component
             }
 
         };
