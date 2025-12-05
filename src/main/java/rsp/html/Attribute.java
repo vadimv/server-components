@@ -4,9 +4,9 @@ import rsp.component.ComponentRenderContext;
 import rsp.dom.XmlNs;
 
 /**
- * A definition of a HTML element's attribute.
+ * A definition of an HTML DOM element's attribute.
  */
-public final class Attribute implements SegmentDefinition {
+public final class Attribute implements Definition {
     /**
      * The attribute's name.
      */

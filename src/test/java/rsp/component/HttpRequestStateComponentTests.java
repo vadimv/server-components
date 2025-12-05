@@ -17,7 +17,7 @@ import static rsp.html.HtmlDsl.div;
 import static rsp.html.HtmlDsl.span;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
-class HttpRequestStateComponentSegmentDefinitionTests {
+class HttpRequestStateComponentTests {
 
     static final ComponentView<String> view = newState -> state ->
             div(

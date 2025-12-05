@@ -4,7 +4,7 @@ import rsp.component.*;
 import rsp.component.definitions.StatefulComponent;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
-import rsp.html.SegmentDefinition;
+import rsp.html.Definition;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
@@ -28,12 +28,12 @@ public class AddressBarLookupComponent<S> extends StatefulComponent<RelativeUrl>
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
 
-    private final SegmentDefinition subTreeDefinition;
+    private final Definition subTreeDefinition;
     private final List<PositionKey> pathElementsKeys;
     private final List<ParameterNameKey> queryParametersNameKeys;
 
     AddressBarLookupComponent(final RelativeUrl initialRelativeUrl,
-                              final SegmentDefinition subTreeDefinition,
+                              final Definition subTreeDefinition,
                               final List<PositionKey> pathElementsKeys,
                               final List<ParameterNameKey> queryParametersNameKeys) {
         super(AddressBarLookupComponent.class);

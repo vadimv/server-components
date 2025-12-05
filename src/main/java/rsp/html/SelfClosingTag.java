@@ -5,7 +5,7 @@ import rsp.dom.XmlNs;
 
 import java.util.Arrays;
 
-public class SelfClosingTag implements SegmentDefinition {
+public class SelfClosingTag implements Definition {
 
     protected final XmlNs ns;
     protected final String name;

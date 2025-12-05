@@ -5,7 +5,7 @@ import rsp.component.ComponentRenderContext;
 /**
  * The void definition, without any representation in the result DOM tree.
  */
-final class EmptyDefinition implements SegmentDefinition {
+final class EmptyDefinition implements Definition {
     /**
      * The default instance for reuse.
      */

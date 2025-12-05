@@ -3,7 +3,7 @@ package rsp.component;
 import rsp.component.definitions.StatefulComponent;
 import rsp.dom.*;
 import rsp.dom.Segment;
-import rsp.html.SegmentDefinition;
+import rsp.html.Definition;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.GenericTaskEvent;
@@ -133,7 +133,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             onBeforeInitiallyRendered();
             state = stateResolver.getState(componentId, componentContext);
             renderContext.setComponentContext(contextResolver.apply(componentContext, state));
-            final SegmentDefinition view = componentView.apply(this).apply(state);
+            final Definition view = componentView.apply(this).apply(state);
 
             view.render(renderContext);
             onAfterRendered(state);
@@ -192,7 +192,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         renderContext.setComponentContext(contextResolver.apply(componentContext, state));
         renderContext.openComponent(this);
-        final SegmentDefinition view = componentView.apply(this).apply(state);
+        final Definition view = componentView.apply(this).apply(state);
         view.render(renderContext);
         renderContext.closeComponent();
         onAfterRendered(state);

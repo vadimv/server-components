@@ -7,7 +7,7 @@ import rsp.component.View;
 import rsp.component.definitions.*;
 import rsp.component.definitions.lookup.AddressBarLookupComponent;
 import rsp.component.definitions.lookup.LookupStateComponent;
-import rsp.html.SegmentDefinition;
+import rsp.html.Definition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
 import rsp.routing.Routing;
@@ -31,21 +31,21 @@ public final class CountersApp {
 
     public final WebServer webServer;
 
-    private static SegmentDefinition counterComponent1() {
+    private static Definition counterComponent1() {
         return new LookupStateComponent<>("c1",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c1"));
     }
 
-    private static SegmentDefinition counterComponent2() {
+    private static Definition counterComponent2() {
         return new LookupStateComponent<>("c2",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c2"));
     }
 
-    private static SegmentDefinition counterComponent4() {
+    private static Definition counterComponent4() {
         return new LookupStateComponent<>("c4",
                                                    v -> v == null ? 0 : Integer.parseInt(v),
                                                     Object::toString,
@@ -78,7 +78,7 @@ public final class CountersApp {
         return  _ -> newState.setState(state - 1);
     }
 
-    private static SegmentDefinition storedCounterComponent(final String name) {
+    private static Definition storedCounterComponent(final String name) {
         return new StoredStateComponent<>(123, counterView(name), stateStore);
     }
 
@@ -100,7 +100,7 @@ public final class CountersApp {
         return  _ -> newState.setState(!state);
     }
 
-    private static SegmentDefinition storedCounterComponent() {
+    private static Definition storedCounterComponent() {
         return new InitialStateComponent<>(true, storedCounterView());
     }
 

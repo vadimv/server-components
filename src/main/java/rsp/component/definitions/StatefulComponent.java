@@ -2,7 +2,7 @@ package rsp.component.definitions;
 
 import rsp.component.*;
 import rsp.dom.TreePositionPath;
-import rsp.html.SegmentDefinition;
+import rsp.html.Definition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.Command;
@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * This is the base class for all components definitions.
  * @param <S> this component's state type, should be an immutable class
  */
-public abstract class StatefulComponent<S> implements SegmentDefinition, ComponentFactory<S> {
+public abstract class StatefulComponent<S> implements Definition, ComponentFactory<S> {
 
     protected final Object componentType;
 

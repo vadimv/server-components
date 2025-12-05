@@ -9,9 +9,9 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * A DOM event subscription definition.
+ * A DOM event's subscription definition.
  */
-public final class EventDefinition implements SegmentDefinition {
+public final class EventDefinition implements Definition {
 
     /**
      * Is used when prevent default behaviour is not explicitly specified for an event.

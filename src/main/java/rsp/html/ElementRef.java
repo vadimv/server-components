@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * A reference to an element.
  */
-public final class ElementRef implements SegmentDefinition {
+public final class ElementRef implements Definition {
 
     private final rsp.ref.ElementRef id;
     public ElementRef(final rsp.ref.ElementRef id) {
@@ -24,7 +24,7 @@ public final class ElementRef implements SegmentDefinition {
         return new KeyRef<>(this, key);
     }
 
-    public static class KeyRef<K> implements rsp.ref.ElementRef, SegmentDefinition {
+    public static class KeyRef<K> implements rsp.ref.ElementRef, Definition {
         private final ElementRef parentRef;
         private final K key;
         public KeyRef(final ElementRef parentRef, final K key) {

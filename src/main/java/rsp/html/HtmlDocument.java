@@ -16,7 +16,7 @@ public final class HtmlDocument extends Tag {
     private final int statusCode;
     private final Map<String, List<String>> headers;
 
-    public HtmlDocument(final int statusCode, final Map<String, List<String>> headers, final SegmentDefinition... children) {
+    public HtmlDocument(final int statusCode, final Map<String, List<String>> headers, final Definition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
         this.headers = Objects.requireNonNull(headers);

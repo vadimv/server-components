@@ -15,7 +15,7 @@ public final class PlainTag extends Tag {
      * @param name the tag's name
      * @param children the children definitions, this could be another tags, attributes, events, references etc
      */
-    public PlainTag(final XmlNs ns, final String name, final SegmentDefinition... children) {
+    public PlainTag(final XmlNs ns, final String name, final Definition... children) {
         super(ns, name, children);
     }
 
