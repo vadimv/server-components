@@ -3,7 +3,7 @@ package rsp.component;
 import rsp.component.definitions.StatefulComponent;
 import rsp.dom.*;
 import rsp.dom.Segment;
-import rsp.html.Definition;
+import rsp.dsl.Definition;
 import rsp.page.EventContext;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.GenericTaskEvent;

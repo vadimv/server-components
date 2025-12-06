@@ -1,4 +1,4 @@
-package rsp.html;
+package rsp.dsl;
 
 import rsp.component.ComponentRenderContext;
 import rsp.dom.XmlNs;
@@ -19,7 +19,7 @@ public final class Attribute implements Definition {
 
     /**
      * Determines if this attribute is an HTML tag's property.
-     * @see HtmlDsl#DEFAULT_PROPERTIES_NAMES
+     * @see Html#DEFAULT_PROPERTIES_NAMES
      */
     public final boolean isProperty;
 

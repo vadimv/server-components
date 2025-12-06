@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.component.ComponentEventEntry;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
-import rsp.html.Window;
+import rsp.dsl.Window;
 import rsp.page.events.*;
 import rsp.ref.Ref;
 import rsp.server.ExtractPropertyResponse;

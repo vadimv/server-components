@@ -12,7 +12,7 @@ import rsp.server.RemoteOut;
 
 import java.util.List;
 
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 
 public final class DefaultConnectionLostWidget {
 

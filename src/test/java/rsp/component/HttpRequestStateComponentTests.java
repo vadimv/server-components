@@ -13,8 +13,8 @@ import rsp.server.http.Query;
 import java.net.URI;
 import java.util.List;
 
-import static rsp.html.HtmlDsl.div;
-import static rsp.html.HtmlDsl.span;
+import static rsp.dsl.Html.div;
+import static rsp.dsl.Html.span;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
 class HttpRequestStateComponentTests {

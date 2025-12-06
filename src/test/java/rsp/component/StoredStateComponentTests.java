@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 import static rsp.util.TestUtils.findFirstListElementByType;
 @Disabled

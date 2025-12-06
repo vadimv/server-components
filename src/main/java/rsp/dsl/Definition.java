@@ -1,4 +1,4 @@
-package rsp.html;
+package rsp.dsl;
 
 
 import rsp.component.ComponentRenderContext;

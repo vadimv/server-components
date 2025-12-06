@@ -2,7 +2,7 @@ package rsp.component.definitions;
 
 import rsp.component.*;
 import rsp.dom.TreePositionPath;
-import rsp.html.Definition;
+import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;
 import rsp.page.events.Command;

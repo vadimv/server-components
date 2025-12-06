@@ -1,6 +1,6 @@
 package rsp.component;
 
-import rsp.html.Definition;
+import rsp.dsl.Definition;
 
 import java.util.function.Function;
 

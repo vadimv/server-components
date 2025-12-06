@@ -4,7 +4,7 @@ import rsp.component.*;
 import rsp.component.definitions.StatefulComponent;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
-import rsp.html.Definition;
+import rsp.dsl.Definition;
 import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderContextFactory;

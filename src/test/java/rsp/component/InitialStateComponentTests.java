@@ -12,7 +12,7 @@ import rsp.server.http.HttpRequest;
 import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
 class InitialStateComponentTests {

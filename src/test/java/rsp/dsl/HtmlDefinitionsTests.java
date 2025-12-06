@@ -1,4 +1,4 @@
-package rsp.html;
+package rsp.dsl;
 
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
@@ -15,7 +15,7 @@ import rsp.server.http.HttpRequest;
 import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 
 public class HtmlDefinitionsTests {
 

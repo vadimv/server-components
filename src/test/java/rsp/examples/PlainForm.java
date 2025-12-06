@@ -2,7 +2,7 @@ package rsp.examples;
 
 import rsp.component.definitions.HttpRequestStateComponent;
 import rsp.component.View;
-import rsp.html.Tag;
+import rsp.dsl.Tag;
 import rsp.jetty.WebServer;
 import rsp.routing.Routing;
 import rsp.routing.Route;
@@ -11,7 +11,7 @@ import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
 
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 import static rsp.routing.RoutingDsl.*;
 
 /**

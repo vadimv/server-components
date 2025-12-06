@@ -4,7 +4,7 @@ import rsp.component.definitions.InitialStateComponent;
 import rsp.jetty.WebServer;
 import rsp.component.View;
 
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 
 /**
  * Run the class and navigate to http://localhost:8080.

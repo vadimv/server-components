@@ -7,7 +7,7 @@ import rsp.component.View;
 import rsp.component.definitions.*;
 import rsp.component.definitions.lookup.AddressBarLookupComponent;
 import rsp.component.definitions.lookup.LookupStateComponent;
-import rsp.html.Definition;
+import rsp.dsl.Definition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
 import rsp.routing.Routing;
@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 import static rsp.routing.RoutingDsl.*;
 
 /**

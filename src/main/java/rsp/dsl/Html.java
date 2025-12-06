@@ -1,4 +1,4 @@
-package rsp.html;
+package rsp.dsl;
 
 import rsp.dom.DomEventEntry;
 import rsp.dom.XmlNs;
@@ -16,9 +16,9 @@ import static rsp.server.http.HttpResponse.OK_STATUS_CODE;
 /**
  * HTML tags definitions domain-specific language and related util functions.
  */
-public final class HtmlDsl {
+public final class Html {
 
-    private HtmlDsl() {}
+    private Html() {}
 
     /**
      * Attributes names which are interpreted by default as properties.
