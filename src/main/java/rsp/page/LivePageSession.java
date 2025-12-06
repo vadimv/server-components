@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.component.ComponentEventEntry;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
-import rsp.html.WindowDefinition;
+import rsp.dsl.Window;
 import rsp.page.events.*;
 import rsp.ref.Ref;
 import rsp.server.ExtractPropertyResponse;
@@ -153,7 +153,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private TreePositionPath resolveRef(final Ref ref) {
-        return ref instanceof WindowDefinition.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
+        return ref instanceof Window.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
     }
 
     private CompletableFuture<JsonDataType> evalJs(final String js) {

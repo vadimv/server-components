@@ -2,8 +2,8 @@ package rsp.page;
 
 import rsp.component.ComponentContext;
 import rsp.component.ComponentRenderContext;
-import rsp.component.definitions.InitialStateComponentDefinition;
-import rsp.component.definitions.StatefulComponentDefinition;
+import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.StatefulComponent;
 import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.DomEventEntry;
@@ -12,7 +12,7 @@ import rsp.server.RemoteOut;
 
 import java.util.List;
 
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 
 public final class DefaultConnectionLostWidget {
 
@@ -30,8 +30,8 @@ public final class DefaultConnectionLostWidget {
         HTML = rc.html();
     }
 
-    private static StatefulComponentDefinition<String> widgetComponent() {
-        return new InitialStateComponentDefinition<>("", widget());
+    private static StatefulComponent<String> widgetComponent() {
+        return new InitialStateComponent<>("", widget());
     }
 
     private static View<String> widget() {

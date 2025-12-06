@@ -10,9 +10,9 @@ import java.util.function.Consumer;
 
 @FunctionalInterface
 public interface ComponentFactory<S> {
-    Component<S> createComponent(QualifiedSessionId sessionId,
-                                 TreePositionPath componentPath,
-                                 RenderContextFactory renderContextFactory,
-                                 ComponentContext componentContext,
-                                 Consumer<Command> commandsEnqueue);
+    ComponentSegment<S> createComponent(QualifiedSessionId sessionId,
+                                        TreePositionPath componentPath,
+                                        RenderContextFactory renderContextFactory,
+                                        ComponentContext componentContext,
+                                        Consumer<Command> commandsEnqueue);
 }

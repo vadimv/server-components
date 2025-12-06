@@ -9,8 +9,8 @@ class DiffTests {
 
     @Test
     void should_be_empty_diff_for_same_single_tags() {
-        final Tag tree1 = new Tag(XmlNs.html, "html", false);
-        final Tag tree2 = new Tag(XmlNs.html, "html", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "html", false);
+        final TagNode tree2 = new TagNode(XmlNs.html, "html", false);
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -19,8 +19,8 @@ class DiffTests {
 
     @Test
     void should_remove_and_create_for_different_single_tags() {
-        final Tag tree1 = new Tag(XmlNs.html, "html", false);
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "html", false);
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
         tree2.addAttribute("attr0", "value0", true);
 
         final TestChangesContext cp = new TestChangesContext();
@@ -30,11 +30,11 @@ class DiffTests {
 
     @Test
     void should_create_tags_for_added_children() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
-        tree2.addChild(new Tag(XmlNs.html, "span", false));
-        tree2.addChild(new Tag(XmlNs.html, "span", false));
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+        tree2.addChild(new TagNode(XmlNs.html, "span", false));
+        tree2.addChild(new TagNode(XmlNs.html, "span", false));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -43,11 +43,11 @@ class DiffTests {
 
     @Test
     void should_remove_and_add_for_replaced_tag() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
-        tree1.addChild(new Tag(XmlNs.html, "span", false));
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
+        tree1.addChild(new TagNode(XmlNs.html, "span", false));
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
-        tree2.addChild(new Tag(XmlNs.html, "a", false));
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+        tree2.addChild(new TagNode(XmlNs.html, "a", false));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -56,11 +56,11 @@ class DiffTests {
 
     @Test
     void should_replace_text_with_text() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
-        tree1.addChild(new Text("abc"));
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
+        tree1.addChild(new TextNode("abc"));
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
-        tree2.addChild(new Text("123"));
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+        tree2.addChild(new TextNode("123"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -70,11 +70,11 @@ class DiffTests {
 
     @Test
     void should_replace_tag_with_text() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
-        tree1.addChild(new Tag(XmlNs.html, "span", false));
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
+        tree1.addChild(new TagNode(XmlNs.html, "span", false));
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
-        tree2.addChild(new Text("abc"));
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+        tree2.addChild(new TextNode("abc"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -83,11 +83,11 @@ class DiffTests {
 
     @Test
     void should_replace_text_with_tag() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
-        tree1.addChild(new Text("abc"));
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
+        tree1.addChild(new TextNode("abc"));
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
-        tree2.addChild(new Tag(XmlNs.html, "span", false));
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+        tree2.addChild(new TagNode(XmlNs.html, "span", false));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -96,14 +96,14 @@ class DiffTests {
 
     @Test
     void should_remove_text_node() {
-        final Tag tree1 = new Tag(XmlNs.html, "p", false);
-        tree1.addChild(new Text("abc"));
-        tree1.addChild(new Tag(XmlNs.html, "br", true));
-        tree1.addChild(new Text("xyz"));
+        final TagNode tree1 = new TagNode(XmlNs.html, "p", false);
+        tree1.addChild(new TextNode("abc"));
+        tree1.addChild(new TagNode(XmlNs.html, "br", true));
+        tree1.addChild(new TextNode("xyz"));
 
-        final Tag tree2 = new Tag(XmlNs.html, "p", false);
-        tree2.addChild(new Text("abc"));
-        tree2.addChild(new Tag(XmlNs.html, "br", true));
+        final TagNode tree2 = new TagNode(XmlNs.html, "p", false);
+        tree2.addChild(new TextNode("abc"));
+        tree2.addChild(new TagNode(XmlNs.html, "br", true));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -112,14 +112,14 @@ class DiffTests {
 
     @Test
     void should_add_text_node() {
-        final Tag tree1 = new Tag(XmlNs.html, "p", false);
-        tree1.addChild(new Text("abc"));
-        tree1.addChild(new Tag(XmlNs.html, "br", true));
+        final TagNode tree1 = new TagNode(XmlNs.html, "p", false);
+        tree1.addChild(new TextNode("abc"));
+        tree1.addChild(new TagNode(XmlNs.html, "br", true));
 
-        final Tag tree2 = new Tag(XmlNs.html, "p", false);
-        tree2.addChild(new Text("abc"));
-        tree2.addChild(new Tag(XmlNs.html, "br", true));
-        tree2.addChild(new Text("xyz"));
+        final TagNode tree2 = new TagNode(XmlNs.html, "p", false);
+        tree2.addChild(new TextNode("abc"));
+        tree2.addChild(new TagNode(XmlNs.html, "br", true));
+        tree2.addChild(new TextNode("xyz"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -128,15 +128,15 @@ class DiffTests {
 
     @Test
     void should_modify_text_node() {
-        final Tag tree1 = new Tag(XmlNs.html, "p", false);
-        tree1.addChild(new Text("abc"));
-        tree1.addChild(new Tag(XmlNs.html, "br", true));
-        tree1.addChild(new Text("xyz"));
+        final TagNode tree1 = new TagNode(XmlNs.html, "p", false);
+        tree1.addChild(new TextNode("abc"));
+        tree1.addChild(new TagNode(XmlNs.html, "br", true));
+        tree1.addChild(new TextNode("xyz"));
 
-        final Tag tree2 = new Tag(XmlNs.html, "p", false);
-        tree2.addChild(new Text("abc"));
-        tree2.addChild(new Tag(XmlNs.html, "br", true));
-        tree2.addChild(new Text("klm"));
+        final TagNode tree2 = new TagNode(XmlNs.html, "p", false);
+        tree2.addChild(new TextNode("abc"));
+        tree2.addChild(new TagNode(XmlNs.html, "br", true));
+        tree2.addChild(new TextNode("klm"));
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -145,12 +145,12 @@ class DiffTests {
 
     @Test
     void should_remove_and_add_for_replaced_tag_with_children() {
-        final Tag tree1 = new Tag(XmlNs.html, "body", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "body", false);
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
-        final Tag child21 = new Tag(XmlNs.html, "a", false);
-        child21.addChild(new Tag(XmlNs.html, "canvas", false));
-        child21.addChild(new Tag(XmlNs.html, "span", false));
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+        final TagNode child21 = new TagNode(XmlNs.html, "a", false);
+        child21.addChild(new TagNode(XmlNs.html, "canvas", false));
+        child21.addChild(new TagNode(XmlNs.html, "span", false));
         tree2.addChild(child21);
 
         final TestChangesContext cp = new TestChangesContext();
@@ -160,23 +160,23 @@ class DiffTests {
 
     @Test
     void should_add_for_a_new_child() {
-        final Tag ul1 = new Tag(XmlNs.html, "ul", false);
-        final Tag li11 = new Tag(XmlNs.html, "li", false);
-        li11.addChild(new Text("first"));
+        final TagNode ul1 = new TagNode(XmlNs.html, "ul", false);
+        final TagNode li11 = new TagNode(XmlNs.html, "li", false);
+        li11.addChild(new TextNode("first"));
         ul1.addChild(li11);
-        final Tag li12 = new Tag(XmlNs.html, "li", false);
-        li12.addChild(new Text("second"));
+        final TagNode li12 = new TagNode(XmlNs.html, "li", false);
+        li12.addChild(new TextNode("second"));
         ul1.addChild(li12);
 
-        final Tag ul2 = new Tag(XmlNs.html, "ul", false);
-        final Tag li21 = new Tag(XmlNs.html, "li", false);
-        li21.addChild(new Text("first"));
+        final TagNode ul2 = new TagNode(XmlNs.html, "ul", false);
+        final TagNode li21 = new TagNode(XmlNs.html, "li", false);
+        li21.addChild(new TextNode("first"));
         ul2.addChild(li21);
-        final Tag li22 = new Tag(XmlNs.html, "li", false);
-        li22.addChild(new Text("second"));
+        final TagNode li22 = new TagNode(XmlNs.html, "li", false);
+        li22.addChild(new TextNode("second"));
         ul2.addChild(li22);
-        final Tag li23 = new Tag(XmlNs.html, "li", false);
-        li23.addChild(new Text("third"));
+        final TagNode li23 = new TagNode(XmlNs.html, "li", false);
+        li23.addChild(new TextNode("third"));
         ul2.addChild(li23);
 
         final TestChangesContext cp = new TestChangesContext();
@@ -187,9 +187,9 @@ class DiffTests {
 
     @Test
     void should_add_attribute() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
         tree2.addAttribute("attr1", "value1", true);
 
         final TestChangesContext cp = new TestChangesContext();
@@ -199,10 +199,10 @@ class DiffTests {
 
     @Test
     void should_remove_attribute() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
         tree1.addAttribute("attr1", "value1", true);
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
@@ -211,9 +211,9 @@ class DiffTests {
 
     @Test
     void should_add_style() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
         tree2.addStyle("style1", "value1");
 
         final TestChangesContext cp = new TestChangesContext();
@@ -223,10 +223,10 @@ class DiffTests {
 
     @Test
     void should_remove_style() {
-        final Tag tree1 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
         tree1.addStyle("style1", "value1");
 
-        final Tag tree2 = new Tag(XmlNs.html, "div", false);
+        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
 
         final TestChangesContext cp = new TestChangesContext();
         Diff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));

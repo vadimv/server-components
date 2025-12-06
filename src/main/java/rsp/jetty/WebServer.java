@@ -13,7 +13,7 @@ import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
-import rsp.component.definitions.StatefulComponentDefinition;
+import rsp.component.definitions.StatefulComponent;
 import rsp.javax.web.MainHttpServlet;
 import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.javax.web.HttpRequestUtils;
@@ -67,7 +67,7 @@ public final class WebServer {
      * @param staticResources a setup object for an optional static resources handler
      */
     public <S> WebServer(final int port,
-                         final Function<HttpRequest, StatefulComponentDefinition<S>> rootComponentDefinition,
+                         final Function<HttpRequest, StatefulComponent<S>> rootComponentDefinition,
                          final Optional<StaticResources> staticResources,
                          final Optional<SslConfiguration> sslConfiguration,
                          final int maxThreads) {
@@ -208,7 +208,7 @@ public final class WebServer {
      * @param staticResources a setup object for an optional static resources handler
      */
     public <S> WebServer(final int port,
-                         final Function<HttpRequest, StatefulComponentDefinition<S>> rootComponentDefinition,
+                         final Function<HttpRequest, StatefulComponent<S>> rootComponentDefinition,
                          final StaticResources staticResources) {
         this(port, rootComponentDefinition, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
@@ -221,7 +221,7 @@ public final class WebServer {
      * @param sslConfiguration the server's TLS configuration
      */
     public <S> WebServer(final int port,
-                     final Function<HttpRequest, StatefulComponentDefinition<S>> rootComponentDefinition,
+                     final Function<HttpRequest, StatefulComponent<S>> rootComponentDefinition,
                      final StaticResources staticResources,
                      final SslConfiguration sslConfiguration) {
         this(port, rootComponentDefinition, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
@@ -233,7 +233,7 @@ public final class WebServer {
      * @param rootComponentDefinition a root component
      */
     public <S> WebServer(final int port,
-                         final Function<HttpRequest, StatefulComponentDefinition<S>> rootComponentDefinition) {
+                         final Function<HttpRequest, StatefulComponent<S>> rootComponentDefinition) {
         this(port, rootComponentDefinition, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 

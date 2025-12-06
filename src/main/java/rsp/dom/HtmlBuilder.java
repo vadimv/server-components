@@ -12,14 +12,14 @@ public class HtmlBuilder {
     }
 
     public void buildHtml(final Node node) {
-        if (node instanceof Tag tagNode) {
+        if (node instanceof TagNode tagNode) {
             buildHtml(tagNode);
-        } else if (node instanceof Text textNode) {
+        } else if (node instanceof TextNode textNode) {
             buildHtml(textNode);
         }
      }
 
-    private void buildHtml(final Tag tag) {
+    private void buildHtml(final TagNode tag) {
         sb.append('<');
         sb.append(tag.name);
         if (tag.styles.size() > 0) {
@@ -33,7 +33,7 @@ public class HtmlBuilder {
             sb.append('"');
         }
         if (tag.attributes.size() > 0) {
-            for (final Attribute attribute: tag.attributes) {
+            for (final AttributeNode attribute: tag.attributes) {
                 sb.append(' ');
                 sb.append(attribute.name());
                 sb.append('=');
@@ -49,9 +49,9 @@ public class HtmlBuilder {
 
             if (tag.children.size() > 0) {
                 for (final Node childNode: tag.children) {
-                    if (childNode instanceof Tag childTag) {
+                    if (childNode instanceof TagNode childTag) {
                         buildHtml(childTag);
-                    } else if (childNode instanceof Text childTextNode) {
+                    } else if (childNode instanceof TextNode childTextNode) {
                         buildHtml(childTextNode);
                     }
                 }
@@ -63,7 +63,7 @@ public class HtmlBuilder {
         }
     }
 
-    private void buildHtml(Text textNode) {
+    private void buildHtml(TextNode textNode) {
         textNode.parts.forEach(part -> sb.append(part));
     }
 

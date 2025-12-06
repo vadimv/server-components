@@ -5,9 +5,9 @@ import rsp.component.ComponentView;
 import rsp.component.StateUpdate;
 import rsp.component.View;
 import rsp.component.definitions.*;
-import rsp.component.definitions.lookup.AddressBarLookupComponentDefinition;
-import rsp.component.definitions.lookup.LookupStateComponentDefinition;
-import rsp.html.SegmentDefinition;
+import rsp.component.definitions.lookup.AddressBarLookupComponent;
+import rsp.component.definitions.lookup.LookupStateComponent;
+import rsp.dsl.Definition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
 import rsp.routing.Routing;
@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import static rsp.html.HtmlDsl.*;
+import static rsp.dsl.Html.*;
 import static rsp.routing.RoutingDsl.*;
 
 /**
@@ -31,22 +31,22 @@ public final class CountersApp {
 
     public final WebServer webServer;
 
-    private static SegmentDefinition counterComponent1() {
-        return new LookupStateComponentDefinition<>("c1",
+    private static Definition counterComponent1() {
+        return new LookupStateComponent<>("c1",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c1"));
     }
 
-    private static SegmentDefinition counterComponent2() {
-        return new LookupStateComponentDefinition<>("c2",
+    private static Definition counterComponent2() {
+        return new LookupStateComponent<>("c2",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c2"));
     }
 
-    private static SegmentDefinition counterComponent4() {
-        return new LookupStateComponentDefinition<>("c4",
+    private static Definition counterComponent4() {
+        return new LookupStateComponent<>("c4",
                                                    v -> v == null ? 0 : Integer.parseInt(v),
                                                     Object::toString,
                                                     counterView("c4"));
@@ -78,8 +78,8 @@ public final class CountersApp {
         return  _ -> newState.setState(state - 1);
     }
 
-    private static SegmentDefinition storedCounterComponent(final String name) {
-        return new StoredStateComponentDefinition<>(123, counterView(name), stateStore);
+    private static Definition storedCounterComponent(final String name) {
+        return new StoredStateComponent<>(123, counterView(name), stateStore);
     }
 
     private static ComponentView<Boolean> storedCounterView() {
@@ -100,8 +100,8 @@ public final class CountersApp {
         return  _ -> newState.setState(!state);
     }
 
-    private static SegmentDefinition storedCounterComponent() {
-        return new InitialStateComponentDefinition<>(true, storedCounterView());
+    private static Definition storedCounterComponent() {
+        return new InitialStateComponent<>(true, storedCounterView());
     }
 
     private static View<CountersAppState> rootView(HttpRequest httpRequest, CountersAppState countersState) {
@@ -110,8 +110,8 @@ public final class CountersApp {
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
                         body(
-                                AddressBarLookupComponentDefinition.of(httpRequest.relativeUrl(),
-                                                new InitialStateComponentDefinition<>(countersState, mainView(countersState)))
+                                AddressBarLookupComponent.of(httpRequest.relativeUrl(),
+                                                new InitialStateComponent<>(countersState, mainView(countersState)))
                                         .withPathElement(0, "c1")
                                         .withPathElement(1, "c2")
                                         .withQueryParameter("c4", "c4")
@@ -139,17 +139,17 @@ public final class CountersApp {
             if (state instanceof CountersAppState countersState) {
                 return rootView(httpRequest, countersState).apply(countersState);
             } else if (state instanceof NotFoundState notFoundState) {
-                return new InitialStateComponentDefinition<>(notFoundState, notFoundStatelessView);
+                return new InitialStateComponent<>(notFoundState, notFoundStatelessView);
             } else {
                 throw new IllegalStateException();
             }
         };
     }
 
-    private static StatefulComponentDefinition<AppState> rootComponent(final HttpRequest httpRequest) {
+    private static StatefulComponent<AppState> rootComponent(final HttpRequest httpRequest) {
         final var appRouting = new Routing<>(get("/:c1(^-?\\d+$)/:c2(^-?\\d+$)", _ -> new CountersAppState()),
                                              new NotFoundState());
-        return new HttpRequestStateComponentDefinition<>(httpRequest,
+        return new HttpRequestStateComponent<>(httpRequest,
                                                          appRouting,
                                                          appComponentView(httpRequest));
     }

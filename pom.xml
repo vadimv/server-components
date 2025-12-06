@@ -22,7 +22,7 @@
         <playwright.version>1.35.0</playwright.version>
         <jsoup.version>1.17.2</jsoup.version>
 
-        <jetty.version>12.1.4</jetty.version>
+        <jetty.version>12.0.30</jetty.version>
         <json-simple.version>1.1.1</json-simple.version>
         <jakarta.websocket.version>2.1.0</jakarta.websocket.version>
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
@@ -47,7 +47,7 @@
 
     <developers>
         <developer>
-            <name>Vadim Vashkevich</name>
+            <name>Wadim Waszkiewicz</name>
             <url>https://github.com/vadimv</url>
         </developer>
     </developers>
@@ -271,6 +271,12 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
             <version>${jetty.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-slf4j-impl</artifactId>
+            <version>${jetty.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <!-- build time dependency -->
