@@ -27,6 +27,19 @@ public final class Html {
     public static final String DEFAULT_PROPERTIES_NAMES =
             "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
 
+    /**
+     * Defines a type of a web page:
+     * * server-side single-page applications (SPAs), written in Java, e.g. for an admin UI
+     * * plain server-rendered detached HTML pages
+     * The page's ``<head>`` tag DSL determines if this page is an interactive Single-Page-Application or a plain HTML page.
+     * The ``head(...)`` or ``head(PageType.SPA, ...)`` function creates an HTML page ``<head>`` tag for an SPA.
+     * If the ``head()`` is not present in the page's markup, the simple SPA-type header is added automatically.
+     * This type of head injects a script, which establishes a WebSocket connection between the browser's page and the server
+     * and enables reacting to the browser events.
+     * ``head(HeadType.PLAIN, ...)`` renders the markup with the ``<head>`` tag without injecting of init script
+     * to establish a connection with server and enable server side events handling for SPA.
+     * This results in rendering of a plain detached HTML page.
+     */
     public enum HeadType { SPA, PLAIN }
 
     /**

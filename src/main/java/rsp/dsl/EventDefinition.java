@@ -119,6 +119,8 @@ public final class EventDefinition implements Definition {
 
     /**
      * Creates a new modified instance with the throttle event filter enabled.
+     * Some types of browser events, like a mouse move, may fire a lot of events' invocations.
+     * Sending all these notifications over the network and processing them on the server side may cause the system's overload.
      * Throttle limits the maximum number of times an event handler can be called over time.
      * The event handler is called periodically, at specified intervals, ignoring every other calls in between these intervals.
      * Use this method to filter scroll, resize and mouse-related events.

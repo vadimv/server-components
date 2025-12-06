@@ -2,11 +2,14 @@ package rsp.routing;
 
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 /**
- * Defines a routing.
+ * Defines a web page's routing.
+ * During a dispatch, the routes are verified individually for a matching HTTP method and a path pattern.
+ * Route path patterns can include zero, one, or two path-extracting variables, possibly combined with regexes and the wildcard symbol "*"
+ * The matched variable values become available as the correspondent handlers' parameters alongside the request details object.
+ * The route's handler function should return the page's state:
  * @see RoutingDsl#concat
  * @param <T> the type of the component's input object, the 'state origin type'
  * @param <S> the type of the component's state, should be an immutable class
