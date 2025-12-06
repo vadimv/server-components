@@ -11,7 +11,7 @@ import rsp.component.ComponentRenderContext;
 public interface Definition {
 
     /**
-     * An implementation of this method determines how this definition rendered to a virtual DOM tree.
+     * An implementation of this method determines how this definition is rendered to a virtual DOM tree.
      * @param renderContext the renderer object
      * @return true, instead of void, used to make the compiler make more strict checks on the DSL
      */

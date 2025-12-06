@@ -12,33 +12,53 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * A component with its state mapped to a key-value in the components' context.
+ * @see AddressBarSyncComponent as an example of a component up in the components tree which syncs context with some external state source
+ *
+ * @param <S> the type of the state bind to the components context in this subtree
+ */
 public class ContextComponent<S> extends StatefulComponent<S> {
+    /**
+     * The prefix for mapped attributes names
+     */
     public static final String STATE_UPDATED_EVENT_PREFIX = "stateUpdated.";
+
+    /**
+     * The field name for a state's change notification event object value
+     */
     public static final String STATE_VALUE_ATTRIBUTE_NAME = "value";
 
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final String name;
-    private final Function<String, S> keyToStateFunction;
-    private final Function<S, String> stateToKeyFunction;
+    private final String contextAttributeName;
+    private final Function<String, S> contextValueToStateFunction;
+    private final Function<S, String> stateToContextValueFunction;
     private final ComponentView<S> view;
 
-    public ContextComponent(final String name,
-                            final Function<String, S> keyToStateFunction,
-                            final Function<S, String> stateToKeyFunction,
+    /**
+     *
+     * @param contextAttributeName
+     * @param contextValueToStateFunction
+     * @param stateToContextValueFunction
+     * @param view
+     */
+    public ContextComponent(final String contextAttributeName,
+                            final Function<String, S> contextValueToStateFunction,
+                            final Function<S, String> stateToContextValueFunction,
                             final ComponentView<S> view) {
         super(ContextComponent.class);
-        this.name = Objects.requireNonNull(name);
-        this.keyToStateFunction = Objects.requireNonNull(keyToStateFunction);
-        this.stateToKeyFunction = Objects.requireNonNull(stateToKeyFunction);
+        this.contextAttributeName = Objects.requireNonNull(contextAttributeName);
+        this.contextValueToStateFunction = Objects.requireNonNull(contextValueToStateFunction);
+        this.stateToContextValueFunction = Objects.requireNonNull(stateToContextValueFunction);
         this.view = Objects.requireNonNull(view);
     }
 
     @Override
     public ComponentStateSupplier<S> initStateSupplier() {
         return (_, componentContext) -> {
-            final String value = (String) componentContext.getAttribute(name);
-            return keyToStateFunction.apply(value);
+            final String value = (String) componentContext.getAttribute(contextAttributeName);
+            return contextValueToStateFunction.apply(value);
         };
     }
 
@@ -47,32 +67,31 @@ public class ContextComponent<S> extends StatefulComponent<S> {
         return view;
     }
 
-
     @Override
-    public ComponentSegment<S> createComponent(QualifiedSessionId sessionId,
-                                               TreePositionPath componentPath,
-                                               RenderContextFactory renderContextFactory,
-                                               ComponentContext sessionObjects,
-                                               Consumer<Command> commandsEnqueue) {
+    public ComponentSegment<S> createComponent(final QualifiedSessionId sessionId,
+                                               final TreePositionPath componentPath,
+                                               final RenderContextFactory renderContextFactory,
+                                               final ComponentContext sessionObjects,
+                                               final Consumer<Command> commandsEnqueue) {
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
-                               initStateSupplier(),
-                               subComponentsContext(),
-                               componentView(),
-                               new ComponentCallbacks<>(onComponentMountedCallback(),
-                                                        onComponentUpdatedCallback(),
-                                                        onComponentUnmountedCallback()),
-                               renderContextFactory,
-                               sessionObjects,
-                               commandsEnqueue) {
+                                      initStateSupplier(),
+                                      subComponentsContext(),
+                                      componentView(),
+                                      new ComponentCallbacks<>(onComponentMountedCallback(),
+                                                               onComponentUpdatedCallback(),
+                                                               onComponentUnmountedCallback()),
+                                      renderContextFactory,
+                                      sessionObjects,
+                                      commandsEnqueue) {
 
 
-            protected boolean onBeforeUpdated(S state) {
-                commandsEnqueue.accept(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + name,
+            @Override
+            protected boolean onBeforeUpdated(final S state) {
+                commandsEnqueue.accept(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + contextAttributeName,
                                        new JsonDataType.Object().put(STATE_VALUE_ATTRIBUTE_NAME,
-                                                                     new JsonDataType.String(stateToKeyFunction.apply(state)))));
-                return false; // do not update this component
+                                                                     new JsonDataType.String(stateToContextValueFunction.apply(state)))));
+                return false; // do not update this component, it will be re-rendered as a part of the whole subtree
             }
-
         };
     }
 }

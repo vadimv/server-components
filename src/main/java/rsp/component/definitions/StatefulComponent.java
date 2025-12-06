@@ -12,8 +12,8 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 /**
- * This is the base class for all components definitions.
- * @param <S> this component's state type, should be an immutable class
+ * This is the base class for components definitions.
+ * @param <S> this component's state type
  */
 public abstract class StatefulComponent<S> implements Definition, ComponentFactory<S> {
 
@@ -29,7 +29,7 @@ public abstract class StatefulComponent<S> implements Definition, ComponentFacto
 
     /**
      * This method provides a function for an initial state for this component. The provided value will be used for an initial rendering.
-     * The state could be retrieved from a cache.
+     * For example, the state could be provided or retrieved from a cache.
      * @return a function for an initial state
      */
     public abstract ComponentStateSupplier<S> initStateSupplier();
@@ -42,6 +42,10 @@ public abstract class StatefulComponent<S> implements Definition, ComponentFacto
     public abstract ComponentView<S> componentView();
 
 
+    /**
+     * Provides a capability to define components context for downstream components states
+     * @return a function for creating components context to be uses in the wrapped components subtree
+     */
     public BiFunction<ComponentContext, S, ComponentContext> subComponentsContext() {
         return (c, s) -> c;
     }
@@ -82,15 +86,15 @@ public abstract class StatefulComponent<S> implements Definition, ComponentFacto
                                                final ComponentContext componentContext,
                                                final Consumer<Command> commandsEnqueue) {
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
-                               initStateSupplier(),
-                               subComponentsContext(),
-                               componentView(),
-                               new ComponentCallbacks<>(onComponentMountedCallback(),
-                                                        onComponentUpdatedCallback(),
-                                                        onComponentUnmountedCallback()),
-                               renderContextFactory,
-                               componentContext,
-                               commandsEnqueue);
+                                      initStateSupplier(),
+                                      subComponentsContext(),
+                                      componentView(),
+                                      new ComponentCallbacks<>(onComponentMountedCallback(),
+                                                               onComponentUpdatedCallback(),
+                                                               onComponentUnmountedCallback()),
+                                      renderContextFactory,
+                                      componentContext,
+                                      commandsEnqueue);
     }
 
     @Override

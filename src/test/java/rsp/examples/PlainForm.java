@@ -38,6 +38,7 @@ public class PlainForm {
             this.secondName = Objects.requireNonNull(secondName);
         }
 
+        @Override
         public String toString() {
             return firstName + " " + secondName;
         }

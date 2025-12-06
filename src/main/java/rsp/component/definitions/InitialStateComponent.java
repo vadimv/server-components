@@ -6,6 +6,10 @@ import rsp.component.View;
 
 import java.util.Objects;
 
+/**
+ * A component with its state provided on an initialization.
+ * @param <S>
+ */
 public class InitialStateComponent<S> extends StatefulComponent<S> {
 
     private final ComponentView<S> view;

@@ -22,11 +22,21 @@ import java.util.function.Consumer;
 import static rsp.component.definitions.ContextComponent.STATE_UPDATED_EVENT_PREFIX;
 import static rsp.component.definitions.ContextComponent.STATE_VALUE_ATTRIBUTE_NAME;
 
-public class AddressBarSyncComponent<S> extends StatefulComponent<RelativeUrl> {
+/**
+ * This wrapper component acts as a mediator and synchronizes the current browsers page address bar's path elements and query parameters
+ * to the wrapped components subtree states.
+ * On an initial rendering, the actual URL path and query parameters state are mapped to the context's fields to be propagated with the components' context to  its subtree components.
+ * Later when the bind state changes somewhere in the components down the wrapped subtree, this component is notified and updates the address bar.
+ * @see ComponentContext for subtree components with bind state
+ */
+public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
 
+    /**
+     * A browser session history entry change event name
+     */
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
-    private final RelativeUrl initialRelativeUrl;
 
+    private final RelativeUrl initialRelativeUrl;
     private final Definition subTreeDefinition;
     private final List<PositionKey> pathElementsKeys;
     private final List<ParameterNameKey> queryParametersNameKeys;
@@ -42,21 +52,44 @@ public class AddressBarSyncComponent<S> extends StatefulComponent<RelativeUrl> {
         this.queryParametersNameKeys = Objects.requireNonNull(queryParametersNameKeys);
     }
 
-    public static <S> AddressBarSyncComponent<S> of(RelativeUrl initialRelativeUrl, StatefulComponent<S> componentDefinition) {
-        return new AddressBarSyncComponent<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
+    /**
+     * Creates a new instance of this type of component.
+     * This method is a part of little language to configure path elements an query parameters mappings.
+     * @param initialRelativeUrl
+     * @param componentDefinition
+     * @return a new instance
+     * @param <S>
+     */
+    public static <S> AddressBarSyncComponent of(RelativeUrl initialRelativeUrl, StatefulComponent<S> componentDefinition) {
+        return new AddressBarSyncComponent(initialRelativeUrl, componentDefinition, List.of(), List.of());
     }
 
-    public AddressBarSyncComponent<S> withPathElement(int position, String key) {
+    /**
+     * Creates a new instance with added mappings from a path element's index to a components context key name.
+     * This method is a part of little language to configure path elements an query parameters mappings.
+     * @param position a position in the path, starting from 0
+     * @param key a mapped state key name for the reference in the components context
+     * @return a new instance
+     */
+    public AddressBarSyncComponent withPathElement(int position, String key) {
         final List<PositionKey> l = new ArrayList<>(this.pathElementsKeys);
         l.add(new PositionKey(position, key));
-        return new AddressBarSyncComponent<>(this.initialRelativeUrl, this.subTreeDefinition, l, this.queryParametersNameKeys);
+        return new AddressBarSyncComponent(this.initialRelativeUrl, this.subTreeDefinition, l, this.queryParametersNameKeys);
     }
 
-    public AddressBarSyncComponent<S> withQueryParameter(String parameterName, String key) {
+    /**
+     * Creates a new instance with added mappings from a query parameter identified by its name to a components context key name.
+     * This method is a part of little language to configure path elements an query parameters mappings.
+     * @param parameterName a query parameter's name
+     * @param key a mapped state key name for the reference in the components context
+     * @return a new instance
+     */
+    public AddressBarSyncComponent withQueryParameter(String parameterName, String key) {
         final List<ParameterNameKey> l = new ArrayList<>(queryParametersNameKeys);
         l.add(new ParameterNameKey(parameterName, key));
-        return new AddressBarSyncComponent<>(this.initialRelativeUrl, this.subTreeDefinition, this.pathElementsKeys, l);
+        return new AddressBarSyncComponent(this.initialRelativeUrl, this.subTreeDefinition, this.pathElementsKeys, l);
     }
+
 
     @Override
     public ComponentStateSupplier<RelativeUrl> initStateSupplier() {
@@ -64,6 +97,7 @@ public class AddressBarSyncComponent<S> extends StatefulComponent<RelativeUrl> {
     }
 
 
+    @Override
     public BiFunction<ComponentContext, RelativeUrl, ComponentContext> subComponentsContext() {
         return (componentContext, relativeUrl) -> {
             final Map<String, Object> m = new HashMap<>();
@@ -88,7 +122,6 @@ public class AddressBarSyncComponent<S> extends StatefulComponent<RelativeUrl> {
     }
 
 
-
     @Override
     public ComponentSegment<RelativeUrl> createComponent(final QualifiedSessionId sessionId,
                                                          final TreePositionPath componentPath,
@@ -104,15 +137,15 @@ public class AddressBarSyncComponent<S> extends StatefulComponent<RelativeUrl> {
         }
 
         return new ComponentSegment<>(componentId,
-                               initStateSupplier(),
-                               subComponentsContext(),
-                               componentView(),
-                               new ComponentCallbacks<>(onComponentMountedCallback(),
-                                                        onComponentUpdatedCallback(),
-                                                        onComponentUnmountedCallback()),
-                               renderContextFactory,
-                               componentContext,
-                               commandsEnqueue) {
+                                      initStateSupplier(),
+                                      subComponentsContext(),
+                                      componentView(),
+                                      new ComponentCallbacks<>(onComponentMountedCallback(),
+                                                               onComponentUpdatedCallback(),
+                                                               onComponentUnmountedCallback()),
+                                      renderContextFactory,
+                                      componentContext,
+                                      commandsEnqueue) {
 
             @Override
             protected void onAfterRendered(RelativeUrl state) {
