@@ -1,7 +1,6 @@
-package rsp.component.definitions.lookup;
+package rsp.component.definitions;
 
 import rsp.component.*;
-import rsp.component.definitions.StatefulComponent;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
@@ -20,10 +19,10 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-public class AddressBarLookupComponent<S> extends StatefulComponent<RelativeUrl> {
+import static rsp.component.definitions.ContextComponent.STATE_UPDATED_EVENT_PREFIX;
+import static rsp.component.definitions.ContextComponent.STATE_VALUE_ATTRIBUTE_NAME;
 
-    public static final String STATE_UPDATED_EVENT_PREFIX = "stateUpdated.";
-    public static final String STATE_VALUE_ATTRIBUTE_NAME = "value";
+public class AddressBarSyncComponent<S> extends StatefulComponent<RelativeUrl> {
 
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
     private final RelativeUrl initialRelativeUrl;
@@ -32,31 +31,31 @@ public class AddressBarLookupComponent<S> extends StatefulComponent<RelativeUrl>
     private final List<PositionKey> pathElementsKeys;
     private final List<ParameterNameKey> queryParametersNameKeys;
 
-    AddressBarLookupComponent(final RelativeUrl initialRelativeUrl,
-                              final Definition subTreeDefinition,
-                              final List<PositionKey> pathElementsKeys,
-                              final List<ParameterNameKey> queryParametersNameKeys) {
-        super(AddressBarLookupComponent.class);
+    AddressBarSyncComponent(final RelativeUrl initialRelativeUrl,
+                            final Definition subTreeDefinition,
+                            final List<PositionKey> pathElementsKeys,
+                            final List<ParameterNameKey> queryParametersNameKeys) {
+        super(AddressBarSyncComponent.class);
         this.initialRelativeUrl = Objects.requireNonNull(initialRelativeUrl);
         this.subTreeDefinition = Objects.requireNonNull(subTreeDefinition);
         this.pathElementsKeys = Objects.requireNonNull(pathElementsKeys);
         this.queryParametersNameKeys = Objects.requireNonNull(queryParametersNameKeys);
     }
 
-    public static <S> AddressBarLookupComponent<S> of(RelativeUrl initialRelativeUrl, StatefulComponent<S> componentDefinition) {
-        return new AddressBarLookupComponent<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
+    public static <S> AddressBarSyncComponent<S> of(RelativeUrl initialRelativeUrl, StatefulComponent<S> componentDefinition) {
+        return new AddressBarSyncComponent<>(initialRelativeUrl, componentDefinition, List.of(), List.of());
     }
 
-    public AddressBarLookupComponent<S> withPathElement(int position, String key) {
+    public AddressBarSyncComponent<S> withPathElement(int position, String key) {
         final List<PositionKey> l = new ArrayList<>(this.pathElementsKeys);
         l.add(new PositionKey(position, key));
-        return new AddressBarLookupComponent<>(this.initialRelativeUrl, this.subTreeDefinition, l, this.queryParametersNameKeys);
+        return new AddressBarSyncComponent<>(this.initialRelativeUrl, this.subTreeDefinition, l, this.queryParametersNameKeys);
     }
 
-    public AddressBarLookupComponent<S> withQueryParameter(String parameterName, String key) {
+    public AddressBarSyncComponent<S> withQueryParameter(String parameterName, String key) {
         final List<ParameterNameKey> l = new ArrayList<>(queryParametersNameKeys);
         l.add(new ParameterNameKey(parameterName, key));
-        return new AddressBarLookupComponent<>(this.initialRelativeUrl, this.subTreeDefinition, this.pathElementsKeys, l);
+        return new AddressBarSyncComponent<>(this.initialRelativeUrl, this.subTreeDefinition, this.pathElementsKeys, l);
     }
 
     @Override

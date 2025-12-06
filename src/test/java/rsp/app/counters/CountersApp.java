@@ -5,8 +5,8 @@ import rsp.component.ComponentView;
 import rsp.component.StateUpdate;
 import rsp.component.View;
 import rsp.component.definitions.*;
-import rsp.component.definitions.lookup.AddressBarLookupComponent;
-import rsp.component.definitions.lookup.LookupStateComponent;
+import rsp.component.definitions.AddressBarSyncComponent;
+import rsp.component.definitions.ContextComponent;
 import rsp.dsl.Definition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
@@ -32,21 +32,21 @@ public final class CountersApp {
     public final WebServer webServer;
 
     private static Definition counterComponent1() {
-        return new LookupStateComponent<>("c1",
+        return new ContextComponent<>("c1",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c1"));
     }
 
     private static Definition counterComponent2() {
-        return new LookupStateComponent<>("c2",
+        return new ContextComponent<>("c2",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c2"));
     }
 
     private static Definition counterComponent4() {
-        return new LookupStateComponent<>("c4",
+        return new ContextComponent<>("c4",
                                                    v -> v == null ? 0 : Integer.parseInt(v),
                                                     Object::toString,
                                                     counterView("c4"));
@@ -110,7 +110,7 @@ public final class CountersApp {
                                 link(attr("rel", "stylesheet"),
                                         attr("href", "/res/style.css"))),
                         body(
-                                AddressBarLookupComponent.of(httpRequest.relativeUrl(),
+                                AddressBarSyncComponent.of(httpRequest.relativeUrl(),
                                                 new InitialStateComponent<>(countersState, mainView(countersState)))
                                         .withPathElement(0, "c1")
                                         .withPathElement(1, "c2")
