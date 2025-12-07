@@ -23,7 +23,7 @@ import static rsp.component.definitions.ContextComponent.STATE_UPDATED_EVENT_PRE
 import static rsp.component.definitions.ContextComponent.STATE_VALUE_ATTRIBUTE_NAME;
 
 /**
- * This wrapper component acts as a mediator and synchronizes the current browsers page address bar's path elements and query parameters
+ * This wrapper component acts as a mediator and synchronizes the current browser page address bar's path elements and query parameters
  * to the wrapped components subtree states.
  * On an initial rendering, the actual URL path and query parameters state are mapped to the context's fields to be propagated with the components' context to  its subtree components.
  * Later when the bind state changes somewhere in the components down the wrapped subtree, this component is notified and updates the address bar.
@@ -54,7 +54,7 @@ public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
 
     /**
      * Creates a new instance of this type of component.
-     * This method is a part of little language to configure path elements an query parameters mappings.
+     * This method is a part of little language to configure path elements query parameters mappings.
      * @param initialRelativeUrl
      * @param componentDefinition
      * @return a new instance
@@ -66,7 +66,7 @@ public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
 
     /**
      * Creates a new instance with added mappings from a path element's index to a components context key name.
-     * This method is a part of little language to configure path elements an query parameters mappings.
+     * This method is a part of little language to configure path elements query parameters mappings.
      * @param position a position in the path, starting from 0
      * @param key a mapped state key name for the reference in the components context
      * @return a new instance
@@ -79,7 +79,7 @@ public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
 
     /**
      * Creates a new instance with added mappings from a query parameter identified by its name to a components context key name.
-     * This method is a part of little language to configure path elements an query parameters mappings.
+     * This method is a part of little language to configure path elements query parameters mappings.
      * @param parameterName a query parameter's name
      * @param key a mapped state key name for the reference in the components context
      * @return a new instance

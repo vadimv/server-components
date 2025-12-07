@@ -3,7 +3,7 @@ package rsp.dom;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-public final class Diff {
+public final class NodesTreeDiff {
 
     public static void diff(final TagNode ct,
                             final TagNode wt,

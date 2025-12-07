@@ -13,8 +13,6 @@ public interface StateUpdate<S> {
 
     void setState(S newState);
 
-    void setStateWhenComplete(S newState);
-
     void applyStateTransformation(UnaryOperator<S> stateTransformer);
 
     void applyStateTransformationIfPresent(Function<S, Optional<S>> stateTransformer);

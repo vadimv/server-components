@@ -6,7 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * A component with its state provided on an initialization and cached.
+ * A component with its state provided on an initialization and stored in a cache.
  * @param <S>
  */
 public class StoredStateComponent<S> extends StatefulComponent<S> {

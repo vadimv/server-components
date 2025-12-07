@@ -149,11 +149,6 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     @Override
-    public void setStateWhenComplete(final S newState) {
-        setState(newState);
-    }
-
-    @Override
     public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
         stateTransformer.apply(state).ifPresent(this::setState);
     }
@@ -195,7 +190,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        Diff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
+        NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
         final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
         commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
 
@@ -235,7 +230,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterMounted(final S state) {
-        lifeCycleCallbacks.onComponentMounted(componentId, state, new EnqueueTaskStateUpdate());
+        lifeCycleCallbacks.onComponentMounted(componentId, state, this.new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterRendered(final S state) {
@@ -246,7 +241,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterUpdated(final S oldState, final S state) {
-        lifeCycleCallbacks.onComponentUpdated(componentId, oldState, state, new EnqueueTaskStateUpdate());
+        lifeCycleCallbacks.onComponentUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterUnmounted(final ComponentCompositeKey key, final S oldState) {
@@ -361,13 +356,6 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         public void setState(final S newState) {
             commandsEnqueue.accept(new GenericTaskEvent(() -> {
                 ComponentSegment.this.setState(newState);
-            }));
-        }
-
-        @Override
-        public void setStateWhenComplete(final S newState) {
-            commandsEnqueue.accept(new GenericTaskEvent(() -> {
-                ComponentSegment.this.setStateWhenComplete(newState);
             }));
         }
 
