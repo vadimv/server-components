@@ -123,11 +123,11 @@ public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
 
 
     @Override
-    public ComponentSegment<RelativeUrl> createComponent(final QualifiedSessionId sessionId,
-                                                         final TreePositionPath componentPath,
-                                                         final RenderContextFactory renderContextFactory,
-                                                         final ComponentContext componentContext,
-                                                         final Consumer<Command> commandsEnqueue) {
+    public ComponentSegment<RelativeUrl> createComponentSegment(final QualifiedSessionId sessionId,
+                                                                final TreePositionPath componentPath,
+                                                                final RenderContextFactory renderContextFactory,
+                                                                final ComponentContext componentContext,
+                                                                final Consumer<Command> commandsEnqueue) {
         final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
 
         // prepare indices for path elements session keys

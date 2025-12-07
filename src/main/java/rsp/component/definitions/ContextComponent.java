@@ -68,11 +68,11 @@ public class ContextComponent<S> extends StatefulComponent<S> {
     }
 
     @Override
-    public ComponentSegment<S> createComponent(final QualifiedSessionId sessionId,
-                                               final TreePositionPath componentPath,
-                                               final RenderContextFactory renderContextFactory,
-                                               final ComponentContext sessionObjects,
-                                               final Consumer<Command> commandsEnqueue) {
+    public ComponentSegment<S> createComponentSegment(final QualifiedSessionId sessionId,
+                                                      final TreePositionPath componentPath,
+                                                      final RenderContextFactory renderContextFactory,
+                                                      final ComponentContext sessionObjects,
+                                                      final Consumer<Command> commandsEnqueue) {
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                       initStateSupplier(),
                                       subComponentsContext(),

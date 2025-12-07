@@ -47,11 +47,11 @@ public class ComponentRenderContext implements RenderContextFactory {
         return docType;
     }
 
-    public <S> ComponentSegment<S> openComponent(final ComponentFactory<S> componentFactory) {
+    public <S> ComponentSegment<S> openComponent(final ComponentSegmentFactory<S> componentSegmentFactory) {
         final ComponentSegment<?> parent = componentsStack.peek();
         final TreePositionPath componentPath = parent == null ?
                 ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
-        final ComponentSegment<S> newComponent = componentFactory.createComponent(sessionId,
+        final ComponentSegment<S> newComponent = componentSegmentFactory.createComponentSegment(sessionId,
                                                                            componentPath,
                                                                            this,
                                                                            componentContext,

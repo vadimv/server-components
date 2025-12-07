@@ -5,6 +5,10 @@ import rsp.component.*;
 import java.util.Map;
 import java.util.Objects;
 
+/**
+ * A component with its state provided on an initialization and cached.
+ * @param <S>
+ */
 public class StoredStateComponent<S> extends StatefulComponent<S> {
 
     private final ComponentView<S> view;

@@ -15,7 +15,7 @@ import static rsp.dsl.Html.*;
 import static rsp.routing.RoutingDsl.*;
 
 /**
- * An example with plain detached pages:
+ * An example with plain web pages:
  * <ul>
  *     <li>a page with an input form</li>
  *     <li>a page with representation of the entered data</li>

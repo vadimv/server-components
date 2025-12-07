@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * This is the base class for components definitions.
  * @param <S> this component's state type
  */
-public abstract class StatefulComponent<S> implements Definition, ComponentFactory<S> {
+public abstract class StatefulComponent<S> implements Definition, ComponentSegmentFactory<S> {
 
     protected final Object componentType;
 
@@ -80,11 +80,11 @@ public abstract class StatefulComponent<S> implements Definition, ComponentFacto
     }
 
     @Override
-    public ComponentSegment<S> createComponent(final QualifiedSessionId sessionId,
-                                               final TreePositionPath componentPath,
-                                               final RenderContextFactory renderContextFactory,
-                                               final ComponentContext componentContext,
-                                               final Consumer<Command> commandsEnqueue) {
+    public ComponentSegment<S> createComponentSegment(final QualifiedSessionId sessionId,
+                                                      final TreePositionPath componentPath,
+                                                      final RenderContextFactory renderContextFactory,
+                                                      final ComponentContext componentContext,
+                                                      final Consumer<Command> commandsEnqueue) {
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                       initStateSupplier(),
                                       subComponentsContext(),
