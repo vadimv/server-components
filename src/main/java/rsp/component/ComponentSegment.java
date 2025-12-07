@@ -37,10 +37,8 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final ComponentContext componentContext;
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
-    private final ComponentMountedCallback<S> componentMountedCallback;
-    private final ComponentUpdatedCallback<S> componentUpdatedCallback;
-    private final ComponentUnmountedCallback<S> componentUnmountedCallback;
-    private final ComponentView<S> componentView;
+     private final ComponentView<S> componentView;
+    private final ComponentSegmentLifeCycle<S> lifeCycleCallbacks;
     private final RenderContextFactory renderContextFactory;
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
@@ -65,7 +63,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * @param stateResolver a function to resolve an initial state
      * @param contextResolver a function that build a context object that is propagated to descendant components
      * @param componentView contains DOM subtree definition.
-     * @param callbacks a bundle of this component's life cycle events callbacks
+     * @param lifeCycleCallbacks a bundle of this component's life cycle events callbacks
      * @param renderContextFactory a factory for a render context for children components
      * @param componentContext a context object from ascendant components
      * @param commandsEnqueue a consumer for the page's control loop commands
@@ -74,17 +72,15 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
                             final ComponentStateSupplier<S> stateResolver,
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
                             final ComponentView<S> componentView,
-                            final ComponentCallbacks<S> callbacks,
+                            final ComponentSegmentLifeCycle<S> lifeCycleCallbacks,
                             final RenderContextFactory renderContextFactory,
                             final ComponentContext componentContext,
                             final Consumer<Command> commandsEnqueue) {
         this.componentId = Objects.requireNonNull(componentId);
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.contextResolver = Objects.requireNonNull(contextResolver);
-        this.componentMountedCallback = Objects.requireNonNull(callbacks.componentMountedCallback());
         this.componentView = Objects.requireNonNull(componentView);
-        this.componentUpdatedCallback = Objects.requireNonNull(callbacks.componentUpdatedCallback());
-        this.componentUnmountedCallback = Objects.requireNonNull(callbacks.componentUnmountedCallback());
+        this.lifeCycleCallbacks = lifeCycleCallbacks;
         this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
         this.componentContext = Objects.requireNonNull(componentContext);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
@@ -239,7 +235,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterMounted(final S state) {
-        componentMountedCallback.onComponentMounted(componentId, state, new EnqueueTaskStateUpdate());
+        lifeCycleCallbacks.onComponentMounted(componentId, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterRendered(final S state) {
@@ -250,11 +246,11 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     protected void onAfterUpdated(final S oldState, final S state) {
-        componentUpdatedCallback.onComponentUpdated(componentId, oldState, state, new EnqueueTaskStateUpdate());
+        lifeCycleCallbacks.onComponentUpdated(componentId, oldState, state, new EnqueueTaskStateUpdate());
     }
 
     protected void onAfterUnmounted(final ComponentCompositeKey key, final S oldState) {
-        componentUnmountedCallback.onComponentUnmounted(componentId, state);
+        lifeCycleCallbacks.onComponentUnmounted(componentId, state);
     }
 
     public List<ComponentSegment<?>> directChildren() {

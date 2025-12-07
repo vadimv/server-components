@@ -77,9 +77,7 @@ public class ContextComponent<S> extends StatefulComponent<S> {
                                       initStateSupplier(),
                                       subComponentsContext(),
                                       componentView(),
-                                      new ComponentCallbacks<>(onComponentMountedCallback(),
-                                                               onComponentUpdatedCallback(),
-                                                               onComponentUnmountedCallback()),
+                                      this,
                                       renderContextFactory,
                                       sessionObjects,
                                       commandsEnqueue) {

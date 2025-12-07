@@ -132,17 +132,15 @@ public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
 
         // prepare indices for path elements session keys
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
-        for (int i = 0; i < pathElementsKeys.size(); i++) {
-            pathElementsKeysIndices.put(pathElementsKeys.get(i).key, pathElementsKeys.get(i).position);
+        for (final PositionKey pathElementsKey : pathElementsKeys) {
+            pathElementsKeysIndices.put(pathElementsKey.key, pathElementsKey.position);
         }
 
         return new ComponentSegment<>(componentId,
                                       initStateSupplier(),
                                       subComponentsContext(),
                                       componentView(),
-                                      new ComponentCallbacks<>(onComponentMountedCallback(),
-                                                               onComponentUpdatedCallback(),
-                                                               onComponentUnmountedCallback()),
+                                      this,
                                       renderContextFactory,
                                       componentContext,
                                       commandsEnqueue) {

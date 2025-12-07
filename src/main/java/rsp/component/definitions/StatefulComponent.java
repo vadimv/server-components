@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * This is the base class for components definitions.
  * @param <S> this component's state type
  */
-public abstract class StatefulComponent<S> implements Definition, ComponentSegmentFactory<S> {
+public abstract class StatefulComponent<S> implements Definition, ComponentSegmentFactory<S>, ComponentSegmentLifeCycle<S> {
 
     protected final Object componentType;
 
@@ -41,7 +41,6 @@ public abstract class StatefulComponent<S> implements Definition, ComponentSegme
      */
     public abstract ComponentView<S> componentView();
 
-
     /**
      * Provides a capability to define components context for downstream components states
      * @return a function for creating components context to be uses in the wrapped components subtree
@@ -53,30 +52,23 @@ public abstract class StatefulComponent<S> implements Definition, ComponentSegme
     /**
      * This method provides a callback for the event when this component is mounted to the segments tree.
      * It is threadsafe to call the state update's methods e.g. to change the component's state in this callback.
-     *
-     * @return a callback receiving this component's instance key, a current state and a new state update object.
+
      */
-    public ComponentMountedCallback<S> onComponentMountedCallback() {
-        return (key,  state, newState) -> {
-        };
+    public void onComponentMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate) {
     }
 
     /**
      * This method provides a callback for the event when this component's state is updated.
      * It is threadsafe to call the state update's methods e.g. to change the component's state in this callback.
      *
-     * @return a callback receiving this component's instance key, a current state and a new state update object.
      */
-    public ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key,  oldState, state, newState) -> {};
+    public void onComponentUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate) {
     }
 
     /**
      * This method provides a callback for the event when this component's will be unmounted from the rendered tree.
-     * @return a callback receiving a key and a current state.
      */
-    public ComponentUnmountedCallback<S> onComponentUnmountedCallback() {
-        return (key, state) -> {};
+    public void onComponentUnmounted(ComponentCompositeKey componentId, S state) {
     }
 
     @Override
@@ -89,9 +81,7 @@ public abstract class StatefulComponent<S> implements Definition, ComponentSegme
                                       initStateSupplier(),
                                       subComponentsContext(),
                                       componentView(),
-                                      new ComponentCallbacks<>(onComponentMountedCallback(),
-                                                               onComponentUpdatedCallback(),
-                                                               onComponentUnmountedCallback()),
+                                      this,
                                       renderContextFactory,
                                       componentContext,
                                       commandsEnqueue);

@@ -47,8 +47,8 @@ public class StoredStateComponent<S> extends StatefulComponent<S> {
     }
 
     @Override
-    public ComponentUpdatedCallback<S> onComponentUpdatedCallback() {
-        return (key, _, state, _) -> stateStore.put(key, state);
+    public void onComponentUpdated(final ComponentCompositeKey componentId, final S oldState, final S newState, final StateUpdate<S> stateUpdate) {
+        stateStore.put(componentId, newState);
     }
 
     @Override
