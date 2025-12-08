@@ -1,7 +1,7 @@
 package rsp.dom;
 
 /**
- * Represents a segment, a part of a GUI tree.
+ * Represents a part of a UI tree.
  */
 public interface Segment {
 }

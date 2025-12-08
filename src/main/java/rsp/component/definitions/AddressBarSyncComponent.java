@@ -29,7 +29,7 @@ import static rsp.component.definitions.ContextComponent.STATE_VALUE_ATTRIBUTE_N
  * Later when the bind state changes somewhere in the components down the wrapped subtree, this component is notified and updates the address bar.
  * @see ComponentContext for subtree components with bind state
  */
-public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
+public class AddressBarSyncComponent extends Component<RelativeUrl> {
 
     /**
      * A browser session history entry change event name
@@ -60,7 +60,7 @@ public class AddressBarSyncComponent extends StatefulComponent<RelativeUrl> {
      * @return a new instance
      * @param <S>
      */
-    public static <S> AddressBarSyncComponent of(RelativeUrl initialRelativeUrl, StatefulComponent<S> componentDefinition) {
+    public static <S> AddressBarSyncComponent of(RelativeUrl initialRelativeUrl, Component<S> componentDefinition) {
         return new AddressBarSyncComponent(initialRelativeUrl, componentDefinition, List.of(), List.of());
     }
 

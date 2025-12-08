@@ -2,7 +2,7 @@ package rsp.component;
 
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.InitialStateComponent;
-import rsp.component.definitions.StatefulComponent;
+import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
@@ -39,7 +39,7 @@ class InitialStateComponentTests {
                                                                                 TreePositionPath.of("1"),
                                                                                 new ComponentContext(),
                                                                                 commands);
-        final StatefulComponent<String> scd = new InitialStateComponent<>("state-0",
+        final Component<String> scd = new InitialStateComponent<>("state-0",
                                                                                               view);
         // Initial render
         scd.render(renderContext);

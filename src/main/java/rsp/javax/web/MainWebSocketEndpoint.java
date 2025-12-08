@@ -19,6 +19,10 @@ import java.util.*;
 
 import static java.lang.System.Logger.Level.*;
 
+/**
+ * This class provides a WebSocket support for live pages sessions.
+ * This class is an implementation of JSR 356 WebSockets API.
+ */
 public final class MainWebSocketEndpoint extends Endpoint {
     private static final System.Logger logger = System.getLogger(MainWebSocketEndpoint.class.getName());
 

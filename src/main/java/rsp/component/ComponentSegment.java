@@ -1,6 +1,6 @@
 package rsp.component;
 
-import rsp.component.definitions.StatefulComponent;
+import rsp.component.definitions.Component;
 import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.dsl.Definition;
@@ -31,13 +31,20 @@ import static java.lang.System.Logger.Level.*;
 public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
+    /**
+     * A unique identifier of this instance, e.g. to be used as a key for its state in cache
+     */
     protected final ComponentCompositeKey componentId;
+
+    /**
+     *
+     */
     protected final Consumer<Command> commandsEnqueue;
 
     private final ComponentContext componentContext;
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
-     private final ComponentView<S> componentView;
+    private final ComponentView<S> componentView;
     private final ComponentSegmentLifeCycle<S> lifeCycleCallbacks;
     private final RenderContextFactory renderContextFactory;
 
@@ -51,13 +58,13 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private TreePositionPath startNodeDomPath;
 
     /**
-     * This component's current state
+     * This component's current state.
      */
     private S state;
 
     /**
      * Creates a new instance of a component. To be called in a relevant component's definition class.
-     * @see StatefulComponent<S>
+     * @see Component <S>
      *
      * @param componentId an identity of this component, an object to be used as a key to store and retrieve a current state snapshot
      * @param stateResolver a function to resolve an initial state

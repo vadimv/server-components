@@ -9,7 +9,7 @@ import rsp.server.http.HttpRequest;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class HttpRequestStateComponent<S> extends StatefulComponent<S> {
+public class HttpRequestStateComponent<S> extends Component<S> {
 
     private final Function<HttpRequest, S> initialStateRouting;
     private final ComponentView<S> componentView;

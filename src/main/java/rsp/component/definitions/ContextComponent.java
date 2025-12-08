@@ -18,7 +18,7 @@ import java.util.function.Function;
  *
  * @param <S> the type of the state bind to the components context in this subtree
  */
-public class ContextComponent<S> extends StatefulComponent<S> {
+public class ContextComponent<S> extends Component<S> {
     /**
      * The prefix for mapped attributes names
      */

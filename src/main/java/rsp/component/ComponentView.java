@@ -3,7 +3,7 @@ package rsp.component;
 import java.util.function.Function;
 
 /**
- * A function returning a stateful component's view representation.
+ * A function getting a state update API as its parameter and returning a stateful component's view.
  * @param <S> the type of the document part's related state, should be an immutable class
  */
 @FunctionalInterface

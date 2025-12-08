@@ -2,7 +2,17 @@ package rsp.dom;
 
 import java.util.Arrays;
 
+/**
+ * This immutable class represents a node's position in a tree.
+ * A position is represented by a sequence of integers where every integer's index corresponds to some level of a tree
+ * and the integer itself defines a number of the branch starting from 1.
+ * The root node's position can be empty or can be 1.
+ * For example: considering 1 is the root, 1_2 is the path to the second sibling node of on the second level of this tree.
+ */
 public final class TreePositionPath {
+    /**
+     * The separator used for a string representation of an object of this class
+     */
     public static final String SEPARATOR = "_";
 
     private final int[] array;

@@ -9,7 +9,7 @@ import java.util.Objects;
  * A component with its state provided on an initialization and stored in a cache.
  * @param <S>
  */
-public class StoredStateComponent<S> extends StatefulComponent<S> {
+public class StoredStateComponent<S> extends Component<S> {
 
     private final ComponentView<S> view;
     private final S initialState;

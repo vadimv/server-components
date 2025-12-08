@@ -3,7 +3,7 @@ package rsp.page;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentRenderContext;
 import rsp.component.definitions.InitialStateComponent;
-import rsp.component.definitions.StatefulComponent;
+import rsp.component.definitions.Component;
 import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.DomEventEntry;
@@ -30,7 +30,7 @@ public final class DefaultConnectionLostWidget {
         HTML = rc.html();
     }
 
-    private static StatefulComponent<String> widgetComponent() {
+    private static Component<String> widgetComponent() {
         return new InitialStateComponent<>("", widget());
     }
 

@@ -5,7 +5,7 @@ import rsp.component.ComponentRenderContext;
 import java.util.Arrays;
 
 /**
- * A sequence of definitions.
+ * An ordered sequence of definitions.
  */
 public final class SequenceDefinition implements Definition {
     public final Definition[] items;

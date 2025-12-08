@@ -80,7 +80,7 @@ public final class HttpRequest {
 
 
     /**
-     * Get the request's header by name.
+     * Gets the request's header by name.
      * @param headerName the header's name
      * @return an optional with the header's value or empty
      */
@@ -88,7 +88,10 @@ public final class HttpRequest {
         return headers.stream().filter(h -> headerName.equals(h.name())).map(Header::value).findFirst();
     }
 
-
+    /**
+     * Gets a relative URL.
+     * @return a relative URL with an empty fragment
+     */
     public RelativeUrl relativeUrl() {
         return new RelativeUrl(this.path, this.queryParameters, Fragment.EMPTY);
     }

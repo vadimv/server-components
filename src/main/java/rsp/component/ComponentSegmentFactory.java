@@ -8,11 +8,15 @@ import rsp.page.events.Command;
 
 import java.util.function.Consumer;
 
+/**
+ * Defines an abstraction for creating instances of ComponentSegment class
+ * @param <S> a type for this component's state snapshot
+ */
 @FunctionalInterface
 public interface ComponentSegmentFactory<S> {
 
     /**
-     *
+     * Creates a new instance.
      * @param sessionId
      * @param componentPath
      * @param renderContextFactory

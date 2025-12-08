@@ -146,7 +146,7 @@ public final class CountersApp {
         };
     }
 
-    private static StatefulComponent<AppState> rootComponent(final HttpRequest httpRequest) {
+    private static Component<AppState> rootComponent(final HttpRequest httpRequest) {
         final var appRouting = new Routing<>(get("/:c1(^-?\\d+$)/:c2(^-?\\d+$)", _ -> new CountersAppState()),
                                              new NotFoundState());
         return new HttpRequestStateComponent<>(httpRequest,

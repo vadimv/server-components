@@ -16,7 +16,7 @@ public final class HttpRequestUtils {
     private HttpRequestUtils() {}
 
     /**
-     * Creates a new instance of {@link HttpRequest} given a Servlet API HttpServletRequest
+     * Creates a new instance of {@link HttpRequest} given a Servlet API HttpServletRequest.
      * @param request a HTTP Servlet request
      * @return a HTTP request
      */
@@ -39,7 +39,7 @@ public final class HttpRequestUtils {
     }
 
     /**
-     * Creates a new instance of {@link HttpRequest} given a JSR 356 WebSocket handshake request
+     * Creates a new instance of {@link HttpRequest} given a JSR 356 WebSocket handshake request.
      * @param handshakeRequest a WebSocket handshake request
      * @return a HTTP request
      */

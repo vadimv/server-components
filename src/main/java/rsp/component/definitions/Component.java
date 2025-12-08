@@ -15,7 +15,7 @@ import java.util.function.Consumer;
  * This is the base class for components definitions.
  * @param <S> this component's state type
  */
-public abstract class StatefulComponent<S> implements Definition, ComponentSegmentFactory<S>, ComponentSegmentLifeCycle<S> {
+public abstract class Component<S> implements Definition, ComponentSegmentFactory<S>, ComponentSegmentLifeCycle<S> {
 
     protected final Object componentType;
 
@@ -23,19 +23,19 @@ public abstract class StatefulComponent<S> implements Definition, ComponentSegme
      * This constructor to be called from the inherited classes.
      * @param componentType a unique object for this component's type
      */
-    public StatefulComponent(final Object componentType) {
+    public Component(final Object componentType) {
         this.componentType = Objects.requireNonNull(componentType);
     }
 
     /**
-     * This method provides a function for an initial state for this component. The provided value will be used for an initial rendering.
-     * For example, the state could be provided or retrieved from a cache.
+     * This method's implementation provides a function for an initial state for this component. The result value will be used for an initial rendering.
+     * For example, the state could be provided in a constructor or retrieved from a cache.
      * @return a function for an initial state
      */
     public abstract ComponentStateSupplier<S> initStateSupplier();
 
     /**
-     * This method provides this component's view, a tree of segments definitions.
+     * This method provides this component's view, which is a composition of segments definitions.
      * The view together with the state will be used for rendering.
      * @return a view for this component
      */

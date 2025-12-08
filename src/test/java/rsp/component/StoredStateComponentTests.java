@@ -3,7 +3,7 @@ package rsp.component;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.InitialStateComponent;
-import rsp.component.definitions.StatefulComponent;
+import rsp.component.definitions.Component;
 import rsp.component.definitions.StoredStateComponent;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.DomEventEntry;
@@ -50,7 +50,7 @@ class StoredStateComponentTests {
                                                                                 TreePositionPath.of("1"),
                                                                                 new ComponentContext(),
                                                                                 commands);
-        final StatefulComponent<Boolean> scd = new InitialStateComponent<>(true,
+        final Component<Boolean> scd = new InitialStateComponent<>(true,
                                                                                                view);
         // Initial render
         scd.render(renderContext);
