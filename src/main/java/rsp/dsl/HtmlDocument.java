@@ -1,8 +1,8 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.dom.XmlNs;
-import rsp.page.PageRenderContext;
+import rsp.page.PageBuilder;
 
 import java.util.*;
 
@@ -23,8 +23,8 @@ public final class HtmlDocument extends Tag {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
-        if (renderContext instanceof PageRenderContext pageRenderContext) {
+    public boolean render(final TreeBuilder renderContext) {
+        if (renderContext instanceof PageBuilder pageRenderContext) {
             pageRenderContext.setStatusCode(statusCode);
             pageRenderContext.setHeaders(headers);
         }

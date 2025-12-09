@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 
 import java.util.Objects;
 
@@ -15,7 +15,7 @@ public final class ElementRef implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         renderContext.addRef(id);
         return true;
     }
@@ -34,7 +34,7 @@ public final class ElementRef implements Definition {
         }
 
         @Override
-        public boolean render(final ComponentRenderContext renderContext) {
+        public boolean render(final TreeBuilder renderContext) {
             renderContext.addRef(this);
             return true;
         }

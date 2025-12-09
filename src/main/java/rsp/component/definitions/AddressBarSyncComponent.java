@@ -4,9 +4,8 @@ import rsp.component.*;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
-import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
-import rsp.page.RenderContextFactory;
+import rsp.component.TreeBuilderFactory;
 import rsp.page.events.RemoteCommand;
 import rsp.page.events.Command;
 import rsp.server.Path;
@@ -21,6 +20,7 @@ import java.util.function.Consumer;
 
 import static rsp.component.definitions.ContextComponent.STATE_UPDATED_EVENT_PREFIX;
 import static rsp.component.definitions.ContextComponent.STATE_VALUE_ATTRIBUTE_NAME;
+import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 /**
  * This wrapper component acts as a mediator and synchronizes the current browser page address bar's path elements and query parameters
@@ -32,7 +32,7 @@ import static rsp.component.definitions.ContextComponent.STATE_VALUE_ATTRIBUTE_N
 public class AddressBarSyncComponent extends Component<RelativeUrl> {
 
     /**
-     * A browser session history entry change event name
+     * A browser session's history entry change event name.
      */
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
@@ -101,10 +101,11 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
     public BiFunction<ComponentContext, RelativeUrl, ComponentContext> subComponentsContext() {
         return (componentContext, relativeUrl) -> {
             final Map<String, Object> m = new HashMap<>();
+            // add URL's path elements for configured positions
             for (PositionKey pathElementsKey : pathElementsKeys) {
                 m.put(pathElementsKey.key, relativeUrl.path().get(pathElementsKey.position));
             }
-
+            // add query parameters for configured parameters names
             for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
                 final Optional<String> optionalParameter = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
                 optionalParameter.ifPresent(p -> {
@@ -125,10 +126,10 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
     @Override
     public ComponentSegment<RelativeUrl> createComponentSegment(final QualifiedSessionId sessionId,
                                                                 final TreePositionPath componentPath,
-                                                                final RenderContextFactory renderContextFactory,
+                                                                final TreeBuilderFactory treeBuilderFactory,
                                                                 final ComponentContext componentContext,
                                                                 final Consumer<Command> commandsEnqueue) {
-        final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO
+        final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO should it be a method for that?
 
         // prepare indices for path elements session keys
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
@@ -141,16 +142,15 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
                                       subComponentsContext(),
                                       componentView(),
                                       this,
-                                      renderContextFactory,
+                treeBuilderFactory,
                                       componentContext,
                                       commandsEnqueue) {
 
             @Override
-            protected void onAfterRendered(RelativeUrl state) {
+            protected void onAfterRendered(final RelativeUrl state) {
                 subscribeForBrowserHistoryEvents();
                 subscribeForSessionObjectsUpdates();
             }
-
 
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
@@ -215,7 +215,7 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
             }
 
             private void subscribeForBrowserHistoryEvents() {
-                this.addDomEventHandler(PageRendering.WINDOW_DOM_PATH,
+                this.addDomEventHandler(WINDOW_DOM_PATH,
                                         HISTORY_ENTRY_CHANGE_EVENT_NAME,
                              eventContext -> {
                                  final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());

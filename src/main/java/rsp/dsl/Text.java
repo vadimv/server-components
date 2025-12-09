@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 
 /**
  * A definition of an HTML tag text content.
@@ -18,7 +18,7 @@ public final class Text implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         renderContext.addTextNode(text);
         return true;
     }

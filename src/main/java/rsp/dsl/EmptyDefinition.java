@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 
 /**
  * The void definition, without any representation in the result DOM tree.
@@ -19,7 +19,7 @@ final class EmptyDefinition implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         return true;
     }
 }

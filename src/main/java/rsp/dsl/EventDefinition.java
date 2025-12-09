@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
@@ -108,7 +108,7 @@ public final class EventDefinition implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         if (elementPath.isPresent()) {
             renderContext.addEvent(elementPath.get(), eventType, handler, preventDefault, modifier);
         } else {

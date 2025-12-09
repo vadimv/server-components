@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.dom.XmlNs;
 
 import java.util.Arrays;
@@ -18,7 +18,7 @@ public class SelfClosingTag implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         renderContext.openNode(ns, name, true);
         Arrays.stream(attributeDefinitions).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);

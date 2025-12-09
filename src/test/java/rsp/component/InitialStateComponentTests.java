@@ -35,7 +35,7 @@ class InitialStateComponentTests {
                                                         uri.toString(),
                                                         Path.ROOT);
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
-        final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
+        final TreeBuilder renderContext = new TreeBuilder(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
                                                                                 new ComponentContext(),
                                                                                 commands);

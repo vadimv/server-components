@@ -2,11 +2,8 @@ package rsp.page;
 
 import java.util.Objects;
 
-public final class RenderedPage {  // TODO
-    public final PageRenderContext pageRenderContext;
-    public final RedirectableEventsConsumer commandsEnqueue;
-
-    public RenderedPage(final PageRenderContext pageRenderContext,
+public record RenderedPage(PageBuilder pageRenderContext, RedirectableEventsConsumer commandsEnqueue) {
+    public RenderedPage(final PageBuilder pageRenderContext,
                         final RedirectableEventsConsumer commandsEnqueue) {
 
         this.pageRenderContext = Objects.requireNonNull(pageRenderContext);

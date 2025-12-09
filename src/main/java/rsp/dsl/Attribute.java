@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.dom.XmlNs;
 
 /**
@@ -37,7 +37,7 @@ public final class Attribute implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
         return true;
     }

@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 
 import java.util.Arrays;
 
@@ -20,7 +20,7 @@ public final class SequenceDefinition implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         Arrays.stream(items).forEach(c -> c.render(renderContext));
         return true;
     }

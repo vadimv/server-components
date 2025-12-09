@@ -2,7 +2,6 @@ package rsp.component;
 
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
-import rsp.page.RenderContextFactory;
 import rsp.page.events.Command;
 
 
@@ -16,17 +15,17 @@ import java.util.function.Consumer;
 public interface ComponentSegmentFactory<S> {
 
     /**
-     * Creates a new instance.
-     * @param sessionId
-     * @param componentPath
-     * @param renderContextFactory
+     * Creates a new instance of a component.
+     * @param sessionId a current session identifier
+     * @param componentPath a position path of this component
+     * @param treeBuilderFactory an instance of a factory for new render context
      * @param componentContext
      * @param commandsEnqueue
-     * @return
+     * @return a new instance of a component
      */
     ComponentSegment<S> createComponentSegment(QualifiedSessionId sessionId,
                                                TreePositionPath componentPath,
-                                               RenderContextFactory renderContextFactory,
+                                               TreeBuilderFactory treeBuilderFactory,
                                                ComponentContext componentContext,
                                                Consumer<Command> commandsEnqueue);
 }

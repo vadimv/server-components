@@ -1,6 +1,6 @@
 package rsp.server.http;
 
-import rsp.page.PageRendering;
+import rsp.page.HttpHandler;
 import rsp.server.Path;
 
 import java.net.URI;
@@ -75,7 +75,7 @@ public final class HttpRequest {
      * @return the Optional with the device ID value or the empty
      */
     public Optional<String> deviceId() {
-        return cookies(PageRendering.DEVICE_ID_COOKIE_NAME).stream().findFirst();
+        return cookies(HttpHandler.DEVICE_ID_COOKIE_NAME).stream().findFirst();
     }
 
 

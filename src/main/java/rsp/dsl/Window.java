@@ -2,11 +2,12 @@ package rsp.dsl;
 
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
-import rsp.page.PageRendering;
 import rsp.ref.ElementRef;
 
 import java.util.Optional;
 import java.util.function.Consumer;
+
+import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 /**
  * Represents a browser's page window object.
@@ -34,7 +35,7 @@ public final class Window {
      * @return an event definition
      */
     public EventDefinition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
-        return new EventDefinition(Optional.of(PageRendering.WINDOW_DOM_PATH), eventType, handler, preventDefault, DomEventEntry.NO_MODIFIER);
+        return new EventDefinition(Optional.of(WINDOW_DOM_PATH), eventType, handler, preventDefault, DomEventEntry.NO_MODIFIER);
     }
 
     public ElementRef ref() {

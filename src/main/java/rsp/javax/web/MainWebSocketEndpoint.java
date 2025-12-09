@@ -59,9 +59,9 @@ public final class MainWebSocketEndpoint extends Endpoint {
         } else {
 
             final LivePageSession livePage = new LivePageSession();
-            livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageRenderContext,
-                                                                  renderedPage.commandsEnqueue,
-                                                                  remoteOut));
+            livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageRenderContext(),
+                    renderedPage.commandsEnqueue(),
+                                                                    remoteOut));
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
             final RemotePageMessageDecoder in = new RemotePageMessageDecoder(jsonParser, livePage.eventsConsumer());

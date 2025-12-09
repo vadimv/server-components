@@ -4,6 +4,12 @@ import rsp.server.Path;
 
 import java.util.Objects;
 
+/**
+ * Represents a URL part starting from path component
+ * @param path
+ * @param query
+ * @param fragment
+ */
 public record RelativeUrl(Path path, Query query, Fragment fragment) {
     public RelativeUrl {
         Objects.requireNonNull(path);

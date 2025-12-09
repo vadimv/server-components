@@ -3,10 +3,9 @@ package rsp.dsl;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.component.definitions.InitialStateComponent;
 import rsp.component.View;
-import rsp.page.PageRendering;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
@@ -16,6 +15,7 @@ import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.dsl.Html.*;
+import static rsp.page.PageBuilder.DOCUMENT_DOM_PATH;
 
 public class HtmlDefinitionsTests {
 
@@ -51,20 +51,20 @@ public class HtmlDefinitionsTests {
 
     private static <S> String htmlOf(final View<S> view, final S initialState) {
         final var component = new InitialStateComponent<>(initialState, view);
-        final ComponentRenderContext rc = createRenderContext();
+        final TreeBuilder rc = createRenderContext();
         component.render(rc);
         return rc.html();
     }
 
-    private static ComponentRenderContext createRenderContext() {
+    private static TreeBuilder createRenderContext() {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
         final URI uri = URI.create("http://localhost");
         final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);
-        final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
-                                                                     PageRendering.DOCUMENT_DOM_PATH,
+        final TreeBuilder rc = new TreeBuilder(qualifiedSessionId,
+                                                                     DOCUMENT_DOM_PATH,
                                                                      new ComponentContext(),
                                                                      __ -> new TestCollectingRemoteOut());
         return rc;

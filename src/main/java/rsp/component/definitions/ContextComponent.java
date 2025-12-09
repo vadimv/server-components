@@ -3,7 +3,7 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
-import rsp.page.RenderContextFactory;
+import rsp.component.TreeBuilderFactory;
 import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.Command;
 import rsp.util.json.JsonDataType;
@@ -14,7 +14,7 @@ import java.util.function.Function;
 
 /**
  * A component with its state mapped to a key-value in the components' context.
- * @see AddressBarSyncComponent as an example of a component up in the components tree which syncs context with some external state source
+ * @see AddressBarSyncComponent as an example of a component up in the tree which syncs context with the browser's page address bar elements
  *
  * @param <S> the type of the state bind to the components context in this subtree
  */
@@ -70,7 +70,7 @@ public class ContextComponent<S> extends Component<S> {
     @Override
     public ComponentSegment<S> createComponentSegment(final QualifiedSessionId sessionId,
                                                       final TreePositionPath componentPath,
-                                                      final RenderContextFactory renderContextFactory,
+                                                      final TreeBuilderFactory treeBuilderFactory,
                                                       final ComponentContext sessionObjects,
                                                       final Consumer<Command> commandsEnqueue) {
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
@@ -78,7 +78,7 @@ public class ContextComponent<S> extends Component<S> {
                                       subComponentsContext(),
                                       componentView(),
                                       this,
-                                      renderContextFactory,
+                treeBuilderFactory,
                                       sessionObjects,
                                       commandsEnqueue) {
 

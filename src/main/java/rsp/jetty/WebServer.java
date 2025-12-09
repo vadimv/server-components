@@ -39,8 +39,8 @@ import static java.lang.System.Logger.Level.INFO;
 
 /**
  * An embedded web server to run inside an application process.
- * It serves dynamic HTML pages, static resources and support WebSocket connections for live pages sessions.
- * This implementation uses Jetty server, which provides a servlet container and a JSR 356 WebSockets API implementation.
+ * It serves dynamic HTML pages, static resources and supports WebSocket connections for live pages sessions.
+ * This implementation uses Jetty server, which provides a servlet container and a JSR 356 WebSockets API.
  * @see MainHttpServlet
  * @see MainWebSocketEndpoint
  */
@@ -69,11 +69,11 @@ public final class WebServer {
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
      * @param staticResources a setup object for an optional static resources handler
      */
-    public <S> WebServer(final int port,
-                         final Function<HttpRequest, Component<S>> rootComponentDefinition,
-                         final Optional<StaticResources> staticResources,
-                         final Optional<SslConfiguration> sslConfiguration,
-                         final int maxThreads) {
+    public WebServer(final int port,
+                     final Function<HttpRequest, Component<?>> rootComponentDefinition,
+                     final Optional<StaticResources> staticResources,
+                     final Optional<SslConfiguration> sslConfiguration,
+                     final int maxThreads) {
         this.port = port;
         Objects.requireNonNull(rootComponentDefinition);
 
@@ -128,9 +128,9 @@ public final class WebServer {
 
         final ServletContextHandler servletContextHandler = new ServletContextHandler();
         servletContextHandler.setContextPath("/");
-        servletContextHandler.addServlet(new ServletHolder(new MainHttpServlet<>(new PageRendering<>(pagesStorage,
-                                                                                 rootComponentDefinition,
-                                                                                 DEFAULT_HEARTBEAT_INTERVAL_MS))),
+        servletContextHandler.addServlet(new ServletHolder(new MainHttpServlet<>(new HttpHandler(pagesStorage,
+                                                                                                 rootComponentDefinition,
+                                                                                                 DEFAULT_HEARTBEAT_INTERVAL_MS))),
                                          "/*");
         final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage);
         JakartaWebSocketServletContainerInitializer.configure(servletContextHandler, (servletContext, serverContainer) -> {
@@ -211,7 +211,7 @@ public final class WebServer {
      * @param staticResources a setup object for an optional static resources handler
      */
     public <S> WebServer(final int port,
-                         final Function<HttpRequest, Component<S>> rootComponentDefinition,
+                         final Function<HttpRequest, Component<?>> rootComponentDefinition,
                          final StaticResources staticResources) {
         this(port, rootComponentDefinition, Optional.of(staticResources), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
@@ -223,8 +223,8 @@ public final class WebServer {
      * @param staticResources a setup object for an optional static resources handler
      * @param sslConfiguration the server's TLS configuration
      */
-    public <S> WebServer(final int port,
-                     final Function<HttpRequest, Component<S>> rootComponentDefinition,
+    public WebServer(final int port,
+                     final Function<HttpRequest, Component<?>> rootComponentDefinition,
                      final StaticResources staticResources,
                      final SslConfiguration sslConfiguration) {
         this(port, rootComponentDefinition, Optional.of(staticResources), Optional.of(sslConfiguration), DEFAULT_WEB_SERVER_MAX_THREADS);
@@ -235,8 +235,8 @@ public final class WebServer {
      * @param port a web server's listening port
      * @param rootComponentDefinition a root component
      */
-    public <S> WebServer(final int port,
-                         final Function<HttpRequest, Component<S>> rootComponentDefinition) {
+    public WebServer(final int port,
+                         final Function<HttpRequest, Component<?>> rootComponentDefinition) {
         this(port, rootComponentDefinition, Optional.empty(), Optional.empty(), DEFAULT_WEB_SERVER_MAX_THREADS);
     }
 

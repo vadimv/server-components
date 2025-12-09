@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.component.ComponentContext;
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.component.definitions.InitialStateComponent;
 import rsp.component.definitions.Component;
 import rsp.component.View;
@@ -13,6 +13,7 @@ import rsp.server.RemoteOut;
 import java.util.List;
 
 import static rsp.dsl.Html.*;
+import static rsp.page.PageBuilder.DOCUMENT_DOM_PATH;
 
 public final class DefaultConnectionLostWidget {
 
@@ -22,12 +23,12 @@ public final class DefaultConnectionLostWidget {
 
     static {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
-        final ComponentRenderContext rc = new ComponentRenderContext(qualifiedSessionId,
-                                                                     PageRendering.DOCUMENT_DOM_PATH,
-                                                                     new ComponentContext(),
-                                                                     __ -> new SilentRemoteOut());
-        widgetComponent().render(rc);
-        HTML = rc.html();
+        final TreeBuilder treeBuilder = new TreeBuilder(qualifiedSessionId,
+                                                        DOCUMENT_DOM_PATH,
+                                                        new ComponentContext(),
+                                                       _ -> new SilentRemoteOut());
+        widgetComponent().render(treeBuilder);
+        HTML = treeBuilder.html();
     }
 
     private static Component<String> widgetComponent() {
@@ -35,7 +36,7 @@ public final class DefaultConnectionLostWidget {
     }
 
     private static View<String> widget() {
-        return __ -> div(style("position", "fixed"),
+        return _ -> div(style("position", "fixed"),
                    style("top", "0"),
                    style("left", "0"),
                    style("right", "0"),

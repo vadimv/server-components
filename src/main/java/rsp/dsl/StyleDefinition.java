@@ -1,6 +1,6 @@
 package rsp.dsl;
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 
 /**
  * A definition of an HTML element's inline style.
@@ -28,7 +28,7 @@ public final class StyleDefinition implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         renderContext.setStyle(name, value);
         return true;
     }

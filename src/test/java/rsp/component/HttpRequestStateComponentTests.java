@@ -35,7 +35,7 @@ class HttpRequestStateComponentTests {
                                                         Query.EMPTY,
                                                         List.of(new Header("header-0", "header-0-value")));
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
-        final ComponentRenderContext renderContext = new ComponentRenderContext(qualifiedSessionId,
+        final TreeBuilder renderContext = new TreeBuilder(qualifiedSessionId,
                                                                                 TreePositionPath.of("1"),
                                                                                 new ComponentContext(),
                                                                                 commands);

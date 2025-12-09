@@ -5,7 +5,6 @@ import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.dsl.Definition;
 import rsp.page.EventContext;
-import rsp.page.RenderContextFactory;
 import rsp.page.events.GenericTaskEvent;
 import rsp.page.events.RemoteCommand;
 import rsp.page.events.Command;
@@ -46,7 +45,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
     private final ComponentView<S> componentView;
     private final ComponentSegmentLifeCycle<S> lifeCycleCallbacks;
-    private final RenderContextFactory renderContextFactory;
+    private final TreeBuilderFactory treeBuilderFactory;
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
     private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>();
@@ -64,14 +63,14 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     /**
      * Creates a new instance of a component. To be called in a relevant component's definition class.
-     * @see Component <S>
+     * @see Component<S>
      *
      * @param componentId an identity of this component, an object to be used as a key to store and retrieve a current state snapshot
      * @param stateResolver a function to resolve an initial state
      * @param contextResolver a function that build a context object that is propagated to descendant components
      * @param componentView contains DOM subtree definition.
      * @param lifeCycleCallbacks a bundle of this component's life cycle events callbacks
-     * @param renderContextFactory a factory for a render context for children components
+     * @param treeBuilderFactory a factory for a render context for children components
      * @param componentContext a context object from ascendant components
      * @param commandsEnqueue a consumer for the page's control loop commands
      */
@@ -80,7 +79,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
                             final ComponentView<S> componentView,
                             final ComponentSegmentLifeCycle<S> lifeCycleCallbacks,
-                            final RenderContextFactory renderContextFactory,
+                            final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
                             final Consumer<Command> commandsEnqueue) {
         this.componentId = Objects.requireNonNull(componentId);
@@ -88,7 +87,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         this.contextResolver = Objects.requireNonNull(contextResolver);
         this.componentView = Objects.requireNonNull(componentView);
         this.lifeCycleCallbacks = lifeCycleCallbacks;
-        this.renderContextFactory = Objects.requireNonNull(renderContextFactory);
+        this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
         this.componentContext = Objects.requireNonNull(componentContext);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
 
@@ -131,7 +130,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         }
     }
 
-    public void render(final ComponentRenderContext renderContext) {
+    public void render(final TreeBuilder renderContext) {
         try {
             onBeforeInitiallyRendered();
             state = stateResolver.getState(componentId, componentContext);
@@ -186,7 +185,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
 
-        final ComponentRenderContext renderContext = renderContextFactory.newContext(startNodeDomPath);
+        final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
 
         renderContext.setComponentContext(contextResolver.apply(componentContext, state));
         renderContext.openComponent(this);
@@ -199,7 +198,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
         final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
-        commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.commands));
+        commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.changes));
 
         // Unregister events
         final Set<DomEventEntry> newEvents = new HashSet<>(recursiveDomEvents());

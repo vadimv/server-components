@@ -130,7 +130,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     private String modifyDomMessageBody(final DomChange domChange) {
         return switch (domChange) {
-            case RemoveAttr c -> joinString(REMOVE_ATTR, quote(c.path), xmlNsString(c.xmlNs), quote(escape(c.name)), c.isProperty);
+            case RemoveAttr c -> joinString(REMOVE_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), c.isProperty());
             case RemoveStyle(TreePositionPath path, String name) -> joinString(REMOVE_STYLE, quote(path), quote(escape(name)), false);
             case Remove c -> joinString(REMOVE, quote(c.parentPath()), quote(c.path()));
             case SetAttr c -> joinString(SET_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), quote(c.value()), c.isProperty());

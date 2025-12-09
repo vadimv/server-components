@@ -1,5 +1,5 @@
 package rsp.dsl;
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.dom.XmlNs;
 
 import java.util.Arrays;
@@ -25,7 +25,7 @@ public class Tag implements Definition {
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         renderContext.openNode(ns, name, false);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, true);

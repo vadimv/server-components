@@ -8,27 +8,27 @@ import rsp.ref.Ref;
 import java.util.*;
 import java.util.function.*;
 
-public class ComponentRenderContext implements RenderContextFactory {
+public class TreeBuilder implements TreeBuilderFactory {
 
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
     protected final QualifiedSessionId sessionId;
     protected final Consumer<Command> remotePageMessagesOut;
+
     private final Deque<TagNode> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<ComponentSegment<?>> componentsStack = new ArrayDeque<>();
-    private String docType;
 
     protected ComponentContext componentContext;
 
+    private String docType;
     private TreePositionPath domPath;
-
     private ComponentSegment<?> rootComponent;
 
-    public ComponentRenderContext(final QualifiedSessionId sessionId,
-                                  final TreePositionPath startDomPath,
-                                  final ComponentContext componentContext,
-                                  final Consumer<Command> remotePageMessagesOut) {
+    public TreeBuilder(final QualifiedSessionId sessionId,
+                       final TreePositionPath startDomPath,
+                       final ComponentContext componentContext,
+                       final Consumer<Command> remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.componentContext = componentContext;
@@ -52,10 +52,10 @@ public class ComponentRenderContext implements RenderContextFactory {
         final TreePositionPath componentPath = parent == null ?
                 ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
         final ComponentSegment<S> newComponent = componentSegmentFactory.createComponentSegment(sessionId,
-                                                                           componentPath,
-                                                                           this,
-                                                                           componentContext,
-                                                                           remotePageMessagesOut);
+                                                                                                componentPath,
+                                                                                                this,
+                                                                                                componentContext,
+                                                                                                remotePageMessagesOut);
         openComponent(newComponent);
         return newComponent;
     }
@@ -101,15 +101,14 @@ public class ComponentRenderContext implements RenderContextFactory {
             var ascendantComponentsIterator = componentsStack.iterator();
             ascendantComponentsIterator.next();// skip a current component
             while (ascendantComponentsIterator.hasNext()) {
-                final ComponentSegment<?> ascedantComponent = ascendantComponentsIterator.next();
-                if (!ascedantComponent.hasStartNodeDomPath()) {
-                    ascedantComponent.setStartNodeDomPath(domPath);
+                final ComponentSegment<?> ascendantComponent = ascendantComponentsIterator.next();
+                if (!ascendantComponent.hasStartNodeDomPath()) {
+                    ascendantComponent.setStartNodeDomPath(domPath);
                 } else {
                     break;
                 }
             }
         }
-
     }
 
     public void closeNode(final String name, final boolean upgrade) {
@@ -189,11 +188,11 @@ public class ComponentRenderContext implements RenderContextFactory {
     }
 
     @Override
-    public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
-        return new ComponentRenderContext(sessionId,
-                                          startDomPath,
-                                          componentContext,
-                                          remotePageMessagesOut);
+    public TreeBuilder createTreeBuilder(final TreePositionPath baseDomPath) {
+        return new TreeBuilder(sessionId,
+                               baseDomPath,
+                               componentContext,
+                               remotePageMessagesOut);
     }
 
     public String html() {
@@ -237,7 +236,6 @@ public class ComponentRenderContext implements RenderContextFactory {
             return Map.of();
         }
     }
-
 }
 
 

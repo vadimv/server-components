@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.component.ComponentContext;
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
 import rsp.page.events.Command;
@@ -11,7 +11,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public final class PageRenderContext extends ComponentRenderContext {
+public final class PageBuilder extends TreeBuilder {
+    public static final TreePositionPath WINDOW_DOM_PATH = TreePositionPath.of("");
+    public static final TreePositionPath DOCUMENT_DOM_PATH = TreePositionPath.of("1");
 
     private final String pageConfigScript;
 
@@ -19,13 +21,12 @@ public final class PageRenderContext extends ComponentRenderContext {
     private Map<String, List<String>> headers;
     private boolean headWasOpened;
 
-    public PageRenderContext(final QualifiedSessionId sessionId,
-                             final String pageConfigScript,
-                             final TreePositionPath rootDomPath,
-                             final ComponentContext componentContext,
-                             final Consumer<Command> remotePageMessagesOut) {
+    public PageBuilder(final QualifiedSessionId sessionId,
+                       final String pageConfigScript,
+                       final ComponentContext componentContext,
+                       final Consumer<Command> remotePageMessagesOut) {
         super(sessionId,
-              rootDomPath,
+              DOCUMENT_DOM_PATH,
               componentContext,
               remotePageMessagesOut);
         this.pageConfigScript = Objects.requireNonNull(pageConfigScript);
@@ -81,12 +82,11 @@ public final class PageRenderContext extends ComponentRenderContext {
     }
 
     @Override
-    public ComponentRenderContext newContext(final TreePositionPath startDomPath) {
-        return PageRendering.DOCUMENT_DOM_PATH.equals(startDomPath) ? new PageRenderContext(sessionId,
-                                                                                            pageConfigScript,
-                                                                                            startDomPath,
-                                                                                            componentContext,
-                                                                                            remotePageMessagesOut)
-                                                             : super.newContext(startDomPath);
+    public TreeBuilder createTreeBuilder(final TreePositionPath baseDomPath) {
+        return DOCUMENT_DOM_PATH.equals(baseDomPath) ? new PageBuilder(sessionId,
+                                                                              pageConfigScript,
+                                                                              componentContext,
+                                                                              remotePageMessagesOut)
+                                                             : super.createTreeBuilder(baseDomPath);
     }
 }

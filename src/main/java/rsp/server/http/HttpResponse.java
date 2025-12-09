@@ -4,6 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 
+/**
+ * Represents a HTTP response.
+ */
 public final class HttpResponse {
 
     public static final int OK_STATUS_CODE = 200;

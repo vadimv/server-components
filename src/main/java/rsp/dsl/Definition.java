@@ -1,7 +1,7 @@
 package rsp.dsl;
 
 
-import rsp.component.ComponentRenderContext;
+import rsp.component.TreeBuilder;
 
 /**
  * Represents a building block in the domain-specific language definition.
@@ -15,6 +15,6 @@ public interface Definition {
      * @param renderContext the renderer object
      * @return true, instead of void, used to make the compiler make more strict checks on the DSL
      */
-    boolean render(ComponentRenderContext renderContext);
+    boolean render(TreeBuilder renderContext);
 
 }

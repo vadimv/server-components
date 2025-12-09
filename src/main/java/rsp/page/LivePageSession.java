@@ -17,10 +17,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
-import static rsp.page.PageRendering.DOCUMENT_DOM_PATH;
+import static rsp.page.PageBuilder.DOCUMENT_DOM_PATH;
 
 /**
- * A server-side session object representing an open and connected browser's page.
+ * A server-side session object representing an open and connected browser's page / tab.
+ * Every live page session has its events loop thread.
  */
 public final class LivePageSession implements Consumer<Command> {
     private static final System.Logger logger = System.getLogger(LivePageSession.class.getName());
@@ -28,7 +29,7 @@ public final class LivePageSession implements Consumer<Command> {
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers = new HashMap<>();
     private final Reactor<Command> reactor;
 
-    private PageRenderContext pageRenderContext;
+    private PageBuilder pageRenderContext;
     private RemoteOut remoteOut;
     private int descriptorsCounter;
 
@@ -55,7 +56,7 @@ public final class LivePageSession implements Consumer<Command> {
             case ExtractPropertyResponseEvent e -> handleExtractPropertyResponse(e.descriptorId(), e.result());
             case RemoteCommand e -> e.accept(remoteOut);
             case GenericTaskEvent e -> e.task().run();
-            case ShutdownSessionCommand __ -> shutdown();
+            case ShutdownSessionCommand _ -> shutdown();
         }
     }
 
@@ -65,8 +66,7 @@ public final class LivePageSession implements Consumer<Command> {
         initSessionEvent.commandsEnqueue().redirect(reactor);
         this.accept(new RemoteCommand.ListenEvent(pageRenderContext.recursiveEvents()
                                                                     .stream()
-                                                                    .filter(eventEntry -> eventEntry instanceof DomEventEntry)
-                                                                    .map( eventEntry -> (DomEventEntry) eventEntry).toList()));
+                                                                    .toList()));
     }
 
     private void shutdown() {
@@ -83,11 +83,11 @@ public final class LivePageSession implements Consumer<Command> {
                 cf.completeExceptionally(new RuntimeException("Extract property: " + descriptorId + " not found"));
                 registeredEventHandlers.remove(descriptorId);
             }
-        } else if (result instanceof ExtractPropertyResponse.Value v) {
-            logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + v.value());
+        } else if (result instanceof ExtractPropertyResponse.Value(JsonDataType value)) {
+            logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + value);
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
             if (cf != null) {
-                cf.complete(v.value());
+                cf.complete(value);
                 registeredEventHandlers.remove(descriptorId);
             }
         }
@@ -153,6 +153,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private TreePositionPath resolveRef(final Ref ref) {
+        // TODO verify if below condition is correct
         return ref instanceof Window.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
     }
 

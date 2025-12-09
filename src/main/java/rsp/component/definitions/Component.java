@@ -4,7 +4,7 @@ import rsp.component.*;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
-import rsp.page.RenderContextFactory;
+import rsp.component.TreeBuilderFactory;
 import rsp.page.events.Command;
 
 import java.util.Objects;
@@ -13,6 +13,15 @@ import java.util.function.Consumer;
 
 /**
  * This is the base class for components definitions.
+ * On a page tree, a component represent a self-contained unit of a UI with its own subtree consisting of a mix of other components and/or DOM elements.
+ * A definitions' tree is rendered to a DOM tree when states are resolved.
+ * Subclasses of this class provide an implementation an initial state supplier and a function defining of its UI subtree.
+ * Optionally they provide a way to pass information to the component's downstream component which these components can use to set up states.
+ * There are a number of methods available for overriding representing callbacks for various phases of the defined component's lifecycle.
+ * The mechanisms of extension described above can be described of the application level.
+ * Also, it is possible to override the method which creates component's segment which can be overridden as well to substitute the new instance with
+ * the one of extended ComponentSegment class. This gives more control over the created segment's behaviour.
+ * @see ComponentSegment<S>
  * @param <S> this component's state type
  */
 public abstract class Component<S> implements Definition, ComponentSegmentFactory<S>, ComponentSegmentLifeCycle<S> {
@@ -42,7 +51,7 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
     public abstract ComponentView<S> componentView();
 
     /**
-     * Provides a capability to define components context for downstream components states
+     * Provides a capability to define common context for downstream components states
      * @return a function for creating components context to be uses in the wrapped components subtree
      */
     public BiFunction<ComponentContext, S, ComponentContext> subComponentsContext() {
@@ -74,7 +83,7 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
     @Override
     public ComponentSegment<S> createComponentSegment(final QualifiedSessionId sessionId,
                                                       final TreePositionPath componentPath,
-                                                      final RenderContextFactory renderContextFactory,
+                                                      final TreeBuilderFactory treeBuilderFactory,
                                                       final ComponentContext componentContext,
                                                       final Consumer<Command> commandsEnqueue) {
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
@@ -82,13 +91,13 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
                                       subComponentsContext(),
                                       componentView(),
                                       this,
-                                      renderContextFactory,
+                                      treeBuilderFactory,
                                       componentContext,
                                       commandsEnqueue);
     }
 
     @Override
-    public boolean render(final ComponentRenderContext renderContext) {
+    public boolean render(final TreeBuilder renderContext) {
         final ComponentSegment<S> component = renderContext.openComponent(this);
         component.render(renderContext);
         renderContext.closeComponent();

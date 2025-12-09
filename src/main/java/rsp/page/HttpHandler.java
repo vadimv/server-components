@@ -2,7 +2,6 @@ package rsp.page;
 
 import rsp.component.ComponentContext;
 import rsp.component.definitions.Component;
-import rsp.dom.TreePositionPath;
 import rsp.server.http.*;
 import rsp.server.Path;
 import rsp.util.RandomString;
@@ -15,11 +14,8 @@ import java.util.function.Function;
 
 import static java.lang.System.Logger.Level.TRACE;
 
-public final class PageRendering<S> {
-    private static final System.Logger logger = System.getLogger(PageRendering.class.getName());
-
-    public static final TreePositionPath DOCUMENT_DOM_PATH = TreePositionPath.of("1");
-    public static final TreePositionPath WINDOW_DOM_PATH = TreePositionPath.of("");
+public final class HttpHandler {
+    private static final System.Logger logger = System.getLogger(HttpHandler.class.getName());
 
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
@@ -27,25 +23,25 @@ public final class PageRendering<S> {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
-    private final Function<HttpRequest, Component<S>> rootComponentDefinition;
+    private final Function<HttpRequest, Component<?>> rootComponentDefinition;
     private final int heartBeatIntervalMs;
 
-    public PageRendering(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
-                         final Function<HttpRequest, Component<S>> rootComponentDefinition,
-                         final int heartBeatIntervalMs) {
+    public HttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
+                       final Function<HttpRequest, Component<?>> rootComponentDefinition,
+                       final int heartBeatIntervalMs) {
 
         this.renderedPages = Objects.requireNonNull(pagesStorage);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
         this.heartBeatIntervalMs = heartBeatIntervalMs;
     }
 
-    public CompletableFuture<HttpResponse> httpResponse(final HttpRequest request) {
+    public CompletableFuture<HttpResponse> handle(final HttpRequest request) {
         if (request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.emptyList(), "No favicon.ico"));
         } else if (request.path.startsWith("static")) {
             return CompletableFuture.completedFuture(staticFileResponse(request.path));
         } else {
-            return rspResponse(request);
+            return handlePage(request);
         }
     }
 
@@ -72,7 +68,7 @@ public final class PageRendering<S> {
 
     }
 
-    private CompletableFuture<HttpResponse> rspResponse(final HttpRequest request) {
+    private CompletableFuture<HttpResponse> handlePage(final HttpRequest request) {
         try {
             final String deviceId = request.cookies(DEVICE_ID_COOKIE_NAME).stream().findFirst().orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();
@@ -84,26 +80,25 @@ public final class PageRendering<S> {
                                                                            heartBeatIntervalMs);
 
             final ComponentContext componentContext = new ComponentContext().with(Map.of("deviceId", deviceId,
-                                                                                                          "sessionId", sessionId));
+                                                                                         "sessionId", sessionId));
 
             final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
 
-            final PageRenderContext pageRenderContext = new PageRenderContext(pageId,
-                                                                              pageConfigScript.toString(),
-                                                                              DOCUMENT_DOM_PATH,
-                                                                              componentContext,
-                                                                              commandsEnqueue);
+            final PageBuilder pageBuilder = new PageBuilder(pageId,
+                                                            pageConfigScript.toString(),
+                                                            componentContext,
+                                                            commandsEnqueue);
 
-            rootComponentDefinition.apply(request).render(pageRenderContext);
+            rootComponentDefinition.apply(request).render(pageBuilder);
 
-            final RenderedPage pageSnapshot = new RenderedPage(pageRenderContext, commandsEnqueue);
+            final RenderedPage pageSnapshot = new RenderedPage(pageBuilder, commandsEnqueue);
             renderedPages.put(pageId, pageSnapshot);
-            final String responseBody = pageRenderContext.html();
+            final String responseBody = pageBuilder.html();
 
             logger.log(TRACE, () -> "Page body: " + responseBody);
 
-            return CompletableFuture.completedFuture(new HttpResponse(pageRenderContext.statusCode(),
-                                                                      renderedHeaders(pageRenderContext.headers(), deviceId),
+            return CompletableFuture.completedFuture(new HttpResponse(pageBuilder.statusCode(),
+                                                                      renderedHeaders(pageBuilder.headers(), deviceId),
                                                                       responseBody));
 
         } catch (final Exception ex) {
