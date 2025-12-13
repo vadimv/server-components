@@ -128,9 +128,9 @@ public final class WebServer {
 
         final ServletContextHandler servletContextHandler = new ServletContextHandler();
         servletContextHandler.setContextPath("/");
-        servletContextHandler.addServlet(new ServletHolder(new MainHttpServlet<>(new HttpHandler(pagesStorage,
-                                                                                                 rootComponentDefinition,
-                                                                                                 DEFAULT_HEARTBEAT_INTERVAL_MS))),
+        servletContextHandler.addServlet(new ServletHolder(new MainHttpServlet(new HttpHandler(pagesStorage,
+                                                                                               rootComponentDefinition,
+                                                                                               DEFAULT_HEARTBEAT_INTERVAL_MS))),
                                          "/*");
         final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage);
         JakartaWebSocketServletContainerInitializer.configure(servletContextHandler, (servletContext, serverContainer) -> {

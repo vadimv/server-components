@@ -23,6 +23,9 @@ import static rsp.dsl.Html.*;
 import static rsp.routing.RoutingDsl.*;
 
 /**
+ * This is a test application presenting usage of multiple instances of a component
+ * some of which are have their state synchronized with a browser's address bar paths and a query parameter and
+ * one demonstrates how component's state can be cached.
  * http://localhost:8085/16/-1?c4=27
  */
 public final class CountersApp {

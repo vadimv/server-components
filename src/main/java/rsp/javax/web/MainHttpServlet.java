@@ -16,7 +16,7 @@ import java.util.Collections;
 
 import static java.lang.System.Logger.Level.*;
 
-public final class MainHttpServlet<S>  extends HttpServlet {
+public final class MainHttpServlet  extends HttpServlet {
     private static final System.Logger logger = System.getLogger(MainHttpServlet.class.getName());
 
     public static final int DEFAULT_BUFFER_SIZE = 8192;

@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * The Closure Compiler runner.
+ * The Closure Compiler runner for packaging and minimizing JavaScript code.
  */
 public final class JsCompiler {
     private static final System.Logger logger = System.getLogger(JsCompiler.class.getName());

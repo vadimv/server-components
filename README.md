@@ -1,4 +1,4 @@
-A Java web Server Side Rendering framework.
+A Java server-side rendering (SSR) web framework.
 
 ## Project's goal
 

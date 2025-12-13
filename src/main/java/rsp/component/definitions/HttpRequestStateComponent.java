@@ -9,6 +9,10 @@ import rsp.server.http.HttpRequest;
 import java.util.Objects;
 import java.util.function.Function;
 
+/**
+ * A component with a state derived from an HTTP request.
+ * @param <S> this component's state type
+ */
 public class HttpRequestStateComponent<S> extends Component<S> {
 
     private final Function<HttpRequest, S> initialStateRouting;

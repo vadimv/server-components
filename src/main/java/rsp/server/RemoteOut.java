@@ -8,8 +8,8 @@ import java.util.List;
 
 /**
  * Represents remote actions within an open live session.
- * IT is expected that colling of methods of this interface lead to sending a message over
- * the open channel and executing of a relevant action in the client-side code logic.
+ * It is expected that calling the methods of this interface lead to sending a message over
+ * the open channel and executing of a relevant action on client-side.
  * @link ./src/main/es6/rsp.js
  * */
 public interface RemoteOut {

@@ -1,6 +1,5 @@
 package rsp.component;
 
-import rsp.component.definitions.Component;
 import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.dsl.Definition;
@@ -64,7 +63,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     /**
      * Creates a new instance of a component. To be called in a relevant component's definition class.
-     * @see Component<S>
+     * @see rsp.component.definitions.Component<S>
      *
      * @param componentId an identity of this component, an object to be used as a key to store and retrieve a current state snapshot
      * @param stateResolver a function to resolve an initial state

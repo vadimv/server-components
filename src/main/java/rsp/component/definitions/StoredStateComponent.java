@@ -7,7 +7,7 @@ import java.util.Objects;
 
 /**
  * A component with its state provided on an initialization and stored in a cache.
- * @param <S>
+ * @param <S> this component's state type
  */
 public class StoredStateComponent<S> extends Component<S> {
 

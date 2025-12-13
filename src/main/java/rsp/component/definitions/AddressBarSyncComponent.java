@@ -58,7 +58,7 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
      * @param initialRelativeUrl
      * @param componentDefinition
      * @return a new instance
-     * @param <S>
+     * @param <S> this component's state type
      */
     public static <S> AddressBarSyncComponent of(RelativeUrl initialRelativeUrl, Component<S> componentDefinition) {
         return new AddressBarSyncComponent(initialRelativeUrl, componentDefinition, List.of(), List.of());

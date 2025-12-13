@@ -1,4 +1,4 @@
 /**
- * Provides virtual DOM related classes.
+ * Provides virtual DOM classes.
  */
 package rsp.dom;

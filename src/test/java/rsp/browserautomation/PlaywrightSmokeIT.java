@@ -12,6 +12,10 @@ import java.util.stream.Stream;
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * An end-to-end smoke tests running CounterApp and browser automation with Playwright.
+ * @see CountersApp
+ */
 @net.jcip.annotations.NotThreadSafe
 class PlaywrightSmokeIT {
 

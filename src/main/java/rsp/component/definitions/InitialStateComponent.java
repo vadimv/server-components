@@ -8,7 +8,7 @@ import java.util.Objects;
 
 /**
  * A component with its fixed state. A state is provided on an initialization.
- * @param <S>
+ * @param <S> this component's state type
  */
 public class InitialStateComponent<S> extends Component<S> {
 

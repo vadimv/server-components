@@ -3,8 +3,21 @@ package rsp.dom;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+/**
+ * This class compares two DOM trees and on the base of their difference generates changes instructions that can be used
+ * to transform the first tree to the second tree.
+ * @see DefaultDomChangesContext.DomChange
+ */
 public final class NodesTreeDiff {
 
+    /**
+     * Handles single root trees.
+     * @param ct
+     * @param wt
+     * @param path
+     * @param changesPerformer
+     * @param hb
+     */
     public static void diff(final TagNode ct,
                             final TagNode wt,
                             final TreePositionPath path,
@@ -23,6 +36,14 @@ public final class NodesTreeDiff {
         }
     }
 
+    /**
+     * Handles multiroot trees.
+     * @param cc
+     * @param wc
+     * @param parentTagPath
+     * @param performer
+     * @param hb
+     */
     public static void diffChildren(final List<? extends Node> cc,
                                     final List<? extends Node> wc,
                                     final TreePositionPath parentTagPath,
