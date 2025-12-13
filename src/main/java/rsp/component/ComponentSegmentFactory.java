@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 
 /**
  * Defines an abstraction for creating instances of ComponentSegment class
- * @param <S> a type for this component's state snapshot
+ * @param <S> a component's state type
  */
 @FunctionalInterface
 public interface ComponentSegmentFactory<S> {

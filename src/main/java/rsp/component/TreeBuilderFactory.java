@@ -3,10 +3,15 @@ package rsp.component;
 import rsp.dom.TreePositionPath;
 
 /**
- * Provides an abstraction for creating an instance of ComponentRenderer class.
+ * Provides an abstraction for creating an instance of the TreeBuilder class.
  */
 public interface TreeBuilderFactory {
 
+    /**
+     * Creates a new instance of a TreeBuilder class.
+     * @param baseDomPath a start position in the DOM tree
+     * @return a new TreeBuilder
+     */
     TreeBuilder createTreeBuilder(TreePositionPath baseDomPath);
 
 }

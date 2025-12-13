@@ -4,10 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This class is used to pass information from components closer to a components tree root to their downstream components.
- * Values are added during an initial state rendering of an upstream component and stored with a key when their state is resolved.
+ * This class is used to pass information from upstream components in a tree to their downstream components.
+ * Values are added during an initial state rendering by an component and stored with a key when after its state is resolved.
  * This way every component down the hierarchy can add new key-values overriding existing with the same key.
- * These values can be accessed by downstream components by their keys.
+ * These values can be accessed by downstream components by their string keys.
+ * It might be useful depending on the requirements to have attribute values as JSON objects or to be typed.
  */
 public final class ComponentContext {
 

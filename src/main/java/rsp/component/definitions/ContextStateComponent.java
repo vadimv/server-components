@@ -18,7 +18,7 @@ import java.util.function.Function;
  *
  * @param <S> the type of the state bind to the components context in this subtree
  */
-public class ContextComponent<S> extends Component<S> {
+public class ContextStateComponent<S> extends Component<S> {
     /**
      * The prefix for mapped attributes names
      */
@@ -43,11 +43,11 @@ public class ContextComponent<S> extends Component<S> {
      * @param stateToContextValueFunction
      * @param view
      */
-    public ContextComponent(final String contextAttributeName,
-                            final Function<String, S> contextValueToStateFunction,
-                            final Function<S, String> stateToContextValueFunction,
-                            final ComponentView<S> view) {
-        super(ContextComponent.class);
+    public ContextStateComponent(final String contextAttributeName,
+                                 final Function<String, S> contextValueToStateFunction,
+                                 final Function<S, String> stateToContextValueFunction,
+                                 final ComponentView<S> view) {
+        super(ContextStateComponent.class);
         this.contextAttributeName = Objects.requireNonNull(contextAttributeName);
         this.contextValueToStateFunction = Objects.requireNonNull(contextValueToStateFunction);
         this.stateToContextValueFunction = Objects.requireNonNull(stateToContextValueFunction);
@@ -78,17 +78,18 @@ public class ContextComponent<S> extends Component<S> {
                                       subComponentsContext(),
                                       componentView(),
                                       this,
-                treeBuilderFactory,
+                                      treeBuilderFactory,
                                       sessionObjects,
                                       commandsEnqueue) {
 
 
             @Override
             protected boolean onBeforeUpdated(final S state) {
+                // notify a component up in the tree hierarchy
                 commandsEnqueue.accept(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + contextAttributeName,
                                        new JsonDataType.Object().put(STATE_VALUE_ATTRIBUTE_NAME,
                                                                      new JsonDataType.String(stateToContextValueFunction.apply(state)))));
-                return false; // do not update this component, it will be re-rendered as a part of the whole subtree
+                return false; // do not update this component, it will be re-rendered as a part of the subtree
             }
         };
     }

@@ -31,12 +31,12 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     /**
-     * A unique identifier of this instance, e.g. to be used as a key for its state in cache
+     * A unique identifier of this instance, e.g. to be used as a key for its state in cache.
      */
     protected final ComponentCompositeKey componentId;
 
     /**
-     *
+     * A sink object for the commands to be executed in the event loop.
      */
     protected final Consumer<Command> commandsEnqueue;
 
@@ -57,7 +57,8 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private TreePositionPath startNodeDomPath;
 
     /**
-     * This component's current state.
+     * This component's current state. It is expected that the state's type is immutable.
+     *
      */
     private S state;
 
@@ -96,16 +97,24 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     /**
      * A path representing a position of this component in the components tree
-     * @return a path in the page's components tree
+     * @return a position of this component segment in the components tree relative to the tree's root
      */
     public TreePositionPath path() {
         return componentId.componentPath();
     }
 
+    /**
+     * This method is invoked by a TreeBuilder during rendering and adds a component to the next position on the included component segments.
+     * @param component a ComponentSegment to add
+     */
     public void addChild(final ComponentSegment<?> component) {
         children.add(component);
     }
 
+    /**
+     *
+     * @return
+     */
     public boolean isRootNodesEmpty() {
         return rootNodes.isEmpty();
     }
@@ -164,7 +173,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final S newState = newStateFunction.apply(state);
 
         if (!onBeforeUpdated(newState)) {
-            return;
+            return; // this component segment instance state change will not initiate re-rendering and will be discarded
         }
 
         final S oldState = state;

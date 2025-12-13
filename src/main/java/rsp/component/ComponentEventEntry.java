@@ -5,6 +5,12 @@ import rsp.util.json.JsonDataType;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * A subscription to an event.
+ * @param eventName an event to listen to
+ * @param eventHandler a handler to execute to react to the event
+ * @param preventDefault
+ */
 public record ComponentEventEntry(String eventName, Consumer<EventContext> eventHandler, boolean preventDefault) {
 
     @Override

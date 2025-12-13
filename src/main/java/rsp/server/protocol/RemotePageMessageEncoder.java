@@ -13,9 +13,13 @@ import java.util.function.Consumer;
 import static rsp.util.json.JsonUtils.escape;
 
 /**
+ * Serializes RemoteOut actions to a compact text message according to the protocol
+ * and passes further, for example to send over an open network channel.
+ *
  * The implementation of the text-based protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
  */
 public final class RemotePageMessageEncoder implements RemoteOut {
+
     private static final int SET_RENDER_NUM = 0; // (n)
     private static final int CLEAN_ROOT = 1; // ()
     private static final int LISTEN_EVENT = 2; // (type, preventDefault, id, modifier)
@@ -68,11 +72,11 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void listenEvents(final List<DomEventEntry> events) {
-        if (events.size() > 0) {
+        if (!events.isEmpty()) {
             final String[] changes = events.stream().map(e -> joinString(quote(e.eventName),
-                                                                         e.preventDefault,
-                                                                         quote(e.eventTarget.elementPath().toString()),
-                                                                         quote(modifierString(e.modifier)))).toArray(String[]::new);
+                                                         e.preventDefault,
+                                                         quote(e.eventTarget.elementPath().toString()),
+                                                         quote(modifierString(e.modifier)))).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(LISTEN_EVENT,
                                                                 joinString(changes)));
             messagesOut.accept(message);

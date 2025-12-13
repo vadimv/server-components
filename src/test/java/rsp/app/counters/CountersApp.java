@@ -6,7 +6,7 @@ import rsp.component.StateUpdate;
 import rsp.component.View;
 import rsp.component.definitions.*;
 import rsp.component.definitions.AddressBarSyncComponent;
-import rsp.component.definitions.ContextComponent;
+import rsp.component.definitions.ContextStateComponent;
 import rsp.dsl.Definition;
 import rsp.jetty.WebServer;
 import rsp.page.EventContext;
@@ -32,21 +32,21 @@ public final class CountersApp {
     public final WebServer webServer;
 
     private static Definition counterComponent1() {
-        return new ContextComponent<>("c1",
+        return new ContextStateComponent<>("c1",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c1"));
     }
 
     private static Definition counterComponent2() {
-        return new ContextComponent<>("c2",
+        return new ContextStateComponent<>("c2",
                                                       Integer::parseInt,
                                                       Object::toString,
                                                       counterView("c2"));
     }
 
     private static Definition counterComponent4() {
-        return new ContextComponent<>("c4",
+        return new ContextStateComponent<>("c4",
                                                    v -> v == null ? 0 : Integer.parseInt(v),
                                                     Object::toString,
                                                     counterView("c4"));

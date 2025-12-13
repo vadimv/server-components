@@ -7,8 +7,15 @@ import rsp.server.RemoteOut;
 
 import java.util.List;
 
+/**
+ * Commands to the client-side running in the browser.
+ */
 public sealed interface RemoteCommand {
 
+    /**
+     *
+     * @param remoteOut
+     */
     void accept(RemoteOut remoteOut);
 
     record SetRenderNum(int renderNum) implements RemoteCommand, Command {

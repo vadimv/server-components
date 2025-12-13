@@ -11,6 +11,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+/**
+ * A mutable collector of a component segments tree, HTTP headers and a status code for materializing of an HTML page.
+ */
 public final class PageBuilder extends TreeBuilder {
     public static final TreePositionPath WINDOW_DOM_PATH = TreePositionPath.of("");
     public static final TreePositionPath DOCUMENT_DOM_PATH = TreePositionPath.of("1");

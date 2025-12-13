@@ -1,5 +1,8 @@
 package rsp.dom;
 
+/**
+ * A mutable HTML string which is built from nodes trees.
+ */
 public class HtmlBuilder {
     private final StringBuilder sb;
 
@@ -7,10 +10,17 @@ public class HtmlBuilder {
         this.sb = sb;
     }
 
+    /**
+     * Clears the HTML text.
+     */
     public void reset() {
         sb.setLength(0);
     }
 
+    /**
+     * Appends HTML text with a fragment built from a DOM nodes tree.
+     * @param node a root node of a DOM tree to add to the result HTML
+     */
     public void buildHtml(final Node node) {
         if (node instanceof TagNode tagNode) {
             buildHtml(tagNode);
@@ -22,7 +32,7 @@ public class HtmlBuilder {
     private void buildHtml(final TagNode tag) {
         sb.append('<');
         sb.append(tag.name);
-        if (tag.styles.size() > 0) {
+        if (!tag.styles.isEmpty()) {
             sb.append(" style=\"");
             for (final Style style: tag.styles) {
                 sb.append(style.name());
@@ -67,6 +77,10 @@ public class HtmlBuilder {
         textNode.parts.forEach(part -> sb.append(part));
     }
 
+    /**
+     * Gets result HTML as a string.
+     * @return a built HTML
+     */
     @Override
     public String toString() {
         return sb.toString();

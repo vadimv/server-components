@@ -8,6 +8,11 @@ import rsp.ref.Ref;
 import java.util.*;
 import java.util.function.*;
 
+/**
+ * A mutable collector of a component segments subtree.
+ * The relevant methods of this class are invoked during rendering of a component.
+ * @see ComponentSegment
+ */
 public class TreeBuilder implements TreeBuilderFactory {
 
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
@@ -83,7 +88,7 @@ public class TreeBuilder implements TreeBuilderFactory {
         final TagNode tag = new TagNode(xmlns, name, isSelfClosing);
         if (parent == null) {
             if (!component.isRootNodesEmpty()) {
-                final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
+                final TreePositionPath prevTag = rootNodesPaths.getLast();
                 domPath = prevTag.incSibling();
             }
             rootNodesPaths.add(domPath);
@@ -126,7 +131,7 @@ public class TreeBuilder implements TreeBuilderFactory {
                 if (component.getLastRootNode() instanceof TextNode prevTextNode) {
                     prevTextNode.addPart(text);
                 } else {
-                    final TreePositionPath prevTag = rootNodesPaths.get(rootNodesPaths.size() - 1);
+                    final TreePositionPath prevTag = rootNodesPaths.getLast();
                     domPath = prevTag.incSibling();
                     rootNodesPaths.add(domPath);
                     component.setStartNodeDomPath(domPath);
@@ -138,7 +143,7 @@ public class TreeBuilder implements TreeBuilderFactory {
                 component.addRootDomNode(domPath, new TextNode(text));
             }
         } else {
-            if (!parentTag.children.isEmpty() && parentTag.children.get(parentTag.children.size() - 1) instanceof TextNode prevTextNode) {
+            if (!parentTag.children.isEmpty() && parentTag.children.getLast() instanceof TextNode prevTextNode) {
                 prevTextNode.addPart(text);
             } else {
                 final int nextChild = parentTag.children.size() + 1;

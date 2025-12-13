@@ -18,8 +18,8 @@ import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-import static rsp.component.definitions.ContextComponent.STATE_UPDATED_EVENT_PREFIX;
-import static rsp.component.definitions.ContextComponent.STATE_VALUE_ATTRIBUTE_NAME;
+import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVENT_PREFIX;
+import static rsp.component.definitions.ContextStateComponent.STATE_VALUE_ATTRIBUTE_NAME;
 import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 /**
