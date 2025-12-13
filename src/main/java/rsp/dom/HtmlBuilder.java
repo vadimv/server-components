@@ -1,5 +1,7 @@
 package rsp.dom;
 
+import java.util.Objects;
+
 /**
  * A mutable HTML string which is built from nodes trees.
  */
@@ -7,7 +9,7 @@ public class HtmlBuilder {
     private final StringBuilder sb;
 
     public HtmlBuilder(final StringBuilder sb) {
-        this.sb = sb;
+        this.sb = Objects.requireNonNull(sb);
     }
 
     /**

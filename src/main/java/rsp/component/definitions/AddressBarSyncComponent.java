@@ -55,9 +55,10 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
     /**
      * Creates a new instance of this type of component.
      * This method is a part of little language to configure path elements query parameters mappings.
-     * @param initialRelativeUrl
-     * @param componentDefinition
+     * @param initialRelativeUrl a relative URL for an initialisation
+     * @param componentDefinition a wrapped component
      * @return a new instance
+     *
      * @param <S> this component's state type
      */
     public static <S> AddressBarSyncComponent of(RelativeUrl initialRelativeUrl, Component<S> componentDefinition) {

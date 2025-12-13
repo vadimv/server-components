@@ -16,6 +16,9 @@ import java.util.Collections;
 
 import static java.lang.System.Logger.Level.*;
 
+/**
+ * An HTTP Servlet API wrapper over the provided HTTP handler.
+ */
 public final class MainHttpServlet  extends HttpServlet {
     private static final System.Logger logger = System.getLogger(MainHttpServlet.class.getName());
 
@@ -62,11 +65,9 @@ public final class MainHttpServlet  extends HttpServlet {
     }
 
     private static String exceptionDetails(final Throwable ex) {
-        final StringBuilder sb = new StringBuilder();
-        sb.append("500 Internal server error\n");
-        sb.append("Exception: " + ex.getMessage() + "\n");
-        sb.append(ExceptionsUtils.stackTraceToString(ex));
-        return sb.toString();
+        return "500 Internal server error\n" +
+               "Exception: " + ex.getMessage() + "\n" +
+               ExceptionsUtils.stackTraceToString(ex);
     }
 
     private void setServletResponse(final HttpResponse sourceResponse, final HttpServletResponse destinationResponse) {
