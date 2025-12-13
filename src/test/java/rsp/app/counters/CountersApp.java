@@ -15,8 +15,8 @@ import rsp.server.StaticResources;
 import rsp.server.http.HttpRequest;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import static rsp.dsl.Html.*;
@@ -30,7 +30,7 @@ import static rsp.routing.RoutingDsl.*;
  */
 public final class CountersApp {
     public static final int PORT = 8085;
-    private static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
+    private static final Map<ComponentCompositeKey, Integer> stateStore = new ConcurrentHashMap<>();
 
     public final WebServer webServer;
 
