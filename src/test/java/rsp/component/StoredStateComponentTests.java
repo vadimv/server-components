@@ -33,8 +33,13 @@ class StoredStateComponentTests {
                     span(text("toggle"), on("click", ctx -> newState.setState(!state))),
                     when(state, () ->
                          new StoredStateComponent<>(100,
-                                                              __ -> s -> div(text("test-store-" + s)),
-                                                              stateStore))
+                                                              stateStore) {
+
+                             @Override
+                             public ComponentView<Integer> componentView() {
+                                 return __ -> s -> div(text("test-store-" + s));
+                             }
+                         })
             );
 
     @Test

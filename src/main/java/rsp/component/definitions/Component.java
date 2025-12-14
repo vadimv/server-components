@@ -38,6 +38,10 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
         this.componentType = Objects.requireNonNull(componentType);
     }
 
+    public Component() {
+        this.componentType = this.getClass();
+    }
+
     /**
      * This method's implementation provides a function for an initial state for this component. The result value will be used for an initial rendering.
      * For example, the state could be provided in a constructor or retrieved from a cache.

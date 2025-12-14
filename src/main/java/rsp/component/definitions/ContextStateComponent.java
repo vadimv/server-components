@@ -18,7 +18,7 @@ import java.util.function.Function;
  *
  * @param <S> this component's state type
  */
-public class ContextStateComponent<S> extends Component<S> {
+public abstract class ContextStateComponent<S> extends Component<S> {
     /**
      * The prefix for mapped attributes names
      */
@@ -34,24 +34,20 @@ public class ContextStateComponent<S> extends Component<S> {
     private final String contextAttributeName;
     private final Function<String, S> contextValueToStateFunction;
     private final Function<S, String> stateToContextValueFunction;
-    private final ComponentView<S> view;
 
     /**
      *
      * @param contextAttributeName
      * @param contextValueToStateFunction
      * @param stateToContextValueFunction
-     * @param view
      */
     public ContextStateComponent(final String contextAttributeName,
                                  final Function<String, S> contextValueToStateFunction,
-                                 final Function<S, String> stateToContextValueFunction,
-                                 final ComponentView<S> view) {
+                                 final Function<S, String> stateToContextValueFunction) {
         super(ContextStateComponent.class);
         this.contextAttributeName = Objects.requireNonNull(contextAttributeName);
         this.contextValueToStateFunction = Objects.requireNonNull(contextValueToStateFunction);
         this.stateToContextValueFunction = Objects.requireNonNull(stateToContextValueFunction);
-        this.view = Objects.requireNonNull(view);
     }
 
     @Override
@@ -62,10 +58,6 @@ public class ContextStateComponent<S> extends Component<S> {
         };
     }
 
-    @Override
-    public ComponentView<S> componentView() {
-        return view;
-    }
 
     @Override
     public ComponentSegment<S> createComponentSegment(final QualifiedSessionId sessionId,

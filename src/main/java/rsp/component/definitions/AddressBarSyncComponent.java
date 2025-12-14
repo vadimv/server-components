@@ -29,7 +29,7 @@ import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
  * Later when the bind state changes somewhere in the components down the wrapped subtree, this component is notified and updates the address bar.
  * @see ComponentContext for subtree components with bind state
  */
-public class AddressBarSyncComponent extends Component<RelativeUrl> {
+public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
 
     /**
      * A browser session's history entry change event name.
@@ -37,59 +37,18 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
     private final RelativeUrl initialRelativeUrl;
-    private final Definition subTreeDefinition;
-    private final List<PositionKey> pathElementsKeys;
-    private final List<ParameterNameKey> queryParametersNameKeys;
 
-    AddressBarSyncComponent(final RelativeUrl initialRelativeUrl,
-                            final Definition subTreeDefinition,
-                            final List<PositionKey> pathElementsKeys,
-                            final List<ParameterNameKey> queryParametersNameKeys) {
+    public AddressBarSyncComponent(final RelativeUrl initialRelativeUrl) {
         super(AddressBarSyncComponent.class);
         this.initialRelativeUrl = Objects.requireNonNull(initialRelativeUrl);
-        this.subTreeDefinition = Objects.requireNonNull(subTreeDefinition);
-        this.pathElementsKeys = Objects.requireNonNull(pathElementsKeys);
-        this.queryParametersNameKeys = Objects.requireNonNull(queryParametersNameKeys);
     }
 
-    /**
-     * Creates a new instance of this type of component.
-     * This method is a part of little language to configure path elements query parameters mappings.
-     * @param initialRelativeUrl a relative URL for an initialisation
-     * @param componentDefinition a wrapped component
-     * @return a new instance
-     *
-     * @param <S> this component's state type
-     */
-    public static <S> AddressBarSyncComponent of(RelativeUrl initialRelativeUrl, Component<S> componentDefinition) {
-        return new AddressBarSyncComponent(initialRelativeUrl, componentDefinition, List.of(), List.of());
-    }
+    public abstract List<PositionKey> pathElementsPositionKeys();
 
-    /**
-     * Creates a new instance with added mappings from a path element's index to a components context key name.
-     * This method is a part of little language to configure path elements query parameters mappings.
-     * @param position a position in the path, starting from 0
-     * @param key a mapped state key name for the reference in the components context
-     * @return a new instance
-     */
-    public AddressBarSyncComponent withPathElement(int position, String key) {
-        final List<PositionKey> l = new ArrayList<>(this.pathElementsKeys);
-        l.add(new PositionKey(position, key));
-        return new AddressBarSyncComponent(this.initialRelativeUrl, this.subTreeDefinition, l, this.queryParametersNameKeys);
-    }
 
-    /**
-     * Creates a new instance with added mappings from a query parameter identified by its name to a components context key name.
-     * This method is a part of little language to configure path elements query parameters mappings.
-     * @param parameterName a query parameter's name
-     * @param key a mapped state key name for the reference in the components context
-     * @return a new instance
-     */
-    public AddressBarSyncComponent withQueryParameter(String parameterName, String key) {
-        final List<ParameterNameKey> l = new ArrayList<>(queryParametersNameKeys);
-        l.add(new ParameterNameKey(parameterName, key));
-        return new AddressBarSyncComponent(this.initialRelativeUrl, this.subTreeDefinition, this.pathElementsKeys, l);
-    }
+    public abstract List<ParameterNameKey> queryParametersNamedKeys();
+
+
 
 
     @Override
@@ -103,11 +62,11 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
         return (componentContext, relativeUrl) -> {
             final Map<String, Object> m = new HashMap<>();
             // add URL's path elements for configured positions
-            for (PositionKey pathElementsKey : pathElementsKeys) {
+            for (PositionKey pathElementsKey : pathElementsPositionKeys()) {
                 m.put(pathElementsKey.key, relativeUrl.path().get(pathElementsKey.position));
             }
             // add query parameters for configured parameters names
-            for (ParameterNameKey queryParametersNameKey : queryParametersNameKeys) {
+            for (ParameterNameKey queryParametersNameKey : queryParametersNamedKeys()) {
                 final Optional<String> optionalParameter = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
                 optionalParameter.ifPresent(p -> {
                     m.put(queryParametersNameKey.key(), p);
@@ -115,12 +74,6 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
             }
             return componentContext.with(m);
         };
-    }
-
-
-    @Override
-    public ComponentView<RelativeUrl> componentView() {
-        return _ -> _ -> subTreeDefinition;
     }
 
 
@@ -134,7 +87,7 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
 
         // prepare indices for path elements session keys
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
-        for (final PositionKey pathElementsKey : pathElementsKeys) {
+        for (final PositionKey pathElementsKey : pathElementsPositionKeys()) {
             pathElementsKeysIndices.put(pathElementsKey.key, pathElementsKey.position);
         }
 
@@ -155,7 +108,7 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
 
             private void subscribeForSessionObjectsUpdates() {
                 // subscribe for path elements changes
-                for (final PositionKey pathElementKey : pathElementsKeys) {
+                for (final PositionKey pathElementKey : pathElementsPositionKeys()) {
                     this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + pathElementKey.key,
                                         eventContext -> {
                         final JsonDataType valueJson = eventContext.eventObject().value(STATE_VALUE_ATTRIBUTE_NAME);
@@ -173,7 +126,7 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
                 }
 
                 // subscribe for query parameters changes
-                for (final ParameterNameKey parameterNameKey : queryParametersNameKeys) {
+                for (final ParameterNameKey parameterNameKey : queryParametersNamedKeys()) {
                     this.addComponentEventHandler("stateUpdated." + parameterNameKey.key(),
                                         eventContext -> {
                         final JsonDataType valueJson = eventContext.eventObject().value("value");
@@ -239,10 +192,22 @@ public class AddressBarSyncComponent extends Component<RelativeUrl> {
         };
     }
 
-    private record PositionKey(int position, String key) {
+    /**
+     * Creates a new instance with added mappings from a path element's index to a components context key name.
+     * This method is a part of little language to configure path elements query parameters mappings.
+     * @param position a position in the path, starting from 0
+     * @param key a mapped state key name for the reference in the components context
+     */
+    public record PositionKey(int position, String key) {
     }
 
-    private record ParameterNameKey(String parameterName, String key) {
+    /**
+     * Creates a new instance with added mappings from a query parameter identified by its name to a components context key name.
+     * This method is a part of little language to configure path elements query parameters mappings.
+     * @param parameterName a query parameter's name
+     * @param key a mapped state key name for the reference in the components context
+     */
+    public record ParameterNameKey(String parameterName, String key) {
     }
 
 
