@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 
-public class HtmlParser {
+public final class HtmlParser {
     final Deque<TagNode> tagsStack = new ArrayDeque<>();
     final List<Node> rootNodes = new ArrayList<>();
     int rootNodeIndex = 0;

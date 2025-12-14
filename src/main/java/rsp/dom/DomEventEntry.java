@@ -17,7 +17,11 @@ public final class DomEventEntry {
     public final boolean preventDefault;
     public final Modifier modifier;
 
-    public DomEventEntry(final String eventName, final DomEventEntry.Target eventTarget, final Consumer<EventContext> eventHandler, final boolean preventDefault, final Modifier modifier) {
+    public DomEventEntry(final String eventName,
+                         final DomEventEntry.Target eventTarget,
+                         final Consumer<EventContext> eventHandler,
+                         final boolean preventDefault,
+                         final Modifier modifier) {
         this.eventName = Objects.requireNonNull(eventName);
         this.eventTarget = Objects.requireNonNull(eventTarget);
         this.eventHandler = Objects.requireNonNull(eventHandler);

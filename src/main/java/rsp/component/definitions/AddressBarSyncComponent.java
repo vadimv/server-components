@@ -3,7 +3,6 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
-import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
 import rsp.component.TreeBuilderFactory;
 import rsp.page.events.RemoteCommand;
@@ -47,9 +46,6 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
 
 
     public abstract List<ParameterNameKey> queryParametersNamedKeys();
-
-
-
 
     @Override
     public ComponentStateSupplier<RelativeUrl> initStateSupplier() {

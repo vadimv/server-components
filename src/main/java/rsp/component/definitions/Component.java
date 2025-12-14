@@ -38,6 +38,9 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
         this.componentType = Objects.requireNonNull(componentType);
     }
 
+    /**
+     * The default constructor sets the component's type to its class.
+     */
     public Component() {
         this.componentType = this.getClass();
     }

@@ -53,8 +53,8 @@ public final class CountersApp {
         final var appRouting = new Routing<>(get("/:c1(^-?\\d+$)/:c2(^-?\\d+$)", _ -> new CountersAppState()),
                                              new NotFoundState());
         return new HttpRequestStateComponent<>(httpRequest,
-                                              appRouting,
-                                              appComponentView(httpRequest));
+                                               appRouting,
+                                               appComponentView(httpRequest));
     }
 
     public CountersApp(final WebServer webServer) {
