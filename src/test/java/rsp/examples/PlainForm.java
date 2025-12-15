@@ -1,5 +1,6 @@
 package rsp.examples;
 
+import rsp.component.ComponentView;
 import rsp.component.definitions.HttpRequestStateComponent;
 import rsp.component.View;
 import rsp.dsl.Tag;
@@ -10,6 +11,7 @@ import rsp.routing.RoutingDsl;
 import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
 import static rsp.routing.RoutingDsl.*;
@@ -25,7 +27,18 @@ public class PlainForm {
     static void main(final String[] args) {
         final Routing<HttpRequest, Name> routing = new Routing<>(route(), new EmptyName());
         final View<Name> pagesView = pagesView();
-        final var server = new WebServer(8080, httpRequest -> new HttpRequestStateComponent<>(httpRequest, routing, pagesView));
+        final var server = new WebServer(8080, httpRequest -> new HttpRequestStateComponent<Name>(httpRequest) {
+
+            @Override
+            public ComponentView<Name> componentView() {
+                return _ -> pagesView;
+            }
+
+            @Override
+            public Function<HttpRequest, Name> routing() {
+                return routing;
+            }
+        });
         server.start();
         server.join();
     }

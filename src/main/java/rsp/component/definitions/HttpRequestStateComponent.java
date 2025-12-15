@@ -1,9 +1,6 @@
 package rsp.component.definitions;
 
 import rsp.component.ComponentStateSupplier;
-import rsp.component.ComponentView;
-import rsp.component.View;
-import rsp.routing.Routing;
 import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
@@ -13,42 +10,22 @@ import java.util.function.Function;
  * A component with a state derived from an HTTP request.
  * @param <S> this component's state type
  */
-public class HttpRequestStateComponent<S> extends Component<S> {
+public abstract class HttpRequestStateComponent<S> extends Component<S> {
 
-    private final Function<HttpRequest, S> initialStateRouting;
-    private final ComponentView<S> componentView;
-    private final HttpRequest httpRequest;
+    protected final HttpRequest httpRequest;
 
-    public HttpRequestStateComponent(final HttpRequest httpRequest,
-                                     final Function<HttpRequest, S> initialStateRouting,
-                                     final ComponentView<S> componentView) {
+    public HttpRequestStateComponent(final HttpRequest httpRequest) {
         super(HttpRequestStateComponent.class);
         this.httpRequest = Objects.requireNonNull(httpRequest);
-        this.initialStateRouting = Objects.requireNonNull(initialStateRouting);
-        this.componentView = Objects.requireNonNull(componentView);
     }
 
-    public HttpRequestStateComponent(final HttpRequest httpRequest,
-                                     final Routing<HttpRequest, S> routing,
-                                     final View<S> view) {
-        this(httpRequest,
-             routing,
-             asComponentView(view));
-
-    }
-
-    private static <S> ComponentView<S> asComponentView(final View<S> view) {
-        return _ -> view;
-    }
-
+    public abstract Function<HttpRequest, S> routing();
 
     @Override
     public ComponentStateSupplier<S> initStateSupplier() {
-        return (_,_) -> initialStateRouting.apply(httpRequest);
+        final Function<HttpRequest, S> routing = routing();
+        Objects.requireNonNull(routing);
+        return (_,_) -> routing.apply(httpRequest);
     }
 
-    @Override
-    public ComponentView<S> componentView() {
-        return componentView;
-    }
 }

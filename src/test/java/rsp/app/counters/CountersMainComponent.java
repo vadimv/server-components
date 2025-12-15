@@ -74,9 +74,9 @@ public class CountersMainComponent extends AddressBarSyncComponent {
     private static final Map<ComponentCompositeKey, Integer> stateStore = new ConcurrentHashMap<>();
 
     /**
-     * Creates the main orchestrator for the counters application.
+     * Creates the main component.
      *
-     * @param initialRelativeUrl the initial URL state, parsed from the browser's address bar
+     * @param initialRelativeUrl the initial relative URL
      */
     public CountersMainComponent(RelativeUrl initialRelativeUrl) {
         super(initialRelativeUrl);
