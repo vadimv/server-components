@@ -1,15 +1,22 @@
 package rsp.component;
 
-import java.util.function.Function;
-
 /**
- * This interface provides an abstraction of a component's UI definitions tree
- * with support of the mechanism of initiating of this component's state changes.
- * This function gets a state update API as its parameter that can be used to initiate state updates.
+ * Resolves a view function given a state update object.
+ * This functional interface injects a state update object enabling the framework to listen to the state updates
+ * initiated by the client code.
+ *
  * @see StateUpdate
  * @see View
  * @see rsp.dsl.Definition
  * @param <S> a type of the state
  */
 @FunctionalInterface
-public interface ComponentView<S> extends Function<StateUpdate<S>, View<S>> {}
+public interface ComponentView<S> {
+
+    /**
+     * Resolves a view function.
+     * @param stateUpdate a state updates listener
+     * @return a function that can be used for obtaining of a UI definition
+     */
+    View<S> use(StateUpdate<S> stateUpdate);
+}

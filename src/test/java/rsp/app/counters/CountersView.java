@@ -54,7 +54,7 @@ import static rsp.dsl.Html.text;
      * @return a View function that transforms the current state into DOM markup
      */
     @Override
-    public View<Integer> apply(StateUpdate<Integer> newState) {
+    public View<Integer> use(StateUpdate<Integer> newState) {
         return state ->
                 div(span(name),
                         button(attr("type", "button"),

@@ -23,7 +23,7 @@ public final class ComponentContext {
     }
 
     /**
-     * Retrieves a attribute's value by a key.
+     * Retrieves an attribute's value by a key.
      * @param name a key
      * @return a value
      */

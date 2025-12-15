@@ -143,7 +143,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             onBeforeInitiallyRendered();
             state = stateResolver.getState(componentId, componentContext);
             renderContext.setComponentContext(contextResolver.apply(componentContext, state));
-            final Definition view = componentView.apply(this).apply(state);
+            final Definition view = componentView.use(this).apply(state);
 
             view.render(renderContext);
             onAfterRendered(state);
@@ -197,7 +197,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         renderContext.setComponentContext(contextResolver.apply(componentContext, state));
         renderContext.openComponent(this);
-        final Definition view = componentView.apply(this).apply(state);
+        final Definition view = componentView.use(this).apply(state);
         view.render(renderContext);
         renderContext.closeComponent();
         onAfterRendered(state);
