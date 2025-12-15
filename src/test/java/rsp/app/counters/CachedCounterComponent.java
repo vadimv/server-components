@@ -9,39 +9,6 @@ import java.util.Map;
 /**
  * A counter component with a temporary state storage.
  * <p>
- * <strong>Composition pattern:</strong> Extends {@link StoredStateComponent} and overrides
- * {@link rsp.component.definitions.Component#componentView() componentView()} to provide
- * the counter's view implementation.
- * <p>
- * This demonstrates composition through inheritance with state persistence:
- * <ul>
- *   <li><strong>Base class responsibility:</strong> {@link StoredStateComponent} manages state caching
- *      across component mounts/unmounts using a shared state store</li>
- *   <li><strong>Subclass responsibility:</strong> {@code CachedCounterComponent} defines the view
- *      that renders the counter UI</li>
- * </ul>
- * <p>
- * <strong>State persistence flow:</strong>
- * <pre>
- * Component mounts
- *   ↓
- * initStateSupplier() checks store for existing state
- *   ↓
- * if found: use stored value | if not found: initialize with provided initialState
- *   ↓
- * Render with CountersView
- *   ↓
- * User clicks button → state changes
- *   ↓
- * onComponentUpdated() saves state to store
- *   ↓
- * Component unmounts
- *   ↓
- * Component remounts later
- *   ↓
- * State is restored from store (not reinitialized)
- * </pre>
- * <p>
  * <strong>Use case:</strong> The \"Show counter 3\" checkbox demonstrates this pattern.
  * When toggled off, the counter component is unmounted. When toggled back on,
  * the counter's state is restored rather than reset to the initial value.

@@ -15,12 +15,12 @@ import java.util.function.Consumer;
  * The base class for components definitions.
  * On a page tree, a component represent a self-contained unit of a UI with its own subtree consisting of a mix of other components and/or DOM elements.
  * A definitions' tree is rendered to a DOM tree when states are resolved.
- *
+ * <p>
  * Subclasses of this class provide an implementation an initial state supplier and a function defining of its UI subtree.
  * Optionally they provide a way to pass information to the component's downstream component which these components can use to set up states.
  * There are a number of methods available for overriding representing callbacks for various phases of the defined component's lifecycle.
  * The mechanisms of extension described above can be described of the application level.
- *
+ * <p>
  * Also, it is possible to override the method which creates component's segment which can be overridden as well to substitute the new instance with
  * the one of extended ComponentSegment class. This gives more control over the created segment's behaviour.
  * @see ComponentSegment<S>

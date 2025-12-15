@@ -15,39 +15,7 @@ import static rsp.dsl.Html.span;
 import static rsp.dsl.Html.text;
 
 /**
- * A reusable counter view implementation demonstrating the @FunctionalInterface pattern.
- * <p>
- * This class implements {@link ComponentView}&lt;Integer&gt;, which is a functional interface:
- * <ul>
- *   <li><strong>Input:</strong> {@link StateUpdate}&lt;Integer&gt; - provides setState() to dispatch state changes</li>
- *   <li><strong>Output:</strong> {@link View}&lt;Integer&gt; - a function that takes current state and returns DOM markup</li>
- * </ul>
- * <p>
- * The two-level composition pattern (ComponentView → View) enables:
- * <ul>
- *   <li><strong>State update capability:</strong> The outer function (ComponentView) receives the state update API</li>
- *   <li><strong>State-driven rendering:</strong> The inner function (View) receives the actual state value</li>
- *   <li><strong>Event handling:</strong> Event handlers captured in closures access both the current state and update API</li>
- * </ul>
- * <p>
- * <strong>Rendering flow:</strong>
- * <pre>
- * ComponentView.apply(stateUpdater)     // Called once per component mount
- *   ↓
- * returns View&lt;Integer&gt;
- *   ↓
- * View.apply(currentState)             // Called on each state change and initial render
- *   ↓
- * returns Definition (DOM markup)
- * </pre>
- * <p>
- * <strong>UI Structure:</strong> Renders a counter with:
- * <ul>
- *   <li>Label with counter name (e.g., \"c1\")</li>
- *   <li>Increment (+) button - increments state by 1</li>
- *   <li>Value display - shows current state with CSS class based on even/odd</li>
- *   <li>Decrement (-) button - decrements state by 1</li>
- * </ul>
+ * A reusable counter view implementation demonstrating a decoupled implementation of a view with events handlers logic.
  * <p>
  * <strong>Reusability:</strong> This view is shared across multiple component types:
  * <ul>
@@ -55,17 +23,8 @@ import static rsp.dsl.Html.text;
  *   <li>{@link CachedCounterComponent} - persistent state counters</li>
  * </ul>
  * This demonstrates how a single view implementation can be composed with different state management strategies.
- * <p>
- * <strong>Example usage:</strong>
- * <pre>
- * // In ContextCounterComponent
- * @Override
- * public ComponentView&lt;Integer&gt; componentView() {
- *     return new CountersView(\"c1\");  // Reuses this view for counter c1
- * }
- * </pre>
  *
- * @see ComponentView for the functional interface contract
+ * @see ComponentView for the base interface for views
  * @see View for the state-to-markup transformation
  * @see ContextCounterComponent for URL-synced counter example
  * @see CachedCounterComponent for persistent state counter example

@@ -8,33 +8,6 @@ import java.util.Objects;
 /**
  * A counter component synchronized with the address bar (URL path or query parameters).
  * <p>
- * <strong>Composition pattern:</strong> Extends {@link ContextStateComponent} and overrides
- * {@link rsp.component.definitions.Component#componentView() componentView()} to provide
- * the counter's view implementation.
- * <p>
- * This demonstrates the <em>template method</em> pattern in the component framework:
- * <ul>
- *   <li><strong>Base class responsibility:</strong> {@link ContextStateComponent} handles state synchronization
- *      with context attributes (URL path elements or query parameters)</li>
- *   <li><strong>Subclass responsibility:</strong> {@code ContextCounterComponent} defines the view
- *      that renders the counter UI for those states</li>
- * </ul>
- * <p>
- * <strong>State flow:</strong>
- * <pre>
- * AddressBarSyncComponent (parent in tree) sets context attributes
- *   ↓
- * ContextStateComponent reads attribute value and parses it to state
- *   ↓
- * ContextCounterComponent.componentView() provides the view
- *   ↓
- * CountersView renders the counter UI
- *   ↓
- * On click: state changes and propagates back up to AddressBarSyncComponent
- *   ↓
- * AddressBarSyncComponent re-renders its subtree and updates URL and browser history
- * </pre>
- * <p>
  * <strong>Usage examples:</strong>
  * <ul>
  *   <li>URL path element: {@code /100/1001} → counter 1 = 100, counter 2 = 1001</li>
@@ -42,8 +15,8 @@ import java.util.Objects;
  * </ul>
  *
  * @see ContextStateComponent for state-to-context synchronization
- * @see CountersView for the UI rendering logic
- * @see CountersMainComponent for the parent orchestrator
+ * @see CountersView for the counter UI defintion and events handlers logic
+ * @see CountersMainComponent for the counters group UI
  */
 public class ContextCounterComponent extends ContextStateComponent<Integer> {
 

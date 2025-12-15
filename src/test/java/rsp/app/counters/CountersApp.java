@@ -1,5 +1,6 @@
 package rsp.app.counters;
 
+import rsp.component.ComponentView;
 import rsp.component.View;
 import rsp.component.definitions.*;
 import rsp.jetty.WebServer;
@@ -13,17 +14,19 @@ import static rsp.dsl.Html.*;
 import static rsp.routing.RoutingDsl.*;
 
 /**
- * This is a test application presenting usage of multiple instances of a component
+ * This is a test application for demonstrating main concepts and usage patters.
+ * This class illustrates an initial request routing and usage of multiple instances of a component {@link ComponentView}
  * some of which are have their state synchronized with a browser's address bar paths and a query parameter and
  * one demonstrates how component's state can be cached.
- * http://localhost:8085/16/-1?c4=27
+ * <p>
+ * An example test URL: http://localhost:8085/16/-1?c4=27
  */
 public final class CountersApp {
     public static final int PORT = 8085;
 
     public final WebServer webServer;
 
-    private static View<CountersAppState> rootView(HttpRequest httpRequest, CountersAppState countersState) {
+    private static View<CountersAppState> rootView(HttpRequest httpRequest) {
         return _ ->
                 html(head(title("Counters"),
                                 link(attr("rel", "stylesheet"),
@@ -40,7 +43,7 @@ public final class CountersApp {
     private static View<AppState> appComponentView(final HttpRequest httpRequest) {
         return state -> {
             if (state instanceof CountersAppState countersState) {
-                return rootView(httpRequest, countersState).apply(countersState);
+                return rootView(httpRequest).apply(countersState);
             } else if (state instanceof NotFoundState notFoundState) {
                 return new InitialStateComponent<>(notFoundState, notFoundStatelessView);
             } else {

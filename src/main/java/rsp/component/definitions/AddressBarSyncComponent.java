@@ -21,12 +21,29 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
 import static rsp.component.definitions.ContextStateComponent.STATE_VALUE_ATTRIBUTE_NAME;
 import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
+
 /**
- * This wrapper component acts as a mediator and synchronizes the current browser page address bar's path elements and query parameters
+ * This wrapper component synchronizes the current browser page address bar's path elements and query parameters
  * to the wrapped components subtree states.
  * On an initial rendering, the actual URL path and query parameters state are mapped to the context's fields to be propagated with the components' context to  its subtree components.
  * Later when the bind state changes somewhere in the components down the wrapped subtree, this component is notified and updates the address bar.
- * @see ComponentContext for subtree components with bind state
+ * <p>
+ * <strong>State flow:</strong>
+ * <pre>
+ * AddressBarSyncComponent (parent in tree) sets context attributes
+ *   ↓
+ * ContextStateComponent reads attribute value and parses it to state
+ *   ↓
+ * ContextCounterComponent.componentView() provides the view
+ *   ↓
+ * ComponentView renders the counter UI
+ *   ↓
+ * On event: state changes in a bind component down the tree and propagates back up to AddressBarSyncComponent
+ *   ↓
+ * AddressBarSyncComponent re-renders its subtree and updates URL and browser history
+ * </pre>
+ *
+ * @see ContextStateComponent for state-to-context synchronization
  */
 public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
 

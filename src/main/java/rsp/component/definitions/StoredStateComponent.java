@@ -6,7 +6,40 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * A component with its state provided on an initialization and stored in a cache.
+ * A base class for components with a state storage, e.g. in a cache.
+ * <p>
+ * Specific components extend this class and override
+ * {@link rsp.component.definitions.Component#componentView() componentView()} to provide
+ * the view implementation.
+ * <p>
+ * Implementation pattern:
+ * <ul>
+ *   <li><strong>Base class responsibility:</strong> this class manages state caching
+ *      across component mounts/unmounts using a shared state store</li>
+ *   <li><strong>Subclass responsibility:</strong> defines the view that renders its UI</li>
+ * </ul>
+ * <p>
+ * <strong>State flow:</strong>
+ * <pre>
+ * Component mounts
+ *   ↓
+ * initStateSupplier() checks store for existing state
+ *   ↓
+ * if found: use stored value | if not found: initialize with provided initial state
+ *   ↓
+ * Render with ComponentView
+ *   ↓
+ * User clicks button → state changes
+ *   ↓
+ * onComponentUpdated() saves state to store
+ *   ↓
+ * Component unmounts
+ *   ↓
+ * Component remounts later
+ *   ↓
+ * State is restored from store (not reinitialized)
+ * </pre>
+ *
  * @param <S> this component's state type
  */
 public abstract class StoredStateComponent<S> extends Component<S> {
