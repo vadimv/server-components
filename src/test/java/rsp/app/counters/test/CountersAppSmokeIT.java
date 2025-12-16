@@ -1,4 +1,4 @@
-package rsp.browserautomation;
+package rsp.app.counters.test;
 
 import com.microsoft.playwright.*;
 import org.junit.jupiter.api.AfterAll;
@@ -13,11 +13,11 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * An end-to-end smoke tests running CounterApp and browser automation with Playwright.
+ * An end-to-end smoke tests running the CounterApp on a web server and browser automation with Playwright.
  * @see CountersApp
  */
 @net.jcip.annotations.NotThreadSafe
-class PlaywrightSmokeIT {
+class CountersAppSmokeIT {
 
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final int COUNTER_1_INITIAL_VALUE = 100;
@@ -46,7 +46,7 @@ class PlaywrightSmokeIT {
     private static Stream<BrowserType> browserTypes() {
         return Stream.of(playwright.chromium()
                    //      playwright.webkit()
-                 //       playwright.firefox()
+                   //      playwright.firefox()
                 );
     }
 

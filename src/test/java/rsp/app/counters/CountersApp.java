@@ -7,7 +7,7 @@ import rsp.server.StaticResources;
 import java.io.File;
 
 /**
- * This is a test application for demonstrating this framework's main concepts and usage patterns.
+ * This is a test application for demonstrating this framework's main concepts, usage and test patterns.
  * This class illustrates an initial request routing and usage of multiple instances of a component {@link ComponentView}
  * some of which are have their state synchronized with a browser's address bar paths and a query parameter and
  * one demonstrates how component's state can be cached.

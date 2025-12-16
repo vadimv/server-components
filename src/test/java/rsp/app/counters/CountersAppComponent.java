@@ -14,7 +14,11 @@ import static rsp.dsl.Html.body;
 import static rsp.dsl.Html.link;
 import static rsp.routing.RoutingDsl.get;
 
+/**
+ * The root component of CountersApp.
+ */
 public class CountersAppComponent extends HttpRequestStateComponent<CountersAppComponent.AppState> {
+
     private static final Definition NOT_FOUND_PAGE =
             html(head(HeadType.PLAIN, title("Not found")),
                  body(h1("Not found 404"))).statusCode(404);
@@ -25,8 +29,7 @@ public class CountersAppComponent extends HttpRequestStateComponent<CountersAppC
 
     @Override
     public Function<HttpRequest, AppState> routing() {
-        return new Routing<>(get("/:c1(^-?\\d+$)/:c2(^-?\\d+$)",
-                                 _ -> new CountersAppState()),
+        return new Routing<>(get("/:c1(^-?\\d+$)/:c2(^-?\\d+$)", _ -> new CountersAppState()),
                              new NotFoundState());
     }
 
