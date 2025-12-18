@@ -3,6 +3,7 @@ package rsp.server;
 import rsp.util.ArrayUtils;
 
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 /**
@@ -129,6 +130,15 @@ public record Path(boolean isAbsolute, String[] elements) {
         for (int i = 0; i < elements.length;i++) {
             if (elements[i].equals(s)) return true;
         }
+        return false;
+    }
+
+    public boolean matches(final String regex) {
+        return this.toString().matches(regex);
+    }
+
+    public boolean matches(final Pattern regex) {
+        // TODO
         return false;
     }
 

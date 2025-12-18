@@ -9,6 +9,7 @@ import rsp.component.View;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
+import rsp.server.http.HttpMethod;
 import rsp.server.http.HttpRequest;
 
 import java.net.URI;
@@ -59,7 +60,7 @@ public class HtmlDefinitionsTests {
     private static TreeBuilder createRenderContext() {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
         final URI uri = URI.create("http://localhost");
-        final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
+        final HttpRequest httpRequest = new HttpRequest(HttpMethod.GET,
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);

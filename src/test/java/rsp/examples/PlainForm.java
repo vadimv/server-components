@@ -1,20 +1,16 @@
 package rsp.examples;
 
+import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
-import rsp.component.definitions.HttpRequestStateComponent;
+import rsp.component.definitions.Component;
 import rsp.component.View;
+import rsp.dsl.Html;
 import rsp.dsl.Tag;
 import rsp.jetty.WebServer;
-import rsp.routing.Routing;
-import rsp.routing.Route;
-import rsp.routing.RoutingDsl;
-import rsp.server.http.HttpRequest;
 
 import java.util.Objects;
-import java.util.function.Function;
 
 import static rsp.dsl.Html.*;
-import static rsp.routing.RoutingDsl.*;
 
 /**
  * An example with plain web pages:
@@ -25,18 +21,22 @@ import static rsp.routing.RoutingDsl.*;
  */
 public class PlainForm {
     static void main(final String[] args) {
-        final Routing<HttpRequest, Name> routing = new Routing<>(route(), new EmptyName());
-        final View<Name> pagesView = pagesView();
-        final var server = new WebServer(8080, httpRequest -> new HttpRequestStateComponent<Name>(httpRequest) {
+        final var server = new WebServer(8080, httpRequest -> new Component<Name>() {
 
             @Override
-            public ComponentView<Name> componentView() {
-                return _ -> pagesView;
+            public ComponentStateSupplier<Name> initStateSupplier() {
+                return (_, _) ->
+                    switch (httpRequest.method) {
+                        case GET -> new EmptyName();
+                        case POST -> new FullName(httpRequest.queryParameters.parameterValue("firstname").orElseThrow(),
+                                                  httpRequest.queryParameters.parameterValue("lastname").orElseThrow());
+                        default -> throw new IllegalStateException("Unexpected HTTP mehtod: " + httpRequest.method);
+                    };
             }
 
             @Override
-            public Function<HttpRequest, Name> routing() {
-                return routing;
+            public ComponentView<Name> componentView() {
+                return _ -> pagesView();
             }
         });
         server.start();
@@ -59,27 +59,19 @@ public class PlainForm {
 
     public record EmptyName() implements Name {}
 
-    private static Route<HttpRequest, Name> route() {
-        return RoutingDsl.concat(
-            get("/*", req -> new EmptyName()),
-            post("/*",
-                  req -> new FullName(req.queryParameters.parameterValue("firstname").orElseThrow(),
-                                                  req.queryParameters.parameterValue("lastname").orElseThrow())));
-    }
-
     private static View<Name> pagesView() {
         return state -> html(
                         head(HeadType.PLAIN, title("Plain Form Pages")),
                         body(
-                            state instanceof FullName ? formResult((FullName)state) : formComponent()
+                            state instanceof FullName ? formResult((FullName)state) : form()
                         )
         );
     }
 
-    private static Tag formComponent() {
+    private static Tag form() {
         return div(
                 h2(text("HTML Form")),
-                form(attr("action", "page0"), attr("method", "post"),
+                Html.form(attr("action", "page0"), attr("method", "post"),
                      label(attr("for", "firstname"), text("First name:")),
                      input(attr("type", "text"), attr("name","firstname"), attr("value", "First")),
                      br(),

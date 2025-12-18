@@ -54,6 +54,7 @@ public abstract class ContextStateComponent<S> extends Component<S> {
     public ComponentStateSupplier<S> initStateSupplier() {
         return (_, componentContext) -> {
             final String value = (String) componentContext.getAttribute(contextAttributeName);
+            // TODO null check
             return contextValueToStateFunction.apply(value);
         };
     }

@@ -3,6 +3,7 @@ package rsp.javax.web;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.websocket.server.HandshakeRequest;
 import rsp.server.http.Header;
+import rsp.server.http.HttpMethod;
 import rsp.server.http.HttpRequest;
 import rsp.server.Path;
 import rsp.server.http.Query;
@@ -53,7 +54,7 @@ public final class HttpRequestUtils {
         for (Map.Entry<String, List<String>> entry: handshakeRequest.getHeaders().entrySet()) {
             headers.add(new Header(entry.getKey(), entry.getValue().get(0)));
         }
-        return new HttpRequest(HttpRequest.HttpMethod.GET,
+        return new HttpRequest(HttpMethod.GET,
                                handshakeRequest.getRequestURI(),
                                handshakeRequest.getRequestURI().toString(),
                                Path.of(handshakeRequest.getRequestURI().getPath()),
@@ -69,9 +70,9 @@ public final class HttpRequestUtils {
         }
     }
 
-    private static HttpRequest.HttpMethod httpMethod(final String method) {
+    private static HttpMethod httpMethod(final String method) {
         try {
-            return HttpRequest.HttpMethod.valueOf(method);
+            return HttpMethod.valueOf(method);
         } catch (final IllegalArgumentException ex) {
             throw new RuntimeException("Unsupported HTTP method: " + method, ex);
         }

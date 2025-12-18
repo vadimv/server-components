@@ -95,19 +95,4 @@ public final class HttpRequest {
     public RelativeUrl relativeUrl() {
         return new RelativeUrl(this.path, this.queryParameters, Fragment.EMPTY);
     }
-
-    /**
-     * HTTP verbs.
-     */
-    public enum HttpMethod {
-        GET,
-        HEAD,
-        POST,
-        PUT,
-        DELETE,
-        CONNECT,
-        OPTIONS,
-        TRACE,
-        PATCH
-    }
 }

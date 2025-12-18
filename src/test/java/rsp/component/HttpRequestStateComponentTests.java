@@ -1,12 +1,12 @@
 package rsp.component;
 
 import org.junit.jupiter.api.Test;
-import rsp.component.definitions.HttpRequestStateComponent;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
 import rsp.server.http.Header;
+import rsp.server.http.HttpMethod;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.Query;
 
@@ -15,7 +15,6 @@ import java.util.List;
 
 import static rsp.dsl.Html.div;
 import static rsp.dsl.Html.span;
-import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
 class HttpRequestStateComponentTests {
 
@@ -28,7 +27,7 @@ class HttpRequestStateComponentTests {
     void component_renders_initial_html_from_http_request() {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("test-device", "test-session");
         final URI uri = URI.create("http://localhost/state-0");
-        final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
+        final HttpRequest httpRequest = new HttpRequest(HttpMethod.GET,
                                                         uri,
                                                         uri.toString(),
                                                         Path.of(uri.getPath()),

@@ -2,6 +2,7 @@ package rsp.server;
 
 import org.junit.jupiter.api.Test;
 import rsp.server.http.Header;
+import rsp.server.http.HttpMethod;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.Query;
 
@@ -17,7 +18,7 @@ class HttpRequestTests {
     void should_parse_cookies_header_correctly() throws URISyntaxException {
         final String cookieHeader = "Cookie: name=value; name2=value2; name3=value3";
         final URI uri = new URI("http://foo/bar");
-        final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,
+        final HttpRequest request = new HttpRequest(HttpMethod.GET,
                                                     uri,
                                                     uri.toString(),
                                                     Path.EMPTY,
@@ -33,7 +34,7 @@ class HttpRequestTests {
     void should_parse_cookies_header_correctly_for_empty() throws URISyntaxException {
         final String cookieHeader = "Cookie: name=value; name2=value2; name3=value3";
         final URI uri = new URI("http://foo/bar");
-        final HttpRequest request = new HttpRequest(HttpRequest.HttpMethod.GET,
+        final HttpRequest request = new HttpRequest(HttpMethod.GET,
                                                     uri,
                                                     uri.toString(),
                                                     Path.EMPTY,

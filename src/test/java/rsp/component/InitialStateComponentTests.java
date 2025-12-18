@@ -7,6 +7,7 @@ import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
+import rsp.server.http.HttpMethod;
 import rsp.server.http.HttpRequest;
 
 import java.net.URI;
@@ -30,7 +31,7 @@ class InitialStateComponentTests {
     void component_renders_initial_html_and_after_state_update_generates_dom_change_commands() {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("test-device", "test-session");
         final URI uri = URI.create("http://localhost");
-        final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
+        final HttpRequest httpRequest = new HttpRequest(HttpMethod.GET,
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);

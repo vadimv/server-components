@@ -13,6 +13,7 @@ import rsp.page.QualifiedSessionId;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
+import rsp.server.http.HttpMethod;
 import rsp.server.http.HttpRequest;
 import rsp.util.json.JsonDataType;
 
@@ -46,7 +47,7 @@ class StoredStateComponentTests {
     void component_renders_initial_html_and_after_state_set_generates_dom_update_commands() {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("test-device", "test-session");
         final URI uri = URI.create("http://localhost");
-        final HttpRequest httpRequest = new HttpRequest(HttpRequest.HttpMethod.GET,
+        final HttpRequest httpRequest = new HttpRequest(HttpMethod.GET,
                                                         uri,
                                                         uri.toString(),
                                                         Path.ROOT);
