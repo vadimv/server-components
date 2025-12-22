@@ -89,7 +89,8 @@ public class HtmlEscapeTests {
 
         @Test
         void prevents_script_tag_injection() {
-            final String input = "<script>alert('XSS')</script>";
+            final String input = """
+                                 <script>alert('XSS')</script>""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("&lt;script&gt;alert(&#39;XSS&#39;)&lt;/script&gt;", escaped);
             assertFalse(escaped.contains("<script>"));
@@ -97,7 +98,8 @@ public class HtmlEscapeTests {
 
         @Test
         void prevents_event_handler_injection() {
-            final String input = "<img src=x onerror=\"alert('XSS')\">";
+            final String input = """
+                                 <img src=x onerror="alert('XSS')">""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("&lt;img src=x onerror=&quot;alert(&#39;XSS&#39;)&quot;&gt;", escaped);
             // Verify tag is escaped so it won't be executed as HTML
@@ -107,7 +109,8 @@ public class HtmlEscapeTests {
 
         @Test
         void prevents_attribute_breakout_with_single_quote() {
-            final String input = "' onclick='alert(1)'";
+            final String input = """
+                                 ' onclick='alert(1)'""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("&#39; onclick=&#39;alert(1)&#39;", escaped);
             assertFalse(escaped.contains("' onclick"));
@@ -123,7 +126,8 @@ public class HtmlEscapeTests {
 
         @Test
         void prevents_html_tag_injection() {
-            final String input = "</div><div onclick=\"alert('XSS')\">";
+            final String input = """
+                                 </div><div onclick="alert('XSS')">""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("&lt;/div&gt;&lt;div onclick=&quot;alert(&#39;XSS&#39;)&quot;&gt;", escaped);
             assertFalse(escaped.contains("</div>"));
@@ -185,7 +189,13 @@ public class HtmlEscapeTests {
 
         @Test
         void escapes_html_code_example() {
-            final String input = "<!DOCTYPE html>\n<html>\n  <head>\n    <title>Test</title>\n  </head>\n</html>";
+            final String input = """
+                                 <!DOCTYPE html>
+                                 <html>
+                                   <head>
+                                     <title>Test</title>
+                                   </head>
+                                 </html>""";
             final String escaped = HtmlEscape.escape(input);
             assertFalse(escaped.contains("<!DOCTYPE"));
             assertFalse(escaped.contains("<html>"));
@@ -194,7 +204,8 @@ public class HtmlEscapeTests {
 
         @Test
         void escapes_javascript_code() {
-            final String input = "const obj = { key: \"value\", fn: () => alert('test') };";
+            final String input = """
+                                 const obj = { key: "value", fn: () => alert('test') };""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("const obj = { key: &quot;value&quot;, fn: () =&gt; alert(&#39;test&#39;) };", escaped);
         }
@@ -208,7 +219,8 @@ public class HtmlEscapeTests {
 
         @Test
         void escapes_user_provided_text_with_quotes() {
-            final String input = "The teacher said \"Hello\" and asked 'How are you?'";
+            final String input = """
+                                 The teacher said "Hello" and asked 'How are you?'""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("The teacher said &quot;Hello&quot; and asked &#39;How are you?&#39;", escaped);
         }
@@ -266,25 +278,28 @@ public class HtmlEscapeTests {
 
         @Test
         void escapes_tag_with_attributes() {
-            final String input = "<a href=\"http://example.com\" class='link'>";
+            final String input = """
+                                 <a href="http://example.com" class='link'>""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("&lt;a href=&quot;http://example.com&quot; class=&#39;link&#39;&gt;", escaped);
         }
 
         @Test
         void escapes_xml_declaration() {
-            final String input = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>";
+            final String input = """
+                                 <?xml version="1.0" encoding="UTF-8"?>""";
             final String escaped = HtmlEscape.escape(input);
             assertEquals("&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;", escaped);
         }
     }
 
     @Nested
-    public class IdempotencyTests {
+    public class ConsistencyTests {
 
         @Test
         void escaping_same_string_twice_produces_consistent_results() {
-            final String input = "<script>alert('XSS')</script>";
+            final String input = """
+                                 <script>alert('XSS')</script>""";
             final String escaped1 = HtmlEscape.escape(input);
             final String escaped2 = HtmlEscape.escape(input);
             assertEquals(escaped1, escaped2);
