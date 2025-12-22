@@ -19,7 +19,7 @@ public class InitialStateComponent<S> extends Component<S> {
                                  final ComponentView<S> view) {
         super(InitialStateComponent.class);
         this.view = Objects.requireNonNull(view);
-        this.initialState = Objects.requireNonNull(initialState);
+        this.initialState = Objects.requireNonNull(initialState, "Initial state must not be null");
     }
 
     public InitialStateComponent(final S initialState,
@@ -27,7 +27,7 @@ public class InitialStateComponent<S> extends Component<S> {
         super(InitialStateComponent.class);
         Objects.requireNonNull(view);
         this.view =  __ -> view;
-        this.initialState = Objects.requireNonNull(initialState);
+        this.initialState = Objects.requireNonNull(initialState, "Initial state must not be null");
     }
 
     public InitialStateComponent(final Object componentType,
@@ -35,7 +35,7 @@ public class InitialStateComponent<S> extends Component<S> {
                                  final ComponentView<S> view) {
         super(componentType);
         this.view = Objects.requireNonNull(view);
-        this.initialState = Objects.requireNonNull(initialState);
+        this.initialState = Objects.requireNonNull(initialState, "Initial state must not be null");
     }
 
     @Override

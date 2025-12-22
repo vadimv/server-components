@@ -141,7 +141,8 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     public void render(final TreeBuilder renderContext) {
         try {
             onBeforeInitiallyRendered();
-            state = stateResolver.getState(componentId, componentContext);
+            state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext),
+                                           "Initial state cannot be null for component " + componentId);
             renderContext.setComponentContext(contextResolver.apply(componentContext, state));
             final Definition view = componentView.use(this).apply(state);
 
@@ -157,8 +158,15 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         return state;
     }
 
+    /**
+     * Sets a new state for this component.
+     * The component will be re-rendered.
+     * @param newState a new state object, must not be null
+     * @throws NullPointerException if the new state is null
+     */
     @Override
     public void setState(final S newState) {
+        Objects.requireNonNull(newState, "New state cannot be null for component " + componentId);
         applyStateTransformation(_ -> newState);
     }
 
@@ -167,9 +175,16 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         stateTransformer.apply(state).ifPresent(this::setState);
     }
 
+    /**
+     * Updates the current state by applying a state-to-state function.
+     * The component will be re-rendered.
+     * @param newStateFunction a function for the state transformation, must not return null
+     * @throws NullPointerException if the function returns null
+     */
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
-        final S newState = newStateFunction.apply(state);
+        final S newState = Objects.requireNonNull(newStateFunction.apply(state),
+                                                  "State transformer function cannot return null for component " + componentId);
 
         if (!onBeforeUpdated(newState)) {
             return; // this component segment instance state change will not initiate re-rendering and will be discarded

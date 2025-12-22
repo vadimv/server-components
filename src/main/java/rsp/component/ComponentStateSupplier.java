@@ -1,19 +1,17 @@
 package rsp.component;
 
 /**
- * This functional interface represents a source of a state snapshot of a component. A state snapshot to be used during rendering of a component.
- * @see ComponentSegment<S>
- * @param <S> a component's state type
+ * A function to resolve an initial state for a component.
+ * @param <S> the type of the state
  */
 @FunctionalInterface
 public interface ComponentStateSupplier<S> {
-
     /**
-     * Provides a snapshot of a component's state, for example from a cache or retrieving from the component's context.
-     * @param componentKey an identifier of this component to access data from cache
-     * @param componentContext an instance of component's context from upstream components chain
-     * @return a result state
+     * Resolves the initial state.
+     * @param key the component's unique key
+     * @param httpContext the component's context
+     * @return the initial state, must not be null
+     * @throws IllegalStateException or NullPointerException if the resolved state is null
      */
-    S getState(ComponentCompositeKey componentKey, ComponentContext componentContext);
-
+    S getState(ComponentCompositeKey key, ComponentContext httpContext);
 }
