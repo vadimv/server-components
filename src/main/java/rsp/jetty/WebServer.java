@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.lang.System.Logger.Level.INFO;
 
@@ -73,7 +74,8 @@ public final class WebServer {
                      final Function<HttpRequest, Component<?>> rootComponentDefinition,
                      final Optional<StaticResources> staticResources,
                      final Optional<SslConfiguration> sslConfiguration,
-                     final int maxThreads) {
+                     final int maxThreads,
+                     final Supplier<EventLoop> eventLoopSupplier) { // new parameter
         this.port = port;
         Objects.requireNonNull(rootComponentDefinition);
 
@@ -132,7 +134,7 @@ public final class WebServer {
                                                                                                rootComponentDefinition,
                                                                                                DEFAULT_HEARTBEAT_INTERVAL_MS))),
                                          "/*");
-        final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage);
+        final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage, eventLoopSupplier); // pass eventLoopSupplier
         JakartaWebSocketServletContainerInitializer.configure(servletContextHandler, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
@@ -161,6 +163,14 @@ public final class WebServer {
         mappingsHandler.addMapping(PathSpec.from("/"), servletContextHandler);
 
         server.setHandler(mappingsHandler);
+    }
+
+    public WebServer(final int port,
+                     final Function<HttpRequest, Component<?>> rootComponentDefinition,
+                     final Optional<StaticResources> staticResources,
+                     final Optional<SslConfiguration> sslConfiguration,
+                     final int maxThreads) {
+        this(port, rootComponentDefinition, staticResources, sslConfiguration, maxThreads, DefaultEventLoop::new); // default to DefaultEventLoop::new
     }
 
     private static String stripTrailingWildcardSymbols(String path) {

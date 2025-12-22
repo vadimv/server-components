@@ -1,6 +1,7 @@
 package rsp.javax.web;
 
 import jakarta.websocket.*;
+import rsp.page.EventLoop;
 import rsp.page.LivePageSession;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -16,6 +17,7 @@ import rsp.util.json.JsonUtils;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.util.*;
+import java.util.function.Supplier;
 
 import static java.lang.System.Logger.Level.*;
 
@@ -31,13 +33,15 @@ public final class MainWebSocketEndpoint extends Endpoint {
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
+    private final Supplier<EventLoop> eventLoopSupplier;
 
     private final JsonParser jsonParser = JsonUtils.createParser();
 
     private static final Set<QualifiedSessionId> lostSessionsIds = Collections.newSetFromMap(new WeakHashMap<>());
 
-    public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage> renderedPages) {
+    public MainWebSocketEndpoint(final Map<QualifiedSessionId, RenderedPage> renderedPages, final Supplier<EventLoop> eventLoopSupplier) {
         this.renderedPages = Objects.requireNonNull(renderedPages);
+        this.eventLoopSupplier = Objects.requireNonNull(eventLoopSupplier);
     }
 
     @Override
@@ -58,7 +62,9 @@ public final class MainWebSocketEndpoint extends Endpoint {
             }
         } else {
 
-            final LivePageSession livePage = new LivePageSession();
+            // Create a new EventLoop for this specific session
+            final EventLoop eventLoop = eventLoopSupplier.get();
+            final LivePageSession livePage = new LivePageSession(eventLoop);
             livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageBuilder(),
                     renderedPage.commandsEnqueue(),
                                                                     remoteOut));

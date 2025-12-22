@@ -33,8 +33,8 @@ public final class LivePageSession implements Consumer<Command> {
     private RemoteOut remoteOut;
     private int descriptorsCounter;
 
-    public LivePageSession() {
-        this.reactor = new Reactor<>(this);
+    public LivePageSession(final EventLoop eventLoop) {
+        this.reactor = new Reactor<>(this, eventLoop);
     }
 
     public Consumer<Command> eventsConsumer() {
