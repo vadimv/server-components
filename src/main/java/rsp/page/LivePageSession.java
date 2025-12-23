@@ -131,7 +131,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private void handleComponentEvent(final String eventType,
-                                      final JsonDataType.Object eventObject) {
+                                      final Object eventObject) {
         Objects.requireNonNull(eventType);
         Objects.requireNonNull(eventObject);
         logger.log(DEBUG, () -> "Component event, type: " + eventType + ", event data: " + eventObject);

@@ -1,15 +1,13 @@
 package rsp.component;
 
-import rsp.util.json.JsonDataType;
-
 import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
- * A subscription to an event.
+ * A subscription to a component event.
  * @param eventName an event to listen to
  * @param eventHandler a handler to execute to react to the event
- * @param preventDefault
+ * @param preventDefault (currently unused for component events)
  */
 public record ComponentEventEntry(String eventName, Consumer<EventContext> eventHandler, boolean preventDefault) {
 
@@ -34,7 +32,11 @@ public record ComponentEventEntry(String eventName, Consumer<EventContext> event
         return Objects.hash(eventName, preventDefault);
     }
 
-    public record EventContext(JsonDataType.Object eventObject) {
+    /**
+     * The context for a component event.
+     * @param eventObject the data payload of the event
+     */
+    public record EventContext(Object eventObject) {
         public EventContext {
             Objects.requireNonNull(eventObject);
         }

@@ -18,7 +18,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVENT_PREFIX;
-import static rsp.component.definitions.ContextStateComponent.STATE_VALUE_ATTRIBUTE_NAME;
 import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 
@@ -75,17 +74,18 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
         return (componentContext, relativeUrl) -> {
             Objects.requireNonNull(componentContext);
             Objects.requireNonNull(relativeUrl);
-            final Map<String, Object> m = new HashMap<>();
+            final Map<String, ContextStateComponent.ContextValue> m = new HashMap<>();
             // add URL's path elements for configured positions
             for (PositionKey pathElementsKey : pathElementsPositionKeys()) {
-                m.put(pathElementsKey.key, relativeUrl.path().get(pathElementsKey.position));
+                final String contextValue = relativeUrl.path().get(pathElementsKey.position);
+                m.put(pathElementsKey.key, contextValue == null ?
+                        new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(contextValue));
             }
             // add query parameters for configured parameters names
             for (ParameterNameKey queryParametersNameKey : queryParametersNamedKeys()) {
                 final String parameterValue = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
-                if (parameterValue != null) {
-                    m.put(queryParametersNameKey.key(), parameterValue);
-                }
+                    m.put(queryParametersNameKey.key(), parameterValue == null ?
+                            new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(parameterValue));
             }
             return componentContext.with(m);
         };
@@ -112,7 +112,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                                       subComponentsContext(),
                                       componentView(),
                                       this,
-                treeBuilderFactory,
+                                      treeBuilderFactory,
                                       componentContext,
                                       commandsEnqueue) {
 
@@ -127,16 +127,13 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                 for (final PositionKey pathElementKey : pathElementsPositionKeys()) {
                     this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + pathElementKey.key,
                                         eventContext -> {
-                        final JsonDataType valueJson = eventContext.eventObject().value(STATE_VALUE_ATTRIBUTE_NAME);
-                        if (valueJson instanceof JsonDataType.String(String value)) {
+                        final Object valueObject = eventContext.eventObject();
+                        if (valueObject instanceof ContextStateComponent.ContextValue.StringValue(String value)) {
                             final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
                             final RelativeUrl relativeUrl = updatedRelativeUrlForPathElement(getState(), pathElementKey.key, value, pathElementIndex);
                             this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
                             setState(relativeUrl);
-                        } else {
-                            throw new IllegalStateException("Value is missing in a state update event");
                         }
-
                     },
                                         true);
                 }
@@ -145,8 +142,8 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                 for (final ParameterNameKey parameterNameKey : queryParametersNamedKeys()) {
                     this.addComponentEventHandler("stateUpdated." + parameterNameKey.key(),
                                         eventContext -> {
-                        final JsonDataType valueJson = eventContext.eventObject().value("value");
-                        if (valueJson instanceof JsonDataType.String(String value)) {
+                        final Object valueObject = eventContext.eventObject();
+                        if (valueObject instanceof ContextStateComponent.ContextValue.StringValue(String value)) {
                             final RelativeUrl relativeUrl = updatedRelativeUrlForParameter(getState(), parameterNameKey.key(), value);
                             this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
                             setState(relativeUrl);

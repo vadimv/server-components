@@ -4,6 +4,7 @@ import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 /**
  * A counter component synchronized with the address bar (URL path or query parameters).
@@ -35,10 +36,25 @@ public class ContextCounterComponent extends ContextStateComponent<Integer> {
      * @param name the counter identifier (e.g., \"c1\", \"c2\", \"c4\")
      */
     public ContextCounterComponent(final String name) {
-        super(name,
-              Integer::parseInt,
-              Object::toString);
+        super(name);
         this.name = Objects.requireNonNull(name);
+    }
+
+    @Override
+    protected Function<ContextValue, Integer> contextValueToStateFunction() {
+
+        return contextValue -> {
+            if (contextValue instanceof ContextValue.StringValue(String value)) {
+                return Integer.parseInt(value);
+            } else {
+                return 0;
+            }
+        };
+    }
+
+    @Override
+    protected Function<Integer, ContextValue> stateToContextValueFunction() {
+        return value -> new ContextValue.StringValue(value.toString());
     }
 
     /**

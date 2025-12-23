@@ -6,61 +6,62 @@ import rsp.page.QualifiedSessionId;
 import rsp.component.TreeBuilderFactory;
 import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.Command;
-import rsp.util.json.JsonDataType;
 
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
- * A component with its state mapped to a key-value in the components' context.
- * @see AddressBarSyncComponent as an example of a component up in the tree which syncs context with the browser's page address bar elements
+ * A component with its state mapped to a value in the parent's context.
+ * This class provides a template for creating components whose state is derived from and synchronized with
+ * a value provided by an upstream component (e.g., {@link AddressBarSyncComponent}).
  *
+ * <p>A subclass must implement {@link #contextValueToStateFunction()} and {@link #stateToContextValueFunction()}
+ * to define the mapping between the context's {@link ContextValue} and the component's specific state type {@code S}.
+ *
+ * @see AddressBarSyncComponent
  * @param <S> this component's state type
  */
 public abstract class ContextStateComponent<S> extends Component<S> {
     /**
-     * The prefix for mapped attributes names
+     * The prefix for component event names used for state synchronization.
      */
     public static final String STATE_UPDATED_EVENT_PREFIX = "stateUpdated.";
 
-    /**
-     * The field name for a state's change notification event object value
-     */
-    public static final String STATE_VALUE_ATTRIBUTE_NAME = "value";
-
-    private final System.Logger logger = System.getLogger(getClass().getName());
-
     private final String contextAttributeName;
-    private final Function<String, S> contextValueToStateFunction;
-    private final Function<S, String> stateToContextValueFunction;
 
     /**
-     *
-     * @param contextAttributeName
-     * @param contextValueToStateFunction
-     * @param stateToContextValueFunction
+     * Creates a new instance of a context-bound component.
+     * @param contextAttributeName the key used to look up this component's value in the parent context
      */
-    public ContextStateComponent(final String contextAttributeName,
-                                 final Function<String, S> contextValueToStateFunction,
-                                 final Function<S, String> stateToContextValueFunction) {
+    public ContextStateComponent(final String contextAttributeName) {
         super(ContextStateComponent.class);
         this.contextAttributeName = Objects.requireNonNull(contextAttributeName);
-        this.contextValueToStateFunction = Objects.requireNonNull(contextValueToStateFunction);
-        this.stateToContextValueFunction = Objects.requireNonNull(stateToContextValueFunction);
     }
 
     @Override
     public ComponentStateSupplier<S> initStateSupplier() {
         return (_, componentContext) -> {
-            final String value = (String) componentContext.getAttribute(contextAttributeName);
-            if (value == null) {
-                throw new IllegalStateException("Attribute " + contextAttributeName + " not found in component context");
+            if (componentContext.getAttribute(contextAttributeName) instanceof ContextValue contextValue) {
+                return contextValueToStateFunction().apply(contextValue);
+            } else {
+                throw new IllegalStateException("Attribute " + contextAttributeName + " of type ContextValue not found in component context");
             }
-            return contextValueToStateFunction.apply(value);
         };
     }
 
+    /**
+     * Defines the function that converts a {@link ContextValue} from the parent context into this component's state {@code S}.
+     * @return a function for converting the context value to the component's state
+     */
+    protected abstract Function<ContextValue, S> contextValueToStateFunction();
+
+    /**
+     * Defines the function that converts this component's state {@code S} into a {@link ContextValue}
+     * to be propagated to the parent component.
+     * @return a function for converting the component's state to a context value
+     */
+    protected abstract Function<S, ContextValue> stateToContextValueFunction();
 
     @Override
     public ComponentSegment<S> createComponentSegment(final QualifiedSessionId sessionId,
@@ -83,10 +84,37 @@ public abstract class ContextStateComponent<S> extends Component<S> {
             protected boolean onBeforeUpdated(final S state) {
                 // notify a component up in the tree hierarchy
                 commandsEnqueue.accept(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + contextAttributeName,
-                                       new JsonDataType.Object().put(STATE_VALUE_ATTRIBUTE_NAME,
-                                                                     new JsonDataType.String(stateToContextValueFunction.apply(state)))));
+                                                                      stateToContextValueFunction().apply(state)));
                 return false; // do not update this component, it will be re-rendered as a part of the subtree
             }
         };
+    }
+
+    /**
+     * A sealed interface representing a value passed through the component context.
+     * This provides a type-safe way to handle presence or absence of a value.
+     */
+    public sealed interface ContextValue {
+
+        /**
+         * A singleton representing an empty or absent value.
+         */
+        ContextValue EMPTY = new Empty();
+
+        /**
+         * Represents an empty or absent value in the context.
+         */
+        record Empty() implements ContextValue {
+        }
+
+        /**
+         * Represents a string-based value in the context.
+         * @param value the string value, must not be null
+         */
+        record StringValue(String value) implements ContextValue {
+            public StringValue {
+                Objects.requireNonNull(value);
+            }
+        }
     }
 }
