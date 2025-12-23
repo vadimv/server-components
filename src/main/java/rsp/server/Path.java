@@ -50,6 +50,21 @@ public record Path(boolean isAbsolute, String[] elements) {
     }
 
     /**
+     * Relativizes this path against the given base path.
+     * @param basePath the base path, must not be null
+     * @return the relative path
+     * @throws IllegalArgumentException if this path does not start with the base path
+     */
+    public Path relativize(final Path basePath) {
+        Objects.requireNonNull(basePath);
+        if (!startsWith(basePath)) {
+            throw new IllegalArgumentException("Path " + this + " does not start with " + basePath);
+        }
+        final String[] newElements = Arrays.copyOfRange(elements, basePath.elements.length, elements.length);
+        return new Path(false, newElements);
+    }
+
+    /**
      * Returns the element at the specified position in this componentPath.
      * @param index index of the element to return
      * @return the element at the specified position in this componentPath

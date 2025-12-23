@@ -2,11 +2,13 @@ package rsp.page;
 
 import rsp.component.ComponentContext;
 import rsp.component.definitions.Component;
+import rsp.server.StaticResourceHandler;
 import rsp.server.http.*;
 import rsp.server.Path;
 import rsp.util.RandomString;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -19,19 +21,23 @@ public final class HttpHandler {
 
     public static final int KEY_LENGTH = 64;
     public static final String DEVICE_ID_COOKIE_NAME = "deviceId";
+    public static final String JS_CLIENT_BUNDLE_PATH = "/static/rsp-client.min.js";
 
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
     private final Function<HttpRequest, Component<?>> rootComponentDefinition;
+    private final Optional<StaticResourceHandler> staticResourceHandler;
     private final int heartBeatIntervalMs;
 
     public HttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
                        final Function<HttpRequest, Component<?>> rootComponentDefinition,
+                       final Optional<StaticResourceHandler> staticResourceHandler,
                        final int heartBeatIntervalMs) {
 
         this.renderedPages = Objects.requireNonNull(pagesStorage);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
+        this.staticResourceHandler = Objects.requireNonNull(staticResourceHandler);
         this.heartBeatIntervalMs = heartBeatIntervalMs;
     }
 
@@ -39,10 +45,25 @@ public final class HttpHandler {
         Objects.requireNonNull(request);
         if (request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.emptyList(), "No favicon.ico"));
-        } else if (request.path.startsWith("static")) {
-            return CompletableFuture.completedFuture(staticFileResponse(request.path));
+        } else if (request.path.toString().equals(JS_CLIENT_BUNDLE_PATH)) {
+            return CompletableFuture.completedFuture(jsClientBundleResponse());
+        } else if (staticResourceHandler.isPresent() && staticResourceHandler.get().shouldHandle(request.path)) {
+            return CompletableFuture.completedFuture(staticResourceHandler.get().handle(request.path));
         } else {
             return handlePage(request);
+        }
+    }
+
+    private HttpResponse jsClientBundleResponse() {
+        final InputStream inputStream = this.getClass().getResourceAsStream(JS_CLIENT_BUNDLE_PATH);
+        if (inputStream != null) {
+            return new HttpResponse(200,
+                                    Collections.singletonList(new Header("Content-Type", "application/javascript")),
+                                    inputStream);
+        } else {
+            return new HttpResponse(500,
+                                    Collections.emptyList(),
+                                    "rsp-client.min.js not found in classpath");
         }
     }
 

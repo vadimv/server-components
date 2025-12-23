@@ -1,16 +1,9 @@
 package rsp.jetty;
 
 import org.eclipse.jetty.ee10.websocket.jakarta.server.config.JakartaWebSocketServletContainerInitializer;
-import org.eclipse.jetty.http.HttpURI;
-import org.eclipse.jetty.http.pathmap.PathSpec;
 import org.eclipse.jetty.server.*;
-import org.eclipse.jetty.server.handler.PathMappingsHandler;
-import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
-import org.eclipse.jetty.util.Callback;
-import org.eclipse.jetty.util.resource.Resource;
-import org.eclipse.jetty.util.resource.ResourceFactory;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import rsp.component.definitions.Component;
@@ -19,6 +12,7 @@ import rsp.javax.web.MainWebSocketEndpoint;
 import rsp.javax.web.HttpRequestUtils;
 import rsp.page.*;
 import rsp.server.SslConfiguration;
+import rsp.server.StaticResourceHandler;
 import rsp.server.StaticResources;
 import rsp.server.http.HttpRequest;
 
@@ -27,8 +21,6 @@ import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.ServerEndpointConfig;
 import jakarta.websocket.server.ServerEndpointConfig.Configurator;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,7 +56,7 @@ public final class WebServer {
     private final Server server;
 
     /**
-     * Creates a web server instance for hosting an RSP application.
+     * Creates a web server instance for hosting an application.
      * @param port a web server's listening port
      * @param rootComponentDefinition a root component's definition
      * @param sslConfiguration an TLS connection configuration or {@link Optional#empty()} for HTTP
@@ -89,9 +81,9 @@ public final class WebServer {
                     https.addCustomizer(new SecureRequestCustomizer());
 
                     final SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
-                    sslContextFactory.setKeyStorePath(ssl.keyStorePath);
-                    sslContextFactory.setKeyStorePassword(ssl.keyStorePassword);
-                    sslContextFactory.setKeyManagerPassword(ssl.keyStorePassword);
+                    sslContextFactory.setKeyStorePath(ssl.keyStorePath());
+                    sslContextFactory.setKeyStorePassword(ssl.keyStorePassword());
+                    sslContextFactory.setKeyManagerPassword(ssl.keyStorePassword());
 
                     final ServerConnector sslConnector = new ServerConnector(server,
                                                                              new SslConnectionFactory(sslContextFactory, "http/1.1"),
@@ -105,36 +97,18 @@ public final class WebServer {
                     server.setConnectors(new Connector[] { connector });
                 });
 
-        // See a Jetty server example at:
-        // https://github.com/jetty/jetty-examples/blob/12.0.x/embedded/path-mapping-handler/src/main/java/examples/PathMappingServer.java
-        final PathMappingsHandler mappingsHandler = new PathMappingsHandler();
-        staticResources.ifPresent(sr -> {
-            final ResourceFactory resourceFactory = ResourceFactory.of(server);
-            final Path staticResourcesDirectory = sr.resourcesBaseDir().toPath();
-
-            if (!Files.exists(staticResourcesDirectory) || !Files.isDirectory(staticResourcesDirectory)) {
-                throw new RuntimeException("Unable to find static files directory: " + staticResourcesDirectory.toAbsolutePath());
-            }
-            if (!Files.isReadable(staticResourcesDirectory)) {
-                throw new RuntimeException( "Unable to read static files directory: " + staticResourcesDirectory.toAbsolutePath());
-            }
-
-            final Resource staticResourcesDirectoryResource = resourceFactory.newResource(staticResourcesDirectory);
-            final ResourceHandler staticResourcesDirectoryResourceHandler = new ResourceHandler();
-            staticResourcesDirectoryResourceHandler.setBaseResource(staticResourcesDirectoryResource);
-            staticResourcesDirectoryResourceHandler.setDirAllowed(true);
-            mappingsHandler.addMapping(PathSpec.from(sr.contextPath()),
-                                       new StripContextPath(stripTrailingWildcardSymbols(sr.contextPath()),
-                                                            staticResourcesDirectoryResourceHandler));
-        });
+        final Optional<StaticResourceHandler> staticResourceHandler =
+                staticResources.map(sr -> new StaticResourceHandler(sr.resourcesBaseDir(),
+                                                                                  sr.contextPath()));
 
         final ServletContextHandler servletContextHandler = new ServletContextHandler();
         servletContextHandler.setContextPath("/");
         servletContextHandler.addServlet(new ServletHolder(new MainHttpServlet(new HttpHandler(pagesStorage,
                                                                                                rootComponentDefinition,
+                                                                                               staticResourceHandler,
                                                                                                DEFAULT_HEARTBEAT_INTERVAL_MS))),
                                          "/*");
-        final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage, eventLoopSupplier); // pass eventLoopSupplier
+        final MainWebSocketEndpoint webSocketEndpoint = new MainWebSocketEndpoint(pagesStorage, eventLoopSupplier);
         JakartaWebSocketServletContainerInitializer.configure(servletContextHandler, (servletContext, serverContainer) -> {
             final ServerEndpointConfig config =
                     ServerEndpointConfig.Builder.create(webSocketEndpoint.getClass(), MainWebSocketEndpoint.WS_ENDPOINT_PATH)
@@ -160,9 +134,7 @@ public final class WebServer {
                             }).build();
             serverContainer.addEndpoint(config);
         });
-        mappingsHandler.addMapping(PathSpec.from("/"), servletContextHandler);
-
-        server.setHandler(mappingsHandler);
+        server.setHandler(servletContextHandler);
     }
 
     public WebServer(final int port,
@@ -170,54 +142,13 @@ public final class WebServer {
                      final Optional<StaticResources> staticResources,
                      final Optional<SslConfiguration> sslConfiguration,
                      final int maxThreads) {
-        this(port, rootComponentDefinition, staticResources, sslConfiguration, maxThreads, DefaultEventLoop::new); // default to DefaultEventLoop::new
-    }
-
-    private static String stripTrailingWildcardSymbols(String path) {
-        return path.replaceAll("\\*+$", "").replaceAll("/+$", "");
-    }
-
-    private static final class StripContextPath extends PathNameWrapper
-    {
-        public StripContextPath(String contextPath, Handler handler)
-        {
-            super(path -> path.startsWith(contextPath) ? path.substring(contextPath.length()) : path, handler);
-        }
-    }
-
-    private static class PathNameWrapper extends Handler.Wrapper
-    {
-        private final Function<String, String> nameFunction;
-
-        public PathNameWrapper(Function<String, String> nameFunction, Handler handler)
-        {
-            super(handler);
-            this.nameFunction = nameFunction;
-        }
-
-        @Override
-        public boolean handle(Request request, Response response, Callback callback) throws Exception
-        {
-            final String originalPath = request.getHttpURI().getPath();
-            final String newPath = nameFunction.apply(originalPath);
-            final HttpURI newURI = HttpURI.build(request.getHttpURI()).path(newPath);
-
-            final Request wrappedRequest = new Request.Wrapper(request)
-            {
-                @Override
-                public HttpURI getHttpURI()
-                {
-                    return newURI;
-                }
-            };
-            return super.handle(wrappedRequest, response, callback);
-        }
+        this(port, rootComponentDefinition, staticResources, sslConfiguration, maxThreads, DefaultEventLoop::new);
     }
 
     /**
-     * Creates a Jetty web server instance for hosting an RSP application.
+     * Creates a web server instance for hosting an application.
      * @param port a web server's listening port
-     * @param rootComponentDefinition a root component
+     * @param rootComponentDefinition an application's root server component
      * @param staticResources a setup object for an optional static resources handler
      */
     public <S> WebServer(final int port,
@@ -227,7 +158,7 @@ public final class WebServer {
     }
 
     /**
-     * Creates a Jetty web server instance for hosting an RSP application.
+     * Creates a web server instance for hosting an application.
      * @param port a web server's listening port
      * @param rootComponentDefinition a root component
      * @param staticResources a setup object for an optional static resources handler
@@ -241,7 +172,7 @@ public final class WebServer {
     }
 
     /**
-     * Creates a Jetty web server instance for hosting an RSP application.
+     * Creates a web server instance for hosting an application.
      * @param port a web server's listening port
      * @param rootComponentDefinition a root component
      */
