@@ -36,6 +36,7 @@ public final class HttpHandler {
     }
 
     public CompletableFuture<HttpResponse> handle(final HttpRequest request) {
+        Objects.requireNonNull(request);
         if (request.path.endsWith("favicon.ico")) {
             return CompletableFuture.completedFuture(new HttpResponse(404, Collections.emptyList(), "No favicon.ico"));
         } else if (request.path.startsWith("static")) {
@@ -46,6 +47,7 @@ public final class HttpHandler {
     }
 
     private HttpResponse staticFileResponse(final Path path) {
+        Objects.requireNonNull(path);
         if (!path.contains("..")) {
             final URL fileUrl =  this.getClass().getResource(path.toString());
             if (fileUrl != null) {
@@ -69,6 +71,7 @@ public final class HttpHandler {
     }
 
     private CompletableFuture<HttpResponse> handlePage(final HttpRequest request) {
+        Objects.requireNonNull(request);
         try {
             final String deviceId = request.cookies(DEVICE_ID_COOKIE_NAME).stream().findFirst().orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();
@@ -107,6 +110,8 @@ public final class HttpHandler {
     }
 
     private List<Header> renderedHeaders(final Map<String, List<String>> headers, final String deviceId) {
+        Objects.requireNonNull(headers);
+        Objects.requireNonNull(deviceId);
         final List<Header> resultHeaders = new ArrayList<>();
         for (final Map.Entry<String, List<String>> entry : headers.entrySet() ) {
             for (final String value : entry.getValue()) {

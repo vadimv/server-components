@@ -24,6 +24,7 @@ public class HtmlBuilder {
      * @param node a root node of a DOM tree to add to the result HTML
      */
     public void buildHtml(final Node node) {
+        Objects.requireNonNull(node);
         if (node instanceof TagNode tagNode) {
             buildHtml(tagNode);
         } else if (node instanceof TextNode textNode) {

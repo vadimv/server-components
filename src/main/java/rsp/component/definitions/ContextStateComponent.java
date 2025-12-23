@@ -54,7 +54,9 @@ public abstract class ContextStateComponent<S> extends Component<S> {
     public ComponentStateSupplier<S> initStateSupplier() {
         return (_, componentContext) -> {
             final String value = (String) componentContext.getAttribute(contextAttributeName);
-            // TODO null check
+            if (value == null) {
+                throw new IllegalStateException("Attribute " + contextAttributeName + " not found in component context");
+            }
             return contextValueToStateFunction.apply(value);
         };
     }
@@ -66,6 +68,7 @@ public abstract class ContextStateComponent<S> extends Component<S> {
                                                       final TreeBuilderFactory treeBuilderFactory,
                                                       final ComponentContext sessionObjects,
                                                       final Consumer<Command> commandsEnqueue) {
+        super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, sessionObjects, commandsEnqueue);
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                       initStateSupplier(),
                                       subComponentsContext(),

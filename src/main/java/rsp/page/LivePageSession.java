@@ -34,7 +34,7 @@ public final class LivePageSession implements Consumer<Command> {
     private int descriptorsCounter;
 
     public LivePageSession(final EventLoop eventLoop) {
-        this.reactor = new Reactor<>(this, eventLoop);
+        this.reactor = new Reactor<>(this, Objects.requireNonNull(eventLoop));
     }
 
     public Consumer<Command> eventsConsumer() {
@@ -47,6 +47,7 @@ public final class LivePageSession implements Consumer<Command> {
 
     @Override
     public void accept(final Command event) {
+        Objects.requireNonNull(event);
         switch (event) {
             case InitSessionCommand e -> init(e);
             case SessionCustomEvent e -> handleDomEvent(0, e.path(), e.customEvent().eventName(), e.customEvent().eventData());
@@ -76,6 +77,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
+        Objects.requireNonNull(result);
         if (result instanceof ExtractPropertyResponse.NotFound) {
             logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " failed");
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
@@ -94,6 +96,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
+        Objects.requireNonNull(value);
         logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toString());
         final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
@@ -106,6 +109,9 @@ public final class LivePageSession implements Consumer<Command> {
                                 final TreePositionPath eventPath,
                                 final String eventType,
                                 final JsonDataType.Object eventObject) {
+        Objects.requireNonNull(eventPath);
+        Objects.requireNonNull(eventType);
+        Objects.requireNonNull(eventObject);
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         TreePositionPath eventElementPath = eventPath;
         while (eventElementPath.level() >= 0) {
@@ -126,6 +132,8 @@ public final class LivePageSession implements Consumer<Command> {
 
     private void handleComponentEvent(final String eventType,
                                       final JsonDataType.Object eventObject) {
+        Objects.requireNonNull(eventType);
+        Objects.requireNonNull(eventObject);
         logger.log(DEBUG, () -> "Component event, type: " + eventType + ", event data: " + eventObject);
         for (final ComponentEventEntry event: pageRenderContext.recursiveComponentEvents()) {
             if (event.eventName().equals(eventType)) {
@@ -136,6 +144,8 @@ public final class LivePageSession implements Consumer<Command> {
 
     private EventContext createEventContext(final TreePositionPath eventElementPath,
                                             final JsonDataType.Object eventObject) {
+        Objects.requireNonNull(eventElementPath);
+        Objects.requireNonNull(eventObject);
         return new EventContext(eventElementPath,
                                 this::evalJs,
                                 this::createPropertiesHandle,
@@ -145,6 +155,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private PropertiesHandle createPropertiesHandle(final Ref ref) {
+        Objects.requireNonNull(ref);
         final TreePositionPath path = resolveRef(ref);
         if (path == null) {
             throw new IllegalStateException("Ref not found: " + ref);
@@ -153,11 +164,13 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private TreePositionPath resolveRef(final Ref ref) {
+        Objects.requireNonNull(ref);
         // TODO verify if below condition is correct
         return ref instanceof Window.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
     }
 
     private CompletableFuture<JsonDataType> evalJs(final String js) {
+        Objects.requireNonNull(js);
         logger.log(DEBUG, () -> "Called an JS evaluation: " + js);
         final int newDescriptor = ++descriptorsCounter;
         final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
@@ -167,6 +180,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private void setHref(final String path) {
+        Objects.requireNonNull(path);
         this.accept(new RemoteCommand.SetHref(path));
     }
 }

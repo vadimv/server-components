@@ -25,7 +25,9 @@ public final class NodesTreeDiff {
                             final HtmlBuilder hb) {
         Objects.requireNonNull(ct);
         Objects.requireNonNull(wt);
+        Objects.requireNonNull(path);
         Objects.requireNonNull(changesPerformer);
+        Objects.requireNonNull(hb);
         if (!ct.name.equals(wt.name)) {
             changesPerformer.removeNode(path.parent(), path);
             createTag(wt, path, changesPerformer, hb);
@@ -49,6 +51,11 @@ public final class NodesTreeDiff {
                                     final TreePositionPath parentTagPath,
                                     final DomChangesContext performer,
                                     final HtmlBuilder hb) {
+        Objects.requireNonNull(cc);
+        Objects.requireNonNull(wc);
+        Objects.requireNonNull(parentTagPath);
+        Objects.requireNonNull(performer);
+        Objects.requireNonNull(hb);
         final ListIterator<? extends Node> cci = cc.listIterator();
         final ListIterator<? extends Node> wci = wc.listIterator();
         TreePositionPath p = parentTagPath;

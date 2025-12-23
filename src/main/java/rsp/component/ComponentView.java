@@ -15,7 +15,7 @@ public interface ComponentView<S> {
 
     /**
      * Resolves a view function.
-     * @param stateUpdate a state updates listener
+     * @param stateUpdate a state updates listener, must not be null
      * @return a function that can be used for obtaining of a UI definition
      */
     View<S> use(StateUpdate<S> stateUpdate);

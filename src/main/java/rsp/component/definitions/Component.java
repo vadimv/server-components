@@ -73,6 +73,9 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
 
      */
     public void onComponentMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate) {
+        Objects.requireNonNull(componentId);
+        Objects.requireNonNull(state);
+        Objects.requireNonNull(stateUpdate);
     }
 
     /**
@@ -81,12 +84,18 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
      *
      */
     public void onComponentUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate) {
+        Objects.requireNonNull(componentId);
+        Objects.requireNonNull(oldState);
+        Objects.requireNonNull(newState);
+        Objects.requireNonNull(stateUpdate);
     }
 
     /**
      * This method provides a callback for the event when this component's will be unmounted from the rendered tree.
      */
     public void onComponentUnmounted(ComponentCompositeKey componentId, S state) {
+        Objects.requireNonNull(componentId);
+        Objects.requireNonNull(state);
     }
 
     @Override
@@ -95,6 +104,11 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
                                                       final TreeBuilderFactory treeBuilderFactory,
                                                       final ComponentContext componentContext,
                                                       final Consumer<Command> commandsEnqueue) {
+        Objects.requireNonNull(sessionId);
+        Objects.requireNonNull(componentPath);
+        Objects.requireNonNull(treeBuilderFactory);
+        Objects.requireNonNull(componentContext);
+        Objects.requireNonNull(commandsEnqueue);
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
                                       initStateSupplier(),
                                       subComponentsContext(),
@@ -106,10 +120,10 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
+    public void render(final TreeBuilder renderContext) {
+        Objects.requireNonNull(renderContext);
         final ComponentSegment<S> component = renderContext.openComponent(this);
         component.render(renderContext);
         renderContext.closeComponent();
-        return true;
     }
 }

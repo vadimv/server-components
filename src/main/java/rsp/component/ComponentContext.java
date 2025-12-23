@@ -2,6 +2,7 @@ package rsp.component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * This class is used to pass information from upstream components in a tree to their downstream components.
@@ -24,19 +25,21 @@ public final class ComponentContext {
 
     /**
      * Retrieves an attribute's value by a key.
-     * @param name a key
+     * @param name a key, must not be null
      * @return a value
      */
     public Object getAttribute(final String name) {
+        Objects.requireNonNull(name);
         return attributes.get(name);
     }
 
     /**
      * Creates a new immutable instance with the map of values to pass to downstream components.
-     * @param overlayAttributes a map with key-values
+     * @param overlayAttributes a map with key-values, must not be null
      * @return a new instance of ComponentContext
      */
     public ComponentContext with(final Map<String, Object> overlayAttributes) {
+        Objects.requireNonNull(overlayAttributes);
         final Map<String, Object> newAttributes = new HashMap<>(attributes);
         newAttributes.putAll(overlayAttributes);
         return new ComponentContext(newAttributes);

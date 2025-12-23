@@ -48,7 +48,7 @@ public final class PageBuilder extends TreeBuilder {
     }
 
     public void setHeaders(final Map<String, List<String>> headers) {
-        this.headers = headers;
+        this.headers = Objects.requireNonNull(headers);
     }
 
     @Override

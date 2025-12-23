@@ -89,6 +89,8 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     }
 
     private void parseExtractPropertyResponse(final String metadata, final JsonDataType value) {
+        Objects.requireNonNull(metadata);
+        Objects.requireNonNull(value);
         final String[] tokens = metadata.split(":");
         final int descriptorId = Integer.parseInt(tokens[0]);
         final int jsonMetadata = Integer.parseInt(tokens[1]);
@@ -99,11 +101,17 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
     }
 
     private void parseEvalJsResponse(final String metadata, final JsonDataType value) {
+        Objects.requireNonNull(metadata);
+        Objects.requireNonNull(value);
         final String[] tokens = metadata.split(":");
         remoteIn.accept(new EvalJsResponseEvent(Integer.parseInt(tokens[0]), value));
     }
 
+
+
     private void parseDomEvent(final String str, final JsonDataType.Object eventObject) {
+        Objects.requireNonNull(str);
+        Objects.requireNonNull(eventObject);
         final String[] tokens = str.split(":");
         remoteIn.accept(new DomEventNotification(Integer.parseInt(tokens[0]),
                                      TreePositionPath.of(tokens[1]),

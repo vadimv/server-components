@@ -6,6 +6,7 @@ import rsp.page.EventContext;
 import rsp.util.ArrayUtils;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -183,7 +184,7 @@ public final class Html {
      * @return a text node definition
      */
     public static Text text(final Object obj) {
-        return new Text(obj.toString());
+        return new Text(String.valueOf(obj));
     }
 
 
@@ -216,6 +217,7 @@ public final class Html {
      * @return a tag definition
      */
     public static Tag head(final HeadType headType, final Definition... children) {
+        Objects.requireNonNull(headType);
         return headType == HeadType.SPA ? tag("head", children) : new PlainTag(XmlNs.html, "head", children);
     }
 
@@ -600,6 +602,7 @@ public final class Html {
      * @return a document part definition representing a sequence of definitions
      */
     public static Definition of(final Stream<Definition> items) {
+        Objects.requireNonNull(items);
         return new SequenceDefinition(items.toArray(Definition[]::new));
     }
 
@@ -610,6 +613,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition of(final Supplier<Definition> itemSupplier) {
+        Objects.requireNonNull(itemSupplier);
         return new SequenceDefinition(new Definition[] { itemSupplier.get() });
     }
 
@@ -619,6 +623,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition of(final CompletableFuture<? extends Definition> completableFutureDefinition) {
+        Objects.requireNonNull(completableFutureDefinition);
         return completableFutureDefinition.join();
     }
 
@@ -629,6 +634,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition when(final boolean condition, final Definition then) {
+        Objects.requireNonNull(then);
         return when(condition, () -> then);
     }
 
@@ -640,6 +646,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition when(final boolean condition, final Supplier<Definition> then) {
+        Objects.requireNonNull(then);
         return condition ? then.get() : EmptyDefinition.INSTANCE;
     }
 

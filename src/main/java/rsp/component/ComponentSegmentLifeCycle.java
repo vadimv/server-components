@@ -11,13 +11,25 @@ public interface ComponentSegmentLifeCycle<S> {
      * Invoked during mount of the component.
      * This callback can be used to subscribe to some external events.
      *
-     * @param componentId component's composite key
-     * @param state       current state
+     * @param componentId component's composite key, must not be null
+     * @param state current state, must not be null
      * @param stateUpdate update state target, must not be called directly, to be called asynchronously; it is safe to call in a different tread
      */
     void onComponentMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate);
 
+    /**
+     * Invoked after the component has been updated.
+     * @param componentId component's composite key, must not be null
+     * @param oldState the previous state, must not be null
+     * @param newState the new state, must not be null
+     * @param stateUpdate update state target, must not be called directly, to be called asynchronously; it is safe to call in a different tread
+     */
     void onComponentUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate);
 
+    /**
+     * Invoked before the component is unmounted.
+     * @param componentId component's composite key, must not be null
+     * @param state the current state, must not be null
+     */
     void onComponentUnmounted(ComponentCompositeKey componentId, S state);
 }

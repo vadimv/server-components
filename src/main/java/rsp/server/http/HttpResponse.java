@@ -3,6 +3,7 @@ package rsp.server.http;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a HTTP response.
@@ -20,8 +21,8 @@ public final class HttpResponse {
                         final List<Header> headers,
                         final InputStream bodyStream) {
         this.status = status;
-        this.headers = headers;
-        this.bodyStream = bodyStream;
+        this.headers = Objects.requireNonNull(headers);
+        this.bodyStream = Objects.requireNonNull(bodyStream);
     }
 
     public HttpResponse(final int status,

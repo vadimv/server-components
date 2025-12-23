@@ -3,25 +3,19 @@ package rsp.dsl;
 import rsp.component.TreeBuilder;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
- * An ordered sequence of definitions.
+ * A sequence of definitions.
  */
-public final class SequenceDefinition implements Definition {
-    public final Definition[] items;
+public record SequenceDefinition(Definition[] items) implements Definition {
 
-    /**
-     * Creates a definition of a sequence of nodes definitions.
-     * @param items to be rendered one ofter another
-     */
-    public SequenceDefinition(final Definition[] items) {
-        super();
-        this.items = items;
+    public SequenceDefinition {
+        Objects.requireNonNull(items);
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
-        Arrays.stream(items).forEach(c -> c.render(renderContext));
-        return true;
+    public void render(final TreeBuilder renderContext) {
+        Arrays.stream(items).forEach(item -> item.render(renderContext));
     }
 }

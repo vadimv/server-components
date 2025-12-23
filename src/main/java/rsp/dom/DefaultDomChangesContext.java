@@ -53,23 +53,57 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     public sealed interface DomChange {}
 
     public record RemoveAttr(TreePositionPath path, XmlNs xmlNs, String name, boolean isProperty) implements DomChange {
+        public RemoveAttr {
+            Objects.requireNonNull(path);
+            Objects.requireNonNull(xmlNs);
+            Objects.requireNonNull(name);
+        }
     }
 
     public record RemoveStyle(TreePositionPath path, String name) implements DomChange {
+        public RemoveStyle {
+            Objects.requireNonNull(path);
+            Objects.requireNonNull(name);
+        }
     }
 
     public record Remove(TreePositionPath parentPath, TreePositionPath path) implements DomChange {
+        public Remove {
+            Objects.requireNonNull(parentPath);
+            Objects.requireNonNull(path);
+        }
     }
 
     public record SetAttr(TreePositionPath path, XmlNs xmlNs, String name, String value, boolean isProperty) implements DomChange {
+        public SetAttr {
+            Objects.requireNonNull(path);
+            Objects.requireNonNull(xmlNs);
+            Objects.requireNonNull(name);
+            Objects.requireNonNull(value);
+        }
     }
 
     public record SetStyle(TreePositionPath path, String name, String value) implements DomChange {
+        public SetStyle {
+            Objects.requireNonNull(path);
+            Objects.requireNonNull(name);
+            Objects.requireNonNull(value);
+        }
     }
 
     public record CreateText(TreePositionPath parentPath, TreePositionPath path, String text) implements DomChange {
+        public CreateText {
+            Objects.requireNonNull(parentPath);
+            Objects.requireNonNull(path);
+            Objects.requireNonNull(text);
+        }
     }
 
     public record Create(TreePositionPath path, XmlNs xmlNs, String tag) implements DomChange {
+        public Create {
+            Objects.requireNonNull(path);
+            Objects.requireNonNull(xmlNs);
+            Objects.requireNonNull(tag);
+        }
     }
 }

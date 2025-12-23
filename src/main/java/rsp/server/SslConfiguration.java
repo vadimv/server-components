@@ -1,5 +1,7 @@
 package rsp.server;
 
+import java.util.Objects;
+
 /**
  * A basic SSL/TLS configuration.
  * For a self-signed certificate, run the Java keytool utility, for example:
@@ -17,11 +19,11 @@ public final class SslConfiguration {
 
     /**
      * Creates a new instance of an SSL/TLS configuration.
-     * @param keyStorePath a componentPath to a keystore.jks file
-     * @param keyStorePassword a keystore password
+     * @param keyStorePath a componentPath to a keystore.jks file, must not be null
+     * @param keyStorePassword a keystore password, must not be null
      */
     public SslConfiguration(final String keyStorePath, final String keyStorePassword) {
-        this.keyStorePath = keyStorePath;
-        this.keyStorePassword = keyStorePassword;
+        this.keyStorePath = Objects.requireNonNull(keyStorePath);
+        this.keyStorePassword = Objects.requireNonNull(keyStorePassword);
     }
 }

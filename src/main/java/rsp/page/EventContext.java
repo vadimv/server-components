@@ -6,6 +6,7 @@ import rsp.ref.ElementRef;
 import rsp.ref.Ref;
 import rsp.util.json.JsonDataType;
 
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -35,12 +36,12 @@ public final class EventContext {
                         final JsonDataType.Object eventObject,
                         final EventDispatcher eventsDispatcher,
                         final Consumer<String> setHref) {
-        this.eventElementPath = eventElementPath;
-        this.propertiesHandleLookup = propertiesHandleLookup;
-        this.jsEvaluation = jsEvaluation;
-        this.eventObject = eventObject;
-        this.eventsDispatcher = eventsDispatcher;
-        this.setHref = setHref;
+        this.eventElementPath = Objects.requireNonNull(eventElementPath);
+        this.propertiesHandleLookup = Objects.requireNonNull(propertiesHandleLookup);
+        this.jsEvaluation = Objects.requireNonNull(jsEvaluation);
+        this.eventObject = Objects.requireNonNull(eventObject);
+        this.eventsDispatcher = Objects.requireNonNull(eventsDispatcher);
+        this.setHref = Objects.requireNonNull(setHref);
     }
 
     /**
@@ -49,6 +50,7 @@ public final class EventContext {
      * @return the proxy object to read the element's properties
      */
     public PropertiesHandle propertiesByRef(final ElementRef ref) {
+        Objects.requireNonNull(ref);
         return propertiesHandleLookup.apply(ref);
     }
 
@@ -58,6 +60,7 @@ public final class EventContext {
      * @return a CompletableFuture of the JSON data type
      */
     public CompletableFuture<JsonDataType> evalJs(final String js) {
+        Objects.requireNonNull(js);
         return jsEvaluation.apply(js);
     }
 
@@ -66,10 +69,12 @@ public final class EventContext {
      * @param href URL
      */
     public void setHref(final String href) {
+        Objects.requireNonNull(href);
         setHref.accept(href);
     }
 
     public void dispatchEvent(CustomEvent customEvent) {
+        Objects.requireNonNull(customEvent);
         eventsDispatcher.dispatchEvent(eventElementPath, customEvent);
     };
 

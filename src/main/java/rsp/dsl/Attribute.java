@@ -3,42 +3,20 @@ package rsp.dsl;
 import rsp.component.TreeBuilder;
 import rsp.dom.XmlNs;
 
+import java.util.Objects;
+
 /**
- * A definition of an HTML DOM element's attribute.
+ * An attribute's definition.
  */
-public final class Attribute implements Definition {
-    /**
-     * The attribute's name.
-     */
-    public final String name;
+public record Attribute(String name, String value, boolean isProperty) implements Definition {
 
-    /**
-     * The attribute's value.
-     */
-    public final String value;
-
-    /**
-     * Determines if this attribute is an HTML tag's property.
-     * @see Html#DEFAULT_PROPERTIES_NAMES
-     */
-    public final boolean isProperty;
-
-    /**
-     * Creates a new instance of an attribute definition.
-     * @param name the attribute's name
-     * @param value the attribute's value
-     * @param isProperty true if this attribute is an HTML property and false otherwise
-     */
-    public Attribute(final String name, final String value, final boolean isProperty) {
-        super();
-        this.name = name;
-        this.value = value;
-        this.isProperty = isProperty;
+    public Attribute {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(value);
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
+    public void render(final TreeBuilder renderContext) {
         renderContext.setAttr(XmlNs.html, name, value, isProperty);
-        return true;
     }
 }

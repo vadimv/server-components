@@ -41,11 +41,11 @@ public class TreeBuilder implements TreeBuilderFactory {
     }
 
     public void setComponentContext(final ComponentContext componentContext) {
-        this.componentContext = componentContext;
+        this.componentContext = Objects.requireNonNull(componentContext);
     }
 
     public void setDocType(final String docType) {
-        this.docType = docType;
+        this.docType = Objects.requireNonNull(docType);
     }
 
     public String docType() {
@@ -53,6 +53,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     }
 
     public <S> ComponentSegment<S> openComponent(final ComponentSegmentFactory<S> componentSegmentFactory) {
+        Objects.requireNonNull(componentSegmentFactory);
         final ComponentSegment<?> parent = componentsStack.peek();
         final TreePositionPath componentPath = parent == null ?
                 ROOT_COMPONENT_PATH : parent.path().addChild(parent.directChildren().size() + 1);
@@ -66,6 +67,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     }
 
     public <S> void openComponent(final ComponentSegment<S> component) {
+        Objects.requireNonNull(component);
         if (rootComponent == null) {
             rootComponent = component;
         } else {
@@ -81,6 +83,8 @@ public class TreeBuilder implements TreeBuilderFactory {
     }
 
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
+        Objects.requireNonNull(xmlns);
+        Objects.requireNonNull(name);
         final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
 
@@ -117,11 +121,13 @@ public class TreeBuilder implements TreeBuilderFactory {
     }
 
     public void closeNode(final String name, final boolean upgrade) {
+        Objects.requireNonNull(name);
         tagsStack.pop();
         domPath = domPath.parent();
     }
 
     public void addTextNode(final String text) {
+        Objects.requireNonNull(text);
         final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
 
@@ -158,10 +164,15 @@ public class TreeBuilder implements TreeBuilderFactory {
     }
 
     public void setAttr(final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+        Objects.requireNonNull(xmlNs);
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(value);
         tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
     public void setStyle(final String name, final String value) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(value);
         tagsStack.peek().addStyle(name, value);
     }
 
@@ -170,6 +181,10 @@ public class TreeBuilder implements TreeBuilderFactory {
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final DomEventEntry.Modifier modifier) {
+        Objects.requireNonNull(elementPath);
+        Objects.requireNonNull(eventType);
+        Objects.requireNonNull(eventHandler);
+        Objects.requireNonNull(modifier);
         final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
         component.addDomEventHandler(elementPath, eventType, eventHandler, preventDefault, modifier);
@@ -185,6 +200,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     }
 
     public void addRef(final Ref ref) {
+        Objects.requireNonNull(ref);
         final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
         final TagNode tag = tagsStack.peek();

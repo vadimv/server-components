@@ -28,6 +28,7 @@ public final class RedirectableEventsConsumer implements Consumer<Command> {
      */
     @Override
     public synchronized void accept(Command command) {
+       Objects.requireNonNull(command);
        this.eventConsumer.accept(command);
     }
 

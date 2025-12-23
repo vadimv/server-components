@@ -18,6 +18,7 @@ public record RelativeUrl(Path path, Query query, Fragment fragment) {
     }
 
     public static RelativeUrl of(HttpRequest httpRequest) {
+        Objects.requireNonNull(httpRequest);
         return new RelativeUrl(httpRequest.path, httpRequest.queryParameters, new Fragment(httpRequest.uri.getFragment()));
     }
 

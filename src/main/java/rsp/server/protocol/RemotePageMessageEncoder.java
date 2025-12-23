@@ -8,6 +8,7 @@ import rsp.server.RemoteOut;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static rsp.util.json.JsonUtils.escape;
@@ -61,7 +62,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     private final Consumer<String> messagesOut;
 
     public RemotePageMessageEncoder(final Consumer<String> messagesOut) {
-        this.messagesOut = messagesOut;
+        this.messagesOut = Objects.requireNonNull(messagesOut);
     }
 
     @Override
@@ -72,6 +73,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void listenEvents(final List<DomEventEntry> events) {
+        Objects.requireNonNull(events);
         if (!events.isEmpty()) {
             final String[] changes = events.stream().map(e -> joinString(quote(e.eventName),
                                                          e.preventDefault,
@@ -85,6 +87,8 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void forgetEvent(final String eventType, final TreePositionPath path) {
+        Objects.requireNonNull(eventType);
+        Objects.requireNonNull(path);
         final String message = addSquareBrackets(joinString(FORGET_EVENT,
                                                             quote(escape(eventType)),
                                                             quote(path.toString())));
@@ -103,6 +107,8 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void extractProperty(final int descriptor, final TreePositionPath path, final String name) {
+        Objects.requireNonNull(path);
+        Objects.requireNonNull(name);
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
                                                             quote(descriptor),
                                                             quote(path),
@@ -112,6 +118,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void modifyDom(final List<DomChange> domChanges) {
+        Objects.requireNonNull(domChanges);
         if (!domChanges.isEmpty()) {
             final String[] changes = domChanges.stream().map(this::modifyDomMessageBody).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(MODIFY_DOM,
@@ -122,12 +129,14 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void setHref(final String path) {
+        Objects.requireNonNull(path);
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(path)));
         messagesOut.accept(message);
     }
 
     @Override
     public void pushHistory(final String path) {
+        Objects.requireNonNull(path);
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(path)));
         messagesOut.accept(message);
     }
@@ -150,6 +159,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     @Override
     public void evalJs(final int descriptor, final String js) {
+        Objects.requireNonNull(js);
         final String message = addSquareBrackets(joinString(EVAL_JS, descriptor, quote(js)));
         messagesOut.accept(message);
     }

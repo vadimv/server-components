@@ -58,10 +58,11 @@ public final class HttpRequest {
 
     /**
      * Gets a request's HTTP cookies by name.
-     * @param cookieName the cookie name
+     * @param cookieName the cookie name, must not be null
      * @return the Optional with the cookie value or the empty
      */
     public List<String> cookies(final String cookieName) {
+        Objects.requireNonNull(cookieName);
         return headers.stream().filter(header -> "Cookie".equals(header.name())).flatMap(header ->
                 Arrays.stream(header.value().split(";"))
                       .map(String::trim)
@@ -81,10 +82,11 @@ public final class HttpRequest {
 
     /**
      * Gets the request's header by name.
-     * @param headerName the header's name
+     * @param headerName the header's name, must not be null
      * @return an optional with the header's value or empty
      */
     public Optional<String> header(final String headerName) {
+        Objects.requireNonNull(headerName);
         return headers.stream().filter(h -> headerName.equals(h.name())).map(Header::value).findFirst();
     }
 

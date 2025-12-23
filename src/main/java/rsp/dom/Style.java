@@ -1,3 +1,10 @@
 package rsp.dom;
 
-public record Style(String name, String value) {}
+import java.util.Objects;
+
+public record Style(String name, String value) {
+    public Style {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(value);
+    }
+}

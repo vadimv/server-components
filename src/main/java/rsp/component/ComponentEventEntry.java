@@ -13,6 +13,11 @@ import java.util.function.Consumer;
  */
 public record ComponentEventEntry(String eventName, Consumer<EventContext> eventHandler, boolean preventDefault) {
 
+    public ComponentEventEntry {
+        Objects.requireNonNull(eventName);
+        Objects.requireNonNull(eventHandler);
+    }
+
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
@@ -30,5 +35,8 @@ public record ComponentEventEntry(String eventName, Consumer<EventContext> event
     }
 
     public record EventContext(JsonDataType.Object eventObject) {
+        public EventContext {
+            Objects.requireNonNull(eventObject);
+        }
     }
 }

@@ -9,10 +9,16 @@ import java.util.stream.Stream;
 /**
  * Represents a componentPath.
  * A componentPath could be either absolute or relative.
+ * @param isAbsolute true if the componentPath is absolute, false otherwise
+ * @param elements the componentPath's elements, must not be null
  */
 public record Path(boolean isAbsolute, String[] elements) {
     public static final Path EMPTY = Path.of("");
     public static final Path ROOT = Path.of("/");
+
+    public Path {
+        Objects.requireNonNull(elements);
+    }
 
     /**
      * Creates a new instance of a componentPath from a string.
@@ -32,10 +38,11 @@ public record Path(boolean isAbsolute, String[] elements) {
     /**
      * Resolves a componentPath to another componentPath.
      * If the provided componentPath is absolute the result is this componentPath, otherwise append its elements.
-     * @param path the componentPath to resolve
+     * @param path the componentPath to resolve, must not be null
      * @return the result componentPath
      */
     public Path resolve(final Path path) {
+        Objects.requireNonNull(path);
         if (path.isAbsolute) {
             return path;
         }
@@ -97,23 +104,26 @@ public record Path(boolean isAbsolute, String[] elements) {
 
     /**
      * Checks if the componentPath's last element equals to the provided string.
-     * @param s the string to check
+     * @param s the string to check, must not be null
      * @return true if the componentPath ends with the element and false if it is not
      */
     public boolean endsWith(final String s) {
+        Objects.requireNonNull(s);
         return elements.length != 0 && elements[elements.length - 1].equals(s);
     }
 
     /**
      * Checks if the componentPath's first element equals to the provided string.
-     * @param s the string to check
+     * @param s the string to check, must not be null
      * @return true if the componentPath starts with the element and false if it is not
      */
     public boolean startsWith(final String s) {
+        Objects.requireNonNull(s);
         return elements.length != 0 && elements[0].equals(s);
     }
 
     public boolean startsWith(final Path path) {
+        Objects.requireNonNull(path);
         if (this.isAbsolute != path.isAbsolute || this.elements.length < path.elements.length) {
             return false;
         }
@@ -127,6 +137,7 @@ public record Path(boolean isAbsolute, String[] elements) {
     }
 
     public boolean contains(final String s) {
+        Objects.requireNonNull(s);
         for (int i = 0; i < elements.length;i++) {
             if (elements[i].equals(s)) return true;
         }
@@ -134,6 +145,7 @@ public record Path(boolean isAbsolute, String[] elements) {
     }
 
     public boolean matches(final String regex) {
+        Objects.requireNonNull(regex);
         return this.toString().matches(regex);
     }
 

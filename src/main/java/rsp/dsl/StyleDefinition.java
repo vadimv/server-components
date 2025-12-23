@@ -2,34 +2,20 @@ package rsp.dsl;
 
 import rsp.component.TreeBuilder;
 
+import java.util.Objects;
+
 /**
- * A definition of an HTML element's inline style.
+ * A style's definition.
  */
-public final class StyleDefinition implements Definition {
-    /**
-     * The style's name.
-     */
-    public final String name;
+public record StyleDefinition(String name, String value) implements Definition {
 
-    /**
-     * The style's value.
-     */
-    public final String value;
-
-    /**
-     * Creates a new instance of a style definition.
-     * @param name the style's name
-     * @param value the style's value
-     */
-    public StyleDefinition(final String name, final String value) {
-        super();
-        this.name = name;
-        this.value = value;
+    public StyleDefinition {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(value);
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
+    public void render(final TreeBuilder renderContext) {
         renderContext.setStyle(name, value);
-        return true;
     }
 }

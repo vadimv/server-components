@@ -23,7 +23,7 @@ public final class HtmlDocument extends Tag {
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
+    public void render(final TreeBuilder renderContext) {
         if (renderContext instanceof PageBuilder pageRenderContext) {
             pageRenderContext.setStatusCode(statusCode);
             pageRenderContext.setHeaders(headers);
@@ -31,7 +31,6 @@ public final class HtmlDocument extends Tag {
 
         renderContext.setDocType("<!DOCTYPE html>");
         super.render(renderContext);
-        return true;
     }
 
     /**

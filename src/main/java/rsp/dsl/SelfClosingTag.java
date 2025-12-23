@@ -5,23 +5,19 @@ import rsp.dom.XmlNs;
 
 import java.util.Arrays;
 
-public class SelfClosingTag implements Definition {
+/**
+ * A definition of a self-closing XML tag.
+ */
+public final class SelfClosingTag extends Tag {
 
-    protected final XmlNs ns;
-    protected final String name;
-    protected final Attribute[] attributeDefinitions;
-
-    public SelfClosingTag(XmlNs ns, String name, Attribute... attributeDefinitions) {
-        this.ns = ns;
-        this.name = name;
-        this.attributeDefinitions = attributeDefinitions;
+    public SelfClosingTag(final XmlNs ns, final String name, final Attribute... attributes) {
+        super(ns, name, attributes);
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
+    public void render(final TreeBuilder renderContext) {
         renderContext.openNode(ns, name, true);
-        Arrays.stream(attributeDefinitions).forEach(c -> c.render(renderContext));
+        Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, false);
-        return true;
     }
 }

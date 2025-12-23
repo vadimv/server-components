@@ -1,6 +1,7 @@
 package rsp.dom;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * This immutable class represents a node's position in a tree.
@@ -18,10 +19,11 @@ public final class TreePositionPath {
     private final int[] array;
 
     public TreePositionPath(final int... xs) {
-        array = xs;
+        this.array = Objects.requireNonNull(xs);
     }
 
     public static TreePositionPath of(final String path) {
+        Objects.requireNonNull(path);
         return path.isBlank() ? new TreePositionPath() : new TreePositionPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());
     }
 

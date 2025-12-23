@@ -37,6 +37,7 @@ public final class PropertiesHandle {
      * @return CompletableFuture of the JSON data type
      */
     public CompletableFuture<JsonDataType> get(final String propertyName) {
+        Objects.requireNonNull(propertyName);
         final Integer newDescriptor = descriptorSupplier.get();
         final CompletableFuture<JsonDataType> valueFuture = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, valueFuture);
@@ -45,10 +46,13 @@ public final class PropertiesHandle {
     }
 
     public CompletionStage<String> getString(final String propertyName) {
+        Objects.requireNonNull(propertyName);
         return get(propertyName).thenApply(v -> v.toString());
     }
 
     public CompletableFuture<Void> set(final String propertyName, final String value) {
+        Objects.requireNonNull(propertyName);
+        Objects.requireNonNull(value);
         remoteOut.accept(new RemoteCommand.ModifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true))));
         return new CompletableFuture<>();
     }

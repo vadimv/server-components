@@ -3,23 +3,16 @@ package rsp.dsl;
 import rsp.component.TreeBuilder;
 
 /**
- * The void definition, without any representation in the result DOM tree.
+ * An empty definition, a part of a UI tree which is not rendered.
  */
-final class EmptyDefinition implements Definition {
-    /**
-     * The default instance for reuse.
-     */
+public final class EmptyDefinition implements Definition {
     public static final EmptyDefinition INSTANCE = new EmptyDefinition();
 
-    /**
-     * Creates a new instance of an empty definition.
-     */
-    public EmptyDefinition() {
-        super();
+    private EmptyDefinition() {
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
-        return true;
+    public void render(final TreeBuilder renderContext) {
+        // do nothing
     }
 }

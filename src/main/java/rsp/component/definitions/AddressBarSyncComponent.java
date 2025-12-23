@@ -73,6 +73,8 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
     @Override
     public BiFunction<ComponentContext, RelativeUrl, ComponentContext> subComponentsContext() {
         return (componentContext, relativeUrl) -> {
+            Objects.requireNonNull(componentContext);
+            Objects.requireNonNull(relativeUrl);
             final Map<String, Object> m = new HashMap<>();
             // add URL's path elements for configured positions
             for (PositionKey pathElementsKey : pathElementsPositionKeys()) {
@@ -96,6 +98,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                                                                 final TreeBuilderFactory treeBuilderFactory,
                                                                 final ComponentContext componentContext,
                                                                 final Consumer<Command> commandsEnqueue) {
+        super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
         final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO should it be a method for that?
 
         // prepare indices for path elements session keys
@@ -109,7 +112,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                                       subComponentsContext(),
                                       componentView(),
                                       this,
-                treeBuilderFactory,
+                                      treeBuilderFactory,
                                       componentContext,
                                       commandsEnqueue) {
 
@@ -212,6 +215,9 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
      * @param key a mapped state key name for the reference in the components context
      */
     public record PositionKey(int position, String key) {
+        public PositionKey {
+            Objects.requireNonNull(key);
+        }
     }
 
     /**
@@ -221,6 +227,10 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
      * @param key a mapped state key name for the reference in the components context
      */
     public record ParameterNameKey(String parameterName, String key) {
+        public ParameterNameKey {
+            Objects.requireNonNull(parameterName);
+            Objects.requireNonNull(key);
+        }
     }
 
 

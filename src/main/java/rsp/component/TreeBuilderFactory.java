@@ -9,7 +9,7 @@ public interface TreeBuilderFactory {
 
     /**
      * Creates a new instance of a TreeBuilder class.
-     * @param baseDomPath a start position in the DOM tree
+     * @param baseDomPath a start position in the DOM tree, must not be null
      * @return a new TreeBuilder
      */
     TreeBuilder createTreeBuilder(TreePositionPath baseDomPath);

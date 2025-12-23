@@ -1,10 +1,11 @@
 package rsp.dsl;
 
+import rsp.component.TreeBuilder;
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 import rsp.ref.ElementRef;
 
-import java.util.Optional;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
@@ -22,8 +23,8 @@ public final class Window {
      * @param handler a code handler for this event
      * @return an event definition
      */
-    public EventDefinition on(final String eventType, final Consumer<EventContext> handler) {
-        return on(eventType, EventDefinition.PREVENT_DEFAULT_DEFAULT_VALUE, handler);
+    public Definition on(final String eventType, final Consumer<EventContext> handler) {
+        return on(eventType, true, handler);
     }
 
     /**
@@ -34,8 +35,8 @@ public final class Window {
      * @param handler a code handler for this event
      * @return an event definition
      */
-    public EventDefinition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
-        return new EventDefinition(Optional.of(WINDOW_DOM_PATH), eventType, handler, preventDefault, DomEventEntry.NO_MODIFIER);
+    public Definition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
+        return new WindowEventDefinition(eventType, handler, preventDefault, DomEventEntry.NO_MODIFIER);
     }
 
     public ElementRef ref() {
@@ -43,4 +44,24 @@ public final class Window {
     }
 
     public static final class WindowRef implements ElementRef {}
+
+    /**
+     * A special-purpose event definition for events attached to the global Window object.
+     */
+    private record WindowEventDefinition(String eventType,
+                                         Consumer<EventContext> handler,
+                                         boolean preventDefault,
+                                         DomEventEntry.Modifier modifier) implements Definition {
+        private WindowEventDefinition {
+            Objects.requireNonNull(eventType);
+            Objects.requireNonNull(handler);
+            Objects.requireNonNull(modifier);
+        }
+
+        @Override
+        public void render(final TreeBuilder renderContext) {
+            // Always use the hardcoded WINDOW_DOM_PATH for window events
+            renderContext.addEvent(WINDOW_DOM_PATH, eventType, handler, preventDefault, modifier);
+        }
+    }
 }

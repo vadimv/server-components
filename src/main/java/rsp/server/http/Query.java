@@ -41,10 +41,11 @@ public record Query(List<Parameter> parameters) {
 
     /**
      * Provides a value of a query parameter
-     * @param name a parameter's name
+     * @param name a parameter's name, must not be null
      * @return
      */
     public Optional<String> parameterValue(final String name) {
+        Objects.requireNonNull(name);
         for (Parameter param : parameters) {
             if (param.name.equals(name)) {
                 return Optional.of(param.value);

@@ -21,14 +21,13 @@ public class Tag implements Definition {
     public Tag(final XmlNs ns, final String name, final Definition... children) {
         this.ns = Objects.requireNonNull(ns);
         this.name = Objects.requireNonNull(name);
-        this.children = children;
+        this.children = Objects.requireNonNull(children);
     }
 
     @Override
-    public boolean render(final TreeBuilder renderContext) {
+    public void render(final TreeBuilder renderContext) {
         renderContext.openNode(ns, name, false);
         Arrays.stream(children).forEach(c -> c.render(renderContext));
         renderContext.closeNode(name, true);
-        return true;
     }
 }
