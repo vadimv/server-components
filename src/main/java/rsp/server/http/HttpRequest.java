@@ -59,7 +59,7 @@ public final class HttpRequest {
     /**
      * Gets a request's HTTP cookies by name.
      * @param cookieName the cookie name, must not be null
-     * @return the Optional with the cookie value or the empty
+     * @return a list of cookie values, which may be empty
      */
     public List<String> cookies(final String cookieName) {
         Objects.requireNonNull(cookieName);
@@ -72,22 +72,22 @@ public final class HttpRequest {
     }
 
     /**
-     * Gets a unique ID of the browser.
-     * @return the Optional with the device ID value or the empty
+     * Gets a unique ID of the browser from the first available cookie.
+     * @return the device ID value or null if not found
      */
-    public Optional<String> deviceId() {
-        return cookies(HttpHandler.DEVICE_ID_COOKIE_NAME).stream().findFirst();
+    public String deviceId() {
+        return cookies(HttpHandler.DEVICE_ID_COOKIE_NAME).stream().findFirst().orElse(null);
     }
 
 
     /**
      * Gets the request's header by name.
      * @param headerName the header's name, must not be null
-     * @return an optional with the header's value or empty
+     * @return the header's value or null if not found
      */
-    public Optional<String> header(final String headerName) {
+    public String header(final String headerName) {
         Objects.requireNonNull(headerName);
-        return headers.stream().filter(h -> headerName.equals(h.name())).map(Header::value).findFirst();
+        return headers.stream().filter(h -> headerName.equals(h.name())).map(Header::value).findFirst().orElse(null);
     }
 
     /**

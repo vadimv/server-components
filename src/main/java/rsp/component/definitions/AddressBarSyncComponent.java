@@ -82,10 +82,10 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
             }
             // add query parameters for configured parameters names
             for (ParameterNameKey queryParametersNameKey : queryParametersNamedKeys()) {
-                final Optional<String> optionalParameter = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
-                optionalParameter.ifPresent(p -> {
-                    m.put(queryParametersNameKey.key(), p);
-                });
+                final String parameterValue = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
+                if (parameterValue != null) {
+                    m.put(queryParametersNameKey.key(), parameterValue);
+                }
             }
             return componentContext.with(m);
         };
@@ -112,7 +112,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                                       subComponentsContext(),
                                       componentView(),
                                       this,
-                                      treeBuilderFactory,
+                treeBuilderFactory,
                                       componentContext,
                                       commandsEnqueue) {
 

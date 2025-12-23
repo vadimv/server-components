@@ -28,8 +28,8 @@ public class PlainForm {
                 return (_, _) ->
                     switch (httpRequest.method) {
                         case GET -> new EmptyName();
-                        case POST -> new FullName(httpRequest.queryParameters.parameterValue("firstname").orElseThrow(),
-                                                  httpRequest.queryParameters.parameterValue("lastname").orElseThrow());
+                        case POST -> new FullName(Objects.requireNonNull(httpRequest.queryParameters.parameterValue("firstname")),
+                                                  Objects.requireNonNull(httpRequest.queryParameters.parameterValue("lastname")));
                         default -> throw new IllegalStateException("Unexpected HTTP mehtod: " + httpRequest.method);
                     };
             }

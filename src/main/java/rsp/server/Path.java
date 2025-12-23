@@ -96,10 +96,10 @@ public record Path(boolean isAbsolute, String[] elements) {
 
     /**
      * Gets the last element of the componentPath.
-     * @return the last element
+     * @return the last element or null if the path is empty
      */
-    public Optional<String> last() {
-        return elements.length > 0 ? Optional.of(elements[elements.length - 1]) : Optional.empty();
+    public String last() {
+        return elements.length > 0 ? elements[elements.length - 1] : null;
     }
 
     /**

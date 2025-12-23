@@ -73,7 +73,7 @@ public final class HttpHandler {
     private CompletableFuture<HttpResponse> handlePage(final HttpRequest request) {
         Objects.requireNonNull(request);
         try {
-            final String deviceId = request.cookies(DEVICE_ID_COOKIE_NAME).stream().findFirst().orElse(randomStringGenerator.newString());
+            final String deviceId = Optional.ofNullable(request.deviceId()).orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
