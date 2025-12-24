@@ -4,12 +4,9 @@ import rsp.component.ComponentContext;
 import rsp.component.definitions.Component;
 import rsp.server.StaticResourceHandler;
 import rsp.server.http.*;
-import rsp.server.Path;
 import rsp.util.RandomString;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -63,32 +60,8 @@ public final class HttpHandler {
         } else {
             return new HttpResponse(500,
                                     Collections.emptyList(),
-                                    "rsp-client.min.js not found in classpath");
+                                    "JS client bundle resource not found in classpath");
         }
-    }
-
-    private HttpResponse staticFileResponse(final Path path) {
-        Objects.requireNonNull(path);
-        if (!path.contains("..")) {
-            final URL fileUrl =  this.getClass().getResource(path.toString());
-            if (fileUrl != null) {
-                try {
-                    return new HttpResponse(200,
-                                            Collections.emptyList(),
-                                            fileUrl.openStream());
-                } catch (final IOException e) {
-                    return new HttpResponse(500,
-                                            Collections.emptyList(),
-                                            "Exception on loading a static resource: "
-                                                    + path
-                                                    + " " + e.getMessage());
-                }
-            }
-        }
-        return new HttpResponse(404,
-                                Collections.emptyList(),
-                                "Resource not found: " + path);
-
     }
 
     private CompletableFuture<HttpResponse> handlePage(final HttpRequest request) {
