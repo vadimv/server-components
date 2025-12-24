@@ -72,15 +72,6 @@ public final class HttpRequest {
     }
 
     /**
-     * Gets a unique ID of the browser from the first available cookie.
-     * @return the device ID value or null if not found
-     */
-    public String deviceId() {
-        return cookies(HttpHandler.DEVICE_ID_COOKIE_NAME).stream().findFirst().orElse(null);
-    }
-
-
-    /**
      * Gets the request's header by name.
      * @param headerName the header's name, must not be null
      * @return the header's value or null if not found

@@ -67,7 +67,7 @@ public final class HttpHandler {
     private CompletableFuture<HttpResponse> handlePage(final HttpRequest request) {
         Objects.requireNonNull(request);
         try {
-            final String deviceId = Optional.ofNullable(request.deviceId()).orElse(randomStringGenerator.newString());
+            final String deviceId = request.cookies(DEVICE_ID_COOKIE_NAME).stream().findFirst().orElse(randomStringGenerator.newString());
             final String sessionId = randomStringGenerator.newString();
             final QualifiedSessionId pageId = new QualifiedSessionId(deviceId, sessionId);
 
@@ -76,8 +76,8 @@ public final class HttpHandler {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
-            final ComponentContext componentContext = new ComponentContext().with(Map.of("deviceId", deviceId,
-                                                                                         "sessionId", sessionId));
+            final ComponentContext componentContext = new ComponentContext().with(Map.of(ComponentContext.DEVICE_ID_KEY, deviceId,
+                                                                                         ComponentContext.SESSION_ID_KEY, sessionId));
 
             final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
 

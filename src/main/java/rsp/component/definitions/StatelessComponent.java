@@ -31,7 +31,7 @@ public class StatelessComponent extends Component<StatelessComponent.Unit> {
     public StatelessComponent(final View<Unit> view) {
         super(StatelessComponent.class);
         Objects.requireNonNull(view);
-        this.view =  __ -> view;
+        this.view =  _ -> view;
     }
 
     public StatelessComponent(final Object componentType,
