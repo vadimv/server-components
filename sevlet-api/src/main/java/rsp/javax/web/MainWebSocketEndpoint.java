@@ -62,12 +62,12 @@ public final class MainWebSocketEndpoint extends Endpoint {
             }
         } else {
 
-            // Create a new EventLoop for this specific session
+            // create an EventLoop for this session
             final EventLoop eventLoop = eventLoopSupplier.get();
             final LivePageSession livePage = new LivePageSession(eventLoop);
             livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageBuilder(),
-                    renderedPage.commandsEnqueue(),
-                                                                    remoteOut));
+                                             renderedPage.commandsEnqueue(),
+                                             remoteOut));
             session.getUserProperties().put(LIVE_PAGE_SESSION_USER_PROPERTY_NAME, livePage);
 
             final RemotePageMessageDecoder in = new RemotePageMessageDecoder(jsonParser, livePage.eventsConsumer());
