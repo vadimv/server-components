@@ -1,11 +1,10 @@
-package rsp.app.counters.test;
+package rsp.app.counters;
 
 import com.microsoft.playwright.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import rsp.app.counters.CountersApp;
 
 import java.util.stream.Stream;
 
