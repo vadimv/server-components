@@ -7,9 +7,19 @@
     <groupId>io.github.vadimv</groupId>
     <artifactId>rsp</artifactId>
     <version>${revision}</version>
+    <packaging>pom</packaging>
     <name>Reactive Server Pages (RSP)</name>
     <description>A Java library for building real-time user interfaces and UI components.</description>
     <url>https://github.com/vadimv/rsp</url>
+
+    <modules>
+        <module>core</module>
+        <module>js-client</module>
+        <module>sevlet-api</module>
+        <module>jetty-web-server</module>
+        <module>examples</module>
+
+    </modules>
 
     <properties>
         <revision>3.1.0-SNAPSHOT</revision>
@@ -69,6 +79,27 @@
         <url>https://github.com/vadimv/rsp/tree/master</url>
     </scm>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+
+
+
+        </dependencies>
+    </dependencyManagement>
+
     <build>
         <plugins>
             <plugin>
@@ -88,27 +119,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>${exec-maven-plugin.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>java</goal>
-                        </goals>
-                        <phase>compile</phase>
-                    </execution>
-                </executions>
-                <configuration>
-                    <mainClass>rsp.util.JsCompiler</mainClass>
-                    <arguments>
-                        <argument>./src/main/es6</argument>
-                        <argument>./target/classes/static</argument>
-                        <argument>rsp-client</argument>
-                    </arguments>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

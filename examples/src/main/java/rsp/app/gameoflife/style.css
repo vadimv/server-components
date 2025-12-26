@@ -1,0 +1,49 @@
+.tetris-wrapper {
+    display: flex;
+}
+
+.tetris {
+    flex: 0 0 65%;
+}
+
+.sidebar {
+    flex: 1;
+    margin: 20px;
+}
+
+#score {
+   float:left;
+   margin: 10px;
+}
+
+#start {
+   float:left;
+   clear: left;
+   margin: 10px;
+}
+
+.board {
+    display: grid;
+    grid-template-rows: repeat(50, 10px);
+    grid-template-columns: repeat(100, 10px);
+    grid-gap: 1px;
+    width: 100%;
+    max-width: 240px;
+
+}
+
+div.controls {
+    margin: 10px;
+}
+
+.c0 {
+    width: auto;
+    background: rgba(211, 211, 211, 0.8);
+    border: 0px solid;
+}
+
+.c1 {
+    width: auto;
+    background: rgba(36, 95, 223, 0.8);
+    border: 3px solid;
+}
