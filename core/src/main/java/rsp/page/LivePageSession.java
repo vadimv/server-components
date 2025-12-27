@@ -114,7 +114,7 @@ public final class LivePageSession implements Consumer<Command> {
         Objects.requireNonNull(eventObject);
         logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
         TreePositionPath eventElementPath = eventPath;
-        while (eventElementPath.level() >= 0) {
+        while (eventElementPath.elementsCount() >= 0) {
             for (final DomEventEntry event: pageRenderContext.recursiveEvents()) {
                 if (event instanceof DomEventEntry domEventEntry
                     && domEventEntry.eventTarget.elementPath().equals(eventElementPath)
@@ -122,7 +122,7 @@ public final class LivePageSession implements Consumer<Command> {
                     event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
                 }
             }
-            if (eventElementPath.level() > 0) {
+            if (eventElementPath.elementsCount() > 0) {
                 eventElementPath = eventElementPath.parent();
             } else {
                 break;

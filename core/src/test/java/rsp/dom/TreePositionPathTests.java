@@ -9,14 +9,14 @@ class TreePositionPathTests {
     @Test
     void produces_valid_empty_path() {
         final TreePositionPath path = TreePositionPath.of("");
-        Assertions.assertEquals(0, path.level());
+        Assertions.assertEquals(0, path.elementsCount());
         Assertions.assertEquals("", path.toString());
     }
 
     @Test
     void produces_valid_path() {
         final TreePositionPath path = TreePositionPath.of("1_2_1");
-        Assertions.assertEquals(3, path.level());
+        Assertions.assertEquals(3, path.elementsCount());
         Assertions.assertEquals("1_2_1", path.toString());
     }
 
@@ -33,7 +33,7 @@ class TreePositionPathTests {
     }
 
     @Test
-    void provides_first_path_of_next_level() {
+    void provides_first_path_of_next_elementsCount() {
         final TreePositionPath path = TreePositionPath.of("1_2_2_1");
         Assertions.assertEquals(TreePositionPath.of("1_2_2_1_1"), path.incLevel());
     }

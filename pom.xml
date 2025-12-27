@@ -29,6 +29,7 @@
         <java.version>25</java.version>
 
         <junit.version>5.10.0</junit.version>
+        <jqwik.version>1.9.2</jqwik.version>
         <jcip-annotations.version>1.0-1</jcip-annotations.version>
         <playwright.version>1.35.0</playwright.version>
         <jsoup.version>1.17.2</jsoup.version>

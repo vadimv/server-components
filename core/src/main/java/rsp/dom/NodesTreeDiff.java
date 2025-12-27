@@ -97,7 +97,7 @@ public final class NodesTreeDiff {
                     performer.createText(p.parent(), p, hb.toString());
                 }
             }
-            if (p.level() > 0) p = p.incSibling();
+            if (p.elementsCount() > 0) p = p.incSibling();
         }
     }
 

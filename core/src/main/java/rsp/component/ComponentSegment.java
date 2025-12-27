@@ -133,7 +133,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     public void addRootDomNode(final TreePositionPath domPath, final Node newNode) {
-        if (rootNodes.isEmpty() || domPath.level() == this.startNodeDomPath.level()) {
+        if (rootNodes.isEmpty() || domPath.elementsCount() == this.startNodeDomPath.elementsCount()) {
             rootNodes.add(newNode);
         }
     }

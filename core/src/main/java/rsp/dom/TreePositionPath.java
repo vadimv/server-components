@@ -16,10 +16,10 @@ public final class TreePositionPath {
      */
     public static final String SEPARATOR = "_";
 
-    private final int[] array;
+    private final int[] elements;
 
-    public TreePositionPath(final int... xs) {
-        this.array = Objects.requireNonNull(xs);
+    public TreePositionPath(final int... elements) {
+        this.elements = elements;
     }
 
     public static TreePositionPath of(final String path) {
@@ -27,19 +27,26 @@ public final class TreePositionPath {
         return path.isBlank() ? new TreePositionPath() : new TreePositionPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());
     }
 
-    public int level() {
-        return array.length;
+    public int elementAt(final int i) {
+        if (i < 0 || i >= elements.length) {
+            throw new IllegalArgumentException("Index " + i + " out of bounds for path length " + elements.length);
+        }
+        return elements[i];
+    }
+
+    public int elementsCount() {
+        return elements.length;
     }
 
     public TreePositionPath incLevel() {
-        final int[] a = Arrays.copyOf(array, array.length + 1);
+        final int[] a = Arrays.copyOf(elements, elements.length + 1);
         a[a.length - 1] = 1;
         return new TreePositionPath(a);
     }
 
     public TreePositionPath incSibling() {
-        if (array.length > 0) {
-            final int[] a = Arrays.copyOf(array, array.length);
+        if (elements.length > 0) {
+            final int[] a = Arrays.copyOf(elements, elements.length);
             a[a.length - 1]++;
             return new TreePositionPath(a);
         } else {
@@ -48,8 +55,8 @@ public final class TreePositionPath {
     }
 
     public TreePositionPath parent() {
-        if (array.length > 0) {
-            return take(array.length - 1);
+        if (elements.length > 0) {
+            return take(elements.length - 1);
         } else {
             throw new IllegalStateException("It is not possible to get a parent of a root path");
         }
@@ -57,36 +64,36 @@ public final class TreePositionPath {
 
     public TreePositionPath addChild(final int num) {
         final TreePositionPath childPath = incLevel();
-        childPath.array[childPath.level() - 1] = num;
+        childPath.elements[childPath.elementsCount() - 1] = num;
         return childPath;
     }
 
     private TreePositionPath take(final int level) {
         final int[] na = new int[level];
-        System.arraycopy(array, 0, na, 0, level);
+        System.arraycopy(elements, 0, na, 0, level);
         return new TreePositionPath(na);
     }
 
     @Override
     public String toString() {
-        if (array.length == 0) {
+        if (elements.length == 0) {
             return "";
         } else {
-            return String.join(SEPARATOR, Arrays.stream(array).mapToObj(Integer::toString).toList());
+            return String.join(SEPARATOR, Arrays.stream(elements).mapToObj(Integer::toString).toList());
         }
     }
 
     @Override
     public boolean equals(final Object other) {
         if (other instanceof TreePositionPath) {
-            return Arrays.equals(array, ((TreePositionPath) other).array);
+            return Arrays.equals(elements, ((TreePositionPath) other).elements);
         }
         return false;
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(array);
+        return Arrays.hashCode(elements);
     }
 
 }
