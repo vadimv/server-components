@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * A text node.
+ */
 public final class TextNode implements Node {
 
     public final List<String> parts = new ArrayList<>();

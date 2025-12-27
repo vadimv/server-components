@@ -15,8 +15,9 @@ public class Tag implements Definition {
 
     /**
      * Creates a new instance of an XML tag's definition.
-     * @param name the tag's name
-     * @param children the children definitions, this could be another tags, attributes, events, references etc
+     * @param ns an XML namespace
+     * @param name the tag's name, must not be null
+     * @param children the tag's children definitions, this could be another tags, attributes, events, references etc
      */
     public Tag(final XmlNs ns, final String name, final Definition... children) {
         this.ns = Objects.requireNonNull(ns);

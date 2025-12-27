@@ -6,7 +6,7 @@ import rsp.dom.XmlNs;
 import java.util.Arrays;
 
 /**
- * A definition of a self-closing XML tag.
+ * A definition of a self-closing tag.
  */
 public final class SelfClosingTag extends Tag {
 

@@ -4,149 +4,153 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
- * This class compares two DOM trees and on the base of their difference generates changes instructions that can be used
- * to transform the first tree to the second tree.
- * @see DefaultDomChangesContext.DomChange
+ * This class compares two DOM trees and on the base of their difference generates changes instructions for
+ * a transformation from the first tree or forest to the second tree or forest.
+ * @see DefaultDomChangesContext.DomChange for an atomic transformation
  */
 public final class NodesTreeDiff {
 
     /**
-     * Handles single root trees.
-     * @param ct
-     * @param wt
-     * @param path
-     * @param changesPerformer
-     * @param hb
+     * Diffs two single root trees.
+     * @param tree1 the first tree
+     * @param tree2 the second tree
+     * @param tagPath a start tag's position path, can be a root or a subtree's start position when comparing subtrees
+     * @param changesPerformer an abstraction for a destination of transformation instructions, e.g. a mutable collector
+     *                         after completing of this operation should "know" how to transform the first tree to the second one
+     * @param htmlBuilder a helper mutable object
      */
-    public static void diff(final TagNode ct,
-                            final TagNode wt,
-                            final TreePositionPath path,
+    public static void diff(final TagNode tree1,
+                            final TagNode tree2,
+                            final TreePositionPath tagPath,
                             final DomChangesContext changesPerformer,
-                            final HtmlBuilder hb) {
-        Objects.requireNonNull(ct);
-        Objects.requireNonNull(wt);
-        Objects.requireNonNull(path);
+                            final HtmlBuilder htmlBuilder) {
+        Objects.requireNonNull(tree1);
+        Objects.requireNonNull(tree2);
+        Objects.requireNonNull(tagPath);
         Objects.requireNonNull(changesPerformer);
-        Objects.requireNonNull(hb);
-        if (!ct.name.equals(wt.name)) {
-            changesPerformer.removeNode(path.parent(), path);
-            createTag(wt, path, changesPerformer, hb);
+        Objects.requireNonNull(htmlBuilder);
+        if (!tree1.name.equals(tree2.name)) {
+            changesPerformer.removeNode(tagPath.parent(), tagPath);
+            createTag(tree2, tagPath, changesPerformer, htmlBuilder);
         } else {
-            diffStyles(ct.styles, wt.styles, path, changesPerformer);
-            diffAttributes(ct.attributes, wt.attributes, path, changesPerformer);
-            diffChildren(ct.children, wt.children, path.incLevel(), changesPerformer, hb);
+            diffStyles(tree1.styles, tree2.styles, tagPath, changesPerformer);
+            diffAttributes(tree1.attributes, tree2.attributes, tagPath, changesPerformer);
+            diffChildren(tree1.children, tree2.children, tagPath.incLevel(), changesPerformer, htmlBuilder);
         }
     }
 
     /**
-     * Handles multiroot trees.
-     * @param cc
-     * @param wc
-     * @param parentTagPath
-     * @param performer
-     * @param hb
+     * Diffs two multiroot ordered forests.
+     * @param trees1 the first forest
+     * @param trees2 the second forest
+     * @param startNodePath a start tag's position path, can be a root or a subtree's start position when comparing forests under subtrees
+     * @param changesPerformer an abstraction for a destination of transformation instructions, e.g. a mutable collector,
+     *                         after completing of this operation should "know" how to transform the first forest to the second one
+     * @param htmlBuilder a helper mutable object
      */
-    public static void diffChildren(final List<? extends Node> cc,
-                                    final List<? extends Node> wc,
-                                    final TreePositionPath parentTagPath,
-                                    final DomChangesContext performer,
-                                    final HtmlBuilder hb) {
-        Objects.requireNonNull(cc);
-        Objects.requireNonNull(wc);
-        Objects.requireNonNull(parentTagPath);
-        Objects.requireNonNull(performer);
-        Objects.requireNonNull(hb);
-        final ListIterator<? extends Node> cci = cc.listIterator();
-        final ListIterator<? extends Node> wci = wc.listIterator();
-        TreePositionPath p = parentTagPath;
-        while(cci.hasNext() || wci.hasNext()) {
-            if (cci.hasNext() && wci.hasNext()) {
-                final Node cn = cci.next();
-                final Node wn = wci.next();
-                if (cn instanceof TagNode ct && wn instanceof TagNode wt) {
-                    diff(ct, wt, p, performer, hb);
-                } else if (wn instanceof TagNode t) {
-                    performer.removeNode(p.parent(), p);
-                    createTag(t, parentTagPath, performer, hb);
-                } else if (cn instanceof TagNode) {
-                    performer.removeNode(p.parent(), p);
-                    hb.reset();
-                    hb.buildHtml(wn);
-                    performer.createText(parentTagPath.parent(), parentTagPath, hb.toString());
+    public static void diffChildren(final List<? extends Node> trees1,
+                                    final List<? extends Node> trees2,
+                                    final TreePositionPath startNodePath,
+                                    final DomChangesContext changesPerformer,
+                                    final HtmlBuilder htmlBuilder) {
+        Objects.requireNonNull(trees1);
+        Objects.requireNonNull(trees2);
+        Objects.requireNonNull(startNodePath);
+        Objects.requireNonNull(changesPerformer);
+        Objects.requireNonNull(htmlBuilder);
+
+        final ListIterator<? extends Node> nodesIterator1 = trees1.listIterator();
+        final ListIterator<? extends Node> nodesIterator2 = trees2.listIterator();
+        TreePositionPath path = startNodePath;
+        while(nodesIterator1.hasNext() || nodesIterator2.hasNext()) {
+            if (nodesIterator1.hasNext() && nodesIterator2.hasNext()) {
+                final Node node1 = nodesIterator1.next();
+                final Node node2 = nodesIterator2.next();
+                if (node1 instanceof TagNode tagNode1 && node2 instanceof TagNode tagNode2) {
+                    diff(tagNode1, tagNode2, path, changesPerformer, htmlBuilder);
+                } else if (node2 instanceof TagNode t) {
+                    changesPerformer.removeNode(path.parent(), path);
+                    createTag(t, startNodePath, changesPerformer, htmlBuilder);
+                } else if (node1 instanceof TagNode) {
+                    changesPerformer.removeNode(path.parent(), path);
+                    htmlBuilder.reset();
+                    htmlBuilder.buildHtml(node2);
+                    changesPerformer.createText(startNodePath.parent(), startNodePath, htmlBuilder.toString());
                 } else {
-                    hb.reset();
-                    hb.buildHtml(cn);
-                    final String ncText = hb.toString();
-                    hb.reset();
-                    hb.buildHtml(wn);
-                    final String nwText = hb.toString();
+                    htmlBuilder.reset();
+                    htmlBuilder.buildHtml(node1);
+                    final String ncText = htmlBuilder.toString();
+                    htmlBuilder.reset();
+                    htmlBuilder.buildHtml(node2);
+                    final String nwText = htmlBuilder.toString();
                     if (!ncText.equals(nwText)) {
-                        performer.createText(p.parent(), p, nwText);
+                        changesPerformer.createText(path.parent(), path, nwText);
                     }
                 }
-            } else if (cci.hasNext()) {
-                cci.next();
-                performer.removeNode(p.parent(), p);
+            } else if (nodesIterator1.hasNext()) {
+                nodesIterator1.next();
+                changesPerformer.removeNode(path.parent(), path);
             } else {
-                    final Node wn = wci.next();
-                if (wn instanceof TagNode t) {
-                    createTag(t, p, performer, hb);
+                    final Node node2 = nodesIterator2.next();
+                if (node2 instanceof TagNode tagNode2) {
+                    createTag(tagNode2, path, changesPerformer, htmlBuilder);
                 } else {
-                    hb.reset();
-                    hb.buildHtml(wn);
-                    performer.createText(p.parent(), p, hb.toString());
+                    htmlBuilder.reset();
+                    htmlBuilder.buildHtml(node2);
+                    changesPerformer.createText(path.parent(), path, htmlBuilder.toString());
                 }
             }
-            if (p.elementsCount() > 0) p = p.incSibling();
+            if (path.elementsCount() > 0) path = path.incSibling();
         }
     }
 
-    private static void diffAttributes(final CopyOnWriteArraySet<AttributeNode> ca,
-                                       final CopyOnWriteArraySet<AttributeNode> wa,
-                                       final TreePositionPath path,
-                                       final DomChangesContext performer) {
-        final Set<AttributeNode> c = new CopyOnWriteArraySet<>(ca);
-        final Set<AttributeNode> w = new CopyOnWriteArraySet<>(wa);
-        c.removeAll(wa);
-        c.forEach(attribute -> performer.removeAttr(path, XmlNs.html, attribute.name(), attribute.isProperty()));
-        w.removeAll(ca);
-        w.forEach(attribute -> performer.setAttr(path, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty()));
+    private static void diffAttributes(final CopyOnWriteArraySet<AttributeNode> attributes1,
+                                       final CopyOnWriteArraySet<AttributeNode> attributes2,
+                                       final TreePositionPath nodePath,
+                                       final DomChangesContext changesPerformer) {
+        final Set<AttributeNode> attrs1 = new CopyOnWriteArraySet<>(attributes1);
+        final Set<AttributeNode> attrs2 = new CopyOnWriteArraySet<>(attributes2);
+        attrs1.removeAll(attributes2);
+        attrs1.forEach(attribute -> changesPerformer.removeAttr(nodePath, XmlNs.html, attribute.name(), attribute.isProperty()));
+        attrs2.removeAll(attributes1);
+        attrs2.forEach(attribute -> changesPerformer.setAttr(nodePath, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty()));
     }
 
-    private static void diffStyles(final CopyOnWriteArraySet<Style> ca,
-                                   final CopyOnWriteArraySet<Style> wa,
-                                   final TreePositionPath path,
-                                   final DomChangesContext performer) {
-        final Set<Style> c = new CopyOnWriteArraySet<>(ca);
-        final Set<Style> w = new CopyOnWriteArraySet<>(wa);
-        c.removeAll(wa);
-        c.forEach(attribute -> performer.removeStyle(path, attribute.name()));
-        w.removeAll(ca);
-        w.forEach(attribute -> performer.setStyle(path, attribute.name(), attribute.value()));
+    private static void diffStyles(final CopyOnWriteArraySet<Style> styles1,
+                                   final CopyOnWriteArraySet<Style> styles2,
+                                   final TreePositionPath nodePath,
+                                   final DomChangesContext changesPerformer) {
+        final Set<Style> sts1 = new CopyOnWriteArraySet<>(styles1);
+        final Set<Style> sts2 = new CopyOnWriteArraySet<>(styles2);
+        sts1.removeAll(styles2);
+        sts1.forEach(attribute -> changesPerformer.removeStyle(nodePath, attribute.name()));
+        sts2.removeAll(styles1);
+        sts2.forEach(attribute -> changesPerformer.setStyle(nodePath, attribute.name(), attribute.value()));
     }
 
     private static void createTag(final TagNode tag,
-                                  final TreePositionPath path,
+                                  final TreePositionPath nodePath,
                                   final DomChangesContext changesPerformer,
-                                  final HtmlBuilder hb) {
-        changesPerformer.createTag(path, tag.xmlns, tag.name);
+                                  final HtmlBuilder htmlBuilder) {
+        changesPerformer.createTag(nodePath, tag.xmlns, tag.name);
         for (final Style style: tag.styles) {
-            changesPerformer.setStyle(path, style.name(), style.value());
+            changesPerformer.setStyle(nodePath, style.name(), style.value());
         }
         for (final AttributeNode attribute: tag.attributes) {
-            changesPerformer.setAttr(path, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty());
+            changesPerformer.setAttr(nodePath, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty());
         }
-        TreePositionPath p = path.incLevel();
+
+        TreePositionPath path = nodePath.incLevel();
         for (final Node child:tag.children) {
             if (child instanceof TagNode t) {
-                createTag(t, p, changesPerformer, hb);
+                createTag(t, path, changesPerformer, htmlBuilder);
             } else if (child instanceof TextNode) {
-                hb.reset();
-                hb.buildHtml(child);
-                changesPerformer.createText(path, p, hb.toString());
-                p = p.incSibling();
+                htmlBuilder.reset();
+                htmlBuilder.buildHtml(child);
+                changesPerformer.createText(nodePath, path, htmlBuilder.toString());
+                path = path.incSibling();
             }
-            p = p.incSibling();
+            path = path.incSibling();
         }
     }
 }

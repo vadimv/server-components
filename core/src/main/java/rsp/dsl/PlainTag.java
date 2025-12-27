@@ -6,7 +6,7 @@ import rsp.dom.XmlNs;
 import java.util.Arrays;
 
 /**
- * A definition of an XML tag which is not upgraded on rendering.
+ * A definition of a tag that has a close element.
  * @see rsp.dsl.Html#head(Html.HeadType, Definition...)
  */
 public final class PlainTag extends Tag {

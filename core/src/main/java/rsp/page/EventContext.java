@@ -13,7 +13,7 @@ import java.util.function.Function;
 
 /**
  * An object representing an event's context. Provided as a parameter in an event's handler.
- * This is the main object for an application's code to interact with RSP internals and access data.
+ * This is the main object for an application's code to interact with the framework's internals and access data.
  */
 public final class EventContext {
     private final TreePositionPath eventElementPath;

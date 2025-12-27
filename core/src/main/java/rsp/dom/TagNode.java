@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArraySet;
 
+/**
+ * A tag node.
+ */
 public final class TagNode implements Node {
 
     public final XmlNs xmlns;

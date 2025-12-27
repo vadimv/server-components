@@ -18,10 +18,19 @@ public final class TreePositionPath {
 
     private final int[] elements;
 
+    /**
+     * Creates a new path to a node.
+     * @param elements representing a sequence of positions starting with a root or a subroot and of branches when descending in a tree
+     */
     public TreePositionPath(final int... elements) {
         this.elements = elements;
     }
 
+    /**
+     * Creates a new path to a node from a string.
+     * @param path a string representing a sequence of positions starting with a root or a subroot and of branches when descending in a tree
+     * @return a node's position path
+     */
     public static TreePositionPath of(final String path) {
         Objects.requireNonNull(path);
         return path.isBlank() ? new TreePositionPath() : new TreePositionPath(Arrays.stream(path.split(SEPARATOR)).mapToInt(Integer::parseInt).toArray());

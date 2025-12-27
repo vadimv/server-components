@@ -10,6 +10,10 @@ import rsp.util.html.HtmlEscape;
  */
 public record Text(String text) implements Definition {
 
+    /**
+     * Creates an new text definition
+     * @param text a string or null
+     */
     public Text(final String text) {
         this.text = text != null ? HtmlEscape.escape(text) : "null";
     }
