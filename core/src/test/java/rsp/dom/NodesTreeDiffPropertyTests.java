@@ -8,6 +8,24 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class NodesTreeDiffPropertyTests {
 
+    @Provide
+    Arbitrary<TagNode> recursiveTagNodes() {
+        return Arbitraries.recursive(
+                () -> Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5).map(name -> new TagNode(XmlNs.html, name, false)),
+                (child) -> Combinators.combine(
+                        Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5),
+                        child.list().ofMinSize(0).ofMaxSize(5), // Increased max children to 5
+                        Arbitraries.maps(Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5), Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5)).ofMaxSize(3)
+                ).as((name, children, attrs) -> {
+                    final TagNode node = new TagNode(XmlNs.html, name, false);
+                    children.forEach(node::addChild);
+                    attrs.forEach((k, v) -> node.addAttribute(k, v, true));
+                    return node;
+                }),
+                3
+        );
+    }
+
     @Property
     void diff_should_be_empty_for_identical_trees(@ForAll("recursiveTagNodes") final TagNode tree) {
         final TestChangesContext cp = new TestChangesContext();
@@ -117,24 +135,6 @@ class NodesTreeDiffPropertyTests {
             }
         }
         return copy;
-    }
-
-    @Provide
-    Arbitrary<TagNode> recursiveTagNodes() {
-        return Arbitraries.recursive(
-            () -> Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5).map(name -> new TagNode(XmlNs.html, name, false)),
-            (child) -> Combinators.combine(
-                Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5),
-                child.list().ofMinSize(0).ofMaxSize(5), // Increased max children to 5
-                Arbitraries.maps(Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5), Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5)).ofMaxSize(3)
-            ).as((name, children, attrs) -> {
-                final TagNode node = new TagNode(XmlNs.html, name, false);
-                children.forEach(node::addChild);
-                attrs.forEach((k, v) -> node.addAttribute(k, v, true));
-                return node;
-            }),
-            3
-        );
     }
 
     static final class TestChangesContext implements DomChangesContext {
