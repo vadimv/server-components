@@ -99,7 +99,9 @@ public final class NodesTreeDiff {
                     changesPerformer.createText(path.parent(), path, htmlBuilder.toString());
                 }
             }
-            if (path.elementsCount() > 0) path = path.incSibling();
+            if (path.elementsCount() > 0) {
+                path = path.incSibling();
+            }
         }
     }
 
