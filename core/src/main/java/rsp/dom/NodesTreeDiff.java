@@ -70,12 +70,12 @@ public final class NodesTreeDiff {
                     diff(tagNode1, tagNode2, path, changesPerformer, htmlBuilder);
                 } else if (node2 instanceof TagNode t) {
                     changesPerformer.removeNode(path.parent(), path);
-                    createTag(t, startNodePath, changesPerformer, htmlBuilder);
+                    createTag(t, path, changesPerformer, htmlBuilder);
                 } else if (node1 instanceof TagNode) {
                     changesPerformer.removeNode(path.parent(), path);
                     htmlBuilder.reset();
                     htmlBuilder.buildHtml(node2);
-                    changesPerformer.createText(startNodePath.parent(), startNodePath, htmlBuilder.toString());
+                    changesPerformer.createText(path.parent(), path, htmlBuilder.toString());
                 } else {
                     htmlBuilder.reset();
                     htmlBuilder.buildHtml(node1);
@@ -148,7 +148,6 @@ public final class NodesTreeDiff {
                 htmlBuilder.reset();
                 htmlBuilder.buildHtml(child);
                 changesPerformer.createText(nodePath, path, htmlBuilder.toString());
-                path = path.incSibling();
             }
             path = path.incSibling();
         }

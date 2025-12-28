@@ -8,29 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class NodesTreeDiffPropertyTests {
 
-    @Provide
-    Arbitrary<TagNode> recursiveTagNodes() {
-        return Arbitraries.recursive(
-                () -> Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5).map(name -> new TagNode(XmlNs.html, name, false)),
-                (child) -> Combinators.combine(
-                        Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5),
-                        child.list().ofMinSize(0).ofMaxSize(5), // Increased max children to 5
-                        Arbitraries.maps(Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5), Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5)).ofMaxSize(3)
-                ).as((name, children, attrs) -> {
-                    final TagNode node = new TagNode(XmlNs.html, name, false);
-                    children.forEach(node::addChild);
-                    attrs.forEach((k, v) -> node.addAttribute(k, v, true));
-                    return node;
-                }),
-                3
-        );
-    }
-
     @Property
     void diff_should_be_empty_for_identical_trees(@ForAll("recursiveTagNodes") final TagNode tree) {
-        final TestChangesContext cp = new TestChangesContext();
+        final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
         NodesTreeDiff.diff(tree, tree, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
-        assertEquals("", cp.resultAsString());
+        assertEquals(true, cp.isEmpty());
     }
 
     @Property
@@ -137,64 +119,34 @@ class NodesTreeDiffPropertyTests {
         return copy;
     }
 
-    static final class TestChangesContext implements DomChangesContext {
-        final StringBuilder sb = new StringBuilder();
-
-        public String resultAsString() {
-            return sb.toString().trim();
-        }
-
-        @Override
-        public void removeNode(final TreePositionPath parentId, final TreePositionPath id) {
-            insertDelimiter(sb);
-            sb.append("-NODE:" + parentId + ":" + id);
-        }
-
-        @Override
-        public void createTag(final TreePositionPath id, final XmlNs xmlNs, final String tag) {
-            insertDelimiter(sb);
-            sb.append("+TAG:" + id + ":" + tag);
-        }
-
-        @Override
-        public void removeAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final boolean isProperty) {
-            insertDelimiter(sb);
-            sb.append("-ATTR:" + id + ":" + name);
-        }
-
-        @Override
-        public void setAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
-            insertDelimiter(sb);
-            sb.append("+ATTR:" + id + ":" + name + "=" + value + ":" + isProperty);
-        }
-
-        @Override
-        public void removeStyle(final TreePositionPath id, final String name) {
-            insertDelimiter(sb);
-            sb.append("-STYLE:" + id + ":" + name);
-        }
-
-        @Override
-        public void setStyle(final TreePositionPath id, final String name, final String value) {
-            insertDelimiter(sb);
-            sb.append("+STYLE:" + id + ":" + name + "=" + value);
-        }
-
-        @Override
-        public void createText(final TreePositionPath parenPath, final TreePositionPath path, final String text) {
-            insertDelimiter(sb);
-            sb.append("+TEXT:" + parenPath + ":" + path + "=" + text);
-        }
-
-        private void insertDelimiter(final StringBuilder sb) {
-            if (sb.length() != 0) sb.append(" ");
-        }
+    @Provide
+    Arbitrary<TagNode> recursiveTagNodes() {
+        return Arbitraries.recursive(
+            () -> Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5).map(name -> new TagNode(XmlNs.html, name, false)),
+            (child) -> Combinators.combine(
+                Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5),
+                child.list().ofMinSize(0).ofMaxSize(5),
+                Arbitraries.maps(Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5), Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5)).ofMaxSize(3),
+                Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5)
+            ).as((name, children, attrs, text) -> {
+                final TagNode node = new TagNode(XmlNs.html, name, false);
+                node.addChild(new TextNode(text));
+                children.forEach(node::addChild);
+                attrs.forEach((k, v) -> node.addAttribute(k, v, true));
+                return node;
+            }),
+            3
+        );
     }
 
     // --- Patch Infrastructure ---
 
     static class PatchCollectingChangesContext implements DomChangesContext {
         final List<Modification> modifications = new ArrayList<>();
+
+        public boolean isEmpty() {
+            return modifications.isEmpty();
+        }
 
         @Override
         public void removeNode(final TreePositionPath parentId, final TreePositionPath id) {
@@ -352,7 +304,8 @@ class NodesTreeDiffPropertyTests {
                 if (index >= parent.children.size()) {
                     parent.children.add(newText);
                 } else {
-                    parent.children.add(index, newText);
+                    // This is a replacement of an existing node
+                    parent.children.set(index, newText);
                 }
             } else {
                  throw new IllegalStateException("Cannot add text to virtual container");
