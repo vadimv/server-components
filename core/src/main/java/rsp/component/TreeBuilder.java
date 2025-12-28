@@ -170,12 +170,6 @@ public class TreeBuilder implements TreeBuilderFactory {
         tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
-    public void setStyle(final String name, final String value) {
-        Objects.requireNonNull(name);
-        Objects.requireNonNull(value);
-        tagsStack.peek().addStyle(name, value);
-    }
-
     public void addEvent(final TreePositionPath elementPath,
                          final String eventType,
                          final Consumer<EventContext> eventHandler,

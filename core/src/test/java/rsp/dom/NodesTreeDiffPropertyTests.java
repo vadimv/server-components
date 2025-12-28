@@ -102,9 +102,6 @@ class NodesTreeDiffPropertyTests {
         for (final AttributeNode attr : node.attributes) {
             copy.addAttribute(attr.name(), attr.value(), attr.isProperty());
         }
-        for (final Style style : node.styles) {
-            copy.addStyle(style.name(), style.value());
-        }
         for (final Node child : node.children) {
             if (child instanceof final TagNode tagNode) {
                 copy.addChild(deepCopy(tagNode));
@@ -172,16 +169,6 @@ class NodesTreeDiffPropertyTests {
         public void setAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             modifications.add(new SetAttr(id, name, value, isProperty));
         }
-
-        @Override
-        public void removeStyle(final TreePositionPath id, final String name) {
-            modifications.add(new RemoveStyle(id, name));
-        }
-
-        @Override
-        public void setStyle(final TreePositionPath id, final String name, final String value) {
-            modifications.add(new SetStyle(id, name, value));
-        }
     }
 
     record Patch(List<Modification> modifications) {}
@@ -204,12 +191,6 @@ class NodesTreeDiffPropertyTests {
     }
     record SetAttr(TreePositionPath path, String name, String value, boolean isProperty) implements Modification {
         public void apply(final MutableDom dom) { dom.setAttr(path, name, value, isProperty); }
-    }
-    record RemoveStyle(TreePositionPath path, String name) implements Modification {
-        public void apply(final MutableDom dom) { dom.removeStyle(path, name); }
-    }
-    record SetStyle(TreePositionPath path, String name, String value) implements Modification {
-        public void apply(final MutableDom dom) { dom.setStyle(path, name, value); }
     }
 
     static class MutableDom {
@@ -321,17 +302,6 @@ class NodesTreeDiffPropertyTests {
             final TagNode node = (TagNode) findNodeOrContainer(path);
             node.attributes.removeIf(a -> a.name().equals(name) && a.isProperty() == isProperty);
             node.addAttribute(name, value, isProperty);
-        }
-
-        void removeStyle(final TreePositionPath path, final String name) {
-            final TagNode node = (TagNode) findNodeOrContainer(path);
-            node.styles.removeIf(s -> s.name().equals(name));
-        }
-
-        void setStyle(final TreePositionPath path, final String name, final String value) {
-            final TagNode node = (TagNode) findNodeOrContainer(path);
-            node.styles.removeIf(s -> s.name().equals(name));
-            node.addStyle(name, value);
         }
     }
 }

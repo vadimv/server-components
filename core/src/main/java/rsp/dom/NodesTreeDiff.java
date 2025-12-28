@@ -33,7 +33,6 @@ public final class NodesTreeDiff {
             changesPerformer.removeNode(tagPath.parent(), tagPath);
             createTag(tree2, tagPath, changesPerformer, htmlBuilder);
         } else {
-            diffStyles(tree1.styles, tree2.styles, tagPath, changesPerformer);
             diffAttributes(tree1.attributes, tree2.attributes, tagPath, changesPerformer);
             diffChildren(tree1.children, tree2.children, tagPath.incLevel(), changesPerformer, htmlBuilder);
         }
@@ -116,26 +115,12 @@ public final class NodesTreeDiff {
         attrs2.forEach(attribute -> changesPerformer.setAttr(nodePath, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty()));
     }
 
-    private static void diffStyles(final CopyOnWriteArraySet<Style> styles1,
-                                   final CopyOnWriteArraySet<Style> styles2,
-                                   final TreePositionPath nodePath,
-                                   final DomChangesContext changesPerformer) {
-        final Set<Style> sts1 = new CopyOnWriteArraySet<>(styles1);
-        final Set<Style> sts2 = new CopyOnWriteArraySet<>(styles2);
-        sts1.removeAll(styles2);
-        sts1.forEach(attribute -> changesPerformer.removeStyle(nodePath, attribute.name()));
-        sts2.removeAll(styles1);
-        sts2.forEach(attribute -> changesPerformer.setStyle(nodePath, attribute.name(), attribute.value()));
-    }
-
     private static void createTag(final TagNode tag,
                                   final TreePositionPath nodePath,
                                   final DomChangesContext changesPerformer,
                                   final HtmlBuilder htmlBuilder) {
         changesPerformer.createTag(nodePath, tag.xmlns, tag.name);
-        for (final Style style: tag.styles) {
-            changesPerformer.setStyle(nodePath, style.name(), style.value());
-        }
+
         for (final AttributeNode attribute: tag.attributes) {
             changesPerformer.setAttr(nodePath, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty());
         }

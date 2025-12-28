@@ -15,11 +15,6 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     }
 
     @Override
-    public void removeStyle(final TreePositionPath path, final String name) {
-        changes.add(new RemoveStyle(path, name));
-    }
-
-    @Override
     public void removeNode(final TreePositionPath parentPath, final TreePositionPath path) {
         changes.add(new Remove(parentPath, path));
         elementsToRemove.add(path);
@@ -28,11 +23,6 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     @Override
     public void setAttr(final TreePositionPath path, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
         changes.add(new SetAttr(path, xmlNs, name, value, isProperty));
-    }
-
-    @Override
-    public void setStyle(final TreePositionPath path, final String name, final String value) {
-        changes.add(new SetStyle(path, name, value));
     }
 
     @Override

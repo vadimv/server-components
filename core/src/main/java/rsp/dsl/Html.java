@@ -160,16 +160,6 @@ public final class Html {
     }
 
     /**
-     * An element's inline style.
-     * @param name a style name
-     * @param value a style value
-     * @return an inline style definition
-     */
-    public static StyleDefinition style(final String name, final String value) {
-        return new StyleDefinition(name, value);
-    }
-
-    /**
      * An element's text content.
      * @param text a text as a {@link String}
      * @return a text node definition

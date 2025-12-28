@@ -36,13 +36,13 @@ public final class DefaultConnectionLostWidget {
     }
 
     private static View<String> widget() {
-        return _ -> div(style("position", "fixed"),
-                   style("top", "0"),
-                   style("left", "0"),
-                   style("right", "0"),
-                   style("background-color", "lightyellow"),
-                   style("border-bottom", "1px solid black"),
-                   style("padding", "10px"),
+        return _ -> div(attr("style", "position: fixed;"
+                                                + "top: 0;"
+                                                + "left: 0;"
+                                                + "right: 0;"
+                                                + "background-color: lightyellow;"
+                                                + "border-bottom: 1px solid black;"
+                                                + "padding: 10px;"),
                    text("Connection lost. Waiting to resume."));
     }
 

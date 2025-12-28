@@ -35,16 +35,6 @@ public class HtmlBuilder {
     private void buildHtml(final TagNode tag) {
         sb.append('<');
         sb.append(tag.name);
-        if (!tag.styles.isEmpty()) {
-            sb.append(" style=\"");
-            for (final Style style: tag.styles) {
-                sb.append(style.name());
-                sb.append(":");
-                sb.append(style.value());
-                sb.append(";");
-            }
-            sb.append('"');
-        }
         if (tag.attributes.size() > 0) {
             for (final AttributeNode attribute: tag.attributes) {
                 sb.append(' ');

@@ -209,30 +209,6 @@ class NodesTreeDiffTests {
         assertEquals("-ATTR:1:attr1", cp.resultAsString());
     }
 
-    @Test
-    void should_add_style() {
-        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
-
-        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
-        tree2.addStyle("style1", "value1");
-
-        final TestChangesContext cp = new TestChangesContext();
-        NodesTreeDiff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
-        assertEquals("+STYLE:1:style1=value1", cp.resultAsString());
-    }
-
-    @Test
-    void should_remove_style() {
-        final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
-        tree1.addStyle("style1", "value1");
-
-        final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
-
-        final TestChangesContext cp = new TestChangesContext();
-        NodesTreeDiff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
-        assertEquals("-STYLE:1:style1", cp.resultAsString());
-    }
-
     static class TestChangesContext implements DomChangesContext {
         final StringBuilder sb = new StringBuilder();
 
@@ -262,18 +238,6 @@ class NodesTreeDiffTests {
         public void setAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             insertDelimiter(sb);
             sb.append("+ATTR:" + id + ":" + name + "=" + value + ":" + isProperty);
-        }
-
-        @Override
-        public void removeStyle(final TreePositionPath id, final String name) {
-            insertDelimiter(sb);
-            sb.append("-STYLE:" + id + ":" + name);
-        }
-
-        @Override
-        public void setStyle(final TreePositionPath id, final String name, final String value) {
-            sb.append("+STYLE:" + id + ":" + name + "=" + value);
-            insertDelimiter(sb);
         }
 
         @Override
