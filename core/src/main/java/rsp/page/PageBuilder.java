@@ -54,7 +54,7 @@ public final class PageBuilder extends TreeBuilder {
     }
 
     @Override
-    public void openNode(final XmlNs xmlNs, final String name, boolean isSelfClosing) {
+    public void openNode(final XmlNs xmlNs, final String name, final boolean isSelfClosing) {
         if (!headWasOpened && xmlNs.equals(XmlNs.html) && name.equals("body")) {
             // No <head> have opened above
             // it means a programmer didn't include head() in the page
@@ -89,9 +89,9 @@ public final class PageBuilder extends TreeBuilder {
     @Override
     public TreeBuilder createTreeBuilder(final TreePositionPath baseDomPath) {
         return DOCUMENT_DOM_PATH.equals(baseDomPath) ? new PageBuilder(sessionId,
-                                                                              pageConfigScript,
-                                                                              componentContext,
-                                                                              remotePageMessagesOut)
+                                                                       pageConfigScript,
+                                                                       componentContext,
+                                                                       remotePageMessagesOut)
                                                              : super.createTreeBuilder(baseDomPath);
     }
 }
