@@ -62,6 +62,16 @@ public final class ComponentContext {
         newAttributes.putAll(overlayAttributes);
         return new ComponentContext(newAttributes);
     }
+    
+    /**
+     * Creates a new component context with the provided attributes.
+     * @param attributes a map with key-values, must not be null
+     * @return a new instance of ComponentContext
+     */
+    public static ComponentContext from(final Map<String, Object> attributes) {
+        Objects.requireNonNull(attributes);
+        return new ComponentContext(new HashMap<>(attributes));
+    }
 
     /**
      * Gets the device ID from the context.

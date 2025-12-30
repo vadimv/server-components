@@ -1,4 +1,5 @@
 package rsp.compositions;
 
-public class AppConfig {
+public record AppConfig(int port) {
+    public static AppConfig DEFAULT = new AppConfig(8080);
 }

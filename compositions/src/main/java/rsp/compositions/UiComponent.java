@@ -1,4 +1,8 @@
 package rsp.compositions;
 
-public class UiComponent {
+import rsp.component.definitions.Component;
+
+@FunctionalInterface
+public interface UiComponent<T extends ViewContract> {
+    Component<Object> apply(T contract);
 }

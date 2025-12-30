@@ -13,15 +13,39 @@ public class QueryParam<T> {
         this.defaultValue = defaultValue;
     }
 
-    // The framework calls this to fetch value from the current Context
-    // (Assumes ViewContract has access to the current request Context)
     public T resolve(ComponentContext ctx) {
         final Object value = ctx.getAttribute(name);
-        if (value != null && type.isAssignableFrom(value.getClass())) {
-            return (T) value;
-        } else {
+        if (value == null) {
             return defaultValue;
         }
-
+        
+        if (type.isAssignableFrom(value.getClass())) {
+            return (T) value;
+        }
+        
+        // Try to convert from String
+        if (value instanceof String) {
+            String strVal = (String) value;
+            if (type == Integer.class) {
+                try {
+                    return (T) Integer.valueOf(strVal);
+                } catch (NumberFormatException e) {
+                    return defaultValue;
+                }
+            }
+            if (type == Long.class) {
+                try {
+                    return (T) Long.valueOf(strVal);
+                } catch (NumberFormatException e) {
+                    return defaultValue;
+                }
+            }
+            if (type == Boolean.class) {
+                return (T) Boolean.valueOf(strVal);
+            }
+            // Add more types as needed
+        }
+        
+        return defaultValue;
     }
 }

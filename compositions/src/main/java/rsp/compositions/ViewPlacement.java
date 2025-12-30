@@ -1,4 +1,4 @@
 package rsp.compositions;
 
-public interface ViewPlacement {
+public record ViewPlacement(Slot slot, ViewContract contract) {
 }
