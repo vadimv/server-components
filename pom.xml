@@ -19,6 +19,7 @@
         <module>jetty-web-server</module>
         <module>examples</module>
         <module>html-converter</module>
+        <module>compositions</module>
 
     </modules>
 
