@@ -1,5 +1,6 @@
 package rsp.compositions.posts.components;
 
+import rsp.component.ComponentContext;
 import rsp.compositions.ListViewContract;
 import rsp.compositions.Module;
 import rsp.compositions.QueryParam;
@@ -13,7 +14,8 @@ public class PostsListContract extends ListViewContract<Post> {
 
     private final Module module;
 
-    public PostsListContract(Module module) {
+    public PostsListContract(ComponentContext context, Module module) {
+        super(context);
         this.module = module;
     }
 

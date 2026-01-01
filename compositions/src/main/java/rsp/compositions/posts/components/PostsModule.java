@@ -26,7 +26,7 @@ public class PostsModule implements Module {
     @Override
     public List<ViewPlacement> views() {
         return List.of(
-            new ViewPlacement(Slot.PRIMARY, new PostsListContract(this))
+            new ViewPlacement(Slot.PRIMARY, PostsListContract.class, context -> new PostsListContract(context, this))
         );
     }
 

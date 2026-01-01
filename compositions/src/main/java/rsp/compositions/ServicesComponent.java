@@ -61,14 +61,11 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 throw new IllegalStateException("No module found for contract: " + contractClass.getName());
             }
 
-            // Get the contract instance from the module
-            ViewContract contract = getContractFromModule(module, contractClass);
+            // Get the contract factory from the module and instantiate with context
+            ViewContract contract = instantiateContractFromModule(module, contractClass, context);
             if (contract == null) {
                 throw new IllegalStateException("Contract not found in module: " + contractClass.getName());
             }
-
-            // Set contract's context so it can resolve query params
-            contract.context = context;
 
             // Call contract methods to get data (contract will call module internally)
             Map<String, Object> dataMap = new HashMap<>();
@@ -79,8 +76,12 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 int page = listContract.page();
                 String sort = listContract.sort();
 
-                // Put data in context for UI components with "list." namespace
+                // Extract schema from items
+                ListSchema schema = extractSchema(items, listContract);
+
+                // Put data AND schema in context for UI components with "list." namespace
                 dataMap.put("list.items", items);
+                dataMap.put("list.schema", schema);
                 dataMap.put("list.page", page);
                 dataMap.put("list.sort", sort);
             }
@@ -102,7 +103,8 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
     private Module findModuleWithContract(List<Module> modules, Class<? extends ViewContract> contractClass) {
         for (Module module : modules) {
             for (ViewPlacement placement : module.views()) {
-                if (contractClass.isInstance(placement.contract())) {
+                if (placement.contractClass().equals(contractClass) ||
+                    contractClass.isAssignableFrom(placement.contractClass())) {
                     return module;
                 }
             }
@@ -110,13 +112,48 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
         return null;
     }
 
-    private ViewContract getContractFromModule(Module module, Class<? extends ViewContract> contractClass) {
+    private ViewContract instantiateContractFromModule(Module module, Class<? extends ViewContract> contractClass,
+                                                        ComponentContext context) {
         for (ViewPlacement placement : module.views()) {
-            if (contractClass.isInstance(placement.contract())) {
-                return placement.contract();
+            if (placement.contractClass().equals(contractClass) ||
+                contractClass.isAssignableFrom(placement.contractClass())) {
+                // Instantiate contract using factory with context
+                return placement.contractFactory().apply(context);
             }
         }
         return null;
+    }
+
+    /**
+     * Extract schema from items list.
+     * If items are empty, returns empty schema.
+     * Otherwise extracts schema from the first item (all items should have same type).
+     *
+     * @param items The items to extract schema from
+     * @param contract The contract (for potential customization)
+     * @return ListSchema with column definitions
+     */
+    private ListSchema extractSchema(List<?> items, ListViewContract<?> contract) {
+        if (items == null || items.isEmpty()) {
+            return new ListSchema(List.of());
+        }
+
+        // Extract base schema from first item
+        ListSchema schema = ListSchema.fromFirstItem(items.get(0));
+
+        // Allow contract to customize schema (optional)
+        if (contract instanceof SchemaCustomizer customizer) {
+            schema = customizer.customizeSchema(schema);
+        }
+
+        return schema;
+    }
+
+    /**
+     * Optional interface for contracts that want to customize their schema presentation.
+     */
+    public interface SchemaCustomizer {
+        ListSchema customizeSchema(ListSchema defaultSchema);
     }
 
     public record ServicesComponentState() {

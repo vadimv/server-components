@@ -4,37 +4,42 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.definitions.Component;
 
 import java.util.List;
+import java.util.Map;
 
-public abstract class ListView extends Component<List<String>> {
-    @Override
-    public ComponentStateSupplier<List<String>> initStateSupplier() {
-        return (_, context) -> {
-            // Read items from context (populated by ServicesComponent)
-            @SuppressWarnings("unchecked")
-            List<Object> items = (List<Object>) context.getAttribute("list.items");
-
-            if (items == null) {
-                return List.of();
-            }
-
-            // Convert domain objects to CSV strings for UI rendering
-            return items.stream()
-                .map(this::convertToCsv)
-                .toList();
-        };
-    }
+/**
+ * ListView - Adaptive list view component.
+ * <p>
+ * Renders lists of any domain objects based on schema metadata.
+ * UI adapts to any number of columns and types at runtime.
+ */
+public abstract class ListView extends Component<ListView.ListViewState> {
 
     /**
-     * Override this method to customize CSV conversion for domain objects.
-     * Default implementation uses toString() which works for Record types.
+     * State containing both data and schema for adaptive rendering.
      */
-    protected String convertToCsv(Object item) {
-        return item.toString();
+    public record ListViewState(List<Map<String, Object>> rows, ListSchema schema) {
+        public ListViewState {
+            rows = rows != null ? rows : List.of();
+            schema = schema != null ? schema : new ListSchema(List.of());
+        }
     }
 
-    static final class ListViewState { // the common typed language for state
-        public String schema;
-        public String data;
-    }
+    @Override
+    public ComponentStateSupplier<ListViewState> initStateSupplier() {
+        return (_, context) -> {
+            // Read items and schema from context (populated by ServicesComponent)
+            @SuppressWarnings("unchecked")
+            List<?> items = (List<?>) context.getAttribute("list.items");
+            ListSchema schema = (ListSchema) context.getAttribute("list.schema");
 
+            if (items == null || items.isEmpty()) {
+                return new ListViewState(List.of(), schema);
+            }
+
+            // Convert domain objects to Map representation using schema
+            List<Map<String, Object>> rows = schema.toMapList(items);
+
+            return new ListViewState(rows, schema);
+        };
+    }
 }
