@@ -9,7 +9,7 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>sevlet-api</artifactId>
+    <artifactId>servlet-api</artifactId>
 
     <dependencies>
         <dependency>

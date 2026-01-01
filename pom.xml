@@ -15,7 +15,7 @@
     <modules>
         <module>core</module>
         <module>js-client</module>
-        <module>sevlet-api</module>
+        <module>servlet-api</module>
         <module>jetty-web-server</module>
         <module>examples</module>
         <module>html-converter</module>
