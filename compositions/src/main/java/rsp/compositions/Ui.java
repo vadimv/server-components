@@ -1,5 +1,6 @@
 package rsp.compositions;
 
-public record AppConfig() {
 
+
+public interface Ui {
 }

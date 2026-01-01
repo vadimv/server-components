@@ -8,10 +8,6 @@ public abstract class ViewContract {
     
     protected ComponentContext context;
 
-    public void setContext(ComponentContext context) {
-        this.context = context;
-    }
-
     protected <T> T resolve(QueryParam<T> param) {
         return param.resolve(context);
     }

@@ -86,7 +86,12 @@ public final class HttpHandler {
                                                             componentContext,
                                                             commandsEnqueue);
 
-            rootComponentDefinition.apply(request).render(pageBuilder);
+            final Component<?> pageRootComponent = rootComponentDefinition.apply(request);
+            pageRootComponent.render(pageBuilder);
+            final List<Throwable> renderExceptions = pageBuilder.exceptions();
+            if (renderExceptions.size() > 0) { // TODO
+                throw new RuntimeException(renderExceptions.get(0));
+            }
 
             final RenderedPage pageSnapshot = new RenderedPage(pageBuilder, commandsEnqueue);
             renderedPages.put(pageId, pageSnapshot);

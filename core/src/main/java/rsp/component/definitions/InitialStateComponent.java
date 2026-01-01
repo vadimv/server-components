@@ -7,10 +7,10 @@ import rsp.component.View;
 import java.util.Objects;
 
 /**
- * A component with its fixed state. A state is provided on an initialization.
+ * A component with its fixed state provided on initialization.
  * @param <S> this component's state type
  */
-public class InitialStateComponent<S> extends Component<S> {
+public final class InitialStateComponent<S> extends Component<S> {
 
     private final ComponentView<S> view;
     private final S initialState;

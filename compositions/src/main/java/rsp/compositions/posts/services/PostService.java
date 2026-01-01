@@ -1,6 +1,6 @@
-package rsp.examples.crud.services;
+package rsp.compositions.posts.services;
 
-import rsp.examples.crud.entities.Post;
+import rsp.compositions.posts.entities.Post;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

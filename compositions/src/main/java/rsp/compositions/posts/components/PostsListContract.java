@@ -1,9 +1,9 @@
-package rsp.examples.crud.components;
+package rsp.compositions.posts.components;
 
 import rsp.compositions.ListViewContract;
 import rsp.compositions.QueryParam;
-import rsp.examples.crud.entities.Post;
-import rsp.examples.crud.services.PostService;
+import rsp.compositions.posts.entities.Post;
+import rsp.compositions.posts.services.PostService;
 
 import java.util.List;
 

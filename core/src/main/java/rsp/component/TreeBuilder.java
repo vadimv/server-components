@@ -23,6 +23,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     private final Deque<TagNode> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<ComponentSegment<?>> componentsStack = new ArrayDeque<>();
+    private final List<Throwable> exceptions = new ArrayList<>();
 
     protected ComponentContext componentContext;
 
@@ -200,6 +201,14 @@ public class TreeBuilder implements TreeBuilderFactory {
         final TagNode tag = tagsStack.peek();
         assert tag != null;
         component.addRef(ref, domPath);
+    }
+
+    public void addException(final Throwable exception) {
+        exceptions.add(exception);
+    }
+
+    public List<Throwable> exceptions() {
+        return exceptions;
     }
 
     @Override

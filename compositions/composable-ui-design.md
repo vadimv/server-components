@@ -173,11 +173,6 @@ Modules follow similar composition via extension pattern as Components<S>:
             this.serviceA = serviceA;
         }
 
-        @Override
-        public String name() {
-            return "posts-module";
-        }
-
 
         // 4. Registering in the Module
         @Override
@@ -211,10 +206,7 @@ Modules follow similar composition via extension pattern as Components<S>:
                     
                     new ListViewContract<Post>() {
 
-                        @Override
-                        public String name() {
-                            return "list-view";
-                        }
+        
                         @Override
                         String isAuthorized(AuthorizationContext context) {
                             return context.role().equals("admin");
@@ -271,8 +263,8 @@ For explicit registration in the constructor:
 ```java
     new App(config,
         new UiRegistry()
-            .register("list-view", MaterialList::new)
-            .register("dashboard", MaterialDashboard::new),
+            .register(ListView.class, MaterialList::new)
+            .register(DashboardView.class, MaterialDashboard::new),
         new ModuleA(serviceA),
         ...
 )
@@ -297,16 +289,18 @@ List<ViewPlacement> views() {
         // "I want the List View to be in the Primary slot"
         new ViewPlacement( // the new abstraction for layout
             Slot.PRIMARY, 
-            new ListViewContract<A>("main-list", ...)
+            new PostsListContract(postService);
         ),
 
         // "I want the Details View to be in the Secondary slot (side panel)"
         new ViewPlacement(
             Slot.SECONDARY, 
-            new DetailsViewContract<A>("quick-details", ...)
+            new QuickDetailsContract(postService)
         )
     );
 }
+
+
 ```
 
 ## Generalizing a Contract and UI

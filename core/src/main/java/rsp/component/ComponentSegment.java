@@ -35,7 +35,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     protected final ComponentCompositeKey componentId;
 
     /**
-     * A sink object for the commands to be executed in the event loop.
+     * A consumer for the commands to be executed in the event loop.
      */
     protected final Consumer<Command> commandsEnqueue;
 
@@ -150,7 +150,8 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             onAfterRendered(state);
             onAfterMounted(state);
         } catch (Throwable renderEx) {
-            logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
+            renderContext.addException(renderEx);
+            logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
         }
     }
 

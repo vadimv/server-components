@@ -1,11 +1,11 @@
-package rsp.examples.crud.components;
+package rsp.compositions.posts.components;
 
 import rsp.compositions.ActionContract;
 import rsp.compositions.Module;
 import rsp.compositions.NotificationContract;
 import rsp.compositions.Slot;
 import rsp.compositions.ViewPlacement;
-import rsp.examples.crud.services.PostService;
+import rsp.compositions.posts.services.PostService;
 
 import java.util.Collections;
 import java.util.List;

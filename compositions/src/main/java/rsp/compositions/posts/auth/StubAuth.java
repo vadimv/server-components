@@ -1,4 +1,4 @@
-package rsp.examples.crud.auth;
+package rsp.compositions.posts.auth;
 
 import java.util.Optional;
 
