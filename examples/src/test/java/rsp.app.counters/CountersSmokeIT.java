@@ -13,10 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * An end-to-end smoke tests running the CounterApp on a web server and browser automation with Playwright.
- * @see CountersApp
+ * @see Counters
  */
 @net.jcip.annotations.NotThreadSafe
-class CountersAppSmokeIT {
+class CountersSmokeIT {
 
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final int COUNTER_1_INITIAL_VALUE = 100;
@@ -24,11 +24,11 @@ class CountersAppSmokeIT {
 
     private static final Playwright playwright = Playwright.create();
 
-    private static CountersApp server;
+    private static Counters server;
 
     @BeforeAll
     public static void init() {
-        server = CountersApp.run(false);
+        server = Counters.run(false);
     }
 
     @ParameterizedTest
@@ -50,12 +50,12 @@ class CountersAppSmokeIT {
     }
 
     private void validatePageNotFound(final Page page) {
-        assertEquals(404, page.navigate("http://localhost:" + CountersApp.PORT + "/none").status());
+        assertEquals(404, page.navigate("http://localhost:" + Counters.PORT + "/none").status());
     }
 
     private void validatePage(final Page page) throws InterruptedException {
         assertEquals(200, page.navigate("http://localhost:"
-                                                        + CountersApp.PORT
+                                                        + Counters.PORT
                                                         + "/" + COUNTER_1_INITIAL_VALUE
                                                         +"/" + COUNTER_2_INITIAL_VALUE).status());
         assertEquals("Counters", page.title());

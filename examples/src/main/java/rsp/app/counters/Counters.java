@@ -14,20 +14,20 @@ import java.io.File;
  * <p>
  * An example test URL: http://localhost:8085/16/-1?c4=27
  */
-public final class CountersApp {
+public final class Counters {
     public static final int PORT = 8085;
 
     public final WebServer webServer;
 
-    public CountersApp(final WebServer webServer) {
+    public Counters(final WebServer webServer) {
         this.webServer = webServer;
     }
 
-    public static CountersApp run(final boolean blockCurrentThread) {
-        final CountersApp s = new CountersApp(new WebServer(PORT,
-                                                            CountersAppComponent::new,
-                                                            new StaticResources(new File("src/main/java/rsp/app/counters"),
-                                                            "/res/")));
+    public static Counters run(final boolean blockCurrentThread) {
+        final Counters s = new Counters(new WebServer(PORT,
+                                                      CountersAppComponent::new,
+                                                      new StaticResources(new File("src/main/java/rsp/app/counters"),
+                                                     "/res/")));
         s.webServer.start();
         if (blockCurrentThread) {
             s.webServer.join();
