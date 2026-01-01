@@ -2,8 +2,6 @@ package rsp.compositions;
 
 import rsp.component.ComponentContext;
 
-import java.util.Set;
-
 public abstract class ViewContract {
 
     protected final ComponentContext context;
@@ -19,43 +17,42 @@ public abstract class ViewContract {
     public abstract String name();
 
     /**
-     * Override to specify required roles for accessing this contract.
-     * Default: no restrictions (empty set).
+     * Override to implement custom authorization logic.
+     * Default: delegates to auth.strategy from context if present,
+     * otherwise allows all (public access).
+     * <p>
+     * Most contracts should rely on the global strategy from context.
+     * Override only for contract-specific authorization requirements.
      *
-     * @return Set of role names required to access this view
+     * @return true if user is authorized to access this view, false otherwise
      */
-    public Set<String> requiredRoles() {
-        return Set.of();
+    protected boolean isAuthorized() {
+        AuthorizationStrategy strategy = (AuthorizationStrategy) context.getAttribute("auth.strategy");
+        return strategy == null || strategy.isAuthorized(this, context);
     }
 
     /**
-     * Helper to check if current user has required authentication/authorization.
-     *
-     * @return true if user is authorized, false otherwise
+     * Pluggable authorization strategy interface.
+     * <p>
+     * Applications register a strategy in context via "auth.strategy" key.
+     * The strategy receives the contract and context, and decides authorization.
+     * <p>
+     * Example strategies:
+     * <ul>
+     * <li>RBAC - Check user roles against contract requirements</li>
+     * <li>Permission-based - Check user permissions</li>
+     * <li>Attribute-based - Complex rules based on user/resource attributes</li>
+     * <li>Custom - Any authorization logic</li>
+     * </ul>
      */
-    protected boolean isAuthorized() {
-        Boolean authenticated = (Boolean) context.getAttribute("auth.authenticated");
-        if (authenticated == null || !authenticated) {
-            return requiredRoles().isEmpty(); // Only allow if no roles required
-        }
-
-        Set<String> required = requiredRoles();
-        if (required.isEmpty()) {
-            return true; // No specific roles required, just need to be authenticated
-        }
-
-        String[] userRoles = (String[]) context.getAttribute("auth.roles");
-        if (userRoles == null) {
-            return false;
-        }
-
-        // Check if user has any of the required roles
-        for (String userRole : userRoles) {
-            if (required.contains(userRole)) {
-                return true;
-            }
-        }
-
-        return false;
+    public interface AuthorizationStrategy {
+        /**
+         * Determine if user is authorized to access the given contract.
+         *
+         * @param contract The contract being accessed
+         * @param context The component context containing auth data
+         * @return true if authorized, false otherwise
+         */
+        boolean isAuthorized(ViewContract contract, ComponentContext context);
     }
 }
