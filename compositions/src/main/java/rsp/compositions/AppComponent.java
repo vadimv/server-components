@@ -56,8 +56,8 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
 
     @Override
     public ComponentView<AppComponentState> componentView() {
-        // RoutingComponent has default constructor - reads everything from context
-        return _ -> _ -> new RoutingComponent();
+        // AuthComponent has default constructor - reads everything from context
+        return _ -> _ -> new AuthComponent();
     }
 
     public record AppComponentState() {

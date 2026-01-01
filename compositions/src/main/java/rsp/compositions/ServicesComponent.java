@@ -67,6 +67,11 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 throw new IllegalStateException("Contract not found in module: " + contractClass.getName());
             }
 
+            // Check authorization
+            if (!contract.isAuthorized()) {
+                throw new AuthorizationException("Access denied: insufficient permissions for " + contractClass.getSimpleName());
+            }
+
             // Call contract methods to get data (contract will call module internally)
             Map<String, Object> dataMap = new HashMap<>();
 

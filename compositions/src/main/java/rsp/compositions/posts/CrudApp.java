@@ -1,12 +1,14 @@
 package rsp.compositions.posts;
 
 import rsp.compositions.*;
+import rsp.compositions.auth.StubAuthProvider;
 import rsp.compositions.posts.components.PostsListContract;
 import rsp.compositions.posts.components.PostsModule;
 import rsp.compositions.posts.services.PostService;
 import rsp.compositions.ui.DefaultListView;
 import rsp.jetty.WebServer;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,10 +25,10 @@ public class CrudApp {
         // Create services
         final PostService postService = new PostService();
 
-        // Register services in a map with namespace keys
-        final Map<String, Object> services = Map.of(
-                "service.posts", postService
-        );
+        // Register services and auth provider in a map with namespace keys
+        final Map<String, Object> services = new HashMap<>();
+        services.put("service.posts", postService);
+        services.put("auth.provider", new StubAuthProvider()); // Optional: defaults to anonymous if omitted
 
         // Create modules (no longer need service references)
         final PostsModule postsModule = new PostsModule();
