@@ -13,6 +13,7 @@ public class CrudApp {
         final UiRegistry uiRegistry = new UiRegistry()
                 .register(ListView.class,   DefaultListView::new); // Sets a concrete UI implementation
 
+        // Sets a frame for this application's address bar path patterns
         final Router router = new Router()
                 .route("/posts", PostsListContract.class);
 
