@@ -2,9 +2,9 @@ package rsp.compositions.posts.components;
 
 import rsp.component.ComponentContext;
 import rsp.compositions.ListViewContract;
-import rsp.compositions.Module;
 import rsp.compositions.QueryParam;
 import rsp.compositions.posts.entities.Post;
+import rsp.compositions.posts.services.PostService;
 
 import java.util.List;
 
@@ -12,11 +12,12 @@ public class PostsListContract extends ListViewContract<Post> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
     private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
 
-    private final Module module;
+    private final PostService postService;
 
-    public PostsListContract(ComponentContext context, Module module) {
+    public PostsListContract(ComponentContext context) {
         super(context);
-        this.module = module;
+        // Read service from context
+        this.postService = (PostService) context.getAttribute("service.posts");
     }
 
     @Override
@@ -40,7 +41,7 @@ public class PostsListContract extends ListViewContract<Post> {
         int page = page();  // Uses resolve(PAGE) → reads from context "url.query.p"
         String sort = sort();  // Uses resolve(SORT) → reads from context "url.query.sort"
 
-        // Call module to fetch data from service
-        return ((PostsModule) module).fetchItems(page, sort);
+        // Call service directly (service comes from context)
+        return postService.findAll(page, 10, sort);
     }
 }

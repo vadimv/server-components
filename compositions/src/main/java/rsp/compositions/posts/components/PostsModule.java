@@ -5,18 +5,17 @@ import rsp.compositions.Module;
 import rsp.compositions.NotificationContract;
 import rsp.compositions.Slot;
 import rsp.compositions.ViewPlacement;
-import rsp.compositions.posts.entities.Post;
-import rsp.compositions.posts.services.PostService;
 
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * PostsModule - Pure orchestrator for posts domain.
+ * <p>
+ * Declares which contracts exist in the posts domain.
+ * Does NOT expose services - contracts access services directly from context.
+ */
 public class PostsModule implements Module {
-    private final PostService postService;
-
-    public PostsModule(PostService postService) {
-        this.postService = postService;
-    }
 
     @Override
     public String name() {
@@ -26,7 +25,7 @@ public class PostsModule implements Module {
     @Override
     public List<ViewPlacement> views() {
         return List.of(
-            new ViewPlacement(Slot.PRIMARY, PostsListContract.class, context -> new PostsListContract(context, this))
+            new ViewPlacement(Slot.PRIMARY, PostsListContract.class, PostsListContract::new)
         );
     }
 
@@ -38,17 +37,5 @@ public class PostsModule implements Module {
     @Override
     public List<ActionContract> actions() {
         return Collections.emptyList();
-    }
-
-    /**
-     * Fetch items from the service - exposes service functionality without passing service reference down.
-     * This method is called by PostsListContract to retrieve posts.
-     *
-     * @param page the page number (1-indexed)
-     * @param sort the sort order ("asc" or "desc")
-     * @return list of posts for the specified page
-     */
-    public List<Post> fetchItems(int page, String sort) {
-        return postService.findAll(page, 10, sort);
     }
 }

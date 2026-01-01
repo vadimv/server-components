@@ -16,13 +16,15 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     private final UiRegistry uiRegistry;
     private final Router router;
     private final List<Module> modules;
+    private final Map<String, Object> services;
     private final HttpRequest httpRequest;
 
-    public AppComponent(UiRegistry uiRegistry, Router router, List<Module> modules, HttpRequest httpRequest) {
+    public AppComponent(UiRegistry uiRegistry, Router router, List<Module> modules, Map<String, Object> services, HttpRequest httpRequest) {
         super();
         this.uiRegistry = uiRegistry;
         this.router = router;
         this.modules = modules;
+        this.services = services;
         this.httpRequest = httpRequest;
     }
 
@@ -37,12 +39,19 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
      */
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {
-        return (context, state) -> context.with(Map.of(
-            "app.router", router,
-            "app.modules", modules,
-            "app.uiRegistry", uiRegistry,
-            "app.httpRequest", httpRequest
-        ));
+        return (context, state) -> {
+            // Build context map with app-level and service objects
+            Map<String, Object> contextMap = new java.util.HashMap<>();
+            contextMap.put("app.router", router);
+            contextMap.put("app.modules", modules);
+            contextMap.put("app.uiRegistry", uiRegistry);
+            contextMap.put("app.httpRequest", httpRequest);
+
+            // Add all services to context with their namespace keys
+            contextMap.putAll(services);
+
+            return context.with(contextMap);
+        };
     }
 
     @Override

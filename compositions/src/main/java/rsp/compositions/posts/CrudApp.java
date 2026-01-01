@@ -7,6 +7,9 @@ import rsp.compositions.posts.services.PostService;
 import rsp.compositions.ui.DefaultListView;
 import rsp.jetty.WebServer;
 
+import java.util.List;
+import java.util.Map;
+
 public class CrudApp {
     static void main(String[] args) {
 
@@ -17,9 +20,19 @@ public class CrudApp {
         final Router router = new Router()
                 .route("/posts", PostsListContract.class);
 
+        // Create services
         final PostService postService = new PostService();
-        final PostsModule postsModule = new PostsModule(postService);
-        final App app = new App(new AppConfig(), uiRegistry, router, postsModule);
+
+        // Register services in a map with namespace keys
+        final Map<String, Object> services = Map.of(
+                "service.posts", postService
+        );
+
+        // Create modules (no longer need service references)
+        final PostsModule postsModule = new PostsModule();
+
+        // Create app with services
+        final App app = new App(new AppConfig(), uiRegistry, router, List.of(postsModule), services);
 
         final WebServer server = new WebServer(8080, app);
         server.start();
