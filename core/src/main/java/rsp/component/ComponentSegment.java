@@ -144,9 +144,11 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext),
                                            "Initial state cannot be null for component " + componentId);
             renderContext.setComponentContext(contextResolver.apply(componentContext, state));
-            final Definition view = componentView.use(this).apply(state);
 
-            view.render(renderContext);
+            final View<S> view = componentView.use(this);
+            final Definition uiDefinition = view.apply(state);
+
+            uiDefinition.render(renderContext);
             onAfterRendered(state);
             onAfterMounted(state);
         } catch (Throwable renderEx) {

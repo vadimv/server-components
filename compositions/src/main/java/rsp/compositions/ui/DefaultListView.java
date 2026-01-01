@@ -26,16 +26,16 @@ public class DefaultListView extends ListView {
                         tbody(
                                 of(items.stream().map(item ->
                                         tr(
-                                                td(text(item.column1),
+                                                td(text(item.column1)),
                                                 td(text(item.column2)),
-                                                td(text(item.conlumn3))
+                                                td(text(item.column3))
                                         )
                                 ))
                         )
                 )
-        ));
+            );
         };
     }
 
-    record Item(String column1, String column2, String conlumn3) {}
+    record Item(String column1, String column2, String column3) {}
 }

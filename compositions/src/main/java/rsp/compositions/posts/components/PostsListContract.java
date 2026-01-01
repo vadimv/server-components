@@ -1,9 +1,9 @@
 package rsp.compositions.posts.components;
 
 import rsp.compositions.ListViewContract;
+import rsp.compositions.Module;
 import rsp.compositions.QueryParam;
 import rsp.compositions.posts.entities.Post;
-import rsp.compositions.posts.services.PostService;
 
 import java.util.List;
 
@@ -11,6 +11,11 @@ public class PostsListContract extends ListViewContract<Post> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
     private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
 
+    private final Module module;
+
+    public PostsListContract(Module module) {
+        this.module = module;
+    }
 
     @Override
     public String name() {
@@ -27,5 +32,13 @@ public class PostsListContract extends ListViewContract<Post> {
         return resolve(SORT);
     }
 
+    @Override
+    public List<Post> items() {
+        // Get query params from context (populated by AutoAddressBarSyncComponent)
+        int page = page();  // Uses resolve(PAGE) → reads from context "url.query.p"
+        String sort = sort();  // Uses resolve(SORT) → reads from context "url.query.sort"
 
+        // Call module to fetch data from service
+        return ((PostsModule) module).fetchItems(page, sort);
+    }
 }
