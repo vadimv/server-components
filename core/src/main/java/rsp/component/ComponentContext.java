@@ -57,9 +57,24 @@ public final class ComponentContext {
      * @param <T> the type of values in the overlay map
      */
     public <T> ComponentContext with(final Map<String, T> overlayAttributes) {
-        Objects.requireNonNull(overlayAttributes);
+        Objects.requireNonNull(overlayAttributes, "Overlay attributes map cannot be null");
         final Map<String, Object> newAttributes = new HashMap<>(attributes);
         newAttributes.putAll(overlayAttributes);
+        return new ComponentContext(newAttributes);
+    }
+
+    /**
+     * Creates a new immutable instance with a single attribute added or updated.
+     * This is a convenience method for updating a single value without creating a map.
+     *
+     * @param key the attribute key, must not be null
+     * @param value the attribute value
+     * @return a new instance of ComponentContext with the updated attribute
+     */
+    public ComponentContext withAttribute(final String key, final Object value) {
+        Objects.requireNonNull(key, "Attribute key cannot be null");
+        final Map<String, Object> newAttributes = new HashMap<>(attributes);
+        newAttributes.put(key, value);
         return new ComponentContext(newAttributes);
     }
 

@@ -1,21 +1,91 @@
 package rsp.compositions;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Router - Maps URL paths to ViewContract classes.
+ * <p>
+ * Supports both exact routes and path parameter routes:
+ * <ul>
+ *   <li>Exact: {@code "/posts"} matches only {@code "/posts"}</li>
+ *   <li>Path params: {@code "/posts/:id"} matches {@code "/posts/123"}, {@code "/posts/abc"}, etc.</li>
+ * </ul>
+ */
 public class Router {
-    private final Map<String, Class<? extends ViewContract>> routes = new HashMap<>();
+    private final Map<String, RoutePattern> routes = new LinkedHashMap<>();
 
+    /**
+     * Register a route pattern.
+     *
+     * @param path The path pattern (e.g., "/posts" or "/posts/:id")
+     * @param contractClass The ViewContract class to use for this route
+     * @return this Router for chaining
+     */
     public Router route(String path, Class<? extends ViewContract> contractClass) {
-        routes.put(path, contractClass);
+        routes.put(path, new RoutePattern(path, contractClass));
         return this;
     }
 
+    /**
+     * Match an incoming URL path to a registered route.
+     *
+     * @param path The incoming URL path (e.g., "/posts/123")
+     * @return The matching ViewContract class, or empty if no match
+     */
     public Optional<Class<? extends ViewContract>> match(String path) {
-        // Simple exact match for now. Trie or regex can be added later.
-        // Also need to handle query params stripping if path contains them.
+        // Strip query params if present
         String cleanPath = path.contains("?") ? path.substring(0, path.indexOf("?")) : path;
-        return Optional.ofNullable(routes.get(cleanPath));
+
+        // Try routes in registration order (LinkedHashMap preserves order)
+        for (RoutePattern pattern : routes.values()) {
+            if (pattern.matches(cleanPath)) {
+                return Optional.of(pattern.contractClass());
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * A route pattern that can match exact paths or paths with parameters.
+     */
+    private record RoutePattern(String pattern, Class<? extends ViewContract> contractClass) {
+
+        /**
+         * Check if this pattern matches the given path.
+         *
+         * @param path The actual URL path (e.g., "/posts/123")
+         * @return true if the path matches this pattern
+         */
+        boolean matches(String path) {
+            // Split both pattern and path into segments
+            String[] patternSegments = pattern.split("/");
+            String[] pathSegments = path.split("/");
+
+            // Different number of segments -> no match
+            if (patternSegments.length != pathSegments.length) {
+                return false;
+            }
+
+            // Check each segment
+            for (int i = 0; i < patternSegments.length; i++) {
+                String patternSegment = patternSegments[i];
+                String pathSegment = pathSegments[i];
+
+                // Path parameter (starts with :) -> matches any value
+                if (patternSegment.startsWith(":")) {
+                    continue;
+                }
+
+                // Exact segment -> must match exactly
+                if (!patternSegment.equals(pathSegment)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
     }
 }

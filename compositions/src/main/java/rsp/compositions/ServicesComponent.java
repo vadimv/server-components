@@ -89,6 +89,14 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 dataMap.put("list.schema", schema);
                 dataMap.put("list.page", page);
                 dataMap.put("list.sort", sort);
+            } else if (contract instanceof EditViewContract<?> editContract) {
+                // Fetch entity to edit
+                Object entity = editContract.item();
+                ListSchema schema = editContract.schema();
+
+                // Put entity AND schema in context for UI components with "edit." namespace
+                dataMap.put("edit.entity", entity);
+                dataMap.put("edit.schema", schema);
             }
 
             // Store the contract itself for UI components to access

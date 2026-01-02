@@ -14,6 +14,10 @@ public abstract class ViewContract {
         return param.resolve(context);
     }
 
+    protected <T> T resolve(PathParam<T> param) {
+        return param.resolve(context);
+    }
+
     public abstract String name();
 
     /**
