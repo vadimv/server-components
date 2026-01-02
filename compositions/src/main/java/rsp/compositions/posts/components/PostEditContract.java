@@ -48,4 +48,23 @@ public class PostEditContract extends EditViewContract<Post> {
         Post post = item();
         return post != null ? ListSchema.fromFirstItem(post) : new ListSchema(java.util.List.of());
     }
+
+    @Override
+    public boolean save(java.util.Map<String, Object> fieldValues) {
+        // Extract field values
+        String id = (String) fieldValues.get("id");
+        String title = (String) fieldValues.get("title");
+        String content = (String) fieldValues.get("content");
+
+        // Create Post from field values
+        Post post = new Post(id, title, content);
+
+        // Save via service
+        if (id != null && !id.isEmpty()) {
+            return postService.update(id, post);
+        } else {
+            postService.create(post);
+            return true;
+        }
+    }
 }

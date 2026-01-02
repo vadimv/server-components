@@ -5,6 +5,7 @@ import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
+import rsp.page.events.RemoteCommand;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -68,7 +69,34 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                                                                    final Consumer<Command> commandsEnqueue) {
         // Store commandsEnqueue for use in view
         this.commandsEnqueue = commandsEnqueue;
-        return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+
+        // Create the segment
+        ComponentSegment<EditViewState> segment = super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+
+        // Register handler for save action
+        segment.addComponentEventHandler("action.save", eventContext -> {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> fieldValues = (Map<String, Object>) eventContext.eventObject();
+
+            // Get the contract from context
+            EditViewContract<?> contract = (EditViewContract<?>) componentContext.getAttribute("view.contract");
+
+            if (contract != null) {
+                boolean success = contract.save(fieldValues);
+                if (success) {
+                    // Navigate back to list after successful save
+                    commandsEnqueue.accept(new RemoteCommand.SetHref("/posts"));
+                }
+            }
+        }, false);
+
+        // Register handler for cancel action
+        segment.addComponentEventHandler("action.cancel", eventContext -> {
+            // Navigate back to list
+            commandsEnqueue.accept(new RemoteCommand.SetHref("/posts"));
+        }, false);
+
+        return segment;
     }
 
     /**

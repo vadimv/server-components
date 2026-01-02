@@ -6,6 +6,7 @@ import rsp.compositions.ListSchema;
 import rsp.dsl.Definition;
 import rsp.page.events.ComponentEventNotification;
 import rsp.ref.ElementRef;
+import rsp.util.json.JsonDataType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -62,10 +63,15 @@ public class DefaultEditView extends EditView {
 
                                     if (column != null) {
                                         // Get property value asynchronously
+                                        // For checkboxes, read "checked" property; for other inputs, read "value"
+                                        String property = (column.type() == Boolean.class || column.type() == boolean.class)
+                                            ? "checked"
+                                            : "value";
+
                                         futureValues.put(
                                             fieldName,
-                                            ctx.propertiesByRef(ref).get("value")
-                                                .thenApply(json -> convertValue(json.toString(), column.type()))
+                                            ctx.propertiesByRef(ref).get(property)
+                                                .thenApply(json -> convertJsonValue(json, column.type()))
                                         );
                                     }
                                 }
@@ -196,6 +202,33 @@ public class DefaultEditView extends EditView {
             || type == Long.class || type == long.class
             || type == Double.class || type == double.class
             || type == Float.class || type == float.class;
+    }
+
+    /**
+     * Convert JSON value from input to the appropriate type.
+     */
+    private Object convertJsonValue(JsonDataType json, Class<?> targetType) {
+        // Handle boolean checkboxes specially
+        if (targetType == Boolean.class || targetType == boolean.class) {
+            if (json instanceof JsonDataType.Boolean bool) {
+                return bool.value();
+            }
+            // Checkbox values can also come as strings "true"/"false" or be missing
+            if (json instanceof JsonDataType.String str) {
+                return Boolean.parseBoolean(str.value());
+            }
+            return false;
+        }
+
+        // For other types, extract string value and convert
+        String stringValue = null;
+        if (json instanceof JsonDataType.String str) {
+            stringValue = str.value();
+        } else if (json != null) {
+            stringValue = json.toString();
+        }
+
+        return convertValue(stringValue, targetType);
     }
 
     /**

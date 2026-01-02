@@ -33,4 +33,14 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @return Schema metadata for rendering form fields
      */
     public abstract ListSchema schema();
+
+    /**
+     * Save the entity with the given field values.
+     * <p>
+     * Called when the user clicks the Save button in the edit form.
+     *
+     * @param fieldValues Map of field names to values from the form
+     * @return true if save succeeded, false otherwise
+     */
+    public abstract boolean save(java.util.Map<String, Object> fieldValues);
 }
