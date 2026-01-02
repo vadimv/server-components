@@ -24,8 +24,10 @@ import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 /**
  * An AddressBarSyncComponent that automatically populates ALL URL data into the ComponentContext
- * using a standard namespace convention.
+ * using a standard namespace convention, and provides bidirectional synchronization with the browser's
+ * address bar.
  *
+ * <p><b>URL to Context Mapping:</b></p>
  * <p>For URL: {@code /posts/123?p=2&sort=desc#top}, the context will contain:</p>
  * <ul>
  *   <li>{@code "url.path.0"} → {@code "posts"}</li>
@@ -35,17 +37,47 @@ import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
  *   <li>{@code "url.fragment"} → {@code "top"}</li>
  * </ul>
  *
- * <p>This eliminates the need to manually configure which path elements and query parameters
- * to extract - all URL data is discoverable in the context using standard namespace keys.</p>
+ * <p><b>Bidirectional Synchronization:</b></p>
+ * <p>This component automatically synchronizes state changes back to the URL using
+ * <b>wildcard pattern matching</b>. When any component emits a {@code "stateUpdated.*"} event,
+ * the URL is updated accordingly:</p>
  *
- * <p><strong>Benefits:</strong></p>
+ * <pre>{@code
+ * // Component emits event to change pagination
+ * commandsEnqueue.accept(new ComponentEventNotification(
+ *     "stateUpdated.p",
+ *     new StringValue("3")
+ * ));
+ * // → URL automatically updates: /posts?p=3
+ *
+ * // Component emits event to change sorting
+ * commandsEnqueue.accept(new ComponentEventNotification(
+ *     "stateUpdated.sort",
+ *     new StringValue("desc")
+ * ));
+ * // → URL automatically updates: /posts?p=3&sort=desc
+ * }</pre>
+ *
+ * <p>The wildcard pattern {@code "stateUpdated.*"} matches ANY query parameter event,
+ * making the synchronization truly automatic - no configuration needed for new parameters.</p>
+ *
+ * <p><b>Benefits:</b></p>
  * <ul>
- *   <li>Zero configuration required</li>
- *   <li>All URL data available by default</li>
- *   <li>Standard namespace convention</li>
- *   <li>Downstream components pick what they need</li>
- *   <li>Follows Unix philosophy: "everything is a typed object in its namespace"</li>
+ *   <li><b>Zero configuration:</b> No need to pre-register query parameter names</li>
+ *   <li><b>Truly automatic:</b> Works with any query parameter name (standard or custom)</li>
+ *   <li><b>Bidirectional sync:</b> URL changes update state, state changes update URL</li>
+ *   <li><b>Browser integration:</b> Back/forward buttons work automatically</li>
+ *   <li><b>Standard namespace:</b> All URL data discoverable using consistent keys</li>
+ *   <li><b>Future-proof:</b> Adding new query parameters requires no code changes</li>
  * </ul>
+ *
+ * <p><b>Implementation Details:</b></p>
+ * <p>Uses event pattern matching (introduced in framework version 3.1.0) to subscribe to
+ * all {@code "stateUpdated.*"} events with a single handler, eliminating the need to
+ * enumerate specific parameter names.</p>
+ *
+ * @see rsp.component.ComponentEventEntry
+ * @see AddressBarSyncComponent
  */
 public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponent {
 
@@ -139,34 +171,32 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
             }
 
             /**
-             * Subscribe to ALL query parameter change events.
-             * Event names: "stateUpdated.{paramName}" (e.g., "stateUpdated.p", "stateUpdated.sort")
+             * Subscribe to ALL query parameter change events using pattern matching.
+             * Matches any event with name "stateUpdated.{paramName}".
+             *
+             * This is truly automatic - no configuration needed, works for any parameter name.
              */
             private void subscribeForQueryParameterUpdates(RelativeUrl currentUrl) {
-                // Get all current query parameter names from URL
-                Set<String> paramNames = new HashSet<>();
-                for (Query.Parameter param : currentUrl.query().parameters()) {
-                    paramNames.add(param.name());
-                }
+                // Single handler for ALL query parameter updates using wildcard pattern
+                this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "*",
+                    eventContext -> {
+                        // Extract parameter name from event name
+                        String eventName = eventContext.eventName();
+                        String paramName = eventName.substring(STATE_UPDATED_EVENT_PREFIX.length());
 
-                // Subscribe to updates for each parameter
-                for (String paramName : paramNames) {
-                    this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + paramName,
-                        eventContext -> {
-                            final Object valueObject = eventContext.eventObject();
-                            if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
-                                // Update the query parameter
-                                RelativeUrl updatedUrl = updateQueryParameter(getState(), paramName, stringValue.value());
+                        final Object valueObject = eventContext.eventObject();
+                        if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
+                            // Update the query parameter
+                            RelativeUrl updatedUrl = updateQueryParameter(getState(), paramName, stringValue.value());
 
-                                // Push to browser history
-                                this.commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
+                            // Push to browser history
+                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
 
-                                // Update component state to trigger re-render
-                                setState(updatedUrl);
-                            }
-                        },
-                        true);
-                }
+                            // Update component state to trigger re-render
+                            setState(updatedUrl);
+                        }
+                    },
+                    true);
             }
 
             /**

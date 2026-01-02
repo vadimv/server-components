@@ -136,8 +136,8 @@ public final class LivePageSession implements Consumer<Command> {
         Objects.requireNonNull(eventObject);
         logger.log(DEBUG, () -> "Component event, type: " + eventType + ", event data: " + eventObject);
         for (final ComponentEventEntry event: pageRenderContext.recursiveComponentEvents()) {
-            if (event.eventName().equals(eventType)) {
-                event.eventHandler().accept(new ComponentEventEntry.EventContext(eventObject));
+            if (event.matches(eventType)) {
+                event.eventHandler().accept(new ComponentEventEntry.EventContext(eventType, eventObject));
             }
         }
     }
