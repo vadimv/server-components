@@ -17,8 +17,8 @@ public record Attribute(String name, String value, boolean isProperty) implement
      * @param isProperty a flag defining if this attribute is a property or not
      */
     public Attribute {
-        Objects.requireNonNull(name);
-        Objects.requireNonNull(value);
+        Objects.requireNonNull(name, "Attribute name cannot be null");
+        Objects.requireNonNull(value, () -> "Attribute value cannot be null for attribute '" + name + "'");
     }
 
     @Override

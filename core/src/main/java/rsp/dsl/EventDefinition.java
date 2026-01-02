@@ -27,9 +27,9 @@ public record EventDefinition(String eventType,
     }
 
     public EventDefinition {
-        Objects.requireNonNull(eventType);
-        Objects.requireNonNull(handler);
-        Objects.requireNonNull(modifier);
+        Objects.requireNonNull(eventType, "Event type cannot be null");
+        Objects.requireNonNull(handler, "Event handler cannot be null");
+        Objects.requireNonNull(modifier, "Event modifier cannot be null");
     }
 
     @Override

@@ -207,7 +207,7 @@ public final class Html {
      * @return a tag definition
      */
     public static Tag head(final HeadType headType, final Definition... children) {
-        Objects.requireNonNull(headType);
+        Objects.requireNonNull(headType, "HeadType cannot be null");
         return headType == HeadType.SPA ? tag("head", children) : new PlainTag(XmlNs.html, "head", children);
     }
 
@@ -1302,7 +1302,7 @@ public final class Html {
      * @return a document part definition representing a sequence of definitions
      */
     public static Definition of(final Stream<Definition> items) {
-        Objects.requireNonNull(items);
+        Objects.requireNonNull(items, "Stream of items cannot be null");
         return new SequenceDefinition(items.toArray(Definition[]::new));
     }
 
@@ -1313,7 +1313,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition of(final Supplier<Definition> itemSupplier) {
-        Objects.requireNonNull(itemSupplier);
+        Objects.requireNonNull(itemSupplier, "Item supplier cannot be null");
         return new SequenceDefinition(new Definition[] { itemSupplier.get() });
     }
 
@@ -1323,7 +1323,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition of(final CompletableFuture<? extends Definition> completableFutureDefinition) {
-        Objects.requireNonNull(completableFutureDefinition);
+        Objects.requireNonNull(completableFutureDefinition, "CompletableFuture cannot be null");
         return completableFutureDefinition.join();
     }
 
@@ -1334,7 +1334,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition when(final boolean condition, final Definition then) {
-        Objects.requireNonNull(then);
+        Objects.requireNonNull(then, "Definition in 'when' clause cannot be null");
         return when(condition, () -> then);
     }
 
@@ -1346,7 +1346,7 @@ public final class Html {
      * @return a result definition
      */
     public static Definition when(final boolean condition, final Supplier<Definition> then) {
-        Objects.requireNonNull(then);
+        Objects.requireNonNull(then, "Supplier in 'when' clause cannot be null");
         return condition ? then.get() : EmptyDefinition.INSTANCE;
     }
 

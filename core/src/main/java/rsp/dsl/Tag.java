@@ -20,9 +20,9 @@ public class Tag implements Definition {
      * @param children the tag's children definitions, this could be another tags, attributes, events, references etc
      */
     public Tag(final XmlNs ns, final String name, final Definition... children) {
-        this.ns = Objects.requireNonNull(ns);
-        this.name = Objects.requireNonNull(name);
-        this.children = Objects.requireNonNull(children);
+        this.ns = Objects.requireNonNull(ns, "Tag namespace cannot be null");
+        this.name = Objects.requireNonNull(name, "Tag name cannot be null");
+        this.children = Objects.requireNonNull(children, "Tag children array cannot be null");
     }
 
     @Override

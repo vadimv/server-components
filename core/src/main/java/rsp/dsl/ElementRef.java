@@ -11,7 +11,7 @@ import java.util.Objects;
 public record ElementRef(rsp.ref.ElementRef ref) implements Definition {
 
     public ElementRef {
-        Objects.requireNonNull(ref);
+        Objects.requireNonNull(ref, "Element reference cannot be null");
     }
 
     @Override

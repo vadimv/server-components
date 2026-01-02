@@ -19,7 +19,7 @@ public final class HtmlDocument extends Tag {
     public HtmlDocument(final int statusCode, final Map<String, List<String>> headers, final Definition... children) {
         super(XmlNs.html, "html", children);
         this.statusCode = statusCode;
-        this.headers = Objects.requireNonNull(headers);
+        this.headers = Objects.requireNonNull(headers, "HtmlDocument headers cannot be null");
     }
 
     @Override

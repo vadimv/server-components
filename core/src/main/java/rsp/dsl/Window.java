@@ -53,9 +53,9 @@ public final class Window {
                                          boolean preventDefault,
                                          DomEventEntry.Modifier modifier) implements Definition {
         private WindowEventDefinition {
-            Objects.requireNonNull(eventType);
-            Objects.requireNonNull(handler);
-            Objects.requireNonNull(modifier);
+            Objects.requireNonNull(eventType, "Window event type cannot be null");
+            Objects.requireNonNull(handler, "Window event handler cannot be null");
+            Objects.requireNonNull(modifier, "Window event modifier cannot be null");
         }
 
         @Override
