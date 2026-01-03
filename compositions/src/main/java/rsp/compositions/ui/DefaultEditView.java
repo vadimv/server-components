@@ -111,7 +111,7 @@ public class DefaultEditView extends EditView {
                                 // Send cancel action
                                 commandsEnqueue.accept(new ComponentEventNotification(
                                     "action.cancel",
-                                    null
+                                    Map.of() // Empty map instead of null (EventContext requires non-null)
                                 ));
                             })
                         )
