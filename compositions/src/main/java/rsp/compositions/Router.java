@@ -17,6 +17,14 @@ public class Router {
     private final Map<String, RoutePattern> routes = new LinkedHashMap<>();
 
     /**
+     * Result of matching a route.
+     *
+     * @param contractClass The ViewContract class for this route
+     * @param pattern The route pattern (e.g., "/posts/:id")
+     */
+    public record RouteMatch(Class<? extends ViewContract> contractClass, String pattern) {}
+
+    /**
      * Register a route pattern.
      *
      * @param path The path pattern (e.g., "/posts" or "/posts/:id")
@@ -32,16 +40,16 @@ public class Router {
      * Match an incoming URL path to a registered route.
      *
      * @param path The incoming URL path (e.g., "/posts/123")
-     * @return The matching ViewContract class, or empty if no match
+     * @return The matching route details (contract class and pattern), or empty if no match
      */
-    public Optional<Class<? extends ViewContract>> match(String path) {
+    public Optional<RouteMatch> match(String path) {
         // Strip query params if present
         String cleanPath = path.contains("?") ? path.substring(0, path.indexOf("?")) : path;
 
         // Try routes in registration order (LinkedHashMap preserves order)
         for (RoutePattern pattern : routes.values()) {
             if (pattern.matches(cleanPath)) {
-                return Optional.of(pattern.contractClass());
+                return Optional.of(new RouteMatch(pattern.contractClass(), pattern.pattern()));
             }
         }
 

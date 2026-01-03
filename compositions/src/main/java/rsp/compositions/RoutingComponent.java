@@ -45,15 +45,16 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
                 return context; // Graceful degradation
             }
 
-            // Match route to get contract class
+            // Match route to get contract class and pattern
             String path = httpRequest.path.toString();
-            Class<? extends ViewContract> contractClass = router.match(path)
+            Router.RouteMatch routeMatch = router.match(path)
                 .orElseThrow(() -> new IllegalStateException("No route found for path: " + path));
 
-            // Enrich context with routing results
+            // Enrich context with routing results INCLUDING pattern
             return context.with(Map.of(
-                "route.contractClass", contractClass,
-                "route.path", path
+                "route.contractClass", routeMatch.contractClass(),
+                "route.path", path,
+                "route.pattern", routeMatch.pattern()
             ));
         };
     }

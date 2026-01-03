@@ -21,18 +21,24 @@ import java.util.function.Consumer;
 public abstract class EditView extends Component<EditView.EditViewState> {
 
     protected Consumer<Command> commandsEnqueue;
+    protected NavigationContext navigationContext;
 
     /**
      * State containing the entity data being edited and schema metadata.
      */
-    public record EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty) {
+    public record EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute) {
         public EditViewState {
             fieldValues = fieldValues != null ? fieldValues : Map.of();
             schema = schema != null ? schema : new ListSchema(java.util.List.of());
+            listRoute = listRoute != null ? listRoute : "/";
         }
 
         public EditViewState(Map<String, Object> fieldValues, ListSchema schema) {
-            this(fieldValues, schema, false);
+            this(fieldValues, schema, false, "/");
+        }
+
+        public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty) {
+            this(fieldValues, schema, isDirty, "/");
         }
     }
 
@@ -43,13 +49,17 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             Object entity = context.getAttribute("edit.entity");
             ListSchema schema = (ListSchema) context.getAttribute("edit.schema");
 
+            // Get the contract to derive listRoute
+            EditViewContract<?> contract = (EditViewContract<?>) context.getAttribute("view.contract");
+            String listRoute = contract != null ? contract.listRoute() : "/";
+
             if (schema == null && entity != null) {
                 // Auto-derive schema from entity if not provided
                 schema = ListSchema.fromFirstItem(entity);
             }
 
             if (schema == null) {
-                return new EditViewState(Map.of(), new ListSchema(java.util.List.of()));
+                return new EditViewState(Map.of(), new ListSchema(java.util.List.of()), false, listRoute);
             }
 
             // Convert entity to Map for editing
@@ -57,7 +67,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                 ? schema.toMap(entity)
                 : createEmptyFieldValues(schema);
 
-            return new EditViewState(fieldValues, schema, false);
+            return new EditViewState(fieldValues, schema, false, listRoute);
         };
     }
 
@@ -69,6 +79,9 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                                                                    final Consumer<Command> commandsEnqueue) {
         // Store commandsEnqueue for use in view
         this.commandsEnqueue = commandsEnqueue;
+
+        // Initialize NavigationContext
+        this.navigationContext = new NavigationContext(componentContext);
 
         // Create the segment
         ComponentSegment<EditViewState> segment = super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
@@ -84,16 +97,10 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             if (contract != null) {
                 boolean success = contract.save(fieldValues);
                 if (success) {
-                    // Navigate back to list after successful save
-                    commandsEnqueue.accept(new RemoteCommand.SetHref("/posts"));
+                    // Navigate back to list after successful save using NavigationContext
+                    commandsEnqueue.accept(navigationContext.navigateToList());
                 }
             }
-        }, false);
-
-        // Register handler for cancel action
-        segment.addComponentEventHandler("action.cancel", eventContext -> {
-            // Navigate back to list
-            commandsEnqueue.accept(new RemoteCommand.SetHref("/posts"));
         }, false);
 
         return segment;

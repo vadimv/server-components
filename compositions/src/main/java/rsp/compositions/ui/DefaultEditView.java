@@ -104,16 +104,10 @@ public class DefaultEditView extends EditView {
                                 });
                             })
                         ),
-                        button(
-                            attr("type", "button"),
-                            text("Cancel"),
-                            on("click", ctx -> {
-                                // Send cancel action
-                                commandsEnqueue.accept(new ComponentEventNotification(
-                                    "action.cancel",
-                                    Map.of() // Empty map instead of null (EventContext requires non-null)
-                                ));
-                            })
+                        a(
+                            attr("href", state.listRoute()),
+                            attr("class", "button cancel-button"),
+                            text("Cancel")
                         )
                     )
                 )
