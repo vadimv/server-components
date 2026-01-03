@@ -25,11 +25,6 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
-    public String name() {
-        return "post-edit";
-    }
-
-    @Override
     public Post item() {
         // Extract post ID from URL path (e.g., /posts/123 → "123")
         String postId = resolve(POST_ID);

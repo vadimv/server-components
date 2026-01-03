@@ -18,8 +18,6 @@ public abstract class ViewContract {
         return param.resolve(context);
     }
 
-    public abstract String name();
-
     /**
      * Override to implement custom authorization logic.
      * Default: delegates to auth.strategy from context if present,
