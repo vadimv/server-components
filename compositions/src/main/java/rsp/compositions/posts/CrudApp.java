@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 public class CrudApp {
-    static void main(String[] args) {
+    public static void main(String[] args) {
 
         final UiRegistry uiRegistry = new UiRegistry()
                 .register(ListViewContract.class, DefaultListView::new) // Sets a concrete UI implementation

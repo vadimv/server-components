@@ -26,6 +26,10 @@ public class DefaultListView extends ListView {
         return newState -> state -> {
             final int page = state.page();
             final String sort = state.sort();
+            final String modulePath = state.modulePath();
+
+            // Capture current query params for Edit links
+            String currentQueryParams = buildQueryString(page, sort);
 
             return div(
                 h1(text("Items List")),
@@ -57,15 +61,25 @@ public class DefaultListView extends ListView {
                                         })
                                     )
                                 ))
-                            )
+                            ),
+                            // NEW: Actions column header
+                            th(text("Actions"))
                         )
                     ),
                     tbody(
-                        // Render rows dynamically based on schema
+                        // Render rows dynamically with Edit link
                         of(state.rows().stream().map(row ->
                             tr(
+                                // Existing data columns
                                 of(state.schema().columns().stream()
                                     .map(col -> td(renderValue(row.get(col.name()), col.type())))
+                                ),
+                                // NEW: Actions column with Edit link
+                                td(
+                                    a(
+                                        attr("href", buildEditUrl(row, currentQueryParams, modulePath)),
+                                        text("Edit")
+                                    )
                                 )
                             )
                         ))
@@ -171,5 +185,53 @@ public class DefaultListView extends ListView {
             return String.format("%.2f", number.doubleValue());
         }
         return number.toString();
+    }
+
+    /**
+     * Build query string from current list view state.
+     * Captures query params for preservation when navigating to edit view.
+     *
+     * @param page Current page number
+     * @param sort Current sort direction
+     * @return Query string (e.g., "fromP=3&fromSort=desc"), or empty string
+     */
+    private String buildQueryString(int page, String sort) {
+        java.util.List<String> params = new java.util.ArrayList<>();
+
+        // Preserve page if not on first page (use "fromP" to match url.query.p)
+        if (page > 1) {
+            params.add("fromP=" + page);
+        }
+
+        // Preserve sort if not default
+        if (sort != null && !sort.isEmpty() && !sort.equals("asc")) {
+            params.add("fromSort=" + sort);
+        }
+
+        return params.isEmpty() ? "" : String.join("&", params);
+    }
+
+    /**
+     * Build edit URL for a specific row, preserving list query params.
+     *
+     * @param row The row data map
+     * @param queryParams Preserved query params from list view (e.g., "fromP=3&fromSort=desc")
+     * @param modulePath The module base path (e.g., "/posts")
+     * @return Edit URL with preserved params (e.g., "/posts/123?fromP=3&fromSort=desc")
+     */
+    private String buildEditUrl(java.util.Map<String, Object> row, String queryParams, String modulePath) {
+        // Get entity ID from row (assumes "id" field exists)
+        Object id = row.get("id");
+        if (id == null) {
+            throw new IllegalStateException("Row must have 'id' field for edit link");
+        }
+
+        String editPath = modulePath + "/" + id;
+
+        if (queryParams.isEmpty()) {
+            return editPath;
+        }
+
+        return editPath + "?" + queryParams;
     }
 }
