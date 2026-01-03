@@ -18,11 +18,6 @@ import java.util.List;
 public class PostsModule implements Module {
 
     @Override
-    public String name() {
-        return "posts";
-    }
-
-    @Override
     public List<ViewPlacement> views() {
         return List.of(
             new ViewPlacement(Slot.PRIMARY, PostsListContract.class, PostsListContract::new),
