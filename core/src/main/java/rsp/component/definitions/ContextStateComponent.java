@@ -42,7 +42,11 @@ public abstract class ContextStateComponent<S> extends Component<S> {
     @Override
     public ComponentStateSupplier<S> initStateSupplier() {
         return (_, componentContext) -> {
-            if (componentContext.getAttribute(contextAttributeName) instanceof ContextValue contextValue) {
+            // Create a StringKey dynamically for this context attribute
+            final ContextKey<ContextValue> contextKey = new ContextKey.StringKey<>(contextAttributeName, ContextValue.class);
+            final ContextValue contextValue = componentContext.get(contextKey);
+
+            if (contextValue != null) {
                 return contextValueToStateFunction().apply(contextValue);
             } else {
                 throw new IllegalStateException("Attribute " + contextAttributeName + " of type ContextValue not found in component context");

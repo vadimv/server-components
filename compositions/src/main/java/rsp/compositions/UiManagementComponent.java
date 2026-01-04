@@ -1,6 +1,5 @@
 package rsp.compositions;
 
-import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
@@ -33,10 +32,8 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
     public ComponentStateSupplier<UiManagementComponentState> initStateSupplier() {
         return (_, context) -> {
             // Read from context and store in state
-            UiRegistry uiRegistry = (UiRegistry) context.getAttribute("app.uiRegistry");
-            @SuppressWarnings("unchecked")
-            Class<? extends ViewContract> contractClass =
-                (Class<? extends ViewContract>) context.getAttribute("route.contractClass");
+            UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
+            Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
 
             return new UiManagementComponentState(uiRegistry, contractClass);
         };

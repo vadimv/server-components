@@ -37,11 +37,10 @@ public abstract class ListView extends Component<ListView.ListViewState> {
     public ComponentStateSupplier<ListViewState> initStateSupplier() {
         return (_, context) -> {
             // Read items, schema, page, and sort from context (populated by ServicesComponent)
-            @SuppressWarnings("unchecked")
-            List<?> items = (List<?>) context.getAttribute("list.items");
-            ListSchema schema = (ListSchema) context.getAttribute("list.schema");
-            Integer page = (Integer) context.getAttribute("list.page");
-            String sort = (String) context.getAttribute("list.sort");
+            List<?> items = (List<?>) context.get(ContextKeys.LIST_ITEMS);
+            ListSchema schema = context.get(ContextKeys.LIST_SCHEMA);
+            Integer page = context.get(ContextKeys.LIST_PAGE);
+            String sort = context.get(ContextKeys.LIST_SORT);
 
             if (page == null) page = 1;
             if (sort == null) sort = "asc";
@@ -67,7 +66,7 @@ public abstract class ListView extends Component<ListView.ListViewState> {
      * Example: "/posts?page=3" → "/posts"
      */
     private String deriveModulePath(ComponentContext context) {
-        String routePath = (String) context.getAttribute("route.path");
+        String routePath = context.get(ContextKeys.ROUTE_PATH);
         if (routePath == null) {
             return "/";
         }

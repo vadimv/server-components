@@ -5,8 +5,6 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
@@ -29,7 +27,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
     public ComponentStateSupplier<AuthComponentState> initStateSupplier() {
         return (_, context) -> {
             // Read auth provider from context
-            AuthProvider authProvider = (AuthProvider) context.getAttribute("auth.provider");
+            AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
 
             if (authProvider == null) {
                 // No auth provider configured - anonymous access
@@ -50,12 +48,10 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
     @Override
     public BiFunction<ComponentContext, AuthComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> {
-            Map<String, Object> authData = new HashMap<>();
-            authData.put("auth.user", state.user());
-            authData.put("auth.authenticated", state.authenticated());
-            authData.put("auth.roles", state.roles());
-
-            return context.with(authData);
+            return context
+                .with(ContextKeys.AUTH_USER, state.user())
+                .with(ContextKeys.AUTH_AUTHENTICATED, state.authenticated())
+                .with(ContextKeys.AUTH_ROLES, state.roles());
         };
     }
 

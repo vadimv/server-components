@@ -26,7 +26,7 @@ public class NavigationContext {
      * @return Command to execute the navigation
      */
     public Command navigateToList() {
-        EditViewContract<?> contract = (EditViewContract<?>) componentContext.getAttribute("view.contract");
+        EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.VIEW_CONTRACT);
 
         if (contract == null) {
             throw new IllegalStateException("view.contract not found in context");

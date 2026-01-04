@@ -8,7 +8,6 @@ import rsp.component.definitions.Component;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.RelativeUrl;
 
-import java.util.Map;
 import java.util.function.BiFunction;
 
 public class RoutingComponent extends Component<RoutingComponent.RoutingComponentState> {
@@ -25,7 +24,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
     public ComponentStateSupplier<RoutingComponentState> initStateSupplier() {
         return (_, context) -> {
             // Read httpRequest from context and store in state
-            HttpRequest httpRequest = (HttpRequest) context.getAttribute("app.httpRequest");
+            HttpRequest httpRequest = context.get(HttpRequest.class);
             return new RoutingComponentState(httpRequest);
         };
     }
@@ -38,8 +37,8 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
     public BiFunction<ComponentContext, RoutingComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> {
             // Read application objects from context (populated by AppComponent)
-            Router router = (Router) context.getAttribute("app.router");
-            HttpRequest httpRequest = (HttpRequest) context.getAttribute("app.httpRequest");
+            Router router = context.get(Router.class);
+            HttpRequest httpRequest = context.get(HttpRequest.class);
 
             if (router == null || httpRequest == null) {
                 return context; // Graceful degradation
@@ -51,11 +50,9 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
                 .orElseThrow(() -> new IllegalStateException("No route found for path: " + path));
 
             // Enrich context with routing results INCLUDING pattern
-            return context.with(Map.of(
-                "route.contractClass", routeMatch.contractClass(),
-                "route.path", path,
-                "route.pattern", routeMatch.pattern()
-            ));
+            return context.with(ContextKeys.ROUTE_CONTRACT_CLASS, routeMatch.contractClass())
+                .with(ContextKeys.ROUTE_PATH, path)
+                .with(ContextKeys.ROUTE_PATTERN, routeMatch.pattern());
         };
     }
 

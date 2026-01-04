@@ -17,7 +17,7 @@ public class PostsListContract extends ListViewContract<Post> {
     public PostsListContract(ComponentContext context) {
         super(context);
         // Read service from context
-        this.postService = (PostService) context.getAttribute("service.posts");
+        this.postService = context.get(PostService.class);
     }
 
     @Override

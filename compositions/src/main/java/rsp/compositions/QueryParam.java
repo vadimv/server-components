@@ -15,8 +15,7 @@ public class QueryParam<T> {
 
     public T resolve(ComponentContext ctx) {
         // Read from "url.query.{name}" namespace (populated by AutoAddressBarSyncComponent)
-        final String contextKey = "url.query." + name;
-        final Object value = ctx.getAttribute(contextKey);
+        final Object value = ctx.get(ContextKeys.URL_QUERY.with(name));
 
         if (value == null) {
             return defaultValue;

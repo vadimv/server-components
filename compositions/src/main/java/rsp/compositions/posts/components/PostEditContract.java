@@ -21,7 +21,7 @@ public class PostEditContract extends EditViewContract<Post> {
     public PostEditContract(ComponentContext context) {
         super(context);
         // Read service from context
-        this.postService = (PostService) context.getAttribute("service.posts");
+        this.postService = context.get(PostService.class);
     }
 
     @Override

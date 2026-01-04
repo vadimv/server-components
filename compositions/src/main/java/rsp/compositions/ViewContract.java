@@ -29,7 +29,7 @@ public abstract class ViewContract {
      * @return true if user is authorized to access this view, false otherwise
      */
     protected boolean isAuthorized() {
-        AuthorizationStrategy strategy = (AuthorizationStrategy) context.getAttribute("auth.strategy");
+        AuthorizationStrategy strategy = context.get(ContextKeys.AUTHORIZATION_STRATEGY);
         return strategy == null || strategy.isAuthorized(this, context);
     }
 

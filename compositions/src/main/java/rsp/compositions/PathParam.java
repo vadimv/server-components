@@ -43,8 +43,7 @@ public class PathParam<T> {
      */
     public T resolve(ComponentContext ctx) {
         // Read from "url.path.{index}" namespace (populated by AutoAddressBarSyncComponent)
-        final String contextKey = "url.path." + index;
-        final Object value = ctx.getAttribute(contextKey);
+        final Object value = ctx.get(ContextKeys.URL_PATH.with(String.valueOf(index)));
 
         if (value == null) {
             return defaultValue;

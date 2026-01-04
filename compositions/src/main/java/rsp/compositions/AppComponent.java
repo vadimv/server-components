@@ -40,17 +40,25 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> {
-            // Build context map with app-level and service objects
-            Map<String, Object> contextMap = new java.util.HashMap<>();
-            contextMap.put("app.router", router);
-            contextMap.put("app.modules", modules);
-            contextMap.put("app.uiRegistry", uiRegistry);
-            contextMap.put("app.httpRequest", httpRequest);
+            // Add app-level objects using ClassKey (ServiceLoader style)
+            ComponentContext enrichedContext = context
+                .with(Router.class, router)
+                .with(HttpRequest.class, httpRequest)
+                .with(ContextKeys.UI_REGISTRY, uiRegistry)
+                .with(ContextKeys.APP_MODULES, modules);
 
-            // Add all services to context with their namespace keys
-            contextMap.putAll(services);
+            // Add all services to context using ClassKey for each service instance
+            for (Map.Entry<String, Object> entry : services.entrySet()) {
+                // Services are stored by their actual class, not by string key
+                Object service = entry.getValue();
+                if (service != null) {
+                    @SuppressWarnings("unchecked")
+                    Class<Object> serviceClass = (Class<Object>) service.getClass();
+                    enrichedContext = enrichedContext.with(serviceClass, service);
+                }
+            }
 
-            return context.with(contextMap);
+            return enrichedContext;
         };
     }
 

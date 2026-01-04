@@ -46,11 +46,11 @@ public abstract class EditView extends Component<EditView.EditViewState> {
     public ComponentStateSupplier<EditViewState> initStateSupplier() {
         return (_, context) -> {
             // Read entity and schema from context (populated by ServicesComponent)
-            Object entity = context.getAttribute("edit.entity");
-            ListSchema schema = (ListSchema) context.getAttribute("edit.schema");
+            Object entity = context.get(ContextKeys.EDIT_ENTITY);
+            ListSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
 
             // Get the contract to derive listRoute
-            EditViewContract<?> contract = (EditViewContract<?>) context.getAttribute("view.contract");
+            EditViewContract<?> contract = (EditViewContract<?>) context.get(ContextKeys.VIEW_CONTRACT);
             String listRoute = contract != null ? contract.listRoute() : "/";
 
             if (schema == null && entity != null) {
@@ -92,7 +92,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             Map<String, Object> fieldValues = (Map<String, Object>) eventContext.eventObject();
 
             // Get the contract from context
-            EditViewContract<?> contract = (EditViewContract<?>) componentContext.getAttribute("view.contract");
+            EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.VIEW_CONTRACT);
 
             if (contract != null) {
                 boolean success = contract.save(fieldValues);

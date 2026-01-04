@@ -76,8 +76,9 @@ public final class HttpHandler {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
-            final ComponentContext componentContext = new ComponentContext().with(Map.of(ComponentContext.DEVICE_ID_KEY, deviceId,
-                                                                                         ComponentContext.SESSION_ID_KEY, sessionId));
+            final ComponentContext componentContext = new ComponentContext()
+                .with(new rsp.component.ContextKey.StringKey<>(ComponentContext.DEVICE_ID_KEY, String.class), deviceId)
+                .with(new rsp.component.ContextKey.StringKey<>(ComponentContext.SESSION_ID_KEY, String.class), sessionId);
 
             final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
 

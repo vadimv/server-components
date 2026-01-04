@@ -74,20 +74,29 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
         return (componentContext, relativeUrl) -> {
             Objects.requireNonNull(componentContext);
             Objects.requireNonNull(relativeUrl);
-            final Map<String, ContextStateComponent.ContextValue> m = new HashMap<>();
+            ComponentContext enrichedContext = componentContext;
+
             // add URL's path elements for configured positions
             for (PositionKey pathElementsKey : pathElementsPositionKeys()) {
                 final String contextValue = relativeUrl.path().get(pathElementsKey.position);
-                m.put(pathElementsKey.key, contextValue == null ?
-                        new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(contextValue));
+                final ContextStateComponent.ContextValue value = contextValue == null ?
+                        new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(contextValue);
+                enrichedContext = enrichedContext.with(
+                    new ContextKey.StringKey<>(pathElementsKey.key, ContextStateComponent.ContextValue.class),
+                    value
+                );
             }
             // add query parameters for configured parameters names
             for (ParameterNameKey queryParametersNameKey : queryParametersNamedKeys()) {
                 final String parameterValue = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
-                    m.put(queryParametersNameKey.key(), parameterValue == null ?
-                            new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(parameterValue));
+                final ContextStateComponent.ContextValue value = parameterValue == null ?
+                        new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(parameterValue);
+                enrichedContext = enrichedContext.with(
+                    new ContextKey.StringKey<>(queryParametersNameKey.key(), ContextStateComponent.ContextValue.class),
+                    value
+                );
             }
-            return componentContext.with(m);
+            return enrichedContext;
         };
     }
 

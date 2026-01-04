@@ -3,6 +3,7 @@ package rsp.component.definitions;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentSegment;
+import rsp.component.ContextKey;
 import rsp.component.TreeBuilderFactory;
 import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
@@ -116,28 +117,37 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     @Override
     public BiFunction<ComponentContext, RelativeUrl, ComponentContext> subComponentsContext() {
         return (componentContext, relativeUrl) -> {
-            final Map<String, Object> m = new HashMap<>();
+            ComponentContext enrichedContext = componentContext;
 
             // Auto-populate ALL path elements with namespace "url.path.{index}"
             for (int i = 0; i < relativeUrl.path().elementsCount(); i++) {
                 final String pathElement = relativeUrl.path().get(i);
                 if (pathElement != null) {
-                    m.put("url.path." + i, pathElement);
+                    enrichedContext = enrichedContext.with(
+                        new ContextKey.StringKey<>("url.path." + i, String.class),
+                        pathElement
+                    );
                 }
             }
 
             // Auto-populate ALL query parameters with namespace "url.query.{name}"
             for (final Query.Parameter param : relativeUrl.query().parameters()) {
-                m.put("url.query." + param.name(), param.value());
+                enrichedContext = enrichedContext.with(
+                    new ContextKey.StringKey<>("url.query." + param.name(), String.class),
+                    param.value()
+                );
             }
 
             // Fragment (if present) with namespace "url.fragment"
             if (relativeUrl.fragment() != null &&
                 !relativeUrl.fragment().isEmpty()) {
-                m.put("url.fragment", relativeUrl.fragment().fragmentString());
+                enrichedContext = enrichedContext.with(
+                    new ContextKey.StringKey<>("url.fragment", String.class),
+                    relativeUrl.fragment().fragmentString()
+                );
             }
 
-            return componentContext.with(m);
+            return enrichedContext;
         };
     }
 

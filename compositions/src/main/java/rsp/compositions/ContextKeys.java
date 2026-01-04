@@ -152,12 +152,28 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.schema", ListSchema.class);
 
     /**
+     * The authenticated user object.
+     * Type: Object (application-specific user type)
+     * Example: User instance with id, username, etc.
+     */
+    public static final ContextKey.StringKey<Object> AUTH_USER =
+            new ContextKey.StringKey<>("auth.user", Object.class);
+
+    /**
      * Whether the current user is authenticated.
      * Type: Boolean
      * Example: true if user is logged in
      */
     public static final ContextKey.StringKey<Boolean> AUTH_AUTHENTICATED =
             new ContextKey.StringKey<>("auth.authenticated", Boolean.class);
+
+    /**
+     * The roles assigned to the current user.
+     * Type: String[] (array of role names)
+     * Example: ["admin", "user"]
+     */
+    public static final ContextKey.StringKey<String[]> AUTH_ROLES =
+            new ContextKey.StringKey<>("auth.roles", String[].class);
 
     /**
      * List of application modules.

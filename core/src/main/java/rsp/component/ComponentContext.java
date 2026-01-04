@@ -163,54 +163,6 @@ public final class ComponentContext {
         return with(new ContextKey.ClassKey<>(clazz), instance);
     }
 
-    // ===== DEPRECATED STRING-BASED METHODS (Legacy API - kept for backward compatibility) =====
-
-    /**
-     * Retrieves an attribute's value by a string key.
-     *
-     * @param name a key, must not be null
-     * @return a value, or null if the key is not present
-     * @deprecated Use {@link #get(ContextKey)} or {@link #get(Class)} instead for type safety
-     */
-    @Deprecated
-    public Object getAttribute(final String name) {
-        Objects.requireNonNull(name);
-        return stringBased.get(name);
-    }
-
-    /**
-     * Creates a new immutable instance with the map of values to pass to downstream components.
-     *
-     * @param overlayAttributes a map with key-values, must not be null
-     * @return a new instance of ComponentContext
-     * @param <T> the type of values in the overlay map
-     * @deprecated Use {@link #with(ContextKey, Object)} instead for type safety
-     */
-    @Deprecated
-    public <T> ComponentContext with(final Map<String, T> overlayAttributes) {
-        Objects.requireNonNull(overlayAttributes, "Overlay attributes map cannot be null");
-        final Map<String, Object> newStringBased = new HashMap<>(stringBased);
-        newStringBased.putAll(overlayAttributes);
-        return new ComponentContext(classBased, newStringBased);
-    }
-
-    /**
-     * Creates a new immutable instance with a single attribute added or updated.
-     * This is a convenience method for updating a single value without creating a map.
-     *
-     * @param key the attribute key, must not be null
-     * @param value the attribute value
-     * @return a new instance of ComponentContext with the updated attribute
-     * @deprecated Use {@link #with(ContextKey, Object)} instead for type safety
-     */
-    @Deprecated
-    public ComponentContext withAttribute(final String key, final Object value) {
-        Objects.requireNonNull(key, "Attribute key cannot be null");
-        final Map<String, Object> newStringBased = new HashMap<>(stringBased);
-        newStringBased.put(key, value);
-        return new ComponentContext(classBased, newStringBased);
-    }
-
     // ===== SPECIAL CONVENIENCE HELPERS (Kept permanently) =====
 
     /**

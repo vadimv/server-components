@@ -68,7 +68,7 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @return The list route path with restored query parameters
      */
     public String listRoute() {
-        String routePattern = (String) context.getAttribute("route.pattern");
+        String routePattern = context.get(ContextKeys.ROUTE_PATTERN);
         if (routePattern == null) {
             throw new IllegalStateException("route.pattern not found in context");
         }
@@ -111,13 +111,13 @@ public abstract class EditViewContract<T> extends ViewContract {
         java.util.List<String> params = new java.util.ArrayList<>();
 
         // Restore page parameter (fromP → p)
-        String fromP = (String) context.getAttribute("url.query.fromP");
+        String fromP = context.get(ContextKeys.URL_QUERY.with("fromP"));
         if (fromP != null && !fromP.isEmpty()) {
             params.add("p=" + fromP);
         }
 
         // Restore sort parameter (fromSort → sort)
-        String fromSort = (String) context.getAttribute("url.query.fromSort");
+        String fromSort = context.get(ContextKeys.URL_QUERY.with("fromSort"));
         if (fromSort != null && !fromSort.isEmpty()) {
             params.add("sort=" + fromSort);
         }

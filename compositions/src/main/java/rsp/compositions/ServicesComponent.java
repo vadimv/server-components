@@ -5,9 +5,7 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
@@ -47,9 +45,8 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
         return (context, state) -> {
             // Read from context (populated by RoutingComponent)
             @SuppressWarnings("unchecked")
-            List<Module> modules = (List<Module>) context.getAttribute("app.modules");
-            @SuppressWarnings("unchecked")
-            Class<? extends ViewContract> contractClass = (Class<? extends ViewContract>) context.getAttribute("route.contractClass");
+            List<Module> modules = (List<Module>) context.get(ContextKeys.APP_MODULES);
+            Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
 
             if (modules == null || contractClass == null) {
                 return context; // Graceful degradation
@@ -73,7 +70,7 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
             }
 
             // Call contract methods to get data (contract will call module internally)
-            Map<String, Object> dataMap = new HashMap<>();
+            ComponentContext enrichedContext = context;
 
             if (contract instanceof ListViewContract<?> listContract) {
                 // Fetch list data
@@ -85,25 +82,27 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 ListSchema schema = extractSchema(items, listContract);
 
                 // Put data AND schema in context for UI components with "list." namespace
-                dataMap.put("list.items", items);
-                dataMap.put("list.schema", schema);
-                dataMap.put("list.page", page);
-                dataMap.put("list.sort", sort);
+                enrichedContext = enrichedContext
+                    .with(ContextKeys.LIST_ITEMS, items)
+                    .with(ContextKeys.LIST_SCHEMA, schema)
+                    .with(ContextKeys.LIST_PAGE, page)
+                    .with(ContextKeys.LIST_SORT, sort);
             } else if (contract instanceof EditViewContract<?> editContract) {
                 // Fetch entity to edit
                 Object entity = editContract.item();
                 ListSchema schema = editContract.schema();
 
                 // Put entity AND schema in context for UI components with "edit." namespace
-                dataMap.put("edit.entity", entity);
-                dataMap.put("edit.schema", schema);
+                enrichedContext = enrichedContext
+                    .with(ContextKeys.EDIT_ENTITY, entity)
+                    .with(ContextKeys.EDIT_SCHEMA, schema);
             }
 
             // Store the contract itself for UI components to access
-            dataMap.put("view.contract", contract);
+            enrichedContext = enrichedContext.with(ContextKeys.VIEW_CONTRACT, contract);
 
             // Enrich context with business data
-            return context.with(dataMap);
+            return enrichedContext;
         };
     }
 

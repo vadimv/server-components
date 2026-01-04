@@ -1,6 +1,7 @@
 package rsp.compositions.auth;
 
 import rsp.component.ComponentContext;
+import rsp.compositions.ContextKeys;
 import rsp.compositions.ViewContract;
 
 /**
@@ -12,7 +13,7 @@ public class AuthenticatedOnlyStrategy implements ViewContract.AuthorizationStra
 
     @Override
     public boolean isAuthorized(ViewContract contract, ComponentContext context) {
-        Boolean authenticated = (Boolean) context.getAttribute("auth.authenticated");
+        Boolean authenticated = context.get(ContextKeys.AUTH_AUTHENTICATED);
         return Boolean.TRUE.equals(authenticated);
     }
 }
