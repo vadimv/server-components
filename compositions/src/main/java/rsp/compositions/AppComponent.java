@@ -50,6 +50,12 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
                 .with(ContextKeys.UI_REGISTRY, uiRegistry)
                 .with(ContextKeys.APP_MODULES, modules);
 
+            // Add generic configuration values for framework components
+            // This allows contracts to be agnostic of AppConfig structure
+            rsp.component.ContextKey<Integer> sc = new rsp.component.ContextKey.StringKey<>(ListViewContract.CONFIG_DEFAULT_PAGE_SIZE, Integer.class);
+            enrichedContext = enrichedContext
+                .with(sc, Integer.valueOf(config.defaultPageSize()));
+
             // Add all services to context using ClassKey for each service instance
             for (Map.Entry<String, Object> entry : services.entrySet()) {
                 // Services are stored by their actual class, not by string key

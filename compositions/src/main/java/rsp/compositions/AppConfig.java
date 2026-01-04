@@ -7,7 +7,7 @@ import java.util.Locale;
  *
  * <p><strong>Two Supported Configuration Patterns:</strong></p>
  *
- * <h3>Pattern A: Single AppConfig (Simpler - Recommended for trusted codebases)</h3>
+ * <h2>Pattern A: Single AppConfig (Simpler - Recommended for trusted codebases)</h2>
  * <ul>
  *   <li>AppConfig contains BOTH sensitive (DB credentials) and non-sensitive (page size) fields</li>
  *   <li>Services read sensitive fields during initialization: {@code new PostService(appConfig.getDatabaseConfig())}</li>
@@ -76,8 +76,8 @@ public record AppConfig(
      *   <li>Default values</li>
      * </ol>
      *
-     * <p>Supported properties and environment variables:</p>
-     * <table border="1">
+     * <table border="1" >
+     *   <caption>Supported properties and environment variables:</caption>
      *   <tr><th>Property</th><th>Env Variable</th><th>Default</th></tr>
      *   <tr><td>app.pageSize.default</td><td>APP_PAGE_SIZE_DEFAULT</td><td>10</td></tr>
      *   <tr><td>app.pageSize.max</td><td>APP_PAGE_SIZE_MAX</td><td>100</td></tr>

@@ -185,6 +185,16 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("app.modules",
                     (Class<List<Module>>) (Class<?>) List.class);
 
+    /**
+     * Default page size for list views.
+     * Type: Integer
+     * This is a framework-agnostic configuration value that list view contracts
+     * can access without depending on AppConfig structure.
+     * Example: 10 (show 10 items per page)
+     */
+    public static final ContextKey.StringKey<Integer> LIST_DEFAULT_PAGE_SIZE =
+            new ContextKey.StringKey<>("list.defaultPageSize", Integer.class);
+
     // ===== DYNAMIC KEYS (Builder pattern for parameterized keys) =====
 
     /**
