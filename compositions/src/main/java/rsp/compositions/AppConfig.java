@@ -66,6 +66,105 @@ public record AppConfig(
         );
     }
 
+    /**
+     * Load application configuration from Java system properties or environment variables.
+     *
+     * <p>Configuration sources (in order of precedence):</p>
+     * <ol>
+     *   <li>Java system properties (-D flags)</li>
+     *   <li>Environment variables</li>
+     *   <li>Default values</li>
+     * </ol>
+     *
+     * <p>Supported properties and environment variables:</p>
+     * <table border="1">
+     *   <tr><th>Property</th><th>Env Variable</th><th>Default</th></tr>
+     *   <tr><td>app.pageSize.default</td><td>APP_PAGE_SIZE_DEFAULT</td><td>10</td></tr>
+     *   <tr><td>app.pageSize.max</td><td>APP_PAGE_SIZE_MAX</td><td>100</td></tr>
+     *   <tr><td>app.dateFormat</td><td>APP_DATE_FORMAT</td><td>yyyy-MM-dd</td></tr>
+     *   <tr><td>app.locale</td><td>APP_LOCALE</td><td>en_US</td></tr>
+     *   <tr><td>app.debugMode</td><td>APP_DEBUG_MODE</td><td>false</td></tr>
+     * </table>
+     *
+     * <p>Example usage:</p>
+     * <pre>{@code
+     * // From command line (system properties):
+     * java -Dapp.pageSize.default=20 -Dapp.debugMode=true -jar app.jar
+     *
+     * // From environment variables:
+     * export APP_PAGE_SIZE_DEFAULT=20
+     * export APP_DEBUG_MODE=true
+     * java -jar app.jar
+     *
+     * // In code:
+     * AppConfig config = AppConfig.fromSystemProperties();
+     * }</pre>
+     *
+     * @return AppConfig populated from system properties/env vars with fallback to defaults
+     */
+    public static AppConfig fromSystemProperties() {
+        int defaultPageSize = Integer.parseInt(getConfigValue("app.pageSize.default", "APP_PAGE_SIZE_DEFAULT", "10"));
+        int maxPageSize = Integer.parseInt(getConfigValue("app.pageSize.max", "APP_PAGE_SIZE_MAX", "100"));
+        String dateFormat = getConfigValue("app.dateFormat", "APP_DATE_FORMAT", "yyyy-MM-dd");
+        String localeStr = getConfigValue("app.locale", "APP_LOCALE", "en_US");
+        boolean debugMode = Boolean.parseBoolean(getConfigValue("app.debugMode", "APP_DEBUG_MODE", "false"));
+
+        Locale locale = parseLocale(localeStr);
+
+        return new AppConfig(defaultPageSize, maxPageSize, dateFormat, locale, debugMode);
+    }
+
+    /**
+     * Get configuration value from system property or environment variable.
+     * System properties take precedence over environment variables.
+     *
+     * @param propertyName System property name (e.g., "app.pageSize.default")
+     * @param envVarName Environment variable name (e.g., "APP_PAGE_SIZE_DEFAULT")
+     * @param defaultValue Default value if neither is set
+     * @return Configuration value from first available source
+     */
+    private static String getConfigValue(String propertyName, String envVarName, String defaultValue) {
+        // 1. Check system property first (highest precedence)
+        String value = System.getProperty(propertyName);
+        if (value != null) {
+            return value;
+        }
+
+        // 2. Check environment variable second
+        value = System.getenv(envVarName);
+        if (value != null) {
+            return value;
+        }
+
+        // 3. Return default value
+        return defaultValue;
+    }
+
+    /**
+     * Parse locale string in format "language_COUNTRY" (e.g., "en_US", "de_DE").
+     * Uses modern Locale.Builder API to avoid deprecated constructors.
+     */
+    private static Locale parseLocale(String localeStr) {
+        if (localeStr == null || localeStr.isEmpty()) {
+            return Locale.US;
+        }
+
+        String[] parts = localeStr.split("_");
+        Locale.Builder builder = new Locale.Builder();
+
+        try {
+            return switch (parts.length) {
+                case 1 -> builder.setLanguage(parts[0]).build();
+                case 2 -> builder.setLanguage(parts[0]).setRegion(parts[1]).build();
+                case 3 -> builder.setLanguage(parts[0]).setRegion(parts[1]).setVariant(parts[2]).build();
+                default -> Locale.US;
+            };
+        } catch (Exception e) {
+            // If parsing fails, return default locale
+            return Locale.US;
+        }
+    }
+
     public AppConfig {
         if (defaultPageSize < 1) {
             throw new IllegalArgumentException("defaultPageSize must be >= 1");

@@ -27,7 +27,8 @@ public class CrudApp {
                 .route("/posts/:id", PostEditContract.class);
 
         // Application configuration (non-sensitive, flows to all contracts/components)
-        final AppConfig appConfig = AppConfig.defaults();
+        // Loads from system properties (e.g., -Dapp.pageSize.default=20)
+        final AppConfig appConfig = AppConfig.fromSystemProperties();
 
         // Create services
         // NOTE: When migrating to real database service, you would:
