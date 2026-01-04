@@ -26,7 +26,14 @@ public class CrudApp {
                 .route("/posts", PostsListContract.class)
                 .route("/posts/:id", PostEditContract.class);
 
+        // Application configuration (non-sensitive, flows to all contracts/components)
+        final AppConfig appConfig = AppConfig.defaults();
+
         // Create services
+        // NOTE: When migrating to real database service, you would:
+        // 1. Create ServiceConfig with DB credentials (used ONLY for service init, NEVER in context)
+        // 2. Pass ServiceConfig to service constructor: new PostService(serviceConfig.getDatabaseConfig())
+        // 3. Only the service INSTANCE goes to context, not ServiceConfig
         final PostService postService = new PostService();
 
         // Register services and auth provider in a map with namespace keys
@@ -37,8 +44,8 @@ public class CrudApp {
         // Create modules (no longer need service references)
         final PostsModule postsModule = new PostsModule();
 
-        // Create app with services
-        final App app = new App(new AppConfig(), uiRegistry, router, List.of(postsModule), services);
+        // Create app with AppConfig (flows to AppComponent → Context)
+        final App app = new App(appConfig, uiRegistry, router, List.of(postsModule), services);
 
         final WebServer server = new WebServer(8080, app);
         server.start();

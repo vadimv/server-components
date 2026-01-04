@@ -28,6 +28,6 @@ public class App implements Function<HttpRequest, Component<?>> {
 
     @Override
     public Component<?> apply(HttpRequest httpRequest) {
-        return new AppComponent(uiRegistry, router, modules, services, httpRequest);
+        return new AppComponent(config, uiRegistry, router, modules, services, httpRequest);
     }
 }

@@ -13,14 +13,16 @@ import java.util.function.BiFunction;
 
 public class AppComponent extends Component<AppComponent.AppComponentState> {
 
+    private final AppConfig config;
     private final UiRegistry uiRegistry;
     private final Router router;
     private final List<Module> modules;
     private final Map<String, Object> services;
     private final HttpRequest httpRequest;
 
-    public AppComponent(UiRegistry uiRegistry, Router router, List<Module> modules, Map<String, Object> services, HttpRequest httpRequest) {
+    public AppComponent(AppConfig config, UiRegistry uiRegistry, Router router, List<Module> modules, Map<String, Object> services, HttpRequest httpRequest) {
         super();
+        this.config = config;
         this.uiRegistry = uiRegistry;
         this.router = router;
         this.modules = modules;
@@ -42,6 +44,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
         return (context, state) -> {
             // Add app-level objects using ClassKey (ServiceLoader style)
             ComponentContext enrichedContext = context
+                .with(AppConfig.class, config)
                 .with(Router.class, router)
                 .with(HttpRequest.class, httpRequest)
                 .with(ContextKeys.UI_REGISTRY, uiRegistry)

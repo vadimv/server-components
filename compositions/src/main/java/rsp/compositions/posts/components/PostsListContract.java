@@ -1,6 +1,7 @@
 package rsp.compositions.posts.components;
 
 import rsp.component.ComponentContext;
+import rsp.compositions.AppConfig;
 import rsp.compositions.ListViewContract;
 import rsp.compositions.QueryParam;
 import rsp.compositions.posts.entities.Post;
@@ -13,11 +14,16 @@ public class PostsListContract extends ListViewContract<Post> {
     private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
 
     private final PostService postService;
+    private final int pageSize;
 
     public PostsListContract(ComponentContext context) {
         super(context);
         // Read service from context
         this.postService = context.get(PostService.class);
+
+        // Read page size from AppConfig
+        AppConfig config = context.get(AppConfig.class);
+        this.pageSize = config != null ? config.defaultPageSize() : 10;
     }
 
     @Override
@@ -37,6 +43,7 @@ public class PostsListContract extends ListViewContract<Post> {
         String sort = sort();  // Uses resolve(SORT) → reads from context "url.query.sort"
 
         // Call service directly (service comes from context)
-        return postService.findAll(page, 10, sort);
+        // Use configured pageSize instead of hardcoded 10
+        return postService.findAll(page, pageSize, sort);
     }
 }

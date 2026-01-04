@@ -25,6 +25,37 @@ import java.util.Objects;
  * <p>By default, the context is propagated down the component tree. However, a component can choose to
  * isolate its subtree by creating a new, empty {@code ComponentContext} instead of extending the parent's context.</p>
  *
+ * <p><strong>Security Policy:</strong></p>
+ * <ul>
+ *   <li><strong>ALLOWED:</strong> Service instances, request data, user sessions, business data, non-sensitive config (AppConfig)</li>
+ *   <li><strong>FORBIDDEN:</strong> DB credentials, API secrets, encryption keys, private certificates</li>
+ *   <li><strong>Critical Rule:</strong> Everything sensitive must be provided on Service init outside the Context.
+ *       Services are initialized in main() with their configuration (which may contain secrets).
+ *       Only service instances (not their config) are added to ComponentContext.</li>
+ * </ul>
+ *
+ * <p><strong>Configuration Pattern:</strong></p>
+ * <ul>
+ *   <li><strong>AppConfig:</strong> Contains non-sensitive configuration (page size, locale, date format, etc.).
+ *       Added to ComponentContext and accessible to all contracts/components.</li>
+ *   <li><strong>Service Configuration:</strong> MAY contain secrets (DB credentials, API keys, etc.).
+ *       Used ONLY during service initialization in application main(). NEVER added to ComponentContext.</li>
+ *   <li>Service instances (not their config) are added to context for use by contracts</li>
+ * </ul>
+ *
+ * <p><strong>Example:</strong></p>
+ * <pre>{@code
+ * // In CrudApp.main()
+ * AppConfig appConfig = AppConfig.defaults();  // Only non-sensitive config
+ *
+ * // Service gets secrets during init (secrets stay encapsulated in service)
+ * PostService postService = new PostService(databaseConfig);  // databaseConfig has credentials
+ *
+ * // Only AppConfig and service INSTANCE go to context (NOT databaseConfig)
+ * App app = new App(appConfig, ...);  // AppConfig flows to context
+ * // Service instance added to context by AppComponent
+ * }</pre>
+ *
  * <p><strong>Security Notice:</strong> This context may contain sensitive information, such as session identifiers
  * or device IDs. By design, this information is accessible to all components in the subtree.
  * It is assumed that all components running on the server are trusted. Developers must ensure that
