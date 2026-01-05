@@ -2,33 +2,34 @@ package rsp.compositions;
 
 import rsp.component.ComponentContext;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class QueryParam<T> {
+public class QueryParams<T> {
     private final String name;
     private final Class<T> type;
     private final Function<String, T> converter;
-    private final T defaultValue;
+    private final List<T> defaultValue;
 
-    public QueryParam(String name, Class<T> type, T defaultValue) {
+    public QueryParams(String name, Class<T> type, List<T> defaultValue) {
         this.name = Objects.requireNonNull(name);
         this.type = Objects.requireNonNull(type);
         this.converter = TypesConvertion.getBasicTypesConverter(type);
-        this.defaultValue = defaultValue; // can be null
+        this.defaultValue = Objects.requireNonNull(defaultValue);
     }
 
-    public QueryParam(String name, Class<T> type, Function<String, T> converter, T defaultValue) {
+    public QueryParams(String name, Class<T> type, Function<String, T> converter, List<T> defaultValue) {
         this.name = Objects.requireNonNull(name);
         this.type = Objects.requireNonNull(type);
         this.converter = Objects.requireNonNull(converter);
-        this.defaultValue = defaultValue; // can be null
+        this.defaultValue = Objects.requireNonNull(defaultValue);
     }
 
 
     @SuppressWarnings("unchecked")
-    public T resolve(ComponentContext ctx) {
+    public List<T> resolve(ComponentContext ctx) {
         // Read from "url.query.{name}" namespace (populated by AutoAddressBarSyncComponent)
         final Object value = ctx.get(ContextKeys.URL_QUERY.with(name));
 
@@ -36,23 +37,19 @@ public class QueryParam<T> {
             return defaultValue;
         }
 
-        // If value is already the correct type, return it
-        if (type.isAssignableFrom(value.getClass())) {
-            return (T) value;
+        if (value instanceof String s) {
+            return List.of(converter.apply(s));
         }
 
-        // Parse String values to the target type
-        if (value instanceof String stringValue) {
-            return converter.apply(stringValue);
-        }
-
-        // Parse list values and return the first element
-        if (value instanceof List<?> list && !list.isEmpty()) {
-            if (list.get(0) instanceof String s) {
-                return converter.apply(s);
+        // Parse list values to the target type
+        if (value instanceof List<?> list) {
+            final List<T> result = new ArrayList<>();
+            for (Object element : list) {
+                if (element instanceof String e) {
+                    result.add(converter.apply(e));
+                }
             }
-
-            return defaultValue;
+            return result;
         }
 
         throw new IllegalStateException();

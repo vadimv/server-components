@@ -2,6 +2,9 @@ package rsp.compositions;
 
 import rsp.component.ComponentContext;
 
+import java.util.Objects;
+import java.util.function.Function;
+
 /**
  * PathParam - Helper for extracting typed path parameters from URL paths.
  * <p>
@@ -20,6 +23,7 @@ import rsp.component.ComponentContext;
 public class PathParam<T> {
     private final int index;
     private final Class<T> type;
+    private final Function<String, T> converter;
     private final T defaultValue;
 
     /**
@@ -32,6 +36,22 @@ public class PathParam<T> {
     public PathParam(int index, Class<T> type, T defaultValue) {
         this.index = index;
         this.type = type;
+        this.converter =  TypesConvertion.getBasicTypesConverter(type);
+        this.defaultValue = defaultValue;
+    }
+
+    /**
+     * Create a path parameter extractor with a specified convertor.
+     *
+     * @param index The 0-based index of the path segment (e.g., 1 for the second segment)
+     * @param type The expected type of the parameter
+     * @param converter
+     * @param defaultValue The default value if the path segment is missing or cannot be parsed
+     */
+    public PathParam(int index, Class<T> type, Function<String, T> converter, T defaultValue) {
+        this.index = Objects.requireNonNull(index);
+        this.type = Objects.requireNonNull(type);
+        this.converter = Objects.requireNonNull(converter);
         this.defaultValue = defaultValue;
     }
 
@@ -41,6 +61,7 @@ public class PathParam<T> {
      * @param ctx The component context containing URL path data
      * @return The parsed parameter value, or the default value if not present or parse fails
      */
+    @SuppressWarnings("unchecked")
     public T resolve(ComponentContext ctx) {
         // Read from "url.path.{index}" namespace (populated by AutoAddressBarSyncComponent)
         final Object value = ctx.get(ContextKeys.URL_PATH.with(String.valueOf(index)));
@@ -51,32 +72,14 @@ public class PathParam<T> {
 
         // If value is already the correct type, return it
         if (type.isAssignableFrom(value.getClass())) {
-            return type.cast(value);
+            return (T) value;
         }
 
         // Parse String values to the target type
         if (value instanceof String stringValue) {
-            return parseStringValue(stringValue);
+            return converter.apply(stringValue);
         }
 
-        return defaultValue;
-    }
-
-    @SuppressWarnings("unchecked")
-    private T parseStringValue(String stringValue) {
-        try {
-            if (type == Integer.class) {
-                return (T) Integer.valueOf(stringValue);
-            } else if (type == Long.class) {
-                return (T) Long.valueOf(stringValue);
-            } else if (type == Boolean.class) {
-                return (T) Boolean.valueOf(stringValue);
-            } else if (type == String.class) {
-                return (T) stringValue;
-            }
-        } catch (NumberFormatException e) {
-            // Return default on parse error
-        }
-        return defaultValue;
+        throw new IllegalStateException();
     }
 }
