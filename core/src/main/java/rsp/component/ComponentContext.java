@@ -1,6 +1,7 @@
 package rsp.component;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -154,11 +155,9 @@ public final class ComponentContext {
         };
     }
 
-    // ===== CONVENIENCE METHODS FOR CLASSKEY (ServiceLoader style) =====
 
     /**
      * Retrieves a service/component by its class.
-     * Convenience method that wraps the class in a ClassKey.
      *
      * @param clazz the class to look up, must not be null
      * @param <T> the type of the service/component
@@ -170,7 +169,6 @@ public final class ComponentContext {
 
     /**
      * Retrieves a required service/component by its class.
-     * Convenience method that wraps the class in a ClassKey.
      *
      * @param clazz the class to look up, must not be null
      * @param <T> the type of the service/component
@@ -183,7 +181,7 @@ public final class ComponentContext {
 
     /**
      * Creates a new context with a service/component instance added.
-     * Convenience method that wraps the class in a ClassKey.
+     * Convenience method that wraps the class with a ClassKey.
      *
      * @param clazz the class serving as the key, must not be null
      * @param instance the instance to store
@@ -194,7 +192,34 @@ public final class ComponentContext {
         return with(new ContextKey.ClassKey<>(clazz), instance);
     }
 
-    // ===== SPECIAL CONVENIENCE HELPERS (Kept permanently) =====
+    /**
+     * Creates a new context with a service/component instance added.
+     * Convenience method that wraps the class with a key represented by the exact class of the object.
+     * @param instance the instance to store
+     * @param <T> the type of the service/component
+     * @return a new ComponentContext instance with the service added
+     */
+    public <T> ComponentContext with(final T instance) {
+        final Class<Object> clazz = (Class<Object>) instance.getClass();
+        return with(new ContextKey.ClassKey<>(clazz), instance);
+    }
+
+    /**
+     * Creates a new context with a service/component instance added.
+     * Convenience method that wraps the class with a key represented by the exact class of the object.
+     * @param instances the instances to store
+     * @return a new ComponentContext instance with the services added
+     */
+    public ComponentContext with(final List<Object> instances) {
+        ComponentContext enrichedContext = this;
+        for (Object service : instances) {
+            Objects.requireNonNull(service, "Cannot be a null reference in a Services list");
+            // Services are stored by their actual class, not by string key
+            enrichedContext = enrichedContext.with(service);
+        }
+        return enrichedContext;
+    }
+
 
     /**
      * Gets the device ID from the context.

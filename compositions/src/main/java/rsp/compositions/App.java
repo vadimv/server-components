@@ -16,9 +16,9 @@ public class App implements Function<HttpRequest, Component<?>> {
     private final UiRegistry uiRegistry;
     private final Router router;
     private final List<Module> modules;
-    private final Map<String, Object> services;
+    private final List<Object> services;
 
-    public App(AppConfig config, UiRegistry uiRegistry, Router router, List<Module> modules, Map<String, Object> services) {
+    public App(AppConfig config, UiRegistry uiRegistry, Router router, List<Module> modules, List<Object> services) {
         this.config = config;
         this.uiRegistry = uiRegistry;
         this.router = router;

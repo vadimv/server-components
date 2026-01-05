@@ -10,9 +10,7 @@ import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.jetty.WebServer;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class CrudApp {
     public static void main(String[] args) {
@@ -37,11 +35,9 @@ public class CrudApp {
         // 3. Only the service INSTANCE goes to context, not ServiceConfig
         final PostService postService = new PostService();
 
-        // Register services and auth provider in a map with namespace keys
-        final Map<String, Object> services = new HashMap<>();
-        services.put("service.posts", postService);
-        services.put("auth.provider", new StubAuthProvider()); // Optional: defaults to anonymous if omitted
-
+        // Services and auth provider will be added to the components context and referenced by their classes
+        final var services =  List.of(postService,
+                                      new StubAuthProvider());// Optional: defaults to anonymous if omitted
         // Create modules (no longer need service references)
         final PostsModule postsModule = new PostsModule();
 
