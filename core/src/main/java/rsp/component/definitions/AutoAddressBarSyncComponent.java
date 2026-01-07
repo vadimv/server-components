@@ -1,13 +1,7 @@
 package rsp.component.definitions;
 
-import rsp.component.ComponentCompositeKey;
-import rsp.component.ComponentContext;
-import rsp.component.ComponentSegment;
-import rsp.component.ContextKey;
-import rsp.component.TreeBuilderFactory;
+import rsp.component.*;
 import rsp.dom.DomEventEntry;
-import rsp.dom.TreePositionPath;
-import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
@@ -21,7 +15,6 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVENT_PREFIX;
-import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 /**
  * An AddressBarSyncComponent that automatically populates ALL URL data into the ComponentContext
@@ -151,159 +144,125 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
         };
     }
 
-    /**
-     * Override to add automatic event subscriptions for ALL query parameters and path elements.
-     * This enables bidirectional sync: URL changes update state, and state changes update URL.
-     */
     @Override
-    public ComponentSegment<RelativeUrl> createComponentSegment(final QualifiedSessionId sessionId,
-                                                                final TreePositionPath componentPath,
-                                                                final TreeBuilderFactory treeBuilderFactory,
-                                                                final ComponentContext componentContext,
-                                                                final Consumer<Command> commandsEnqueue) {
-        super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
-        final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);
+    public void onAfterRendered(RelativeUrl state,
+                                Subscriber subscriber,
+                                Consumer<Command> commandsEnqueue,
+                                StateUpdate<RelativeUrl> stateUpdate) {
+        subscribeForBrowserHistoryEvents(subscriber, stateUpdate);
+        subscribeForQueryParameterUpdates(subscriber, commandsEnqueue, stateUpdate);
+        subscribeForPathElementUpdates(state, subscriber, commandsEnqueue, stateUpdate);
+    }
 
-        return new ComponentSegment<>(componentId,
-                                      initStateSupplier(),
-                                      subComponentsContext(),
-                                      componentView(),
-                                      this,
-                                      treeBuilderFactory,
-                                      componentContext,
-                                      commandsEnqueue) {
+    private void subscribeForBrowserHistoryEvents(Subscriber subscriber,
+                                                  StateUpdate<RelativeUrl> stateUpdate) {
+        subscriber.addWindowEventHandler(HISTORY_ENTRY_CHANGE_EVENT_NAME,
+            eventContext -> {
+                final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
+                stateUpdate.setState(newRelativeUrl);
+            },
+            true,
+            DomEventEntry.NO_MODIFIER);
+    }
 
-            @Override
-            protected void onAfterRendered(final RelativeUrl state) {
-                subscribeForBrowserHistoryEvents();
-                subscribeForQueryParameterUpdates(state);
-                subscribeForPathElementUpdates(state);
-            }
+    /**
+     * Subscribe to ALL query parameter change events using pattern matching.
+     * Matches any event with name "stateUpdated.{paramName}".
+     *
+     * This is truly automatic - no configuration needed, works for any parameter name.
+     */
+    private void subscribeForQueryParameterUpdates(Subscriber subscriber,
+                                                   Consumer<Command> commandsEnqueue,
+                                                   StateUpdate<RelativeUrl> stateUpdate) {
+        // Single handler for ALL query parameter updates using wildcard pattern
+        subscriber.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "*",
+            eventContext -> {
+                // Extract parameter name from event name
+                String eventName = eventContext.eventName();
+                String paramName = eventName.substring(STATE_UPDATED_EVENT_PREFIX.length());
 
-            /**
-             * Subscribe to ALL query parameter change events using pattern matching.
-             * Matches any event with name "stateUpdated.{paramName}".
-             *
-             * This is truly automatic - no configuration needed, works for any parameter name.
-             */
-            private void subscribeForQueryParameterUpdates(RelativeUrl currentUrl) {
-                // Single handler for ALL query parameter updates using wildcard pattern
-                this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "*",
-                    eventContext -> {
-                        // Extract parameter name from event name
-                        String eventName = eventContext.eventName();
-                        String paramName = eventName.substring(STATE_UPDATED_EVENT_PREFIX.length());
-
-                        final Object valueObject = eventContext.eventObject();
-                        if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
-                            // Update the query parameter
-                            RelativeUrl updatedUrl = updateQueryParameter(getState(), paramName, stringValue.value());
-
-                            // Push to browser history
-                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
-
-                            // Update component state to trigger re-render
-                            setState(updatedUrl);
-                        }
-                    },
-                    true);
-            }
-
-            /**
-             * Subscribe to ALL path element change events.
-             * Event names: "stateUpdated.url.path.{index}" (e.g., "stateUpdated.url.path.0")
-             */
-            private void subscribeForPathElementUpdates(RelativeUrl currentUrl) {
-                // Subscribe for each path element position
-                for (int i = 0; i < currentUrl.path().elementsCount(); i++) {
-                    final int index = i;
-                    this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "url.path." + i,
-                        eventContext -> {
-                            final Object valueObject = eventContext.eventObject();
-                            if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
-                                // Update the path element
-                                RelativeUrl updatedUrl = updatePathElement(getState(), index, stringValue.value());
-
-                                // Push to browser history
-                                this.commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
-
-                                // Update component state to trigger re-render
-                                setState(updatedUrl);
-                            }
-                        },
-                        true);
+                final Object valueObject = eventContext.eventObject();
+                if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
+                    stateUpdate.applyStateTransformation(currentState -> {
+                        RelativeUrl updatedUrl = updateQueryParameter(currentState, paramName, stringValue.value());
+                        commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
+                        return updatedUrl;
+                    });
                 }
-            }
+            },
+            true);
+    }
 
-            /**
-             * Update a query parameter in the URL.
-             */
-            private RelativeUrl updateQueryParameter(RelativeUrl oldUrl, String paramName, String newValue) {
-                Map<String, String> params = new HashMap<>();
+    /**
+     * Subscribe to ALL path element change events.
+     * Event names: "stateUpdated.url.path.{index}" (e.g., "stateUpdated.url.path.0")
+     */
+    private void subscribeForPathElementUpdates(RelativeUrl currentUrl,
+                                                Subscriber subscriber,
+                                                Consumer<Command> commandsEnqueue,
+                                                StateUpdate<RelativeUrl> stateUpdate) {
+        // Subscribe for each path element position
+        for (int i = 0; i < currentUrl.path().elementsCount(); i++) {
+            final int index = i;
+            subscriber.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "url.path." + i,
+                eventContext -> {
+                    final Object valueObject = eventContext.eventObject();
+                    if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
+                        stateUpdate.applyStateTransformation(currentState -> {
+                            RelativeUrl updatedUrl = updatePathElement(currentState, index, stringValue.value());
+                            commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
+                            return updatedUrl;
+                        });
+                    }
+                },
+                true);
+        }
+    }
 
-                // Copy existing parameters
-                for (Query.Parameter param : oldUrl.query().parameters()) {
-                    params.put(param.name(), param.value());
-                }
+    private static RelativeUrl updateQueryParameter(RelativeUrl oldUrl, String paramName, String newValue) {
+        Map<String, String> params = new HashMap<>();
 
-                // Update the changed parameter
-                params.put(paramName, newValue);
+        // Copy existing parameters
+        for (Query.Parameter param : oldUrl.query().parameters()) {
+            params.put(param.name(), param.value());
+        }
 
-                // Build new query
-                Query newQuery = new Query(params.entrySet().stream()
-                    .map(e -> new Query.Parameter(e.getKey(), e.getValue()))
-                    .toList());
+        // Update the changed parameter
+        params.put(paramName, newValue);
 
-                return new RelativeUrl(oldUrl.path(), newQuery, oldUrl.fragment());
-            }
+        // Build new query
+        Query newQuery = new Query(params.entrySet().stream()
+            .map(e -> new Query.Parameter(e.getKey(), e.getValue()))
+            .toList());
 
-            /**
-             * Update a path element in the URL.
-             */
-            private RelativeUrl updatePathElement(RelativeUrl oldUrl, int index, String newValue) {
-                List<String> elements = new ArrayList<>();
+        return new RelativeUrl(oldUrl.path(), newQuery, oldUrl.fragment());
+    }
 
-                // Copy existing path elements
-                for (int i = 0; i < oldUrl.path().elementsCount(); i++) {
-                    elements.add(oldUrl.path().get(i));
-                }
+    private static RelativeUrl updatePathElement(RelativeUrl oldUrl, int index, String newValue) {
+        List<String> elements = new ArrayList<>();
 
-                // Update the changed element
-                if (index < elements.size()) {
-                    elements.set(index, newValue);
-                }
+        // Copy existing path elements
+        for (int i = 0; i < oldUrl.path().elementsCount(); i++) {
+            elements.add(oldUrl.path().get(i));
+        }
 
-                Path newPath = new Path(oldUrl.path().isAbsolute(), elements.toArray(new String[0]));
+        // Update the changed element
+        if (index < elements.size()) {
+            elements.set(index, newValue);
+        }
 
-                return new RelativeUrl(newPath, oldUrl.query(), oldUrl.fragment());
-            }
+        Path newPath = new Path(oldUrl.path().isAbsolute(), elements.toArray(new String[0]));
 
-            /**
-             * Subscribe to browser history events (back/forward buttons).
-             */
-            private void subscribeForBrowserHistoryEvents() {
-                this.addDomEventHandler(WINDOW_DOM_PATH,
-                                        HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                             eventContext -> {
-                                 final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
-                                 setState(newRelativeUrl);
-                             },
-                             true,
-                              DomEventEntry.NO_MODIFIER);
-            }
+        return new RelativeUrl(newPath, oldUrl.query(), oldUrl.fragment());
+    }
 
-            /**
-             * Extract RelativeUrl from browser history event.
-             */
-            private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
-                if (eventObject.value("path") instanceof JsonDataType.String(String path)
-                    && eventObject.value("query") instanceof JsonDataType.String(String query)
-                    && eventObject.value("fragment") instanceof JsonDataType.String(String fragment)) {
-                    return new RelativeUrl(Path.of(path), Query.of(query), new Fragment(fragment));
-                } else {
-                    throw new JsonDataType.JsonException("Error unpacking JSON event object:" + eventObject);
-                }
-            }
-        };
+    private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
+        if (eventObject.value("path") instanceof JsonDataType.String(String path)
+            && eventObject.value("query") instanceof JsonDataType.String(String query)
+            && eventObject.value("fragment") instanceof JsonDataType.String(String fragment)) {
+            return new RelativeUrl(Path.of(path), Query.of(query), new Fragment(fragment));
+        } else {
+            throw new JsonDataType.JsonException("Error unpacking JSON event object:" + eventObject);
+        }
     }
 }

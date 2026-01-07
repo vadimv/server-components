@@ -1,5 +1,6 @@
 package rsp.component;
 
+import rsp.component.definitions.Component;
 import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.dsl.Definition;
@@ -13,6 +14,7 @@ import java.util.*;
 import java.util.function.*;
 
 import static java.lang.System.Logger.Level.*;
+import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 /**
  * Represents a stateful component which is a part of a UI components tree.
@@ -26,29 +28,21 @@ import static java.lang.System.Logger.Level.*;
  *
  * @param <S> a type for this component's state snapshot
  */
-public class ComponentSegment<S> implements Segment, StateUpdate<S> {
+public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    /**
-     * A unique identifier of this instance, e.g. to be used as a key for its state in cache.
-     */
-    protected final ComponentCompositeKey componentId;
-
-    /**
-     * A consumer for the commands to be executed in the event loop.
-     */
-    protected final Consumer<Command> commandsEnqueue;
-
+    private final ComponentCompositeKey componentId;
+    private final Consumer<Command> commandsEnqueue;
     private final ComponentContext componentContext;
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
     private final ComponentView<S> componentView;
-    private final ComponentSegmentLifeCycle<S> lifeCycleCallbacks;
+    private final Component<S> component;
     private final TreeBuilderFactory treeBuilderFactory;
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
     private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>();
-
+    private final Subscriber subscriber = new DefaultSubscriber();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<ComponentSegment<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
@@ -62,14 +56,13 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private S state;
 
     /**
-     * Creates a new instance of a component. To be called in a relevant component's definition class.
-     * @see rsp.component.definitions.Component<S>
+     * Creates a new instance of a component segment.
      *
-     * @param componentId an identity of this component, an object to be used as a key to store and retrieve a current state snapshot
+     * @param componentId an identity of this component
      * @param stateResolver a function to resolve an initial state
-     * @param contextResolver a function that build a context object that is propagated to descendant components
-     * @param componentView contains DOM subtree definition.
-     * @param lifeCycleCallbacks a bundle of this component's life cycle events callbacks
+     * @param contextResolver a function that builds a context object propagated to descendant components
+     * @param componentView contains DOM subtree definition
+     * @param component the component definition providing lifecycle callbacks
      * @param treeBuilderFactory a factory for a render context for children components
      * @param componentContext a context object from ascendant components
      * @param commandsEnqueue a consumer for the page's control loop commands
@@ -78,7 +71,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
                             final ComponentStateSupplier<S> stateResolver,
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
                             final ComponentView<S> componentView,
-                            final ComponentSegmentLifeCycle<S> lifeCycleCallbacks,
+                            final Component<S> component,
                             final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
                             final Consumer<Command> commandsEnqueue) {
@@ -86,7 +79,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.contextResolver = Objects.requireNonNull(contextResolver);
         this.componentView = Objects.requireNonNull(componentView);
-        this.lifeCycleCallbacks = lifeCycleCallbacks;
+        this.component = Objects.requireNonNull(component);
         this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
         this.componentContext = Objects.requireNonNull(componentContext);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
@@ -140,7 +133,6 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     public void render(final TreeBuilder renderContext) {
         try {
-            onBeforeInitiallyRendered();
             state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext),
                                            "Initial state cannot be null for component " + componentId);
             renderContext.setComponentContext(contextResolver.apply(componentContext, state));
@@ -149,16 +141,12 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             final Definition uiDefinition = view.apply(state);
 
             uiDefinition.render(renderContext);
-            onAfterRendered(state);
-            onAfterMounted(state);
+            component.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
+            component.onMounted(componentId, state, this.new EnqueueTaskStateUpdate());
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
         }
-    }
-
-    protected S getState() {
-        return state;
     }
 
     /**
@@ -189,8 +177,8 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final S newState = Objects.requireNonNull(newStateFunction.apply(state),
                                                   "State transformer function cannot return null for component " + componentId);
 
-        if (!onBeforeUpdated(newState)) {
-            return; // this component segment instance state change will not initiate re-rendering and will be discarded
+        if (!component.onBeforeUpdated(newState, commandsEnqueue)) {
+            return; // update vetoed by component
         }
 
         final S oldState = state;
@@ -218,7 +206,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final Definition view = componentView.use(this).apply(state);
         view.render(renderContext);
         renderContext.closeComponent();
-        onAfterRendered(state);
+        component.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -255,29 +243,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             }
         }
 
-        onAfterUpdated(oldState, state);
-    }
-
-    protected void onBeforeInitiallyRendered() {
-    }
-
-    protected void onAfterMounted(final S state) {
-        lifeCycleCallbacks.onComponentMounted(componentId, state, this.new EnqueueTaskStateUpdate());
-    }
-
-    protected void onAfterRendered(final S state) {
-    }
-
-    protected boolean onBeforeUpdated(final S state) {
-        return true;
-    }
-
-    protected void onAfterUpdated(final S oldState, final S state) {
-        lifeCycleCallbacks.onComponentUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
-    }
-
-    protected void onAfterUnmounted(final ComponentCompositeKey key, final S oldState) {
-        lifeCycleCallbacks.onComponentUnmounted(componentId, state);
+        component.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
     }
 
     public List<ComponentSegment<?>> directChildren() {
@@ -286,7 +252,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     public void unmount() {
         recursiveChildren().forEach(c -> c.unmount());
-        onAfterUnmounted(componentId, state);
+        component.onUnmounted(componentId, state);
     }
 
     private List<Node> rootNodes() {
@@ -405,4 +371,18 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             }));
         }
     }
+
+    private final class DefaultSubscriber implements Subscriber {
+
+        @Override
+        public void addWindowEventHandler(String eventType, Consumer<EventContext> eventHandler, boolean preventDefault, DomEventEntry.Modifier modifier) {
+            ComponentSegment.this.addDomEventHandler(WINDOW_DOM_PATH, eventType, eventHandler, preventDefault, modifier);
+        }
+
+        @Override
+        public void addComponentEventHandler(String eventType, Consumer<ComponentEventEntry.EventContext> eventHandler, boolean preventDefault) {
+            ComponentSegment.this.addComponentEventHandler(eventType, eventHandler, preventDefault);
+        }
+    }
+
 }

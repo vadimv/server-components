@@ -89,7 +89,7 @@ public class Life {
 
 
             @Override
-            public void onComponentUpdated(ComponentCompositeKey componentId, State oldState, State newState, StateUpdate<State> stateUpdate) {
+            public void onUpdated(ComponentCompositeKey componentId, State oldState, State newState, StateUpdate<State> stateUpdate) {
                 if (!oldState.isRunning && newState.isRunning) {
                     scheduleAtFixedRate(() -> stateUpdate.applyStateTransformation(State::advance),
                             componentId,
@@ -108,7 +108,7 @@ public class Life {
 
 
             @Override
-            public void onComponentUnmounted(ComponentCompositeKey componentId, State state) {
+            public void onUnmounted(ComponentCompositeKey componentId, State state) {
                 cancelSchedule(componentId);
             }
 
