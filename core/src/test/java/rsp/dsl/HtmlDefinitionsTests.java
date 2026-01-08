@@ -37,6 +37,7 @@ public class HtmlDefinitionsTests {
                     </body>
                 </html>
                 """;
+
     @Test
     void properly_defines_html_markup() {
         final Document html = org.jsoup.Jsoup.parse(htmlOf(view, ""));
