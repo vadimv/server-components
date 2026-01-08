@@ -22,7 +22,7 @@ import java.util.function.Consumer;
  *
  * @param <S> this component's state type
  */
-public abstract class Component<S> implements Definition, ComponentSegmentFactory<S> {
+public abstract class Component<S> implements Definition, ComponentSegmentFactory<S>, ComponentCallbacks<S> {
 
     protected final Object componentType;
 
@@ -71,63 +71,27 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
         return (c, s) -> c;
     }
 
-    /**
-     * Called before a state update is applied.
-     * Override this method to intercept state changes, e.g., to notify parent components
-     * or to veto the update (by returning false).
-     *
-     * @param newState the proposed new state
-     * @param commandsEnqueue for sending commands (e.g., ComponentEventNotification)
-     * @return true to proceed with the update, false to veto it
-     */
+    @Override
     public boolean onBeforeUpdated(S newState, Consumer<Command> commandsEnqueue) {
         return true;
     }
 
-    /**
-     * Called after each render (both initial and re-renders).
-     * Use this callback to subscribe to window or component events.
-     *
-     * @param state the current state
-     * @param subscriber for adding event handlers (window, component events)
-     * @param commandsEnqueue for sending commands (e.g., PushHistory)
-     * @param stateUpdate for updating state from event handlers
-     */
+    @Override
     public void onAfterRendered(S state,
                                 Subscriber subscriber,
                                 Consumer<Command> commandsEnqueue,
                                 StateUpdate<S> stateUpdate) {
     }
 
-    /**
-     * Called after the component is initially mounted to the segments tree.
-     * It is thread-safe to call the state update's methods in this callback.
-     *
-     * @param componentId component's composite key
-     * @param state current state
-     * @param stateUpdate for updating state asynchronously
-     */
+    @Override
     public void onMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate) {
     }
 
-    /**
-     * Called after the component's state is updated.
-     * It is thread-safe to call the state update's methods in this callback.
-     *
-     * @param componentId component's composite key
-     * @param oldState the previous state
-     * @param newState the new state
-     * @param stateUpdate for updating state asynchronously
-     */
+    @Override
     public void onUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate) {
     }
 
-    /**
-     * Called when the component is unmounted from the rendered tree.
-     *
-     * @param componentId component's composite key
-     * @param state the current state
-     */
+    @Override
     public void onUnmounted(ComponentCompositeKey componentId, S state) {
     }
 

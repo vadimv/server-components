@@ -1,6 +1,5 @@
 package rsp.component;
 
-import rsp.component.definitions.Component;
 import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.dsl.Definition;
@@ -37,7 +36,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
     private final ComponentView<S> componentView;
-    private final Component<S> component;
+    private final ComponentCallbacks<S> callbacks;
     private final TreeBuilderFactory treeBuilderFactory;
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
@@ -62,7 +61,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * @param stateResolver a function to resolve an initial state
      * @param contextResolver a function that builds a context object propagated to descendant components
      * @param componentView contains DOM subtree definition
-     * @param component the component definition providing lifecycle callbacks
+     * @param callbacks the callbacks invoked during component lifecycle
      * @param treeBuilderFactory a factory for a render context for children components
      * @param componentContext a context object from ascendant components
      * @param commandsEnqueue a consumer for the page's control loop commands
@@ -71,7 +70,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
                             final ComponentStateSupplier<S> stateResolver,
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
                             final ComponentView<S> componentView,
-                            final Component<S> component,
+                            final ComponentCallbacks<S> callbacks,
                             final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
                             final Consumer<Command> commandsEnqueue) {
@@ -79,7 +78,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.contextResolver = Objects.requireNonNull(contextResolver);
         this.componentView = Objects.requireNonNull(componentView);
-        this.component = Objects.requireNonNull(component);
+        this.callbacks = Objects.requireNonNull(callbacks);
         this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
         this.componentContext = Objects.requireNonNull(componentContext);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
@@ -141,8 +140,8 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             final Definition uiDefinition = view.apply(state);
 
             uiDefinition.render(renderContext);
-            component.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
-            component.onMounted(componentId, state, this.new EnqueueTaskStateUpdate());
+            callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
+            callbacks.onMounted(componentId, state, this.new EnqueueTaskStateUpdate());
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
@@ -177,7 +176,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final S newState = Objects.requireNonNull(newStateFunction.apply(state),
                                                   "State transformer function cannot return null for component " + componentId);
 
-        if (!component.onBeforeUpdated(newState, commandsEnqueue)) {
+        if (!callbacks.onBeforeUpdated(newState, commandsEnqueue)) {
             return; // update vetoed by component
         }
 
@@ -206,7 +205,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final Definition view = componentView.use(this).apply(state);
         view.render(renderContext);
         renderContext.closeComponent();
-        component.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
+        callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -243,7 +242,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             }
         }
 
-        component.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
+        callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
     }
 
     public List<ComponentSegment<?>> directChildren() {
@@ -252,7 +251,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     public void unmount() {
         recursiveChildren().forEach(c -> c.unmount());
-        component.onUnmounted(componentId, state);
+        callbacks.onUnmounted(componentId, state);
     }
 
     private List<Node> rootNodes() {
