@@ -66,8 +66,8 @@ public final class LivePageSession implements Consumer<Command> {
         this.remoteOut = Objects.requireNonNull(initSessionEvent.remoteOut());
         initSessionEvent.commandsEnqueue().redirect(reactor);
         this.accept(new RemoteCommand.ListenEvent(pageRenderContext.recursiveEvents()
-                                                                    .stream()
-                                                                    .toList()));
+                                                                   .stream()
+                                                                   .toList()));
     }
 
     private void shutdown() {

@@ -1,6 +1,5 @@
 package rsp.component;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.InitialStateComponent;
 import rsp.component.definitions.Component;
@@ -19,14 +18,15 @@ import rsp.util.json.JsonDataType;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.dsl.Html.*;
 import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
-import static rsp.util.TestUtils.findFirstListElementByType;
-@Disabled
+
 class StoredStateComponentTests {
     static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
     static final ComponentView<Boolean> view = newState -> state ->
@@ -38,7 +38,7 @@ class StoredStateComponentTests {
 
                              @Override
                              public ComponentView<Integer> componentView() {
-                                 return __ -> s -> div(text("test-store-" + s));
+                                 return _ -> s -> div(text("test-store-" + s));
                              }
                          })
             );
@@ -53,9 +53,9 @@ class StoredStateComponentTests {
                                                         Path.ROOT);
         final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
         final TreeBuilder renderContext = new TreeBuilder(qualifiedSessionId,
-                                                                                TreePositionPath.of("1"),
-                                                                                new ComponentContext(),
-                                                                                commands);
+                                                          TreePositionPath.of("1"),
+                                                          new ComponentContext(),
+                                                          commands);
         final Component<Boolean> scd = new InitialStateComponent<>(true,
                                                                                                view);
         // Initial render
@@ -71,9 +71,9 @@ class StoredStateComponentTests {
 
         assertEquals(1, renderContext.recursiveEvents().size());
 
-        // Remove sub component
+        // Remove subcomponent
         // Click
-        final DomEventEntry clickEvent = (DomEventEntry) renderContext.recursiveEvents().get(0);
+        final DomEventEntry clickEvent = renderContext.recursiveEvents().get(0);
         final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath(),
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,
@@ -95,5 +95,14 @@ class StoredStateComponentTests {
         assertEquals(1, commands.list.size());
         final RemoteCommand.ModifyDom modifyDomOutMessage2 = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
         assertTrue(modifyDomOutMessage2.toString().contains("test-store-100"));
+    }
+
+    public static <U> Optional<U> findFirstListElementByType(final Class<U> modifyDomOutMessageClass, final List<?> list) {
+        for (int i = 0; i < list.size();i++) {
+            if (modifyDomOutMessageClass.isAssignableFrom(list.get(i).getClass())) {
+                return (Optional<U>) Optional.of(list.get(i));
+            }
+        }
+        return Optional.empty();
     }
 }
