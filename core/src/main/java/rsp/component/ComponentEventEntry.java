@@ -93,10 +93,10 @@ public record ComponentEventEntry(String eventName, Consumer<EventContext> event
      * @return {@code true} if this handler should process the event, {@code false} otherwise
      * @throws NullPointerException if actualEventName is null
      */
-    public boolean matches(String actualEventName) {
+    public boolean matches(final String actualEventName) {
         if (eventName.endsWith(".*")) {
             // Prefix matching: "stateUpdated.*" matches "stateUpdated.p", "stateUpdated.sort", etc.
-            String prefix = eventName.substring(0, eventName.length() - 2);
+            final String prefix = eventName.substring(0, eventName.length() - 1);
             return actualEventName.startsWith(prefix);
         } else {
             // Exact matching (backward compatible)
