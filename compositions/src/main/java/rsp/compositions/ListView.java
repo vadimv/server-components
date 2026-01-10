@@ -22,14 +22,32 @@ public abstract class ListView extends Component<ListView.ListViewState> {
 
     /**
      * State containing both data, schema, and pagination/sorting info for adaptive rendering.
+     *
+     * @param rows The list data as maps
+     * @param schema The schema for column definitions
+     * @param page Current page number
+     * @param sort Current sort direction
+     * @param modulePath Base path for this module (e.g., "/posts")
+     * @param editMode The edit/create mode (SEPARATE_PAGE, QUERY_PARAM, MODAL)
+     * @param createToken The token used for create mode URLs (e.g., "new")
      */
-    public record ListViewState(List<Map<String, Object>> rows, ListSchema schema, int page, String sort, String modulePath) {
+    public record ListViewState(List<Map<String, Object>> rows, ListSchema schema, int page, String sort,
+                                 String modulePath, EditMode editMode, String createToken) {
         public ListViewState {
             rows = rows != null ? rows : List.of();
             schema = schema != null ? schema : new ListSchema(List.of());
             if (page < 1) page = 1;
             sort = sort != null ? sort : "asc";
             modulePath = modulePath != null ? modulePath : "/";
+            editMode = editMode != null ? editMode : EditMode.SEPARATE_PAGE;
+            createToken = createToken != null ? createToken : "new";
+        }
+
+        /**
+         * Backwards-compatible constructor without editMode and createToken.
+         */
+        public ListViewState(List<Map<String, Object>> rows, ListSchema schema, int page, String sort, String modulePath) {
+            this(rows, schema, page, sort, modulePath, EditMode.SEPARATE_PAGE, "new");
         }
     }
 
@@ -41,21 +59,25 @@ public abstract class ListView extends Component<ListView.ListViewState> {
             ListSchema schema = context.get(ContextKeys.LIST_SCHEMA);
             Integer page = context.get(ContextKeys.LIST_PAGE);
             String sort = context.get(ContextKeys.LIST_SORT);
+            EditMode editMode = context.get(ContextKeys.EDIT_MODE);
+            String createToken = context.get(ContextKeys.CREATE_TOKEN);
 
             if (page == null) page = 1;
             if (sort == null) sort = "asc";
+            if (editMode == null) editMode = EditMode.SEPARATE_PAGE;
+            if (createToken == null) createToken = "new";
 
             // Derive module path from current route
             String modulePath = deriveModulePath(context);
 
             if (items == null || items.isEmpty()) {
-                return new ListViewState(List.of(), schema, page, sort, modulePath);
+                return new ListViewState(List.of(), schema, page, sort, modulePath, editMode, createToken);
             }
 
             // Convert domain objects to Map representation using schema
             List<Map<String, Object>> rows = schema.toMapList(items);
 
-            return new ListViewState(rows, schema, page, sort, modulePath);
+            return new ListViewState(rows, schema, page, sort, modulePath, editMode, createToken);
         };
     }
 

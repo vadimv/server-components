@@ -60,7 +60,15 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             ListSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
 
             // Get the contract to derive listRoute and create mode
-            EditViewContract<?> contract = (EditViewContract<?>) context.get(ContextKeys.VIEW_CONTRACT);
+            // First try overlay contract (for QUERY_PARAM/MODAL modes)
+            // Then fall back to primary view contract (for SEPARATE_PAGE mode)
+            EditViewContract<?> contract = (EditViewContract<?>) context.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+            if (contract == null) {
+                ViewContract viewContract = context.get(ContextKeys.VIEW_CONTRACT);
+                if (viewContract instanceof EditViewContract<?> editContract) {
+                    contract = editContract;
+                }
+            }
             String listRoute = contract != null ? contract.listRoute() : "/";
             boolean isCreateMode = contract != null && contract.isCreateMode();
 
@@ -102,8 +110,14 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             @SuppressWarnings("unchecked")
             Map<String, Object> fieldValues = (Map<String, Object>) eventContext.eventObject();
 
-            // Get the contract from context
-            EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.VIEW_CONTRACT);
+            // Get the contract from context (overlay contract for QUERY_PARAM/MODAL, otherwise primary)
+            EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+            if (contract == null) {
+                ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
+                if (viewContract instanceof EditViewContract<?> editContract) {
+                    contract = editContract;
+                }
+            }
 
             if (contract != null) {
                 boolean success = contract.save(fieldValues);

@@ -22,14 +22,25 @@ public class NavigationContext {
      * Navigate to the list route associated with the current EditView.
      * <p>
      * Reads the EditViewContract from context and delegates to its listRoute() method.
+     * First checks for overlay contract (QUERY_PARAM/MODAL modes), then falls back
+     * to primary view contract (SEPARATE_PAGE mode).
      *
      * @return Command to execute the navigation
      */
     public Command navigateToList() {
-        EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.VIEW_CONTRACT);
+        // First try overlay contract (for QUERY_PARAM/MODAL modes)
+        EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+
+        // Fall back to primary view contract (for SEPARATE_PAGE mode)
+        if (contract == null) {
+            ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
+            if (viewContract instanceof EditViewContract<?> editContract) {
+                contract = editContract;
+            }
+        }
 
         if (contract == null) {
-            throw new IllegalStateException("view.contract not found in context");
+            throw new IllegalStateException("EditViewContract not found in context (checked OVERLAY_VIEW_CONTRACT and VIEW_CONTRACT)");
         }
 
         String listRoute = contract.listRoute();

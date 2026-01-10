@@ -177,6 +177,26 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.isCreateMode", Boolean.class);
 
     /**
+     * The overlay contract class to render in the overlay slot.
+     * Type: {@code Class<? extends ViewContract>}
+     * When present, LayoutComponent will render this contract's UI as an overlay.
+     * Used by QUERY_PARAM and MODAL edit modes.
+     */
+    @SuppressWarnings("unchecked")
+    public static final ContextKey.StringKey<Class<? extends ViewContract>> OVERLAY_CONTRACT =
+            new ContextKey.StringKey<>("layout.overlayContract",
+                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+
+    /**
+     * The overlay view contract instance.
+     * Type: ViewContract
+     * The instantiated contract for the overlay component.
+     * Used when primary and overlay need separate contract instances.
+     */
+    public static final ContextKey.StringKey<ViewContract> OVERLAY_VIEW_CONTRACT =
+            new ContextKey.StringKey<>("layout.overlayViewContract", ViewContract.class);
+
+    /**
      * The authenticated user object.
      * Type: Object (application-specific user type)
      * Example: User instance with id, username, etc.

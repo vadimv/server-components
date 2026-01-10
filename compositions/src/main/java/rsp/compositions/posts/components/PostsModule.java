@@ -1,10 +1,7 @@
 package rsp.compositions.posts.components;
 
-import rsp.compositions.ActionContract;
+import rsp.compositions.*;
 import rsp.compositions.Module;
-import rsp.compositions.NotificationContract;
-import rsp.compositions.Slot;
-import rsp.compositions.ViewPlacement;
 
 import java.util.Collections;
 import java.util.List;
@@ -16,6 +13,11 @@ import java.util.List;
  * Does NOT expose services - contracts access services directly from context.
  */
 public class PostsModule implements Module {
+
+    @Override
+    public EditMode editMode() {
+        return EditMode.QUERY_PARAM;
+    }
 
     @Override
     public List<ViewPlacement> views() {

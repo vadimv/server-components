@@ -15,7 +15,11 @@ import static rsp.dsl.Html.body;
  * 1. Reads uiRegistry and route.contractClass from context
  * 2. Finds the appropriate UI component class for the contract
  * 3. Instantiates the UI component
- * 4. Passes it to LayoutComponent for rendering
+ * 4. Passes it to LayoutComponent for rendering (with optional overlay)
+ * <p>
+ * Overlay support:
+ * When OVERLAY_CONTRACT is present in context, the corresponding UI component
+ * is resolved and passed to LayoutComponent as the overlay content.
  * <p>
  * This is pure framework code - no application-specific dependencies.
  */
@@ -34,8 +38,9 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             // Read from context and store in state
             UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
             Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
+            Class<? extends ViewContract> overlayContractClass = context.get(ContextKeys.OVERLAY_CONTRACT);
 
-            return new UiManagementComponentState(uiRegistry, contractClass);
+            return new UiManagementComponentState(uiRegistry, contractClass, overlayContractClass);
         };
     }
 
@@ -45,24 +50,31 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             // Read from state
             UiRegistry uiRegistry = state.uiRegistry();
             Class<? extends ViewContract> contractClass = state.contractClass();
+            Class<? extends ViewContract> overlayContractClass = state.overlayContractClass();
 
             if (uiRegistry == null || contractClass == null) {
                 throw new IllegalStateException("UiRegistry or contractClass not found in state");
             }
 
-            // Resolve contract class to UI component
-            Component<?> uiComponent = resolveUiComponent(uiRegistry, contractClass);
+            // Resolve primary contract class to UI component
+            Component<?> primaryComponent = resolveUiComponent(uiRegistry, contractClass);
 
-            // Pass to LayoutComponent
-            return page(uiComponent);
+            // Resolve overlay contract if present
+            Component<?> overlayComponent = null;
+            if (overlayContractClass != null) {
+                overlayComponent = resolveUiComponent(uiRegistry, overlayContractClass);
+            }
+
+            // Pass to LayoutComponent with optional overlay
+            return page(primaryComponent, overlayComponent);
         };
     }
 
-    private static Definition page(Component<?> uiComponent) {
+    private static Definition page(Component<?> primaryComponent, Component<?> overlayComponent) {
         return html(head(title("Posts")),
 //                        link(attr("rel", "stylesheet"),
 //                                attr("href", "/res/style.css"))),
-                body(new LayoutComponent(uiComponent)));
+                body(new LayoutComponent(primaryComponent, overlayComponent)));
     }
 
     /**
@@ -92,7 +104,15 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
         throw new IllegalStateException("No UI component registered for contract: " + contractClass.getName());
     }
 
+    /**
+     * State containing registry and contract classes for UI resolution.
+     *
+     * @param uiRegistry The registry mapping contracts to UI components
+     * @param contractClass The primary contract class for the route
+     * @param overlayContractClass The overlay contract class (null if no overlay)
+     */
     public record UiManagementComponentState(UiRegistry uiRegistry,
-                                             Class<? extends ViewContract> contractClass) {
+                                             Class<? extends ViewContract> contractClass,
+                                             Class<? extends ViewContract> overlayContractClass) {
     }
 }

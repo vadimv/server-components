@@ -2,6 +2,7 @@ package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
+import rsp.compositions.EditMode;
 import rsp.compositions.ListView;
 import rsp.dsl.Definition;
 import rsp.page.events.ComponentEventNotification;
@@ -27,6 +28,8 @@ public class DefaultListView extends ListView {
             final int page = state.page();
             final String sort = state.sort();
             final String modulePath = state.modulePath();
+            final EditMode editMode = state.editMode();
+            final String createToken = state.createToken();
 
             // Capture current query params for Edit links
             String currentQueryParams = buildQueryString(page, sort);
@@ -34,13 +37,9 @@ public class DefaultListView extends ListView {
             return div(
                 h1(text("Items List")),
 
-                // Create New action
+                // Create New action - varies by edit mode
                 div(attr("class", "list-actions"),
-                    a(
-                        attr("href", modulePath + "/new"),
-                        attr("class", "create-button"),
-                        text("Create New")
-                    )
+                    renderCreateButton(modulePath, editMode, createToken)
                 ),
 
                 // Pagination controls at top
@@ -99,6 +98,36 @@ public class DefaultListView extends ListView {
                 div(attr("class", "pagination-bottom"),
                     renderPaginationControls(page)
                 )
+            );
+        };
+    }
+
+    /**
+     * Render the Create button based on edit mode.
+     * <p>
+     * - SEPARATE_PAGE: Link to /modulePath/{createToken}
+     * - QUERY_PARAM: Link with ?create=true query param
+     * - MODAL: Button that emits openCreateModal event
+     */
+    private Definition renderCreateButton(String modulePath, EditMode editMode, String createToken) {
+        return switch (editMode) {
+            case SEPARATE_PAGE -> a(
+                    attr("href", modulePath + "/" + createToken),
+                    attr("class", "create-button"),
+                    text("Create New")
+            );
+            case QUERY_PARAM -> a(
+                    attr("href", modulePath + "?create=true"),
+                    attr("class", "create-button"),
+                    text("Create New")
+            );
+            case MODAL -> button(
+                    attr("type", "button"),
+                    attr("class", "create-button"),
+                    text("Create New"),
+                    on("click", ctx -> {
+                        commandsEnqueue.accept(new ComponentEventNotification("openCreateModal", null));
+                    })
             );
         };
     }

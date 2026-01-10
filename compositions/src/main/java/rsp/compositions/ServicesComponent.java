@@ -86,7 +86,39 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                     .with(ContextKeys.LIST_ITEMS, items)
                     .with(ContextKeys.LIST_SCHEMA, schema)
                     .with(ContextKeys.LIST_PAGE, page)
-                    .with(ContextKeys.LIST_SORT, sort);
+                    .with(ContextKeys.LIST_SORT, sort)
+                    .with(ContextKeys.EDIT_MODE, module.editMode())
+                    .with(ContextKeys.CREATE_TOKEN, module.createToken());
+
+                // Handle QUERY_PARAM mode: check for ?create=true
+                if (module.editMode() == EditMode.QUERY_PARAM) {
+                    String createParam = context.get(ContextKeys.URL_QUERY.with("create"));
+                    boolean showCreate = "true".equalsIgnoreCase(createParam);
+
+                    if (showCreate) {
+                        // Set overlay contract for create form
+                        Class<? extends EditViewContract<?>> editContractClass = module.editContractClass();
+                        if (editContractClass != null) {
+                            enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACT, editContractClass);
+
+                            // Also instantiate the edit contract and populate its context
+                            // This is needed for the overlay component to have proper data
+                            EditViewContract<?> editContract = (EditViewContract<?>) instantiateContractFromModule(
+                                    module, editContractClass, enrichedContext);
+                            if (editContract != null) {
+                                Object entity = editContract.item(); // null for create mode
+                                ListSchema editSchema = editContract.schema();
+
+                                // Use separate context keys for overlay data
+                                // VIEW_CONTRACT stays as ListViewContract for the primary view
+                                enrichedContext = enrichedContext
+                                        .with(ContextKeys.EDIT_ENTITY, entity)
+                                        .with(ContextKeys.EDIT_SCHEMA, editSchema)
+                                        .with(ContextKeys.OVERLAY_VIEW_CONTRACT, editContract);
+                            }
+                        }
+                    }
+                }
             } else if (contract instanceof EditViewContract<?> editContract) {
                 // Fetch entity to edit
                 Object entity = editContract.item();
