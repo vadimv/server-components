@@ -197,6 +197,25 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("layout.overlayViewContract", ViewContract.class);
 
     /**
+     * The modal overlay contract class for MODAL edit mode.
+     * Type: {@code Class<? extends ViewContract>}
+     * Pre-resolved but only shown when openCreateModal event fires.
+     * Different from OVERLAY_CONTRACT which is shown immediately.
+     */
+    @SuppressWarnings("unchecked")
+    public static final ContextKey.StringKey<Class<? extends ViewContract>> MODAL_OVERLAY_CONTRACT =
+            new ContextKey.StringKey<>("layout.modalOverlayContract",
+                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+
+    /**
+     * The modal overlay view contract instance.
+     * Type: ViewContract
+     * Pre-instantiated contract for MODAL mode overlay.
+     */
+    public static final ContextKey.StringKey<ViewContract> MODAL_OVERLAY_VIEW_CONTRACT =
+            new ContextKey.StringKey<>("layout.modalOverlayViewContract", ViewContract.class);
+
+    /**
      * The authenticated user object.
      * Type: Object (application-specific user type)
      * Example: User instance with id, username, etc.

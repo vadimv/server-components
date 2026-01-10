@@ -16,7 +16,7 @@ public class PostsModule implements Module {
 
     @Override
     public EditMode editMode() {
-        return EditMode.QUERY_PARAM;
+        return EditMode.MODAL;
     }
 
     @Override

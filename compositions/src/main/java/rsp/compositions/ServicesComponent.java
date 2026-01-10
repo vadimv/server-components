@@ -119,6 +119,28 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                         }
                     }
                 }
+
+                // Handle MODAL mode: pre-resolve modal overlay contract (shown when openCreateModal fires)
+                if (module.editMode() == EditMode.MODAL) {
+                    Class<? extends EditViewContract<?>> editContractClass = module.editContractClass();
+                    if (editContractClass != null) {
+                        enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_CONTRACT, editContractClass);
+
+                        // Pre-instantiate the edit contract for create mode
+                        EditViewContract<?> editContract = (EditViewContract<?>) instantiateContractFromModule(
+                                module, editContractClass, enrichedContext);
+                        if (editContract != null) {
+                            Object entity = editContract.item(); // null for create mode
+                            ListSchema editSchema = editContract.schema();
+
+                            // Store modal overlay contract and data
+                            enrichedContext = enrichedContext
+                                    .with(ContextKeys.EDIT_ENTITY, entity)
+                                    .with(ContextKeys.EDIT_SCHEMA, editSchema)
+                                    .with(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT, editContract);
+                        }
+                    }
+                }
             } else if (contract instanceof EditViewContract<?> editContract) {
                 // Fetch entity to edit
                 Object entity = editContract.item();

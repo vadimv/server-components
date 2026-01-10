@@ -5,6 +5,7 @@ import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
+import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.RemoteCommand;
 
 import java.util.Map;
@@ -60,9 +61,11 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             ListSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
 
             // Get the contract to derive listRoute and create mode
-            // First try overlay contract (for QUERY_PARAM/MODAL modes)
-            // Then fall back to primary view contract (for SEPARATE_PAGE mode)
-            EditViewContract<?> contract = (EditViewContract<?>) context.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+            // Check in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract
+            EditViewContract<?> contract = (EditViewContract<?>) context.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
+            if (contract == null) {
+                contract = (EditViewContract<?>) context.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+            }
             if (contract == null) {
                 ViewContract viewContract = context.get(ContextKeys.VIEW_CONTRACT);
                 if (viewContract instanceof EditViewContract<?> editContract) {
@@ -110,8 +113,14 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             @SuppressWarnings("unchecked")
             Map<String, Object> fieldValues = (Map<String, Object>) eventContext.eventObject();
 
-            // Get the contract from context (overlay contract for QUERY_PARAM/MODAL, otherwise primary)
-            EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+            // Get the contract from context
+            // Check in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract
+            EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
+            boolean isModalMode = contract != null;
+
+            if (contract == null) {
+                contract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+            }
             if (contract == null) {
                 ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
                 if (viewContract instanceof EditViewContract<?> editContract) {
@@ -122,8 +131,13 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             if (contract != null) {
                 boolean success = contract.save(fieldValues);
                 if (success) {
-                    // Navigate back to list after successful save using NavigationContext
-                    commandsEnqueue.accept(navigationContext.navigateToList());
+                    if (isModalMode) {
+                        // MODAL mode: emit modalSaveSuccess to close modal and refresh list
+                        commandsEnqueue.accept(new ComponentEventNotification("modalSaveSuccess", Map.of()));
+                    } else {
+                        // QUERY_PARAM or SEPARATE_PAGE: navigate back to list
+                        commandsEnqueue.accept(navigationContext.navigateToList());
+                    }
                 }
             }
         }, false);

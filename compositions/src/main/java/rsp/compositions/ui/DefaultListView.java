@@ -7,6 +7,7 @@ import rsp.compositions.ListView;
 import rsp.dsl.Definition;
 import rsp.page.events.ComponentEventNotification;
 
+import java.util.Map;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -126,7 +127,7 @@ public class DefaultListView extends ListView {
                     attr("class", "create-button"),
                     text("Create New"),
                     on("click", ctx -> {
-                        commandsEnqueue.accept(new ComponentEventNotification("openCreateModal", null));
+                        commandsEnqueue.accept(new ComponentEventNotification("openCreateModal", Map.of()));
                     })
             );
         };

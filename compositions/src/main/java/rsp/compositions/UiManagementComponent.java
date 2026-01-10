@@ -39,8 +39,9 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
             Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
             Class<? extends ViewContract> overlayContractClass = context.get(ContextKeys.OVERLAY_CONTRACT);
+            Class<? extends ViewContract> modalOverlayContractClass = context.get(ContextKeys.MODAL_OVERLAY_CONTRACT);
 
-            return new UiManagementComponentState(uiRegistry, contractClass, overlayContractClass);
+            return new UiManagementComponentState(uiRegistry, contractClass, overlayContractClass, modalOverlayContractClass);
         };
     }
 
@@ -51,6 +52,7 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             UiRegistry uiRegistry = state.uiRegistry();
             Class<? extends ViewContract> contractClass = state.contractClass();
             Class<? extends ViewContract> overlayContractClass = state.overlayContractClass();
+            Class<? extends ViewContract> modalOverlayContractClass = state.modalOverlayContractClass();
 
             if (uiRegistry == null || contractClass == null) {
                 throw new IllegalStateException("UiRegistry or contractClass not found in state");
@@ -59,22 +61,29 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             // Resolve primary contract class to UI component
             Component<?> primaryComponent = resolveUiComponent(uiRegistry, contractClass);
 
-            // Resolve overlay contract if present
+            // Resolve overlay contract if present (QUERY_PARAM mode)
             Component<?> overlayComponent = null;
             if (overlayContractClass != null) {
                 overlayComponent = resolveUiComponent(uiRegistry, overlayContractClass);
             }
 
-            // Pass to LayoutComponent with optional overlay
-            return page(primaryComponent, overlayComponent);
+            // Resolve modal overlay contract if present (MODAL mode)
+            Component<?> modalOverlayComponent = null;
+            if (modalOverlayContractClass != null) {
+                modalOverlayComponent = resolveUiComponent(uiRegistry, modalOverlayContractClass);
+            }
+
+            // Pass to LayoutComponent with optional overlays
+            return page(primaryComponent, overlayComponent, modalOverlayComponent);
         };
     }
 
-    private static Definition page(Component<?> primaryComponent, Component<?> overlayComponent) {
+    private static Definition page(Component<?> primaryComponent, Component<?> overlayComponent,
+                                    Component<?> modalOverlayComponent) {
         return html(head(title("Posts")),
 //                        link(attr("rel", "stylesheet"),
 //                                attr("href", "/res/style.css"))),
-                body(new LayoutComponent(primaryComponent, overlayComponent)));
+                body(new LayoutComponent(primaryComponent, overlayComponent, modalOverlayComponent)));
     }
 
     /**
@@ -109,10 +118,12 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
      *
      * @param uiRegistry The registry mapping contracts to UI components
      * @param contractClass The primary contract class for the route
-     * @param overlayContractClass The overlay contract class (null if no overlay)
+     * @param overlayContractClass The overlay contract class for QUERY_PARAM mode (null if no overlay)
+     * @param modalOverlayContractClass The modal overlay contract class for MODAL mode (null if no modal)
      */
     public record UiManagementComponentState(UiRegistry uiRegistry,
                                              Class<? extends ViewContract> contractClass,
-                                             Class<? extends ViewContract> overlayContractClass) {
+                                             Class<? extends ViewContract> overlayContractClass,
+                                             Class<? extends ViewContract> modalOverlayContractClass) {
     }
 }
