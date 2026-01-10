@@ -65,6 +65,18 @@ public final class EventContext {
     }
 
     /**
+     * Evaluates a provided JavaScript expression in the browser and passes the result to the callback.
+     * This is a convenience method for simple cases where CompletableFuture chaining is not needed.
+     * @param js code to execute
+     * @param onResult callback to receive the evaluation result
+     */
+    public void evalJs(final String js, final Consumer<JsonDataType> onResult) {
+        Objects.requireNonNull(js);
+        Objects.requireNonNull(onResult);
+        jsEvaluation.apply(js).thenAccept(onResult);
+    }
+
+    /**
      * Sets the client browser's URL.
      * @param href URL
      */
