@@ -33,8 +33,11 @@ public class DefaultEditView extends EditView {
                 fieldRefs.put(column.name(), createElementRef());
             }
 
+            // Determine title based on create/edit mode
+            String title = state.isCreateMode() ? "Create Item" : "Edit Item";
+
             return div(
-                h1(text("Edit Item")),
+                h1(text(title)),
 
                 form(
                     // Render fields dynamically based on schema

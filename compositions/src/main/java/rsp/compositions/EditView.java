@@ -25,8 +25,14 @@ public abstract class EditView extends Component<EditView.EditViewState> {
 
     /**
      * State containing the entity data being edited and schema metadata.
+     *
+     * @param fieldValues Map of field names to current values
+     * @param schema Schema defining field metadata
+     * @param isDirty Whether form has unsaved changes
+     * @param listRoute Route to navigate back to list
+     * @param isCreateMode Whether in create mode (new entity) vs edit mode (existing entity)
      */
-    public record EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute) {
+    public record EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute, boolean isCreateMode) {
         public EditViewState {
             fieldValues = fieldValues != null ? fieldValues : Map.of();
             schema = schema != null ? schema : new ListSchema(java.util.List.of());
@@ -34,11 +40,15 @@ public abstract class EditView extends Component<EditView.EditViewState> {
         }
 
         public EditViewState(Map<String, Object> fieldValues, ListSchema schema) {
-            this(fieldValues, schema, false, "/");
+            this(fieldValues, schema, false, "/", false);
         }
 
         public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty) {
-            this(fieldValues, schema, isDirty, "/");
+            this(fieldValues, schema, isDirty, "/", false);
+        }
+
+        public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute) {
+            this(fieldValues, schema, isDirty, listRoute, false);
         }
     }
 
@@ -49,9 +59,10 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             Object entity = context.get(ContextKeys.EDIT_ENTITY);
             ListSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
 
-            // Get the contract to derive listRoute
+            // Get the contract to derive listRoute and create mode
             EditViewContract<?> contract = (EditViewContract<?>) context.get(ContextKeys.VIEW_CONTRACT);
             String listRoute = contract != null ? contract.listRoute() : "/";
+            boolean isCreateMode = contract != null && contract.isCreateMode();
 
             if (schema == null && entity != null) {
                 // Auto-derive schema from entity if not provided
@@ -59,7 +70,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             }
 
             if (schema == null) {
-                return new EditViewState(Map.of(), new ListSchema(java.util.List.of()), false, listRoute);
+                return new EditViewState(Map.of(), new ListSchema(java.util.List.of()), false, listRoute, isCreateMode);
             }
 
             // Convert entity to Map for editing
@@ -67,7 +78,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                 ? schema.toMap(entity)
                 : createEmptyFieldValues(schema);
 
-            return new EditViewState(fieldValues, schema, false, listRoute);
+            return new EditViewState(fieldValues, schema, false, listRoute, isCreateMode);
         };
     }
 

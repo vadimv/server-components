@@ -20,9 +20,11 @@ public class CrudApp {
                 .register(EditViewContract.class, DefaultEditView::new); // Register EditView UI
 
         // Sets a frame for this application's address bar path patterns
+        // Route order matters: specific routes before parameterized ones
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
-                .route("/posts/:id", PostEditContract.class);
+                .route("/posts/new", PostEditContract.class)  // Create route (must come before :id)
+                .route("/posts/:id", PostEditContract.class); // Edit route
 
         // Application configuration (non-sensitive, flows to all contracts/components)
         // Loads from system properties (e.g., -Dapp.pageSize.default=20)

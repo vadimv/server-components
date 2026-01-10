@@ -152,6 +152,31 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.schema", ListSchema.class);
 
     /**
+     * The edit mode for create/edit workflows.
+     * Type: EditMode
+     * Values: SEPARATE_PAGE, QUERY_PARAM, or MODAL
+     */
+    public static final ContextKey.StringKey<EditMode> EDIT_MODE =
+            new ContextKey.StringKey<>("edit.mode", EditMode.class);
+
+    /**
+     * The create token used to identify create mode in URLs.
+     * Type: String
+     * Default: "new"
+     * Example: "/posts/new" uses "new" as create token
+     */
+    public static final ContextKey.StringKey<String> CREATE_TOKEN =
+            new ContextKey.StringKey<>("edit.createToken", String.class);
+
+    /**
+     * Whether the current edit view is in create mode.
+     * Type: Boolean
+     * True when creating a new entity, false when editing existing.
+     */
+    public static final ContextKey.StringKey<Boolean> EDIT_IS_CREATE_MODE =
+            new ContextKey.StringKey<>("edit.isCreateMode", Boolean.class);
+
+    /**
      * The authenticated user object.
      * Type: Object (application-specific user type)
      * Example: User instance with id, username, etc.

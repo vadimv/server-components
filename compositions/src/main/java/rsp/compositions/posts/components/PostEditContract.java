@@ -8,10 +8,11 @@ import rsp.compositions.posts.entities.Post;
 import rsp.compositions.posts.services.PostService;
 
 /**
- * PostEditContract - Contract for editing a single post.
+ * PostEditContract - Contract for editing or creating a single post.
  * <p>
  * Reads the post ID from the URL path (e.g., /posts/1) and loads the corresponding post.
- * The schema is auto-derived from the Post record.
+ * Supports create mode when the path contains the create token (e.g., /posts/new).
+ * The schema is auto-derived from the Post record class.
  */
 public class PostEditContract extends EditViewContract<Post> {
     private static final PathParam<String> POST_ID = new PathParam<>(1, String.class, null);
@@ -25,23 +26,33 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
-    public Post item() {
-        // Extract post ID from URL path (e.g., /posts/123 → "123")
-        String postId = resolve(POST_ID);
+    protected String resolveId() {
+        // Extract post ID from URL path (e.g., /posts/123 → "123", /posts/new → "new")
+        return resolve(POST_ID);
+    }
 
-        if (postId == null) {
+    @Override
+    public Post item() {
+        // In create mode, return null (empty form)
+        if (isCreateMode()) {
             return null;
         }
 
         // Load post from service
+        String postId = resolveId();
         return postService.find(postId).orElse(null);
     }
 
     @Override
     public ListSchema schema() {
-        // Auto-derive schema from Post record
+        // Use class-based schema for create mode (no instance needed)
+        // Use instance-based schema for edit mode (when entity exists)
         Post post = item();
-        return post != null ? ListSchema.fromFirstItem(post) : new ListSchema(java.util.List.of());
+        if (post != null) {
+            return ListSchema.fromFirstItem(post);
+        }
+        // For create mode or not found, derive from class
+        return ListSchema.fromRecordClass(Post.class);
     }
 
     @Override
@@ -54,12 +65,12 @@ public class PostEditContract extends EditViewContract<Post> {
         // Create Post from field values
         Post post = new Post(id, title, content);
 
-        // Save via service
-        if (id != null && !id.isEmpty()) {
-            return postService.update(id, post);
-        } else {
+        // Create or update based on mode
+        if (isCreateMode() || id == null || id.isEmpty()) {
             postService.create(post);
             return true;
+        } else {
+            return postService.update(id, post);
         }
     }
 }

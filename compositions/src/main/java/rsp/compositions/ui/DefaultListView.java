@@ -34,6 +34,15 @@ public class DefaultListView extends ListView {
             return div(
                 h1(text("Items List")),
 
+                // Create New action
+                div(attr("class", "list-actions"),
+                    a(
+                        attr("href", modulePath + "/new"),
+                        attr("class", "create-button"),
+                        text("Create New")
+                    )
+                ),
+
                 // Pagination controls at top
                 div(attr("class", "pagination-top"),
                     renderPaginationControls(page)

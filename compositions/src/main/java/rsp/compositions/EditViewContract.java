@@ -7,6 +7,9 @@ import rsp.component.ComponentContext;
  * <p>
  * Provides the entity being edited and schema metadata for adaptive rendering.
  * Concrete implementations load entities by ID extracted from URL path parameters.
+ * <p>
+ * Supports create mode detection via {@link #isCreateMode()} which checks if the
+ * resolved ID matches the configurable create token (default: "new").
  *
  * @param <T> The type of entity being edited
  */
@@ -17,11 +20,50 @@ public abstract class EditViewContract<T> extends ViewContract {
     }
 
     /**
+     * Get the token used to identify create mode in the URL path.
+     * <p>
+     * When the resolved ID equals this token, the contract is in create mode.
+     * Override to customize (e.g., "_", "create", "0").
+     *
+     * @return The create token (default: "new")
+     */
+    protected String createToken() {
+        return "new";
+    }
+
+    /**
+     * Resolve the entity ID from the URL path.
+     * <p>
+     * Subclasses must implement this to extract the ID from path parameters.
+     * Used by {@link #isCreateMode()} to detect create mode.
+     *
+     * @return The resolved ID, or null if not present
+     */
+    protected abstract String resolveId();
+
+    /**
+     * Check if the contract is in create mode.
+     * <p>
+     * Create mode is detected when:
+     * <ul>
+     *   <li>The resolved ID is null, or</li>
+     *   <li>The resolved ID equals the create token</li>
+     * </ul>
+     *
+     * @return true if in create mode, false if editing existing entity
+     */
+    public boolean isCreateMode() {
+        String id = resolveId();
+        return id == null || id.equals(createToken());
+    }
+
+    /**
      * Load the entity to be edited.
      * <p>
      * Typically reads an ID from path parameters and loads from a service.
+     * Should return null when in create mode (empty form).
      *
-     * @return The entity to edit, or null if not found
+     * @return The entity to edit, or null if not found or in create mode
      */
     public abstract T item();
 
@@ -73,21 +115,22 @@ public abstract class EditViewContract<T> extends ViewContract {
             throw new IllegalStateException("route.pattern not found in context");
         }
 
-        // Convention: remove last segment if it's a parameter
+        // Convention: remove last segment if it's a parameter or the create token
         // "/posts/:id" → "/posts"
+        // "/posts/new" → "/posts"
         String basePath;
         int lastSlash = routePattern.lastIndexOf('/');
         if (lastSlash > 0) {
             String lastSegment = routePattern.substring(lastSlash + 1);
 
-            // If last segment is a parameter (starts with :), strip it
-            if (lastSegment.startsWith(":")) {
+            // Strip last segment if it's a parameter (starts with :) or the create token
+            if (lastSegment.startsWith(":") || lastSegment.equals(createToken())) {
                 basePath = routePattern.substring(0, lastSlash);
             } else {
-                basePath = "/";
+                basePath = routePattern;
             }
         } else {
-            basePath = "/";
+            basePath = routePattern;
         }
 
         // Restore query parameters from url.query.from* attributes
