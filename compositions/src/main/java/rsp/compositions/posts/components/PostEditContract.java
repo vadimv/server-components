@@ -19,7 +19,7 @@ public class PostEditContract extends EditViewContract<Post> {
 
     private final PostService postService;
 
-    public PostEditContract(ComponentContext context) {
+    public PostEditContract(final ComponentContext context) {
         super(context);
         // Read service from context
         this.postService = context.get(PostService.class);

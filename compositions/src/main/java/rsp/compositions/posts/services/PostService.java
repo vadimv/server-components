@@ -18,7 +18,7 @@ public class PostService {
         }
     }
 
-    public List<Post> findAll(int page, int pageSize, String sort) {
+    public List<Post> findAll(final int page, final int pageSize, final String sort) {
         Comparator<Post> comparator = Comparator.comparing(Post::title);
         if ("desc".equalsIgnoreCase(sort)) {
             comparator = comparator.reversed();
@@ -31,18 +31,18 @@ public class PostService {
                 .collect(Collectors.toList());
     }
 
-    public Optional<Post> find(String id) {
+    public Optional<Post> find(final String id) {
         return Optional.ofNullable(posts.get(id));
     }
 
-    public String create(Post post) {
+    public String create(final Post post) {
         String id = String.valueOf(idGenerator.getAndIncrement());
         Post newPost = new Post(id, post.title(), post.content());
         posts.put(id, newPost);
         return id;
     }
 
-    public boolean update(String id, Post post) {
+    public boolean update(final String id, final Post post) {
         if (posts.containsKey(id)) {
             posts.put(id, new Post(id, post.title(), post.content()));
             return true;
@@ -50,7 +50,7 @@ public class PostService {
         return false;
     }
 
-    public boolean delete(String id) {
+    public boolean delete(final String id) {
         return posts.remove(id) != null;
     }
 }

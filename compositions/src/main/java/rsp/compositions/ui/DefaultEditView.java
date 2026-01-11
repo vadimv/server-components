@@ -28,13 +28,13 @@ public class DefaultEditView extends EditView {
     public ComponentView<EditViewState> componentView() {
         return newState -> state -> {
             // Create element refs for all input fields
-            Map<String, ElementRef> fieldRefs = new HashMap<>();
+            final Map<String, ElementRef> fieldRefs = new HashMap<>();
             for (ListSchema.ColumnDef column : state.schema().columns()) {
                 fieldRefs.put(column.name(), createElementRef());
             }
 
             // Determine title based on create/edit mode
-            String title = state.isCreateMode() ? "Create Item" : "Edit Item";
+            final String title = state.isCreateMode() ? "Create Item" : "Edit Item";
 
             return div(
                 h1(text(title)),

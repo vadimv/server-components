@@ -129,13 +129,19 @@ public final class ComponentContext {
      * Creates a new immutable context with a single key-value pair added or updated.
      * Uses pattern matching to route to the appropriate internal storage map.
      *
+     * <p><strong>Runtime Type Safety:</strong> This method validates that the value's type
+     * matches the key's declared type at runtime. This catches type mismatches that could
+     * otherwise slip through due to Java's type erasure (e.g., sneaky casts, raw types).</p>
+     *
      * @param key the context key, must not be null
-     * @param value the value to store
+     * @param value the value to store (null is allowed)
      * @param <T> the type of value
      * @return a new ComponentContext instance with the updated attribute
+     * @throws IllegalArgumentException if value is non-null and doesn't match the key's type
      */
     public <T> ComponentContext with(final ContextKey<T> key, final T value) {
         Objects.requireNonNull(key, "Context key cannot be null");
+        validateValueType(key, value);
         return switch (key) {
             case ContextKey.ClassKey<T>(var clazz) -> {
                 final Map<Class<?>, Object> newClassBased = new HashMap<>(classBased);
@@ -153,6 +159,28 @@ public final class ComponentContext {
                 yield new ComponentContext(classBased, newStringBased);
             }
         };
+    }
+
+    /**
+     * Validates that a value matches the key's declared type at runtime.
+     * This provides an additional safety net against type erasure exploits.
+     *
+     * @param key the context key with type information
+     * @param value the value to validate (null values are allowed)
+     * @param <T> the declared type
+     * @throws IllegalArgumentException if value is non-null and doesn't match key's type
+     */
+    private <T> void validateValueType(final ContextKey<T> key, final T value) {
+        if (value == null) {
+            return; // null is always valid
+        }
+        final Class<T> expectedType = key.type();
+        if (!expectedType.isInstance(value)) {
+            throw new IllegalArgumentException(
+                "Type mismatch for context key: expected " + expectedType.getName() +
+                " but got " + value.getClass().getName() + " for key " + key
+            );
+        }
     }
 
 

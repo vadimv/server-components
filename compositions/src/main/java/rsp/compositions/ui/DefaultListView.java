@@ -33,7 +33,7 @@ public class DefaultListView extends ListView {
             final String createToken = state.createToken();
 
             // Capture current query params for Edit links
-            String currentQueryParams = buildQueryString(page, sort);
+            final String currentQueryParams = buildQueryString(page, sort);
 
             return div(
                 h1(text("Items List")),

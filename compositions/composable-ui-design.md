@@ -18,6 +18,8 @@ The following are implemented in code (see source for details):
 - **DefaultListView, DefaultEditView** - Default UI implementations
 - **Address bar sync** - Via AutoAddressBarSyncComponent
 - **Custom View escape hatch** - Custom contracts + UI components via UiRegistry
+- **Type-safe ContextKey** - Sealed interface with ClassKey, StringKey, DynamicKey variants
+- **EditMode configuration** - SEPARATE_PAGE, QUERY_PARAM, MODAL modes per module
 
 ---
 
@@ -254,6 +256,194 @@ Upon session termination (WebSocket disconnect or timeout), the framework automa
 
 - Authorization errors result with code 403 and a "non-authorized" page
 - Errors or exceptions contained within modules result with code 500 and error page
+
+## Type-Safe EventKey (Not Implemented)
+
+Similar to ContextKey for context attributes, component events should use typed EventKey for type-safe event payload handling.
+
+### Current Problem
+
+Events use string names and untyped payloads:
+```java
+// Producer - no type safety on payload
+commandsEnqueue.accept(new ComponentEventNotification("modalSaveSuccess", Map.of()));
+
+// Consumer - must cast and hope for the best
+segment.addComponentEventHandler("modalSaveSuccess", eventContext -> {
+    Map<String, Object> data = (Map<String, Object>) eventContext.eventObject();  // Unsafe cast
+});
+```
+
+### Proposed Solution
+
+```java
+// Define typed event keys in a registry (like ContextKeys)
+public final class EventKeys {
+    public static final EventKey<Map<String, Object>> MODAL_SAVE_SUCCESS =
+        new EventKey<>("modalSaveSuccess", new TypeReference<Map<String, Object>>() {});
+
+    public static final EventKey<String> OPEN_CREATE_MODAL =
+        new EventKey<>("openCreateModal", String.class);  // payload is entity type
+
+    public static final EventKey<Void> CLOSE_OVERLAY =
+        new EventKey<>("closeOverlay", Void.class);  // no payload
+}
+
+// Producer - type-checked at compile time
+commandsEnqueue.accept(EventKeys.MODAL_SAVE_SUCCESS.emit(fieldValues));
+
+// Consumer - type-safe, no cast needed
+subscriber.addEventHandler(EventKeys.MODAL_SAVE_SUCCESS, (payload) -> {
+    Map<String, Object> data = payload;  // Already typed!
+});
+
+// Wildcard support (like ContextKey.DynamicKey)
+public static final EventKey.Dynamic<String> STATE_UPDATED =
+    new EventKey.Dynamic<>("stateUpdated", String.class);
+
+// Subscribe to stateUpdated.* events
+subscriber.addEventHandler(EventKeys.STATE_UPDATED.prefix(), (name, value) -> {
+    String paramName = name.substring("stateUpdated.".length());
+    // handle dynamic event
+});
+```
+
+### Benefits
+- Compile-time type checking for event payloads
+- IDE autocomplete for event names
+- Refactoring support (rename event → all usages updated)
+- No runtime ClassCastException surprises
+- Consistent with ContextKey pattern
+
+---
+
+## Schema DSL (Not Implemented)
+
+ListSchema should be defined via DSL rather than auto-derived from records. Auto-derivation is useful for prototyping but production needs explicit field configuration.
+
+### Current Auto-Derivation (Prototyping Only)
+
+```java
+// Works but lacks customization
+ListSchema schema = ListSchema.fromFirstItem(posts.get(0));
+```
+
+### Proposed Schema DSL
+
+```java
+public ListSchema schema() {
+    return ListSchema.builder()
+        .field("id", FieldType.ID)
+            .hidden()  // Not shown in list/form
+        .field("title", FieldType.STRING)
+            .label("Post Title")
+            .required()
+            .maxLength(200)
+            .placeholder("Enter title...")
+        .field("content", FieldType.TEXT)
+            .label("Content")
+            .widget(Widget.RICH_TEXT)  // Hint for UI component
+        .field("status", FieldType.ENUM)
+            .options("DRAFT", "PUBLISHED", "ARCHIVED")
+            .defaultValue("DRAFT")
+        .field("createdAt", FieldType.DATETIME)
+            .label("Created")
+            .readOnly()
+            .format("yyyy-MM-dd HH:mm")
+        .field("author", FieldType.REFERENCE)
+            .referenceTo(User.class)
+            .displayField("name")
+        .build();
+}
+```
+
+### Validation Rules
+
+```java
+.field("email", FieldType.STRING)
+    .validate(Validators.email())
+    .validate(Validators.unique())  // Custom validator
+
+.field("age", FieldType.INTEGER)
+    .validate(Validators.range(0, 150))
+
+.field("password", FieldType.STRING)
+    .validate(Validators.minLength(8))
+    .validate(Validators.pattern("[A-Za-z0-9]+"))
+    .widget(Widget.PASSWORD)
+```
+
+### Widget Hints
+
+```java
+public enum Widget {
+    TEXT,           // Default text input
+    TEXTAREA,       // Multi-line text
+    RICH_TEXT,      // WYSIWYG editor
+    PASSWORD,       // Masked input
+    SELECT,         // Dropdown
+    RADIO,          // Radio buttons
+    CHECKBOX,       // Checkbox
+    DATE_PICKER,    // Date input
+    FILE_UPLOAD,    // File input
+    AUTOCOMPLETE,   // Search with suggestions
+    HIDDEN          // Not rendered
+}
+```
+
+---
+
+## List Route Resolution (Not Implemented - Future Enhancement)
+
+Currently `EditViewContract.listRoute()` uses convention-based path derivation with query param restoration. This should be enhanced with:
+
+### Option 1: Referer Header
+
+```java
+public String listRoute() {
+    // Try HTTP Referer first
+    String referer = context.get(ContextKeys.HTTP_REFERER);
+    if (referer != null && isValidListRoute(referer)) {
+        return referer;
+    }
+    // Fall back to convention
+    return deriveFromRoutePattern();
+}
+```
+
+### Option 2: Session-Based Navigation Stack
+
+```java
+// Framework maintains navigation history in session
+NavigationStack navStack = context.get(NavigationStack.class);
+String previousRoute = navStack.peek();
+
+// Or explicit breadcrumb
+navStack.push("/posts?p=3&sort=desc");  // When entering edit
+navStack.pop();  // When leaving edit
+```
+
+### Option 3: Explicit Contract Method
+
+```java
+// Contract explicitly declares its list route
+public abstract class EditViewContract<T> {
+    // Override for custom navigation
+    public String listRoute() {
+        return "/posts";  // Explicit, no magic
+    }
+}
+```
+
+### Recommended Approach
+
+Combine all three with priority:
+1. **Explicit override** - If contract overrides `listRoute()`, use it
+2. **Session navigation stack** - If available, use previous route
+3. **Referer header** - If valid and same-origin
+4. **Convention fallback** - Derive from route pattern
+
+---
 
 ## Testing (Partial)
 
