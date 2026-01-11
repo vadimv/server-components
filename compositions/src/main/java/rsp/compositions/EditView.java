@@ -142,6 +142,38 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             }
         }, false);
 
+        // Register handler for delete action
+        segment.addComponentEventHandler("action.delete", eventContext -> {
+            // Get the contract from context
+            // Check in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract
+            EditViewContract<?> deleteContract = (EditViewContract<?>) componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
+            final boolean isDeleteModalMode = deleteContract != null;
+
+            if (deleteContract == null) {
+                deleteContract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+            }
+            if (deleteContract == null) {
+                final ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
+                if (viewContract instanceof EditViewContract<?> editContract) {
+                    deleteContract = editContract;
+                }
+            }
+
+            if (deleteContract != null) {
+                final boolean success = deleteContract.delete();
+                if (success) {
+                    if (isDeleteModalMode) {
+                        // MODAL mode: emit modalDeleteSuccess to close modal and refresh list
+                        commandsEnqueue.accept(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
+                    } else {
+                        // QUERY_PARAM or SEPARATE_PAGE: navigate back to list
+                        commandsEnqueue.accept(navigationContext.navigateToList());
+                    }
+                }
+                // On failure: stay on page (could add error notification in future)
+            }
+        }, false);
+
         return segment;
     }
 

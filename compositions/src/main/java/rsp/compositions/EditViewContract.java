@@ -87,6 +87,25 @@ public abstract class EditViewContract<T> extends ViewContract {
     public abstract boolean save(java.util.Map<String, Object> fieldValues);
 
     /**
+     * Delete the current entity.
+     * <p>
+     * Called when the user clicks the Delete button in the edit form.
+     * Only valid in edit mode (not create mode).
+     * <p>
+     * Default implementation throws {@link UnsupportedOperationException}.
+     * Override to implement deletion logic.
+     *
+     * @return true if deletion succeeded, false otherwise
+     * @throws IllegalStateException if called in create mode
+     */
+    public boolean delete() {
+        if (isCreateMode()) {
+            throw new IllegalStateException("Cannot delete in create mode");
+        }
+        throw new UnsupportedOperationException("Delete not implemented for " + getClass().getSimpleName());
+    }
+
+    /**
      * Get the list route to navigate back to after save/cancel.
      * <p>
      * Default implementation uses convention based on the route pattern:

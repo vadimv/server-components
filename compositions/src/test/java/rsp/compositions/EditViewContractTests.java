@@ -277,4 +277,32 @@ public class EditViewContractTests {
             assertEquals("name", schema.columns().get(1).name());
         }
     }
+
+    @Nested
+    class DeleteMethodTests {
+
+        @Test
+        void delete_throws_illegal_state_in_create_mode_null_id() {
+            final ComponentContext context = contextWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(context, null);
+
+            assertThrows(IllegalStateException.class, contract::delete);
+        }
+
+        @Test
+        void delete_throws_illegal_state_in_create_mode_new_token() {
+            final ComponentContext context = contextWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(context, "new");
+
+            assertThrows(IllegalStateException.class, contract::delete);
+        }
+
+        @Test
+        void delete_throws_unsupported_by_default_in_edit_mode() {
+            final ComponentContext context = contextWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(context, "123");
+
+            assertThrows(UnsupportedOperationException.class, contract::delete);
+        }
+    }
 }

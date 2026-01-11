@@ -73,4 +73,18 @@ public class PostEditContract extends EditViewContract<Post> {
             return postService.update(id, post);
         }
     }
+
+    @Override
+    public boolean delete() {
+        if (isCreateMode()) {
+            throw new IllegalStateException("Cannot delete in create mode");
+        }
+
+        final String id = resolveId();
+        if (id == null || id.isEmpty()) {
+            return false;
+        }
+
+        return postService.delete(id);
+    }
 }

@@ -20,7 +20,7 @@ import static rsp.dsl.Html.*;
  * <p>
  * Renders form fields for ANY entity based on schema metadata.
  * Supports any number of fields and types.
- * Sends "action.save" and "action.cancel" notifications.
+ * Sends "action.save", "action.delete", and "action.cancel" notifications.
  */
 public class DefaultEditView extends EditView {
 
@@ -111,6 +111,25 @@ public class DefaultEditView extends EditView {
                             attr("href", state.listRoute()),
                             attr("class", "button cancel-button"),
                             text("Cancel")
+                        ),
+
+                        // Delete button - only shown in edit mode (not create mode)
+                        state.isCreateMode() ? of() : button(
+                            attr("type", "button"),
+                            attr("class", "btn-delete btn-danger"),
+                            text("Delete"),
+                            on("click", ctx -> {
+                                // Client-side confirmation before delete
+                                ctx.evalJs("confirm('Are you sure you want to delete this item?')")
+                                    .thenAccept(result -> {
+                                        if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
+                                            commandsEnqueue.accept(new ComponentEventNotification(
+                                                "action.delete",
+                                                Map.of()
+                                            ));
+                                        }
+                                    });
+                            })
                         )
                     )
                 )

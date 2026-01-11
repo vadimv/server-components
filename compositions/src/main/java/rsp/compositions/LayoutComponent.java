@@ -33,6 +33,7 @@ import static rsp.dsl.Html.*;
  *   <li>"openCreateModal" - Opens create modal (MODAL mode)</li>
  *   <li>"closeOverlay" - Closes the overlay</li>
  *   <li>"modalSaveSuccess" - Closes modal and triggers list refresh</li>
+ *   <li>"modalDeleteSuccess" - Closes modal and triggers list refresh</li>
  * </ul>
  */
 public class LayoutComponent extends Component<LayoutComponent.LayoutComponentState> {
@@ -112,6 +113,14 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
 
         // Register handler for modalSaveSuccess event (close modal + refresh list)
         subscriber.addComponentEventHandler("modalSaveSuccess", eventContext -> {
+            // Close the modal
+            stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
+            // Trigger list refresh
+            commandsEnqueue.accept(new ComponentEventNotification("refreshList", Map.of()));
+        }, false);
+
+        // Register handler for modalDeleteSuccess event (close modal + refresh list)
+        subscriber.addComponentEventHandler("modalDeleteSuccess", eventContext -> {
             // Close the modal
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // Trigger list refresh
