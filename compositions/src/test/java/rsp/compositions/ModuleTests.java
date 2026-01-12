@@ -101,24 +101,6 @@ public class ModuleTests {
 
             assertNotNull(views);
         }
-
-        @Test
-        void notifications_returns_list() {
-            final Module module = new TestModule();
-
-            final List<NotificationContract> notifications = module.notifications();
-
-            assertNotNull(notifications);
-        }
-
-        @Test
-        void actions_returns_list() {
-            final Module module = new TestModule();
-
-            final List<ActionContract> actions = module.actions();
-
-            assertNotNull(actions);
-        }
     }
 
     // Test fixtures
@@ -126,16 +108,6 @@ public class ModuleTests {
     static class TestModule implements Module {
         @Override
         public List<ViewPlacement> views() {
-            return List.of();
-        }
-
-        @Override
-        public List<NotificationContract> notifications() {
-            return List.of();
-        }
-
-        @Override
-        public List<ActionContract> actions() {
             return List.of();
         }
     }

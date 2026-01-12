@@ -15,7 +15,8 @@ The following are implemented in code (see source for details):
 - **QueryParam, PathParam** - Typed parameter definitions with defaults
 - **Slot, ViewPlacement, UiRegistry** - UI component discovery and layout slots
 - **AuthComponent, AuthorizationStrategy** - Authentication and authorization
-- **DefaultListView, DefaultEditView** - Default UI implementations
+- **DefaultListView, DefaultEditView** - Default UI implementations with CRUD support
+- **Delete functionality** - Contract-based delete with confirmation dialog
 - **Address bar sync** - Via AutoAddressBarSyncComponent
 - **Custom View escape hatch** - Custom contracts + UI components via UiRegistry
 - **Type-safe ContextKey** - Sealed interface with ClassKey, StringKey, DynamicKey variants
@@ -175,39 +176,232 @@ private Definition renderCreateAction(EditMode mode, String modulePath) {
 }
 ```
 
-## Notifications (Not Implemented)
+---
 
-Notifications allow upstream components to push updates to downstream components when external state changes.
+## Delete Functionality
+
+Delete is implemented in EditViewContract with UI support in DefaultEditView. Works across all three EditMode variants.
+
+### Contract Method
 
 ```java
-@Override
-List<NotificationContract> notifications() {
-    return List.of(
-        // A notification is advertised in the component context so UI components can request subscription by sending an event
-        new RegularNotification(
-            "update", // notification name
-            // somehow the caller needs to know what it wants to subscribe to e.g. a topic
-            // the result of the function is a subscription handle, an Object that can be used to unsubscribe
-            (topic, consumer) -> serviceA.subscribe(topic, a -> consumer.accept(convertToNotification("post-update", a))),
-            handle -> serviceA.unsubscribe(handle) // invoked when all subscribed components request unsubscribe or unmounted
-        )
-    );
+public abstract class EditViewContract<T> extends ViewContract {
+
+    /**
+     * Delete the current entity.
+     * Only valid in edit mode (not create mode).
+     * Default implementation throws UnsupportedOperationException.
+     *
+     * @return true if deletion succeeded, false otherwise
+     * @throws IllegalStateException if called in create mode
+     */
+    public boolean delete() {
+        if (isCreateMode()) {
+            throw new IllegalStateException("Cannot delete in create mode");
+        }
+        throw new UnsupportedOperationException("Delete not implemented");
+    }
 }
 ```
 
-## Actions (Not Implemented)
-
-Actions are listening for events sent by downstream components and provide a bridge between the UI and external world.
+### Implementation Example
 
 ```java
-@Override
-List<ActionContract> actions() {
-    return List.of(new RegularAction(
-        "save", // action name
-        value -> serviceA.save(convertToA(value))
-    ));
+public class PostEditContract extends EditViewContract<Post> {
+
+    @Override
+    public boolean delete() {
+        if (isCreateMode()) {
+            throw new IllegalStateException("Cannot delete in create mode");
+        }
+        String id = resolveId();
+        return postService.delete(id);
+    }
 }
 ```
+
+### UI Behavior
+
+DefaultEditView renders a Delete button only in edit mode (hidden in create mode):
+
+```java
+// Delete button with client-side confirmation
+state.isCreateMode() ? of() : button(
+    attr("class", "btn-delete btn-danger"),
+    text("Delete"),
+    on("click", ctx -> {
+        ctx.evalJs("confirm('Are you sure you want to delete this item?')")
+            .thenAccept(result -> {
+                if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
+                    commandsEnqueue.accept(new ComponentEventNotification("action.delete", Map.of()));
+                }
+            });
+    })
+)
+```
+
+### Event Flow
+
+| Mode          | Delete Success Action                                  |
+|---------------|--------------------------------------------------------|
+| SEPARATE_PAGE | Navigate to list route                                 |
+| QUERY_PARAM   | Navigate to list route                                 |
+| MODAL         | Emit `modalDeleteSuccess` → close modal + refresh list |
+
+### Event Handlers
+
+EditView registers the delete action handler:
+```java
+segment.addComponentEventHandler("action.delete", eventContext -> {
+    boolean success = contract.delete();
+    if (success) {
+        if (isModalMode) {
+            commandsEnqueue.accept(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
+        } else {
+            commandsEnqueue.accept(navigationContext.navigateToList());
+        }
+    }
+}, false);
+```
+
+LayoutComponent handles modal delete success:
+```java
+subscriber.addComponentEventHandler("modalDeleteSuccess", eventContext -> {
+    stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
+    commandsEnqueue.accept(new ComponentEventNotification("refreshList", Map.of()));
+}, false);
+```
+
+## Action Handling Architecture
+
+Actions (save, delete, etc.) are handled at the **Contract level**, not the Module level. This keeps the data and behavior co-located in the same class.
+
+### View-Contract Separation
+
+**Views** are responsible for:
+- Rendering UI from state (schema, field values)
+- Collecting and validating field values from the DOM
+- Emitting data events (`form.submitted`, `delete.requested`)
+- NO knowledge of `save()`, `delete()`, or navigation
+
+**Contracts** are responsible for:
+- Providing data (`item()`, `schema()`)
+- Registering event handlers via `registerHandlers()`
+- Implementing business logic (`save()`, `delete()`)
+- Controlling navigation outcomes (`onSaveSuccess()`, `onDeleteSuccess()`)
+
+### Contract API
+
+```java
+public abstract class EditViewContract<T> extends ViewContract {
+
+    // Data: What entity is being edited
+    public abstract T item();
+    public abstract ListSchema schema();
+
+    // Actions: What can be done with the entity
+    public abstract boolean save(Map<String, Object> fieldValues);
+    public boolean delete() { /* default impl */ }
+
+    // Event handling: Contract registers its own handlers
+    public void registerHandlers(ComponentSegment<?> segment,
+                                 Consumer<Command> commandsEnqueue,
+                                 NavigationContext navigationContext,
+                                 boolean isModalMode) {
+        segment.addComponentEventHandler("form.submitted", ctx -> {
+            Map<String, Object> values = (Map<String, Object>) ctx.eventObject();
+            handleFormSubmitted(values, commandsEnqueue, navigationContext, isModalMode);
+        }, false);
+
+        segment.addComponentEventHandler("delete.requested", ctx -> {
+            handleDeleteRequested(commandsEnqueue, navigationContext, isModalMode);
+        }, false);
+    }
+
+    // Customizable callbacks
+    protected void onSaveSuccess(Consumer<Command> commandsEnqueue, ...) { ... }
+    protected void onSaveFailure(Consumer<Command> commandsEnqueue) { ... }
+    protected void onDeleteSuccess(Consumer<Command> commandsEnqueue, ...) { ... }
+    protected void onDeleteFailure(Consumer<Command> commandsEnqueue) { ... }
+}
+```
+
+### Event Flow
+
+```
+DefaultEditView                    EditViewContract
+     │                                    │
+     │── collect & validate values ──────>│
+     │── "form.submitted" ───────────────>│
+     │   (payload: field values map)      │── save(fieldValues)
+     │                                    │── onSaveSuccess() or onSaveFailure()
+     │                                    │
+     │── "delete.requested" ─────────────>│
+     │   (payload: empty map)             │── delete()
+     │                                    │── onDeleteSuccess() or onDeleteFailure()
+```
+
+### Events
+
+| Event              | Emitted By       | Payload                | Handler                          |
+|--------------------|------------------|------------------------|----------------------------------|
+| `form.submitted`   | DefaultEditView  | `Map<String, Object>`  | `EditViewContract.registerHandlers()` |
+| `delete.requested` | DefaultEditView  | `Map.of()` (empty)     | `EditViewContract.registerHandlers()` |
+
+### Rationale
+
+- **Separation of concerns**: Views render and collect data; Contracts handle business logic
+- **Cohesion**: Contract has the data (item, schema) and the actions (save, delete)
+- **Testability**: Test contract CRUD operations directly without UI; test views with mock event sinks
+- **Extensibility**: Override `registerHandlers()` for custom behavior (e.g., auto-save drafts)
+- **Type safety**: Contract knows its entity type, can validate fields appropriately
+
+### Context Keys for UI Hints
+
+Views read UI configuration from context keys (set by the framework):
+
+```java
+// In ContextKeys.java
+EDIT_LIST_ROUTE    // String: route to navigate back to list
+EDIT_IS_CREATE_MODE // Boolean: true if creating new entity
+```
+
+This decouples views from contracts - views don't need to access contract methods directly.
+
+### Custom Contract Example
+
+```java
+public class DraftPostContract extends EditViewContract<Post> {
+
+    @Override
+    public void registerHandlers(ComponentSegment<?> segment,
+                                 Consumer<Command> commandsEnqueue,
+                                 NavigationContext navigationContext,
+                                 boolean isModalMode) {
+        // Custom: auto-save as draft instead of full save
+        segment.addComponentEventHandler("form.submitted", ctx -> {
+            Map<String, Object> values = (Map<String, Object>) ctx.eventObject();
+            saveDraft(values);
+            // Emit feedback instead of navigating
+            commandsEnqueue.accept(new ComponentEventNotification("draft.saved", Map.of()));
+        }, false);
+
+        // Don't register delete handler - drafts can't be deleted this way
+    }
+}
+```
+
+### Future Consideration: Module-Level Actions
+
+If cross-cutting actions are needed (e.g., bulk operations, workflow triggers), Module could provide an `actions()` method. Currently not implemented as Contract-level actions cover the common use cases.
+
+## Notifications (Future Enhancement)
+
+Real-time notifications for external state changes (e.g., WebSocket updates) are not yet implemented. When needed, this could be handled via:
+
+1. **Component-level subscriptions** - Components subscribe to services directly
+2. **Context-level notification registry** - Centralized pub/sub through ComponentContext
+3. **Module-level notification contracts** - Declarative subscription configuration
 
 ## Layout (Not Implemented)
 
@@ -477,33 +671,29 @@ Expose an API to dump the Registry as a JSON Schema. This serves as the "Prompt 
 Since AI is slow, the Router needs to support Partial Rendering. It should be able to render the "Shell" of the page while the AI is still "thinking" about the optimal layout for the inner content.
 
 ```java
-public class CommandModule extends Module {
+public class CommandModule implements Module {
 
-    // 1. View: The Input Box
     @Override
-    List<ViewPlacement> views() {
+    public List<ViewPlacement> views() {
         return List.of(
-            new ViewPlacement(Slot.OVERLAY, new PromptContract())
+            new ViewPlacement(Slot.OVERLAY, PromptContract.class, PromptContract::new)
         );
     }
+}
 
-    // 2. Action: Receive the User's Intent
-    @Override
-    List<ActionContract> actions() {
-        return List.of(new RegularAction("submit-prompt", this::handlePrompt));
-    }
+// PromptContract handles the AI interaction via Contract-level action
+public class PromptContract extends ViewContract {
 
-    // 3. The "Brain"
-    private void handlePrompt(ActionContext ctx, String userText) {
+    public void submitPrompt(String userText) {
         // Step A: Gather Context (Where is the user? What can they do?)
-        var appSchema = registry.generateSchema(); // "I have List, Details, Dashboard..."
-        var currentRoute = ctx.getCurrentRoute();
+        var appSchema = registry.generateSchema();
+        var currentRoute = context.get(ContextKeys.CURRENT_ROUTE);
 
         // Step B: Ask AI (The Translation Layer)
         AiInstruction instruction = aiService.interpret(userText, appSchema, currentRoute);
 
         // Step C: Execute Framework Command
-        executeInstruction(ctx, instruction);
+        executeInstruction(instruction);
     }
 }
 ```

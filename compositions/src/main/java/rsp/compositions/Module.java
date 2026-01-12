@@ -5,24 +5,14 @@ import java.util.List;
 /**
  * Module - Declares a feature domain's contracts and configuration.
  * <p>
- * Each module groups related views, notifications, and actions.
- * Modules also configure the edit/create workflow mode.
+ * Each module groups related views and configures the edit/create workflow mode.
+ * Action handling is delegated to Contracts (e.g., EditViewContract.save(), delete()).
  */
 public interface Module {
     /**
      * View placements for this module (list, edit, detail views).
      */
     List<ViewPlacement> views();
-
-    /**
-     * Notification contracts for this module.
-     */
-    List<NotificationContract> notifications();
-
-    /**
-     * Action contracts for this module.
-     */
-    List<ActionContract> actions();
 
     /**
      * The edit mode for create/edit workflows.

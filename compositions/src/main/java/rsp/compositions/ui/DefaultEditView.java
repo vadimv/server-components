@@ -20,7 +20,14 @@ import static rsp.dsl.Html.*;
  * <p>
  * Renders form fields for ANY entity based on schema metadata.
  * Supports any number of fields and types.
- * Sends "action.save", "action.delete", and "action.cancel" notifications.
+ * <p>
+ * Emits events:
+ * <ul>
+ *   <li>"form.submitted" - Form data collected and ready for processing (payload: field values map)</li>
+ *   <li>"delete.requested" - User confirmed delete action (payload: empty map)</li>
+ * </ul>
+ * <p>
+ * Views only collect and validate data; Contracts decide what to do with it.
  */
 public class DefaultEditView extends EditView {
 
@@ -99,9 +106,10 @@ public class DefaultEditView extends EditView {
                                         }
                                     });
 
-                                    // Send action notification with collected field values
+                                    // Emit form.submitted event with collected field values
+                                    // Contract will decide what to do (save, validate, etc.)
                                     commandsEnqueue.accept(new ComponentEventNotification(
-                                        "action.save",
+                                        "form.submitted",
                                         collectedValues
                                     ));
                                 });
@@ -123,8 +131,10 @@ public class DefaultEditView extends EditView {
                                 ctx.evalJs("confirm('Are you sure you want to delete this item?')")
                                     .thenAccept(result -> {
                                         if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
+                                            // Emit delete.requested event
+                                            // Contract will decide what to do
                                             commandsEnqueue.accept(new ComponentEventNotification(
-                                                "action.delete",
+                                                "delete.requested",
                                                 Map.of()
                                             ));
                                         }

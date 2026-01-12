@@ -1,6 +1,12 @@
 package rsp.compositions;
 
 import rsp.component.ComponentContext;
+import rsp.component.ComponentSegment;
+import rsp.page.events.Command;
+import rsp.page.events.ComponentEventNotification;
+
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * EditViewContract - Base contract for edit/form views.
@@ -185,5 +191,144 @@ public abstract class EditViewContract<T> extends ViewContract {
         }
 
         return params.isEmpty() ? "" : String.join("&", params);
+    }
+
+    // ========================================================================
+    // Event Handling - Contract registers handlers for form events
+    // ========================================================================
+
+    /**
+     * Register event handlers for this contract.
+     * <p>
+     * Called by the framework after the view component is created.
+     * The contract handles events emitted by the view (form.submitted, delete.requested)
+     * and decides what actions to take.
+     * <p>
+     * Override this method to customize event handling behavior.
+     *
+     * @param segment The component segment to register handlers on
+     * @param commandsEnqueue Consumer for emitting commands/events
+     * @param navigationContext Context for navigation operations
+     * @param isModalMode Whether the contract is rendered in a modal overlay
+     */
+    public void registerHandlers(ComponentSegment<?> segment,
+                                 Consumer<Command> commandsEnqueue,
+                                 NavigationContext navigationContext,
+                                 boolean isModalMode) {
+        // Handle form submission
+        segment.addComponentEventHandler("form.submitted", eventContext -> {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> fieldValues = (Map<String, Object>) eventContext.eventObject();
+            handleFormSubmitted(fieldValues, commandsEnqueue, navigationContext, isModalMode);
+        }, false);
+
+        // Handle delete request
+        segment.addComponentEventHandler("delete.requested", eventContext -> {
+            handleDeleteRequested(commandsEnqueue, navigationContext, isModalMode);
+        }, false);
+    }
+
+    /**
+     * Handle form submission event.
+     * <p>
+     * Default implementation calls {@link #save(Map)} and navigates on success.
+     * Override to customize (e.g., add validation, custom success handling).
+     *
+     * @param fieldValues The submitted field values
+     * @param commandsEnqueue Consumer for emitting commands
+     * @param navigationContext Context for navigation
+     * @param isModalMode Whether in modal mode
+     */
+    protected void handleFormSubmitted(Map<String, Object> fieldValues,
+                                       Consumer<Command> commandsEnqueue,
+                                       NavigationContext navigationContext,
+                                       boolean isModalMode) {
+        boolean success = save(fieldValues);
+        if (success) {
+            onSaveSuccess(commandsEnqueue, navigationContext, isModalMode);
+        } else {
+            onSaveFailure(commandsEnqueue);
+        }
+    }
+
+    /**
+     * Handle delete request event.
+     * <p>
+     * Default implementation calls {@link #delete()} and navigates on success.
+     * Override to customize delete handling.
+     *
+     * @param commandsEnqueue Consumer for emitting commands
+     * @param navigationContext Context for navigation
+     * @param isModalMode Whether in modal mode
+     */
+    protected void handleDeleteRequested(Consumer<Command> commandsEnqueue,
+                                         NavigationContext navigationContext,
+                                         boolean isModalMode) {
+        boolean success = delete();
+        if (success) {
+            onDeleteSuccess(commandsEnqueue, navigationContext, isModalMode);
+        } else {
+            onDeleteFailure(commandsEnqueue);
+        }
+    }
+
+    /**
+     * Called when save succeeds.
+     * <p>
+     * Default: In modal mode, emits "modalSaveSuccess". Otherwise, navigates to list.
+     *
+     * @param commandsEnqueue Consumer for emitting commands
+     * @param navigationContext Context for navigation
+     * @param isModalMode Whether in modal mode
+     */
+    protected void onSaveSuccess(Consumer<Command> commandsEnqueue,
+                                 NavigationContext navigationContext,
+                                 boolean isModalMode) {
+        if (isModalMode) {
+            commandsEnqueue.accept(new ComponentEventNotification("modalSaveSuccess", Map.of()));
+        } else {
+            commandsEnqueue.accept(navigationContext.navigateToList());
+        }
+    }
+
+    /**
+     * Called when save fails.
+     * <p>
+     * Default: Does nothing (stays on page). Override to show error notification.
+     *
+     * @param commandsEnqueue Consumer for emitting commands
+     */
+    protected void onSaveFailure(Consumer<Command> commandsEnqueue) {
+        // Default: stay on page, could emit error notification
+    }
+
+    /**
+     * Called when delete succeeds.
+     * <p>
+     * Default: In modal mode, emits "modalDeleteSuccess". Otherwise, navigates to list.
+     *
+     * @param commandsEnqueue Consumer for emitting commands
+     * @param navigationContext Context for navigation
+     * @param isModalMode Whether in modal mode
+     */
+    protected void onDeleteSuccess(Consumer<Command> commandsEnqueue,
+                                   NavigationContext navigationContext,
+                                   boolean isModalMode) {
+        if (isModalMode) {
+            commandsEnqueue.accept(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
+        } else {
+            commandsEnqueue.accept(navigationContext.navigateToList());
+        }
+    }
+
+    /**
+     * Called when delete fails.
+     * <p>
+     * Default: Does nothing (stays on page). Override to show error notification.
+     *
+     * @param commandsEnqueue Consumer for emitting commands
+     */
+    protected void onDeleteFailure(Consumer<Command> commandsEnqueue) {
+        // Default: stay on page, could emit error notification
     }
 }

@@ -177,6 +177,15 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.isCreateMode", Boolean.class);
 
     /**
+     * The route to navigate back to list view.
+     * Type: String
+     * Example: "/posts" or "/posts?p=3&sort=desc"
+     * Used by EditView to know where to navigate after save/cancel.
+     */
+    public static final ContextKey.StringKey<String> EDIT_LIST_ROUTE =
+            new ContextKey.StringKey<>("edit.listRoute", String.class);
+
+    /**
      * The overlay contract class to render in the overlay slot.
      * Type: {@code Class<? extends ViewContract>}
      * When present, LayoutComponent will render this contract's UI as an overlay.

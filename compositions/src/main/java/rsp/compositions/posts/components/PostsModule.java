@@ -3,7 +3,6 @@ package rsp.compositions.posts.components;
 import rsp.compositions.*;
 import rsp.compositions.Module;
 
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -25,15 +24,5 @@ public class PostsModule implements Module {
             new ViewPlacement(Slot.PRIMARY, PostsListContract.class, PostsListContract::new),
             new ViewPlacement(Slot.PRIMARY, PostEditContract.class, PostEditContract::new)
         );
-    }
-
-    @Override
-    public List<NotificationContract> notifications() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<ActionContract> actions() {
-        return Collections.emptyList();
     }
 }

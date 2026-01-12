@@ -5,8 +5,6 @@ import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
-import rsp.page.events.ComponentEventNotification;
-import rsp.page.events.RemoteCommand;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -17,7 +15,8 @@ import java.util.function.Consumer;
  * Renders forms for editing any domain objects based on schema metadata.
  * UI adapts to any number of fields and types at runtime.
  * <p>
- * Sends action notifications when user clicks action buttons (save, cancel, etc.)
+ * Event handling is delegated to the {@link EditViewContract} which registers
+ * handlers for form.submitted and delete.requested events.
  */
 public abstract class EditView extends Component<EditView.EditViewState> {
 
@@ -60,20 +59,27 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             Object entity = context.get(ContextKeys.EDIT_ENTITY);
             ListSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
 
-            // Get the contract to derive listRoute and create mode
-            // Check in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract
-            EditViewContract<?> contract = (EditViewContract<?>) context.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
-            if (contract == null) {
-                contract = (EditViewContract<?>) context.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
-            }
-            if (contract == null) {
-                ViewContract viewContract = context.get(ContextKeys.VIEW_CONTRACT);
-                if (viewContract instanceof EditViewContract<?> editContract) {
-                    contract = editContract;
+            // Read UI hints from context
+            // These are populated by the framework based on the contract
+            String listRoute = context.get(ContextKeys.EDIT_LIST_ROUTE);
+            Boolean isCreateModeValue = context.get(ContextKeys.EDIT_IS_CREATE_MODE);
+
+            // Fallback to contract if context keys not set (backward compatibility)
+            if (listRoute == null || isCreateModeValue == null) {
+                EditViewContract<?> contract = resolveContract(context);
+                if (contract != null) {
+                    if (listRoute == null) {
+                        listRoute = contract.listRoute();
+                    }
+                    if (isCreateModeValue == null) {
+                        isCreateModeValue = contract.isCreateMode();
+                    }
                 }
             }
-            String listRoute = contract != null ? contract.listRoute() : "/";
-            boolean isCreateMode = contract != null && contract.isCreateMode();
+
+            // Apply defaults
+            listRoute = listRoute != null ? listRoute : "/";
+            boolean isCreateMode = isCreateModeValue != null && isCreateModeValue;
 
             if (schema == null && entity != null) {
                 // Auto-derive schema from entity if not provided
@@ -108,73 +114,45 @@ public abstract class EditView extends Component<EditView.EditViewState> {
         // Create the segment
         ComponentSegment<EditViewState> segment = super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
 
-        // Register handler for save action
-        segment.addComponentEventHandler("action.save", eventContext -> {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> fieldValues = (Map<String, Object>) eventContext.eventObject();
-
-            // Get the contract from context
-            // Check in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract
-            EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
-            boolean isModalMode = contract != null;
-
-            if (contract == null) {
-                contract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
-            }
-            if (contract == null) {
-                ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
-                if (viewContract instanceof EditViewContract<?> editContract) {
-                    contract = editContract;
-                }
-            }
-
-            if (contract != null) {
-                boolean success = contract.save(fieldValues);
-                if (success) {
-                    if (isModalMode) {
-                        // MODAL mode: emit modalSaveSuccess to close modal and refresh list
-                        commandsEnqueue.accept(new ComponentEventNotification("modalSaveSuccess", Map.of()));
-                    } else {
-                        // QUERY_PARAM or SEPARATE_PAGE: navigate back to list
-                        commandsEnqueue.accept(navigationContext.navigateToList());
-                    }
-                }
-            }
-        }, false);
-
-        // Register handler for delete action
-        segment.addComponentEventHandler("action.delete", eventContext -> {
-            // Get the contract from context
-            // Check in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract
-            EditViewContract<?> deleteContract = (EditViewContract<?>) componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
-            final boolean isDeleteModalMode = deleteContract != null;
-
-            if (deleteContract == null) {
-                deleteContract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
-            }
-            if (deleteContract == null) {
-                final ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
-                if (viewContract instanceof EditViewContract<?> editContract) {
-                    deleteContract = editContract;
-                }
-            }
-
-            if (deleteContract != null) {
-                final boolean success = deleteContract.delete();
-                if (success) {
-                    if (isDeleteModalMode) {
-                        // MODAL mode: emit modalDeleteSuccess to close modal and refresh list
-                        commandsEnqueue.accept(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
-                    } else {
-                        // QUERY_PARAM or SEPARATE_PAGE: navigate back to list
-                        commandsEnqueue.accept(navigationContext.navigateToList());
-                    }
-                }
-                // On failure: stay on page (could add error notification in future)
-            }
-        }, false);
+        // Delegate event handling to the contract
+        // Contract registers handlers for form.submitted and delete.requested events
+        EditViewContract<?> contract = resolveContract(componentContext);
+        if (contract != null) {
+            boolean isModalMode = componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT) != null;
+            contract.registerHandlers(segment, commandsEnqueue, navigationContext, isModalMode);
+        }
 
         return segment;
+    }
+
+    /**
+     * Resolve the EditViewContract from context.
+     * <p>
+     * Checks in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract.
+     *
+     * @param componentContext The component context
+     * @return The resolved contract, or null if not found
+     */
+    private EditViewContract<?> resolveContract(ComponentContext componentContext) {
+        // Check MODAL overlay first
+        EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
+        if (contract != null) {
+            return contract;
+        }
+
+        // Check QUERY_PARAM overlay
+        contract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
+        if (contract != null) {
+            return contract;
+        }
+
+        // Check primary view contract
+        ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
+        if (viewContract instanceof EditViewContract<?> editContract) {
+            return editContract;
+        }
+
+        return null;
     }
 
     /**
