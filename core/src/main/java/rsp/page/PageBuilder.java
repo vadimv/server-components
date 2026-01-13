@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.TreeBuilder;
 import rsp.dom.TreePositionPath;
@@ -29,7 +30,7 @@ public final class PageBuilder extends TreeBuilder {
     public PageBuilder(final QualifiedSessionId sessionId,
                        final String pageConfigScript,
                        final ComponentContext componentContext,
-                       final Consumer<Command> remotePageMessagesOut) {
+                       final CommandsEnqueue remotePageMessagesOut) {
         super(sessionId,
               DOCUMENT_DOM_PATH,
               componentContext,

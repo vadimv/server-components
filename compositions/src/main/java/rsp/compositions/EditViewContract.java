@@ -1,12 +1,17 @@
 package rsp.compositions;
 
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentSegment;
 import rsp.page.events.Command;
 import rsp.page.events.ComponentEventNotification;
+import rsp.page.events.GenericTaskEvent;
 
 import java.util.Map;
 import java.util.function.Consumer;
+
+import static rsp.compositions.EventKeys.DELETE_REQUESTED;
+import static rsp.compositions.EventKeys.FORM_SUBMITTED;
 
 /**
  * EditViewContract - Base contract for edit/form views.
@@ -212,18 +217,16 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @param isModalMode Whether the contract is rendered in a modal overlay
      */
     public void registerHandlers(ComponentSegment<?> segment,
-                                 Consumer<Command> commandsEnqueue,
+                                 CommandsEnqueue commandsEnqueue,
                                  NavigationContext navigationContext,
                                  boolean isModalMode) {
         // Handle form submission
-        segment.addComponentEventHandler("form.submitted", eventContext -> {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> fieldValues = (Map<String, Object>) eventContext.eventObject();
+        segment.addEventHandler(FORM_SUBMITTED, (eventName, fieldValues) -> {
             handleFormSubmitted(fieldValues, commandsEnqueue, navigationContext, isModalMode);
         }, false);
 
         // Handle delete request
-        segment.addComponentEventHandler("delete.requested", eventContext -> {
+        segment.addEventHandler(DELETE_REQUESTED, () -> {
             handleDeleteRequested(commandsEnqueue, navigationContext, isModalMode);
         }, false);
     }
@@ -240,7 +243,7 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @param isModalMode Whether in modal mode
      */
     protected void handleFormSubmitted(Map<String, Object> fieldValues,
-                                       Consumer<Command> commandsEnqueue,
+                                       CommandsEnqueue commandsEnqueue,
                                        NavigationContext navigationContext,
                                        boolean isModalMode) {
         boolean success = save(fieldValues);
@@ -261,7 +264,7 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @param navigationContext Context for navigation
      * @param isModalMode Whether in modal mode
      */
-    protected void handleDeleteRequested(Consumer<Command> commandsEnqueue,
+    protected void handleDeleteRequested(CommandsEnqueue commandsEnqueue,
                                          NavigationContext navigationContext,
                                          boolean isModalMode) {
         boolean success = delete();
@@ -281,13 +284,13 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @param navigationContext Context for navigation
      * @param isModalMode Whether in modal mode
      */
-    protected void onSaveSuccess(Consumer<Command> commandsEnqueue,
+    protected void onSaveSuccess(CommandsEnqueue commandsEnqueue,
                                  NavigationContext navigationContext,
                                  boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.accept(new ComponentEventNotification("modalSaveSuccess", Map.of()));
+            commandsEnqueue.offer(new ComponentEventNotification("modalSaveSuccess", Map.of()));
         } else {
-            commandsEnqueue.accept(navigationContext.navigateToList());
+            commandsEnqueue.offer(navigationContext.navigateToList());
         }
     }
 
@@ -298,7 +301,7 @@ public abstract class EditViewContract<T> extends ViewContract {
      *
      * @param commandsEnqueue Consumer for emitting commands
      */
-    protected void onSaveFailure(Consumer<Command> commandsEnqueue) {
+    protected void onSaveFailure(CommandsEnqueue commandsEnqueue) {
         // Default: stay on page, could emit error notification
     }
 
@@ -311,13 +314,13 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @param navigationContext Context for navigation
      * @param isModalMode Whether in modal mode
      */
-    protected void onDeleteSuccess(Consumer<Command> commandsEnqueue,
+    protected void onDeleteSuccess(CommandsEnqueue commandsEnqueue,
                                    NavigationContext navigationContext,
                                    boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.accept(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
+            commandsEnqueue.offer(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
         } else {
-            commandsEnqueue.accept(navigationContext.navigateToList());
+            commandsEnqueue.offer(navigationContext.navigateToList());
         }
     }
 
@@ -328,7 +331,7 @@ public abstract class EditViewContract<T> extends ViewContract {
      *
      * @param commandsEnqueue Consumer for emitting commands
      */
-    protected void onDeleteFailure(Consumer<Command> commandsEnqueue) {
+    protected void onDeleteFailure(CommandsEnqueue commandsEnqueue) {
         // Default: stay on page, could emit error notification
     }
 }

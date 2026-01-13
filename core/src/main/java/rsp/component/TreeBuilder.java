@@ -18,7 +18,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
     protected final QualifiedSessionId sessionId;
-    protected final Consumer<Command> remotePageMessagesOut;
+    protected final CommandsEnqueue remotePageMessagesOut;
 
     private final Deque<TagNode> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
@@ -34,7 +34,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     public TreeBuilder(final QualifiedSessionId sessionId,
                        final TreePositionPath startDomPath,
                        final ComponentContext componentContext,
-                       final Consumer<Command> remotePageMessagesOut) {
+                       final CommandsEnqueue remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.componentContext = componentContext;

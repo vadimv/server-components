@@ -65,9 +65,9 @@ public abstract class ContextStateComponent<S> extends Component<S> {
     protected abstract Function<S, ContextValue> stateToContextValueFunction();
 
     @Override
-    public boolean onBeforeUpdated(S newState, Consumer<Command> commandsEnqueue) {
+    public boolean onBeforeUpdated(S newState, CommandsEnqueue commandsEnqueue) {
         // notify a component up in the tree hierarchy
-        commandsEnqueue.accept(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + contextAttributeName,
+        commandsEnqueue.offer(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + contextAttributeName,
                                                               stateToContextValueFunction().apply(newState)));
         return false; // do not update this component, it will be re-rendered as a part of the subtree
     }

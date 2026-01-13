@@ -81,7 +81,7 @@ public final class ComponentContext {
     }
 
     private ComponentContext(final Map<Class<?>, Object> classBased,
-                            final Map<String, Object> stringBased) {
+                             final Map<String, Object> stringBased) {
         this.classBased = classBased;
         this.stringBased = stringBased;
     }

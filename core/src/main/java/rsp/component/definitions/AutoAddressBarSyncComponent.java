@@ -147,7 +147,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     @Override
     public void onAfterRendered(RelativeUrl state,
                                 Subscriber subscriber,
-                                Consumer<Command> commandsEnqueue,
+                                CommandsEnqueue commandsEnqueue,
                                 StateUpdate<RelativeUrl> stateUpdate) {
         subscribeForBrowserHistoryEvents(subscriber, stateUpdate);
         subscribeForQueryParameterUpdates(subscriber, commandsEnqueue, stateUpdate);
@@ -172,7 +172,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      * This is truly automatic - no configuration needed, works for any parameter name.
      */
     private void subscribeForQueryParameterUpdates(Subscriber subscriber,
-                                                   Consumer<Command> commandsEnqueue,
+                                                   CommandsEnqueue commandsEnqueue,
                                                    StateUpdate<RelativeUrl> stateUpdate) {
         // Single handler for ALL query parameter updates using wildcard pattern
         subscriber.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "*",
@@ -185,7 +185,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                 if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
                     stateUpdate.applyStateTransformation(currentState -> {
                         RelativeUrl updatedUrl = updateQueryParameter(currentState, paramName, stringValue.value());
-                        commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
+                        commandsEnqueue.offer(new RemoteCommand.PushHistory(updatedUrl.toString()));
                         return updatedUrl;
                     });
                 }
@@ -199,7 +199,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      */
     private void subscribeForPathElementUpdates(RelativeUrl currentUrl,
                                                 Subscriber subscriber,
-                                                Consumer<Command> commandsEnqueue,
+                                                CommandsEnqueue commandsEnqueue,
                                                 StateUpdate<RelativeUrl> stateUpdate) {
         // Subscribe for each path element position
         for (int i = 0; i < currentUrl.path().elementsCount(); i++) {
@@ -210,7 +210,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                     if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
                         stateUpdate.applyStateTransformation(currentState -> {
                             RelativeUrl updatedUrl = updatePathElement(currentState, index, stringValue.value());
-                            commandsEnqueue.accept(new RemoteCommand.PushHistory(updatedUrl.toString()));
+                            commandsEnqueue.offer(new RemoteCommand.PushHistory(updatedUrl.toString()));
                             return updatedUrl;
                         });
                     }

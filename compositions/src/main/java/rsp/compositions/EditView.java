@@ -20,7 +20,7 @@ import java.util.function.Consumer;
  */
 public abstract class EditView extends Component<EditView.EditViewState> {
 
-    protected Consumer<Command> commandsEnqueue;
+    protected CommandsEnqueue commandsEnqueue;
     protected NavigationContext navigationContext;
 
     /**
@@ -104,7 +104,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                                                                    final TreePositionPath componentPath,
                                                                    final TreeBuilderFactory treeBuilderFactory,
                                                                    final ComponentContext componentContext,
-                                                                   final Consumer<Command> commandsEnqueue) {
+                                                                   final CommandsEnqueue commandsEnqueue) {
         // Store commandsEnqueue for use in view
         this.commandsEnqueue = commandsEnqueue;
 

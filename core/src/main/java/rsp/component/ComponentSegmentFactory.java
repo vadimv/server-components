@@ -27,5 +27,5 @@ public interface ComponentSegmentFactory<S> {
                                                TreePositionPath componentPath,
                                                TreeBuilderFactory treeBuilderFactory,
                                                ComponentContext componentContext,
-                                               Consumer<Command> commandsEnqueue);
+                                               CommandsEnqueue commandsEnqueue);
 }

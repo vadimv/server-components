@@ -72,14 +72,14 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
     }
 
     @Override
-    public boolean onBeforeUpdated(S newState, Consumer<Command> commandsEnqueue) {
+    public boolean onBeforeUpdated(S newState, CommandsEnqueue commandsEnqueue) {
         return true;
     }
 
     @Override
     public void onAfterRendered(S state,
                                 Subscriber subscriber,
-                                Consumer<Command> commandsEnqueue,
+                                CommandsEnqueue commandsEnqueue,
                                 StateUpdate<S> stateUpdate) {
     }
 
@@ -100,7 +100,7 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
                                                       final TreePositionPath componentPath,
                                                       final TreeBuilderFactory treeBuilderFactory,
                                                       final ComponentContext componentContext,
-                                                      final Consumer<Command> commandsEnqueue) {
+                                                      final CommandsEnqueue commandsEnqueue) {
         Objects.requireNonNull(sessionId);
         Objects.requireNonNull(componentPath);
         Objects.requireNonNull(treeBuilderFactory);

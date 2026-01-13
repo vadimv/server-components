@@ -108,7 +108,7 @@ public class DefaultEditView extends EditView {
 
                                     // Emit form.submitted event with collected field values
                                     // Contract will decide what to do (save, validate, etc.)
-                                    commandsEnqueue.accept(new ComponentEventNotification(
+                                    commandsEnqueue.offer(new ComponentEventNotification(
                                         "form.submitted",
                                         collectedValues
                                     ));
@@ -133,7 +133,7 @@ public class DefaultEditView extends EditView {
                                         if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
                                             // Emit delete.requested event
                                             // Contract will decide what to do
-                                            commandsEnqueue.accept(new ComponentEventNotification(
+                                            commandsEnqueue.offer(new ComponentEventNotification(
                                                 "delete.requested",
                                                 Map.of()
                                             ));

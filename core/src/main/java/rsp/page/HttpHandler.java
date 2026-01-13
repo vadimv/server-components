@@ -1,9 +1,13 @@
 package rsp.page;
 
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
+import rsp.component.ContextKey;
 import rsp.component.definitions.Component;
 import rsp.server.StaticResourceHandler;
-import rsp.server.http.*;
+import rsp.server.http.Header;
+import rsp.server.http.HttpRequest;
+import rsp.server.http.HttpResponse;
 import rsp.util.RandomString;
 
 import java.io.InputStream;
@@ -76,11 +80,14 @@ public final class HttpHandler {
                                                                            DefaultConnectionLostWidget.HTML,
                                                                            heartBeatIntervalMs);
 
-            final ComponentContext componentContext = new ComponentContext()
-                .with(new rsp.component.ContextKey.StringKey<>(ComponentContext.DEVICE_ID_KEY, String.class), deviceId)
-                .with(new rsp.component.ContextKey.StringKey<>(ComponentContext.SESSION_ID_KEY, String.class), sessionId);
-
             final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
+
+            final ComponentContext componentContext = new ComponentContext()
+                .with(new ContextKey.StringKey<>(ComponentContext.DEVICE_ID_KEY, String.class), deviceId)
+                .with(new ContextKey.StringKey<>(ComponentContext.SESSION_ID_KEY, String.class), sessionId)
+                .with(new ContextKey.ClassKey<>(CommandsEnqueue.class), commandsEnqueue);
+
+
 
             final PageBuilder pageBuilder = new PageBuilder(pageId,
                                                             pageConfigScript.toString(),

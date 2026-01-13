@@ -63,7 +63,7 @@ public class DefaultListView extends ListView {
                                             String newSort = sort.equals("asc") ? "desc" : "asc";
 
                                             // Send event to AddressBarSyncComponent
-                                            commandsEnqueue.accept(new ComponentEventNotification(
+                                            commandsEnqueue.offer(new ComponentEventNotification(
                                                 "stateUpdated.sort",
                                                 new ContextStateComponent.ContextValue.StringValue(newSort)
                                             ));
@@ -127,7 +127,7 @@ public class DefaultListView extends ListView {
                     attr("class", "create-button"),
                     text("Create New"),
                     on("click", ctx -> {
-                        commandsEnqueue.accept(new ComponentEventNotification("openCreateModal", Map.of()));
+                        commandsEnqueue.offer(new ComponentEventNotification("openCreateModal", Map.of()));
                     })
             );
         };
@@ -149,7 +149,7 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        commandsEnqueue.accept(new ComponentEventNotification(
+                        commandsEnqueue.offer(new ComponentEventNotification(
                             "stateUpdated.p",
                             new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage - 1))
                         ));
@@ -168,7 +168,7 @@ public class DefaultListView extends ListView {
                 text("Next →"),
                 on("click", ctx -> {
                     // Send event to AddressBarSyncComponent
-                    commandsEnqueue.accept(new ComponentEventNotification(
+                    commandsEnqueue.offer(new ComponentEventNotification(
                         "stateUpdated.p",
                         new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage + 1))
                     ));

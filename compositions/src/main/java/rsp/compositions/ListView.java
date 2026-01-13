@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  */
 public abstract class ListView extends Component<ListView.ListViewState> {
 
-    protected Consumer<Command> commandsEnqueue;
+    protected CommandsEnqueue commandsEnqueue;
 
     /**
      * State containing both data, schema, and pagination/sorting info for adaptive rendering.
@@ -107,7 +107,7 @@ public abstract class ListView extends Component<ListView.ListViewState> {
                                                                     final TreePositionPath componentPath,
                                                                     final TreeBuilderFactory treeBuilderFactory,
                                                                     final ComponentContext componentContext,
-                                                                    final Consumer<Command> commandsEnqueue) {
+                                                                    final CommandsEnqueue commandsEnqueue) {
         // Store commandsEnqueue for use in view
         this.commandsEnqueue = commandsEnqueue;
         return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);

@@ -32,7 +32,7 @@ public interface ComponentCallbacks<S> {
      * @param commandsEnqueue for sending commands (e.g., ComponentEventNotification)
      * @return true to proceed with the update, false to veto it
      */
-    boolean onBeforeUpdated(S newState, Consumer<Command> commandsEnqueue);
+    boolean onBeforeUpdated(S newState, CommandsEnqueue commandsEnqueue);
 
     /**
      * Called after each render (both initial and re-renders).
@@ -45,7 +45,7 @@ public interface ComponentCallbacks<S> {
      */
     void onAfterRendered(S state,
                          Subscriber subscriber,
-                         Consumer<Command> commandsEnqueue,
+                         CommandsEnqueue commandsEnqueue,
                          StateUpdate<S> stateUpdate);
 
     /**

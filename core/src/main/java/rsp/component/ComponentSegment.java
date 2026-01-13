@@ -31,7 +31,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final ComponentCompositeKey componentId;
-    private final Consumer<Command> commandsEnqueue;
+    private final CommandsEnqueue commandsEnqueue;
     private final ComponentContext componentContext;
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
@@ -73,7 +73,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
                             final ComponentCallbacks<S> callbacks,
                             final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
-                            final Consumer<Command> commandsEnqueue) {
+                            final CommandsEnqueue commandsEnqueue) {
         this.componentId = Objects.requireNonNull(componentId);
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.contextResolver = Objects.requireNonNull(contextResolver);
@@ -211,7 +211,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
         final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
-        commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.changes));
+        commandsEnqueue.offer(new RemoteCommand.ModifyDom(domChangePerformer.changes));
 
         // Unregister events
         final Set<DomEventEntry> newEvents = new HashSet<>(recursiveDomEvents());
@@ -219,7 +219,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             if (!newEvents.contains(event)
                 && event instanceof DomEventEntry domEventEntry
                 && !elementsToRemove.contains(domEventEntry.eventTarget.elementPath())) {
-                commandsEnqueue.accept(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.elementPath()));
+                commandsEnqueue.offer(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.elementPath()));
             }
         }
 
@@ -231,7 +231,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             }
         }
         if (!eventsToAdd.isEmpty()) {
-            commandsEnqueue.accept(new RemoteCommand.ListenEvent(eventsToAdd));
+            commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
         }
 
         // Notify unmounted child components
@@ -315,6 +315,60 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         componentEventEntries.add(new ComponentEventEntry(eventType, eventHandler, preventDefault));
     }
 
+    /**
+     * Register a type-safe handler for a component event.
+     *
+     * @param <T> the payload type
+     * @param key the typed event key
+     * @param handler receives the event name and typed payload
+     * @param preventDefault (currently unused for component events)
+     */
+    public <T> void addEventHandler(final EventKey<T> key,
+                                    final java.util.function.BiConsumer<String, T> handler,
+                                    final boolean preventDefault) {
+        addComponentEventHandler(key.name(), ctx -> {
+            @SuppressWarnings("unchecked")
+            T payload = (T) ctx.eventObject();
+            handler.accept(ctx.eventName(), payload);
+        }, preventDefault);
+    }
+
+    /**
+     * Register a type-safe handler for a void event (no payload).
+     *
+     * @param key the void event key
+     * @param handler the handler to invoke
+     * @param preventDefault (currently unused for component events)
+     */
+    public void addEventHandler(final EventKey.VoidKey key,
+                                final Runnable handler,
+                                final boolean preventDefault) {
+        addComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
+    }
+
+    /**
+     * Register a type-safe handler for a component event (convenience overload).
+     *
+     * @param <T> the payload type
+     * @param key the typed event key
+     * @param handler receives the event name and typed payload
+     */
+    public <T> void addEventHandler(final EventKey<T> key,
+                                    final java.util.function.BiConsumer<String, T> handler) {
+        addEventHandler(key, handler, false);
+    }
+
+    /**
+     * Register a type-safe handler for a void event (convenience overload).
+     *
+     * @param key the void event key
+     * @param handler the handler to invoke
+     */
+    public void addEventHandler(final EventKey.VoidKey key,
+                                final Runnable handler) {
+        addEventHandler(key, handler, false);
+    }
+
     public void addRef(final Ref ref, final TreePositionPath path) {
         refs.put(ref, path);
     }
@@ -351,21 +405,21 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final class EnqueueTaskStateUpdate implements StateUpdate<S> {
         @Override
         public void setState(final S newState) {
-            commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.offer(new GenericTaskEvent(() -> {
                 ComponentSegment.this.setState(newState);
             }));
         }
 
         @Override
         public void applyStateTransformation(final UnaryOperator<S> stateTransformer) {
-            commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.offer(new GenericTaskEvent(() -> {
                 ComponentSegment.this.applyStateTransformation(stateTransformer);
             }));
         }
 
         @Override
         public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
-            commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.offer(new GenericTaskEvent(() -> {
                 ComponentSegment.this.applyStateTransformationIfPresent(stateTransformer);
             }));
         }

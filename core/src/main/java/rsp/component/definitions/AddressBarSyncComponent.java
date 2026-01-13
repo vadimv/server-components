@@ -97,7 +97,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
     @Override
     public void onAfterRendered(RelativeUrl state,
                                 Subscriber subscriber,
-                                Consumer<Command> commandsEnqueue,
+                                CommandsEnqueue commandsEnqueue,
                                 StateUpdate<RelativeUrl> stateUpdate) {
         subscribeForBrowserHistoryEvents(subscriber, stateUpdate);
         subscribeForSessionObjectsUpdates(subscriber, commandsEnqueue, stateUpdate);
@@ -115,7 +115,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
     }
 
     private void subscribeForSessionObjectsUpdates(Subscriber subscriber,
-                                                   Consumer<Command> commandsEnqueue,
+                                                   CommandsEnqueue commandsEnqueue,
                                                    StateUpdate<RelativeUrl> stateUpdate) {
         // prepare indices for path elements session keys
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
@@ -132,7 +132,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                         final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
                         stateUpdate.applyStateTransformation(currentState -> {
                             final RelativeUrl relativeUrl = updatedRelativeUrlForPathElement(currentState, value, pathElementIndex);
-                            commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                            commandsEnqueue.offer(new RemoteCommand.PushHistory(relativeUrl.toString()));
                             return relativeUrl;
                         });
                     }
@@ -148,7 +148,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                     if (valueObject instanceof ContextStateComponent.ContextValue.StringValue(String value)) {
                         stateUpdate.applyStateTransformation(currentState -> {
                             final RelativeUrl relativeUrl = updatedRelativeUrlForParameter(currentState, parameterNameKey.parameterName(), value);
-                            commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                            commandsEnqueue.offer(new RemoteCommand.PushHistory(relativeUrl.toString()));
                             return relativeUrl;
                         });
                     } else {

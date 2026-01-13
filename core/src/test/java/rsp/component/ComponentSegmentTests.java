@@ -25,7 +25,7 @@ public class ComponentSegmentTests {
     private ComponentCompositeKey componentId;
     private ComponentContext componentContext;
     private List<Command> capturedCommands;
-    private Consumer<Command> commandsEnqueue;
+    private CommandsEnqueue commandsEnqueue;
     private TestCallbacks callbacks;
 
     @BeforeEach
