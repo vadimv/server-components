@@ -2,15 +2,11 @@ package rsp.compositions;
 
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
-import rsp.component.ComponentSegment;
 import rsp.component.Subscriber;
-import rsp.page.events.Command;
 import rsp.page.events.ComponentEventNotification;
-import rsp.page.events.GenericTaskEvent;
 import rsp.page.events.RemoteCommand;
 
 import java.util.Map;
-import java.util.function.Consumer;
 
 import static rsp.compositions.EventKeys.DELETE_REQUESTED;
 import static rsp.compositions.EventKeys.FORM_SUBMITTED;
@@ -31,18 +27,17 @@ public abstract class EditViewContract<T> extends ViewContract {
     protected EditViewContract(ComponentContext context) {
         super(context);
 
-        final NavigationContext navigationContext = new NavigationContext(context);
         final boolean isModalMode = context.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT) != null;
         final CommandsEnqueue commandsEnqueue = context.get(CommandsEnqueue.class);
         final Subscriber subscriber = context.get(Subscriber.class);
         // Handle form submission
         subscriber.addEventHandler(FORM_SUBMITTED, (eventName, fieldValues) -> {
-            handleFormSubmitted(fieldValues, commandsEnqueue, navigationContext, isModalMode);
+            handleFormSubmitted(fieldValues, commandsEnqueue, isModalMode);
         }, false);
 
         // Handle delete request
         subscriber.addEventHandler(DELETE_REQUESTED, () -> {
-            handleDeleteRequested(commandsEnqueue, navigationContext, isModalMode);
+            handleDeleteRequested(commandsEnqueue, isModalMode);
         }, false);
 
     }
@@ -220,35 +215,6 @@ public abstract class EditViewContract<T> extends ViewContract {
     // ========================================================================
 
     /**
-     * Register event handlers for this contract.
-     * <p>
-     * Called by the framework after the view component is created.
-     * The contract handles events emitted by the view (form.submitted, delete.requested)
-     * and decides what actions to take.
-     * <p>
-     * Override this method to customize event handling behavior.
-     *
-     * @param segment The component segment to register handlers on
-     * @param commandsEnqueue Consumer for emitting commands/events
-     * @param navigationContext Context for navigation operations
-     * @param isModalMode Whether the contract is rendered in a modal overlay
-     */
-    public void registerHandlers(ComponentSegment<?> segment,
-                                 CommandsEnqueue commandsEnqueue,
-                                 NavigationContext navigationContext,
-                                 boolean isModalMode) {
-        // Handle form submission
-        segment.addEventHandler(FORM_SUBMITTED, (eventName, fieldValues) -> {
-            handleFormSubmitted(fieldValues, commandsEnqueue, navigationContext, isModalMode);
-        }, false);
-
-        // Handle delete request
-        segment.addEventHandler(DELETE_REQUESTED, () -> {
-            handleDeleteRequested(commandsEnqueue, navigationContext, isModalMode);
-        }, false);
-    }
-
-    /**
      * Handle form submission event.
      * <p>
      * Default implementation calls {@link #save(Map)} and navigates on success.
@@ -256,16 +222,14 @@ public abstract class EditViewContract<T> extends ViewContract {
      *
      * @param fieldValues The submitted field values
      * @param commandsEnqueue Consumer for emitting commands
-     * @param navigationContext Context for navigation
      * @param isModalMode Whether in modal mode
      */
     protected void handleFormSubmitted(Map<String, Object> fieldValues,
                                        CommandsEnqueue commandsEnqueue,
-                                       NavigationContext navigationContext,
                                        boolean isModalMode) {
         boolean success = save(fieldValues);
         if (success) {
-            onSaveSuccess(commandsEnqueue, navigationContext, isModalMode);
+            onSaveSuccess(commandsEnqueue, isModalMode);
         } else {
             onSaveFailure(commandsEnqueue);
         }
@@ -278,15 +242,12 @@ public abstract class EditViewContract<T> extends ViewContract {
      * Override to customize delete handling.
      *
      * @param commandsEnqueue Consumer for emitting commands
-     * @param navigationContext Context for navigation
      * @param isModalMode Whether in modal mode
      */
-    protected void handleDeleteRequested(CommandsEnqueue commandsEnqueue,
-                                         NavigationContext navigationContext,
-                                         boolean isModalMode) {
+    protected void handleDeleteRequested(CommandsEnqueue commandsEnqueue, boolean isModalMode) {
         boolean success = delete();
         if (success) {
-            onDeleteSuccess(commandsEnqueue, navigationContext, isModalMode);
+            onDeleteSuccess(commandsEnqueue, isModalMode);
         } else {
             onDeleteFailure(commandsEnqueue);
         }
@@ -298,11 +259,9 @@ public abstract class EditViewContract<T> extends ViewContract {
      * Default: In modal mode, emits "modalSaveSuccess". Otherwise, navigates to list.
      *
      * @param commandsEnqueue Consumer for emitting commands
-     * @param navigationContext Context for navigation
      * @param isModalMode Whether in modal mode
      */
     protected void onSaveSuccess(CommandsEnqueue commandsEnqueue,
-                                 NavigationContext navigationContext,
                                  boolean isModalMode) {
         if (isModalMode) {
             commandsEnqueue.offer(new ComponentEventNotification("modalSaveSuccess", Map.of()));
@@ -328,11 +287,9 @@ public abstract class EditViewContract<T> extends ViewContract {
      * Default: In modal mode, emits "modalDeleteSuccess". Otherwise, navigates to list.
      *
      * @param commandsEnqueue Consumer for emitting commands
-     * @param navigationContext Context for navigation
      * @param isModalMode Whether in modal mode
      */
     protected void onDeleteSuccess(CommandsEnqueue commandsEnqueue,
-                                   NavigationContext navigationContext,
                                    boolean isModalMode) {
         if (isModalMode) {
             commandsEnqueue.offer(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
