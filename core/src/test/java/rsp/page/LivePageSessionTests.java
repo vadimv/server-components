@@ -106,7 +106,7 @@ public class LivePageSessionTests {
             initSession(pageBuilder);
 
             // After init, commands should go through the reactor
-            commandsEnqueue.accept(new RemoteCommand.PushHistory("/test-path"));
+            commandsEnqueue.offer(new RemoteCommand.PushHistory("/test-path"));
             eventLoop.runOneStep();
 
             final boolean hasPushHistory = remoteOut.commands.stream()
@@ -415,12 +415,12 @@ public class LivePageSessionTests {
      */
     static class NoOpCallbacks implements ComponentCallbacks<String> {
         @Override
-        public boolean onBeforeUpdated(final String newState, final Consumer<Command> commandsEnqueue) {
+        public boolean onBeforeUpdated(final String newState, final CommandsEnqueue commandsEnqueue) {
             return true;
         }
 
         @Override
-        public void onAfterRendered(final String state, final Subscriber subscriber, final Consumer<Command> commandsEnqueue, final StateUpdate<String> stateUpdate) {
+        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdate<String> stateUpdate) {
         }
 
         @Override
@@ -449,7 +449,7 @@ public class LivePageSessionTests {
         }
 
         @Override
-        public void onAfterRendered(final String state, final Subscriber subscriber, final Consumer<Command> commandsEnqueue, final StateUpdate<String> stateUpdate) {
+        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdate<String> stateUpdate) {
             subscriber.addComponentEventHandler(eventType, handler, false);
         }
     }

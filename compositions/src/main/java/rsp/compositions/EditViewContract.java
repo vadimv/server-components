@@ -3,9 +3,11 @@ package rsp.compositions;
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentSegment;
+import rsp.component.Subscriber;
 import rsp.page.events.Command;
 import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.GenericTaskEvent;
+import rsp.page.events.RemoteCommand;
 
 import java.util.Map;
 import java.util.function.Consumer;
@@ -28,6 +30,21 @@ public abstract class EditViewContract<T> extends ViewContract {
 
     protected EditViewContract(ComponentContext context) {
         super(context);
+
+        final NavigationContext navigationContext = new NavigationContext(context);
+        final boolean isModalMode = context.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT) != null;
+        final CommandsEnqueue commandsEnqueue = context.get(CommandsEnqueue.class);
+        final Subscriber subscriber = context.get(Subscriber.class);
+        // Handle form submission
+        subscriber.addEventHandler(FORM_SUBMITTED, (eventName, fieldValues) -> {
+            handleFormSubmitted(fieldValues, commandsEnqueue, navigationContext, isModalMode);
+        }, false);
+
+        // Handle delete request
+        subscriber.addEventHandler(DELETE_REQUESTED, () -> {
+            handleDeleteRequested(commandsEnqueue, navigationContext, isModalMode);
+        }, false);
+
     }
 
     /**
@@ -290,7 +307,7 @@ public abstract class EditViewContract<T> extends ViewContract {
         if (isModalMode) {
             commandsEnqueue.offer(new ComponentEventNotification("modalSaveSuccess", Map.of()));
         } else {
-            commandsEnqueue.offer(navigationContext.navigateToList());
+            commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
         }
     }
 
@@ -320,7 +337,7 @@ public abstract class EditViewContract<T> extends ViewContract {
         if (isModalMode) {
             commandsEnqueue.offer(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
         } else {
-            commandsEnqueue.offer(navigationContext.navigateToList());
+            commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
         }
     }
 

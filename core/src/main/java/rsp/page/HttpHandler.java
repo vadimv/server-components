@@ -83,10 +83,8 @@ public final class HttpHandler {
             final RedirectableEventsConsumer commandsEnqueue = new RedirectableEventsConsumer();
 
             final ComponentContext componentContext = new ComponentContext()
-                .with(new ContextKey.StringKey<>(ComponentContext.DEVICE_ID_KEY, String.class), deviceId)
-                .with(new ContextKey.StringKey<>(ComponentContext.SESSION_ID_KEY, String.class), sessionId)
+                .with(new ContextKey.ClassKey<>(QualifiedSessionId.class), pageId)
                 .with(new ContextKey.ClassKey<>(CommandsEnqueue.class), commandsEnqueue);
-
 
 
             final PageBuilder pageBuilder = new PageBuilder(pageId,

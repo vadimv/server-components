@@ -64,9 +64,6 @@ import java.util.Objects;
  */
 public final class ComponentContext {
 
-    public static final String DEVICE_ID_KEY = "deviceId";
-    public static final String SESSION_ID_KEY = "sessionId";
-
     // Separate maps for different key types to prevent collisions
     private final Map<Class<?>, Object> classBased;     // ClassKey storage
     private final Map<String, Object> stringBased;      // StringKey + DynamicKey storage
@@ -246,25 +243,6 @@ public final class ComponentContext {
             enrichedContext = enrichedContext.with(service);
         }
         return enrichedContext;
-    }
-
-
-    /**
-     * Gets the device ID from the context.
-     *
-     * @return the device ID, or null if not present
-     */
-    public String deviceId() {
-        return (String) stringBased.get(DEVICE_ID_KEY);
-    }
-
-    /**
-     * Gets the session ID from the context.
-     *
-     * @return the session ID, or null if not present
-     */
-    public String sessionId() {
-        return (String) stringBased.get(SESSION_ID_KEY);
     }
 
 

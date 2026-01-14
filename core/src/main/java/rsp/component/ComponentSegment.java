@@ -134,7 +134,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         try {
             state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext),
                                            "Initial state cannot be null for component " + componentId);
-            renderContext.setComponentContext(contextResolver.apply(componentContext, state));
+            renderContext.setComponentContext(componentContext().apply(componentContext, state));
 
             final View<S> view = componentView.use(this);
             final Definition uiDefinition = view.apply(state);
@@ -146,6 +146,10 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
         }
+    }
+
+    private BiFunction<ComponentContext, S, ComponentContext> componentContext() {
+        return (ctx, s) -> contextResolver.apply(ctx, s).with(Subscriber.class, subscriber);
     }
 
     /**
@@ -200,7 +204,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
 
-        renderContext.setComponentContext(contextResolver.apply(componentContext, state));
+        renderContext.setComponentContext(componentContext().apply(componentContext, state));
         renderContext.openComponent(this);
         final Definition view = componentView.use(this).apply(state);
         view.render(renderContext);

@@ -21,7 +21,6 @@ import java.util.function.Consumer;
 public abstract class EditView extends Component<EditView.EditViewState> {
 
     protected CommandsEnqueue commandsEnqueue;
-    protected NavigationContext navigationContext;
 
     /**
      * State containing the entity data being edited and schema metadata.
@@ -108,19 +107,9 @@ public abstract class EditView extends Component<EditView.EditViewState> {
         // Store commandsEnqueue for use in view
         this.commandsEnqueue = commandsEnqueue;
 
-        // Initialize NavigationContext
-        this.navigationContext = new NavigationContext(componentContext);
 
         // Create the segment
         ComponentSegment<EditViewState> segment = super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
-
-        // Delegate event handling to the contract
-        // Contract registers handlers for form.submitted and delete.requested events
-        EditViewContract<?> contract = resolveContract(componentContext);
-        if (contract != null) {
-            boolean isModalMode = componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT) != null;
-            contract.registerHandlers(segment, commandsEnqueue, navigationContext, isModalMode);
-        }
 
         return segment;
     }

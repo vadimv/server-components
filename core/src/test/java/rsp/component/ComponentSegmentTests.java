@@ -111,13 +111,13 @@ public class ComponentSegmentTests {
         }
 
         @Override
-        public boolean onBeforeUpdated(final String newState, final Consumer<Command> commandsEnqueue) {
+        public boolean onBeforeUpdated(final String newState, final CommandsEnqueue commandsEnqueue) {
             callOrder.add("onBeforeUpdated:" + newState);
             return !vetoUpdate;
         }
 
         @Override
-        public void onAfterRendered(final String state, final Subscriber subscriber, final Consumer<Command> commandsEnqueue, final StateUpdate<String> stateUpdate) {
+        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdate<String> stateUpdate) {
             callOrder.add("onAfterRendered:" + state);
         }
 

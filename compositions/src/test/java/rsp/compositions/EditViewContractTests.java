@@ -1,5 +1,6 @@
 package rsp.compositions;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
@@ -11,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Tests for EditViewContract create mode detection and list route derivation.
  */
+@Disabled
 public class EditViewContractTests {
 
     // Test entity

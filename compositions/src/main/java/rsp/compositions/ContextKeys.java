@@ -179,7 +179,7 @@ public final class ContextKeys {
     /**
      * The route to navigate back to list view.
      * Type: String
-     * Example: "/posts" or "/posts?p=3&sort=desc"
+     * Example: {@literal /posts} or {@literal /posts?p=3&sort=desc}
      * Used by EditView to know where to navigate after save/cancel.
      */
     public static final ContextKey.StringKey<String> EDIT_LIST_ROUTE =
