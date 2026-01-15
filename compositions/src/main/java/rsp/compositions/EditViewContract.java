@@ -3,13 +3,14 @@ package rsp.compositions;
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.Subscriber;
-import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.RemoteCommand;
 
 import java.util.Map;
 
 import static rsp.compositions.EventKeys.DELETE_REQUESTED;
 import static rsp.compositions.EventKeys.FORM_SUBMITTED;
+import static rsp.compositions.EventKeys.MODAL_DELETE_SUCCESS;
+import static rsp.compositions.EventKeys.MODAL_SAVE_SUCCESS;
 
 /**
  * EditViewContract - Base contract for edit/form views.
@@ -264,7 +265,7 @@ public abstract class EditViewContract<T> extends ViewContract {
     protected void onSaveSuccess(CommandsEnqueue commandsEnqueue,
                                  boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.offer(new ComponentEventNotification("modalSaveSuccess", Map.of()));
+            commandsEnqueue.offer(MODAL_SAVE_SUCCESS.emit());
         } else {
             commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
         }
@@ -292,7 +293,7 @@ public abstract class EditViewContract<T> extends ViewContract {
     protected void onDeleteSuccess(CommandsEnqueue commandsEnqueue,
                                    boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.offer(new ComponentEventNotification("modalDeleteSuccess", Map.of()));
+            commandsEnqueue.offer(MODAL_DELETE_SUCCESS.emit());
         } else {
             commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
         }

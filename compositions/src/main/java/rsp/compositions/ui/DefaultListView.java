@@ -5,13 +5,12 @@ import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.EditMode;
 import rsp.compositions.ListView;
 import rsp.dsl.Definition;
-import rsp.page.events.ComponentEventNotification;
 
-import java.util.Map;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+import static rsp.compositions.EventKeys.*;
 import static rsp.dsl.Html.*;
 
 /**
@@ -63,8 +62,7 @@ public class DefaultListView extends ListView {
                                             String newSort = sort.equals("asc") ? "desc" : "asc";
 
                                             // Send event to AddressBarSyncComponent
-                                            commandsEnqueue.offer(new ComponentEventNotification(
-                                                "stateUpdated.sort",
+                                            commandsEnqueue.offer(STATE_UPDATED.with("sort").emit(
                                                 new ContextStateComponent.ContextValue.StringValue(newSort)
                                             ));
                                         })
@@ -127,7 +125,7 @@ public class DefaultListView extends ListView {
                     attr("class", "create-button"),
                     text("Create New"),
                     on("click", ctx -> {
-                        commandsEnqueue.offer(new ComponentEventNotification("openCreateModal", Map.of()));
+                        commandsEnqueue.offer(OPEN_CREATE_MODAL.emit());
                     })
             );
         };
@@ -149,8 +147,7 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        commandsEnqueue.offer(new ComponentEventNotification(
-                            "stateUpdated.p",
+                        commandsEnqueue.offer(STATE_UPDATED.with("p").emit(
                             new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage - 1))
                         ));
                     })
@@ -168,8 +165,7 @@ public class DefaultListView extends ListView {
                 text("Next →"),
                 on("click", ctx -> {
                     // Send event to AddressBarSyncComponent
-                    commandsEnqueue.offer(new ComponentEventNotification(
-                        "stateUpdated.p",
+                    commandsEnqueue.offer(STATE_UPDATED.with("p").emit(
                         new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage + 1))
                     ));
                 })

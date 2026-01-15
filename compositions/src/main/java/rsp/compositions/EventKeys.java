@@ -1,6 +1,7 @@
 package rsp.compositions;
 
 import rsp.component.EventKey;
+import rsp.component.definitions.ContextStateComponent;
 
 import java.util.Map;
 
@@ -46,6 +47,14 @@ public final class EventKeys {
             new EventKey.VoidKey("closeOverlay");
 
     /**
+     * Overlay close requested (for QUERY_PARAM mode URL update).
+     * Emitted by: LayoutComponent when overlay closes
+     * Handled by: Parent component for URL navigation
+     */
+    public static final EventKey.VoidKey OVERLAY_CLOSE_REQUESTED =
+            new EventKey.VoidKey("overlayCloseRequested");
+
+    /**
      * Modal save succeeded (close modal + refresh list).
      * Emitted by: EditViewContract.onSaveSuccess()
      * Handled by: LayoutComponent
@@ -72,20 +81,12 @@ public final class EventKeys {
     // ===== STATE UPDATE EVENTS (Dynamic) =====
 
     /**
-     * State updated for query parameter.
-     * Dynamic key: "stateUpdated.url.query.*"
-     * Emitted by: ContextStateComponent
-     * Handled by: AutoAddressBarSyncComponent
+     * State updated event for any context parameter.
+     * Dynamic key: "stateUpdated.*" for "stateUpdated.p", "stateUpdated.sort", etc.
+     * Emitted by: DefaultListView (pagination, sorting)
+     * Handled by: AddressBarSyncComponent, AutoAddressBarSyncComponent
+     * Payload: ContextStateComponent.ContextValue.StringValue
      */
-    public static final EventKey.DynamicKey<String> STATE_UPDATED_QUERY =
-            new EventKey.DynamicKey<>("stateUpdated.url.query", String.class);
-
-    /**
-     * State updated for path parameter.
-     * Dynamic key: "stateUpdated.url.path.*"
-     * Emitted by: ContextStateComponent
-     * Handled by: AutoAddressBarSyncComponent
-     */
-    public static final EventKey.DynamicKey<String> STATE_UPDATED_PATH =
-            new EventKey.DynamicKey<>("stateUpdated.url.path", String.class);
+    public static final EventKey.DynamicKey<ContextStateComponent.ContextValue> STATE_UPDATED =
+            new EventKey.DynamicKey<>("stateUpdated", ContextStateComponent.ContextValue.class);
 }

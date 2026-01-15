@@ -4,7 +4,6 @@ import rsp.component.ComponentView;
 import rsp.compositions.EditView;
 import rsp.compositions.ListSchema;
 import rsp.dsl.Definition;
-import rsp.page.events.ComponentEventNotification;
 import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
 
@@ -13,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import static rsp.compositions.EventKeys.*;
 import static rsp.dsl.Html.*;
 
 /**
@@ -108,10 +108,7 @@ public class DefaultEditView extends EditView {
 
                                     // Emit form.submitted event with collected field values
                                     // Contract will decide what to do (save, validate, etc.)
-                                    commandsEnqueue.offer(new ComponentEventNotification(
-                                        "form.submitted",
-                                        collectedValues
-                                    ));
+                                    commandsEnqueue.offer(FORM_SUBMITTED.emit(collectedValues));
                                 });
                             })
                         ),
@@ -133,10 +130,7 @@ public class DefaultEditView extends EditView {
                                         if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
                                             // Emit delete.requested event
                                             // Contract will decide what to do
-                                            commandsEnqueue.offer(new ComponentEventNotification(
-                                                "delete.requested",
-                                                Map.of()
-                                            ));
+                                            commandsEnqueue.offer(DELETE_REQUESTED.emit());
                                         }
                                     });
                             })

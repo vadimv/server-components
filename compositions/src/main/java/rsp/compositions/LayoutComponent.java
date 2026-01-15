@@ -4,11 +4,6 @@ import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
-import rsp.page.events.Command;
-import rsp.page.events.ComponentEventNotification;
-
-import java.util.Map;
-import java.util.function.Consumer;
 
 import static rsp.compositions.EventKeys.*;
 import static rsp.dsl.Html.*;
@@ -109,7 +104,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // For MODAL mode, close without URL navigation
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // For QUERY_PARAM mode, emit event to parent for URL update
-            commandsEnqueue.offer(new ComponentEventNotification("overlayCloseRequested", Map.of()));
+            commandsEnqueue.offer(OVERLAY_CLOSE_REQUESTED.emit());
         }, false);
 
         // Register handler for modalSaveSuccess event (close modal + refresh list)
@@ -117,7 +112,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // Close the modal
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // Trigger list refresh
-            commandsEnqueue.offer(new ComponentEventNotification("refreshList", Map.of()));
+            commandsEnqueue.offer(REFRESH_LIST.emit());
         }, false);
 
         // Register handler for modalDeleteSuccess event (close modal + refresh list)
@@ -125,7 +120,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // Close the modal
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // Trigger list refresh
-            commandsEnqueue.offer(new ComponentEventNotification("refreshList", Map.of()));
+            commandsEnqueue.offer(REFRESH_LIST.emit());
         }, false);
     }
 
@@ -178,7 +173,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                 div(attr("class", "modal-backdrop"),
                         on("click", ctx -> {
                             // Send closeOverlay event to trigger state change
-                            commandsEnqueue.offer(new ComponentEventNotification("closeOverlay", Map.of()));
+                            commandsEnqueue.offer(CLOSE_OVERLAY.emit());
                         })
                 ),
                 // Modal content container

@@ -1,5 +1,9 @@
 package rsp.component;
 
+import rsp.page.events.ComponentEventNotification;
+
+import java.util.Map;
+
 public sealed interface EventKey<T> permits EventKey.SimpleKey, EventKey.DynamicKey, EventKey.VoidKey {
 
     /**
@@ -15,7 +19,14 @@ public sealed interface EventKey<T> permits EventKey.SimpleKey, EventKey.Dynamic
     /**
      * Simple event key with fixed name and payload type.
      */
-    record SimpleKey<T>(String name, Class<T> payloadType) implements EventKey<T> {}
+    record SimpleKey<T>(String name, Class<T> payloadType) implements EventKey<T> {
+        /**
+         * Create a notification with this key and payload.
+         */
+        public ComponentEventNotification emit(T payload) {
+            return new ComponentEventNotification(name, payload);
+        }
+    }
 
     /**
      * Dynamic event key for parameterized event families.
@@ -42,6 +53,13 @@ public sealed interface EventKey<T> permits EventKey.SimpleKey, EventKey.Dynamic
         @Override
         public Class<Void> payloadType() {
             return Void.class;
+        }
+
+        /**
+         * Create a notification for this void event.
+         */
+        public ComponentEventNotification emit() {
+            return new ComponentEventNotification(name, Map.of());
         }
     }
 }
