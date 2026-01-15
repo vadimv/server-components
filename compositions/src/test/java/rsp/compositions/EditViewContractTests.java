@@ -1,22 +1,45 @@
 package rsp.compositions;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
+import rsp.component.ComponentEventEntry;
+import rsp.component.Subscriber;
+import rsp.dom.DomEventEntry;
+import rsp.page.EventContext;
+import rsp.page.events.Command;
 
 import java.util.Map;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for EditViewContract create mode detection and list route derivation.
  */
-@Disabled
 public class EditViewContractTests {
 
     // Test entity
     record TestEntity(String id, String name) {}
+
+    // No-op Subscriber for tests
+    static class NoOpSubscriber implements Subscriber {
+        @Override
+        public void addWindowEventHandler(String eventType, Consumer<EventContext> eventHandler,
+                                          boolean preventDefault, DomEventEntry.Modifier modifier) {}
+
+        @Override
+        public void addComponentEventHandler(String eventType,
+                                             Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                             boolean preventDefault) {}
+    }
+
+    // No-op CommandsEnqueue for tests
+    static class NoOpCommandsEnqueue implements CommandsEnqueue {
+        @Override
+        public void offer(Command command) {}
+    }
 
     // Minimal test contract with configurable ID resolution
     static class TestEditContract extends EditViewContract<TestEntity> {
@@ -62,7 +85,9 @@ public class EditViewContractTests {
 
     private ComponentContext contextWithRoutePattern(final String pattern) {
         return new ComponentContext()
-                .with(ContextKeys.ROUTE_PATTERN, pattern);
+                .with(ContextKeys.ROUTE_PATTERN, pattern)
+                .with(CommandsEnqueue.class, new NoOpCommandsEnqueue())
+                .with(Subscriber.class, new NoOpSubscriber());
     }
 
     @Nested
@@ -185,7 +210,10 @@ public class EditViewContractTests {
 
         @Test
         void list_route_throws_when_no_route_pattern() {
-            final ComponentContext context = new ComponentContext();  // No route pattern
+            // No route pattern, but still needs CommandsEnqueue and Subscriber
+            final ComponentContext context = new ComponentContext()
+                    .with(CommandsEnqueue.class, new NoOpCommandsEnqueue())
+                    .with(Subscriber.class, new NoOpSubscriber());
             final TestEditContract contract = new TestEditContract(context, "123");
 
             assertThrows(IllegalStateException.class, contract::listRoute);

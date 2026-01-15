@@ -24,12 +24,12 @@ import static rsp.compositions.EventKeys.FORM_SUBMITTED;
  */
 public abstract class EditViewContract<T> extends ViewContract {
 
-    protected EditViewContract(ComponentContext context) {
+    protected EditViewContract(final ComponentContext context) {
         super(context);
 
         final boolean isModalMode = context.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT) != null;
-        final CommandsEnqueue commandsEnqueue = context.get(CommandsEnqueue.class);
-        final Subscriber subscriber = context.get(Subscriber.class);
+        final CommandsEnqueue commandsEnqueue = context.getRequired(CommandsEnqueue.class);
+        final Subscriber subscriber = context.getRequired(Subscriber.class);
         // Handle form submission
         subscriber.addEventHandler(FORM_SUBMITTED, (eventName, fieldValues) -> {
             handleFormSubmitted(fieldValues, commandsEnqueue, isModalMode);
