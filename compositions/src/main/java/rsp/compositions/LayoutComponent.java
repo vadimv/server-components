@@ -104,7 +104,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // For MODAL mode, close without URL navigation
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // For QUERY_PARAM mode, emit event to parent for URL update
-            commandsEnqueue.offer(OVERLAY_CLOSE_REQUESTED.emit());
+            commandsEnqueue.offer(OVERLAY_CLOSE_REQUESTED.notification());
         }, false);
 
         // Register handler for modalSaveSuccess event (close modal + refresh list)
@@ -112,7 +112,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // Close the modal
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // Trigger list refresh
-            commandsEnqueue.offer(REFRESH_LIST.emit());
+            commandsEnqueue.offer(REFRESH_LIST.notification());
         }, false);
 
         // Register handler for modalDeleteSuccess event (close modal + refresh list)
@@ -120,7 +120,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // Close the modal
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // Trigger list refresh
-            commandsEnqueue.offer(REFRESH_LIST.emit());
+            commandsEnqueue.offer(REFRESH_LIST.notification());
         }, false);
     }
 
@@ -173,7 +173,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                 div(attr("class", "modal-backdrop"),
                         on("click", ctx -> {
                             // Send closeOverlay event to trigger state change
-                            commandsEnqueue.offer(CLOSE_OVERLAY.emit());
+                            commandsEnqueue.offer(CLOSE_OVERLAY.notification());
                         })
                 ),
                 // Modal content container

@@ -23,7 +23,7 @@ public sealed interface EventKey<T> permits EventKey.SimpleKey, EventKey.Dynamic
         /**
          * Create a notification with this key and payload.
          */
-        public ComponentEventNotification emit(T payload) {
+        public ComponentEventNotification notification(T payload) {
             return new ComponentEventNotification(name, payload);
         }
     }
@@ -58,7 +58,7 @@ public sealed interface EventKey<T> permits EventKey.SimpleKey, EventKey.Dynamic
         /**
          * Create a notification for this void event.
          */
-        public ComponentEventNotification emit() {
+        public ComponentEventNotification notification() {
             return new ComponentEventNotification(name, Map.of());
         }
     }

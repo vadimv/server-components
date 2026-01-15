@@ -265,7 +265,7 @@ public abstract class EditViewContract<T> extends ViewContract {
     protected void onSaveSuccess(CommandsEnqueue commandsEnqueue,
                                  boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.offer(MODAL_SAVE_SUCCESS.emit());
+            commandsEnqueue.offer(MODAL_SAVE_SUCCESS.notification());
         } else {
             commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
         }
@@ -293,7 +293,7 @@ public abstract class EditViewContract<T> extends ViewContract {
     protected void onDeleteSuccess(CommandsEnqueue commandsEnqueue,
                                    boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.offer(MODAL_DELETE_SUCCESS.emit());
+            commandsEnqueue.offer(MODAL_DELETE_SUCCESS.notification());
         } else {
             commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
         }

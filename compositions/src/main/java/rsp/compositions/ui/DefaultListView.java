@@ -62,7 +62,7 @@ public class DefaultListView extends ListView {
                                             String newSort = sort.equals("asc") ? "desc" : "asc";
 
                                             // Send event to AddressBarSyncComponent
-                                            commandsEnqueue.offer(STATE_UPDATED.with("sort").emit(
+                                            commandsEnqueue.offer(STATE_UPDATED.with("sort").notification(
                                                 new ContextStateComponent.ContextValue.StringValue(newSort)
                                             ));
                                         })
@@ -125,7 +125,7 @@ public class DefaultListView extends ListView {
                     attr("class", "create-button"),
                     text("Create New"),
                     on("click", ctx -> {
-                        commandsEnqueue.offer(OPEN_CREATE_MODAL.emit());
+                        commandsEnqueue.offer(OPEN_CREATE_MODAL.notification());
                     })
             );
         };
@@ -147,7 +147,7 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        commandsEnqueue.offer(STATE_UPDATED.with("p").emit(
+                        commandsEnqueue.offer(STATE_UPDATED.with("p").notification(
                             new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage - 1))
                         ));
                     })
@@ -165,7 +165,7 @@ public class DefaultListView extends ListView {
                 text("Next →"),
                 on("click", ctx -> {
                     // Send event to AddressBarSyncComponent
-                    commandsEnqueue.offer(STATE_UPDATED.with("p").emit(
+                    commandsEnqueue.offer(STATE_UPDATED.with("p").notification(
                         new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage + 1))
                     ));
                 })
