@@ -152,6 +152,25 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
         subscribeForBrowserHistoryEvents(subscriber, stateUpdate);
         subscribeForQueryParameterUpdates(subscriber, commandsEnqueue, stateUpdate);
         subscribeForPathElementUpdates(state, subscriber, commandsEnqueue, stateUpdate);
+        subscribeForNavigationEvents(subscriber, commandsEnqueue);
+    }
+
+    /**
+     * Subscribe to navigation events that trigger full page navigation.
+     * Event name: "navigate" with payload being the target URL path.
+     *
+     * Uses SetHref (not PushHistory) to trigger a full page reload at the new URL.
+     */
+    private void subscribeForNavigationEvents(Subscriber subscriber,
+                                              CommandsEnqueue commandsEnqueue) {
+        subscriber.addComponentEventHandler("navigate",
+            eventContext -> {
+                final Object pathObject = eventContext.eventObject();
+                if (pathObject instanceof String path) {
+                    commandsEnqueue.offer(new RemoteCommand.SetHref(path));
+                }
+            },
+            false);
     }
 
     private void subscribeForBrowserHistoryEvents(Subscriber subscriber,

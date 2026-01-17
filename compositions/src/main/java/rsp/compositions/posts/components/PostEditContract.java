@@ -1,6 +1,6 @@
 package rsp.compositions.posts.components;
 
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
 import rsp.compositions.EditViewContract;
 import rsp.compositions.ListSchema;
 import rsp.compositions.PathParam;
@@ -19,10 +19,10 @@ public class PostEditContract extends EditViewContract<Post> {
 
     private final PostService postService;
 
-    public PostEditContract(final ComponentContext context) {
-        super(context);
-        // Read service from context
-        this.postService = context.get(PostService.class);
+    public PostEditContract(final Lookup lookup) {
+        super(lookup);
+        // Read service from lookup
+        this.postService = lookup.get(PostService.class);
     }
 
     @Override

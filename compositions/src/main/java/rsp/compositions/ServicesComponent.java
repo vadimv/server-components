@@ -1,8 +1,12 @@
 package rsp.compositions;
 
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
+import rsp.component.ContextLookup;
+import rsp.component.Lookup;
+import rsp.component.Subscriber;
 import rsp.component.definitions.Component;
 
 import java.util.List;
@@ -183,11 +187,23 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
         for (ViewPlacement placement : module.views()) {
             if (placement.contractClass().equals(contractClass) ||
                 contractClass.isAssignableFrom(placement.contractClass())) {
-                // Instantiate contract using factory with context
-                return placement.contractFactory().apply(context);
+                // Create Lookup from context + event infrastructure
+                Lookup lookup = createLookup(context);
+                // Instantiate contract using factory with lookup
+                return placement.contractFactory().apply(lookup);
             }
         }
         return null;
+    }
+
+    /**
+     * Create a Lookup from ComponentContext for contract instantiation.
+     * This bridges the framework infrastructure to the contract API.
+     */
+    private Lookup createLookup(ComponentContext context) {
+        CommandsEnqueue commandsEnqueue = context.getRequired(CommandsEnqueue.class);
+        Subscriber subscriber = context.getRequired(Subscriber.class);
+        return new ContextLookup(context, commandsEnqueue, subscriber);
     }
 
     /**

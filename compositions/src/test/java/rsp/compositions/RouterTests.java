@@ -2,7 +2,8 @@ package rsp.compositions;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
+import rsp.component.TestLookup;
 
 import java.util.Optional;
 
@@ -15,14 +16,14 @@ public class RouterTests {
 
     // Minimal test contract for testing Router
     static class TestContract extends ViewContract {
-        protected TestContract(final ComponentContext context) {
-            super(context);
+        protected TestContract(final Lookup lookup) {
+            super(lookup);
         }
     }
 
     static class AnotherTestContract extends ViewContract {
-        protected AnotherTestContract(final ComponentContext context) {
-            super(context);
+        protected AnotherTestContract(final Lookup lookup) {
+            super(lookup);
         }
     }
 

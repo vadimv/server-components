@@ -1,6 +1,6 @@
 package rsp.compositions;
 
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -15,7 +15,7 @@ import java.util.function.Function;
  * <pre>{@code
  * // URL: /posts/123/edit
  * PathParam<String> postId = new PathParam<>(1, String.class, null);
- * String id = postId.resolve(context);  // Returns "123"
+ * String id = postId.resolve(lookup);  // Returns "123"
  * }</pre>
  *
  * @param <T> The type of the path parameter (String, Integer, Long, etc.)
@@ -56,15 +56,15 @@ public class PathParam<T> {
     }
 
     /**
-     * Resolve the path parameter from the component context.
+     * Resolve the path parameter from the lookup.
      *
-     * @param ctx The component context containing URL path data
+     * @param lookup The lookup containing URL path data
      * @return The parsed parameter value, or the default value if not present or parse fails
      */
     @SuppressWarnings("unchecked")
-    public T resolve(ComponentContext ctx) {
+    public T resolve(Lookup lookup) {
         // Read from "url.path.{index}" namespace (populated by AutoAddressBarSyncComponent)
-        final Object value = ctx.get(ContextKeys.URL_PATH.with(String.valueOf(index)));
+        final Object value = lookup.get(ContextKeys.URL_PATH.with(String.valueOf(index)));
 
         if (value == null) {
             return defaultValue;

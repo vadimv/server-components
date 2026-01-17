@@ -2,7 +2,8 @@ package rsp.compositions;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
+import rsp.component.TestLookup;
 import rsp.component.ContextKey;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,36 +18,36 @@ public class ContextKeysTests {
 
         @Test
         void class_key_and_string_key_with_same_name_are_distinct() {
-            final ComponentContext context = new ComponentContext()
-                    .with(String.class, "class-based-value")
-                    .with(new ContextKey.StringKey<>("java.lang.String", String.class), "string-based-value");
+            final TestLookup lookup = new TestLookup()
+                    .withData(String.class, "class-based-value")
+                    .withData(new ContextKey.StringKey<>("java.lang.String", String.class), "string-based-value");
 
-            assertEquals("class-based-value", context.get(String.class));
-            assertEquals("string-based-value", context.get(new ContextKey.StringKey<>("java.lang.String", String.class)));
+            assertEquals("class-based-value", lookup.get(String.class));
+            assertEquals("string-based-value", lookup.get(new ContextKey.StringKey<>("java.lang.String", String.class)));
         }
 
         @Test
         void dynamic_key_extensions_are_distinct() {
             final ContextKey.DynamicKey<String> base = ContextKeys.URL_QUERY;
 
-            final ComponentContext context = new ComponentContext()
-                    .with(base.with("p"), "1")
-                    .with(base.with("sort"), "asc")
-                    .with(base.with("filter"), "active");
+            final TestLookup lookup = new TestLookup()
+                    .withData(base.with("p"), "1")
+                    .withData(base.with("sort"), "asc")
+                    .withData(base.with("filter"), "active");
 
-            assertEquals("1", context.get(base.with("p")));
-            assertEquals("asc", context.get(base.with("sort")));
-            assertEquals("active", context.get(base.with("filter")));
+            assertEquals("1", lookup.get(base.with("p")));
+            assertEquals("asc", lookup.get(base.with("sort")));
+            assertEquals("active", lookup.get(base.with("filter")));
         }
 
         @Test
         void different_dynamic_keys_with_same_extension_are_distinct() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_QUERY.with("id"), "query-id")
-                    .with(ContextKeys.URL_PATH.with("id"), "path-id");
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_QUERY.with("id"), "query-id")
+                    .withData(ContextKeys.URL_PATH.with("id"), "path-id");
 
-            assertEquals("query-id", context.get(ContextKeys.URL_QUERY.with("id")));
-            assertEquals("path-id", context.get(ContextKeys.URL_PATH.with("id")));
+            assertEquals("query-id", lookup.get(ContextKeys.URL_QUERY.with("id")));
+            assertEquals("path-id", lookup.get(ContextKeys.URL_PATH.with("id")));
         }
     }
 
@@ -134,43 +135,43 @@ public class ContextKeysTests {
         @Test
         void can_store_and_retrieve_router() {
             final Router router = new Router().route("/posts", TestContract.class);
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.ROUTER, router);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.ROUTER, router);
 
-            assertSame(router, context.get(ContextKeys.ROUTER));
+            assertSame(router, lookup.get(ContextKeys.ROUTER));
         }
 
         @Test
         void can_store_and_retrieve_edit_mode() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.EDIT_MODE, EditMode.MODAL);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.EDIT_MODE, EditMode.MODAL);
 
-            assertEquals(EditMode.MODAL, context.get(ContextKeys.EDIT_MODE));
+            assertEquals(EditMode.MODAL, lookup.get(ContextKeys.EDIT_MODE));
         }
 
         @Test
         void can_store_and_retrieve_list_schema() {
             final ListSchema schema = ListSchema.fromRecordClass(TestRecord.class);
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.LIST_SCHEMA, schema);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.LIST_SCHEMA, schema);
 
-            assertSame(schema, context.get(ContextKeys.LIST_SCHEMA));
+            assertSame(schema, lookup.get(ContextKeys.LIST_SCHEMA));
         }
 
         @Test
         void can_store_and_retrieve_route_pattern() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.ROUTE_PATTERN, "/posts/:id");
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.ROUTE_PATTERN, "/posts/:id");
 
-            assertEquals("/posts/:id", context.get(ContextKeys.ROUTE_PATTERN));
+            assertEquals("/posts/:id", lookup.get(ContextKeys.ROUTE_PATTERN));
         }
 
         @Test
         void can_store_and_retrieve_list_page() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.LIST_PAGE, 5);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.LIST_PAGE, 5);
 
-            assertEquals(5, context.get(ContextKeys.LIST_PAGE));
+            assertEquals(5, lookup.get(ContextKeys.LIST_PAGE));
         }
     }
 
@@ -178,8 +179,8 @@ public class ContextKeysTests {
     record TestRecord(String id, String name) {}
 
     static class TestContract extends ViewContract {
-        TestContract(final ComponentContext context) {
-            super(context);
+        TestContract(final Lookup lookup) {
+            super(lookup);
         }
     }
 }

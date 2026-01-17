@@ -38,7 +38,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
     private final Component<?> overlayComponent;
     private final Component<?> modalOverlayComponent;
 
-    private CommandsEnqueue commandsEnqueue;
+    private Lookup lookup;
 
     /**
      * Creates a LayoutComponent with primary content only.
@@ -84,8 +84,36 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                                                                           final TreeBuilderFactory treeBuilderFactory,
                                                                           final ComponentContext componentContext,
                                                                           final CommandsEnqueue commandsEnqueue) {
-        this.commandsEnqueue = commandsEnqueue;
+        // Create Lookup for use in view (for event publishing)
+        this.lookup = createLookup(componentContext, commandsEnqueue);
         return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+    }
+
+    /**
+     * Create a Lookup from ComponentContext for event publishing.
+     */
+    private Lookup createLookup(ComponentContext context, CommandsEnqueue commandsEnqueue) {
+        Subscriber subscriber = context.get(Subscriber.class);
+        if (subscriber == null) {
+            // Fallback: create a no-op subscriber for publish-only usage
+            subscriber = NoOpSubscriber.INSTANCE;
+        }
+        return new ContextLookup(context, commandsEnqueue, subscriber);
+    }
+
+    /**
+     * No-op Subscriber for components that only need to publish events in componentView.
+     */
+    private static final class NoOpSubscriber implements Subscriber {
+        static final NoOpSubscriber INSTANCE = new NoOpSubscriber();
+
+        @Override
+        public void addWindowEventHandler(String eventType, java.util.function.Consumer<rsp.page.EventContext> eventHandler,
+                                          boolean preventDefault, rsp.dom.DomEventEntry.Modifier modifier) {}
+
+        @Override
+        public void addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                             boolean preventDefault) {}
     }
 
     @Override
@@ -104,7 +132,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // For MODAL mode, close without URL navigation
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // For QUERY_PARAM mode, emit event to parent for URL update
-            commandsEnqueue.offer(OVERLAY_CLOSE_REQUESTED.notification());
+            lookup.publish(OVERLAY_CLOSE_REQUESTED);
         }, false);
 
         // Register handler for modalSaveSuccess event (close modal + refresh list)
@@ -112,7 +140,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // Close the modal
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // Trigger list refresh
-            commandsEnqueue.offer(REFRESH_LIST.notification());
+            lookup.publish(REFRESH_LIST);
         }, false);
 
         // Register handler for modalDeleteSuccess event (close modal + refresh list)
@@ -120,7 +148,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             // Close the modal
             stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
             // Trigger list refresh
-            commandsEnqueue.offer(REFRESH_LIST.notification());
+            lookup.publish(REFRESH_LIST);
         }, false);
     }
 
@@ -173,7 +201,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                 div(attr("class", "modal-backdrop"),
                         on("click", ctx -> {
                             // Send closeOverlay event to trigger state change
-                            commandsEnqueue.offer(CLOSE_OVERLAY.notification());
+                            lookup.publish(CLOSE_OVERLAY);
                         })
                 ),
                 // Modal content container

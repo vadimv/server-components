@@ -1,6 +1,6 @@
 package rsp.compositions;
 
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
 
 import java.util.List;
 
@@ -21,10 +21,10 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     private final int pageSize;
 
-    protected ListViewContract(ComponentContext context) {
-        super(context);
+    protected ListViewContract(Lookup lookup) {
+        super(lookup);
         // Read page size from generic config context, completely agnostic of AppConfig
-        Integer configuredPageSize = context.get(LIST_DEFAULT_PAGE_SIZE);
+        Integer configuredPageSize = lookup.get(LIST_DEFAULT_PAGE_SIZE);
         this.pageSize = configuredPageSize != null ? configuredPageSize : DEFAULT_PAGE_SIZE_FALLBACK;
     }
 

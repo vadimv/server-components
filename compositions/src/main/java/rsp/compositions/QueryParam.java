@@ -1,6 +1,6 @@
 package rsp.compositions;
 
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
 
 import java.util.List;
 import java.util.Objects;
@@ -28,9 +28,9 @@ public class QueryParam<T> {
 
 
     @SuppressWarnings("unchecked")
-    public T resolve(ComponentContext ctx) {
+    public T resolve(Lookup lookup) {
         // Read from "url.query.{name}" namespace (populated by AutoAddressBarSyncComponent)
-        final Object value = ctx.get(ContextKeys.URL_QUERY.with(name));
+        final Object value = lookup.get(ContextKeys.URL_QUERY.with(name));
 
         if (value == null) {
             return defaultValue;

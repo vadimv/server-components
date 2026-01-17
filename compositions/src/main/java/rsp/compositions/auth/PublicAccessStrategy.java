@@ -1,6 +1,6 @@
 package rsp.compositions.auth;
 
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
 import rsp.compositions.ViewContract;
 
 /**
@@ -11,7 +11,7 @@ import rsp.compositions.ViewContract;
 public class PublicAccessStrategy implements ViewContract.AuthorizationStrategy {
 
     @Override
-    public boolean isAuthorized(ViewContract contract, ComponentContext context) {
+    public boolean isAuthorized(ViewContract contract, Lookup lookup) {
         return true; // Always allow
     }
 }

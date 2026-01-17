@@ -1,6 +1,6 @@
 package rsp.compositions.posts.components;
 
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
 import rsp.compositions.ListViewContract;
 import rsp.compositions.QueryParam;
 import rsp.compositions.posts.entities.Post;
@@ -14,10 +14,10 @@ public class PostsListContract extends ListViewContract<Post> {
 
     private final PostService postService;
 
-    public PostsListContract(final ComponentContext context) {
-        super(context);
-        // Read service from context
-        this.postService = context.get(PostService.class);
+    public PostsListContract(final Lookup lookup) {
+        super(lookup);
+        // Read service from lookup
+        this.postService = lookup.get(PostService.class);
     }
 
     @Override

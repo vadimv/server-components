@@ -2,16 +2,10 @@ package rsp.compositions;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.CommandsEnqueue;
-import rsp.component.ComponentContext;
-import rsp.component.ComponentEventEntry;
-import rsp.component.Subscriber;
-import rsp.dom.DomEventEntry;
-import rsp.page.EventContext;
-import rsp.page.events.Command;
+import rsp.component.Lookup;
+import rsp.component.TestLookup;
 
 import java.util.Map;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,30 +17,12 @@ public class EditViewContractTests {
     // Test entity
     record TestEntity(String id, String name) {}
 
-    // No-op Subscriber for tests
-    static class NoOpSubscriber implements Subscriber {
-        @Override
-        public void addWindowEventHandler(String eventType, Consumer<EventContext> eventHandler,
-                                          boolean preventDefault, DomEventEntry.Modifier modifier) {}
-
-        @Override
-        public void addComponentEventHandler(String eventType,
-                                             Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {}
-    }
-
-    // No-op CommandsEnqueue for tests
-    static class NoOpCommandsEnqueue implements CommandsEnqueue {
-        @Override
-        public void offer(Command command) {}
-    }
-
     // Minimal test contract with configurable ID resolution
     static class TestEditContract extends EditViewContract<TestEntity> {
         private final String resolvedId;
 
-        TestEditContract(final ComponentContext context, final String resolvedId) {
-            super(context);
+        TestEditContract(final Lookup lookup, final String resolvedId) {
+            super(lookup);
             this.resolvedId = resolvedId;
         }
 
@@ -73,8 +49,8 @@ public class EditViewContractTests {
 
     // Contract with custom create token
     static class CustomTokenContract extends TestEditContract {
-        CustomTokenContract(final ComponentContext context, final String resolvedId) {
-            super(context, resolvedId);
+        CustomTokenContract(final Lookup lookup, final String resolvedId) {
+            super(lookup, resolvedId);
         }
 
         @Override
@@ -83,11 +59,9 @@ public class EditViewContractTests {
         }
     }
 
-    private ComponentContext contextWithRoutePattern(final String pattern) {
-        return new ComponentContext()
-                .with(ContextKeys.ROUTE_PATTERN, pattern)
-                .with(CommandsEnqueue.class, new NoOpCommandsEnqueue())
-                .with(Subscriber.class, new NoOpSubscriber());
+    private TestLookup lookupWithRoutePattern(final String pattern) {
+        return new TestLookup()
+                .withData(ContextKeys.ROUTE_PATTERN, pattern);
     }
 
     @Nested
@@ -95,32 +69,32 @@ public class EditViewContractTests {
 
         @Test
         void is_create_mode_true_when_id_is_null() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, null);
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, null);
 
             assertTrue(contract.isCreateMode());
         }
 
         @Test
         void is_create_mode_true_when_id_equals_create_token() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "new");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "new");
 
             assertTrue(contract.isCreateMode());
         }
 
         @Test
         void is_create_mode_false_when_id_is_valid_value() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertFalse(contract.isCreateMode());
         }
 
         @Test
         void is_create_mode_false_when_id_is_empty_string() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "");
 
             assertFalse(contract.isCreateMode());  // Empty string is not null
         }
@@ -131,16 +105,16 @@ public class EditViewContractTests {
 
         @Test
         void default_create_token_is_new() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "ignored");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "ignored");
 
             assertEquals("new", contract.createToken());
         }
 
         @Test
         void custom_create_token_can_be_overridden() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final CustomTokenContract contract = new CustomTokenContract(context, "_");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final CustomTokenContract contract = new CustomTokenContract(lookup, "_");
 
             assertEquals("_", contract.createToken());
             assertTrue(contract.isCreateMode());  // "_" matches custom token
@@ -148,8 +122,8 @@ public class EditViewContractTests {
 
         @Test
         void custom_create_token_default_token_no_longer_matches() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final CustomTokenContract contract = new CustomTokenContract(context, "new");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final CustomTokenContract contract = new CustomTokenContract(lookup, "new");
 
             assertFalse(contract.isCreateMode());  // "new" doesn't match "_"
         }
@@ -160,40 +134,40 @@ public class EditViewContractTests {
 
         @Test
         void list_route_strips_param_from_pattern() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/posts", contract.listRoute());
         }
 
         @Test
         void list_route_strips_create_token_from_pattern() {
-            final ComponentContext context = contextWithRoutePattern("/posts/new");
-            final TestEditContract contract = new TestEditContract(context, "new");
+            final Lookup lookup = lookupWithRoutePattern("/posts/new");
+            final TestEditContract contract = new TestEditContract(lookup, "new");
 
             assertEquals("/posts", contract.listRoute());
         }
 
         @Test
         void list_route_preserves_nested_path() {
-            final ComponentContext context = contextWithRoutePattern("/admin/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/admin/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/admin/posts", contract.listRoute());
         }
 
         @Test
         void list_route_handles_multiple_params_strips_last() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:postId/comments/:id");
-            final TestEditContract contract = new TestEditContract(context, "456");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:postId/comments/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "456");
 
             assertEquals("/posts/:postId/comments", contract.listRoute());
         }
 
         @Test
         void list_route_no_param_at_end_returns_full_pattern() {
-            final ComponentContext context = contextWithRoutePattern("/posts/list");
-            final TestEditContract contract = new TestEditContract(context, "ignored");
+            final Lookup lookup = lookupWithRoutePattern("/posts/list");
+            final TestEditContract contract = new TestEditContract(lookup, "ignored");
 
             assertEquals("/posts/list", contract.listRoute());
         }
@@ -202,19 +176,17 @@ public class EditViewContractTests {
         void list_route_root_with_param_returns_pattern() {
             // Edge case: when pattern is just "/:id", there's no parent path to strip to
             // The implementation returns the full pattern in this case
-            final ComponentContext context = contextWithRoutePattern("/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/:id", contract.listRoute());
         }
 
         @Test
         void list_route_throws_when_no_route_pattern() {
-            // No route pattern, but still needs CommandsEnqueue and Subscriber
-            final ComponentContext context = new ComponentContext()
-                    .with(CommandsEnqueue.class, new NoOpCommandsEnqueue())
-                    .with(Subscriber.class, new NoOpSubscriber());
-            final TestEditContract contract = new TestEditContract(context, "123");
+            // No route pattern
+            final Lookup lookup = new TestLookup();
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertThrows(IllegalStateException.class, contract::listRoute);
         }
@@ -225,45 +197,45 @@ public class EditViewContractTests {
 
         @Test
         void list_route_restores_from_p_query_param() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id")
-                    .with(ContextKeys.URL_QUERY.with("fromP"), "3");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id")
+                    .withData(ContextKeys.URL_QUERY.with("fromP"), "3");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/posts?p=3", contract.listRoute());
         }
 
         @Test
         void list_route_restores_from_sort_query_param() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id")
-                    .with(ContextKeys.URL_QUERY.with("fromSort"), "desc");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id")
+                    .withData(ContextKeys.URL_QUERY.with("fromSort"), "desc");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/posts?sort=desc", contract.listRoute());
         }
 
         @Test
         void list_route_restores_multiple_query_params() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id")
-                    .with(ContextKeys.URL_QUERY.with("fromP"), "2")
-                    .with(ContextKeys.URL_QUERY.with("fromSort"), "asc");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id")
+                    .withData(ContextKeys.URL_QUERY.with("fromP"), "2")
+                    .withData(ContextKeys.URL_QUERY.with("fromSort"), "asc");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/posts?p=2&sort=asc", contract.listRoute());
         }
 
         @Test
         void list_route_ignores_empty_from_params() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id")
-                    .with(ContextKeys.URL_QUERY.with("fromP"), "");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id")
+                    .withData(ContextKeys.URL_QUERY.with("fromP"), "");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/posts", contract.listRoute());
         }
 
         @Test
         void list_route_no_from_params_no_query_string() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertEquals("/posts", contract.listRoute());
         }
@@ -274,16 +246,16 @@ public class EditViewContractTests {
 
         @Test
         void item_returns_null_in_create_mode() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, null);
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, null);
 
             assertNull(contract.item());
         }
 
         @Test
         void item_returns_entity_in_edit_mode() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             final TestEntity entity = contract.item();
 
@@ -297,8 +269,8 @@ public class EditViewContractTests {
 
         @Test
         void schema_returns_schema_from_record_class() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             final ListSchema schema = contract.schema();
 
@@ -313,24 +285,24 @@ public class EditViewContractTests {
 
         @Test
         void delete_throws_illegal_state_in_create_mode_null_id() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, null);
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, null);
 
             assertThrows(IllegalStateException.class, contract::delete);
         }
 
         @Test
         void delete_throws_illegal_state_in_create_mode_new_token() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "new");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "new");
 
             assertThrows(IllegalStateException.class, contract::delete);
         }
 
         @Test
         void delete_throws_unsupported_by_default_in_edit_mode() {
-            final ComponentContext context = contextWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(context, "123");
+            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
+            final TestEditContract contract = new TestEditContract(lookup, "123");
 
             assertThrows(UnsupportedOperationException.class, contract::delete);
         }

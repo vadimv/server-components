@@ -89,4 +89,15 @@ public final class EventKeys {
      */
     public static final EventKey.DynamicKey<ContextStateComponent.ContextValue> STATE_UPDATED =
             new EventKey.DynamicKey<>("stateUpdated", ContextStateComponent.ContextValue.class);
+
+    // ===== NAVIGATION EVENTS =====
+
+    /**
+     * Navigate to a URL path.
+     * Emitted by: EditViewContract after save/delete success
+     * Handled by: Framework (triggers browser navigation via RemoteCommand.SetHref)
+     * Payload: The URL path to navigate to
+     */
+    public static final EventKey.SimpleKey<String> NAVIGATE =
+            new EventKey.SimpleKey<>("navigate", String.class);
 }

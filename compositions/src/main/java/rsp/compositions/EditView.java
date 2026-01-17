@@ -4,10 +4,8 @@ import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
-import rsp.page.events.Command;
 
 import java.util.Map;
-import java.util.function.Consumer;
 
 /**
  * EditView - Adaptive edit/form view component.
@@ -20,7 +18,7 @@ import java.util.function.Consumer;
  */
 public abstract class EditView extends Component<EditView.EditViewState> {
 
-    protected CommandsEnqueue commandsEnqueue;
+    protected Lookup lookup;
 
     /**
      * State containing the entity data being edited and schema metadata.
@@ -104,14 +102,38 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                                                                    final TreeBuilderFactory treeBuilderFactory,
                                                                    final ComponentContext componentContext,
                                                                    final CommandsEnqueue commandsEnqueue) {
-        // Store commandsEnqueue for use in view
-        this.commandsEnqueue = commandsEnqueue;
-
+        // Create Lookup for use in view (for event publishing)
+        this.lookup = createLookup(componentContext, commandsEnqueue);
 
         // Create the segment
-        ComponentSegment<EditViewState> segment = super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+        return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+    }
 
-        return segment;
+    /**
+     * Create a Lookup from ComponentContext for event publishing.
+     */
+    private Lookup createLookup(ComponentContext context, CommandsEnqueue commandsEnqueue) {
+        Subscriber subscriber = context.get(Subscriber.class);
+        if (subscriber == null) {
+            // Fallback: create a no-op subscriber for publish-only usage
+            subscriber = NoOpSubscriber.INSTANCE;
+        }
+        return new ContextLookup(context, commandsEnqueue, subscriber);
+    }
+
+    /**
+     * No-op Subscriber for Views that only need to publish events, not subscribe.
+     */
+    private static final class NoOpSubscriber implements Subscriber {
+        static final NoOpSubscriber INSTANCE = new NoOpSubscriber();
+
+        @Override
+        public void addWindowEventHandler(String eventType, java.util.function.Consumer<rsp.page.EventContext> eventHandler,
+                                          boolean preventDefault, rsp.dom.DomEventEntry.Modifier modifier) {}
+
+        @Override
+        public void addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                             boolean preventDefault) {}
     }
 
     /**

@@ -62,9 +62,9 @@ public class DefaultListView extends ListView {
                                             String newSort = sort.equals("asc") ? "desc" : "asc";
 
                                             // Send event to AddressBarSyncComponent
-                                            commandsEnqueue.offer(STATE_UPDATED.with("sort").notification(
+                                            lookup.publish(STATE_UPDATED.with("sort"),
                                                 new ContextStateComponent.ContextValue.StringValue(newSort)
-                                            ));
+                                            );
                                         })
                                     )
                                 ))
@@ -125,7 +125,7 @@ public class DefaultListView extends ListView {
                     attr("class", "create-button"),
                     text("Create New"),
                     on("click", ctx -> {
-                        commandsEnqueue.offer(OPEN_CREATE_MODAL.notification());
+                        lookup.publish(OPEN_CREATE_MODAL);
                     })
             );
         };
@@ -147,9 +147,9 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        commandsEnqueue.offer(STATE_UPDATED.with("p").notification(
+                        lookup.publish(STATE_UPDATED.with("p"),
                             new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage - 1))
-                        ));
+                        );
                     })
                   ),
 
@@ -165,9 +165,9 @@ public class DefaultListView extends ListView {
                 text("Next →"),
                 on("click", ctx -> {
                     // Send event to AddressBarSyncComponent
-                    commandsEnqueue.offer(STATE_UPDATED.with("p").notification(
+                    lookup.publish(STATE_UPDATED.with("p"),
                         new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage + 1))
-                    ));
+                    );
                 })
             )
         );

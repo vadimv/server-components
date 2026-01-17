@@ -3,7 +3,8 @@ package rsp.compositions;
 import net.jqwik.api.*;
 import net.jqwik.api.constraints.AlphaChars;
 import net.jqwik.api.constraints.StringLength;
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
+import rsp.component.TestLookup;
 
 import java.lang.reflect.RecordComponent;
 import java.util.Map;
@@ -17,8 +18,8 @@ class CompositionsPropertyTests {
 
     // Test contract for Router tests
     static class TestContract extends ViewContract {
-        TestContract(final ComponentContext context) {
-            super(context);
+        TestContract(final Lookup lookup) {
+            super(lookup);
         }
     }
 

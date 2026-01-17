@@ -2,7 +2,8 @@ package rsp.compositions;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
+import rsp.component.TestLookup;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,8 +15,8 @@ public class ViewContractTests {
 
     // Minimal test contract exposing protected methods for testing
     static class TestViewContract extends ViewContract {
-        TestViewContract(final ComponentContext context) {
-            super(context);
+        TestViewContract(final Lookup lookup) {
+            super(lookup);
         }
 
         // Expose protected methods for testing
@@ -30,6 +31,11 @@ public class ViewContractTests {
         public boolean testIsAuthorized() {
             return isAuthorized();
         }
+
+        // Expose lookup for testing
+        public Lookup getLookup() {
+            return lookup;
+        }
     }
 
     @Nested
@@ -37,9 +43,9 @@ public class ViewContractTests {
 
         @Test
         void resolve_extracts_string_query_param() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_QUERY.with("search"), "hello");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_QUERY.with("search"), "hello");
+            final TestViewContract contract = new TestViewContract(lookup);
             final QueryParam<String> param = new QueryParam<>("search", String.class, null);
 
             final String result = contract.testResolveQuery(param);
@@ -49,8 +55,8 @@ public class ViewContractTests {
 
         @Test
         void resolve_returns_default_when_missing() {
-            final ComponentContext context = new ComponentContext();
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup();
+            final TestViewContract contract = new TestViewContract(lookup);
             final QueryParam<String> param = new QueryParam<>("missing", String.class, "default");
 
             final String result = contract.testResolveQuery(param);
@@ -60,9 +66,9 @@ public class ViewContractTests {
 
         @Test
         void resolve_parses_integer_param() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_QUERY.with("page"), "5");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_QUERY.with("page"), "5");
+            final TestViewContract contract = new TestViewContract(lookup);
             final QueryParam<Integer> param = new QueryParam<>("page", Integer.class, 1);
 
             final Integer result = contract.testResolveQuery(param);
@@ -72,9 +78,9 @@ public class ViewContractTests {
 
         @Test
         void resolve_parses_long_param() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_QUERY.with("id"), "9999999999");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_QUERY.with("id"), "9999999999");
+            final TestViewContract contract = new TestViewContract(lookup);
             final QueryParam<Long> param = new QueryParam<>("id", Long.class, 0L);
 
             final Long result = contract.testResolveQuery(param);
@@ -84,9 +90,9 @@ public class ViewContractTests {
 
         @Test
         void resolve_parses_boolean_param() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_QUERY.with("active"), "true");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_QUERY.with("active"), "true");
+            final TestViewContract contract = new TestViewContract(lookup);
             final QueryParam<Boolean> param = new QueryParam<>("active", Boolean.class, false);
 
             final Boolean result = contract.testResolveQuery(param);
@@ -98,9 +104,9 @@ public class ViewContractTests {
         void resolve_uses_default_for_empty_string() {
             // Note: This tests the current behavior - empty string returns default
             // because the converter may fail on empty string
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_QUERY.with("page"), "");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_QUERY.with("page"), "");
+            final TestViewContract contract = new TestViewContract(lookup);
             final QueryParam<Integer> param = new QueryParam<>("page", Integer.class, 1);
 
             // Empty string won't parse to integer, so default is used
@@ -116,8 +122,8 @@ public class ViewContractTests {
 
         @Test
         void resolve_returns_null_default_when_missing_and_no_default() {
-            final ComponentContext context = new ComponentContext();
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup();
+            final TestViewContract contract = new TestViewContract(lookup);
             final QueryParam<String> param = new QueryParam<>("missing", String.class, null);
 
             final String result = contract.testResolveQuery(param);
@@ -131,9 +137,9 @@ public class ViewContractTests {
 
         @Test
         void resolve_extracts_string_path_param() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_PATH.with("1"), "abc123");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_PATH.with("1"), "abc123");
+            final TestViewContract contract = new TestViewContract(lookup);
             final PathParam<String> param = new PathParam<>(1, String.class, null);
 
             final String result = contract.testResolvePath(param);
@@ -143,8 +149,8 @@ public class ViewContractTests {
 
         @Test
         void resolve_returns_default_when_missing() {
-            final ComponentContext context = new ComponentContext();
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup();
+            final TestViewContract contract = new TestViewContract(lookup);
             final PathParam<String> param = new PathParam<>(1, String.class, null);
 
             final String result = contract.testResolvePath(param);
@@ -154,9 +160,9 @@ public class ViewContractTests {
 
         @Test
         void resolve_parses_integer_path_param() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_PATH.with("2"), "42");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_PATH.with("2"), "42");
+            final TestViewContract contract = new TestViewContract(lookup);
             final PathParam<Integer> param = new PathParam<>(2, Integer.class, 0);
 
             final Integer result = contract.testResolvePath(param);
@@ -166,10 +172,10 @@ public class ViewContractTests {
 
         @Test
         void resolve_uses_default_for_missing_path_segment() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_PATH.with("0"), "posts");
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_PATH.with("0"), "posts");
             // Index 1 is not set
-            final TestViewContract contract = new TestViewContract(context);
+            final TestViewContract contract = new TestViewContract(lookup);
             final PathParam<String> param = new PathParam<>(1, String.class, "default");
 
             final String result = contract.testResolvePath(param);
@@ -179,12 +185,12 @@ public class ViewContractTests {
 
         @Test
         void resolve_handles_multiple_path_params() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.URL_PATH.with("0"), "posts")
-                    .with(ContextKeys.URL_PATH.with("1"), "123")
-                    .with(ContextKeys.URL_PATH.with("2"), "comments")
-                    .with(ContextKeys.URL_PATH.with("3"), "456");
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_PATH.with("0"), "posts")
+                    .withData(ContextKeys.URL_PATH.with("1"), "123")
+                    .withData(ContextKeys.URL_PATH.with("2"), "comments")
+                    .withData(ContextKeys.URL_PATH.with("3"), "456");
+            final TestViewContract contract = new TestViewContract(lookup);
 
             final PathParam<String> postId = new PathParam<>(1, String.class, null);
             final PathParam<String> commentId = new PathParam<>(3, String.class, null);
@@ -199,28 +205,28 @@ public class ViewContractTests {
 
         @Test
         void is_authorized_allows_when_no_strategy() {
-            final ComponentContext context = new ComponentContext();
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup();
+            final TestViewContract contract = new TestViewContract(lookup);
 
             assertTrue(contract.testIsAuthorized());
         }
 
         @Test
-        void is_authorized_delegates_to_strategy_from_context() {
-            final ViewContract.AuthorizationStrategy alwaysAllow = (c, ctx) -> true;
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.AUTHORIZATION_STRATEGY, alwaysAllow);
-            final TestViewContract contract = new TestViewContract(context);
+        void is_authorized_delegates_to_strategy_from_lookup() {
+            final ViewContract.AuthorizationStrategy alwaysAllow = (c, l) -> true;
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.AUTHORIZATION_STRATEGY, alwaysAllow);
+            final TestViewContract contract = new TestViewContract(lookup);
 
             assertTrue(contract.testIsAuthorized());
         }
 
         @Test
         void is_authorized_denies_when_strategy_returns_false() {
-            final ViewContract.AuthorizationStrategy alwaysDeny = (c, ctx) -> false;
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.AUTHORIZATION_STRATEGY, alwaysDeny);
-            final TestViewContract contract = new TestViewContract(context);
+            final ViewContract.AuthorizationStrategy alwaysDeny = (c, l) -> false;
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.AUTHORIZATION_STRATEGY, alwaysDeny);
+            final TestViewContract contract = new TestViewContract(lookup);
 
             assertFalse(contract.testIsAuthorized());
         }
@@ -228,13 +234,13 @@ public class ViewContractTests {
         @Test
         void is_authorized_strategy_receives_contract() {
             final ViewContract[] capturedContract = new ViewContract[1];
-            final ViewContract.AuthorizationStrategy capturing = (contract, ctx) -> {
+            final ViewContract.AuthorizationStrategy capturing = (contract, l) -> {
                 capturedContract[0] = contract;
                 return true;
             };
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.AUTHORIZATION_STRATEGY, capturing);
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.AUTHORIZATION_STRATEGY, capturing);
+            final TestViewContract contract = new TestViewContract(lookup);
 
             contract.testIsAuthorized();
 
@@ -242,26 +248,26 @@ public class ViewContractTests {
         }
 
         @Test
-        void is_authorized_strategy_receives_context() {
-            final ComponentContext[] capturedContext = new ComponentContext[1];
-            final ViewContract.AuthorizationStrategy capturing = (contract, ctx) -> {
-                capturedContext[0] = ctx;
+        void is_authorized_strategy_receives_lookup() {
+            final Lookup[] capturedLookup = new Lookup[1];
+            final ViewContract.AuthorizationStrategy capturing = (contract, l) -> {
+                capturedLookup[0] = l;
                 return true;
             };
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.AUTHORIZATION_STRATEGY, capturing);
-            final TestViewContract contract = new TestViewContract(context);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.AUTHORIZATION_STRATEGY, capturing);
+            final TestViewContract contract = new TestViewContract(lookup);
 
             contract.testIsAuthorized();
 
-            assertSame(context, capturedContext[0]);
+            assertSame(lookup, capturedLookup[0]);
         }
 
         @Test
         void is_authorized_strategy_can_check_roles() {
             // Example: RBAC-style strategy checking for admin role
-            final ViewContract.AuthorizationStrategy rbacStrategy = (contract, ctx) -> {
-                final String[] roles = ctx.get(ContextKeys.AUTH_ROLES);
+            final ViewContract.AuthorizationStrategy rbacStrategy = (contract, l) -> {
+                final String[] roles = l.get(ContextKeys.AUTH_ROLES);
                 if (roles == null) return false;
                 for (final String role : roles) {
                     if ("admin".equals(role)) return true;
@@ -270,35 +276,35 @@ public class ViewContractTests {
             };
 
             // User with admin role
-            final ComponentContext adminContext = new ComponentContext()
-                    .with(ContextKeys.AUTHORIZATION_STRATEGY, rbacStrategy)
-                    .with(ContextKeys.AUTH_ROLES, new String[]{"user", "admin"});
-            assertTrue(new TestViewContract(adminContext).testIsAuthorized());
+            final TestLookup adminLookup = new TestLookup()
+                    .withData(ContextKeys.AUTHORIZATION_STRATEGY, rbacStrategy)
+                    .withData(ContextKeys.AUTH_ROLES, new String[]{"user", "admin"});
+            assertTrue(new TestViewContract(adminLookup).testIsAuthorized());
 
             // User without admin role
-            final ComponentContext userContext = new ComponentContext()
-                    .with(ContextKeys.AUTHORIZATION_STRATEGY, rbacStrategy)
-                    .with(ContextKeys.AUTH_ROLES, new String[]{"user"});
-            assertFalse(new TestViewContract(userContext).testIsAuthorized());
+            final TestLookup userLookup = new TestLookup()
+                    .withData(ContextKeys.AUTHORIZATION_STRATEGY, rbacStrategy)
+                    .withData(ContextKeys.AUTH_ROLES, new String[]{"user"});
+            assertFalse(new TestViewContract(userLookup).testIsAuthorized());
 
             // No roles at all
-            final ComponentContext noRolesContext = new ComponentContext()
-                    .with(ContextKeys.AUTHORIZATION_STRATEGY, rbacStrategy);
-            assertFalse(new TestViewContract(noRolesContext).testIsAuthorized());
+            final TestLookup noRolesLookup = new TestLookup()
+                    .withData(ContextKeys.AUTHORIZATION_STRATEGY, rbacStrategy);
+            assertFalse(new TestViewContract(noRolesLookup).testIsAuthorized());
         }
     }
 
     @Nested
-    class ContextAccessTests {
+    class LookupAccessTests {
 
         @Test
-        void contract_has_access_to_context() {
-            final ComponentContext context = new ComponentContext()
-                    .with(ContextKeys.ROUTE_PATH, "/posts/123");
-            final TestViewContract contract = new TestViewContract(context);
+        void contract_has_access_to_lookup() {
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.ROUTE_PATH, "/posts/123");
+            final TestViewContract contract = new TestViewContract(lookup);
 
-            // Contract can access context via protected field
-            assertEquals("/posts/123", contract.context.get(ContextKeys.ROUTE_PATH));
+            // Contract can access lookup via protected field
+            assertEquals("/posts/123", contract.getLookup().get(ContextKeys.ROUTE_PATH));
         }
     }
 }

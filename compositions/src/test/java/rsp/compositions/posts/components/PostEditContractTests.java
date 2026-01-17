@@ -3,18 +3,11 @@ package rsp.compositions.posts.components;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.CommandsEnqueue;
-import rsp.component.ComponentContext;
-import rsp.component.ComponentEventEntry;
-import rsp.component.Subscriber;
+import rsp.component.Lookup;
+import rsp.component.TestLookup;
 import rsp.compositions.ContextKeys;
 import rsp.compositions.posts.entities.Post;
 import rsp.compositions.posts.services.PostService;
-import rsp.dom.DomEventEntry;
-import rsp.page.EventContext;
-import rsp.page.events.Command;
-
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,36 +18,16 @@ class PostEditContractTests {
 
     private PostService postService;
 
-    // No-op Subscriber for tests
-    static class NoOpSubscriber implements Subscriber {
-        @Override
-        public void addWindowEventHandler(String eventType, Consumer<EventContext> eventHandler,
-                                          boolean preventDefault, DomEventEntry.Modifier modifier) {}
-
-        @Override
-        public void addComponentEventHandler(String eventType,
-                                             Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {}
-    }
-
-    // No-op CommandsEnqueue for tests
-    static class NoOpCommandsEnqueue implements CommandsEnqueue {
-        @Override
-        public void offer(Command command) {}
-    }
-
     @BeforeEach
     void setUp() {
         postService = new PostService();
     }
 
-    private ComponentContext contextWithPathId(final String id) {
-        return new ComponentContext()
-                .with(PostService.class, postService)
-                .with(ContextKeys.URL_PATH.with("1"), id)
-                .with(ContextKeys.ROUTE_PATTERN, "/posts/:id")
-                .with(CommandsEnqueue.class, new NoOpCommandsEnqueue())
-                .with(Subscriber.class, new NoOpSubscriber());
+    private Lookup lookupWithPathId(final String id) {
+        return new TestLookup()
+                .withData(PostService.class, postService)
+                .withData(ContextKeys.URL_PATH.with("1"), id)
+                .withData(ContextKeys.ROUTE_PATTERN, "/posts/:id");
     }
 
     @Nested
@@ -67,8 +40,8 @@ class PostEditContractTests {
             assertTrue(postService.find(id).isPresent());
 
             // Delete via contract
-            final ComponentContext context = contextWithPathId(id);
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId(id);
+            final PostEditContract contract = new PostEditContract(lookup);
 
             final boolean result = contract.delete();
 
@@ -78,8 +51,8 @@ class PostEditContractTests {
 
         @Test
         void delete_returns_false_for_nonexistent_post() {
-            final ComponentContext context = contextWithPathId("99999");
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId("99999");
+            final PostEditContract contract = new PostEditContract(lookup);
 
             final boolean result = contract.delete();
 
@@ -88,8 +61,8 @@ class PostEditContractTests {
 
         @Test
         void delete_throws_in_create_mode_with_new_token() {
-            final ComponentContext context = contextWithPathId("new");
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId("new");
+            final PostEditContract contract = new PostEditContract(lookup);
 
             assertThrows(IllegalStateException.class, contract::delete);
         }
@@ -101,8 +74,8 @@ class PostEditContractTests {
         @Test
         void item_returns_post_in_edit_mode() {
             final String id = postService.create(new Post(null, "Title", "Content"));
-            final ComponentContext context = contextWithPathId(id);
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId(id);
+            final PostEditContract contract = new PostEditContract(lookup);
 
             final Post post = contract.item();
 
@@ -113,16 +86,16 @@ class PostEditContractTests {
 
         @Test
         void item_returns_null_in_create_mode() {
-            final ComponentContext context = contextWithPathId("new");
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId("new");
+            final PostEditContract contract = new PostEditContract(lookup);
 
             assertNull(contract.item());
         }
 
         @Test
         void item_returns_null_for_nonexistent_post() {
-            final ComponentContext context = contextWithPathId("99999");
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId("99999");
+            final PostEditContract contract = new PostEditContract(lookup);
 
             assertNull(contract.item());
         }
@@ -133,16 +106,16 @@ class PostEditContractTests {
 
         @Test
         void is_create_mode_true_with_new_token() {
-            final ComponentContext context = contextWithPathId("new");
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId("new");
+            final PostEditContract contract = new PostEditContract(lookup);
 
             assertTrue(contract.isCreateMode());
         }
 
         @Test
         void is_create_mode_false_with_id() {
-            final ComponentContext context = contextWithPathId("123");
-            final PostEditContract contract = new PostEditContract(context);
+            final Lookup lookup = lookupWithPathId("123");
+            final PostEditContract contract = new PostEditContract(lookup);
 
             assertFalse(contract.isCreateMode());
         }

@@ -1,21 +1,21 @@
 package rsp.compositions;
 
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
 
 public abstract class ViewContract {
 
-    protected final ComponentContext context;
+    protected final Lookup lookup;
 
-    protected ViewContract(ComponentContext context) {
-        this.context = context;
+    protected ViewContract(Lookup lookup) {
+        this.lookup = lookup;
     }
 
     protected <T> T resolve(QueryParam<T> param) {
-        return param.resolve(context);
+        return param.resolve(lookup);
     }
 
     protected <T> T resolve(PathParam<T> param) {
-        return param.resolve(context);
+        return param.resolve(lookup);
     }
 
     /**
@@ -29,15 +29,15 @@ public abstract class ViewContract {
      * @return true if user is authorized to access this view, false otherwise
      */
     protected boolean isAuthorized() {
-        AuthorizationStrategy strategy = context.get(ContextKeys.AUTHORIZATION_STRATEGY);
-        return strategy == null || strategy.isAuthorized(this, context);
+        AuthorizationStrategy strategy = lookup.get(ContextKeys.AUTHORIZATION_STRATEGY);
+        return strategy == null || strategy.isAuthorized(this, lookup);
     }
 
     /**
      * Pluggable authorization strategy interface.
      * <p>
      * Applications register a strategy in context via "auth.strategy" key.
-     * The strategy receives the contract and context, and decides authorization.
+     * The strategy receives the contract and lookup, and decides authorization.
      * <p>
      * Example strategies:
      * <ul>
@@ -52,9 +52,9 @@ public abstract class ViewContract {
          * Determine if user is authorized to access the given contract.
          *
          * @param contract The contract being accessed
-         * @param context The component context containing auth data
+         * @param lookup The lookup containing auth data
          * @return true if authorized, false otherwise
          */
-        boolean isAuthorized(ViewContract contract, ComponentContext context);
+        boolean isAuthorized(ViewContract contract, Lookup lookup);
     }
 }

@@ -1,9 +1,6 @@
 package rsp.compositions;
 
-import rsp.component.CommandsEnqueue;
-import rsp.component.ComponentContext;
-import rsp.component.Subscriber;
-import rsp.page.events.RemoteCommand;
+import rsp.component.Lookup;
 
 import java.util.Map;
 
@@ -25,21 +22,20 @@ import static rsp.compositions.EventKeys.MODAL_SAVE_SUCCESS;
  */
 public abstract class EditViewContract<T> extends ViewContract {
 
-    protected EditViewContract(final ComponentContext context) {
-        super(context);
+    protected EditViewContract(final Lookup lookup) {
+        super(lookup);
 
-        final boolean isModalMode = context.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT) != null;
-        final CommandsEnqueue commandsEnqueue = context.getRequired(CommandsEnqueue.class);
-        final Subscriber subscriber = context.getRequired(Subscriber.class);
+        final boolean isModalMode = lookup.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT) != null;
+
         // Handle form submission
-        subscriber.addEventHandler(FORM_SUBMITTED, (eventName, fieldValues) -> {
-            handleFormSubmitted(fieldValues, commandsEnqueue, isModalMode);
-        }, false);
+        lookup.subscribe(FORM_SUBMITTED, (eventName, fieldValues) -> {
+            handleFormSubmitted(fieldValues, isModalMode);
+        });
 
         // Handle delete request
-        subscriber.addEventHandler(DELETE_REQUESTED, () -> {
-            handleDeleteRequested(commandsEnqueue, isModalMode);
-        }, false);
+        lookup.subscribe(DELETE_REQUESTED, () -> {
+            handleDeleteRequested(isModalMode);
+        });
 
     }
 
@@ -153,7 +149,7 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @return The list route path with restored query parameters
      */
     public String listRoute() {
-        String routePattern = context.get(ContextKeys.ROUTE_PATTERN);
+        String routePattern = lookup.get(ContextKeys.ROUTE_PATTERN);
         if (routePattern == null) {
             throw new IllegalStateException("route.pattern not found in context");
         }
@@ -197,13 +193,13 @@ public abstract class EditViewContract<T> extends ViewContract {
         java.util.List<String> params = new java.util.ArrayList<>();
 
         // Restore page parameter (fromP → p)
-        String fromP = context.get(ContextKeys.URL_QUERY.with("fromP"));
+        String fromP = lookup.get(ContextKeys.URL_QUERY.with("fromP"));
         if (fromP != null && !fromP.isEmpty()) {
             params.add("p=" + fromP);
         }
 
         // Restore sort parameter (fromSort → sort)
-        String fromSort = context.get(ContextKeys.URL_QUERY.with("fromSort"));
+        String fromSort = lookup.get(ContextKeys.URL_QUERY.with("fromSort"));
         if (fromSort != null && !fromSort.isEmpty()) {
             params.add("sort=" + fromSort);
         }
@@ -222,17 +218,15 @@ public abstract class EditViewContract<T> extends ViewContract {
      * Override to customize (e.g., add validation, custom success handling).
      *
      * @param fieldValues The submitted field values
-     * @param commandsEnqueue Consumer for emitting commands
      * @param isModalMode Whether in modal mode
      */
     protected void handleFormSubmitted(Map<String, Object> fieldValues,
-                                       CommandsEnqueue commandsEnqueue,
                                        boolean isModalMode) {
         boolean success = save(fieldValues);
         if (success) {
-            onSaveSuccess(commandsEnqueue, isModalMode);
+            onSaveSuccess(isModalMode);
         } else {
-            onSaveFailure(commandsEnqueue);
+            onSaveFailure();
         }
     }
 
@@ -242,32 +236,29 @@ public abstract class EditViewContract<T> extends ViewContract {
      * Default implementation calls {@link #delete()} and navigates on success.
      * Override to customize delete handling.
      *
-     * @param commandsEnqueue Consumer for emitting commands
      * @param isModalMode Whether in modal mode
      */
-    protected void handleDeleteRequested(CommandsEnqueue commandsEnqueue, boolean isModalMode) {
+    protected void handleDeleteRequested(boolean isModalMode) {
         boolean success = delete();
         if (success) {
-            onDeleteSuccess(commandsEnqueue, isModalMode);
+            onDeleteSuccess(isModalMode);
         } else {
-            onDeleteFailure(commandsEnqueue);
+            onDeleteFailure();
         }
     }
 
     /**
      * Called when save succeeds.
      * <p>
-     * Default: In modal mode, emits "modalSaveSuccess". Otherwise, navigates to list.
+     * Default: In modal mode, publishes "modalSaveSuccess". Otherwise, navigates to list.
      *
-     * @param commandsEnqueue Consumer for emitting commands
      * @param isModalMode Whether in modal mode
      */
-    protected void onSaveSuccess(CommandsEnqueue commandsEnqueue,
-                                 boolean isModalMode) {
+    protected void onSaveSuccess(boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.offer(MODAL_SAVE_SUCCESS.notification());
+            lookup.publish(MODAL_SAVE_SUCCESS);
         } else {
-            commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
+            lookup.publish(EventKeys.NAVIGATE, listRoute());
         }
     }
 
@@ -275,27 +266,23 @@ public abstract class EditViewContract<T> extends ViewContract {
      * Called when save fails.
      * <p>
      * Default: Does nothing (stays on page). Override to show error notification.
-     *
-     * @param commandsEnqueue Consumer for emitting commands
      */
-    protected void onSaveFailure(CommandsEnqueue commandsEnqueue) {
+    protected void onSaveFailure() {
         // Default: stay on page, could emit error notification
     }
 
     /**
      * Called when delete succeeds.
      * <p>
-     * Default: In modal mode, emits "modalDeleteSuccess". Otherwise, navigates to list.
+     * Default: In modal mode, publishes "modalDeleteSuccess". Otherwise, navigates to list.
      *
-     * @param commandsEnqueue Consumer for emitting commands
      * @param isModalMode Whether in modal mode
      */
-    protected void onDeleteSuccess(CommandsEnqueue commandsEnqueue,
-                                   boolean isModalMode) {
+    protected void onDeleteSuccess(boolean isModalMode) {
         if (isModalMode) {
-            commandsEnqueue.offer(MODAL_DELETE_SUCCESS.notification());
+            lookup.publish(MODAL_DELETE_SUCCESS);
         } else {
-            commandsEnqueue.offer(new RemoteCommand.SetHref(listRoute()));
+            lookup.publish(EventKeys.NAVIGATE, listRoute());
         }
     }
 
@@ -303,10 +290,8 @@ public abstract class EditViewContract<T> extends ViewContract {
      * Called when delete fails.
      * <p>
      * Default: Does nothing (stays on page). Override to show error notification.
-     *
-     * @param commandsEnqueue Consumer for emitting commands
      */
-    protected void onDeleteFailure(CommandsEnqueue commandsEnqueue) {
+    protected void onDeleteFailure() {
         // Default: stay on page, could emit error notification
     }
 }

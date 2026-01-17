@@ -2,7 +2,8 @@ package rsp.compositions;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.ComponentContext;
+import rsp.component.Lookup;
+import rsp.component.TestLookup;
 
 import java.util.List;
 import java.util.Map;
@@ -169,14 +170,14 @@ public class ModuleTests {
     // Test contract classes
 
     static class TestViewContract extends ViewContract {
-        TestViewContract(final ComponentContext context) {
-            super(context);
+        TestViewContract(final Lookup lookup) {
+            super(lookup);
         }
     }
 
     static class TestListContract extends ListViewContract<Object> {
-        TestListContract(final ComponentContext context) {
-            super(context);
+        TestListContract(final Lookup lookup) {
+            super(lookup);
         }
 
         @Override
@@ -198,8 +199,8 @@ public class ModuleTests {
     record TestEntity(String id, String name) {}
 
     static class TestEditContract extends EditViewContract<TestEntity> {
-        TestEditContract(final ComponentContext context) {
-            super(context);
+        TestEditContract(final Lookup lookup) {
+            super(lookup);
         }
 
         @Override
@@ -224,8 +225,8 @@ public class ModuleTests {
     }
 
     static class AnotherEditContract extends EditViewContract<TestEntity> {
-        AnotherEditContract(final ComponentContext context) {
-            super(context);
+        AnotherEditContract(final Lookup lookup) {
+            super(lookup);
         }
 
         @Override
