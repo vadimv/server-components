@@ -1,6 +1,7 @@
 package rsp.compositions;
 
 import rsp.component.Lookup;
+import rsp.compositions.schema.ValidationResult;
 
 import java.util.Map;
 
@@ -214,20 +215,40 @@ public abstract class EditViewContract<T> extends ViewContract {
     /**
      * Handle form submission event.
      * <p>
-     * Default implementation calls {@link #save(Map)} and navigates on success.
-     * Override to customize (e.g., add validation, custom success handling).
+     * Default implementation validates field values, then calls {@link #save(Map)} on success.
+     * Override to customize (e.g., add custom validation, custom success handling).
      *
      * @param fieldValues The submitted field values
      * @param isModalMode Whether in modal mode
      */
     protected void handleFormSubmitted(Map<String, Object> fieldValues,
                                        boolean isModalMode) {
+        // Validate before saving
+        ValidationResult result = schema().validate(fieldValues);
+        if (!result.isValid()) {
+            onValidationFailed(result);
+            return;
+        }
+
         boolean success = save(fieldValues);
         if (success) {
             onSaveSuccess(isModalMode);
         } else {
             onSaveFailure();
         }
+    }
+
+    /**
+     * Called when validation fails.
+     * <p>
+     * Default: Does nothing (form stays on page). Override to show validation errors.
+     * The view could listen for validation events to display field-specific errors.
+     *
+     * @param result The validation result containing field errors
+     */
+    protected void onValidationFailed(ValidationResult result) {
+        // Default: stay on page
+        // Override to emit validation error event or update UI state
     }
 
     /**

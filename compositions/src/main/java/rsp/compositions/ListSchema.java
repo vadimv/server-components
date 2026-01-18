@@ -1,5 +1,9 @@
 package rsp.compositions;
 
+import rsp.compositions.schema.FieldDef;
+import rsp.compositions.schema.SchemaBuilder;
+import rsp.compositions.schema.ValidationResult;
+
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -7,16 +11,49 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Schema metadata for list views.
+ * Schema metadata for list and edit views.
  * <p>
- * Provides column definitions that UI components use to render data adaptively.
+ * Provides field definitions that UI components use to render data adaptively.
  * Schema flows alongside data through ComponentContext, enabling UI components
- * to render any number of columns of any types.
+ * to render any number of fields of any types.
+ * <p>
+ * Supports two modes:
+ * <ul>
+ *   <li><b>Auto-derivation:</b> {@link #fromRecordClass(Class)} for quick prototyping</li>
+ *   <li><b>DSL-based:</b> {@link #builder()} for explicit field configuration with validators</li>
+ * </ul>
+ *
+ * <p>Example DSL usage:
+ * <pre>{@code
+ * ListSchema schema = ListSchema.builder()
+ *     .field("id", FieldType.ID).hidden()
+ *     .field("title", FieldType.STRING).required().maxLength(200)
+ *     .field("content", FieldType.TEXT).widget(Widget.TEXTAREA)
+ *     .build();
+ * }</pre>
  */
-public record ListSchema(List<ColumnDef> columns) {
+public record ListSchema(List<ColumnDef> columns, List<FieldDef> fields) {
+
+    /**
+     * Backward-compatible constructor from columns only.
+     * Automatically converts ColumnDefs to FieldDefs.
+     */
+    public ListSchema(List<ColumnDef> columns) {
+        this(columns, columns.stream().map(FieldDef::fromColumnDef).toList());
+    }
+
+    /**
+     * Canonical constructor with validation.
+     */
+    public ListSchema {
+        columns = columns != null ? List.copyOf(columns) : List.of();
+        fields = fields != null ? List.copyOf(fields) : List.of();
+    }
 
     /**
      * Column definition with name, display name, and type information.
+     * <p>
+     * Retained for backward compatibility. New code should use {@link FieldDef}.
      */
     public record ColumnDef(String name, String displayName, Class<?> type) {
         public ColumnDef(String name, Class<?> type) {
@@ -28,6 +65,31 @@ public record ListSchema(List<ColumnDef> columns) {
             return name.substring(0, 1).toUpperCase() +
                    name.substring(1).replaceAll("([A-Z])", " $1");
         }
+    }
+
+    // ========== Factory Methods ==========
+
+    /**
+     * Create a new schema builder for DSL-based field definition.
+     *
+     * @return A new SchemaBuilder instance
+     */
+    public static SchemaBuilder builder() {
+        return new SchemaBuilder();
+    }
+
+    /**
+     * Create a ListSchema from a list of FieldDefs.
+     * Used internally by SchemaBuilder.
+     *
+     * @param fields The field definitions
+     * @return A new ListSchema
+     */
+    public static ListSchema fromFields(List<FieldDef> fields) {
+        List<ColumnDef> columns = fields.stream()
+            .map(FieldDef::toColumnDef)
+            .toList();
+        return new ListSchema(columns, fields);
     }
 
     /**
@@ -68,6 +130,25 @@ public record ListSchema(List<ColumnDef> columns) {
 
         return fromRecordClass(item.getClass());
     }
+
+    // ========== Validation ==========
+
+    /**
+     * Validate a map of field values against this schema.
+     *
+     * @param values Map of field names to values
+     * @return Combined validation result from all fields
+     */
+    public ValidationResult validate(Map<String, Object> values) {
+        ValidationResult result = ValidationResult.success();
+        for (FieldDef field : fields) {
+            Object value = values.get(field.name());
+            result = result.merge(field.validate(value));
+        }
+        return result;
+    }
+
+    // ========== Conversion Methods ==========
 
     /**
      * Convert a domain object to a Map representation based on this schema.
@@ -112,6 +193,8 @@ public record ListSchema(List<ColumnDef> columns) {
             .toList();
     }
 
+    // ========== Customization Methods ==========
+
     /**
      * Customize this schema by renaming a column's display name.
      */
@@ -152,5 +235,31 @@ public record ListSchema(List<ColumnDef> columns) {
         }
 
         return new ListSchema(newColumns);
+    }
+
+    // ========== Field Access ==========
+
+    /**
+     * Get a field definition by name.
+     *
+     * @param fieldName The field name
+     * @return The FieldDef, or null if not found
+     */
+    public FieldDef field(String fieldName) {
+        return fields.stream()
+            .filter(f -> f.name().equals(fieldName))
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
+     * Get visible fields (non-hidden).
+     *
+     * @return List of visible FieldDefs
+     */
+    public List<FieldDef> visibleFields() {
+        return fields.stream()
+            .filter(f -> !f.isHidden())
+            .toList();
     }
 }

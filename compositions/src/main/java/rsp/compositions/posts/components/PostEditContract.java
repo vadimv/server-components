@@ -6,13 +6,16 @@ import rsp.compositions.ListSchema;
 import rsp.compositions.PathParam;
 import rsp.compositions.posts.entities.Post;
 import rsp.compositions.posts.services.PostService;
+import rsp.compositions.schema.FieldType;
+import rsp.compositions.schema.Widget;
 
 /**
  * PostEditContract - Contract for editing or creating a single post.
  * <p>
  * Reads the post ID from the URL path (e.g., /posts/1) and loads the corresponding post.
  * Supports create mode when the path contains the create token (e.g., /posts/new).
- * The schema is auto-derived from the Post record class.
+ * <p>
+ * Uses the Schema DSL to define field configuration with validation and UI hints.
  */
 public class PostEditContract extends EditViewContract<Post> {
     private static final PathParam<String> POST_ID = new PathParam<>(1, String.class, null);
@@ -45,14 +48,20 @@ public class PostEditContract extends EditViewContract<Post> {
 
     @Override
     public ListSchema schema() {
-        // Use class-based schema for create mode (no instance needed)
-        // Use instance-based schema for edit mode (when entity exists)
-        Post post = item();
-        if (post != null) {
-            return ListSchema.fromFirstItem(post);
-        }
-        // For create mode or not found, derive from class
-        return ListSchema.fromRecordClass(Post.class);
+        // Use Schema DSL for explicit field configuration
+        return ListSchema.builder()
+            .field("id", FieldType.ID)
+                .hidden()
+            .field("title", FieldType.STRING)
+                .label("Post Title")
+                .required()
+                .maxLength(200)
+                .placeholder("Enter post title...")
+            .field("content", FieldType.TEXT)
+                .label("Content")
+                .widget(Widget.TEXTAREA)
+                .placeholder("Write your post content here...")
+            .build();
     }
 
     @Override

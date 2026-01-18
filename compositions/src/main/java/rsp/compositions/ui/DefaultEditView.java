@@ -2,7 +2,8 @@ package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
 import rsp.compositions.EditView;
-import rsp.compositions.ListSchema;
+import rsp.compositions.schema.FieldDef;
+import rsp.compositions.schema.Widget;
 import rsp.dsl.Definition;
 import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
@@ -10,6 +11,7 @@ import rsp.util.json.JsonDataType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static rsp.compositions.EventKeys.*;
@@ -19,7 +21,7 @@ import static rsp.dsl.Html.*;
  * DefaultEditView - Adaptive form view implementation.
  * <p>
  * Renders form fields for ANY entity based on schema metadata.
- * Supports any number of fields and types.
+ * Supports both legacy ColumnDef and new FieldDef with widgets and validators.
  * <p>
  * Emits events:
  * <ul>
@@ -34,10 +36,13 @@ public class DefaultEditView extends EditView {
     @Override
     public ComponentView<EditViewState> componentView() {
         return newState -> state -> {
-            // Create element refs for all input fields
+            // Get fields - prefer FieldDef for enhanced rendering
+            final List<FieldDef> fields = state.schema().fields();
+
+            // Create element refs for all fields
             final Map<String, ElementRef> fieldRefs = new HashMap<>();
-            for (ListSchema.ColumnDef column : state.schema().columns()) {
-                fieldRefs.put(column.name(), createElementRef());
+            for (FieldDef field : fields) {
+                fieldRefs.put(field.name(), createElementRef());
             }
 
             // Determine title based on create/edit mode
@@ -48,8 +53,8 @@ public class DefaultEditView extends EditView {
 
                 form(
                     // Render fields dynamically based on schema
-                    of(state.schema().columns().stream()
-                        .map(column -> renderField(column, state.fieldValues().get(column.name()), fieldRefs.get(column.name())))
+                    of(fields.stream()
+                        .map(field -> renderField(field, state.fieldValues().get(field.name()), fieldRefs.get(field.name())))
                     ),
 
                     // Action buttons
@@ -61,29 +66,19 @@ public class DefaultEditView extends EditView {
                                 // Collect field values from input elements asynchronously
                                 Map<String, java.util.concurrent.CompletableFuture<Object>> futureValues = new HashMap<>();
 
-                                for (Map.Entry<String, ElementRef> entry : fieldRefs.entrySet()) {
-                                    String fieldName = entry.getKey();
-                                    ElementRef ref = entry.getValue();
+                                for (FieldDef field : fields) {
+                                    String fieldName = field.name();
+                                    ElementRef ref = fieldRefs.get(fieldName);
 
-                                    // Get the column definition to know the type
-                                    ListSchema.ColumnDef column = state.schema().columns().stream()
-                                        .filter(c -> c.name().equals(fieldName))
-                                        .findFirst()
-                                        .orElse(null);
+                                    // Get property value asynchronously
+                                    // For checkboxes, read "checked" property; for other inputs, read "value"
+                                    String property = (field.widget() == Widget.CHECKBOX) ? "checked" : "value";
 
-                                    if (column != null) {
-                                        // Get property value asynchronously
-                                        // For checkboxes, read "checked" property; for other inputs, read "value"
-                                        String property = (column.type() == Boolean.class || column.type() == boolean.class)
-                                            ? "checked"
-                                            : "value";
-
-                                        futureValues.put(
-                                            fieldName,
-                                            ctx.propertiesByRef(ref).get(property)
-                                                .thenApply(json -> convertJsonValue(json, column.type()))
-                                        );
-                                    }
+                                    futureValues.put(
+                                        fieldName,
+                                        ctx.propertiesByRef(ref).get(property)
+                                            .thenApply(json -> convertJsonValue(json, field.type()))
+                                    );
                                 }
 
                                 // Wait for all values to be collected, then send action
@@ -96,12 +91,9 @@ public class DefaultEditView extends EditView {
                                             collectedValues.put(name, future.get());
                                         } catch (Exception e) {
                                             // Use default value on error
-                                            ListSchema.ColumnDef col = state.schema().columns().stream()
-                                                .filter(c -> c.name().equals(name))
-                                                .findFirst()
-                                                .orElse(null);
-                                            if (col != null) {
-                                                collectedValues.put(name, getDefaultValue(col.type()));
+                                            FieldDef fld = state.schema().field(name);
+                                            if (fld != null) {
+                                                collectedValues.put(name, getDefaultValue(fld.type()));
                                             }
                                         }
                                     });
@@ -142,86 +134,138 @@ public class DefaultEditView extends EditView {
     }
 
     /**
-     * Render a form field based on column definition and current value.
+     * Render a form field based on FieldDef and current value.
      */
-    private Definition renderField(ListSchema.ColumnDef column, Object currentValue, ElementRef fieldRef) {
-        return div(attr("class", "form-field"),
+    private Definition renderField(FieldDef field, Object currentValue, ElementRef fieldRef) {
+        // Hidden fields render as hidden input (not wrapped in form-field div)
+        if (field.isHidden()) {
+            return renderHiddenInput(field, currentValue, fieldRef);
+        }
+
+        return div(attr("class", "form-field" + (field.isRequired() ? " required" : "")),
             label(
-                attr("for", column.name()),
-                text(column.displayName())
+                attr("for", field.name()),
+                text(field.displayName()),
+                field.isRequired() ? span(attr("class", "required-marker"), text(" *")) : of()
             ),
-            renderInput(column, currentValue, fieldRef)
+            renderInput(field, currentValue, fieldRef)
         );
     }
 
     /**
-     * Render appropriate input element based on field type.
+     * Render hidden input for hidden fields.
      */
-    private Definition renderInput(ListSchema.ColumnDef column, Object currentValue, ElementRef fieldRef) {
+    private Definition renderHiddenInput(FieldDef field, Object currentValue, ElementRef fieldRef) {
         String valueStr = currentValue != null ? currentValue.toString() : "";
-
-        // Boolean fields -> checkbox
-        if (column.type() == Boolean.class || column.type() == boolean.class) {
-            return input(
-                attr("type", "checkbox"),
-                attr("id", column.name()),
-                attr("name", column.name()),
-                currentValue != null && (Boolean) currentValue ? attr("checked") : of(),
-                elementId(fieldRef)
-            );
-        }
-
-        // Date fields -> date input
-        if (column.type() == LocalDate.class) {
-            return input(
-                attr("type", "date"),
-                attr("id", column.name()),
-                attr("name", column.name()),
-                prop("value", valueStr),
-                elementId(fieldRef)
-            );
-        }
-
-        // DateTime fields -> datetime-local input
-        if (column.type() == LocalDateTime.class) {
-            return input(
-                attr("type", "datetime-local"),
-                attr("id", column.name()),
-                attr("name", column.name()),
-                prop("value", valueStr),
-                elementId(fieldRef)
-            );
-        }
-
-        // Number fields -> number input
-        if (isNumericType(column.type())) {
-            return input(
-                attr("type", "number"),
-                attr("id", column.name()),
-                attr("name", column.name()),
-                prop("value", valueStr),
-                elementId(fieldRef)
-            );
-        }
-
-        // Default: text input
         return input(
-            attr("type", "text"),
-            attr("id", column.name()),
-            attr("name", column.name()),
+            attr("type", "hidden"),
+            attr("id", field.name()),
+            attr("name", field.name()),
             prop("value", valueStr),
             elementId(fieldRef)
         );
     }
 
     /**
-     * Check if a type is numeric.
+     * Render appropriate input element based on Widget type.
      */
-    private boolean isNumericType(Class<?> type) {
-        return type == Integer.class || type == int.class
-            || type == Long.class || type == long.class
-            || type == Double.class || type == double.class
-            || type == Float.class || type == float.class;
+    private Definition renderInput(FieldDef field, Object currentValue, ElementRef fieldRef) {
+        String valueStr = currentValue != null ? currentValue.toString() : "";
+
+        // Get HTML5 validation attributes from validators
+        Map<String, String> validationAttrs = field.htmlValidationAttributes();
+
+        return switch (field.widget()) {
+            case CHECKBOX -> input(
+                attr("type", "checkbox"),
+                attr("id", field.name()),
+                attr("name", field.name()),
+                currentValue != null && (Boolean) currentValue ? attr("checked") : of(),
+                field.isReadOnly() ? attr("disabled") : of(),
+                elementId(fieldRef)
+            );
+
+            case TEXTAREA -> textarea(
+                attr("id", field.name()),
+                attr("name", field.name()),
+                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
+                field.isReadOnly() ? attr("readonly") : of(),
+                renderValidationAttrs(validationAttrs),
+                text(valueStr),
+                elementId(fieldRef)
+            );
+
+            case SELECT -> select(
+                attr("id", field.name()),
+                attr("name", field.name()),
+                field.isReadOnly() ? attr("disabled") : of(),
+                // Empty option for non-required fields
+                !field.isRequired() ? option(attr("value", ""), text("-- Select --")) : of(),
+                of(field.options().enumOptions().stream()
+                    .map(opt -> option(
+                        attr("value", opt),
+                        opt.equals(valueStr) ? attr("selected") : of(),
+                        text(opt)
+                    ))
+                ),
+                elementId(fieldRef)
+            );
+
+            case PASSWORD -> input(
+                attr("type", "password"),
+                attr("id", field.name()),
+                attr("name", field.name()),
+                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
+                field.isReadOnly() ? attr("readonly") : of(),
+                renderValidationAttrs(validationAttrs),
+                elementId(fieldRef)
+            );
+
+            case DATE_PICKER -> input(
+                attr("type", field.type() == LocalDateTime.class ? "datetime-local" : "date"),
+                attr("id", field.name()),
+                attr("name", field.name()),
+                prop("value", valueStr),
+                field.isReadOnly() ? attr("readonly") : of(),
+                elementId(fieldRef)
+            );
+
+            case NUMBER -> input(
+                attr("type", "number"),
+                attr("id", field.name()),
+                attr("name", field.name()),
+                prop("value", valueStr),
+                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
+                field.isReadOnly() ? attr("readonly") : of(),
+                renderValidationAttrs(validationAttrs),
+                elementId(fieldRef)
+            );
+
+            case HIDDEN -> renderHiddenInput(field, currentValue, fieldRef);
+
+            default -> input(  // TEXT, RADIO (fallback to text)
+                attr("type", "text"),
+                attr("id", field.name()),
+                attr("name", field.name()),
+                prop("value", valueStr),
+                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
+                field.isReadOnly() ? attr("readonly") : of(),
+                renderValidationAttrs(validationAttrs),
+                elementId(fieldRef)
+            );
+        };
+    }
+
+    /**
+     * Render HTML5 validation attributes.
+     */
+    private Definition renderValidationAttrs(Map<String, String> attrs) {
+        if (attrs.isEmpty()) {
+            return of();
+        }
+        return of(attrs.entrySet().stream()
+            .map(e -> attr(e.getKey(), e.getValue()))
+        );
     }
 
     /**
