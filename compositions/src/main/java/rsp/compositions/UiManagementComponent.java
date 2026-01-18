@@ -80,9 +80,9 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
 
     private static Definition page(Component<?> primaryComponent, Component<?> overlayComponent,
                                     Component<?> modalOverlayComponent) {
-        return html(head(title("Posts")),
-//                        link(attr("rel", "stylesheet"),
-//                                attr("href", "/res/style.css"))),
+        return html(head(title("Posts"),
+                        link(attr("rel", "stylesheet"),
+                                attr("href", "/res/style.css"))),
                 body(new LayoutComponent(primaryComponent, overlayComponent, modalOverlayComponent)));
     }
 

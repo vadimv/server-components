@@ -9,7 +9,9 @@ import rsp.compositions.posts.services.PostService;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.jetty.WebServer;
+import rsp.server.StaticResources;
 
+import java.io.File;
 import java.util.List;
 
 public class CrudApp {
@@ -46,7 +48,10 @@ public class CrudApp {
         // Create app with AppConfig (flows to AppComponent → Context)
         final App app = new App(appConfig, uiRegistry, router, List.of(postsModule), services);
 
-        final WebServer server = new WebServer(8080, app);
+        final WebServer server = new WebServer(8080,
+                                               app,
+                                               new StaticResources(new File("src/main/java/rsp/compositions/posts"),
+                                                                   "/res/"));
         server.start();
         server.join();
     }
