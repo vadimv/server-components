@@ -1,14 +1,17 @@
 package rsp.compositions.posts.components;
 
 import rsp.component.Lookup;
+import rsp.compositions.DataSchema;
 import rsp.compositions.ListViewContract;
 import rsp.compositions.QueryParam;
+import rsp.compositions.ServicesComponent;
 import rsp.compositions.posts.entities.Post;
 import rsp.compositions.posts.services.PostService;
 
 import java.util.List;
+import java.util.Set;
 
-public class PostsListContract extends ListViewContract<Post> {
+public class PostsListContract extends ListViewContract<Post> implements ServicesComponent.SchemaCustomizer {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
     private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
 
@@ -39,5 +42,16 @@ public class PostsListContract extends ListViewContract<Post> {
         // Call service directly (service comes from context)
         // Use pageSize from base class (configured via AppConfig)
         return postService.findAll(page, pageSize(), sort);
+    }
+
+    @Override
+    public DataSchema customizeSchema(DataSchema defaultSchema) {
+        // Enable row selection for bulk operations
+        return defaultSchema.withSelectable(true);
+    }
+
+    @Override
+    protected int bulkDelete(Set<String> ids) {
+        return postService.bulkDelete(ids);
     }
 }

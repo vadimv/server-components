@@ -190,7 +190,12 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 // Create Lookup from context + event infrastructure
                 Lookup lookup = createLookup(context);
                 // Instantiate contract using factory with lookup
-                return placement.contractFactory().apply(lookup);
+                ViewContract contract = placement.contractFactory().apply(lookup);
+                // Register event handlers for this contract
+                if (contract != null) {
+                    contract.registerHandlers();
+                }
+                return contract;
             }
         }
         return null;

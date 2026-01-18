@@ -5,8 +5,10 @@ import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * ListView - Adaptive list view component.
@@ -28,9 +30,11 @@ public abstract class ListView extends Component<ListView.ListViewState> {
      * @param modulePath Base path for this module (e.g., "/posts")
      * @param editMode The edit/create mode (SEPARATE_PAGE, QUERY_PARAM, MODAL)
      * @param createToken The token used for create mode URLs (e.g., "new")
+     * @param selectedIds Set of selected row IDs (only used when schema.selectable() is true)
      */
     public record ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort,
-                                 String modulePath, EditMode editMode, String createToken) {
+                                 String modulePath, EditMode editMode, String createToken,
+                                 Set<String> selectedIds) {
         public ListViewState {
             rows = rows != null ? rows : List.of();
             schema = schema != null ? schema : new DataSchema(List.of());
@@ -39,13 +43,89 @@ public abstract class ListView extends Component<ListView.ListViewState> {
             modulePath = modulePath != null ? modulePath : "/";
             editMode = editMode != null ? editMode : EditMode.SEPARATE_PAGE;
             createToken = createToken != null ? createToken : "new";
+            selectedIds = selectedIds != null ? Set.copyOf(selectedIds) : Set.of();
         }
 
         /**
-         * Backwards-compatible constructor without editMode and createToken.
+         * Backwards-compatible constructor without selectedIds.
+         */
+        public ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort,
+                             String modulePath, EditMode editMode, String createToken) {
+            this(rows, schema, page, sort, modulePath, editMode, createToken, Set.of());
+        }
+
+        /**
+         * Backwards-compatible constructor without editMode, createToken, and selectedIds.
          */
         public ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort, String modulePath) {
-            this(rows, schema, page, sort, modulePath, EditMode.SEPARATE_PAGE, "new");
+            this(rows, schema, page, sort, modulePath, EditMode.SEPARATE_PAGE, "new", Set.of());
+        }
+
+        /**
+         * Toggle selection of a row by ID.
+         *
+         * @param rowId The row ID to toggle
+         * @return New state with updated selection
+         */
+        public ListViewState toggleSelection(String rowId) {
+            Set<String> newSelected = new HashSet<>(selectedIds);
+            if (newSelected.contains(rowId)) {
+                newSelected.remove(rowId);
+            } else {
+                newSelected.add(rowId);
+            }
+            return new ListViewState(rows, schema, page, sort, modulePath, editMode, createToken, newSelected);
+        }
+
+        /**
+         * Select all rows on the current page.
+         *
+         * @return New state with all rows selected
+         */
+        public ListViewState selectAll() {
+            Set<String> newSelected = new HashSet<>(selectedIds);
+            for (Map<String, Object> row : rows) {
+                Object id = row.get("id");
+                if (id != null) {
+                    newSelected.add(String.valueOf(id));
+                }
+            }
+            return new ListViewState(rows, schema, page, sort, modulePath, editMode, createToken, newSelected);
+        }
+
+        /**
+         * Deselect all rows.
+         *
+         * @return New state with no selections
+         */
+        public ListViewState clearSelection() {
+            return new ListViewState(rows, schema, page, sort, modulePath, editMode, createToken, Set.of());
+        }
+
+        /**
+         * Check if a row is selected.
+         *
+         * @param rowId The row ID to check
+         * @return true if the row is selected
+         */
+        public boolean isSelected(String rowId) {
+            return selectedIds.contains(rowId);
+        }
+
+        /**
+         * Check if all rows on the current page are selected.
+         *
+         * @return true if all rows are selected
+         */
+        public boolean isAllSelected() {
+            if (rows.isEmpty()) return false;
+            for (Map<String, Object> row : rows) {
+                Object id = row.get("id");
+                if (id != null && !selectedIds.contains(String.valueOf(id))) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 
@@ -69,13 +149,13 @@ public abstract class ListView extends Component<ListView.ListViewState> {
             String modulePath = deriveModulePath(context);
 
             if (items == null || items.isEmpty()) {
-                return new ListViewState(List.of(), schema, page, sort, modulePath, editMode, createToken);
+                return new ListViewState(List.of(), schema, page, sort, modulePath, editMode, createToken, Set.of());
             }
 
             // Convert domain objects to Map representation using schema
             List<Map<String, Object>> rows = schema.toMapList(items);
 
-            return new ListViewState(rows, schema, page, sort, modulePath, editMode, createToken);
+            return new ListViewState(rows, schema, page, sort, modulePath, editMode, createToken, Set.of());
         };
     }
 

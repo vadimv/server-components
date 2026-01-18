@@ -30,6 +30,7 @@ public class DefaultListView extends ListView {
             final String modulePath = state.modulePath();
             final EditMode editMode = state.editMode();
             final String createToken = state.createToken();
+            final boolean selectable = state.schema().selectable();
 
             // Capture current query params for Edit links
             final String currentQueryParams = buildQueryString(page, sort);
@@ -39,18 +40,38 @@ public class DefaultListView extends ListView {
 
                 // Create New action - varies by edit mode
                 div(attr("class", "list-actions"),
-                    renderCreateButton(modulePath, editMode, createToken)
+                    renderCreateButton(modulePath, editMode, createToken),
+                    // Bulk delete button (only when selectable and has selections)
+                    selectable && !state.selectedIds().isEmpty()
+                        ? renderBulkDeleteButton(state)
+                        : of()
                 ),
 
                 // Pagination controls at top
                 div(attr("class", "pagination-top"),
-                    renderPaginationControls(page)
+                    renderPaginationControls(page, state, newState)
                 ),
 
                 // Table with sortable headers
                 table(
                     thead(
                         tr(
+                            // Checkbox column header (only when selectable)
+                            selectable
+                                ? th(
+                                    input(
+                                        attr("type", "checkbox"),
+                                        state.isAllSelected() ? attr("checked", "checked") : of(),
+                                        on("click", ctx -> {
+                                            if (state.isAllSelected()) {
+                                                newState.setState(state.clearSelection());
+                                            } else {
+                                                newState.setState(state.selectAll());
+                                            }
+                                        })
+                                    )
+                                  )
+                                : of(),
                             // Render headers dynamically with sort links
                             of(state.schema().columns().stream()
                                 .map(col -> th(
@@ -69,36 +90,77 @@ public class DefaultListView extends ListView {
                                     )
                                 ))
                             ),
-                            // NEW: Actions column header
+                            // Actions column header
                             th(text("Actions"))
                         )
                     ),
                     tbody(
                         // Render rows dynamically with Edit link
-                        of(state.rows().stream().map(row ->
-                            tr(
+                        of(state.rows().stream().map(row -> {
+                            String rowId = getRowId(row);
+                            return tr(
+                                // Checkbox column (only when selectable)
+                                selectable
+                                    ? td(
+                                        input(
+                                            attr("type", "checkbox"),
+                                            state.isSelected(rowId) ? attr("checked", "checked") : of(),
+                                            on("click", ctx -> {
+                                                newState.setState(state.toggleSelection(rowId));
+                                            })
+                                        )
+                                      )
+                                    : of(),
                                 // Existing data columns
                                 of(state.schema().columns().stream()
                                     .map(col -> td(renderValue(row.get(col.name()), col.type())))
                                 ),
-                                // NEW: Actions column with Edit link
+                                // Actions column with Edit link
                                 td(
                                     a(
                                         attr("href", buildEditUrl(row, currentQueryParams, modulePath)),
                                         text("Edit")
                                     )
                                 )
-                            )
-                        ))
+                            );
+                        }))
                     )
                 ),
 
                 // Pagination controls at bottom
                 div(attr("class", "pagination-bottom"),
-                    renderPaginationControls(page)
+                    renderPaginationControls(page, state, newState)
                 )
             );
         };
+    }
+
+    /**
+     * Render the bulk delete button.
+     */
+    private Definition renderBulkDeleteButton(ListViewState state) {
+        int count = state.selectedIds().size();
+        return button(
+            attr("type", "button"),
+            attr("class", "btn-delete btn-danger"),
+            text("Delete Selected (" + count + ")"),
+            on("click", ctx -> {
+                ctx.evalJs("confirm('Are you sure you want to delete " + count + " items?')")
+                    .thenAccept(result -> {
+                        if (result instanceof rsp.util.json.JsonDataType.Boolean confirmed && confirmed.value()) {
+                            lookup.publish(BULK_DELETE_REQUESTED, state.selectedIds());
+                        }
+                    });
+            })
+        );
+    }
+
+    /**
+     * Get the row ID as a string.
+     */
+    private String getRowId(java.util.Map<String, Object> row) {
+        Object id = row.get("id");
+        return id != null ? String.valueOf(id) : "";
     }
 
     /**
@@ -133,8 +195,10 @@ public class DefaultListView extends ListView {
 
     /**
      * Render pagination controls (Previous/Next buttons).
+     * Clears selection when page changes.
      */
-    private Definition renderPaginationControls(int currentPage) {
+    private Definition renderPaginationControls(int currentPage, ListViewState state,
+                                                  rsp.component.StateUpdate<ListViewState> newState) {
         return div(
             // Previous button - conditionally render based on page
             currentPage <= 1
@@ -147,6 +211,8 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
+                        // Clear selection when changing page
+                        newState.setState(state.clearSelection());
                         lookup.publish(STATE_UPDATED.with("p"),
                             new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage - 1))
                         );
@@ -164,6 +230,8 @@ public class DefaultListView extends ListView {
                 attr("type", "button"),
                 text("Next →"),
                 on("click", ctx -> {
+                    // Clear selection when changing page
+                    newState.setState(state.clearSelection());
                     // Send event to AddressBarSyncComponent
                     lookup.publish(STATE_UPDATED.with("p"),
                         new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage + 1))

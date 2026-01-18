@@ -133,6 +133,27 @@ button:disabled {
 /* ========== List Actions ========== */
 .list-actions {
     margin-bottom: 1rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* ========== Delete Button Styles ========== */
+.btn-delete,
+.btn-danger {
+    background-color: #dc3545;
+}
+
+.btn-delete:hover,
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* ========== Checkbox Column ========== */
+td input[type="checkbox"],
+th input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
 }
 
 /* ========== Edit Form Styles ========== */

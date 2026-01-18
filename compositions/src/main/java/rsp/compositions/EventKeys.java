@@ -4,6 +4,7 @@ import rsp.component.EventKey;
 import rsp.component.definitions.ContextStateComponent;
 
 import java.util.Map;
+import java.util.Set;
 
 public final class EventKeys {
     private EventKeys() {}
@@ -27,6 +28,17 @@ public final class EventKeys {
      */
     public static final EventKey.VoidKey DELETE_REQUESTED =
             new EventKey.VoidKey("delete.requested");
+
+    /**
+     * Bulk delete action requested for selected rows.
+     * Emitted by: DefaultListView (Delete Selected button)
+     * Handled by: ListViewContract.registerHandlers()
+     * Payload: Set of row IDs to delete
+     */
+    @SuppressWarnings("unchecked")
+    public static final EventKey.SimpleKey<Set<String>> BULK_DELETE_REQUESTED =
+            new EventKey.SimpleKey<>("bulk.delete.requested",
+                    (Class<Set<String>>) (Class<?>) Set.class);
 
     // ===== MODAL EVENTS =====
 

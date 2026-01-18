@@ -53,4 +53,20 @@ public class PostService {
     public boolean delete(final String id) {
         return posts.remove(id) != null;
     }
+
+    /**
+     * Delete multiple posts by their IDs.
+     *
+     * @param ids Set of post IDs to delete
+     * @return Number of posts successfully deleted
+     */
+    public int bulkDelete(final java.util.Set<String> ids) {
+        int deleted = 0;
+        for (String id : ids) {
+            if (posts.remove(id) != null) {
+                deleted++;
+            }
+        }
+        return deleted;
+    }
 }

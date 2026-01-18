@@ -19,6 +19,16 @@ public abstract class ViewContract {
     }
 
     /**
+     * Register event handlers for this contract.
+     * <p>
+     * Override to subscribe to events from the associated view.
+     * Called during contract initialization.
+     */
+    protected void registerHandlers() {
+        // Default: no handlers - override in subclasses
+    }
+
+    /**
      * Override to implement custom authorization logic.
      * Default: delegates to auth.strategy from context if present,
      * otherwise allows all (public access).

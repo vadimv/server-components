@@ -34,7 +34,8 @@ import java.util.Map;
  *     .build();
  * }</pre>
  */
-public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<String, ColumnConfig> columnConfigs) {
+public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<String, ColumnConfig> columnConfigs,
+                         boolean selectable) {
 
     /**
      * Canonical constructor with validation.
@@ -49,18 +50,25 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
     }
 
     /**
+     * Backward-compatible constructor without selectable.
+     */
+    public DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<String, ColumnConfig> columnConfigs) {
+        this(columns, fields, columnConfigs, false);
+    }
+
+    /**
      * Backward-compatible constructor from columns only.
      * Automatically converts ColumnDefs to FieldDefs.
      */
     public DataSchema(List<ColumnDef> columns) {
-        this(columns, columns.stream().map(FieldDef::fromColumnDef).toList(), Map.of());
+        this(columns, columns.stream().map(FieldDef::fromColumnDef).toList(), Map.of(), false);
     }
 
     /**
      * Backward-compatible constructor without columnConfigs.
      */
     public DataSchema(List<ColumnDef> columns, List<FieldDef> fields) {
-        this(columns, fields, Map.of());
+        this(columns, fields, Map.of(), false);
     }
 
     /**
@@ -111,10 +119,23 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
      * @return A new DataSchema
      */
     public static DataSchema fromFields(List<FieldDef> fields, Map<String, ColumnConfig> columnConfigs) {
+        return fromFields(fields, columnConfigs, false);
+    }
+
+    /**
+     * Create a DataSchema from FieldDefs, column configs, and selectable flag.
+     * Used internally by SchemaBuilder.
+     *
+     * @param fields The field definitions
+     * @param columnConfigs Map of field names to column configurations
+     * @param selectable Whether list rows are selectable
+     * @return A new DataSchema
+     */
+    public static DataSchema fromFields(List<FieldDef> fields, Map<String, ColumnConfig> columnConfigs, boolean selectable) {
         List<ColumnDef> columns = fields.stream()
             .map(FieldDef::toColumnDef)
             .toList();
-        return new DataSchema(columns, fields, columnConfigs);
+        return new DataSchema(columns, fields, columnConfigs, selectable);
     }
 
     /**
@@ -240,6 +261,16 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
             .filter(col -> !col.name().equals(columnName))
             .toList();
         return new DataSchema(newColumns);
+    }
+
+    /**
+     * Customize this schema by setting the selectable flag.
+     *
+     * @param selectable Whether list rows should be selectable
+     * @return A new DataSchema with the selectable flag set
+     */
+    public DataSchema withSelectable(boolean selectable) {
+        return new DataSchema(columns, fields, columnConfigs, selectable);
     }
 
     /**
