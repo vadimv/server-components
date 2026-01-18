@@ -3,6 +3,7 @@ package rsp.compositions.ui;
 import rsp.component.ComponentView;
 import rsp.compositions.EditView;
 import rsp.compositions.schema.FieldDef;
+import rsp.compositions.schema.ValidationResult;
 import rsp.compositions.schema.Widget;
 import rsp.dsl.Definition;
 import rsp.ref.ElementRef;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 
 import static rsp.compositions.EventKeys.*;
+import static rsp.compositions.ui.FormField.formField;
 import static rsp.dsl.Html.*;
 
 /**
@@ -54,7 +56,12 @@ public class DefaultEditView extends EditView {
                 form(
                     // Render fields dynamically based on schema
                     of(fields.stream()
-                        .map(field -> renderField(field, state.fieldValues().get(field.name()), fieldRefs.get(field.name())))
+                        .map(field -> renderField(
+                            field,
+                            state.fieldValues().get(field.name()),
+                            fieldRefs.get(field.name()),
+                            state.errorsFor(field.name())
+                        ))
                     ),
 
                     // Action buttons
@@ -81,7 +88,7 @@ public class DefaultEditView extends EditView {
                                     );
                                 }
 
-                                // Wait for all values to be collected, then send action
+                                // Wait for all values to be collected, then validate and send action
                                 java.util.concurrent.CompletableFuture.allOf(
                                     futureValues.values().toArray(new java.util.concurrent.CompletableFuture[0])
                                 ).thenRun(() -> {
@@ -98,9 +105,33 @@ public class DefaultEditView extends EditView {
                                         }
                                     });
 
-                                    // Emit form.submitted event with collected field values
-                                    // Contract will decide what to do (save, validate, etc.)
-                                    lookup.publish(FORM_SUBMITTED, collectedValues);
+                                    // Validate before submitting
+                                    ValidationResult result = state.schema().validate(collectedValues);
+
+                                    if (!result.isValid()) {
+                                        // Update state with errors - triggers re-render with error messages
+                                        newState.setState(new EditViewState(
+                                            collectedValues,
+                                            state.schema(),
+                                            true,
+                                            state.listRoute(),
+                                            state.isCreateMode(),
+                                            result.errors()
+                                        ));
+                                    } else {
+                                        // Clear any previous errors and submit
+                                        newState.setState(new EditViewState(
+                                            collectedValues,
+                                            state.schema(),
+                                            state.isDirty(),
+                                            state.listRoute(),
+                                            state.isCreateMode(),
+                                            Map.of()
+                                        ));
+                                        // Emit form.submitted event with collected field values
+                                        // Contract will decide what to do (save, etc.)
+                                        lookup.publish(FORM_SUBMITTED, collectedValues);
+                                    }
                                 });
                             })
                         ),
@@ -134,22 +165,17 @@ public class DefaultEditView extends EditView {
     }
 
     /**
-     * Render a form field based on FieldDef and current value.
+     * Render a form field based on FieldDef, current value, and validation errors.
      */
-    private Definition renderField(FieldDef field, Object currentValue, ElementRef fieldRef) {
+    private Definition renderField(FieldDef field, Object currentValue, ElementRef fieldRef, List<String> errors) {
         // Hidden fields render as hidden input (not wrapped in form-field div)
         if (field.isHidden()) {
             return renderHiddenInput(field, currentValue, fieldRef);
         }
 
-        return div(attr("class", "form-field" + (field.isRequired() ? " required" : "")),
-            label(
-                attr("for", field.name()),
-                text(field.displayName()),
-                field.isRequired() ? span(attr("class", "required-marker"), text(" *")) : of()
-            ),
-            renderInput(field, currentValue, fieldRef)
-        );
+        // Use FormField component for consistent rendering with error messages
+        Definition input = renderInput(field, currentValue, fieldRef);
+        return formField(field, input, errors);
     }
 
     /**

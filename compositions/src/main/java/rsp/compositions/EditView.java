@@ -5,6 +5,7 @@ import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,24 +29,54 @@ public abstract class EditView extends Component<EditView.EditViewState> {
      * @param isDirty Whether form has unsaved changes
      * @param listRoute Route to navigate back to list
      * @param isCreateMode Whether in create mode (new entity) vs edit mode (existing entity)
+     * @param validationErrors Map of field names to validation error messages
      */
-    public record EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute, boolean isCreateMode) {
+    public record EditViewState(
+        Map<String, Object> fieldValues,
+        ListSchema schema,
+        boolean isDirty,
+        String listRoute,
+        boolean isCreateMode,
+        Map<String, List<String>> validationErrors
+    ) {
         public EditViewState {
             fieldValues = fieldValues != null ? fieldValues : Map.of();
             schema = schema != null ? schema : new ListSchema(java.util.List.of());
             listRoute = listRoute != null ? listRoute : "/";
+            validationErrors = validationErrors != null ? validationErrors : Map.of();
         }
 
         public EditViewState(Map<String, Object> fieldValues, ListSchema schema) {
-            this(fieldValues, schema, false, "/", false);
+            this(fieldValues, schema, false, "/", false, Map.of());
         }
 
         public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty) {
-            this(fieldValues, schema, isDirty, "/", false);
+            this(fieldValues, schema, isDirty, "/", false, Map.of());
         }
 
         public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute) {
-            this(fieldValues, schema, isDirty, listRoute, false);
+            this(fieldValues, schema, isDirty, listRoute, false, Map.of());
+        }
+
+        public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute, boolean isCreateMode) {
+            this(fieldValues, schema, isDirty, listRoute, isCreateMode, Map.of());
+        }
+
+        /**
+         * Check if there are any validation errors.
+         */
+        public boolean hasErrors() {
+            return !validationErrors.isEmpty();
+        }
+
+        /**
+         * Get validation error messages for a specific field.
+         *
+         * @param fieldName The field name
+         * @return List of error messages (empty if no errors)
+         */
+        public List<String> errorsFor(String fieldName) {
+            return validationErrors.getOrDefault(fieldName, List.of());
         }
     }
 
@@ -84,7 +115,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             }
 
             if (schema == null) {
-                return new EditViewState(Map.of(), new ListSchema(java.util.List.of()), false, listRoute, isCreateMode);
+                return new EditViewState(Map.of(), new ListSchema(java.util.List.of()), false, listRoute, isCreateMode, Map.of());
             }
 
             // Convert entity to Map for editing
@@ -92,7 +123,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                 ? schema.toMap(entity)
                 : createEmptyFieldValues(schema);
 
-            return new EditViewState(fieldValues, schema, false, listRoute, isCreateMode);
+            return new EditViewState(fieldValues, schema, false, listRoute, isCreateMode, Map.of());
         };
     }
 
