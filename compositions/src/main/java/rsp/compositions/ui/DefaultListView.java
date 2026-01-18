@@ -57,7 +57,7 @@ public class DefaultListView extends ListView {
                                     a(
                                         attr("href", "#"),
                                         text(col.displayName() + " " + getSortIndicator(sort)),
-                                        on("click", ctx -> {
+                                        on("click", true, ctx -> {  // preventDefault to avoid # in URL
                                             // Toggle sort direction
                                             String newSort = sort.equals("asc") ? "desc" : "asc";
 

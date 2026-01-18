@@ -7,6 +7,7 @@ import rsp.compositions.schema.ValidationResult;
 
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,10 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
     public DataSchema {
         columns = columns != null ? List.copyOf(columns) : List.of();
         fields = fields != null ? List.copyOf(fields) : List.of();
-        columnConfigs = columnConfigs != null ? Map.copyOf(columnConfigs) : Map.of();
+        // Use LinkedHashMap to preserve insertion order for listColumns()
+        columnConfigs = columnConfigs != null
+            ? Collections.unmodifiableMap(new LinkedHashMap<>(columnConfigs))
+            : Map.of();
     }
 
     /**
