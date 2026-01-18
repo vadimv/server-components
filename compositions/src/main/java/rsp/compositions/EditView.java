@@ -33,7 +33,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
      */
     public record EditViewState(
         Map<String, Object> fieldValues,
-        ListSchema schema,
+        DataSchema schema,
         boolean isDirty,
         String listRoute,
         boolean isCreateMode,
@@ -41,24 +41,24 @@ public abstract class EditView extends Component<EditView.EditViewState> {
     ) {
         public EditViewState {
             fieldValues = fieldValues != null ? fieldValues : Map.of();
-            schema = schema != null ? schema : new ListSchema(java.util.List.of());
+            schema = schema != null ? schema : new DataSchema(java.util.List.of());
             listRoute = listRoute != null ? listRoute : "/";
             validationErrors = validationErrors != null ? validationErrors : Map.of();
         }
 
-        public EditViewState(Map<String, Object> fieldValues, ListSchema schema) {
+        public EditViewState(Map<String, Object> fieldValues, DataSchema schema) {
             this(fieldValues, schema, false, "/", false, Map.of());
         }
 
-        public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty) {
+        public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty) {
             this(fieldValues, schema, isDirty, "/", false, Map.of());
         }
 
-        public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute) {
+        public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty, String listRoute) {
             this(fieldValues, schema, isDirty, listRoute, false, Map.of());
         }
 
-        public EditViewState(Map<String, Object> fieldValues, ListSchema schema, boolean isDirty, String listRoute, boolean isCreateMode) {
+        public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty, String listRoute, boolean isCreateMode) {
             this(fieldValues, schema, isDirty, listRoute, isCreateMode, Map.of());
         }
 
@@ -85,7 +85,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
         return (_, context) -> {
             // Read entity and schema from context (populated by ServicesComponent)
             Object entity = context.get(ContextKeys.EDIT_ENTITY);
-            ListSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
+            DataSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
 
             // Read UI hints from context
             // These are populated by the framework based on the contract
@@ -111,11 +111,11 @@ public abstract class EditView extends Component<EditView.EditViewState> {
 
             if (schema == null && entity != null) {
                 // Auto-derive schema from entity if not provided
-                schema = ListSchema.fromFirstItem(entity);
+                schema = DataSchema.fromFirstItem(entity);
             }
 
             if (schema == null) {
-                return new EditViewState(Map.of(), new ListSchema(java.util.List.of()), false, listRoute, isCreateMode, Map.of());
+                return new EditViewState(Map.of(), new DataSchema(java.util.List.of()), false, listRoute, isCreateMode, Map.of());
             }
 
             // Convert entity to Map for editing
@@ -200,9 +200,9 @@ public abstract class EditView extends Component<EditView.EditViewState> {
     /**
      * Create empty field values map initialized with default values based on field types.
      */
-    private Map<String, Object> createEmptyFieldValues(ListSchema schema) {
+    private Map<String, Object> createEmptyFieldValues(DataSchema schema) {
         Map<String, Object> values = new java.util.LinkedHashMap<>();
-        for (ListSchema.ColumnDef column : schema.columns()) {
+        for (DataSchema.ColumnDef column : schema.columns()) {
             values.put(column.name(), getDefaultValue(column.type()));
         }
         return values;

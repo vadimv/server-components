@@ -2,7 +2,7 @@ package rsp.compositions.posts.components;
 
 import rsp.component.Lookup;
 import rsp.compositions.EditViewContract;
-import rsp.compositions.ListSchema;
+import rsp.compositions.DataSchema;
 import rsp.compositions.PathParam;
 import rsp.compositions.posts.entities.Post;
 import rsp.compositions.posts.services.PostService;
@@ -47,9 +47,9 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
-    public ListSchema schema() {
+    public DataSchema schema() {
         // Use Schema DSL for explicit field configuration
-        return ListSchema.builder()
+        return DataSchema.builder()
             .field("id", FieldType.ID)
                 .hidden()
             .field("title", FieldType.STRING)

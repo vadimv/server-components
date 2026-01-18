@@ -37,8 +37,8 @@ public class EditViewContractTests {
         }
 
         @Override
-        public ListSchema schema() {
-            return ListSchema.fromRecordClass(TestEntity.class);
+        public DataSchema schema() {
+            return DataSchema.fromRecordClass(TestEntity.class);
         }
 
         @Override
@@ -272,7 +272,7 @@ public class EditViewContractTests {
             final Lookup lookup = lookupWithRoutePattern("/posts/:id");
             final TestEditContract contract = new TestEditContract(lookup, "123");
 
-            final ListSchema schema = contract.schema();
+            final DataSchema schema = contract.schema();
 
             assertEquals(2, schema.columns().size());
             assertEquals("id", schema.columns().get(0).name());

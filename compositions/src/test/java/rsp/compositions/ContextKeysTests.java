@@ -110,7 +110,7 @@ public class ContextKeysTests {
 
         @Test
         void list_schema_key_has_correct_type() {
-            assertEquals(ListSchema.class, ContextKeys.LIST_SCHEMA.type());
+            assertEquals(DataSchema.class, ContextKeys.LIST_SCHEMA.type());
         }
 
         @Test
@@ -151,7 +151,7 @@ public class ContextKeysTests {
 
         @Test
         void can_store_and_retrieve_list_schema() {
-            final ListSchema schema = ListSchema.fromRecordClass(TestRecord.class);
+            final DataSchema schema = DataSchema.fromRecordClass(TestRecord.class);
             final TestLookup lookup = new TestLookup()
                     .withData(ContextKeys.LIST_SCHEMA, schema);
 

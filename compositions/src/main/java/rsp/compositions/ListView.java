@@ -29,11 +29,11 @@ public abstract class ListView extends Component<ListView.ListViewState> {
      * @param editMode The edit/create mode (SEPARATE_PAGE, QUERY_PARAM, MODAL)
      * @param createToken The token used for create mode URLs (e.g., "new")
      */
-    public record ListViewState(List<Map<String, Object>> rows, ListSchema schema, int page, String sort,
+    public record ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort,
                                  String modulePath, EditMode editMode, String createToken) {
         public ListViewState {
             rows = rows != null ? rows : List.of();
-            schema = schema != null ? schema : new ListSchema(List.of());
+            schema = schema != null ? schema : new DataSchema(List.of());
             if (page < 1) page = 1;
             sort = sort != null ? sort : "asc";
             modulePath = modulePath != null ? modulePath : "/";
@@ -44,7 +44,7 @@ public abstract class ListView extends Component<ListView.ListViewState> {
         /**
          * Backwards-compatible constructor without editMode and createToken.
          */
-        public ListViewState(List<Map<String, Object>> rows, ListSchema schema, int page, String sort, String modulePath) {
+        public ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort, String modulePath) {
             this(rows, schema, page, sort, modulePath, EditMode.SEPARATE_PAGE, "new");
         }
     }
@@ -54,7 +54,7 @@ public abstract class ListView extends Component<ListView.ListViewState> {
         return (_, context) -> {
             // Read items, schema, page, and sort from context (populated by ServicesComponent)
             List<?> items = (List<?>) context.get(ContextKeys.LIST_ITEMS);
-            ListSchema schema = context.get(ContextKeys.LIST_SCHEMA);
+            DataSchema schema = context.get(ContextKeys.LIST_SCHEMA);
             Integer page = context.get(ContextKeys.LIST_PAGE);
             String sort = context.get(ContextKeys.LIST_SORT);
             EditMode editMode = context.get(ContextKeys.EDIT_MODE);

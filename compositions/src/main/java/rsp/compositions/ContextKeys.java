@@ -113,11 +113,11 @@ public final class ContextKeys {
 
     /**
      * Schema definition for list columns.
-     * Type: ListSchema
+     * Type: DataSchema
      * Defines column names, types, and rendering information.
      */
-    public static final ContextKey.StringKey<ListSchema> LIST_SCHEMA =
-            new ContextKey.StringKey<>("list.schema", ListSchema.class);
+    public static final ContextKey.StringKey<DataSchema> LIST_SCHEMA =
+            new ContextKey.StringKey<>("list.schema", DataSchema.class);
 
     /**
      * Current page number for paginated lists.
@@ -145,11 +145,11 @@ public final class ContextKeys {
 
     /**
      * Schema definition for edit form fields.
-     * Type: ListSchema
+     * Type: DataSchema
      * Defines field names, types, and validation rules.
      */
-    public static final ContextKey.StringKey<ListSchema> EDIT_SCHEMA =
-            new ContextKey.StringKey<>("edit.schema", ListSchema.class);
+    public static final ContextKey.StringKey<DataSchema> EDIT_SCHEMA =
+            new ContextKey.StringKey<>("edit.schema", DataSchema.class);
 
     /**
      * The edit mode for create/edit workflows.

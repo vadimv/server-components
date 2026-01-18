@@ -95,7 +95,7 @@ public abstract class EditViewContract<T> extends ViewContract {
      *
      * @return Schema metadata for rendering form fields
      */
-    public abstract ListSchema schema();
+    public abstract DataSchema schema();
 
     /**
      * Save the entity with the given field values.

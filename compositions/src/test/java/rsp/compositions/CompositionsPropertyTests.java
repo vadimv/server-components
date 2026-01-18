@@ -87,13 +87,13 @@ class CompositionsPropertyTests {
     }
 
     // =====================
-    // ListSchema Properties
+    // DataSchema Properties
     // =====================
 
     @Property
     void schema_from_record_has_same_field_count_as_record_components(
             @ForAll("testRecords") final Object record) {
-        final ListSchema schema = ListSchema.fromFirstItem(record);
+        final DataSchema schema = DataSchema.fromFirstItem(record);
         final int componentCount = record.getClass().getRecordComponents().length;
 
         assertEquals(componentCount, schema.columns().size(),
@@ -103,7 +103,7 @@ class CompositionsPropertyTests {
     @Property
     void to_map_contains_all_record_component_names(
             @ForAll("testRecords") final Object record) {
-        final ListSchema schema = ListSchema.fromFirstItem(record);
+        final DataSchema schema = DataSchema.fromFirstItem(record);
         final Map<String, Object> map = schema.toMap(record);
 
         for (final RecordComponent comp : record.getClass().getRecordComponents()) {
@@ -115,7 +115,7 @@ class CompositionsPropertyTests {
     @Property
     void to_map_preserves_record_values(
             @ForAll("testRecords") final Object record) {
-        final ListSchema schema = ListSchema.fromFirstItem(record);
+        final DataSchema schema = DataSchema.fromFirstItem(record);
         final Map<String, Object> map = schema.toMap(record);
 
         for (final RecordComponent comp : record.getClass().getRecordComponents()) {
@@ -133,11 +133,11 @@ class CompositionsPropertyTests {
     @Property
     void hide_column_reduces_count_by_one(
             @ForAll("testRecords") final Object record) {
-        final ListSchema schema = ListSchema.fromFirstItem(record);
+        final DataSchema schema = DataSchema.fromFirstItem(record);
         Assume.that(schema.columns().size() > 0);
 
         final String firstColumn = schema.columns().get(0).name();
-        final ListSchema hidden = schema.hideColumn(firstColumn);
+        final DataSchema hidden = schema.hideColumn(firstColumn);
 
         assertEquals(schema.columns().size() - 1, hidden.columns().size(),
                 "Hiding a column should reduce count by 1");
@@ -147,11 +147,11 @@ class CompositionsPropertyTests {
     void rename_column_preserves_count(
             @ForAll("testRecords") final Object record,
             @ForAll @AlphaChars @StringLength(min = 1, max = 20) final String newName) {
-        final ListSchema schema = ListSchema.fromFirstItem(record);
+        final DataSchema schema = DataSchema.fromFirstItem(record);
         Assume.that(schema.columns().size() > 0);
 
         final String firstColumn = schema.columns().get(0).name();
-        final ListSchema renamed = schema.renameColumn(firstColumn, newName);
+        final DataSchema renamed = schema.renameColumn(firstColumn, newName);
 
         assertEquals(schema.columns().size(), renamed.columns().size(),
                 "Renaming should not change column count");
@@ -161,11 +161,11 @@ class CompositionsPropertyTests {
     void rename_column_changes_display_name(
             @ForAll("testRecords") final Object record,
             @ForAll @AlphaChars @StringLength(min = 1, max = 20) final String newDisplayName) {
-        final ListSchema schema = ListSchema.fromFirstItem(record);
+        final DataSchema schema = DataSchema.fromFirstItem(record);
         Assume.that(schema.columns().size() > 0);
 
         final String firstColumn = schema.columns().get(0).name();
-        final ListSchema renamed = schema.renameColumn(firstColumn, newDisplayName);
+        final DataSchema renamed = schema.renameColumn(firstColumn, newDisplayName);
 
         assertEquals(newDisplayName, renamed.columns().get(0).displayName(),
                 "Display name should be updated");

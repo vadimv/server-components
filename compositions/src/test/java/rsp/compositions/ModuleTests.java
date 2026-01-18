@@ -214,8 +214,8 @@ public class ModuleTests {
         }
 
         @Override
-        public ListSchema schema() {
-            return ListSchema.fromRecordClass(TestEntity.class);
+        public DataSchema schema() {
+            return DataSchema.fromRecordClass(TestEntity.class);
         }
 
         @Override
@@ -240,8 +240,8 @@ public class ModuleTests {
         }
 
         @Override
-        public ListSchema schema() {
-            return ListSchema.fromRecordClass(TestEntity.class);
+        public DataSchema schema() {
+            return DataSchema.fromRecordClass(TestEntity.class);
         }
 
         @Override

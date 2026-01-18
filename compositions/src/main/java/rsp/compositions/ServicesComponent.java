@@ -83,7 +83,7 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 String sort = listContract.sort();
 
                 // Extract schema from items
-                ListSchema schema = extractSchema(items, listContract);
+                DataSchema schema = extractSchema(items, listContract);
 
                 // Put data AND schema in context for UI components with "list." namespace
                 enrichedContext = enrichedContext
@@ -111,7 +111,7 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                                     module, editContractClass, enrichedContext);
                             if (editContract != null) {
                                 Object entity = editContract.item(); // null for create mode
-                                ListSchema editSchema = editContract.schema();
+                                DataSchema editSchema = editContract.schema();
 
                                 // Use separate context keys for overlay data
                                 // VIEW_CONTRACT stays as ListViewContract for the primary view
@@ -135,7 +135,7 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                                 module, editContractClass, enrichedContext);
                         if (editContract != null) {
                             Object entity = editContract.item(); // null for create mode
-                            ListSchema editSchema = editContract.schema();
+                            DataSchema editSchema = editContract.schema();
 
                             // Store modal overlay contract and data
                             enrichedContext = enrichedContext
@@ -148,7 +148,7 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
             } else if (contract instanceof EditViewContract<?> editContract) {
                 // Fetch entity to edit
                 Object entity = editContract.item();
-                ListSchema schema = editContract.schema();
+                DataSchema schema = editContract.schema();
 
                 // Put entity AND schema in context for UI components with "edit." namespace
                 enrichedContext = enrichedContext
@@ -213,15 +213,15 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
      *
      * @param items The items to extract schema from
      * @param contract The contract (for potential customization)
-     * @return ListSchema with column definitions
+     * @return DataSchema with column definitions
      */
-    private ListSchema extractSchema(List<?> items, ListViewContract<?> contract) {
+    private DataSchema extractSchema(List<?> items, ListViewContract<?> contract) {
         if (items == null || items.isEmpty()) {
-            return new ListSchema(List.of());
+            return new DataSchema(List.of());
         }
 
         // Extract base schema from first item
-        ListSchema schema = ListSchema.fromFirstItem(items.get(0));
+        DataSchema schema = DataSchema.fromFirstItem(items.get(0));
 
         // Allow contract to customize schema (optional)
         if (contract instanceof SchemaCustomizer customizer) {
@@ -235,7 +235,7 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
      * Optional interface for contracts that want to customize their schema presentation.
      */
     public interface SchemaCustomizer {
-        ListSchema customizeSchema(ListSchema defaultSchema);
+        DataSchema customizeSchema(DataSchema defaultSchema);
     }
 
     public record ServicesComponentState() {
