@@ -1,5 +1,6 @@
 package rsp.compositions;
 
+import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.compositions.schema.ValidationResult;
 
@@ -96,6 +97,15 @@ public abstract class EditViewContract<T> extends ViewContract {
      * @return Schema metadata for rendering form fields
      */
     public abstract DataSchema schema();
+
+    @Override
+    public ComponentContext enrichContext(ComponentContext context) {
+        return context
+            .with(ContextKeys.EDIT_ENTITY, item())
+            .with(ContextKeys.EDIT_SCHEMA, schema())
+            .with(ContextKeys.EDIT_LIST_ROUTE, listRoute())
+            .with(ContextKeys.EDIT_IS_CREATE_MODE, isCreateMode());
+    }
 
     /**
      * Save the entity with the given field values.

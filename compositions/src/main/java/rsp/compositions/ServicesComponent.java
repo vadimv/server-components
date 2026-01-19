@@ -73,52 +73,33 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                 throw new AuthorizationException("Access denied: insufficient permissions for " + contractClass.getSimpleName());
             }
 
-            // Call contract methods to get data (contract will call module internally)
-            ComponentContext enrichedContext = context;
+            // Generic handling - contract enriches context with its own data
+            ComponentContext enrichedContext = contract.enrichContext(context);
 
-            if (contract instanceof ListViewContract<?> listContract) {
-                // Fetch list data
-                List<?> items = listContract.items();
-                int page = listContract.page();
-                String sort = listContract.sort();
-
-                // Extract schema from items
-                DataSchema schema = extractSchema(items, listContract);
-
-                // Put data AND schema in context for UI components with "list." namespace
-                enrichedContext = enrichedContext
-                    .with(ContextKeys.LIST_ITEMS, items)
-                    .with(ContextKeys.LIST_SCHEMA, schema)
-                    .with(ContextKeys.LIST_PAGE, page)
-                    .with(ContextKeys.LIST_SORT, sort)
+            // Add module-level configuration
+            enrichedContext = enrichedContext
                     .with(ContextKeys.EDIT_MODE, module.editMode())
                     .with(ContextKeys.CREATE_TOKEN, module.createToken());
 
+            // Handle EditView overlay modes (QUERY_PARAM and MODAL)
+            if (contract instanceof ListViewContract<?>) {
                 // Handle QUERY_PARAM mode: check for ?create=true
                 if (module.editMode() == EditMode.QUERY_PARAM) {
                     String createParam = context.get(ContextKeys.URL_QUERY.with("create"));
                     boolean showCreate = "true".equalsIgnoreCase(createParam);
 
                     if (showCreate) {
-                        // Set overlay contract for create form
-                        Class<? extends EditViewContract<?>> editContractClass = module.editContractClass();
+                        // Instantiate overlay edit contract for create form
+                        Class<? extends ViewContract> editContractClass = module.editContractClass();
                         if (editContractClass != null) {
                             enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACT, editContractClass);
 
-                            // Also instantiate the edit contract and populate its context
-                            // This is needed for the overlay component to have proper data
-                            EditViewContract<?> editContract = (EditViewContract<?>) instantiateContractFromModule(
+                            // Instantiate and enrich context for overlay
+                            ViewContract overlayContract = instantiateContractFromModule(
                                     module, editContractClass, enrichedContext);
-                            if (editContract != null) {
-                                Object entity = editContract.item(); // null for create mode
-                                DataSchema editSchema = editContract.schema();
-
-                                // Use separate context keys for overlay data
-                                // VIEW_CONTRACT stays as ListViewContract for the primary view
-                                enrichedContext = enrichedContext
-                                        .with(ContextKeys.EDIT_ENTITY, entity)
-                                        .with(ContextKeys.EDIT_SCHEMA, editSchema)
-                                        .with(ContextKeys.OVERLAY_VIEW_CONTRACT, editContract);
+                            if (overlayContract != null) {
+                                enrichedContext = overlayContract.enrichContext(enrichedContext);
+                                enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_VIEW_CONTRACT, overlayContract);
                             }
                         }
                     }
@@ -126,38 +107,20 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
 
                 // Handle MODAL mode: pre-resolve modal overlay contract (shown when openCreateModal fires)
                 if (module.editMode() == EditMode.MODAL) {
-                    Class<? extends EditViewContract<?>> editContractClass = module.editContractClass();
+                    Class<? extends ViewContract> editContractClass = module.editContractClass();
                     if (editContractClass != null) {
                         enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_CONTRACT, editContractClass);
 
                         // Pre-instantiate the edit contract for create mode
-                        EditViewContract<?> editContract = (EditViewContract<?>) instantiateContractFromModule(
+                        ViewContract modalContract = instantiateContractFromModule(
                                 module, editContractClass, enrichedContext);
-                        if (editContract != null) {
-                            Object entity = editContract.item(); // null for create mode
-                            DataSchema editSchema = editContract.schema();
-
-                            // Store modal overlay contract and data
-                            enrichedContext = enrichedContext
-                                    .with(ContextKeys.EDIT_ENTITY, entity)
-                                    .with(ContextKeys.EDIT_SCHEMA, editSchema)
-                                    .with(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT, editContract);
+                        if (modalContract != null) {
+                            enrichedContext = modalContract.enrichContext(enrichedContext);
+                            enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT, modalContract);
                         }
                     }
                 }
-            } else if (contract instanceof EditViewContract<?> editContract) {
-                // Fetch entity to edit
-                Object entity = editContract.item();
-                DataSchema schema = editContract.schema();
-
-                // Put entity AND schema in context for UI components with "edit." namespace
-                enrichedContext = enrichedContext
-                    .with(ContextKeys.EDIT_ENTITY, entity)
-                    .with(ContextKeys.EDIT_SCHEMA, schema);
             }
-
-            // Store the contract itself for UI components to access
-            enrichedContext = enrichedContext.with(ContextKeys.VIEW_CONTRACT, contract);
 
             // Enrich context with business data
             return enrichedContext;
@@ -209,38 +172,6 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
         CommandsEnqueue commandsEnqueue = context.getRequired(CommandsEnqueue.class);
         Subscriber subscriber = context.getRequired(Subscriber.class);
         return new ContextLookup(context, commandsEnqueue, subscriber);
-    }
-
-    /**
-     * Extract schema from items list.
-     * If items are empty, returns empty schema.
-     * Otherwise extracts schema from the first item (all items should have same type).
-     *
-     * @param items The items to extract schema from
-     * @param contract The contract (for potential customization)
-     * @return DataSchema with column definitions
-     */
-    private DataSchema extractSchema(List<?> items, ListViewContract<?> contract) {
-        if (items == null || items.isEmpty()) {
-            return new DataSchema(List.of());
-        }
-
-        // Extract base schema from first item
-        DataSchema schema = DataSchema.fromFirstItem(items.get(0));
-
-        // Allow contract to customize schema (optional)
-        if (contract instanceof SchemaCustomizer customizer) {
-            schema = customizer.customizeSchema(schema);
-        }
-
-        return schema;
-    }
-
-    /**
-     * Optional interface for contracts that want to customize their schema presentation.
-     */
-    public interface SchemaCustomizer {
-        DataSchema customizeSchema(DataSchema defaultSchema);
     }
 
     public record ServicesComponentState() {

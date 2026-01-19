@@ -19,6 +19,11 @@ public class ViewContractTests {
             super(lookup);
         }
 
+        @Override
+        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
+            return context; // Test fixture - no enrichment needed
+        }
+
         // Expose protected methods for testing
         public <T> T testResolveQuery(final QueryParam<T> param) {
             return resolve(param);

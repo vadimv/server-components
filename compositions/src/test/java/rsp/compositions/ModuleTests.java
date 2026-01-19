@@ -173,6 +173,11 @@ public class ModuleTests {
         TestViewContract(final Lookup lookup) {
             super(lookup);
         }
+
+        @Override
+        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
+            return context; // Test fixture - no enrichment needed
+        }
     }
 
     static class TestListContract extends ListViewContract<Object> {

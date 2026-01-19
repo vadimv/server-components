@@ -83,27 +83,11 @@ public abstract class EditView extends Component<EditView.EditViewState> {
     @Override
     public ComponentStateSupplier<EditViewState> initStateSupplier() {
         return (_, context) -> {
-            // Read entity and schema from context (populated by ServicesComponent)
+            // Read entity and schema from context (populated by ServicesComponent via contract.enrichContext())
             Object entity = context.get(ContextKeys.EDIT_ENTITY);
             DataSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
-
-            // Read UI hints from context
-            // These are populated by the framework based on the contract
             String listRoute = context.get(ContextKeys.EDIT_LIST_ROUTE);
             Boolean isCreateModeValue = context.get(ContextKeys.EDIT_IS_CREATE_MODE);
-
-            // Fallback to contract if context keys not set (backward compatibility)
-            if (listRoute == null || isCreateModeValue == null) {
-                EditViewContract<?> contract = resolveContract(context);
-                if (contract != null) {
-                    if (listRoute == null) {
-                        listRoute = contract.listRoute();
-                    }
-                    if (isCreateModeValue == null) {
-                        isCreateModeValue = contract.isCreateMode();
-                    }
-                }
-            }
 
             // Apply defaults
             listRoute = listRoute != null ? listRoute : "/";
@@ -165,36 +149,6 @@ public abstract class EditView extends Component<EditView.EditViewState> {
         @Override
         public void addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
                                              boolean preventDefault) {}
-    }
-
-    /**
-     * Resolve the EditViewContract from context.
-     * <p>
-     * Checks in order: MODAL overlay, QUERY_PARAM overlay, then primary view contract.
-     *
-     * @param componentContext The component context
-     * @return The resolved contract, or null if not found
-     */
-    private EditViewContract<?> resolveContract(ComponentContext componentContext) {
-        // Check MODAL overlay first
-        EditViewContract<?> contract = (EditViewContract<?>) componentContext.get(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT);
-        if (contract != null) {
-            return contract;
-        }
-
-        // Check QUERY_PARAM overlay
-        contract = (EditViewContract<?>) componentContext.get(ContextKeys.OVERLAY_VIEW_CONTRACT);
-        if (contract != null) {
-            return contract;
-        }
-
-        // Check primary view contract
-        ViewContract viewContract = componentContext.get(ContextKeys.VIEW_CONTRACT);
-        if (viewContract instanceof EditViewContract<?> editContract) {
-            return editContract;
-        }
-
-        return null;
     }
 
     /**

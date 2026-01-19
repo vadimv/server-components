@@ -1,5 +1,6 @@
 package rsp.compositions;
 
+import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 
 import java.util.List;
@@ -22,6 +23,7 @@ public abstract class ListViewContract<T> extends ViewContract {
     private static final int DEFAULT_PAGE_SIZE_FALLBACK = 10;
 
     private final int pageSize;
+    private DataSchema cachedSchema;
 
     protected ListViewContract(Lookup lookup) {
         super(lookup);
@@ -46,6 +48,43 @@ public abstract class ListViewContract<T> extends ViewContract {
     public abstract String sort();
 
     public abstract List<T> items();
+
+    /**
+     * Get schema - auto-extracted from items + customization.
+     * Schema is cached after first access to avoid repeated extraction.
+     * 
+     * @return DataSchema for rendering list columns
+     */
+    public DataSchema schema() {
+        if (cachedSchema == null) {
+            List<T> items = items();
+            DataSchema baseSchema = items.isEmpty()
+                ? new DataSchema(List.of())
+                : DataSchema.fromFirstItem(items.get(0));
+            cachedSchema = customizeSchema(baseSchema);
+        }
+        return cachedSchema;
+    }
+
+    /**
+     * Override to customize the auto-extracted schema.
+     * Called only once, before schema is cached.
+     *
+     * @param schema The auto-extracted schema from first item
+     * @return The customized schema (default: returns unchanged)
+     */
+    protected DataSchema customizeSchema(DataSchema schema) {
+        return schema;
+    }
+
+    @Override
+    public ComponentContext enrichContext(ComponentContext context) {
+        return context
+            .with(ContextKeys.LIST_ITEMS, items())
+            .with(ContextKeys.LIST_SCHEMA, schema())
+            .with(ContextKeys.LIST_PAGE, page())
+            .with(ContextKeys.LIST_SORT, sort());
+    }
 
     // ========== Event Handlers ==========
 

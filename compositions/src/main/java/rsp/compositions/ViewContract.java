@@ -1,5 +1,6 @@
 package rsp.compositions;
 
+import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 
 public abstract class ViewContract {
@@ -42,6 +43,24 @@ public abstract class ViewContract {
         AuthorizationStrategy strategy = lookup.get(ContextKeys.AUTHORIZATION_STRATEGY);
         return strategy == null || strategy.isAuthorized(this, lookup);
     }
+
+    /**
+     * Enrich context with data needed by the view.
+     * <p>
+     * Called by ServicesComponent after contract instantiation.
+     * Each contract type decides what data to provide:
+     * <ul>
+     *   <li>ListViewContract: items, schema, page, sort</li>
+     *   <li>EditViewContract: entity, schema, listRoute, isCreateMode</li>
+     *   <li>Future contracts: whatever they need</li>
+     * </ul>
+     * <p>
+     * This is the **only** way contracts enrich context - no direct context storage of the contract itself.
+     *
+     * @param context The current context
+     * @return Enriched context with view-specific data
+     */
+    public abstract ComponentContext enrichContext(ComponentContext context);
 
     /**
      * Pluggable authorization strategy interface.

@@ -19,11 +19,21 @@ public class RouterTests {
         protected TestContract(final Lookup lookup) {
             super(lookup);
         }
+
+        @Override
+        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
+            return context; // Test fixture - no enrichment needed
+        }
     }
 
     static class AnotherTestContract extends ViewContract {
         protected AnotherTestContract(final Lookup lookup) {
             super(lookup);
+        }
+
+        @Override
+        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
+            return context; // Test fixture - no enrichment needed
         }
     }
 

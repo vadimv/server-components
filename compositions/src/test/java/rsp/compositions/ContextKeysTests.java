@@ -182,5 +182,10 @@ public class ContextKeysTests {
         TestContract(final Lookup lookup) {
             super(lookup);
         }
+
+        @Override
+        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
+            return context; // Test fixture - no enrichment needed
+        }
     }
 }
