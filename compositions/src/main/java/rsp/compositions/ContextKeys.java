@@ -1,7 +1,6 @@
 package rsp.compositions;
 
 import rsp.component.ContextKey;
-import rsp.compositions.posts.services.PostService;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
@@ -45,12 +44,6 @@ public final class ContextKeys {
     public static final ContextKey.ClassKey<UiRegistry> UI_REGISTRY =
             new ContextKey.ClassKey<>(UiRegistry.class);
 
-    /**
-     * Post service for CRUD operations on posts.
-     * Stored as: PostService.class → PostService instance
-     */
-    public static final ContextKey.ClassKey<PostService> POST_SERVICE =
-            new ContextKey.ClassKey<>(PostService.class);
 
     /**
      * Authentication provider for user authentication.

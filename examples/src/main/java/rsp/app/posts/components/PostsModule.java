@@ -1,7 +1,9 @@
-package rsp.compositions.posts.components;
+package rsp.app.posts.components;
 
-import rsp.compositions.*;
+import rsp.compositions.EditMode;
 import rsp.compositions.Module;
+import rsp.compositions.Slot;
+import rsp.compositions.ViewPlacement;
 
 import java.util.List;
 

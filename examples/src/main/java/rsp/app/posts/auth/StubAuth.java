@@ -1,4 +1,4 @@
-package rsp.compositions.posts.auth;
+package rsp.app.posts.auth;
 
 import java.util.Optional;
 

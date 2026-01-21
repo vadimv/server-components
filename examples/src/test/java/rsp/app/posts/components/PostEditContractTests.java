@@ -1,13 +1,12 @@
-package rsp.compositions.posts.components;
+package rsp.app.posts.components;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.Lookup;
-import rsp.component.TestLookup;
 import rsp.compositions.ContextKeys;
-import rsp.compositions.posts.entities.Post;
-import rsp.compositions.posts.services.PostService;
+import rsp.app.posts.entities.Post;
+import rsp.app.posts.services.PostService;
 
 import static org.junit.jupiter.api.Assertions.*;
 

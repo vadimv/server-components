@@ -1,11 +1,11 @@
-package rsp.compositions.posts.components;
+package rsp.app.posts.components;
 
+import rsp.app.posts.entities.Post;
+import rsp.app.posts.services.PostService;
 import rsp.component.Lookup;
-import rsp.compositions.EditViewContract;
 import rsp.compositions.DataSchema;
+import rsp.compositions.EditViewContract;
 import rsp.compositions.PathParam;
-import rsp.compositions.posts.entities.Post;
-import rsp.compositions.posts.services.PostService;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 

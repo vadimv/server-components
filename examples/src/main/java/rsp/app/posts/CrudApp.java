@@ -1,11 +1,11 @@
-package rsp.compositions.posts;
+package rsp.app.posts;
 
+import rsp.app.posts.components.PostEditContract;
+import rsp.app.posts.components.PostsListContract;
+import rsp.app.posts.components.PostsModule;
+import rsp.app.posts.services.PostService;
 import rsp.compositions.*;
 import rsp.compositions.auth.StubAuthProvider;
-import rsp.compositions.posts.components.PostEditContract;
-import rsp.compositions.posts.components.PostsListContract;
-import rsp.compositions.posts.components.PostsModule;
-import rsp.compositions.posts.services.PostService;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.jetty.WebServer;
@@ -15,7 +15,7 @@ import java.io.File;
 import java.util.List;
 
 public class CrudApp {
-    public static void main(final String[] args) {
+    static void main(final String[] args) {
 
         final UiRegistry uiRegistry = new UiRegistry()
                 .register(ListViewContract.class, DefaultListView::new) // Sets a concrete UI implementation
@@ -50,7 +50,7 @@ public class CrudApp {
 
         final WebServer server = new WebServer(8080,
                                                app,
-                                               new StaticResources(new File("src/main/java/rsp/compositions/posts"),
+                                               new StaticResources(new File("src/main/java/rsp/app/posts"),
                                                                    "/res/"));
         server.start();
         server.join();

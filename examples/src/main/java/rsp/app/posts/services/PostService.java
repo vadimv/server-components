@@ -1,6 +1,7 @@
-package rsp.compositions.posts.services;
+package rsp.app.posts.services;
 
-import rsp.compositions.posts.entities.Post;
+import rsp.app.posts.entities.Post;
+import rsp.component.ContextKey;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,6 +9,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class PostService {
+
+    /**
+     * Post service for CRUD operations on posts.
+     * Stored as: PostService.class → PostService instance
+     */
+    public static final ContextKey.ClassKey<PostService> POST_SERVICE =
+            new ContextKey.ClassKey<>(PostService.class);
+
+
     private final Map<String, Post> posts = new ConcurrentHashMap<>();
     private final AtomicInteger idGenerator = new AtomicInteger(1);
 
@@ -60,7 +70,7 @@ public class PostService {
      * @param ids Set of post IDs to delete
      * @return Number of posts successfully deleted
      */
-    public int bulkDelete(final java.util.Set<String> ids) {
+    public int bulkDelete(final Set<String> ids) {
         int deleted = 0;
         for (String id : ids) {
             if (posts.remove(id) != null) {

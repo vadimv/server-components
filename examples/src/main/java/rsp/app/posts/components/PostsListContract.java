@@ -1,11 +1,11 @@
-package rsp.compositions.posts.components;
+package rsp.app.posts.components;
 
+import rsp.app.posts.entities.Post;
+import rsp.app.posts.services.PostService;
 import rsp.component.Lookup;
 import rsp.compositions.DataSchema;
 import rsp.compositions.ListViewContract;
 import rsp.compositions.QueryParam;
-import rsp.compositions.posts.entities.Post;
-import rsp.compositions.posts.services.PostService;
 
 import java.util.List;
 import java.util.Set;
