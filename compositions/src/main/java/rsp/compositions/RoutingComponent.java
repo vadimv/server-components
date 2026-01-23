@@ -15,9 +15,9 @@ import java.util.function.BiFunction;
  * 1. Reads url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
  * 2. Matches the path against registered routes using Router
  * 3. Enriches context with route.contractClass, route.path, route.pattern
- * 4. Renders ServicesComponent
+ * 4. Renders SceneComponent
  * <p>
- * Position in component chain: AuthComponent → UrlSyncComponent → RoutingComponent → ServicesComponent
+ * Position in component chain: AuthComponent → UrlSyncComponent → RoutingComponent → SceneComponent
  * <p>
  * Note: This component does NOT depend on HttpRequest - it reads the path from context,
  * allowing for better separation of concerns and testability.
@@ -64,8 +64,8 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
 
     @Override
     public ComponentView<RoutingComponentState> componentView() {
-        // ServicesComponent reads from context
-        return _ -> _ -> new ServicesComponent();
+        // SceneComponent builds scene and stores in state
+        return _ -> _ -> new SceneComponent();
     }
 
     public record RoutingComponentState() {
