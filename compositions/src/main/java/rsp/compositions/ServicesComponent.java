@@ -81,43 +81,20 @@ public class ServicesComponent extends Component<ServicesComponent.ServicesCompo
                     .with(ContextKeys.EDIT_MODE, module.editMode())
                     .with(ContextKeys.CREATE_TOKEN, module.createToken());
 
-            // Handle EditView overlay modes (QUERY_PARAM and MODAL)
-            if (contract instanceof ListViewContract<?>) {
-                // Handle QUERY_PARAM mode: check for ?create=true
-                if (module.editMode() == EditMode.QUERY_PARAM) {
-                    String createParam = context.get(ContextKeys.URL_QUERY.with("create"));
-                    boolean showCreate = "true".equalsIgnoreCase(createParam);
+            // Handle MODAL mode: pre-resolve modal overlay contract (shown when openCreateModal fires)
+            // No instanceof check - module configuration determines behavior
+            if (module.editMode() == EditMode.MODAL) {
+                Class<? extends ViewContract> editContractClass = module.editContractClass();
+                // Only instantiate overlay if editContractClass exists and is different from primary
+                if (editContractClass != null && !editContractClass.equals(contractClass)) {
+                    enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_CONTRACT, editContractClass);
 
-                    if (showCreate) {
-                        // Instantiate overlay edit contract for create form
-                        Class<? extends ViewContract> editContractClass = module.editContractClass();
-                        if (editContractClass != null) {
-                            enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACT, editContractClass);
-
-                            // Instantiate and enrich context for overlay
-                            ViewContract overlayContract = instantiateContractFromModule(
-                                    module, editContractClass, enrichedContext);
-                            if (overlayContract != null) {
-                                enrichedContext = overlayContract.enrichContext(enrichedContext);
-                                enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_VIEW_CONTRACT, overlayContract);
-                            }
-                        }
-                    }
-                }
-
-                // Handle MODAL mode: pre-resolve modal overlay contract (shown when openCreateModal fires)
-                if (module.editMode() == EditMode.MODAL) {
-                    Class<? extends ViewContract> editContractClass = module.editContractClass();
-                    if (editContractClass != null) {
-                        enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_CONTRACT, editContractClass);
-
-                        // Pre-instantiate the edit contract for create mode
-                        ViewContract modalContract = instantiateContractFromModule(
-                                module, editContractClass, enrichedContext);
-                        if (modalContract != null) {
-                            enrichedContext = modalContract.enrichContext(enrichedContext);
-                            enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT, modalContract);
-                        }
+                    // Pre-instantiate the edit contract for create mode
+                    ViewContract modalContract = instantiateContractFromModule(
+                            module, editContractClass, enrichedContext);
+                    if (modalContract != null) {
+                        enrichedContext = modalContract.enrichContext(enrichedContext);
+                        enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT, modalContract);
                     }
                 }
             }
