@@ -1,6 +1,7 @@
 package rsp.compositions;
 
 import rsp.component.ContextKey;
+import rsp.server.Path;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
@@ -260,6 +261,18 @@ public final class ContextKeys {
      */
     public static final ContextKey.StringKey<Integer> LIST_DEFAULT_PAGE_SIZE =
             new ContextKey.StringKey<>("list.defaultPageSize", Integer.class);
+
+    // ===== URL KEYS =====
+
+    /**
+     * Full URL path as a Path object.
+     * Populated by AutoAddressBarSyncComponent.
+     * Type: Path
+     *
+     * <p>Used by RoutingComponent to match routes without depending on HttpRequest.</p>
+     */
+    public static final ContextKey.StringKey<Path> URL_PATH_FULL =
+            new ContextKey.StringKey<>("url.path", Path.class);
 
     // ===== DYNAMIC KEYS (Builder pattern for parameterized keys) =====
 

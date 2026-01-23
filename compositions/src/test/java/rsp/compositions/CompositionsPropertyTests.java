@@ -5,6 +5,7 @@ import net.jqwik.api.constraints.AlphaChars;
 import net.jqwik.api.constraints.StringLength;
 import rsp.component.Lookup;
 import rsp.component.TestLookup;
+import rsp.server.Path;
 
 import java.lang.reflect.RecordComponent;
 import java.util.Map;
@@ -36,21 +37,10 @@ class CompositionsPropertyTests {
     void any_path_with_correct_segment_count_matches_param_route(
             @ForAll @AlphaChars @StringLength(min = 1, max = 20) final String segment) {
         final Router router = new Router().route("/a/:b", TestContract.class);
-        final String path = "/a/" + segment;
+        final Path path = Path.of("/a/" + segment);
 
         assertTrue(router.match(path).isPresent(),
                 "Path '" + path + "' should match pattern '/a/:b'");
-    }
-
-    @Property
-    void query_params_do_not_affect_matching(
-            @ForAll @AlphaChars @StringLength(min = 1, max = 30) final String key,
-            @ForAll @AlphaChars @StringLength(min = 1, max = 30) final String value) {
-        final Router router = new Router().route("/posts", TestContract.class);
-        final String path = "/posts?" + key + "=" + value;
-
-        assertTrue(router.match(path).isPresent(),
-                "Path with query params should match base route");
     }
 
     @Property
@@ -58,7 +48,7 @@ class CompositionsPropertyTests {
             @ForAll @AlphaChars @StringLength(min = 1, max = 20) final String postId,
             @ForAll @AlphaChars @StringLength(min = 1, max = 20) final String commentId) {
         final Router router = new Router().route("/posts/:postId/comments/:commentId", TestContract.class);
-        final String path = "/posts/" + postId + "/comments/" + commentId;
+        final Path path = Path.of("/posts/" + postId + "/comments/" + commentId);
 
         assertTrue(router.match(path).isPresent(),
                 "Multi-param path should match pattern");
@@ -70,11 +60,11 @@ class CompositionsPropertyTests {
         final Router router = new Router().route("/posts/:id", TestContract.class);
 
         // Too few segments
-        assertFalse(router.match("/posts").isPresent(),
+        assertFalse(router.match(Path.of("/posts")).isPresent(),
                 "Too few segments should not match");
 
         // Too many segments
-        final String tooMany = "/posts/123/" + extra;
+        final Path tooMany = Path.of("/posts/123/" + extra);
         assertFalse(router.match(tooMany).isPresent(),
                 "Too many segments should not match");
     }
@@ -86,8 +76,8 @@ class CompositionsPropertyTests {
 
         final Router router = new Router().route("/posts", TestContract.class);
 
-        assertTrue(router.match("/posts").isPresent(), "Exact path should match");
-        assertFalse(router.match("/" + different).isPresent(),
+        assertTrue(router.match(Path.of("/posts")).isPresent(), "Exact path should match");
+        assertFalse(router.match(Path.of("/" + different)).isPresent(),
                 "Different path should not match exact route");
     }
 

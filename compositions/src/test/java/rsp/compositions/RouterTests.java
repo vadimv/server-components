@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.Lookup;
 import rsp.component.TestLookup;
+import rsp.server.Path;
 
 import java.util.Optional;
 
@@ -45,7 +46,7 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/posts", TestContract.class);
 
-            final Optional<Router.RouteMatch> match = router.match("/posts");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/posts"));
 
             assertTrue(match.isPresent());
             assertEquals(TestContract.class, match.get().contractClass());
@@ -57,7 +58,7 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/posts", TestContract.class);
 
-            final Optional<Router.RouteMatch> match = router.match("/users");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/users"));
 
             assertFalse(match.isPresent());
         }
@@ -67,7 +68,7 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/posts", TestContract.class);
 
-            final Optional<Router.RouteMatch> match = router.match("/posts/123");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/123"));
 
             assertFalse(match.isPresent());
         }
@@ -77,7 +78,7 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/admin/posts", TestContract.class);
 
-            final Optional<Router.RouteMatch> match = router.match("/admin");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/admin"));
 
             assertFalse(match.isPresent());
         }
@@ -91,9 +92,9 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/posts/:id", TestContract.class);
 
-            assertTrue(router.match("/posts/123").isPresent());
-            assertTrue(router.match("/posts/abc").isPresent());
-            assertTrue(router.match("/posts/hello-world").isPresent());
+            assertTrue(router.match(Path.of("/posts/123")).isPresent());
+            assertTrue(router.match(Path.of("/posts/abc")).isPresent());
+            assertTrue(router.match(Path.of("/posts/hello-world")).isPresent());
         }
 
         @Test
@@ -101,8 +102,8 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/posts/:id", TestContract.class);
 
-            assertFalse(router.match("/posts").isPresent());
-            assertFalse(router.match("/posts/123/comments").isPresent());
+            assertFalse(router.match(Path.of("/posts")).isPresent());
+            assertFalse(router.match(Path.of("/posts/123/comments")).isPresent());
         }
 
         @Test
@@ -110,7 +111,7 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/posts/:postId/comments/:commentId", TestContract.class);
 
-            final Optional<Router.RouteMatch> match = router.match("/posts/42/comments/7");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/42/comments/7"));
 
             assertTrue(match.isPresent());
             assertEquals("/posts/:postId/comments/:commentId", match.get().pattern());
@@ -121,7 +122,7 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/posts/:id", TestContract.class);
 
-            assertFalse(router.match("/users/123").isPresent());
+            assertFalse(router.match(Path.of("/users/123")).isPresent());
         }
     }
 
@@ -135,7 +136,7 @@ public class RouterTests {
                     .route("/posts", TestContract.class)
                     .route("/posts", AnotherTestContract.class);  // Same path, different contract
 
-            final Optional<Router.RouteMatch> match = router.match("/posts");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/posts"));
 
             assertTrue(match.isPresent());
             assertEquals(AnotherTestContract.class, match.get().contractClass());  // Last registered wins
@@ -148,7 +149,7 @@ public class RouterTests {
                     .route("/posts/new", TestContract.class)
                     .route("/posts/:id", AnotherTestContract.class);
 
-            final Optional<Router.RouteMatch> match = router.match("/posts/new");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/new"));
 
             assertTrue(match.isPresent());
             assertEquals(TestContract.class, match.get().contractClass());
@@ -162,47 +163,12 @@ public class RouterTests {
                     .route("/posts/:id", AnotherTestContract.class)
                     .route("/posts/new", TestContract.class);
 
-            final Optional<Router.RouteMatch> match = router.match("/posts/new");
+            final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/new"));
 
             assertTrue(match.isPresent());
             // Param route wins because it was registered first
             assertEquals(AnotherTestContract.class, match.get().contractClass());
             assertEquals("/posts/:id", match.get().pattern());
-        }
-    }
-
-    @Nested
-    class QueryStringHandlingTests {
-
-        @Test
-        void match_strips_query_params() {
-            final Router router = new Router()
-                    .route("/posts", TestContract.class);
-
-            final Optional<Router.RouteMatch> match = router.match("/posts?page=3&sort=asc");
-
-            assertTrue(match.isPresent());
-            assertEquals(TestContract.class, match.get().contractClass());
-        }
-
-        @Test
-        void match_strips_query_params_from_param_route() {
-            final Router router = new Router()
-                    .route("/posts/:id", TestContract.class);
-
-            final Optional<Router.RouteMatch> match = router.match("/posts/123?edit=true");
-
-            assertTrue(match.isPresent());
-        }
-
-        @Test
-        void match_handles_empty_query_string() {
-            final Router router = new Router()
-                    .route("/posts", TestContract.class);
-
-            final Optional<Router.RouteMatch> match = router.match("/posts?");
-
-            assertTrue(match.isPresent());
         }
     }
 
@@ -213,7 +179,7 @@ public class RouterTests {
         void empty_router_matches_nothing() {
             final Router router = new Router();
 
-            assertFalse(router.match("/posts").isPresent());
+            assertFalse(router.match(Path.of("/posts")).isPresent());
         }
 
         @Test
@@ -221,7 +187,7 @@ public class RouterTests {
             final Router router = new Router()
                     .route("/", TestContract.class);
 
-            assertTrue(router.match("/").isPresent());
+            assertTrue(router.match(Path.of("/")).isPresent());
         }
 
         @Test
@@ -230,8 +196,8 @@ public class RouterTests {
                     .route("/posts", TestContract.class)
                     .route("/users", AnotherTestContract.class);
 
-            assertEquals(TestContract.class, router.match("/posts").get().contractClass());
-            assertEquals(AnotherTestContract.class, router.match("/users").get().contractClass());
+            assertEquals(TestContract.class, router.match(Path.of("/posts")).get().contractClass());
+            assertEquals(AnotherTestContract.class, router.match(Path.of("/users")).get().contractClass());
         }
     }
 }

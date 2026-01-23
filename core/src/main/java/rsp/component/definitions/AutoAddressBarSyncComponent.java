@@ -112,6 +112,12 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
         return (componentContext, relativeUrl) -> {
             ComponentContext enrichedContext = componentContext;
 
+            // Store the full Path object for routing components
+            enrichedContext = enrichedContext.with(
+                new ContextKey.StringKey<>("url.path", Path.class),
+                relativeUrl.path()
+            );
+
             // Auto-populate ALL path elements with namespace "url.path.{index}"
             for (int i = 0; i < relativeUrl.path().elementsCount(); i++) {
                 final String pathElement = relativeUrl.path().get(i);

@@ -4,6 +4,7 @@ import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
+import rsp.server.http.HttpRequest;
 
 import java.util.function.BiFunction;
 
@@ -26,18 +27,22 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
     @Override
     public ComponentStateSupplier<AuthComponentState> initStateSupplier() {
         return (_, context) -> {
+            // Read HttpRequest from context (needed for UrlSyncComponent)
+            HttpRequest httpRequest = context.get(HttpRequest.class);
+
             // Read auth provider from context
             AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
 
             if (authProvider == null) {
                 // No auth provider configured - anonymous access
-                return new AuthComponentState(null, false, new String[0]);
+                return new AuthComponentState(httpRequest, null, false, new String[0]);
             }
 
             // Authenticate user
             AuthResult authResult = authProvider.authenticate(context);
 
             return new AuthComponentState(
+                httpRequest,
                 authResult.user(),
                 authResult.authenticated(),
                 authResult.roles()
@@ -57,11 +62,12 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
     @Override
     public ComponentView<AuthComponentState> componentView() {
-        // RoutingComponent reads from context
-        return _ -> _ -> new RoutingComponent();
+        // UrlSyncComponent populates url.path, url.query.*, etc. into context
+        // Then renders RoutingComponent which reads from context
+        return _ -> state -> new UrlSyncComponent(state.httpRequest().relativeUrl());
     }
 
-    public record AuthComponentState(Object user, boolean authenticated, String[] roles) {
+    public record AuthComponentState(HttpRequest httpRequest, Object user, boolean authenticated, String[] roles) {
     }
 
     /**

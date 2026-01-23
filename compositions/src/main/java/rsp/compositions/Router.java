@@ -1,5 +1,7 @@
 package rsp.compositions;
 
+import rsp.server.Path;
+
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -39,16 +41,13 @@ public class Router {
     /**
      * Match an incoming URL path to a registered route.
      *
-     * @param path The incoming URL path (e.g., "/posts/123")
+     * @param path The incoming URL path (e.g., Path of "/posts/123")
      * @return The matching route details (contract class and pattern), or empty if no match
      */
-    public Optional<RouteMatch> match(String path) {
-        // Strip query params if present
-        String cleanPath = path.contains("?") ? path.substring(0, path.indexOf("?")) : path;
-
+    public Optional<RouteMatch> match(Path path) {
         // Try routes in registration order (LinkedHashMap preserves order)
         for (RoutePattern pattern : routes.values()) {
-            if (pattern.matches(cleanPath)) {
+            if (pattern.matches(path)) {
                 return Optional.of(new RouteMatch(pattern.contractClass(), pattern.pattern()));
             }
         }
@@ -64,23 +63,30 @@ public class Router {
         /**
          * Check if this pattern matches the given path.
          *
-         * @param path The actual URL path (e.g., "/posts/123")
+         * @param path The actual URL path as a Path object
          * @return true if the path matches this pattern
          */
-        boolean matches(String path) {
-            // Split both pattern and path into segments
+        boolean matches(Path path) {
+            // Split pattern into segments (skip empty first segment from leading /)
             String[] patternSegments = pattern.split("/");
-            String[] pathSegments = path.split("/");
+
+            // Count non-empty pattern segments
+            int patternCount = 0;
+            for (String seg : patternSegments) {
+                if (!seg.isEmpty()) patternCount++;
+            }
 
             // Different number of segments -> no match
-            if (patternSegments.length != pathSegments.length) {
+            if (patternCount != path.elementsCount()) {
                 return false;
             }
 
             // Check each segment
-            for (int i = 0; i < patternSegments.length; i++) {
-                String patternSegment = patternSegments[i];
-                String pathSegment = pathSegments[i];
+            int pathIndex = 0;
+            for (String patternSegment : patternSegments) {
+                if (patternSegment.isEmpty()) continue;
+
+                String pathSegment = path.get(pathIndex++);
 
                 // Path parameter (starts with :) -> matches any value
                 if (patternSegment.startsWith(":")) {
