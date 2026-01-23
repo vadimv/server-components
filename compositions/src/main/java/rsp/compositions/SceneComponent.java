@@ -32,7 +32,7 @@ import java.util.function.BiFunction;
  *   <li>Explicit error handling via {@link Scene#isValid()}</li>
  * </ul>
  */
-public class SceneComponent extends Component<SceneComponent.SceneComponentState> {
+public class SceneComponent extends Component<Scene> {
 
     public SceneComponent() {
         super();
@@ -43,21 +43,16 @@ public class SceneComponent extends Component<SceneComponent.SceneComponentState
      * This is where contracts are instantiated and event handlers registered.
      */
     @Override
-    public ComponentStateSupplier<SceneComponentState> initStateSupplier() {
-        return (_, context) -> {
-            Scene scene = buildScene(context);
-            return new SceneComponentState(scene);
-        };
+    public ComponentStateSupplier<Scene> initStateSupplier() {
+        return (_, context) -> buildScene(context);
     }
 
     /**
      * Enrich context with scene data for downstream components.
      */
     @Override
-    public BiFunction<ComponentContext, SceneComponentState, ComponentContext> subComponentsContext() {
-        return (context, state) -> {
-            Scene scene = state.scene();
-
+    public BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
+        return (context, scene) -> {
             if (scene == null || !scene.isValid()) {
                 return context; // Render will show error
             }
@@ -86,10 +81,8 @@ public class SceneComponent extends Component<SceneComponent.SceneComponentState
     }
 
     @Override
-    public ComponentView<SceneComponentState> componentView() {
-        return _ -> state -> {
-            Scene scene = state.scene();
-
+    public ComponentView<Scene> componentView() {
+        return _ -> scene -> {
             if (scene == null) {
                 throw new IllegalStateException("Scene is null - check context setup");
             }
@@ -194,11 +187,4 @@ public class SceneComponent extends Component<SceneComponent.SceneComponentState
         Subscriber subscriber = context.getRequired(Subscriber.class);
         return new ContextLookup(context, commandsEnqueue, subscriber);
     }
-
-    /**
-     * Component state holding the Scene.
-     *
-     * @param scene The built scene for this route (contains contracts, module, authorization state)
-     */
-    public record SceneComponentState(Scene scene) {}
 }
