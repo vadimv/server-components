@@ -5,6 +5,9 @@ import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 import rsp.dsl.Definition;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import static rsp.dsl.Html.*;
 import static rsp.dsl.Html.body;
 
@@ -15,11 +18,11 @@ import static rsp.dsl.Html.body;
  * 1. Reads uiRegistry and route.contractClass from context
  * 2. Finds the appropriate UI component class for the contract
  * 3. Instantiates the UI component
- * 4. Passes it to LayoutComponent for rendering (with optional overlay)
+ * 4. Passes it to LayoutComponent for rendering (with optional overlays)
  * <p>
  * Overlay support:
- * When OVERLAY_CONTRACT is present in context, the corresponding UI component
- * is resolved and passed to LayoutComponent as the overlay content.
+ * When OVERLAY_CONTRACTS is present in context, the corresponding UI components
+ * are resolved and passed to LayoutComponent as overlay content.
  * <p>
  * This is pure framework code - no application-specific dependencies.
  */
@@ -38,10 +41,10 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             // Read from context and store in state
             UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
             Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
-            Class<? extends ViewContract> overlayContractClass = context.get(ContextKeys.OVERLAY_CONTRACT);
-            Class<? extends ViewContract> modalOverlayContractClass = context.get(ContextKeys.MODAL_OVERLAY_CONTRACT);
+            Map<Class<? extends ViewContract>, ViewContract> overlayContracts = context.get(ContextKeys.OVERLAY_CONTRACTS);
 
-            return new UiManagementComponentState(uiRegistry, contractClass, overlayContractClass, modalOverlayContractClass);
+            return new UiManagementComponentState(uiRegistry, contractClass,
+                    overlayContracts != null ? overlayContracts : Map.of());
         };
     }
 
@@ -51,8 +54,7 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             // Read from state
             UiRegistry uiRegistry = state.uiRegistry();
             Class<? extends ViewContract> contractClass = state.contractClass();
-            Class<? extends ViewContract> overlayContractClass = state.overlayContractClass();
-            Class<? extends ViewContract> modalOverlayContractClass = state.modalOverlayContractClass();
+            Map<Class<? extends ViewContract>, ViewContract> overlayContracts = state.overlayContracts();
 
             if (uiRegistry == null || contractClass == null) {
                 throw new IllegalStateException("UiRegistry or contractClass not found in state");
@@ -61,29 +63,24 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
             // Resolve primary contract class to UI component
             Component<?> primaryComponent = resolveUiComponent(uiRegistry, contractClass);
 
-            // Resolve overlay contract if present (QUERY_PARAM mode)
-            Component<?> overlayComponent = null;
-            if (overlayContractClass != null) {
-                overlayComponent = resolveUiComponent(uiRegistry, overlayContractClass);
+            // Resolve overlay contracts to UI components
+            Map<Class<? extends ViewContract>, Component<?>> overlayComponents = new HashMap<>();
+            for (Class<? extends ViewContract> overlayClass : overlayContracts.keySet()) {
+                Component<?> overlayComponent = resolveUiComponent(uiRegistry, overlayClass);
+                overlayComponents.put(overlayClass, overlayComponent);
             }
 
-            // Resolve modal overlay contract if present (MODAL mode)
-            Component<?> modalOverlayComponent = null;
-            if (modalOverlayContractClass != null) {
-                modalOverlayComponent = resolveUiComponent(uiRegistry, modalOverlayContractClass);
-            }
-
-            // Pass to LayoutComponent with optional overlays
-            return page(primaryComponent, overlayComponent, modalOverlayComponent);
+            // Pass to LayoutComponent with overlay components
+            return page(primaryComponent, overlayComponents);
         };
     }
 
-    private static Definition page(Component<?> primaryComponent, Component<?> overlayComponent,
-                                    Component<?> modalOverlayComponent) {
+    private static Definition page(Component<?> primaryComponent,
+                                   Map<Class<? extends ViewContract>, Component<?>> overlayComponents) {
         return html(head(title("Posts"),
                         link(attr("rel", "stylesheet"),
-                                attr("href", "/res/style.css"))),
-                body(new LayoutComponent(primaryComponent, overlayComponent, modalOverlayComponent)));
+                             attr("href", "/res/style.css"))),
+                body(new LayoutComponent(primaryComponent, overlayComponents)));
     }
 
     /**
@@ -118,12 +115,10 @@ public class UiManagementComponent extends Component<UiManagementComponent.UiMan
      *
      * @param uiRegistry The registry mapping contracts to UI components
      * @param contractClass The primary contract class for the route
-     * @param overlayContractClass The overlay contract class for QUERY_PARAM mode (null if no overlay)
-     * @param modalOverlayContractClass The modal overlay contract class for MODAL mode (null if no modal)
+     * @param overlayContracts Map of overlay contract classes to their instances (for Slot.OVERLAY placements)
      */
     public record UiManagementComponentState(UiRegistry uiRegistry,
                                              Class<? extends ViewContract> contractClass,
-                                             Class<? extends ViewContract> overlayContractClass,
-                                             Class<? extends ViewContract> modalOverlayContractClass) {
+                                             Map<Class<? extends ViewContract>, ViewContract> overlayContracts) {
     }
 }

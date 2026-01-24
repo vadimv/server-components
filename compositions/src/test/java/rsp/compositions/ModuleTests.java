@@ -3,7 +3,6 @@ package rsp.compositions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.Lookup;
-import rsp.component.TestLookup;
 
 import java.util.List;
 import java.util.Map;
@@ -11,83 +10,51 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for Module interface default methods and configuration.
+ * Tests for Module interface default methods and slot-based resolution.
  */
 public class ModuleTests {
 
     @Nested
-    class EditModeConfigurationTests {
+    class SlotBasedResolutionTests {
 
         @Test
-        void default_edit_mode_is_separate_page() {
-            final Module module = new TestModule();
+        void placementsForSlot_returns_matching_placements() {
+            final Module module = new ModuleWithMixedSlots();
 
-            assertEquals(EditMode.SEPARATE_PAGE, module.editMode());
+            final List<ViewPlacement> primaryPlacements = module.placementsForSlot(Slot.PRIMARY);
+            final List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
+
+            assertEquals(1, primaryPlacements.size());
+            assertEquals(2, overlayPlacements.size());
         }
 
         @Test
-        void default_create_token_is_new() {
-            final Module module = new TestModule();
+        void placementsForSlot_returns_empty_when_no_matches() {
+            final Module module = new ModuleWithPrimaryOnly();
 
-            assertEquals("new", module.createToken());
+            final List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
+
+            assertTrue(overlayPlacements.isEmpty());
         }
 
         @Test
-        void edit_mode_can_be_overridden() {
-            final Module module = new ModalModeModule();
+        void placementFor_finds_contract_class() {
+            final Module module = new ModuleWithMixedSlots();
 
-            assertEquals(EditMode.MODAL, module.editMode());
+            final ViewPlacement placement = module.placementFor(TestListContract.class);
+
+            assertNotNull(placement);
+            assertEquals(TestListContract.class, placement.contractClass());
+            assertEquals(Slot.PRIMARY, placement.slot());
         }
 
         @Test
-        void create_token_can_be_overridden() {
-            final Module module = new CustomTokenModule();
+        void placementFor_returns_null_when_not_found() {
+            final Module module = new ModuleWithPrimaryOnly();
 
-            assertEquals("_", module.createToken());
-        }
-    }
+            final ViewPlacement placement = module.placementFor(TestEditContract.class);
 
-    @Nested
-    class EditContractDiscoveryTests {
-
-        @Test
-        void edit_contract_class_finds_edit_view_contract_in_views() {
-            final Module module = new ModuleWithEditView();
-
-            final Class<? extends EditViewContract<?>> editClass = module.editContractClass();
-
-            assertNotNull(editClass);
-            assertEquals(TestEditContract.class, editClass);
-        }
-
-        @Test
-        void edit_contract_class_returns_null_when_not_found() {
-            final Module module = new ModuleWithoutEditView();
-
-            final Class<? extends EditViewContract<?>> editClass = module.editContractClass();
-
-            assertNull(editClass);
-        }
-
-        @Test
-        void edit_contract_class_finds_first_edit_view_contract() {
-            final Module module = new ModuleWithMultipleViews();
-
-            final Class<? extends EditViewContract<?>> editClass = module.editContractClass();
-
-            assertNotNull(editClass);
-            // Should find the first EditViewContract in the list
-            assertEquals(TestEditContract.class, editClass);
-        }
-
-        @Test
-        void edit_contract_class_skips_non_edit_contracts() {
-            final Module module = new ModuleWithMixedViews();
-
-            final Class<? extends EditViewContract<?>> editClass = module.editContractClass();
-
-            assertNotNull(editClass);
-            assertEquals(TestEditContract.class, editClass);
+            assertNull(placement);
         }
     }
 
@@ -102,6 +69,13 @@ public class ModuleTests {
 
             assertNotNull(views);
         }
+
+        @Test
+        void empty_module_has_no_views() {
+            final Module module = new TestModule();
+
+            assertTrue(module.views().isEmpty());
+        }
     }
 
     // Test fixtures
@@ -113,30 +87,7 @@ public class ModuleTests {
         }
     }
 
-    static class ModalModeModule extends TestModule {
-        @Override
-        public EditMode editMode() {
-            return EditMode.MODAL;
-        }
-    }
-
-    static class CustomTokenModule extends TestModule {
-        @Override
-        public String createToken() {
-            return "_";
-        }
-    }
-
-    static class ModuleWithEditView extends TestModule {
-        @Override
-        public List<ViewPlacement> views() {
-            return List.of(
-                    new ViewPlacement(Slot.PRIMARY, TestEditContract.class, TestEditContract::new)
-            );
-        }
-    }
-
-    static class ModuleWithoutEditView extends TestModule {
+    static class ModuleWithPrimaryOnly extends TestModule {
         @Override
         public List<ViewPlacement> views() {
             return List.of(
@@ -145,24 +96,13 @@ public class ModuleTests {
         }
     }
 
-    static class ModuleWithMultipleViews extends TestModule {
+    static class ModuleWithMixedSlots extends TestModule {
         @Override
         public List<ViewPlacement> views() {
             return List.of(
                     new ViewPlacement(Slot.PRIMARY, TestListContract.class, TestListContract::new),
-                    new ViewPlacement(Slot.PRIMARY, TestEditContract.class, TestEditContract::new),
-                    new ViewPlacement(Slot.PRIMARY, AnotherEditContract.class, AnotherEditContract::new)
-            );
-        }
-    }
-
-    static class ModuleWithMixedViews extends TestModule {
-        @Override
-        public List<ViewPlacement> views() {
-            return List.of(
-                    new ViewPlacement(Slot.PRIMARY, TestListContract.class, TestListContract::new),
-                    new ViewPlacement(Slot.PRIMARY, TestViewContract.class, TestViewContract::new),
-                    new ViewPlacement(Slot.PRIMARY, TestEditContract.class, TestEditContract::new)
+                    new ViewPlacement(Slot.OVERLAY, TestCreateContract.class, TestCreateContract::new),
+                    new ViewPlacement(Slot.OVERLAY, TestEditContract.class, TestEditContract::new)
             );
         }
     }
@@ -203,19 +143,9 @@ public class ModuleTests {
 
     record TestEntity(String id, String name) {}
 
-    static class TestEditContract extends EditViewContract<TestEntity> {
-        TestEditContract(final Lookup lookup) {
+    static class TestCreateContract extends CreateViewContract<TestEntity> {
+        TestCreateContract(final Lookup lookup) {
             super(lookup);
-        }
-
-        @Override
-        protected String resolveId() {
-            return null;
-        }
-
-        @Override
-        public TestEntity item() {
-            return null;
         }
 
         @Override
@@ -229,8 +159,8 @@ public class ModuleTests {
         }
     }
 
-    static class AnotherEditContract extends EditViewContract<TestEntity> {
-        AnotherEditContract(final Lookup lookup) {
+    static class TestEditContract extends EditViewContract<TestEntity> {
+        TestEditContract(final Lookup lookup) {
             super(lookup);
         }
 

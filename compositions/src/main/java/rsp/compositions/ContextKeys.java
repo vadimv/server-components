@@ -5,6 +5,7 @@ import rsp.server.Path;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Registry of all type-safe context keys used in the compositions module.
@@ -146,23 +147,6 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.schema", DataSchema.class);
 
     /**
-     * The edit mode for create/edit workflows.
-     * Type: EditMode
-     * Values: SEPARATE_PAGE, QUERY_PARAM, or MODAL
-     */
-    public static final ContextKey.StringKey<EditMode> EDIT_MODE =
-            new ContextKey.StringKey<>("edit.mode", EditMode.class);
-
-    /**
-     * The create token used to identify create mode in URLs.
-     * Type: String
-     * Default: "new"
-     * Example: "/posts/new" uses "new" as create token
-     */
-    public static final ContextKey.StringKey<String> CREATE_TOKEN =
-            new ContextKey.StringKey<>("edit.createToken", String.class);
-
-    /**
      * Whether the current edit view is in create mode.
      * Type: Boolean
      * True when creating a new entity, false when editing existing.
@@ -180,43 +164,38 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.listRoute", String.class);
 
     /**
-     * The overlay contract class to render in the overlay slot.
-     * Type: {@code Class<? extends ViewContract>}
-     * When present, LayoutComponent will render this contract's UI as an overlay.
-     * Used by QUERY_PARAM and MODAL edit modes.
+     * Map of all overlay contracts for this scene.
+     * Type: {@code Map<Class<? extends ViewContract>, ViewContract>}
+     * Contains pre-instantiated contracts for all Slot.OVERLAY placements.
+     * Keyed by contract class for lookup.
      */
     @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<Class<? extends ViewContract>> OVERLAY_CONTRACT =
-            new ContextKey.StringKey<>("layout.overlayContract",
-                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+    public static final ContextKey.StringKey<Map<Class<? extends ViewContract>, ViewContract>> OVERLAY_CONTRACTS =
+            new ContextKey.StringKey<>("layout.overlayContracts",
+                    (Class<Map<Class<? extends ViewContract>, ViewContract>>) (Class<?>) Map.class);
 
     /**
-     * The overlay view contract instance.
+     * Base key for overlay view contract instances.
+     * Use {@code OVERLAY_VIEW_CONTRACT.with(contractClassName)} to access specific overlay contracts.
      * Type: ViewContract
-     * The instantiated contract for the overlay component.
-     * Used when primary and overlay need separate contract instances.
+     *
+     * <p>Examples:</p>
+     * <ul>
+     *   <li>{@code OVERLAY_VIEW_CONTRACT.with("PostCreateContract")} - create overlay contract</li>
+     *   <li>{@code OVERLAY_VIEW_CONTRACT.with("PostEditContract")} - edit overlay contract</li>
+     * </ul>
      */
-    public static final ContextKey.StringKey<ViewContract> OVERLAY_VIEW_CONTRACT =
-            new ContextKey.StringKey<>("layout.overlayViewContract", ViewContract.class);
+    public static final ContextKey.DynamicKey<ViewContract> OVERLAY_VIEW_CONTRACT =
+            new ContextKey.DynamicKey<>("layout.overlayViewContract", ViewContract.class);
 
     /**
-     * The modal overlay contract class for MODAL edit mode.
-     * Type: {@code Class<? extends ViewContract>}
-     * Pre-resolved but only shown when openCreateModal event fires.
-     * Different from OVERLAY_CONTRACT which is shown immediately.
+     * Whether the current contract is being instantiated as an overlay (modal/popup).
+     * Type: Boolean
+     * Set to true when SceneComponent instantiates contracts with Slot.OVERLAY.
+     * Contracts can check this to adjust their behavior (e.g., publish modal events instead of navigating).
      */
-    @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<Class<? extends ViewContract>> MODAL_OVERLAY_CONTRACT =
-            new ContextKey.StringKey<>("layout.modalOverlayContract",
-                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
-
-    /**
-     * The modal overlay view contract instance.
-     * Type: ViewContract
-     * Pre-instantiated contract for MODAL mode overlay.
-     */
-    public static final ContextKey.StringKey<ViewContract> MODAL_OVERLAY_VIEW_CONTRACT =
-            new ContextKey.StringKey<>("layout.modalOverlayViewContract", ViewContract.class);
+    public static final ContextKey.StringKey<Boolean> IS_OVERLAY_MODE =
+            new ContextKey.StringKey<>("layout.isOverlayMode", Boolean.class);
 
     /**
      * The authenticated user object.

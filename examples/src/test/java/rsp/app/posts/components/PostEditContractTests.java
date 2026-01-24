@@ -12,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for PostEditContract CRUD operations.
+ * <p>
+ * For create-mode tests, see PostCreateContractTests.
  */
 class PostEditContractTests {
 
@@ -57,14 +59,6 @@ class PostEditContractTests {
 
             assertFalse(result);
         }
-
-        @Test
-        void delete_throws_in_create_mode_with_new_token() {
-            final Lookup lookup = lookupWithPathId("new");
-            final PostEditContract contract = new PostEditContract(lookup);
-
-            assertThrows(IllegalStateException.class, contract::delete);
-        }
     }
 
     @Nested
@@ -84,14 +78,6 @@ class PostEditContractTests {
         }
 
         @Test
-        void item_returns_null_in_create_mode() {
-            final Lookup lookup = lookupWithPathId("new");
-            final PostEditContract contract = new PostEditContract(lookup);
-
-            assertNull(contract.item());
-        }
-
-        @Test
         void item_returns_null_for_nonexistent_post() {
             final Lookup lookup = lookupWithPathId("99999");
             final PostEditContract contract = new PostEditContract(lookup);
@@ -101,21 +87,14 @@ class PostEditContractTests {
     }
 
     @Nested
-    class CreateModeTests {
+    class EditModeTests {
 
         @Test
-        void is_create_mode_true_with_new_token() {
-            final Lookup lookup = lookupWithPathId("new");
-            final PostEditContract contract = new PostEditContract(lookup);
-
-            assertTrue(contract.isCreateMode());
-        }
-
-        @Test
-        void is_create_mode_false_with_id() {
+        void is_create_mode_always_false() {
             final Lookup lookup = lookupWithPathId("123");
             final PostEditContract contract = new PostEditContract(lookup);
 
+            // EditViewContract always returns false for isCreateMode
             assertFalse(contract.isCreateMode());
         }
     }

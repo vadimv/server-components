@@ -2,7 +2,6 @@ package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
-import rsp.compositions.EditMode;
 import rsp.compositions.ListView;
 import rsp.dsl.Definition;
 
@@ -19,6 +18,8 @@ import static rsp.dsl.Html.*;
  * Renders ANY list data based on schema metadata.
  * Supports any number of columns and types.
  * Includes pagination and sorting interactivity.
+ * <p>
+ * Create/Edit actions trigger events that open overlay contracts (Slot.OVERLAY).
  */
 public class DefaultListView extends ListView {
 
@@ -28,8 +29,6 @@ public class DefaultListView extends ListView {
             final int page = state.page();
             final String sort = state.sort();
             final String modulePath = state.modulePath();
-            final EditMode editMode = state.editMode();
-            final String createToken = state.createToken();
             final boolean selectable = state.schema().selectable();
 
             // Capture current query params for Edit links
@@ -38,9 +37,9 @@ public class DefaultListView extends ListView {
             return div(
                 h1(text("Items List")),
 
-                // Create New action - varies by edit mode
+                // Create New action - triggers event to open overlay
                 div(attr("class", "list-actions"),
-                    renderCreateButton(modulePath, editMode, createToken),
+                    renderCreateButton(),
                     // Bulk delete button (only when selectable and has selections)
                     selectable && !state.selectedIds().isEmpty()
                         ? renderBulkDeleteButton(state)
@@ -115,12 +114,9 @@ public class DefaultListView extends ListView {
                                 of(state.schema().columns().stream()
                                     .map(col -> td(renderValue(row.get(col.name()), col.type())))
                                 ),
-                                // Actions column with Edit link
+                                // Actions column with Edit button
                                 td(
-                                    a(
-                                        attr("href", buildEditUrl(row, currentQueryParams, modulePath)),
-                                        text("Edit")
-                                    )
+                                    renderEditButton(rowId, modulePath, currentQueryParams)
                                 )
                             );
                         }))
@@ -164,33 +160,35 @@ public class DefaultListView extends ListView {
     }
 
     /**
-     * Render the Create button based on edit mode.
-     * <p>
-     * - SEPARATE_PAGE: Link to /modulePath/{createToken}
-     * - QUERY_PARAM: Link with ?create=true query param
-     * - MODAL: Button that emits openCreateModal event
+     * Render the Create button.
+     * Triggers OPEN_CREATE_MODAL event to open the overlay.
      */
-    private Definition renderCreateButton(String modulePath, EditMode editMode, String createToken) {
-        return switch (editMode) {
-            case SEPARATE_PAGE -> a(
-                    attr("href", modulePath + "/" + createToken),
-                    attr("class", "create-button"),
-                    text("Create New")
-            );
-            case QUERY_PARAM -> a(
-                    attr("href", modulePath + "?create=true"),
-                    attr("class", "create-button"),
-                    text("Create New")
-            );
-            case MODAL -> button(
-                    attr("type", "button"),
-                    attr("class", "create-button"),
-                    text("Create New"),
-                    on("click", ctx -> {
-                        lookup.publish(OPEN_CREATE_MODAL);
-                    })
-            );
-        };
+    private Definition renderCreateButton() {
+        return button(
+            attr("type", "button"),
+            attr("class", "create-button"),
+            text("Create New"),
+            on("click", ctx -> {
+                lookup.publish(OPEN_CREATE_MODAL);
+            })
+        );
+    }
+
+    /**
+     * Render Edit button for a row.
+     * For now, uses link-based navigation (preserves query params).
+     * Future: could trigger OPEN_EDIT_MODAL event for overlay editing.
+     */
+    private Definition renderEditButton(String rowId, String modulePath, String queryParams) {
+        String editPath = modulePath + "/" + rowId;
+        if (!queryParams.isEmpty()) {
+            editPath += "?" + queryParams;
+        }
+
+        return a(
+            attr("href", editPath),
+            text("Edit")
+        );
     }
 
     /**
@@ -312,29 +310,5 @@ public class DefaultListView extends ListView {
         }
 
         return params.isEmpty() ? "" : String.join("&", params);
-    }
-
-    /**
-     * Build edit URL for a specific row, preserving list query params.
-     *
-     * @param row The row data map
-     * @param queryParams Preserved query params from list view (e.g., "fromP=3&fromSort=desc")
-     * @param modulePath The module base path (e.g., "/posts")
-     * @return Edit URL with preserved params (e.g., "/posts/123?fromP=3&fromSort=desc")
-     */
-    private String buildEditUrl(java.util.Map<String, Object> row, String queryParams, String modulePath) {
-        // Get entity ID from row (assumes "id" field exists)
-        Object id = row.get("id");
-        if (id == null) {
-            throw new IllegalStateException("Row must have 'id' field for edit link");
-        }
-
-        String editPath = modulePath + "/" + id;
-
-        if (queryParams.isEmpty()) {
-            return editPath;
-        }
-
-        return editPath + "?" + queryParams;
     }
 }

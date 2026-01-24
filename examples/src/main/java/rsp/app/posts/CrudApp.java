@@ -1,6 +1,5 @@
 package rsp.app.posts;
 
-import rsp.app.posts.components.PostEditContract;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.components.PostsModule;
 import rsp.app.posts.services.PostService;
@@ -18,15 +17,14 @@ public class CrudApp {
     static void main(final String[] args) {
 
         final UiRegistry uiRegistry = new UiRegistry()
-                .register(ListViewContract.class, DefaultListView::new) // Sets a concrete UI implementation
-                .register(EditViewContract.class, DefaultEditView::new); // Register EditView UI
+                .register(ListViewContract.class, DefaultListView::new)
+                .register(CreateViewContract.class, DefaultEditView::new) // Create form UI
+                .register(EditViewContract.class, DefaultEditView::new);  // Edit form UI
 
-        // Sets a frame for this application's address bar path patterns
-        // Route order matters: specific routes before parameterized ones
+        // Router only routes to PRIMARY slot contracts
+        // OVERLAY contracts (create/edit) are triggered by events, not URLs
         final Router router = new Router()
-                .route("/posts", PostsListContract.class)
-                .route("/posts/new", PostEditContract.class)  // Create route (must come before :id)
-                .route("/posts/:id", PostEditContract.class); // Edit route
+                .route("/posts", PostsListContract.class);
 
         // Application configuration (non-sensitive, flows to all contracts/components)
         // Loads from system properties (e.g., -Dapp.pageSize.default=20)

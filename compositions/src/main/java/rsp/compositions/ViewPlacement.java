@@ -2,6 +2,7 @@ package rsp.compositions;
 
 import rsp.component.Lookup;
 
+import java.util.Objects;
 import java.util.function.Function;
 
 /**
@@ -14,4 +15,12 @@ import java.util.function.Function;
 public record ViewPlacement(Slot slot,
                             Class<? extends ViewContract> contractClass,
                             Function<Lookup, ViewContract> contractFactory) {
+    /**
+     * Compact constructor with validation.
+     */
+    public ViewPlacement {
+        Objects.requireNonNull(slot, "slot cannot be null");
+        Objects.requireNonNull(contractClass, "contractClass cannot be null");
+        Objects.requireNonNull(contractFactory, "contractFactory cannot be null");
+    }
 }

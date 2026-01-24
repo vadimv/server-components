@@ -3,62 +3,48 @@ package rsp.compositions;
 import java.util.List;
 
 /**
- * Module - Declares a feature domain's contracts and configuration.
+ * Module - Declares a feature domain's view placements.
  * <p>
- * Each module groups related views and configures the edit/create workflow mode.
+ * Each module groups related views by declaring their slots and contract factories.
+ * The Slot determines rendering behavior:
+ * <ul>
+ *   <li>{@link Slot#PRIMARY} - Full page content, navigated via Router URLs</li>
+ *   <li>{@link Slot#OVERLAY} - Popup/modal, component state only (no URL change)</li>
+ *   <li>{@link Slot#SECONDARY} - Split view (reserved for future use)</li>
+ * </ul>
+ * <p>
+ * Module is a pure declaration - no behavior configuration.
  * Action handling is delegated to Contracts (e.g., EditViewContract.save(), delete()).
  */
 public interface Module {
     /**
-     * View placements for this module (list, edit, detail views).
+     * View placements for this module.
+     * Each placement declares a Slot and a contract factory.
      */
     List<ViewPlacement> views();
 
     /**
-     * The edit mode for create/edit workflows.
-     * <p>
-     * Determines how the create form appears:
-     * <ul>
-     *   <li>{@link EditMode#SEPARATE_PAGE} - Navigate to /entity/new (default)</li>
-     *   <li>{@link EditMode#QUERY_PARAM} - Stay on list with ?create=true overlay</li>
-     *   <li>{@link EditMode#MODAL} - Pure component state modal, no URL change</li>
-     * </ul>
+     * Find all placements with the given slot.
      *
-     * @return The edit mode (default: SEPARATE_PAGE)
+     * @param slot The slot to filter by
+     * @return List of ViewPlacements with that slot (may be empty)
      */
-    default EditMode editMode() {
-        return EditMode.SEPARATE_PAGE;
+    default List<ViewPlacement> placementsForSlot(Slot slot) {
+        return views().stream()
+                .filter(p -> p.slot() == slot)
+                .toList();
     }
 
     /**
-     * The token used in URLs to indicate create mode.
-     * <p>
-     * For SEPARATE_PAGE mode: /posts/{createToken} (e.g., /posts/new)
-     * For QUERY_PARAM mode: query param name is always "create"
+     * Find the placement for a specific contract class.
      *
-     * @return The create token (default: "new")
+     * @param contractClass The contract class to find
+     * @return The ViewPlacement, or null if not found
      */
-    default String createToken() {
-        return "new";
-    }
-
-    /**
-     * Find the EditViewContract class for this module.
-     * <p>
-     * Used by QUERY_PARAM and MODAL modes to determine which contract
-     * to render in the overlay.
-     *
-     * @return The EditViewContract class, or null if not found
-     */
-    default Class<? extends EditViewContract<?>> editContractClass() {
-        for (ViewPlacement placement : views()) {
-            if (EditViewContract.class.isAssignableFrom(placement.contractClass())) {
-                @SuppressWarnings("unchecked")
-                Class<? extends EditViewContract<?>> editClass =
-                        (Class<? extends EditViewContract<?>>) placement.contractClass();
-                return editClass;
-            }
-        }
-        return null;
+    default ViewPlacement placementFor(Class<? extends ViewContract> contractClass) {
+        return views().stream()
+                .filter(p -> p.contractClass().equals(contractClass))
+                .findFirst()
+                .orElse(null);
     }
 }

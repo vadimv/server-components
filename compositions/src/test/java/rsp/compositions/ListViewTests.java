@@ -3,7 +3,6 @@ package rsp.compositions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.compositions.ListView.ListViewState;
-import rsp.compositions.schema.FieldType;
 
 import java.util.List;
 import java.util.Map;
@@ -50,7 +49,7 @@ class ListViewTests {
         @Test
         void toggle_selection_removes_id_when_already_selected() {
             ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items",
-                EditMode.SEPARATE_PAGE, "new", Set.of("1", "2"));
+                Set.of("1", "2"));
 
             ListViewState newState = state.toggleSelection("1");
 
@@ -74,7 +73,7 @@ class ListViewTests {
         @Test
         void clear_selection_removes_all() {
             ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items",
-                EditMode.SEPARATE_PAGE, "new", Set.of("1", "2", "3"));
+                Set.of("1", "2", "3"));
 
             ListViewState newState = state.clearSelection();
 
@@ -85,7 +84,7 @@ class ListViewTests {
         @Test
         void is_all_selected_true_when_all_rows_selected() {
             ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items",
-                EditMode.SEPARATE_PAGE, "new", Set.of("1", "2", "3"));
+                Set.of("1", "2", "3"));
 
             assertTrue(state.isAllSelected());
         }
@@ -93,7 +92,7 @@ class ListViewTests {
         @Test
         void is_all_selected_false_when_some_rows_not_selected() {
             ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items",
-                EditMode.SEPARATE_PAGE, "new", Set.of("1", "2"));
+                Set.of("1", "2"));
 
             assertFalse(state.isAllSelected());
         }
@@ -108,7 +107,7 @@ class ListViewTests {
         @Test
         void selections_preserved_across_state_changes() {
             ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items",
-                EditMode.SEPARATE_PAGE, "new", Set.of("1", "2"));
+                Set.of("1", "2"));
 
             // Toggle a new selection
             ListViewState newState = state.toggleSelection("3");
@@ -123,7 +122,7 @@ class ListViewTests {
         void state_is_immutable() {
             Set<String> initialIds = Set.of("1");
             ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items",
-                EditMode.SEPARATE_PAGE, "new", initialIds);
+                initialIds);
 
             ListViewState newState = state.toggleSelection("2");
 
@@ -154,21 +153,6 @@ class ListViewTests {
         }
 
         @Test
-        void seven_arg_constructor_has_empty_selections() {
-            ListViewState state = new ListViewState(
-                List.of(Map.of("id", "1")),
-                new DataSchema(List.of()),
-                1,
-                "asc",
-                "/items",
-                EditMode.MODAL,
-                "create"
-            );
-
-            assertTrue(state.selectedIds().isEmpty());
-        }
-
-        @Test
         void null_selectedIds_defaults_to_empty() {
             ListViewState state = new ListViewState(
                 List.of(Map.of("id", "1")),
@@ -176,8 +160,6 @@ class ListViewTests {
                 1,
                 "asc",
                 "/items",
-                EditMode.SEPARATE_PAGE,
-                "new",
                 null
             );
 

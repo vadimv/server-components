@@ -104,8 +104,8 @@ public class ContextKeysTests {
         }
 
         @Test
-        void edit_mode_key_has_correct_type() {
-            assertEquals(EditMode.class, ContextKeys.EDIT_MODE.type());
+        void is_overlay_mode_key_has_correct_type() {
+            assertEquals(Boolean.class, ContextKeys.IS_OVERLAY_MODE.type());
         }
 
         @Test
@@ -142,11 +142,11 @@ public class ContextKeysTests {
         }
 
         @Test
-        void can_store_and_retrieve_edit_mode() {
+        void can_store_and_retrieve_is_overlay_mode() {
             final TestLookup lookup = new TestLookup()
-                    .withData(ContextKeys.EDIT_MODE, EditMode.MODAL);
+                    .withData(ContextKeys.IS_OVERLAY_MODE, true);
 
-            assertEquals(EditMode.MODAL, lookup.get(ContextKeys.EDIT_MODE));
+            assertEquals(true, lookup.get(ContextKeys.IS_OVERLAY_MODE));
         }
 
         @Test

@@ -9,8 +9,9 @@ import rsp.component.Lookup;
 import rsp.component.Subscriber;
 import rsp.component.definitions.Component;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.function.BiFunction;
+import java.util.Map;
 
 /**
  * SceneComponent - Builds and stores the Scene for the current route.
@@ -24,6 +25,10 @@ import java.util.function.BiFunction;
  * </ol>
  * <p>
  * Position in component chain: RoutingComponent → SceneComponent → UiManagementComponent
+ * <p>
+ * Slot-based overlay resolution:
+ * When the primary contract has Slot.PRIMARY, any Slot.OVERLAY contracts in the same
+ * module are pre-instantiated for use as popup/modal overlays.
  * <p>
  * Benefits over transient context enrichment:
  * <ul>
@@ -51,29 +56,29 @@ public class SceneComponent extends Component<Scene> {
      * Enrich context with scene data for downstream components.
      */
     @Override
-    public BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
+    public java.util.function.BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
         return (context, scene) -> {
             if (scene == null || !scene.isValid()) {
                 return context; // Render will show error
             }
 
             ViewContract contract = scene.primaryContract();
-            Module module = scene.module();
 
             // Let the contract enrich context with its data (items, schema, etc.)
             ComponentContext enrichedContext = contract.enrichContext(context);
 
-            // Add module-level configuration
-            enrichedContext = enrichedContext
-                    .with(ContextKeys.EDIT_MODE, module.editMode())
-                    .with(ContextKeys.CREATE_TOKEN, module.createToken());
+            // Add overlay contracts to context if present
+            if (scene.hasOverlays()) {
+                enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACTS, scene.overlayContracts());
 
-            // Add modal overlay if present (for MODAL mode)
-            if (scene.modalContract() != null) {
-                Class<? extends ViewContract> modalContractClass = scene.modalContract().getClass();
-                enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_CONTRACT, modalContractClass);
-                enrichedContext = scene.modalContract().enrichContext(enrichedContext);
-                enrichedContext = enrichedContext.with(ContextKeys.MODAL_OVERLAY_VIEW_CONTRACT, scene.modalContract());
+                // Enrich context with each overlay contract's data
+                for (ViewContract overlay : scene.overlayContracts().values()) {
+                    enrichedContext = overlay.enrichContext(enrichedContext);
+                    // Store the contract instance for event handling
+                    enrichedContext = enrichedContext.with(
+                            ContextKeys.OVERLAY_VIEW_CONTRACT.with(overlay.getClass().getName()),
+                            overlay);
+                }
             }
 
             return enrichedContext;
@@ -102,6 +107,7 @@ public class SceneComponent extends Component<Scene> {
     /**
      * Build the Scene from context.
      * Finds the module, instantiates contracts, checks authorization.
+     * Uses Slot-based resolution for overlays.
      */
     private Scene buildScene(ComponentContext context) {
         try {
@@ -120,9 +126,14 @@ public class SceneComponent extends Component<Scene> {
             }
 
             // Get the contract factory from the module and instantiate with context
-            ViewContract contract = instantiateContractFromModule(module, contractClass, context);
-            if (contract == null) {
+            ViewPlacement primaryPlacement = module.placementFor(contractClass);
+            if (primaryPlacement == null) {
                 return Scene.error(new IllegalStateException("Contract not found in module: " + contractClass.getName()));
+            }
+
+            ViewContract contract = instantiatePlacement(primaryPlacement, context);
+            if (contract == null) {
+                return Scene.error(new IllegalStateException("Failed to instantiate contract: " + contractClass.getName()));
             }
 
             // Check authorization
@@ -130,17 +141,32 @@ public class SceneComponent extends Component<Scene> {
                 return Scene.unauthorized(contract, module);
             }
 
-            // Handle MODAL mode: pre-instantiate modal overlay contract
-            ViewContract modalContract = null;
-            if (module.editMode() == EditMode.MODAL) {
-                Class<? extends ViewContract> editContractClass = module.editContractClass();
-                // Only instantiate overlay if editContractClass exists and is different from primary
-                if (editContractClass != null && !editContractClass.equals(contractClass)) {
-                    modalContract = instantiateContractFromModule(module, editContractClass, context);
+            // Slot-based overlay resolution:
+            // If primary is PRIMARY slot, pre-instantiate any OVERLAY contracts
+            Map<Class<? extends ViewContract>, ViewContract> overlayContracts = Map.of();
+            Slot primarySlot = primaryPlacement.slot();
+
+            if (primarySlot == Slot.PRIMARY) {
+                List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
+                if (!overlayPlacements.isEmpty()) {
+                    overlayContracts = new HashMap<>();
+                    // Create overlay context with IS_OVERLAY_MODE = true
+                    ComponentContext overlayContext = context.with(ContextKeys.IS_OVERLAY_MODE, true);
+                    for (ViewPlacement overlayPlacement : overlayPlacements) {
+                        // Validate contract class is not null
+                        Class<? extends ViewContract> overlayClass = overlayPlacement.contractClass();
+                        if (overlayClass == null) {
+                            throw new IllegalStateException("ViewPlacement has null contractClass in module: " + module.getClass().getName());
+                        }
+                        ViewContract overlayContract = instantiatePlacement(overlayPlacement, overlayContext);
+                        if (overlayContract != null) {
+                            overlayContracts.put(overlayClass, overlayContract);
+                        }
+                    }
                 }
             }
 
-            return Scene.of(contract, module, modalContract);
+            return Scene.of(contract, module, overlayContracts);
 
         } catch (Exception e) {
             return Scene.error(e);
@@ -159,23 +185,16 @@ public class SceneComponent extends Component<Scene> {
         return null;
     }
 
-    private ViewContract instantiateContractFromModule(Module module, Class<? extends ViewContract> contractClass,
-                                                        ComponentContext context) {
-        for (ViewPlacement placement : module.views()) {
-            if (placement.contractClass().equals(contractClass) ||
-                contractClass.isAssignableFrom(placement.contractClass())) {
-                // Create Lookup from context + event infrastructure
-                Lookup lookup = createLookup(context);
-                // Instantiate contract using factory with lookup
-                ViewContract contract = placement.contractFactory().apply(lookup);
-                // Register event handlers for this contract
-                if (contract != null) {
-                    contract.registerHandlers();
-                }
-                return contract;
-            }
+    /**
+     * Instantiate a contract from its ViewPlacement.
+     */
+    private ViewContract instantiatePlacement(ViewPlacement placement, ComponentContext context) {
+        Lookup lookup = createLookup(context);
+        ViewContract contract = placement.contractFactory().apply(lookup);
+        if (contract != null) {
+            contract.registerHandlers();
         }
-        return null;
+        return contract;
     }
 
     /**

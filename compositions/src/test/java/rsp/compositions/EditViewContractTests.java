@@ -10,14 +10,16 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for EditViewContract create mode detection and list route derivation.
+ * Tests for EditViewContract list route derivation and edit-mode behavior.
+ * <p>
+ * For create mode tests, see {@link CreateViewContractTests}.
  */
 public class EditViewContractTests {
 
     // Test entity
     record TestEntity(String id, String name) {}
 
-    // Minimal test contract with configurable ID resolution
+    // Minimal test contract for editing
     static class TestEditContract extends EditViewContract<TestEntity> {
         private final String resolvedId;
 
@@ -33,7 +35,7 @@ public class EditViewContractTests {
 
         @Override
         public TestEntity item() {
-            return isCreateMode() ? null : new TestEntity(resolvedId, "Test");
+            return new TestEntity(resolvedId, "Test");
         }
 
         @Override
@@ -47,44 +49,16 @@ public class EditViewContractTests {
         }
     }
 
-    // Contract with custom create token
-    static class CustomTokenContract extends TestEditContract {
-        CustomTokenContract(final Lookup lookup, final String resolvedId) {
-            super(lookup, resolvedId);
-        }
-
-        @Override
-        protected String createToken() {
-            return "_";  // Custom create token
-        }
-    }
-
     private TestLookup lookupWithRoutePattern(final String pattern) {
         return new TestLookup()
                 .withData(ContextKeys.ROUTE_PATTERN, pattern);
     }
 
     @Nested
-    class CreateModeDetectionTests {
+    class EditModeTests {
 
         @Test
-        void is_create_mode_true_when_id_is_null() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, null);
-
-            assertTrue(contract.isCreateMode());
-        }
-
-        @Test
-        void is_create_mode_true_when_id_equals_create_token() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, "new");
-
-            assertTrue(contract.isCreateMode());
-        }
-
-        @Test
-        void is_create_mode_false_when_id_is_valid_value() {
+        void is_create_mode_always_false() {
             final Lookup lookup = lookupWithRoutePattern("/posts/:id");
             final TestEditContract contract = new TestEditContract(lookup, "123");
 
@@ -92,40 +66,13 @@ public class EditViewContractTests {
         }
 
         @Test
-        void is_create_mode_false_when_id_is_empty_string() {
+        void is_create_mode_false_even_with_null_id() {
             final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, "");
+            final TestEditContract contract = new TestEditContract(lookup, null);
 
-            assertFalse(contract.isCreateMode());  // Empty string is not null
-        }
-    }
-
-    @Nested
-    class CreateTokenTests {
-
-        @Test
-        void default_create_token_is_new() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, "ignored");
-
-            assertEquals("new", contract.createToken());
-        }
-
-        @Test
-        void custom_create_token_can_be_overridden() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final CustomTokenContract contract = new CustomTokenContract(lookup, "_");
-
-            assertEquals("_", contract.createToken());
-            assertTrue(contract.isCreateMode());  // "_" matches custom token
-        }
-
-        @Test
-        void custom_create_token_default_token_no_longer_matches() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final CustomTokenContract contract = new CustomTokenContract(lookup, "new");
-
-            assertFalse(contract.isCreateMode());  // "new" doesn't match "_"
+            // EditViewContract always returns false for isCreateMode
+            // For create behavior, use CreateViewContract
+            assertFalse(contract.isCreateMode());
         }
     }
 
@@ -141,7 +88,7 @@ public class EditViewContractTests {
         }
 
         @Test
-        void list_route_strips_create_token_from_pattern() {
+        void list_route_strips_new_token_from_pattern() {
             final Lookup lookup = lookupWithRoutePattern("/posts/new");
             final TestEditContract contract = new TestEditContract(lookup, "new");
 
@@ -175,7 +122,6 @@ public class EditViewContractTests {
         @Test
         void list_route_root_with_param_returns_pattern() {
             // Edge case: when pattern is just "/:id", there's no parent path to strip to
-            // The implementation returns the full pattern in this case
             final Lookup lookup = lookupWithRoutePattern("/:id");
             final TestEditContract contract = new TestEditContract(lookup, "123");
 
@@ -184,7 +130,6 @@ public class EditViewContractTests {
 
         @Test
         void list_route_throws_when_no_route_pattern() {
-            // No route pattern
             final Lookup lookup = new TestLookup();
             final TestEditContract contract = new TestEditContract(lookup, "123");
 
@@ -245,15 +190,7 @@ public class EditViewContractTests {
     class ItemMethodTests {
 
         @Test
-        void item_returns_null_in_create_mode() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, null);
-
-            assertNull(contract.item());
-        }
-
-        @Test
-        void item_returns_entity_in_edit_mode() {
+        void item_returns_entity() {
             final Lookup lookup = lookupWithRoutePattern("/posts/:id");
             final TestEditContract contract = new TestEditContract(lookup, "123");
 
@@ -284,23 +221,7 @@ public class EditViewContractTests {
     class DeleteMethodTests {
 
         @Test
-        void delete_throws_illegal_state_in_create_mode_null_id() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, null);
-
-            assertThrows(IllegalStateException.class, contract::delete);
-        }
-
-        @Test
-        void delete_throws_illegal_state_in_create_mode_new_token() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, "new");
-
-            assertThrows(IllegalStateException.class, contract::delete);
-        }
-
-        @Test
-        void delete_throws_unsupported_by_default_in_edit_mode() {
+        void delete_throws_unsupported_by_default() {
             final Lookup lookup = lookupWithRoutePattern("/posts/:id");
             final TestEditContract contract = new TestEditContract(lookup, "123");
 

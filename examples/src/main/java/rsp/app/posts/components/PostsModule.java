@@ -1,6 +1,5 @@
 package rsp.app.posts.components;
 
-import rsp.compositions.EditMode;
 import rsp.compositions.Module;
 import rsp.compositions.Slot;
 import rsp.compositions.ViewPlacement;
@@ -8,23 +7,26 @@ import rsp.compositions.ViewPlacement;
 import java.util.List;
 
 /**
- * PostsModule - Pure orchestrator for posts domain.
+ * PostsModule - Declares the posts domain's view placements.
  * <p>
- * Declares which contracts exist in the posts domain.
- * Does NOT expose services - contracts access services directly from context.
+ * Uses Slot to determine rendering behavior:
+ * <ul>
+ *   <li>{@link PostsListContract} - List view (PRIMARY slot, full page)</li>
+ *   <li>{@link PostCreateContract} - Create form (OVERLAY slot, popup)</li>
+ *   <li>{@link PostEditContract} - Edit form (OVERLAY slot, popup)</li>
+ * </ul>
+ * <p>
+ * Slot.OVERLAY means these contracts are shown as popups/modals,
+ * triggered by component events, with no URL change.
  */
 public class PostsModule implements Module {
-
-    @Override
-    public EditMode editMode() {
-        return EditMode.MODAL;
-    }
 
     @Override
     public List<ViewPlacement> views() {
         return List.of(
             new ViewPlacement(Slot.PRIMARY, PostsListContract.class, PostsListContract::new),
-            new ViewPlacement(Slot.PRIMARY, PostEditContract.class, PostEditContract::new)
+            new ViewPlacement(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new),
+            new ViewPlacement(Slot.OVERLAY, PostEditContract.class, PostEditContract::new)
         );
     }
 }

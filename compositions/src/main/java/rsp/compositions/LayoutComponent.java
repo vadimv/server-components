@@ -5,28 +5,28 @@ import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
+import java.util.Map;
+
 import static rsp.compositions.EventKeys.*;
 import static rsp.dsl.Html.*;
 
 /**
  * LayoutComponent - Renders UI components in layout slots with overlay support.
  * <p>
- * Provides three rendering slots:
+ * Provides rendering slots based on Slot enum:
  * <ul>
  *   <li><b>PRIMARY</b> - Main content area, always visible</li>
  *   <li><b>SECONDARY</b> - Optional secondary content (reserved for future use)</li>
  *   <li><b>OVERLAY</b> - Modal/dialog overlay, conditionally rendered</li>
  * </ul>
  * <p>
- * Overlay can be triggered by:
- * <ul>
- *   <li>QUERY_PARAM mode: ?create=true in URL triggers overlay (set at construction)</li>
- *   <li>MODAL mode: openCreateModal event triggers overlay dynamically</li>
- * </ul>
+ * Overlay contracts (Slot.OVERLAY) are shown as popups/modals when triggered
+ * by events. No URL change occurs when overlays open/close.
  * <p>
  * Listens for events:
  * <ul>
- *   <li>"openCreateModal" - Opens create modal (MODAL mode)</li>
+ *   <li>"openCreateModal" - Opens create modal</li>
+ *   <li>"openEditModal" - Opens edit modal with entity ID</li>
  *   <li>"closeOverlay" - Closes the overlay</li>
  *   <li>"modalSaveSuccess" - Closes modal and triggers list refresh</li>
  *   <li>"modalDeleteSuccess" - Closes modal and triggers list refresh</li>
@@ -35,8 +35,7 @@ import static rsp.dsl.Html.*;
 public class LayoutComponent extends Component<LayoutComponent.LayoutComponentState> {
 
     private final Component<?> primaryComponent;
-    private final Component<?> overlayComponent;
-    private final Component<?> modalOverlayComponent;
+    private final Map<Class<? extends ViewContract>, Component<?>> overlayComponents;
 
     private Lookup lookup;
 
@@ -46,36 +45,25 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
      * @param primaryComponent The main UI component to render
      */
     public LayoutComponent(Component<?> primaryComponent) {
-        this(primaryComponent, null, null);
+        this(primaryComponent, Map.of());
     }
 
     /**
-     * Creates a LayoutComponent with primary and optional overlay content.
+     * Creates a LayoutComponent with primary content and overlay components.
      *
      * @param primaryComponent The main UI component to render
-     * @param overlayComponent The overlay component to render (null = no overlay)
+     * @param overlayComponents Map of overlay components keyed by contract class
      */
-    public LayoutComponent(Component<?> primaryComponent, Component<?> overlayComponent) {
-        this(primaryComponent, overlayComponent, null);
-    }
-
-    /**
-     * Creates a LayoutComponent with primary, overlay, and modal overlay content.
-     *
-     * @param primaryComponent The main UI component to render
-     * @param overlayComponent The overlay component for QUERY_PARAM mode (null = no overlay)
-     * @param modalOverlayComponent The overlay component for MODAL mode (dynamically shown)
-     */
-    public LayoutComponent(Component<?> primaryComponent, Component<?> overlayComponent, Component<?> modalOverlayComponent) {
+    public LayoutComponent(Component<?> primaryComponent,
+                           Map<Class<? extends ViewContract>, Component<?>> overlayComponents) {
         super();
         this.primaryComponent = primaryComponent;
-        this.overlayComponent = overlayComponent;
-        this.modalOverlayComponent = modalOverlayComponent;
+        this.overlayComponents = overlayComponents != null ? overlayComponents : Map.of();
     }
 
     @Override
     public ComponentStateSupplier<LayoutComponentState> initStateSupplier() {
-        return (_, _) -> new LayoutComponentState(primaryComponent, overlayComponent, modalOverlayComponent, false);
+        return (_, _) -> new LayoutComponentState(primaryComponent, overlayComponents, null);
     }
 
     @Override
@@ -121,33 +109,29 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
                                 StateUpdate<LayoutComponentState> stateUpdate) {
-        // Register handler for openCreateModal event (MODAL mode)
+        // Register handler for openCreateModal event
         subscriber.addEventHandler(OPEN_CREATE_MODAL, () -> {
-            // Show the modal overlay
-            stateUpdate.applyStateTransformation(s -> s.withModalOpen(true));
+            // Find the first overlay component (typically CreateViewContract)
+            if (!state.overlayComponents().isEmpty()) {
+                Class<? extends ViewContract> firstOverlayClass = state.overlayComponents().keySet().iterator().next();
+                stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(firstOverlayClass));
+            }
         }, false);
 
         // Register handler for closeOverlay event
         subscriber.addEventHandler(CLOSE_OVERLAY, () -> {
-            // For MODAL mode, close without URL navigation
-            stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
-            // For QUERY_PARAM mode, emit event to parent for URL update
-            lookup.publish(OVERLAY_CLOSE_REQUESTED);
+            stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
         }, false);
 
         // Register handler for modalSaveSuccess event (close modal + refresh list)
         subscriber.addEventHandler(MODAL_SAVE_SUCCESS, () -> {
-            // Close the modal
-            stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
-            // Trigger list refresh
+            stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
             lookup.publish(REFRESH_LIST);
         }, false);
 
         // Register handler for modalDeleteSuccess event (close modal + refresh list)
         subscriber.addEventHandler(MODAL_DELETE_SUCCESS, () -> {
-            // Close the modal
-            stateUpdate.applyStateTransformation(s -> s.withModalOpen(false));
-            // Trigger list refresh
+            stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
             lookup.publish(REFRESH_LIST);
         }, false);
     }
@@ -156,18 +140,12 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
     public ComponentView<LayoutComponentState> componentView() {
         return _ -> state -> {
             Component<?> primary = state.primaryComponent();
-            Component<?> overlay = state.overlayComponent();
-            Component<?> modalOverlay = state.modalOverlayComponent();
-            boolean modalOpen = state.isModalOpen();
+            Class<? extends ViewContract> activeOverlayClass = state.activeOverlayClass();
 
-            // Determine which overlay to show
+            // Get active overlay component if any
             Component<?> activeOverlay = null;
-            if (overlay != null) {
-                // QUERY_PARAM mode: overlay set at construction
-                activeOverlay = overlay;
-            } else if (modalOpen && modalOverlay != null) {
-                // MODAL mode: modal dynamically opened
-                activeOverlay = modalOverlay;
+            if (activeOverlayClass != null) {
+                activeOverlay = state.overlayComponents().get(activeOverlayClass);
             }
 
             if (activeOverlay == null) {
@@ -212,53 +190,25 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
     }
 
     /**
-     * State for LayoutComponent with multi-slot support.
+     * State for LayoutComponent with slot-based overlay support.
      *
      * @param primaryComponent The main content component (always present)
-     * @param overlayComponent The overlay component for QUERY_PARAM mode (null = no overlay shown)
-     * @param modalOverlayComponent The overlay component for MODAL mode
-     * @param isModalOpen Whether the modal is currently open (MODAL mode only)
+     * @param overlayComponents Map of overlay components by contract class (Slot.OVERLAY placements)
+     * @param activeOverlayClass The currently active overlay contract class (null = no overlay shown)
      */
     public record LayoutComponentState(
             Component<?> primaryComponent,
-            Component<?> overlayComponent,
-            Component<?> modalOverlayComponent,
-            boolean isModalOpen
+            Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
+            Class<? extends ViewContract> activeOverlayClass
     ) {
         /**
-         * Backwards-compatible constructor without modal support.
-         */
-        public LayoutComponentState(Component<?> primaryComponent, Component<?> overlayComponent) {
-            this(primaryComponent, overlayComponent, null, false);
-        }
-
-        /**
-         * Creates a new state with overlay component.
+         * Creates a new state with the specified overlay active.
          *
-         * @param overlay The overlay component to show
-         * @return New state with overlay
+         * @param overlayClass The overlay contract class to show (null to close)
+         * @return New state with overlay active/closed
          */
-        public LayoutComponentState withOverlay(Component<?> overlay) {
-            return new LayoutComponentState(primaryComponent, overlay, modalOverlayComponent, isModalOpen);
-        }
-
-        /**
-         * Creates a new state without overlay.
-         *
-         * @return New state with no overlay
-         */
-        public LayoutComponentState withoutOverlay() {
-            return new LayoutComponentState(primaryComponent, null, modalOverlayComponent, isModalOpen);
-        }
-
-        /**
-         * Creates a new state with modal open/closed.
-         *
-         * @param open Whether modal should be open
-         * @return New state with modal open/closed
-         */
-        public LayoutComponentState withModalOpen(boolean open) {
-            return new LayoutComponentState(primaryComponent, overlayComponent, modalOverlayComponent, open);
+        public LayoutComponentState withActiveOverlay(Class<? extends ViewContract> overlayClass) {
+            return new LayoutComponentState(primaryComponent, overlayComponents, overlayClass);
         }
 
         /**
@@ -267,7 +217,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
          * @return true if overlay is active
          */
         public boolean hasOverlay() {
-            return overlayComponent != null || (isModalOpen && modalOverlayComponent != null);
+            return activeOverlayClass != null && overlayComponents.containsKey(activeOverlayClass);
         }
     }
 }
