@@ -116,7 +116,7 @@ public class DefaultListView extends ListView {
                                 ),
                                 // Actions column with Edit button
                                 td(
-                                    renderEditButton(rowId, modulePath, currentQueryParams)
+                                    renderEditButton(rowId)
                                 )
                             );
                         }))
@@ -176,18 +176,16 @@ public class DefaultListView extends ListView {
 
     /**
      * Render Edit button for a row.
-     * For now, uses link-based navigation (preserves query params).
-     * Future: could trigger OPEN_EDIT_MODAL event for overlay editing.
+     * Triggers OPEN_EDIT_MODAL event to open overlay editing.
      */
-    private Definition renderEditButton(String rowId, String modulePath, String queryParams) {
-        String editPath = modulePath + "/" + rowId;
-        if (!queryParams.isEmpty()) {
-            editPath += "?" + queryParams;
-        }
-
-        return a(
-            attr("href", editPath),
-            text("Edit")
+    private Definition renderEditButton(String rowId) {
+        return button(
+            attr("type", "button"),
+            attr("class", "edit-button"),
+            text("Edit"),
+            on("click", ctx -> {
+                lookup.publish(OPEN_EDIT_MODAL, rowId);
+            })
         );
     }
 

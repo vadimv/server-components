@@ -5,6 +5,7 @@ import rsp.component.Lookup;
 
 import static rsp.compositions.EventKeys.DELETE_REQUESTED;
 import static rsp.compositions.EventKeys.MODAL_DELETE_SUCCESS;
+import static rsp.compositions.EventKeys.OPEN_EDIT_MODAL;
 
 /**
  * EditViewContract - Base contract for editing existing entities.
@@ -68,6 +69,12 @@ import static rsp.compositions.EventKeys.MODAL_DELETE_SUCCESS;
  */
 public abstract class EditViewContract<T> extends FormViewContract<T> {
 
+    /**
+     * Entity ID received via OPEN_EDIT_MODAL event (for overlay mode).
+     * Null when not in overlay mode or before event received.
+     */
+    private String overlayEntityId = null;
+
     protected EditViewContract(final Lookup lookup) {
         super(lookup);
 
@@ -75,10 +82,27 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
         final Boolean overlayMode = lookup.get(ContextKeys.IS_OVERLAY_MODE);
         final boolean isModalMode = overlayMode != null && overlayMode;
 
+        // In overlay mode, listen for the entity ID
+        if (isModalMode) {
+            lookup.subscribe(OPEN_EDIT_MODAL, (eventName, entityId) -> {
+                this.overlayEntityId = entityId;
+            });
+        }
+
         // Handle delete request
         lookup.subscribe(DELETE_REQUESTED, () -> {
             handleDeleteRequested(isModalMode);
         });
+    }
+
+    /**
+     * Get the entity ID received via OPEN_EDIT_MODAL event.
+     * Use this in overlay mode instead of path parameter resolution.
+     *
+     * @return The entity ID, or null if not in overlay mode or event not received
+     */
+    protected String getOverlayEntityId() {
+        return overlayEntityId;
     }
 
     /**

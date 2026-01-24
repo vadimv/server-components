@@ -8,13 +8,16 @@ import rsp.component.ContextLookup;
 import rsp.component.Lookup;
 import rsp.component.Subscriber;
 import rsp.component.definitions.Component;
+import rsp.dsl.Definition;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static rsp.dsl.Html.*;
+
 /**
- * SceneComponent - Builds and stores the Scene for the current route.
+ * SceneComponent - Builds Scene, resolves UI components, and renders the page.
  * <p>
  * This component:
  * <ol>
@@ -22,9 +25,11 @@ import java.util.Map;
  *   <li>Builds a Scene containing instantiated contracts in {@code initStateSupplier()}</li>
  *   <li>Stores the Scene in component state (contracts created once at mount)</li>
  *   <li>Enriches context with scene data for downstream UI components</li>
+ *   <li>Resolves ViewContract classes to UI components via UiRegistry</li>
+ *   <li>Renders the page structure with LayoutComponent</li>
  * </ol>
  * <p>
- * Position in component chain: RoutingComponent → SceneComponent → UiManagementComponent
+ * Position in component chain: RoutingComponent → SceneComponent → LayoutComponent
  * <p>
  * Slot-based overlay resolution:
  * When the primary contract has Slot.PRIMARY, any Slot.OVERLAY contracts in the same
@@ -100,8 +105,64 @@ public class SceneComponent extends Component<Scene> {
                 throw new AuthorizationException("Access denied: insufficient permissions");
             }
 
-            return new UiManagementComponent();
+            // Get UiRegistry from scene state
+            UiRegistry uiRegistry = scene.uiRegistry();
+            if (uiRegistry == null) {
+                throw new IllegalStateException("UiRegistry not found in scene");
+            }
+
+            // Resolve primary contract class to UI component
+            Class<? extends ViewContract> contractClass = scene.primaryContract().getClass();
+            Component<?> primaryComponent = resolveUiComponent(uiRegistry, contractClass);
+
+            // Resolve overlay contracts to UI components
+            Map<Class<? extends ViewContract>, Component<?>> overlayComponents = new HashMap<>();
+            for (Class<? extends ViewContract> overlayClass : scene.overlayContracts().keySet()) {
+                Component<?> overlayComponent = resolveUiComponent(uiRegistry, overlayClass);
+                overlayComponents.put(overlayClass, overlayComponent);
+            }
+
+            // Render page with LayoutComponent
+            return page(primaryComponent, overlayComponents);
         };
+    }
+
+    /**
+     * Renders the page structure with html, head, and body.
+     */
+    private static Definition page(Component<?> primaryComponent,
+                                   Map<Class<? extends ViewContract>, Component<?>> overlayComponents) {
+        return html(head(title("Posts"),
+                        link(attr("rel", "stylesheet"),
+                             attr("href", "/res/style.css"))),
+                body(new LayoutComponent(primaryComponent, overlayComponents)));
+    }
+
+    /**
+     * Resolves a ViewContract class to its UI implementation.
+     * Walks up the class hierarchy to find a registered UI component.
+     */
+    private Component<?> resolveUiComponent(UiRegistry uiRegistry,
+                                            Class<? extends ViewContract> contractClass) {
+        // Try the contract class itself first
+        Component<?> uiComponent = uiRegistry.resolve(contractClass);
+        if (uiComponent != null) {
+            return uiComponent;
+        }
+
+        // Walk up the inheritance hierarchy to find a registered base class
+        Class<?> current = contractClass.getSuperclass();
+        while (current != null && ViewContract.class.isAssignableFrom(current)) {
+            @SuppressWarnings("unchecked")
+            Class<? extends ViewContract> baseClass = (Class<? extends ViewContract>) current;
+            uiComponent = uiRegistry.resolve(baseClass);
+            if (uiComponent != null) {
+                return uiComponent;
+            }
+            current = current.getSuperclass();
+        }
+
+        throw new IllegalStateException("No UI component registered for contract: " + contractClass.getName());
     }
 
     /**
@@ -114,9 +175,14 @@ public class SceneComponent extends Component<Scene> {
             // Read from context (populated by RoutingComponent)
             List<Module> modules = context.get(ContextKeys.APP_MODULES);
             Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
+            UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
 
             if (modules == null || contractClass == null) {
                 return Scene.error(new IllegalStateException("Missing APP_MODULES or ROUTE_CONTRACT_CLASS in context"));
+            }
+
+            if (uiRegistry == null) {
+                return Scene.error(new IllegalStateException("Missing UI_REGISTRY in context"));
             }
 
             // Find module that has a ViewPlacement with this contract class
@@ -138,7 +204,7 @@ public class SceneComponent extends Component<Scene> {
 
             // Check authorization
             if (!contract.isAuthorized()) {
-                return Scene.unauthorized(contract, module);
+                return Scene.unauthorized(contract, module, uiRegistry);
             }
 
             // Slot-based overlay resolution:
@@ -166,7 +232,7 @@ public class SceneComponent extends Component<Scene> {
                 }
             }
 
-            return Scene.of(contract, module, overlayContracts);
+            return Scene.of(contract, module, overlayContracts, uiRegistry);
 
         } catch (Exception e) {
             return Scene.error(e);

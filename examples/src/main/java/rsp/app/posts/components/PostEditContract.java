@@ -14,7 +14,9 @@ import java.util.Map;
 /**
  * PostEditContract - Contract for editing an existing post.
  * <p>
- * Loads the post by ID from the URL path (e.g., /posts/123).
+ * In overlay mode (Slot.OVERLAY), receives the post ID via OPEN_EDIT_MODAL event.
+ * In URL mode (Slot.PRIMARY), loads the post by ID from the URL path (e.g., /posts/123).
+ * <p>
  * For creating new posts, use {@link PostCreateContract}.
  */
 public class PostEditContract extends EditViewContract<Post> {
@@ -29,6 +31,12 @@ public class PostEditContract extends EditViewContract<Post> {
 
     @Override
     protected String resolveId() {
+        // In overlay mode, use the ID from the OPEN_EDIT_MODAL event
+        String overlayId = getOverlayEntityId();
+        if (overlayId != null) {
+            return overlayId;
+        }
+        // Otherwise, resolve from URL path
         return resolve(POST_ID);
     }
 

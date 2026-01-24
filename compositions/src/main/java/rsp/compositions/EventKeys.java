@@ -51,6 +51,15 @@ public final class EventKeys {
             new EventKey.VoidKey("openCreateModal");
 
     /**
+     * Open edit modal with entity ID.
+     * Emitted by: DefaultListView (Edit button)
+     * Handled by: LayoutComponent, EditViewContract
+     * Payload: Entity ID to edit
+     */
+    public static final EventKey.SimpleKey<String> OPEN_EDIT_MODAL =
+            new EventKey.SimpleKey<>("openEditModal", String.class);
+
+    /**
      * Close overlay (any mode).
      * Emitted by: LayoutComponent backdrop click
      * Handled by: LayoutComponent

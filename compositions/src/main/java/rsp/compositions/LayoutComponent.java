@@ -6,6 +6,7 @@ import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
 import java.util.Map;
+import java.util.function.BiFunction;
 
 import static rsp.compositions.EventKeys.*;
 import static rsp.dsl.Html.*;
@@ -66,6 +67,32 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
         return (_, _) -> new LayoutComponentState(primaryComponent, overlayComponents, null);
     }
 
+    /**
+     * Enrich context with active overlay contract's data.
+     * This ensures the overlay's entity data is fresh when the overlay opens.
+     */
+    @Override
+    public BiFunction<ComponentContext, LayoutComponentState, ComponentContext> subComponentsContext() {
+        return (context, state) -> {
+            Class<? extends ViewContract> activeOverlayClass = state.activeOverlayClass();
+            if (activeOverlayClass == null) {
+                return context; // No overlay active
+            }
+
+            // Get the overlay contract from context (stored by SceneComponent)
+            ViewContract overlayContract = context.get(
+                    ContextKeys.OVERLAY_VIEW_CONTRACT.with(activeOverlayClass.getName()));
+
+            if (overlayContract == null) {
+                return context; // Contract not found
+            }
+
+            // Re-enrich context with the overlay contract's data
+            // This ensures item() is called with the current entity ID
+            return overlayContract.enrichContext(context);
+        };
+    }
+
     @Override
     public ComponentSegment<LayoutComponentState> createComponentSegment(final QualifiedSessionId sessionId,
                                                                           final TreePositionPath componentPath,
@@ -111,10 +138,21 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                                 StateUpdate<LayoutComponentState> stateUpdate) {
         // Register handler for openCreateModal event
         subscriber.addEventHandler(OPEN_CREATE_MODAL, () -> {
-            // Find the first overlay component (typically CreateViewContract)
-            if (!state.overlayComponents().isEmpty()) {
-                Class<? extends ViewContract> firstOverlayClass = state.overlayComponents().keySet().iterator().next();
-                stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(firstOverlayClass));
+            // Find CreateViewContract-based overlay
+            Class<? extends ViewContract> createOverlayClass = findOverlayByBaseClass(
+                    state.overlayComponents(), CreateViewContract.class);
+            if (createOverlayClass != null) {
+                stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(createOverlayClass));
+            }
+        }, false);
+
+        // Register handler for openEditModal event
+        subscriber.addEventHandler(OPEN_EDIT_MODAL, (eventName, entityId) -> {
+            // Find EditViewContract-based overlay
+            Class<? extends ViewContract> editOverlayClass = findOverlayByBaseClass(
+                    state.overlayComponents(), EditViewContract.class);
+            if (editOverlayClass != null) {
+                stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(editOverlayClass));
             }
         }, false);
 
@@ -187,6 +225,25 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                         content
                 )
         );
+    }
+
+    /**
+     * Find an overlay by its base contract class.
+     * Searches overlay components for one that extends the given base class.
+     *
+     * @param overlayComponents Map of overlay components
+     * @param baseClass The base contract class to search for (e.g., EditViewContract.class)
+     * @return The overlay contract class, or null if not found
+     */
+    private Class<? extends ViewContract> findOverlayByBaseClass(
+            Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
+            Class<?> baseClass) {
+        for (Class<? extends ViewContract> overlayClass : overlayComponents.keySet()) {
+            if (baseClass.isAssignableFrom(overlayClass)) {
+                return overlayClass;
+            }
+        }
+        return null;
     }
 
     /**

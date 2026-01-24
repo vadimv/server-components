@@ -10,6 +10,7 @@ import java.util.Map;
  *   <li>Primary contract instance (fully instantiated, authorized, handlers registered)</li>
  *   <li>Module reference</li>
  *   <li>Overlay contracts (pre-instantiated for Slot.OVERLAY placements)</li>
+ *   <li>UiRegistry for resolving contracts to UI components</li>
  *   <li>Authorization state</li>
  *   <li>Build metadata (timestamp, any errors)</li>
  * </ul>
@@ -25,6 +26,7 @@ import java.util.Map;
  * @param primaryContract The main ViewContract for this route (fully instantiated)
  * @param module The Module containing the contract
  * @param overlayContracts Pre-instantiated contracts for Slot.OVERLAY placements (keyed by contract class)
+ * @param uiRegistry Registry for resolving contracts to UI components
  * @param authorized Whether user is authorized for this contract
  * @param timestamp When the scene was built (for debugging/caching)
  * @param error If scene building failed, this contains the exception (other fields may be null)
@@ -33,6 +35,7 @@ public record Scene(
     ViewContract primaryContract,
     Module module,
     Map<Class<? extends ViewContract>, ViewContract> overlayContracts,
+    UiRegistry uiRegistry,
     boolean authorized,
     long timestamp,
     Exception error
@@ -66,33 +69,34 @@ public record Scene(
     }
 
     /**
-     * Create a valid scene with primary contract and module (no overlays).
+     * Create a valid scene with primary contract, module, and UI registry (no overlays).
      */
-    public static Scene of(ViewContract primaryContract, Module module) {
-        return new Scene(primaryContract, module, Map.of(), true, System.currentTimeMillis(), null);
+    public static Scene of(ViewContract primaryContract, Module module, UiRegistry uiRegistry) {
+        return new Scene(primaryContract, module, Map.of(), uiRegistry, true, System.currentTimeMillis(), null);
     }
 
     /**
-     * Create a valid scene with primary contract, module, and overlay contracts.
+     * Create a valid scene with primary contract, module, overlay contracts, and UI registry.
      */
     public static Scene of(ViewContract primaryContract, Module module,
-                           Map<Class<? extends ViewContract>, ViewContract> overlayContracts) {
+                           Map<Class<? extends ViewContract>, ViewContract> overlayContracts,
+                           UiRegistry uiRegistry) {
         return new Scene(primaryContract, module,
                 overlayContracts != null ? overlayContracts : Map.of(),
-                true, System.currentTimeMillis(), null);
+                uiRegistry, true, System.currentTimeMillis(), null);
     }
 
     /**
      * Create an unauthorized scene.
      */
-    public static Scene unauthorized(ViewContract contract, Module module) {
-        return new Scene(contract, module, Map.of(), false, System.currentTimeMillis(), null);
+    public static Scene unauthorized(ViewContract contract, Module module, UiRegistry uiRegistry) {
+        return new Scene(contract, module, Map.of(), uiRegistry, false, System.currentTimeMillis(), null);
     }
 
     /**
      * Create an error scene.
      */
     public static Scene error(Exception e) {
-        return new Scene(null, null, Map.of(), false, System.currentTimeMillis(), e);
+        return new Scene(null, null, Map.of(), null, false, System.currentTimeMillis(), e);
     }
 }
