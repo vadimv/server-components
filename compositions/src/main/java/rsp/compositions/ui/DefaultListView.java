@@ -118,7 +118,7 @@ public class DefaultListView extends ListView {
                                 ),
                                 // Actions column with Edit button
                                 td(
-                                    renderEditButton(rowId)
+                                    renderEditButton(rowId, currentQueryParams)
                                 )
                             );
                         }))
@@ -185,8 +185,11 @@ public class DefaultListView extends ListView {
      *   <li>Case 2: OVERLAY + route → event (modal, URL updated by LayoutComponent)</li>
      *   <li>Case 4: OVERLAY + no route → event (modal, no URL change)</li>
      * </ul>
+     *
+     * @param rowId The row ID for the edit link
+     * @param queryParams Query params to preserve (e.g., "fromP=2&fromSort=desc")
      */
-    private Definition renderEditButton(String rowId) {
+    private Definition renderEditButton(String rowId, String queryParams) {
         // Get edit slot and route info from context
         Slot editSlot = lookup.get(ContextKeys.EDIT_SLOT);
         Boolean editHasRoute = lookup.get(ContextKeys.EDIT_HAS_ROUTE);
@@ -194,7 +197,7 @@ public class DefaultListView extends ListView {
 
         // Case 1: PRIMARY slot with route → navigate via link
         if (editSlot == Slot.PRIMARY && editHasRoute != null && editHasRoute) {
-            String editUrl = buildEditUrl(editRoutePattern, rowId);
+            String editUrl = buildEditUrl(editRoutePattern, rowId, queryParams);
             return a(
                 attr("href", editUrl),
                 attr("class", "edit-button edit-link"),
@@ -215,11 +218,20 @@ public class DefaultListView extends ListView {
     }
 
     /**
-     * Build edit URL by replacing :id placeholder in pattern.
+     * Build edit URL by replacing :id placeholder in pattern and appending query params.
+     *
+     * @param pattern The route pattern (e.g., "/posts/:id")
+     * @param entityId The entity ID to substitute
+     * @param queryParams Query params to append (e.g., "fromP=2")
+     * @return The complete edit URL (e.g., "/posts/10?fromP=2")
      */
-    private String buildEditUrl(String pattern, String entityId) {
+    private String buildEditUrl(String pattern, String entityId, String queryParams) {
         if (pattern == null) return "#";
-        return pattern.replace(":id", entityId);
+        String url = pattern.replace(":id", entityId);
+        if (queryParams != null && !queryParams.isEmpty()) {
+            url += "?" + queryParams;
+        }
+        return url;
     }
 
     /**

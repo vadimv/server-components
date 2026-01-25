@@ -175,7 +175,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
         }, false);
 
         // Register handler for openEditModal event
-        // For Case 2 (OVERLAY + route): also update URL
+        // For Case 2 (OVERLAY + route): also update URL with preserved query params
         subscriber.addEventHandler(OPEN_EDIT_MODAL, (eventName, entityId) -> {
             // Find EditViewContract-based overlay
             Class<? extends ViewContract> editOverlayClass = findOverlayByBaseClass(
@@ -186,8 +186,9 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                 String editRoutePattern = lookup.get(ContextKeys.EDIT_ROUTE_PATTERN);
 
                 if (editHasRoute != null && editHasRoute && editRoutePattern != null) {
-                    // Case 2: Update URL to include entity ID
-                    String editUrl = buildEditUrl(editRoutePattern, entityId);
+                    // Case 2: Update URL to include entity ID and preserved query params
+                    String queryParams = buildPreservedQueryParams();
+                    String editUrl = buildEditUrl(editRoutePattern, entityId, queryParams);
                     lookup.publish(NAVIGATE, editUrl);
                     stateUpdate.applyStateTransformation(s ->
                             s.withActiveOverlayAndRoute(editOverlayClass, editRoutePattern));
@@ -219,15 +220,20 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
 
     /**
      * Handle overlay close with URL sync for Case 2.
+     * Restores preserved query params (fromP → p, fromSort → sort).
      */
     private void handleOverlayClose(LayoutComponentState state,
                                     StateUpdate<LayoutComponentState> stateUpdate) {
-        // If overlay has a route, navigate back to list URL
+        // If overlay has a route, navigate back to list URL with restored params
         if (state.hasOverlayRoute()) {
             // Navigate to parent route (remove the ID segment)
             String routePattern = state.overlayRoutePattern();
             String listRoute = getParentRoute(routePattern);
             if (listRoute != null) {
+                String restoredParams = buildRestoredQueryParams();
+                if (!restoredParams.isEmpty()) {
+                    listRoute += "?" + restoredParams;
+                }
                 lookup.publish(NAVIGATE, listRoute);
             }
         }
@@ -235,10 +241,58 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
     }
 
     /**
+     * Build query string by restoring from* params to original names.
+     * Reads fromP/fromSort from current URL and converts to p/sort.
+     */
+    private String buildRestoredQueryParams() {
+        java.util.List<String> params = new java.util.ArrayList<>();
+
+        // Restore page parameter (fromP → p)
+        String fromP = lookup.get(ContextKeys.URL_QUERY.with("fromP"));
+        if (fromP != null && !fromP.isEmpty()) {
+            params.add("p=" + fromP);
+        }
+
+        // Restore sort parameter (fromSort → sort)
+        String fromSort = lookup.get(ContextKeys.URL_QUERY.with("fromSort"));
+        if (fromSort != null && !fromSort.isEmpty()) {
+            params.add("sort=" + fromSort);
+        }
+
+        return String.join("&", params);
+    }
+
+    /**
      * Build edit URL by replacing :id in pattern with actual entity ID.
      */
-    private String buildEditUrl(String pattern, String entityId) {
-        return pattern.replace(":id", entityId);
+    private String buildEditUrl(String pattern, String entityId, String queryParams) {
+        String url = pattern.replace(":id", entityId);
+        if (queryParams != null && !queryParams.isEmpty()) {
+            url += "?" + queryParams;
+        }
+        return url;
+    }
+
+    /**
+     * Build query string to preserve current page/sort when navigating to edit.
+     * Uses fromP/fromSort convention to avoid conflicts with edit view's own params.
+     */
+    private String buildPreservedQueryParams() {
+        java.util.List<String> params = new java.util.ArrayList<>();
+
+        // Get current page from context
+        Integer page = lookup.get(ContextKeys.LIST_PAGE);
+        if (page != null && page > 1) {
+            params.add("fromP=" + page);
+        }
+
+        // Get current sort from context
+        String sort = lookup.get(ContextKeys.LIST_SORT);
+        if (sort != null && !sort.isEmpty() && !"asc".equals(sort)) {
+            params.add("fromSort=" + sort);
+        }
+
+        return String.join("&", params);
     }
 
     /**
