@@ -3,8 +3,8 @@ package rsp.app.posts.components;
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
 import rsp.component.Lookup;
-import rsp.compositions.CreateViewContract;
-import rsp.compositions.DataSchema;
+import rsp.compositions.contract.CreateViewContract;
+import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 

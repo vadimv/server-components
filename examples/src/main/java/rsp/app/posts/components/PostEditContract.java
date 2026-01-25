@@ -3,9 +3,9 @@ package rsp.app.posts.components;
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
 import rsp.component.Lookup;
-import rsp.compositions.DataSchema;
-import rsp.compositions.EditViewContract;
-import rsp.compositions.PathParam;
+import rsp.compositions.schema.DataSchema;
+import rsp.compositions.contract.EditViewContract;
+import rsp.compositions.contract.PathParam;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 

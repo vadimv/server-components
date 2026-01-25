@@ -1,7 +1,6 @@
 package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
-import rsp.compositions.EditView;
 import rsp.compositions.schema.FieldDef;
 import rsp.compositions.schema.ValidationResult;
 import rsp.compositions.schema.Widget;
@@ -15,7 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static rsp.compositions.EventKeys.*;
+import static rsp.compositions.contract.EventKeys.*;
 import static rsp.compositions.ui.FormField.formField;
 import static rsp.dsl.Html.*;
 

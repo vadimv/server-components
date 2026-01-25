@@ -2,7 +2,6 @@ package rsp.compositions.schema;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.compositions.DataSchema;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

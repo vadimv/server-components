@@ -1,7 +1,5 @@
 package rsp.compositions.schema;
 
-import rsp.compositions.DataSchema;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

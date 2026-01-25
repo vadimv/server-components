@@ -1,7 +1,7 @@
 package rsp.compositions.auth;
 
 import rsp.component.Lookup;
-import rsp.compositions.ViewContract;
+import rsp.compositions.contract.ViewContract;
 
 /**
  * PublicAccessStrategy - Allows all access (no restrictions).

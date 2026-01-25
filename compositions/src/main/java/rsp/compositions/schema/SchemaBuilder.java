@@ -1,7 +1,5 @@
 package rsp.compositions.schema;
 
-import rsp.compositions.DataSchema;
-
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;

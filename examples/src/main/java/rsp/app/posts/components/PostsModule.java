@@ -1,8 +1,8 @@
 package rsp.app.posts.components;
 
-import rsp.compositions.Module;
-import rsp.compositions.Slot;
-import rsp.compositions.ViewPlacement;
+import rsp.compositions.module.Module;
+import rsp.compositions.module.Slot;
+import rsp.compositions.module.ViewPlacement;
 
 import java.util.List;
 

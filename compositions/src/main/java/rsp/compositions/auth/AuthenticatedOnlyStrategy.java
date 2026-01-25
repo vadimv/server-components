@@ -1,8 +1,8 @@
 package rsp.compositions.auth;
 
 import rsp.component.Lookup;
-import rsp.compositions.ContextKeys;
-import rsp.compositions.ViewContract;
+import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.ViewContract;
 
 /**
  * AuthenticatedOnlyStrategy - Requires user to be authenticated.

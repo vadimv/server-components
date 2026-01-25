@@ -4,8 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.Lookup;
-import rsp.compositions.ContextKeys;
-import rsp.app.posts.entities.Post;
+import rsp.compositions.contract.ContextKeys;
 import rsp.app.posts.services.PostService;
 
 import java.util.Map;

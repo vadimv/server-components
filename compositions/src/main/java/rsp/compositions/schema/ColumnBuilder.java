@@ -1,7 +1,5 @@
 package rsp.compositions.schema;
 
-import rsp.compositions.DataSchema;
-
 /**
  * Fluent builder for column configuration.
  * <p>

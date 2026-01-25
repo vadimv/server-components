@@ -1,7 +1,6 @@
 package rsp.compositions.auth;
 
 import rsp.component.ComponentContext;
-import rsp.compositions.AuthComponent;
 
 /**
  * StubAuthProvider - Simple auth provider for development/testing.

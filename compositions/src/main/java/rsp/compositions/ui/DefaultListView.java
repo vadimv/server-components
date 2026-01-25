@@ -2,16 +2,16 @@ package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
-import rsp.compositions.ContextKeys;
-import rsp.compositions.ListView;
-import rsp.compositions.Slot;
+import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.ListView;
+import rsp.compositions.module.Slot;
 import rsp.dsl.Definition;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import static rsp.compositions.EventKeys.*;
+import static rsp.compositions.contract.EventKeys.*;
 import static rsp.dsl.Html.*;
 
 /**
