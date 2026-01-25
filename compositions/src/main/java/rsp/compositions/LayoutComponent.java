@@ -37,6 +37,8 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
 
     private final Component<?> primaryComponent;
     private final Map<Class<? extends ViewContract>, Component<?>> overlayComponents;
+    private final Class<? extends ViewContract> autoOpenOverlay;
+    private final String overlayRoutePattern;
 
     private Lookup lookup;
 
@@ -46,7 +48,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
      * @param primaryComponent The main UI component to render
      */
     public LayoutComponent(Component<?> primaryComponent) {
-        this(primaryComponent, Map.of());
+        this(primaryComponent, Map.of(), null, null);
     }
 
     /**
@@ -57,14 +59,36 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
      */
     public LayoutComponent(Component<?> primaryComponent,
                            Map<Class<? extends ViewContract>, Component<?>> overlayComponents) {
+        this(primaryComponent, overlayComponents, null, null);
+    }
+
+    /**
+     * Creates a LayoutComponent with primary content, overlay components, and auto-open overlay.
+     * <p>
+     * Used when an OVERLAY contract is routed directly via URL (Case 2).
+     * The overlay is auto-opened and URL is synced.
+     *
+     * @param primaryComponent The main UI component to render
+     * @param overlayComponents Map of overlay components keyed by contract class
+     * @param autoOpenOverlay Overlay to auto-activate (null for no auto-open)
+     * @param overlayRoutePattern Route pattern for URL sync (e.g., "/posts/:id")
+     */
+    public LayoutComponent(Component<?> primaryComponent,
+                           Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
+                           Class<? extends ViewContract> autoOpenOverlay,
+                           String overlayRoutePattern) {
         super();
         this.primaryComponent = primaryComponent;
         this.overlayComponents = overlayComponents != null ? overlayComponents : Map.of();
+        this.autoOpenOverlay = autoOpenOverlay;
+        this.overlayRoutePattern = overlayRoutePattern;
     }
 
     @Override
     public ComponentStateSupplier<LayoutComponentState> initStateSupplier() {
-        return (_, _) -> new LayoutComponentState(primaryComponent, overlayComponents, null);
+        // If autoOpenOverlay is set, start with that overlay active (Case 2)
+        return (_, _) -> new LayoutComponentState(
+                primaryComponent, overlayComponents, autoOpenOverlay, overlayRoutePattern);
     }
 
     /**
@@ -147,31 +171,81 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
         }, false);
 
         // Register handler for openEditModal event
+        // For Case 2 (OVERLAY + route): also update URL
         subscriber.addEventHandler(OPEN_EDIT_MODAL, (eventName, entityId) -> {
             // Find EditViewContract-based overlay
             Class<? extends ViewContract> editOverlayClass = findOverlayByBaseClass(
                     state.overlayComponents(), EditViewContract.class);
             if (editOverlayClass != null) {
-                stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(editOverlayClass));
+                // Check if we should sync URL (edit has route)
+                Boolean editHasRoute = lookup.get(ContextKeys.EDIT_HAS_ROUTE);
+                String editRoutePattern = lookup.get(ContextKeys.EDIT_ROUTE_PATTERN);
+
+                if (editHasRoute != null && editHasRoute && editRoutePattern != null) {
+                    // Case 2: Update URL to include entity ID
+                    String editUrl = buildEditUrl(editRoutePattern, entityId);
+                    lookup.publish(NAVIGATE, editUrl);
+                    stateUpdate.applyStateTransformation(s ->
+                            s.withActiveOverlayAndRoute(editOverlayClass, editRoutePattern));
+                } else {
+                    // Case 4: No URL change
+                    stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(editOverlayClass));
+                }
             }
         }, false);
 
         // Register handler for closeOverlay event
+        // For Case 2: restore URL to list view
         subscriber.addEventHandler(CLOSE_OVERLAY, () -> {
-            stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
+            handleOverlayClose(state, stateUpdate);
         }, false);
 
         // Register handler for modalSaveSuccess event (close modal + refresh list)
         subscriber.addEventHandler(MODAL_SAVE_SUCCESS, () -> {
-            stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
+            handleOverlayClose(state, stateUpdate);
             lookup.publish(REFRESH_LIST);
         }, false);
 
         // Register handler for modalDeleteSuccess event (close modal + refresh list)
         subscriber.addEventHandler(MODAL_DELETE_SUCCESS, () -> {
-            stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
+            handleOverlayClose(state, stateUpdate);
             lookup.publish(REFRESH_LIST);
         }, false);
+    }
+
+    /**
+     * Handle overlay close with URL sync for Case 2.
+     */
+    private void handleOverlayClose(LayoutComponentState state,
+                                    StateUpdate<LayoutComponentState> stateUpdate) {
+        // If overlay has a route, navigate back to list URL
+        if (state.hasOverlayRoute()) {
+            // Navigate to parent route (remove the ID segment)
+            String routePattern = state.overlayRoutePattern();
+            String listRoute = getParentRoute(routePattern);
+            if (listRoute != null) {
+                lookup.publish(NAVIGATE, listRoute);
+            }
+        }
+        stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
+    }
+
+    /**
+     * Build edit URL by replacing :id in pattern with actual entity ID.
+     */
+    private String buildEditUrl(String pattern, String entityId) {
+        return pattern.replace(":id", entityId);
+    }
+
+    /**
+     * Get parent route by removing the last segment.
+     * Example: "/posts/:id" → "/posts"
+     */
+    private String getParentRoute(String routePattern) {
+        if (routePattern == null) return null;
+        int lastSlash = routePattern.lastIndexOf('/');
+        if (lastSlash <= 0) return "/";
+        return routePattern.substring(0, lastSlash);
     }
 
     @Override
@@ -252,12 +326,23 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
      * @param primaryComponent The main content component (always present)
      * @param overlayComponents Map of overlay components by contract class (Slot.OVERLAY placements)
      * @param activeOverlayClass The currently active overlay contract class (null = no overlay shown)
+     * @param overlayRoutePattern Route pattern for URL-synced overlays (for restoring URL on close)
      */
     public record LayoutComponentState(
             Component<?> primaryComponent,
             Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
-            Class<? extends ViewContract> activeOverlayClass
+            Class<? extends ViewContract> activeOverlayClass,
+            String overlayRoutePattern
     ) {
+        /**
+         * Convenience constructor without route pattern.
+         */
+        public LayoutComponentState(Component<?> primaryComponent,
+                                    Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
+                                    Class<? extends ViewContract> activeOverlayClass) {
+            this(primaryComponent, overlayComponents, activeOverlayClass, null);
+        }
+
         /**
          * Creates a new state with the specified overlay active.
          *
@@ -265,7 +350,19 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
          * @return New state with overlay active/closed
          */
         public LayoutComponentState withActiveOverlay(Class<? extends ViewContract> overlayClass) {
-            return new LayoutComponentState(primaryComponent, overlayComponents, overlayClass);
+            return new LayoutComponentState(primaryComponent, overlayComponents, overlayClass, overlayRoutePattern);
+        }
+
+        /**
+         * Creates a new state with overlay and route pattern for URL sync.
+         *
+         * @param overlayClass The overlay contract class to show
+         * @param routePattern The route pattern for URL sync
+         * @return New state with overlay active and route pattern
+         */
+        public LayoutComponentState withActiveOverlayAndRoute(Class<? extends ViewContract> overlayClass,
+                                                              String routePattern) {
+            return new LayoutComponentState(primaryComponent, overlayComponents, overlayClass, routePattern);
         }
 
         /**
@@ -275,6 +372,15 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
          */
         public boolean hasOverlay() {
             return activeOverlayClass != null && overlayComponents.containsKey(activeOverlayClass);
+        }
+
+        /**
+         * Check if this overlay has URL sync enabled.
+         *
+         * @return true if overlay route pattern is set
+         */
+        public boolean hasOverlayRoute() {
+            return overlayRoutePattern != null && !overlayRoutePattern.isEmpty();
         }
     }
 }

@@ -78,20 +78,25 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     protected EditViewContract(final Lookup lookup) {
         super(lookup);
 
-        // Check if running as an overlay (modal/popup) via Slot.OVERLAY
-        final Boolean overlayMode = lookup.get(ContextKeys.IS_OVERLAY_MODE);
-        final boolean isModalMode = overlayMode != null && overlayMode;
-
-        // In overlay mode, listen for the entity ID
+        // In overlay mode, listen for the entity ID and activate
         if (isModalMode) {
             lookup.subscribe(OPEN_EDIT_MODAL, (eventName, entityId) -> {
                 this.overlayEntityId = entityId;
+                setActive();  // Mark this overlay as active for event handling
             });
+
+            // For auto-opened overlays (Case 2: OVERLAY + route), activate immediately
+            Boolean isAutoOpen = lookup.get(ContextKeys.IS_AUTO_OPEN_OVERLAY);
+            if (isAutoOpen != null && isAutoOpen) {
+                setActive();
+            }
         }
 
-        // Handle delete request
+        // Handle delete request - only if this is the active overlay
         lookup.subscribe(DELETE_REQUESTED, () -> {
-            handleDeleteRequested(isModalMode);
+            if (shouldHandleEvent()) {
+                handleDeleteRequested(isModalMode);
+            }
         });
     }
 

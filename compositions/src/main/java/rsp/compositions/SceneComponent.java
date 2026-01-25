@@ -68,6 +68,8 @@ public class SceneComponent extends Component<Scene> {
             }
 
             ViewContract contract = scene.primaryContract();
+            Module module = scene.module();
+            Router router = context.get(Router.class);
 
             // Let the contract enrich context with its data (items, schema, etc.)
             ComponentContext enrichedContext = contract.enrichContext(context);
@@ -86,8 +88,57 @@ public class SceneComponent extends Component<Scene> {
                 }
             }
 
+            // Add edit slot/route info to context for DefaultListView
+            enrichedContext = enrichEditSlotInfo(enrichedContext, module, router);
+
             return enrichedContext;
         };
+    }
+
+    /**
+     * Add edit contract slot and route info to context.
+     * This helps DefaultListView determine how to render the Edit button.
+     */
+    private ComponentContext enrichEditSlotInfo(ComponentContext context, Module module, Router router) {
+        // Find EditViewContract-based placement in the module
+        ViewPlacement editPlacement = null;
+        for (ViewPlacement placement : module.views()) {
+            if (EditViewContract.class.isAssignableFrom(placement.contractClass())) {
+                editPlacement = placement;
+                break;
+            }
+        }
+
+        if (editPlacement == null) {
+            return context; // No edit contract in this module
+        }
+
+        Slot editSlot = editPlacement.slot();
+        context = context.with(ContextKeys.EDIT_SLOT, editSlot);
+
+        // Check if edit contract has a route
+        boolean hasRoute = router != null && router.hasRoute(editPlacement.contractClass());
+        context = context.with(ContextKeys.EDIT_HAS_ROUTE, hasRoute);
+
+        // If it has a route, find the pattern
+        if (hasRoute && router != null) {
+            // Find route pattern by checking all routes
+            for (ViewPlacement p : module.views()) {
+                if (EditViewContract.class.isAssignableFrom(p.contractClass())) {
+                    // The edit route pattern typically follows pattern like "/entity/:id"
+                    // We need to store this for building edit URLs
+                    String listRoutePattern = context.get(ContextKeys.ROUTE_PATTERN);
+                    if (listRoutePattern != null) {
+                        // Assume edit pattern is list pattern + "/:id"
+                        String editPattern = listRoutePattern + "/:id";
+                        context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editPattern);
+                    }
+                    break;
+                }
+            }
+        }
+
+        return context;
     }
 
     @Override
@@ -122,8 +173,9 @@ public class SceneComponent extends Component<Scene> {
                 overlayComponents.put(overlayClass, overlayComponent);
             }
 
-            // Render page with LayoutComponent
-            return page(primaryComponent, overlayComponents);
+            // Render page with LayoutComponent, passing auto-open info from scene
+            return page(primaryComponent, overlayComponents,
+                    scene.autoOpenOverlay(), scene.overlayRoutePattern());
         };
     }
 
@@ -131,11 +183,14 @@ public class SceneComponent extends Component<Scene> {
      * Renders the page structure with html, head, and body.
      */
     private static Definition page(Component<?> primaryComponent,
-                                   Map<Class<? extends ViewContract>, Component<?>> overlayComponents) {
+                                   Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
+                                   Class<? extends ViewContract> autoOpenOverlay,
+                                   String overlayRoutePattern) {
         return html(head(title("Posts"),
                         link(attr("rel", "stylesheet"),
                              attr("href", "/res/style.css"))),
-                body(new LayoutComponent(primaryComponent, overlayComponents)));
+                body(new LayoutComponent(primaryComponent, overlayComponents,
+                        autoOpenOverlay, overlayRoutePattern)));
     }
 
     /**
@@ -169,6 +224,14 @@ public class SceneComponent extends Component<Scene> {
      * Build the Scene from context.
      * Finds the module, instantiates contracts, checks authorization.
      * Uses Slot-based resolution for overlays.
+     * <p>
+     * Handles 4 cases based on slot and route:
+     * <ul>
+     *   <li>Case 1: PRIMARY + route → full page edit, URL navigation</li>
+     *   <li>Case 2: OVERLAY + route → modal with URL sync (auto-open overlay)</li>
+     *   <li>Case 3: PRIMARY + no route → full page edit via event</li>
+     *   <li>Case 4: OVERLAY + no route → modal via event only</li>
+     * </ul>
      */
     private Scene buildScene(ComponentContext context) {
         try {
@@ -176,6 +239,8 @@ public class SceneComponent extends Component<Scene> {
             List<Module> modules = context.get(ContextKeys.APP_MODULES);
             Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
             UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
+            String routePattern = context.get(ContextKeys.ROUTE_PATTERN);
+            Router router = context.get(Router.class);
 
             if (modules == null || contractClass == null) {
                 return Scene.error(new IllegalStateException("Missing APP_MODULES or ROUTE_CONTRACT_CLASS in context"));
@@ -191,52 +256,130 @@ public class SceneComponent extends Component<Scene> {
                 return Scene.error(new IllegalStateException("No module found for contract: " + contractClass.getName()));
             }
 
-            // Get the contract factory from the module and instantiate with context
-            ViewPlacement primaryPlacement = module.placementFor(contractClass);
-            if (primaryPlacement == null) {
+            // Get the placement for the routed contract
+            ViewPlacement routedPlacement = module.placementFor(contractClass);
+            if (routedPlacement == null) {
                 return Scene.error(new IllegalStateException("Contract not found in module: " + contractClass.getName()));
             }
 
-            ViewContract contract = instantiatePlacement(primaryPlacement, context);
-            if (contract == null) {
-                return Scene.error(new IllegalStateException("Failed to instantiate contract: " + contractClass.getName()));
+            Slot routedSlot = routedPlacement.slot();
+
+            // Case 2: OVERLAY slot routed directly via URL
+            // Need to find parent PRIMARY and auto-open this overlay
+            if (routedSlot == Slot.OVERLAY) {
+                return buildOverlayRoutedScene(context, module, contractClass, routedPlacement,
+                        routePattern, router, uiRegistry);
             }
 
-            // Check authorization
-            if (!contract.isAuthorized()) {
-                return Scene.unauthorized(contract, module, uiRegistry);
-            }
-
-            // Slot-based overlay resolution:
-            // If primary is PRIMARY slot, pre-instantiate any OVERLAY contracts
-            Map<Class<? extends ViewContract>, ViewContract> overlayContracts = Map.of();
-            Slot primarySlot = primaryPlacement.slot();
-
-            if (primarySlot == Slot.PRIMARY) {
-                List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
-                if (!overlayPlacements.isEmpty()) {
-                    overlayContracts = new HashMap<>();
-                    // Create overlay context with IS_OVERLAY_MODE = true
-                    ComponentContext overlayContext = context.with(ContextKeys.IS_OVERLAY_MODE, true);
-                    for (ViewPlacement overlayPlacement : overlayPlacements) {
-                        // Validate contract class is not null
-                        Class<? extends ViewContract> overlayClass = overlayPlacement.contractClass();
-                        if (overlayClass == null) {
-                            throw new IllegalStateException("ViewPlacement has null contractClass in module: " + module.getClass().getName());
-                        }
-                        ViewContract overlayContract = instantiatePlacement(overlayPlacement, overlayContext);
-                        if (overlayContract != null) {
-                            overlayContracts.put(overlayClass, overlayContract);
-                        }
-                    }
-                }
-            }
-
-            return Scene.of(contract, module, overlayContracts, uiRegistry);
+            // Cases 1, 3: PRIMARY slot (with or without route)
+            // Standard behavior: instantiate as primary, pre-instantiate OVERLAYs
+            return buildPrimaryScene(context, module, routedPlacement, uiRegistry);
 
         } catch (Exception e) {
             return Scene.error(e);
         }
+    }
+
+    /**
+     * Build scene for OVERLAY contract routed directly via URL (Case 2).
+     * Finds parent PRIMARY, uses it as primary, auto-opens the overlay.
+     */
+    private Scene buildOverlayRoutedScene(ComponentContext context, Module module,
+                                          Class<? extends ViewContract> overlayContractClass,
+                                          ViewPlacement overlayPlacement, String routePattern,
+                                          Router router, UiRegistry uiRegistry) {
+        // Find the parent PRIMARY contract
+        ViewPlacement primaryPlacement = module.primaryPlacement();
+        if (primaryPlacement == null) {
+            // Fallback: try to find parent route
+            if (router != null && routePattern != null) {
+                var parentRoute = router.findParentRoute(routePattern);
+                if (parentRoute.isPresent()) {
+                    primaryPlacement = module.placementFor(parentRoute.get().contractClass());
+                }
+            }
+        }
+
+        if (primaryPlacement == null) {
+            return Scene.error(new IllegalStateException(
+                    "OVERLAY contract routed directly but no PRIMARY found in module: " + module.getClass().getName()));
+        }
+
+        // Instantiate primary contract
+        ViewContract primaryContract = instantiatePlacement(primaryPlacement, context);
+        if (primaryContract == null) {
+            return Scene.error(new IllegalStateException(
+                    "Failed to instantiate primary contract: " + primaryPlacement.contractClass().getName()));
+        }
+
+        // Check authorization
+        if (!primaryContract.isAuthorized()) {
+            return Scene.unauthorized(primaryContract, module, uiRegistry);
+        }
+
+        // Pre-instantiate all OVERLAY contracts (including the routed one)
+        Map<Class<? extends ViewContract>, ViewContract> overlayContracts = new HashMap<>();
+        ComponentContext overlayContext = context.with(ContextKeys.IS_OVERLAY_MODE, true);
+
+        for (ViewPlacement placement : module.placementsForSlot(Slot.OVERLAY)) {
+            Class<? extends ViewContract> overlayClass = placement.contractClass();
+            if (overlayClass == null) continue;
+
+            // For the auto-opened overlay, also set IS_AUTO_OPEN_OVERLAY = true
+            ComponentContext contractContext = overlayClass.equals(overlayContractClass)
+                    ? overlayContext.with(ContextKeys.IS_AUTO_OPEN_OVERLAY, true)
+                    : overlayContext;
+
+            ViewContract overlayContract = instantiatePlacement(placement, contractContext);
+            if (overlayContract != null) {
+                overlayContracts.put(overlayClass, overlayContract);
+            }
+        }
+
+        // Return scene with auto-open overlay
+        return Scene.withAutoOpenOverlay(primaryContract, module, overlayContracts, uiRegistry,
+                overlayContractClass, routePattern);
+    }
+
+    /**
+     * Build scene for PRIMARY contract (Cases 1, 3).
+     * Standard behavior: use as primary, pre-instantiate OVERLAYs.
+     */
+    private Scene buildPrimaryScene(ComponentContext context, Module module,
+                                    ViewPlacement primaryPlacement, UiRegistry uiRegistry) {
+        ViewContract contract = instantiatePlacement(primaryPlacement, context);
+        if (contract == null) {
+            return Scene.error(new IllegalStateException(
+                    "Failed to instantiate contract: " + primaryPlacement.contractClass().getName()));
+        }
+
+        // Check authorization
+        if (!contract.isAuthorized()) {
+            return Scene.unauthorized(contract, module, uiRegistry);
+        }
+
+        // Pre-instantiate OVERLAY contracts
+        Map<Class<? extends ViewContract>, ViewContract> overlayContracts = Map.of();
+        List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
+
+        if (!overlayPlacements.isEmpty()) {
+            overlayContracts = new HashMap<>();
+            ComponentContext overlayContext = context.with(ContextKeys.IS_OVERLAY_MODE, true);
+
+            for (ViewPlacement overlayPlacement : overlayPlacements) {
+                Class<? extends ViewContract> overlayClass = overlayPlacement.contractClass();
+                if (overlayClass == null) {
+                    throw new IllegalStateException(
+                            "ViewPlacement has null contractClass in module: " + module.getClass().getName());
+                }
+                ViewContract overlayContract = instantiatePlacement(overlayPlacement, overlayContext);
+                if (overlayContract != null) {
+                    overlayContracts.put(overlayClass, overlayContract);
+                }
+            }
+        }
+
+        return Scene.of(contract, module, overlayContracts, uiRegistry);
     }
 
     private Module findModuleWithContract(List<Module> modules, Class<? extends ViewContract> contractClass) {

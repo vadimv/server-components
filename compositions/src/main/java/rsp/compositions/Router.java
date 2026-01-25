@@ -56,6 +56,69 @@ public class Router {
     }
 
     /**
+     * Check if a contract class has a registered route.
+     *
+     * @param contractClass The contract class to check
+     * @return true if a route is registered for this contract
+     */
+    public boolean hasRoute(Class<? extends ViewContract> contractClass) {
+        return routes.values().stream()
+                .anyMatch(p -> p.contractClass().equals(contractClass));
+    }
+
+    /**
+     * Find the parent route for a given pattern.
+     * <p>
+     * For example, "/posts/:id" has parent "/posts".
+     * This is useful when an OVERLAY contract is routed directly -
+     * we need to find the PRIMARY contract to use as the base.
+     *
+     * @param pattern The route pattern (e.g., "/posts/:id")
+     * @return The parent route match, or empty if no parent route exists
+     */
+    public Optional<RouteMatch> findParentRoute(String pattern) {
+        // Remove the last segment to get parent pattern
+        int lastSlash = pattern.lastIndexOf('/');
+        if (lastSlash <= 0) {
+            return Optional.empty(); // No parent (e.g., "/" or "posts")
+        }
+
+        String parentPattern = pattern.substring(0, lastSlash);
+        if (parentPattern.isEmpty()) {
+            parentPattern = "/";
+        }
+
+        // Look for a route with this parent pattern
+        RoutePattern parentRoute = routes.get(parentPattern);
+        if (parentRoute != null) {
+            return Optional.of(new RouteMatch(parentRoute.contractClass(), parentRoute.pattern()));
+        }
+
+        return Optional.empty();
+    }
+
+    /**
+     * Build a URL path from a pattern by substituting parameter values.
+     * <p>
+     * Example: buildPath("/posts/:id", "123") → "/posts/123"
+     *
+     * @param pattern The route pattern with parameters
+     * @param params The parameter values in order
+     * @return The built URL path
+     */
+    public String buildPath(String pattern, String... params) {
+        String result = pattern;
+        int paramIndex = 0;
+        while (result.contains(":") && paramIndex < params.length) {
+            int start = result.indexOf(':');
+            int end = result.indexOf('/', start);
+            if (end == -1) end = result.length();
+            result = result.substring(0, start) + params[paramIndex++] + result.substring(end);
+        }
+        return result;
+    }
+
+    /**
      * A route pattern that can match exact paths or paths with parameters.
      */
     private record RoutePattern(String pattern, Class<? extends ViewContract> contractClass) {

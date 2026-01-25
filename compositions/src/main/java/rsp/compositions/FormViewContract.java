@@ -28,17 +28,66 @@ import static rsp.compositions.EventKeys.FORM_SUBMITTED;
  */
 public abstract class FormViewContract<T> extends ViewContract {
 
+    /**
+     * Whether this contract is currently the active overlay.
+     * Used to prevent handling events when another overlay is active.
+     * Only relevant for overlay contracts (IS_OVERLAY_MODE = true).
+     */
+    private boolean isActiveOverlay = false;
+
+    /**
+     * Whether this contract is running in modal/overlay mode.
+     */
+    protected final boolean isModalMode;
+
     protected FormViewContract(final Lookup lookup) {
         super(lookup);
 
         // Check if running as an overlay (modal/popup) via Slot.OVERLAY
         final Boolean overlayMode = lookup.get(ContextKeys.IS_OVERLAY_MODE);
-        final boolean isModalMode = overlayMode != null && overlayMode;
+        this.isModalMode = overlayMode != null && overlayMode;
 
-        // Handle form submission
+        // Handle form submission - only if this is the active overlay (or not in overlay mode)
         lookup.subscribe(FORM_SUBMITTED, (eventName, fieldValues) -> {
-            handleFormSubmitted(fieldValues, isModalMode);
+            if (shouldHandleEvent()) {
+                handleFormSubmitted(fieldValues, isModalMode);
+            }
         });
+
+        // Track overlay deactivation
+        if (isModalMode) {
+            lookup.subscribe(EventKeys.CLOSE_OVERLAY, () -> {
+                isActiveOverlay = false;
+            });
+
+            lookup.subscribe(EventKeys.MODAL_SAVE_SUCCESS, () -> {
+                isActiveOverlay = false;
+            });
+
+            lookup.subscribe(EventKeys.MODAL_DELETE_SUCCESS, () -> {
+                isActiveOverlay = false;
+            });
+        } else {
+            // Non-overlay (PRIMARY) mode - always active
+            isActiveOverlay = true;
+        }
+    }
+
+    /**
+     * Set this overlay as active. Called by subclasses when the overlay is opened.
+     */
+    protected void setActive() {
+        this.isActiveOverlay = true;
+    }
+
+    /**
+     * Check if this contract should handle events.
+     * Returns true if:
+     * - Not in overlay mode (PRIMARY slot), or
+     * - In overlay mode AND this is the currently active overlay
+     */
+    protected boolean shouldHandleEvent() {
+        return !isModalMode || isActiveOverlay;
     }
 
     /**

@@ -47,4 +47,28 @@ public interface Module {
                 .findFirst()
                 .orElse(null);
     }
+
+    /**
+     * Get the slot type for a specific contract class.
+     *
+     * @param contractClass The contract class to look up
+     * @return The Slot, or null if contract not found in this module
+     */
+    default Slot slotFor(Class<? extends ViewContract> contractClass) {
+        ViewPlacement placement = placementFor(contractClass);
+        return placement != null ? placement.slot() : null;
+    }
+
+    /**
+     * Find the first PRIMARY slot placement in this module.
+     * Useful for finding the "parent" primary when an OVERLAY is routed directly.
+     *
+     * @return The first PRIMARY ViewPlacement, or null if none
+     */
+    default ViewPlacement primaryPlacement() {
+        return views().stream()
+                .filter(p -> p.slot() == Slot.PRIMARY)
+                .findFirst()
+                .orElse(null);
+    }
 }

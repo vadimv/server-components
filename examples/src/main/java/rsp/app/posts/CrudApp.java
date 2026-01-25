@@ -1,5 +1,6 @@
 package rsp.app.posts;
 
+import rsp.app.posts.components.PostEditContract;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.components.PostsModule;
 import rsp.app.posts.services.PostService;
@@ -24,7 +25,8 @@ public class CrudApp {
         // Router only routes to PRIMARY slot contracts
         // OVERLAY contracts (create/edit) are triggered by events, not URLs
         final Router router = new Router()
-                .route("/posts", PostsListContract.class);
+                .route("/posts", PostsListContract.class)
+                .route("/posts/:id", PostEditContract.class); // enable editing a post with its direct URL
 
         // Application configuration (non-sensitive, flows to all contracts/components)
         // Loads from system properties (e.g., -Dapp.pageSize.default=20)

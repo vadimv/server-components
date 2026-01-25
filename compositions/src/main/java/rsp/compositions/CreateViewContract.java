@@ -52,6 +52,19 @@ public abstract class CreateViewContract<T> extends FormViewContract<T> {
 
     protected CreateViewContract(final Lookup lookup) {
         super(lookup);
+
+        // In overlay mode, activate when OPEN_CREATE_MODAL is received
+        if (isModalMode) {
+            lookup.subscribe(EventKeys.OPEN_CREATE_MODAL, () -> {
+                setActive();
+            });
+
+            // For auto-opened overlays (Case 2: OVERLAY + route), activate immediately
+            Boolean isAutoOpen = lookup.get(ContextKeys.IS_AUTO_OPEN_OVERLAY);
+            if (isAutoOpen != null && isAutoOpen) {
+                setActive();
+            }
+        }
     }
 
     /**

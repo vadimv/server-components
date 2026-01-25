@@ -164,6 +164,33 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.listRoute", String.class);
 
     /**
+     * The slot type for the edit contract in this module.
+     * Type: Slot
+     * Values: Slot.PRIMARY or Slot.OVERLAY
+     * Used by list view to determine how to handle edit button clicks.
+     */
+    public static final ContextKey.StringKey<Slot> EDIT_SLOT =
+            new ContextKey.StringKey<>("edit.slot", Slot.class);
+
+    /**
+     * Whether the edit contract has a registered route.
+     * Type: Boolean
+     * True if Router has a route for the edit contract (e.g., "/posts/:id").
+     * Used by list view to determine edit button behavior (URL navigation vs event-only).
+     */
+    public static final ContextKey.StringKey<Boolean> EDIT_HAS_ROUTE =
+            new ContextKey.StringKey<>("edit.hasRoute", Boolean.class);
+
+    /**
+     * The route pattern for the edit contract (if it has one).
+     * Type: String
+     * Example: "/posts/:id"
+     * Used by list view to build edit URLs when EDIT_HAS_ROUTE is true.
+     */
+    public static final ContextKey.StringKey<String> EDIT_ROUTE_PATTERN =
+            new ContextKey.StringKey<>("edit.routePattern", String.class);
+
+    /**
      * Map of all overlay contracts for this scene.
      * Type: {@code Map<Class<? extends ViewContract>, ViewContract>}
      * Contains pre-instantiated contracts for all Slot.OVERLAY placements.
@@ -196,6 +223,26 @@ public final class ContextKeys {
      */
     public static final ContextKey.StringKey<Boolean> IS_OVERLAY_MODE =
             new ContextKey.StringKey<>("layout.isOverlayMode", Boolean.class);
+
+    /**
+     * Whether the current overlay contract is being auto-opened (Case 2: OVERLAY + route).
+     * Type: Boolean
+     * Set to true when SceneComponent instantiates an overlay contract that was routed directly via URL.
+     * Contracts should immediately activate themselves when this is true.
+     */
+    public static final ContextKey.StringKey<Boolean> IS_AUTO_OPEN_OVERLAY =
+            new ContextKey.StringKey<>("layout.isAutoOpenOverlay", Boolean.class);
+
+    /**
+     * The currently active overlay contract class.
+     * Type: Class (contract class)
+     * Set by LayoutComponent when an overlay is activated.
+     * Used by overlay contracts to determine if they should handle events.
+     */
+    @SuppressWarnings("unchecked")
+    public static final ContextKey.StringKey<Class<? extends ViewContract>> ACTIVE_OVERLAY_CLASS =
+            new ContextKey.StringKey<>("layout.activeOverlayClass",
+                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
 
     /**
      * The authenticated user object.

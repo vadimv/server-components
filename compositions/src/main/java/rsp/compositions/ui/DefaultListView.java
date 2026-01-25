@@ -2,7 +2,9 @@ package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
+import rsp.compositions.ContextKeys;
 import rsp.compositions.ListView;
+import rsp.compositions.Slot;
 import rsp.dsl.Definition;
 
 import java.time.LocalDate;
@@ -175,10 +177,33 @@ public class DefaultListView extends ListView {
     }
 
     /**
-     * Render Edit button for a row.
-     * Triggers OPEN_EDIT_MODAL event to open overlay editing.
+     * Render Edit button/link for a row.
+     * <p>
+     * Behavior depends on edit contract's slot and route configuration:
+     * <ul>
+     *   <li>Case 1: PRIMARY + route → navigate via link (full page edit)</li>
+     *   <li>Case 2: OVERLAY + route → event (modal, URL updated by LayoutComponent)</li>
+     *   <li>Case 4: OVERLAY + no route → event (modal, no URL change)</li>
+     * </ul>
      */
     private Definition renderEditButton(String rowId) {
+        // Get edit slot and route info from context
+        Slot editSlot = lookup.get(ContextKeys.EDIT_SLOT);
+        Boolean editHasRoute = lookup.get(ContextKeys.EDIT_HAS_ROUTE);
+        String editRoutePattern = lookup.get(ContextKeys.EDIT_ROUTE_PATTERN);
+
+        // Case 1: PRIMARY slot with route → navigate via link
+        if (editSlot == Slot.PRIMARY && editHasRoute != null && editHasRoute) {
+            String editUrl = buildEditUrl(editRoutePattern, rowId);
+            return a(
+                attr("href", editUrl),
+                attr("class", "edit-button edit-link"),
+                text("Edit")
+            );
+        }
+
+        // Cases 2 & 4: OVERLAY slot (with or without route) → trigger event
+        // URL sync for Case 2 is handled by LayoutComponent
         return button(
             attr("type", "button"),
             attr("class", "edit-button"),
@@ -187,6 +212,14 @@ public class DefaultListView extends ListView {
                 lookup.publish(OPEN_EDIT_MODAL, rowId);
             })
         );
+    }
+
+    /**
+     * Build edit URL by replacing :id placeholder in pattern.
+     */
+    private String buildEditUrl(String pattern, String entityId) {
+        if (pattern == null) return "#";
+        return pattern.replace(":id", entityId);
     }
 
     /**
