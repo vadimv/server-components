@@ -1,8 +1,8 @@
 package rsp.app.posts.components;
 
-import rsp.compositions.module.Module;
-import rsp.compositions.module.Slot;
-import rsp.compositions.module.ViewPlacement;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.Slot;
+import rsp.compositions.composition.ViewPlacement;
 
 import java.util.List;
 
@@ -19,7 +19,7 @@ import java.util.List;
  * Slot.OVERLAY means these contracts are shown as popups/modals,
  * triggered by component events, with no URL change.
  */
-public class PostsModule implements Module {
+public class PostsModule implements Composition {
 
     @Override
     public List<ViewPlacement> views() {

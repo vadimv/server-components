@@ -1,7 +1,7 @@
 package rsp.compositions.contract;
 
-import rsp.compositions.module.Module;
-import rsp.compositions.module.UiRegistry;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.UiRegistry;
 
 import java.util.Map;
 
@@ -11,7 +11,7 @@ import java.util.Map;
  * A Scene represents everything needed to render a view:
  * <ul>
  *   <li>Primary contract instance (fully instantiated, authorized, handlers registered)</li>
- *   <li>Module reference</li>
+ *   <li>Composition reference</li>
  *   <li>Overlay contracts (pre-instantiated for Slot.OVERLAY placements)</li>
  *   <li>UiRegistry for resolving contracts to UI components</li>
  *   <li>Authorization state</li>
@@ -28,7 +28,7 @@ import java.util.Map;
  * </ul>
  *
  * @param primaryContract The main ViewContract for this route (fully instantiated)
- * @param module The Module containing the contract
+ * @param composition The Composition containing the contract
  * @param overlayContracts Pre-instantiated contracts for Slot.OVERLAY placements (keyed by contract class)
  * @param uiRegistry Registry for resolving contracts to UI components
  * @param authorized Whether user is authorized for this contract
@@ -39,7 +39,7 @@ import java.util.Map;
  */
 public record Scene(
     ViewContract primaryContract,
-    rsp.compositions.module.Module module,
+    rsp.compositions.composition.Composition composition,
     Map<Class<? extends ViewContract>, ViewContract> overlayContracts,
     UiRegistry uiRegistry,
     boolean authorized,
@@ -77,19 +77,19 @@ public record Scene(
     }
 
     /**
-     * Create a valid scene with primary contract, module, and UI registry (no overlays).
+     * Create a valid scene with primary contract, composition, and UI registry (no overlays).
      */
-    public static Scene of(ViewContract primaryContract, rsp.compositions.module.Module module, UiRegistry uiRegistry) {
-        return new Scene(primaryContract, module, Map.of(), uiRegistry, true, System.currentTimeMillis(), null, null, null);
+    public static Scene of(ViewContract primaryContract, Composition composition, UiRegistry uiRegistry) {
+        return new Scene(primaryContract, composition, Map.of(), uiRegistry, true, System.currentTimeMillis(), null, null, null);
     }
 
     /**
-     * Create a valid scene with primary contract, module, overlay contracts, and UI registry.
+     * Create a valid scene with primary contract, composition, overlay contracts, and UI registry.
      */
-    public static Scene of(ViewContract primaryContract, rsp.compositions.module.Module module,
+    public static Scene of(ViewContract primaryContract, Composition composition,
                            Map<Class<? extends ViewContract>, ViewContract> overlayContracts,
                            UiRegistry uiRegistry) {
-        return new Scene(primaryContract, module,
+        return new Scene(primaryContract, composition,
                 overlayContracts != null ? overlayContracts : Map.of(),
                 uiRegistry, true, System.currentTimeMillis(), null, null, null);
     }
@@ -98,18 +98,18 @@ public record Scene(
      * Create a valid scene with auto-open overlay (for OVERLAY contracts routed via URL).
      *
      * @param primaryContract The primary contract (parent route's contract)
-     * @param module The module
+     * @param composition The composition
      * @param overlayContracts Pre-instantiated overlay contracts
      * @param uiRegistry The UI registry
      * @param autoOpenOverlay The overlay class to auto-activate
      * @param overlayRoutePattern The route pattern for URL sync (e.g., "/posts/:id")
      */
-    public static Scene withAutoOpenOverlay(ViewContract primaryContract, rsp.compositions.module.Module module,
+    public static Scene withAutoOpenOverlay(ViewContract primaryContract, Composition composition,
                                             Map<Class<? extends ViewContract>, ViewContract> overlayContracts,
                                             UiRegistry uiRegistry,
                                             Class<? extends ViewContract> autoOpenOverlay,
                                             String overlayRoutePattern) {
-        return new Scene(primaryContract, module,
+        return new Scene(primaryContract, composition,
                 overlayContracts != null ? overlayContracts : Map.of(),
                 uiRegistry, true, System.currentTimeMillis(), null, autoOpenOverlay, overlayRoutePattern);
     }
@@ -117,8 +117,8 @@ public record Scene(
     /**
      * Create an unauthorized scene.
      */
-    public static Scene unauthorized(ViewContract contract, Module module, UiRegistry uiRegistry) {
-        return new Scene(contract, module, Map.of(), uiRegistry, false, System.currentTimeMillis(), null, null, null);
+    public static Scene unauthorized(ViewContract contract, Composition composition, UiRegistry uiRegistry) {
+        return new Scene(contract, composition, Map.of(), uiRegistry, false, System.currentTimeMillis(), null, null, null);
     }
 
     /**

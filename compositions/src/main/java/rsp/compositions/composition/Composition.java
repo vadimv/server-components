@@ -1,13 +1,13 @@
-package rsp.compositions.module;
+package rsp.compositions.composition;
 
 import rsp.compositions.contract.ViewContract;
 
 import java.util.List;
 
 /**
- * Module - Declares a feature domain's view placements.
+ * Composition - Declares a feature domain's view placements.
  * <p>
- * Each module groups related views by declaring their slots and contract factories.
+ * Each composition groups related views by declaring their slots and contract factories.
  * The Slot determines rendering behavior:
  * <ul>
  *   <li>{@link Slot#PRIMARY} - Full page content, navigated via Router URLs</li>
@@ -15,12 +15,12 @@ import java.util.List;
  *   <li>{@link Slot#SECONDARY} - Split view (reserved for future use)</li>
  * </ul>
  * <p>
- * Module is a pure declaration - no behavior configuration.
+ * Composition is a pure declaration - no behavior configuration.
  * Action handling is delegated to Contracts (e.g., EditViewContract.save(), delete()).
  */
-public interface Module {
+public interface Composition {
     /**
-     * View placements for this module.
+     * View placements for this composition.
      * Each placement declares a Slot and a contract factory.
      */
     List<ViewPlacement> views();
@@ -54,7 +54,7 @@ public interface Module {
      * Get the slot type for a specific contract class.
      *
      * @param contractClass The contract class to look up
-     * @return The Slot, or null if contract not found in this module
+     * @return The Slot, or null if contract not found in this composition
      */
     default Slot slotFor(Class<? extends ViewContract> contractClass) {
         ViewPlacement placement = placementFor(contractClass);
@@ -62,7 +62,7 @@ public interface Module {
     }
 
     /**
-     * Find the first PRIMARY slot placement in this module.
+     * Find the first PRIMARY slot placement in this composition.
      * Useful for finding the "parent" primary when an OVERLAY is routed directly.
      *
      * @return The first PRIMARY ViewPlacement, or null if none

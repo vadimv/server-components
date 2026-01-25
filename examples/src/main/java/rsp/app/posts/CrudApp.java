@@ -1,8 +1,8 @@
 package rsp.app.posts;
 
+import rsp.app.posts.components.PostCreateContract;
 import rsp.app.posts.components.PostEditContract;
 import rsp.app.posts.components.PostsListContract;
-import rsp.app.posts.components.PostsModule;
 import rsp.app.posts.services.PostService;
 import rsp.compositions.application.App;
 import rsp.compositions.application.AppConfig;
@@ -10,7 +10,9 @@ import rsp.compositions.auth.StubAuthProvider;
 import rsp.compositions.contract.CreateViewContract;
 import rsp.compositions.contract.EditViewContract;
 import rsp.compositions.contract.ListViewContract;
-import rsp.compositions.module.UiRegistry;
+import rsp.compositions.composition.Slot;
+import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
@@ -49,7 +51,11 @@ public class CrudApp {
         final var services =  List.of(postService,
                                       new StubAuthProvider());// Optional: defaults to anonymous if omitted
         // Create modules (no longer need service references)
-        final PostsModule postsModule = new PostsModule();
+        final rsp.compositions.composition.Composition postsModule = () -> List.of(
+                new ViewPlacement(Slot.PRIMARY, PostsListContract.class, PostsListContract::new),
+                new ViewPlacement(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new),
+                new ViewPlacement(Slot.OVERLAY, PostEditContract.class, PostEditContract::new)
+        );
 
         // Create app with AppConfig (flows to AppComponent → Context)
         final App app = new App(appConfig, uiRegistry, router, List.of(postsModule), services);

@@ -8,8 +8,8 @@ import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ListViewContract;
-import rsp.compositions.module.Module;
-import rsp.compositions.module.UiRegistry;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.routing.Router;
 import rsp.server.http.HttpRequest;
 
@@ -22,16 +22,16 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     private final AppConfig config;
     private final UiRegistry uiRegistry;
     private final Router router;
-    private final List<Module> modules;
+    private final List<Composition> compositions;
     private final List<Object> services;
     private final HttpRequest httpRequest;
 
-    public AppComponent(AppConfig config, UiRegistry uiRegistry, Router router, List<Module> modules, List<Object> services, HttpRequest httpRequest) {
+    public AppComponent(AppConfig config, UiRegistry uiRegistry, Router router, List<Composition> compositions, List<Object> services, HttpRequest httpRequest) {
         super();
         this.config = config;
         this.uiRegistry = uiRegistry;
         this.router = router;
-        this.modules = modules;
+        this.compositions = compositions;
         this.services = services;
         this.httpRequest = httpRequest;
     }
@@ -54,7 +54,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
                 .with(Router.class, router)
                 .with(HttpRequest.class, httpRequest)
                 .with(ContextKeys.UI_REGISTRY, uiRegistry)
-                .with(ContextKeys.APP_MODULES, modules);
+                .with(ContextKeys.APP_COMPOSITIONS, compositions);
 
             // Add generic configuration values for framework components
             // This allows contracts to be agnostic of AppConfig structure

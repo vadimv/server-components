@@ -1,4 +1,4 @@
-package rsp.compositions.module;
+package rsp.compositions.composition;
 
 import rsp.component.Lookup;
 import rsp.compositions.contract.ViewContract;

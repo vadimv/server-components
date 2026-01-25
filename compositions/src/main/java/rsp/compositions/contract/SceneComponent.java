@@ -10,10 +10,10 @@ import rsp.component.Subscriber;
 import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthorizationException;
 import rsp.compositions.layout.LayoutComponent;
-import rsp.compositions.module.Module;
-import rsp.compositions.module.Slot;
-import rsp.compositions.module.UiRegistry;
-import rsp.compositions.module.ViewPlacement;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.Slot;
+import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
 import rsp.dsl.Definition;
 
@@ -28,7 +28,7 @@ import static rsp.dsl.Html.*;
  * <p>
  * This component:
  * <ol>
- *   <li>Reads modules and contract class from context (populated by RoutingComponent)</li>
+ *   <li>Reads compositions and contract class from context (populated by RoutingComponent)</li>
  *   <li>Builds a Scene containing instantiated contracts in {@code initStateSupplier()}</li>
  *   <li>Stores the Scene in component state (contracts created once at mount)</li>
  *   <li>Enriches context with scene data for downstream UI components</li>
@@ -40,7 +40,7 @@ import static rsp.dsl.Html.*;
  * <p>
  * Slot-based overlay resolution:
  * When the primary contract has Slot.PRIMARY, any Slot.OVERLAY contracts in the same
- * module are pre-instantiated for use as popup/modal overlays.
+ * composition are pre-instantiated for use as popup/modal overlays.
  * <p>
  * Benefits over transient context enrichment:
  * <ul>
@@ -75,7 +75,7 @@ public class SceneComponent extends Component<Scene> {
             }
 
             ViewContract contract = scene.primaryContract();
-            rsp.compositions.module.Module module = scene.module();
+            Composition composition = scene.composition();
             Router router = context.get(Router.class);
 
             // Let the contract enrich context with its data (items, schema, etc.)
@@ -96,7 +96,7 @@ public class SceneComponent extends Component<Scene> {
             }
 
             // Add edit slot/route info to context for DefaultListView
-            enrichedContext = enrichEditSlotInfo(enrichedContext, module, router);
+            enrichedContext = enrichEditSlotInfo(enrichedContext, composition, router);
 
             return enrichedContext;
         };
@@ -106,10 +106,10 @@ public class SceneComponent extends Component<Scene> {
      * Add edit contract slot and route info to context.
      * This helps DefaultListView determine how to render the Edit button.
      */
-    private ComponentContext enrichEditSlotInfo(ComponentContext context, rsp.compositions.module.Module module, Router router) {
-        // Find EditViewContract-based placement in the module
+    private ComponentContext enrichEditSlotInfo(ComponentContext context, Composition composition, Router router) {
+        // Find EditViewContract-based placement in the composition
         ViewPlacement editPlacement = null;
-        for (ViewPlacement placement : module.views()) {
+        for (ViewPlacement placement : composition.views()) {
             if (EditViewContract.class.isAssignableFrom(placement.contractClass())) {
                 editPlacement = placement;
                 break;
@@ -117,7 +117,7 @@ public class SceneComponent extends Component<Scene> {
         }
 
         if (editPlacement == null) {
-            return context; // No edit contract in this module
+            return context; // No edit contract in this composition
         }
 
         Slot editSlot = editPlacement.slot();
@@ -130,7 +130,7 @@ public class SceneComponent extends Component<Scene> {
         // If it has a route, find the pattern
         if (hasRoute && router != null) {
             // Find route pattern by checking all routes
-            for (ViewPlacement p : module.views()) {
+            for (ViewPlacement p : composition.views()) {
                 if (EditViewContract.class.isAssignableFrom(p.contractClass())) {
                     // The edit route pattern typically follows pattern like "/entity/:id"
                     // We need to store this for building edit URLs
@@ -229,7 +229,7 @@ public class SceneComponent extends Component<Scene> {
 
     /**
      * Build the Scene from context.
-     * Finds the module, instantiates contracts, checks authorization.
+     * Finds the composition, instantiates contracts, checks authorization.
      * Uses Slot-based resolution for overlays.
      * <p>
      * Handles 4 cases based on slot and route:
@@ -243,30 +243,30 @@ public class SceneComponent extends Component<Scene> {
     private Scene buildScene(ComponentContext context) {
         try {
             // Read from context (populated by RoutingComponent)
-            List<rsp.compositions.module.Module> modules = context.get(ContextKeys.APP_MODULES);
+            List<Composition> compositions = context.get(ContextKeys.APP_COMPOSITIONS);
             Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
             UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
             String routePattern = context.get(ContextKeys.ROUTE_PATTERN);
             Router router = context.get(Router.class);
 
-            if (modules == null || contractClass == null) {
-                return Scene.error(new IllegalStateException("Missing APP_MODULES or ROUTE_CONTRACT_CLASS in context"));
+            if (compositions == null || contractClass == null) {
+                return Scene.error(new IllegalStateException("Missing APP_COMPOSITIONS or ROUTE_CONTRACT_CLASS in context"));
             }
 
             if (uiRegistry == null) {
                 return Scene.error(new IllegalStateException("Missing UI_REGISTRY in context"));
             }
 
-            // Find module that has a ViewPlacement with this contract class
-            rsp.compositions.module.Module module = findModuleWithContract(modules, contractClass);
-            if (module == null) {
-                return Scene.error(new IllegalStateException("No module found for contract: " + contractClass.getName()));
+            // Find composition that has a ViewPlacement with this contract class
+            Composition composition = findCompositionWithContract(compositions, contractClass);
+            if (composition == null) {
+                return Scene.error(new IllegalStateException("No composition found for contract: " + contractClass.getName()));
             }
 
             // Get the placement for the routed contract
-            ViewPlacement routedPlacement = module.placementFor(contractClass);
+            ViewPlacement routedPlacement = composition.placementFor(contractClass);
             if (routedPlacement == null) {
-                return Scene.error(new IllegalStateException("Contract not found in module: " + contractClass.getName()));
+                return Scene.error(new IllegalStateException("Contract not found in composition: " + contractClass.getName()));
             }
 
             Slot routedSlot = routedPlacement.slot();
@@ -274,13 +274,13 @@ public class SceneComponent extends Component<Scene> {
             // Case 2: OVERLAY slot routed directly via URL
             // Need to find parent PRIMARY and auto-open this overlay
             if (routedSlot == Slot.OVERLAY) {
-                return buildOverlayRoutedScene(context, module, contractClass, routedPlacement,
+                return buildOverlayRoutedScene(context, composition, contractClass, routedPlacement,
                         routePattern, router, uiRegistry);
             }
 
             // Cases 1, 3: PRIMARY slot (with or without route)
             // Standard behavior: instantiate as primary, pre-instantiate OVERLAYs
-            return buildPrimaryScene(context, module, routedPlacement, uiRegistry);
+            return buildPrimaryScene(context, composition, routedPlacement, uiRegistry);
 
         } catch (Exception e) {
             return Scene.error(e);
@@ -291,25 +291,25 @@ public class SceneComponent extends Component<Scene> {
      * Build scene for OVERLAY contract routed directly via URL (Case 2).
      * Finds parent PRIMARY, uses it as primary, auto-opens the overlay.
      */
-    private Scene buildOverlayRoutedScene(ComponentContext context, rsp.compositions.module.Module module,
+    private Scene buildOverlayRoutedScene(ComponentContext context, Composition composition,
                                           Class<? extends ViewContract> overlayContractClass,
                                           ViewPlacement overlayPlacement, String routePattern,
                                           Router router, UiRegistry uiRegistry) {
         // Find the parent PRIMARY contract
-        ViewPlacement primaryPlacement = module.primaryPlacement();
+        ViewPlacement primaryPlacement = composition.primaryPlacement();
         if (primaryPlacement == null) {
             // Fallback: try to find parent route
             if (router != null && routePattern != null) {
                 var parentRoute = router.findParentRoute(routePattern);
                 if (parentRoute.isPresent()) {
-                    primaryPlacement = module.placementFor(parentRoute.get().contractClass());
+                    primaryPlacement = composition.placementFor(parentRoute.get().contractClass());
                 }
             }
         }
 
         if (primaryPlacement == null) {
             return Scene.error(new IllegalStateException(
-                    "OVERLAY contract routed directly but no PRIMARY found in module: " + module.getClass().getName()));
+                    "OVERLAY contract routed directly but no PRIMARY found in composition: " + composition.getClass().getName()));
         }
 
         // Instantiate primary contract
@@ -321,14 +321,14 @@ public class SceneComponent extends Component<Scene> {
 
         // Check authorization
         if (!primaryContract.isAuthorized()) {
-            return Scene.unauthorized(primaryContract, module, uiRegistry);
+            return Scene.unauthorized(primaryContract, composition, uiRegistry);
         }
 
         // Pre-instantiate all OVERLAY contracts (including the routed one)
         Map<Class<? extends ViewContract>, ViewContract> overlayContracts = new HashMap<>();
         ComponentContext overlayContext = context.with(ContextKeys.IS_OVERLAY_MODE, true);
 
-        for (ViewPlacement placement : module.placementsForSlot(Slot.OVERLAY)) {
+        for (ViewPlacement placement : composition.placementsForSlot(Slot.OVERLAY)) {
             Class<? extends ViewContract> overlayClass = placement.contractClass();
             if (overlayClass == null) continue;
 
@@ -344,7 +344,7 @@ public class SceneComponent extends Component<Scene> {
         }
 
         // Return scene with auto-open overlay
-        return Scene.withAutoOpenOverlay(primaryContract, module, overlayContracts, uiRegistry,
+        return Scene.withAutoOpenOverlay(primaryContract, composition, overlayContracts, uiRegistry,
                 overlayContractClass, routePattern);
     }
 
@@ -352,7 +352,7 @@ public class SceneComponent extends Component<Scene> {
      * Build scene for PRIMARY contract (Cases 1, 3).
      * Standard behavior: use as primary, pre-instantiate OVERLAYs.
      */
-    private Scene buildPrimaryScene(ComponentContext context, rsp.compositions.module.Module module,
+    private Scene buildPrimaryScene(ComponentContext context, Composition composition,
                                     ViewPlacement primaryPlacement, UiRegistry uiRegistry) {
         ViewContract contract = instantiatePlacement(primaryPlacement, context);
         if (contract == null) {
@@ -362,12 +362,12 @@ public class SceneComponent extends Component<Scene> {
 
         // Check authorization
         if (!contract.isAuthorized()) {
-            return Scene.unauthorized(contract, module, uiRegistry);
+            return Scene.unauthorized(contract, composition, uiRegistry);
         }
 
         // Pre-instantiate OVERLAY contracts
         Map<Class<? extends ViewContract>, ViewContract> overlayContracts = Map.of();
-        List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
+        List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
 
         if (!overlayPlacements.isEmpty()) {
             overlayContracts = new HashMap<>();
@@ -377,7 +377,7 @@ public class SceneComponent extends Component<Scene> {
                 Class<? extends ViewContract> overlayClass = overlayPlacement.contractClass();
                 if (overlayClass == null) {
                     throw new IllegalStateException(
-                            "ViewPlacement has null contractClass in module: " + module.getClass().getName());
+                            "ViewPlacement has null contractClass in composition: " + composition.getClass().getName());
                 }
                 ViewContract overlayContract = instantiatePlacement(overlayPlacement, overlayContext);
                 if (overlayContract != null) {
@@ -386,15 +386,15 @@ public class SceneComponent extends Component<Scene> {
             }
         }
 
-        return Scene.of(contract, module, overlayContracts, uiRegistry);
+        return Scene.of(contract, composition, overlayContracts, uiRegistry);
     }
 
-    private rsp.compositions.module.Module findModuleWithContract(List<rsp.compositions.module.Module> modules, Class<? extends ViewContract> contractClass) {
-        for (Module module : modules) {
-            for (ViewPlacement placement : module.views()) {
+    private Composition findCompositionWithContract(List<Composition> compositions, Class<? extends ViewContract> contractClass) {
+        for (Composition composition : compositions) {
+            for (ViewPlacement placement : composition.views()) {
                 if (placement.contractClass().equals(contractClass) ||
                     contractClass.isAssignableFrom(placement.contractClass())) {
-                    return module;
+                    return composition;
                 }
             }
         }

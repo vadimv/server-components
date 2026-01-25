@@ -1,4 +1,4 @@
-package rsp.compositions.module;
+package rsp.compositions.composition;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -15,19 +15,19 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for Module interface default methods and slot-based resolution.
+ * Tests for Composition interface default methods and slot-based resolution.
  */
-public class ModuleTests {
+public class CompositionTests {
 
     @Nested
     class SlotBasedResolutionTests {
 
         @Test
         void placementsForSlot_returns_matching_placements() {
-            final rsp.compositions.module.Module module = new ModuleWithMixedSlots();
+            final Composition composition = new CompositionWithMixedSlots();
 
-            final List<ViewPlacement> primaryPlacements = module.placementsForSlot(Slot.PRIMARY);
-            final List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
+            final List<ViewPlacement> primaryPlacements = composition.placementsForSlot(Slot.PRIMARY);
+            final List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
 
             assertEquals(1, primaryPlacements.size());
             assertEquals(2, overlayPlacements.size());
@@ -35,18 +35,18 @@ public class ModuleTests {
 
         @Test
         void placementsForSlot_returns_empty_when_no_matches() {
-            final rsp.compositions.module.Module module = new ModuleWithPrimaryOnly();
+            final Composition composition = new CompositionWithPrimaryOnly();
 
-            final List<ViewPlacement> overlayPlacements = module.placementsForSlot(Slot.OVERLAY);
+            final List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
 
             assertTrue(overlayPlacements.isEmpty());
         }
 
         @Test
         void placementFor_finds_contract_class() {
-            final rsp.compositions.module.Module module = new ModuleWithMixedSlots();
+            final Composition composition = new CompositionWithMixedSlots();
 
-            final ViewPlacement placement = module.placementFor(TestListContract.class);
+            final ViewPlacement placement = composition.placementFor(TestListContract.class);
 
             assertNotNull(placement);
             assertEquals(TestListContract.class, placement.contractClass());
@@ -55,44 +55,44 @@ public class ModuleTests {
 
         @Test
         void placementFor_returns_null_when_not_found() {
-            final rsp.compositions.module.Module module = new ModuleWithPrimaryOnly();
+            final Composition composition = new CompositionWithPrimaryOnly();
 
-            final ViewPlacement placement = module.placementFor(TestEditContract.class);
+            final ViewPlacement placement = composition.placementFor(TestEditContract.class);
 
             assertNull(placement);
         }
     }
 
     @Nested
-    class ModuleInterfaceTests {
+    class CompositionInterfaceTests {
 
         @Test
         void views_returns_list() {
-            final rsp.compositions.module.Module module = new TestModule();
+            final Composition composition = new TestComposition();
 
-            final List<ViewPlacement> views = module.views();
+            final List<ViewPlacement> views = composition.views();
 
             assertNotNull(views);
         }
 
         @Test
-        void empty_module_has_no_views() {
-            final rsp.compositions.module.Module module = new TestModule();
+        void empty_composition_has_no_views() {
+            final Composition composition = new TestComposition();
 
-            assertTrue(module.views().isEmpty());
+            assertTrue(composition.views().isEmpty());
         }
     }
 
     // Test fixtures
 
-    static class TestModule implements Module {
+    static class TestComposition implements Composition {
         @Override
         public List<ViewPlacement> views() {
             return List.of();
         }
     }
 
-    static class ModuleWithPrimaryOnly extends TestModule {
+    static class CompositionWithPrimaryOnly extends TestComposition {
         @Override
         public List<ViewPlacement> views() {
             return List.of(
@@ -101,7 +101,7 @@ public class ModuleTests {
         }
     }
 
-    static class ModuleWithMixedSlots extends TestModule {
+    static class CompositionWithMixedSlots extends TestComposition {
         @Override
         public List<ViewPlacement> views() {
             return List.of(

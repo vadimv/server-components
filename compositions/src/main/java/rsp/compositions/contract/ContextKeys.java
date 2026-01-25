@@ -3,9 +3,9 @@ package rsp.compositions.contract;
 import rsp.component.ContextKey;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.module.Module;
-import rsp.compositions.module.Slot;
-import rsp.compositions.module.UiRegistry;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.Slot;
+import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.routing.Router;
 import rsp.server.Path;
 import rsp.server.http.HttpRequest;
@@ -275,14 +275,14 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("auth.roles", String[].class);
 
     /**
-     * List of application modules.
-     * Type: {@code List<Module>}
-     * Contains all registered service modules.
+     * List of application compositions.
+     * Type: {@code List<Composition>}
+     * Contains all registered feature compositions.
      */
     @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<List<rsp.compositions.module.Module>> APP_MODULES =
-            new ContextKey.StringKey<>("app.modules",
-                    (Class<List<Module>>) (Class<?>) List.class);
+    public static final ContextKey.StringKey<List<rsp.compositions.composition.Composition>> APP_COMPOSITIONS =
+            new ContextKey.StringKey<>("app.compositions",
+                    (Class<List<Composition>>) (Class<?>) List.class);
 
     /**
      * Default page size for list views.

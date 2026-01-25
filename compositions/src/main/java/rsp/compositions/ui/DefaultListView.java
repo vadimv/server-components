@@ -4,7 +4,7 @@ import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ListView;
-import rsp.compositions.module.Slot;
+import rsp.compositions.composition.Slot;
 import rsp.dsl.Definition;
 
 import java.time.LocalDate;

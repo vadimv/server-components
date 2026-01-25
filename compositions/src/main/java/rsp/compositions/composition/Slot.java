@@ -1,4 +1,4 @@
-package rsp.compositions.module;
+package rsp.compositions.composition;
 
 /**
  * Slot - Defines where and how a view contract is rendered.
