@@ -4,19 +4,22 @@ import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
+import rsp.compositions.composition.Composition;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.SceneComponent;
 import rsp.server.Path;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.function.BiFunction;
 
 /**
- * RoutingComponent - Matches URL path to ViewContract classes.
+ * RoutingComponent - Matches URL path to ViewContract classes by iterating Compositions.
  * <p>
  * This component:
  * 1. Reads url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
- * 2. Matches the path against registered routes using Router
- * 3. Enriches context with route.contractClass, route.path, route.pattern
+ * 2. Iterates Compositions in order, trying each one's Router
+ * 3. First matching route wins - enriches context with route.composition, route.contractClass, route.path, route.pattern
  * 4. Renders SceneComponent
  * <p>
  * Position in component chain: AuthComponent → UrlSyncComponent → RoutingComponent → SceneComponent
@@ -37,30 +40,37 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
 
     /**
      * Enrich context with routing results.
-     * Reads url.path from context (populated by UrlSyncComponent), matches the route,
-     * and enriches context with routing info.
+     * Reads url.path from context (populated by UrlSyncComponent), iterates Compositions
+     * to find a matching route, and enriches context with routing info.
      */
     @Override
     public BiFunction<ComponentContext, RoutingComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> {
-            // Read router from context (populated by AppComponent)
-            Router router = context.get(Router.class);
+            // Read compositions from context (populated by AppComponent)
+            List<Composition> compositions = context.get(ContextKeys.APP_COMPOSITIONS);
 
             // Read url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
             Path path = context.get(ContextKeys.URL_PATH_FULL);
 
-            if (router == null || path == null) {
+            if (compositions == null || path == null) {
                 return context; // Graceful degradation
             }
 
-            // Match route to get contract class and pattern
-            Router.RouteMatch routeMatch = router.match(path)
-                .orElseThrow(() -> new IllegalStateException("No route found for path: " + path));
+            // Iterate Compositions in order - first match wins
+            for (Composition composition : compositions) {
+                Optional<Router.RouteMatch> match = composition.router().match(path);
+                if (match.isPresent()) {
+                    Router.RouteMatch routeMatch = match.get();
+                    // Enrich context with composition and routing results
+                    return context
+                            .with(ContextKeys.ROUTE_COMPOSITION, composition)
+                            .with(ContextKeys.ROUTE_CONTRACT_CLASS, routeMatch.contractClass())
+                            .with(ContextKeys.ROUTE_PATH, path.toString())
+                            .with(ContextKeys.ROUTE_PATTERN, routeMatch.pattern());
+                }
+            }
 
-            // Enrich context with routing results
-            return context.with(ContextKeys.ROUTE_CONTRACT_CLASS, routeMatch.contractClass())
-                .with(ContextKeys.ROUTE_PATH, path.toString())
-                .with(ContextKeys.ROUTE_PATTERN, routeMatch.pattern());
+            throw new IllegalStateException("No route found for path: " + path);
         };
     }
 

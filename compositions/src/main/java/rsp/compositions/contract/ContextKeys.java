@@ -77,6 +77,14 @@ public final class ContextKeys {
     // ===== STRING-BASED KEYS (Namespaced metadata) =====
 
     /**
+     * The composition that matched the current route.
+     * Type: Composition
+     * Populated by RoutingComponent when iterating Compositions for route matching.
+     */
+    public static final ContextKey.ClassKey<Composition> ROUTE_COMPOSITION =
+            new ContextKey.ClassKey<>(Composition.class);
+
+    /**
      * The contract class for the current route.
      * Type: {@code Class<? extends ViewContract>}
      * Example: PostsListContract.class

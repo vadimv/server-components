@@ -7,12 +7,13 @@ import rsp.app.posts.services.PostService;
 import rsp.compositions.application.App;
 import rsp.compositions.application.AppConfig;
 import rsp.compositions.auth.StubAuthProvider;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.Slot;
+import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.composition.ViewsPlacements;
 import rsp.compositions.contract.CreateViewContract;
 import rsp.compositions.contract.EditViewContract;
 import rsp.compositions.contract.ListViewContract;
-import rsp.compositions.composition.Slot;
-import rsp.compositions.composition.UiRegistry;
-import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
@@ -25,40 +26,36 @@ import java.util.List;
 public class CrudApp {
     static void main(final String[] args) {
 
+        final AppConfig appConfig = AppConfig.fromSystemProperties();
+
         final UiRegistry uiRegistry = new UiRegistry()
                 .register(ListViewContract.class, DefaultListView::new)
                 .register(CreateViewContract.class, DefaultEditView::new) // Create form UI
                 .register(EditViewContract.class, DefaultEditView::new);  // Edit form UI
 
-        // Router only routes to PRIMARY slot contracts
-        // OVERLAY contracts (create/edit) are triggered by events, not URLs
+        // Router defines URL routes for this composition
+        // OVERLAY contracts (create/edit) are typically triggered by events, not URLs
+        // However, PostEditContract has a route to enable direct URL editing
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
                 .route("/posts/:id", PostEditContract.class); // enable editing a post with its direct URL
 
-        // Application configuration (non-sensitive, flows to all contracts/components)
-        // Loads from system properties (e.g., -Dapp.pageSize.default=20)
-        final AppConfig appConfig = AppConfig.fromSystemProperties();
+        final ViewsPlacements places = new ViewsPlacements()
+                .place(Slot.PRIMARY, PostsListContract.class, PostsListContract::new)
+                .place(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new)
+                .place(Slot.OVERLAY, PostEditContract.class, PostEditContract::new);
+
+        final Composition postsModule = new Composition(router, places);
 
         // Create services
-        // NOTE: When migrating to real database service, you would:
-        // 1. Create ServiceConfig with DB credentials (used ONLY for service init, NEVER in context)
-        // 2. Pass ServiceConfig to service constructor: new PostService(serviceConfig.getDatabaseConfig())
-        // 3. Only the service INSTANCE goes to context, not ServiceConfig
         final PostService postService = new PostService();
 
         // Services and auth provider will be added to the components context and referenced by their classes
-        final var services =  List.of(postService,
-                                      new StubAuthProvider());// Optional: defaults to anonymous if omitted
-        // Create modules (no longer need service references)
-        final rsp.compositions.composition.Composition postsModule = () -> List.of(
-                new ViewPlacement(Slot.PRIMARY, PostsListContract.class, PostsListContract::new),
-                new ViewPlacement(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new),
-                new ViewPlacement(Slot.OVERLAY, PostEditContract.class, PostEditContract::new)
-        );
+        final var services = List.of(postService,
+                                     new StubAuthProvider());// Optional: defaults to anonymous if omitted
 
         // Create app with AppConfig (flows to AppComponent → Context)
-        final App app = new App(appConfig, uiRegistry, router, List.of(postsModule), services);
+        final App app = new App(appConfig, uiRegistry, List.of(postsModule), services);
 
         final WebServer server = new WebServer(8080,
                                                app,

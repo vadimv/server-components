@@ -28,7 +28,7 @@ import static rsp.dsl.Html.*;
  * <p>
  * This component:
  * <ol>
- *   <li>Reads compositions and contract class from context (populated by RoutingComponent)</li>
+ *   <li>Reads composition and contract class from context (populated by RoutingComponent)</li>
  *   <li>Builds a Scene containing instantiated contracts in {@code initStateSupplier()}</li>
  *   <li>Stores the Scene in component state (contracts created once at mount)</li>
  *   <li>Enriches context with scene data for downstream UI components</li>
@@ -76,7 +76,6 @@ public class SceneComponent extends Component<Scene> {
 
             ViewContract contract = scene.primaryContract();
             Composition composition = scene.composition();
-            Router router = context.get(Router.class);
 
             // Let the contract enrich context with its data (items, schema, etc.)
             ComponentContext enrichedContext = contract.enrichContext(context);
@@ -95,8 +94,8 @@ public class SceneComponent extends Component<Scene> {
                 }
             }
 
-            // Add edit slot/route info to context for DefaultListView
-            enrichedContext = enrichEditSlotInfo(enrichedContext, composition, router);
+            // Add edit slot/route info to context for DefaultListView (use composition's router)
+            enrichedContext = enrichEditSlotInfo(enrichedContext, composition, composition.router());
 
             return enrichedContext;
         };
@@ -243,25 +242,21 @@ public class SceneComponent extends Component<Scene> {
     private Scene buildScene(ComponentContext context) {
         try {
             // Read from context (populated by RoutingComponent)
-            List<Composition> compositions = context.get(ContextKeys.APP_COMPOSITIONS);
+            Composition composition = context.get(ContextKeys.ROUTE_COMPOSITION);
             Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
             UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
             String routePattern = context.get(ContextKeys.ROUTE_PATTERN);
-            Router router = context.get(Router.class);
 
-            if (compositions == null || contractClass == null) {
-                return Scene.error(new IllegalStateException("Missing APP_COMPOSITIONS or ROUTE_CONTRACT_CLASS in context"));
+            if (composition == null || contractClass == null) {
+                return Scene.error(new IllegalStateException("Missing ROUTE_COMPOSITION or ROUTE_CONTRACT_CLASS in context"));
             }
 
             if (uiRegistry == null) {
                 return Scene.error(new IllegalStateException("Missing UI_REGISTRY in context"));
             }
 
-            // Find composition that has a ViewPlacement with this contract class
-            Composition composition = findCompositionWithContract(compositions, contractClass);
-            if (composition == null) {
-                return Scene.error(new IllegalStateException("No composition found for contract: " + contractClass.getName()));
-            }
+            // Router is inside the composition
+            Router router = composition.router();
 
             // Get the placement for the routed contract
             ViewPlacement routedPlacement = composition.placementFor(contractClass);
@@ -387,18 +382,6 @@ public class SceneComponent extends Component<Scene> {
         }
 
         return Scene.of(contract, composition, overlayContracts, uiRegistry);
-    }
-
-    private Composition findCompositionWithContract(List<Composition> compositions, Class<? extends ViewContract> contractClass) {
-        for (Composition composition : compositions) {
-            for (ViewPlacement placement : composition.views()) {
-                if (placement.contractClass().equals(contractClass) ||
-                    contractClass.isAssignableFrom(placement.contractClass())) {
-                    return composition;
-                }
-            }
-        }
-        return null;
     }
 
     /**

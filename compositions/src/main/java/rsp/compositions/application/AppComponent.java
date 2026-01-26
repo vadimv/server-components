@@ -10,7 +10,6 @@ import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.UiRegistry;
-import rsp.compositions.routing.Router;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
@@ -21,16 +20,14 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
 
     private final AppConfig config;
     private final UiRegistry uiRegistry;
-    private final Router router;
     private final List<Composition> compositions;
     private final List<Object> services;
     private final HttpRequest httpRequest;
 
-    public AppComponent(AppConfig config, UiRegistry uiRegistry, Router router, List<Composition> compositions, List<Object> services, HttpRequest httpRequest) {
+    public AppComponent(AppConfig config, UiRegistry uiRegistry, List<Composition> compositions, List<Object> services, HttpRequest httpRequest) {
         super();
         this.config = config;
         this.uiRegistry = uiRegistry;
-        this.router = router;
         this.compositions = compositions;
         this.services = services;
         this.httpRequest = httpRequest;
@@ -44,6 +41,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     /**
      * Enrich context with application-level objects.
      * This is where constructor injection stops and pure context propagation begins.
+     * Note: Router is inside each Composition, not at app level.
      */
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {
@@ -51,7 +49,6 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
             // Add app-level objects using ClassKey (ServiceLoader style)
             ComponentContext enrichedContext = context
                 .with(AppConfig.class, config)
-                .with(Router.class, router)
                 .with(HttpRequest.class, httpRequest)
                 .with(ContextKeys.UI_REGISTRY, uiRegistry)
                 .with(ContextKeys.APP_COMPOSITIONS, compositions);
