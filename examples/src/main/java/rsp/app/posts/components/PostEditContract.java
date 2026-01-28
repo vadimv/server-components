@@ -31,12 +31,19 @@ public class PostEditContract extends EditViewContract<Post> {
 
     @Override
     protected String resolveId() {
-        // In overlay mode, use the ID from the OPEN_EDIT_MODAL event
+        // First, check SHOW_DATA (on-demand instantiation, placement-agnostic)
+        java.util.Map<String, Object> showData = lookup.get(rsp.compositions.contract.ContextKeys.SHOW_DATA);
+        if (showData != null && showData.get("id") != null) {
+            return String.valueOf(showData.get("id"));
+        }
+
+        // Second, check overlay entity ID (legacy OPEN_EDIT_MODAL flow)
         String overlayId = getOverlayEntityId();
         if (overlayId != null) {
             return overlayId;
         }
-        // Otherwise, resolve from URL path
+
+        // Finally, resolve from URL path
         return resolve(POST_ID);
     }
 

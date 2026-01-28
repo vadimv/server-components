@@ -258,6 +258,75 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("layout.activeOverlayClass",
                     (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
 
+    // ===== SHOW/HIDE KEYS (On-demand contract instantiation) =====
+
+    /**
+     * Data passed to a contract when shown via SHOW event.
+     * Type: {@code Map<String, Object>}
+     * Example: {id: "123"} for edit contract
+     * <p>
+     * Set by SceneComponent when instantiating a contract on SHOW event.
+     * Contracts read this in their constructor or registerHandlers() to get
+     * entity IDs or other data needed for initialization.
+     */
+    @SuppressWarnings("unchecked")
+    public static final ContextKey.StringKey<Map<String, Object>> SHOW_DATA =
+            new ContextKey.StringKey<>("show.data",
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
+
+    /**
+     * Whether this contract instance is currently active.
+     * Type: Boolean
+     * <p>
+     * Set to true by SceneComponent when instantiating a contract.
+     * Used by contracts to determine if they should handle events.
+     * When multiple overlays are stacked, only the topmost has IS_ACTIVE_CONTRACT=true.
+     * <p>
+     * Replaces local isActiveOverlay field - contracts read from context instead of storing state.
+     */
+    public static final ContextKey.StringKey<Boolean> IS_ACTIVE_CONTRACT =
+            new ContextKey.StringKey<>("contract.isActive", Boolean.class);
+
+    /**
+     * The current scene containing activeContractsBySlot state.
+     * Type: Scene
+     * <p>
+     * Set by SceneComponent in subComponentsContext.
+     * Used by contracts to call SlotUtils.findSlot() or SlotUtils.isInOverlay()
+     * to determine their placement without storing placement state.
+     * <p>
+     * Enables placement-agnostic contracts - contracts query the scene for their slot
+     * instead of caching isModalMode field.
+     */
+    public static final ContextKey.StringKey<Scene> SCENE =
+            new ContextKey.StringKey<>("scene", Scene.class);
+
+    /**
+     * Active contracts per slot.
+     * Type: {@code Map<Slot, List<ViewContract>>}
+     * <p>
+     * Set by SceneComponent when contracts are shown/hidden.
+     * Read by LayoutComponent to render contracts in their slots.
+     * <p>
+     * Supports multiple contracts per slot (e.g., nested overlays).
+     */
+    @SuppressWarnings("unchecked")
+    public static final ContextKey.StringKey<Map<Slot, List<ViewContract>>> ACTIVE_CONTRACTS_BY_SLOT =
+            new ContextKey.StringKey<>("scene.activeContractsBySlot",
+                    (Class<Map<Slot, List<ViewContract>>>) (Class<?>) Map.class);
+
+    /**
+     * The contract class that is currently being hidden.
+     * Type: {@code Class<? extends ViewContract>}
+     * <p>
+     * Set temporarily when HIDE event is processed.
+     * Used by DefaultEditView to know its own contract class for HIDE events.
+     */
+    @SuppressWarnings("unchecked")
+    public static final ContextKey.StringKey<Class<? extends ViewContract>> CONTRACT_CLASS =
+            new ContextKey.StringKey<>("contract.class",
+                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+
     /**
      * The authenticated user object.
      * Type: Object (application-specific user type)

@@ -8,6 +8,11 @@ import rsp.dsl.Definition;
 import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
 
+import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.Scene;
+import rsp.compositions.contract.SlotUtils;
+import rsp.compositions.contract.ViewContract;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -134,11 +139,7 @@ public class DefaultEditView extends EditView {
                                 });
                             })
                         ),
-                        a(
-                            attr("href", state.listRoute()),
-                            attr("class", "button cancel-button"),
-                            text("Cancel")
-                        ),
+                        renderCancelButton(state.listRoute()),
 
                         // Delete button - only shown in edit mode (not create mode)
                         state.isCreateMode() ? of() : button(
@@ -161,6 +162,42 @@ public class DefaultEditView extends EditView {
                 )
             );
         };
+    }
+
+    /**
+     * Render the Cancel button/link.
+     * <p>
+     * In overlay mode: emits HIDE event with contract class.
+     * In non-overlay mode: navigates to list route.
+     */
+    @SuppressWarnings("unchecked")
+    private Definition renderCancelButton(String listRoute) {
+        // Get contract info from context
+        Class<? extends ViewContract> contractClass = lookup.get(ContextKeys.CONTRACT_CLASS);
+        Scene scene = lookup.get(ContextKeys.SCENE);
+
+        // Use generic utility to check placement
+        if (contractClass != null && scene != null && SlotUtils.isInOverlay(contractClass, scene)) {
+            // Overlay mode: emit HIDE event
+            return button(
+                attr("type", "button"),
+                attr("class", "button cancel-button"),
+                text("Cancel"),
+                on("click", ctx -> {
+                    // Emit HIDE with our contract class
+                    lookup.publish(HIDE, contractClass);
+                    // Also emit CLOSE_OVERLAY for backward compatibility
+                    lookup.publish(CLOSE_OVERLAY);
+                })
+            );
+        }
+
+        // PRIMARY mode: navigate via link
+        return a(
+            attr("href", listRoute),
+            attr("class", "button cancel-button"),
+            text("Cancel")
+        );
     }
 
     /**

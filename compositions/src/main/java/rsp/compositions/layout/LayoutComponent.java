@@ -12,6 +12,7 @@ import rsp.page.QualifiedSessionId;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import static rsp.compositions.contract.ActionBindings.ShowPayload;
 import static rsp.compositions.contract.EventKeys.*;
 import static rsp.dsl.Html.*;
 
@@ -164,153 +165,22 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
                                 StateUpdate<LayoutComponentState> stateUpdate) {
-        // Register handler for openCreateModal event
-        subscriber.addEventHandler(OPEN_CREATE_MODAL, () -> {
-            // Find CreateViewContract-based overlay
-            Class<? extends ViewContract> createOverlayClass = findOverlayByBaseClass(
-                    state.overlayComponents(), CreateViewContract.class);
-            if (createOverlayClass != null) {
-                stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(createOverlayClass));
-            }
-        }, false);
-
-        // Register handler for openEditModal event
-        // For Case 2 (OVERLAY + route): also update URL with preserved query params
-        subscriber.addEventHandler(OPEN_EDIT_MODAL, (eventName, entityId) -> {
-            // Find EditViewContract-based overlay
-            Class<? extends ViewContract> editOverlayClass = findOverlayByBaseClass(
-                    state.overlayComponents(), EditViewContract.class);
-            if (editOverlayClass != null) {
-                // Check if we should sync URL (edit has route)
-                Boolean editHasRoute = lookup.get(ContextKeys.EDIT_HAS_ROUTE);
-                String editRoutePattern = lookup.get(ContextKeys.EDIT_ROUTE_PATTERN);
-
-                if (editHasRoute != null && editHasRoute && editRoutePattern != null) {
-                    // Case 2: Update URL to include entity ID and preserved query params
-                    String queryParams = buildPreservedQueryParams();
-                    String editUrl = buildEditUrl(editRoutePattern, entityId, queryParams);
-                    lookup.publish(NAVIGATE, editUrl);
-                    stateUpdate.applyStateTransformation(s ->
-                            s.withActiveOverlayAndRoute(editOverlayClass, editRoutePattern));
-                } else {
-                    // Case 4: No URL change
-                    stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(editOverlayClass));
-                }
-            }
-        }, false);
-
-        // Register handler for closeOverlay event
-        // For Case 2: restore URL to list view
-        subscriber.addEventHandler(CLOSE_OVERLAY, () -> {
-            handleOverlayClose(state, stateUpdate);
-        }, false);
-
-        // Register handler for modalSaveSuccess event (close modal + refresh list)
-        subscriber.addEventHandler(MODAL_SAVE_SUCCESS, () -> {
-            handleOverlayClose(state, stateUpdate);
-            lookup.publish(REFRESH_LIST);
-        }, false);
-
-        // Register handler for modalDeleteSuccess event (close modal + refresh list)
-        subscriber.addEventHandler(MODAL_DELETE_SUCCESS, () -> {
-            handleOverlayClose(state, stateUpdate);
-            lookup.publish(REFRESH_LIST);
-        }, false);
+        // NO EVENT SUBSCRIPTIONS - Layout is purely reactive
+        // SceneComponent handles all SHOW/HIDE events
     }
 
-    /**
-     * Handle overlay close with URL sync for Case 2.
-     * Restores preserved query params (fromP → p, fromSort → sort).
-     */
-    private void handleOverlayClose(LayoutComponentState state,
-                                    StateUpdate<LayoutComponentState> stateUpdate) {
-        // If overlay has a route, navigate back to list URL with restored params
-        if (state.hasOverlayRoute()) {
-            // Navigate to parent route (remove the ID segment)
-            String routePattern = state.overlayRoutePattern();
-            String listRoute = getParentRoute(routePattern);
-            if (listRoute != null) {
-                String restoredParams = buildRestoredQueryParams();
-                if (!restoredParams.isEmpty()) {
-                    listRoute += "?" + restoredParams;
-                }
-                lookup.publish(NAVIGATE, listRoute);
-            }
-        }
-        stateUpdate.applyStateTransformation(s -> s.withActiveOverlay(null));
-    }
-
-    /**
-     * Build query string by restoring from* params to original names.
-     * Reads fromP/fromSort from current URL and converts to p/sort.
-     */
-    private String buildRestoredQueryParams() {
-        java.util.List<String> params = new java.util.ArrayList<>();
-
-        // Restore page parameter (fromP → p)
-        String fromP = lookup.get(ContextKeys.URL_QUERY.with("fromP"));
-        if (fromP != null && !fromP.isEmpty()) {
-            params.add("p=" + fromP);
-        }
-
-        // Restore sort parameter (fromSort → sort)
-        String fromSort = lookup.get(ContextKeys.URL_QUERY.with("fromSort"));
-        if (fromSort != null && !fromSort.isEmpty()) {
-            params.add("sort=" + fromSort);
-        }
-
-        return String.join("&", params);
-    }
-
-    /**
-     * Build edit URL by replacing :id in pattern with actual entity ID.
-     */
-    private String buildEditUrl(String pattern, String entityId, String queryParams) {
-        String url = pattern.replace(":id", entityId);
-        if (queryParams != null && !queryParams.isEmpty()) {
-            url += "?" + queryParams;
-        }
-        return url;
-    }
-
-    /**
-     * Build query string to preserve current page/sort when navigating to edit.
-     * Uses fromP/fromSort convention to avoid conflicts with edit view's own params.
-     */
-    private String buildPreservedQueryParams() {
-        java.util.List<String> params = new java.util.ArrayList<>();
-
-        // Get current page from context
-        Integer page = lookup.get(ContextKeys.LIST_PAGE);
-        if (page != null && page > 1) {
-            params.add("fromP=" + page);
-        }
-
-        // Get current sort from context
-        String sort = lookup.get(ContextKeys.LIST_SORT);
-        if (sort != null && !sort.isEmpty() && !"asc".equals(sort)) {
-            params.add("fromSort=" + sort);
-        }
-
-        return String.join("&", params);
-    }
-
-    /**
-     * Get parent route by removing the last segment.
-     * Example: "/posts/:id" → "/posts"
-     */
-    private String getParentRoute(String routePattern) {
-        if (routePattern == null) return null;
-        int lastSlash = routePattern.lastIndexOf('/');
-        if (lastSlash <= 0) return "/";
-        return routePattern.substring(0, lastSlash);
-    }
 
     @Override
     public ComponentView<LayoutComponentState> componentView() {
         return _ -> state -> {
             Component<?> primary = state.primaryComponent();
             Class<? extends ViewContract> activeOverlayClass = state.activeOverlayClass();
+
+            // With on-demand instantiation: if no active overlay set but overlayComponents has entries,
+            // automatically show the first one (there should only be one active at a time)
+            if (activeOverlayClass == null && !state.overlayComponents().isEmpty()) {
+                activeOverlayClass = state.overlayComponents().keySet().iterator().next();
+            }
 
             // Get active overlay component if any
             Component<?> activeOverlay = null;
@@ -335,21 +205,22 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                     ),
 
                     // Overlay slot - modal overlay
-                    renderOverlay(activeOverlay)
+                    renderOverlay(activeOverlay, activeOverlayClass)
             );
         };
     }
 
     /**
      * Renders the overlay with backdrop and content.
+     * Emits HIDE event with contract class when backdrop is clicked.
      */
-    private rsp.dsl.Definition renderOverlay(Component<?> content) {
+    private rsp.dsl.Definition renderOverlay(Component<?> content, Class<? extends ViewContract> activeOverlayClass) {
         return div(attr("class", "modal-overlay"),
-                // Semi-transparent backdrop - closes overlay on click
+                // Semi-transparent backdrop - emits HIDE on click
                 div(attr("class", "modal-backdrop"),
                         on("click", ctx -> {
-                            // Send closeOverlay event to trigger state change
-                            lookup.publish(CLOSE_OVERLAY);
+                            // Emit HIDE event directly - SceneComponent will handle it
+                            lookup.publish(HIDE, activeOverlayClass);
                         })
                 ),
                 // Modal content container
@@ -359,24 +230,6 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
         );
     }
 
-    /**
-     * Find an overlay by its base contract class.
-     * Searches overlay components for one that extends the given base class.
-     *
-     * @param overlayComponents Map of overlay components
-     * @param baseClass The base contract class to search for (e.g., EditViewContract.class)
-     * @return The overlay contract class, or null if not found
-     */
-    private Class<? extends ViewContract> findOverlayByBaseClass(
-            Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
-            Class<?> baseClass) {
-        for (Class<? extends ViewContract> overlayClass : overlayComponents.keySet()) {
-            if (baseClass.isAssignableFrom(overlayClass)) {
-                return overlayClass;
-            }
-        }
-        return null;
-    }
 
     /**
      * State for LayoutComponent with slot-based overlay support.

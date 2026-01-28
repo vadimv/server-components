@@ -1,12 +1,6 @@
 package rsp.compositions.contract;
 
-import rsp.component.CommandsEnqueue;
-import rsp.component.ComponentContext;
-import rsp.component.ComponentStateSupplier;
-import rsp.component.ComponentView;
-import rsp.component.ContextLookup;
-import rsp.component.Lookup;
-import rsp.component.Subscriber;
+import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthorizationException;
 import rsp.compositions.layout.LayoutComponent;
@@ -20,7 +14,10 @@ import rsp.dsl.Definition;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
+import static rsp.compositions.contract.ActionBindings.ShowPayload;
+import static rsp.compositions.contract.EventKeys.*;
 import static rsp.dsl.Html.*;
 
 /**
@@ -29,27 +26,29 @@ import static rsp.dsl.Html.*;
  * This component:
  * <ol>
  *   <li>Reads composition and contract class from context (populated by RoutingComponent)</li>
- *   <li>Builds a Scene containing instantiated contracts in {@code initStateSupplier()}</li>
- *   <li>Stores the Scene in component state (contracts created once at mount)</li>
+ *   <li>Builds a Scene containing instantiated primary contract and factories for non-primary slots</li>
+ *   <li>Handles SHOW events for on-demand contract instantiation</li>
+ *   <li>Handles HIDE events for contract cleanup</li>
  *   <li>Enriches context with scene data for downstream UI components</li>
  *   <li>Resolves ViewContract classes to UI components via UiRegistry</li>
  *   <li>Renders the page structure with LayoutComponent</li>
  * </ol>
  * <p>
- * Position in component chain: RoutingComponent → SceneComponent → LayoutComponent
- * <p>
- * Slot-based overlay resolution:
- * When the primary contract has Slot.PRIMARY, any Slot.OVERLAY contracts in the same
- * composition are pre-instantiated for use as popup/modal overlays.
- * <p>
- * Benefits over transient context enrichment:
+ * On-demand instantiation (per spec):
  * <ul>
- *   <li>Contracts instantiated once at mount, not every render cycle</li>
- *   <li>Scene is cacheable, testable, debuggable</li>
- *   <li>Explicit error handling via {@link Scene#isValid()}</li>
+ *   <li>Non-primary contracts are NOT pre-instantiated at mount time</li>
+ *   <li>Factories are stored for lazy instantiation on SHOW events</li>
+ *   <li>SHOW events trigger instantiation and add to active contracts</li>
+ *   <li>HIDE events call onDestroy() and remove from active contracts</li>
  * </ul>
+ * <p>
+ * Slot-agnostic: Scene only distinguishes PRIMARY vs non-PRIMARY. Layout decides how to render each slot.
+ * <p>
+ * Position in component chain: RoutingComponent → SceneComponent → LayoutComponent
  */
 public class SceneComponent extends Component<Scene> {
+
+    private ComponentContext savedContext;
 
     public SceneComponent() {
         super();
@@ -57,11 +56,14 @@ public class SceneComponent extends Component<Scene> {
 
     /**
      * Build the Scene at component mount time.
-     * This is where contracts are instantiated and event handlers registered.
+     * Primary contract is instantiated, factories for non-primary slots are stored for lazy instantiation.
      */
     @Override
     public ComponentStateSupplier<Scene> initStateSupplier() {
-        return (_, context) -> buildScene(context);
+        return (_, context) -> {
+            this.savedContext = context;
+            return buildScene(context);
+        };
     }
 
     /**
@@ -77,20 +79,34 @@ public class SceneComponent extends Component<Scene> {
             ViewContract contract = scene.primaryContract();
             Composition composition = scene.composition();
 
+            // Add Scene to context so contracts can use SlotUtils
+            ComponentContext enrichedContext = context.with(ContextKeys.SCENE, scene);
+
             // Let the contract enrich context with its data (items, schema, etc.)
-            ComponentContext enrichedContext = contract.enrichContext(context);
+            enrichedContext = contract.enrichContext(enrichedContext);
 
-            // Add overlay contracts to context if present
-            if (scene.hasOverlays()) {
-                enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACTS, scene.overlayContracts());
+            // Add active contracts by slot to context (for Layout to read)
+            enrichedContext = enrichedContext.with(
+                ContextKeys.ACTIVE_CONTRACTS_BY_SLOT,
+                scene.activeContractsBySlot().entrySet().stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().stream().map(Scene.ActiveContract::contract).toList()
+                    ))
+            );
 
-                // Enrich context with each overlay contract's data
-                for (ViewContract overlay : scene.overlayContracts().values()) {
-                    enrichedContext = overlay.enrichContext(enrichedContext);
+            // Add non-primary contracts to context if present (backward compatibility)
+            if (scene.hasNonPrimaryContracts()) {
+                Map<Class<? extends ViewContract>, ViewContract> nonPrimary = scene.nonPrimaryContracts();
+                enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACTS, nonPrimary);
+
+                // Enrich context with each non-primary contract's data
+                for (ViewContract nonPrimaryContract : nonPrimary.values()) {
+                    enrichedContext = nonPrimaryContract.enrichContext(enrichedContext);
                     // Store the contract instance for event handling
                     enrichedContext = enrichedContext.with(
-                            ContextKeys.OVERLAY_VIEW_CONTRACT.with(overlay.getClass().getName()),
-                            overlay);
+                            ContextKeys.OVERLAY_VIEW_CONTRACT.with(nonPrimaryContract.getClass().getName()),
+                            nonPrimaryContract);
                 }
             }
 
@@ -128,23 +144,121 @@ public class SceneComponent extends Component<Scene> {
 
         // If it has a route, find the pattern
         if (hasRoute && router != null) {
-            // Find route pattern by checking all routes
-            for (ViewPlacement p : composition.views()) {
-                if (EditViewContract.class.isAssignableFrom(p.contractClass())) {
-                    // The edit route pattern typically follows pattern like "/entity/:id"
-                    // We need to store this for building edit URLs
-                    String listRoutePattern = context.get(ContextKeys.ROUTE_PATTERN);
-                    if (listRoutePattern != null) {
-                        // Assume edit pattern is list pattern + "/:id"
-                        String editPattern = listRoutePattern + "/:id";
-                        context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editPattern);
-                    }
-                    break;
-                }
+            String listRoutePattern = context.get(ContextKeys.ROUTE_PATTERN);
+            if (listRoutePattern != null) {
+                // Assume edit pattern is list pattern + "/:id"
+                String editPattern = listRoutePattern + "/:id";
+                context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editPattern);
             }
         }
 
         return context;
+    }
+
+    /**
+     * Register SHOW and HIDE event handlers for on-demand contract lifecycle management.
+     */
+    @Override
+    public void onAfterRendered(Scene state,
+                                Subscriber subscriber,
+                                CommandsEnqueue commandsEnqueue,
+                                StateUpdate<Scene> stateUpdate) {
+        // SHOW handler: instantiate contract on-demand
+        subscriber.addEventHandler(SHOW, (eventName, payload) -> {
+            handleShowEvent(state, payload, stateUpdate, commandsEnqueue);
+        }, false);
+
+        // HIDE handler: destroy contract
+        subscriber.addEventHandler(HIDE, (eventName, contractClass) -> {
+            handleHideEvent(state, contractClass, stateUpdate);
+        }, false);
+    }
+
+    /**
+     * Handle SHOW event: instantiate contract on-demand and add to scene.
+     */
+    private void handleShowEvent(Scene state, ShowPayload payload,
+                                 StateUpdate<Scene> stateUpdate,
+                                 CommandsEnqueue commandsEnqueue) {
+        Class<? extends ViewContract> contractClass = payload.contractClass();
+        Map<String, Object> data = payload.data();
+
+        // Check if already active
+        if (state.findContract(contractClass) != null) {
+            return; // Already shown
+        }
+
+        // Get factory from scene
+        Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
+        if (factory == null) {
+            // Not found in factories - check composition placements
+            Composition composition = state.composition();
+            ViewPlacement placement = composition != null ? composition.placementFor(contractClass) : null;
+            if (placement != null) {
+                factory = placement.contractFactory();
+            }
+        }
+
+        if (factory == null) {
+            return; // No factory available
+        }
+
+        // Resolve target slot from composition (no default assumption)
+        Composition composition = state.composition();
+        Slot targetSlot = null;
+        if (composition != null) {
+            ViewPlacement placement = composition.placementFor(contractClass);
+            if (placement != null) {
+                targetSlot = placement.slot();
+            }
+        }
+
+        if (targetSlot == null) {
+            // Fallback: if no placement found, cannot determine slot
+            return;
+        }
+
+        // Create lookup with SHOW_DATA, marking contract as active
+        // Note: Don't set IS_OVERLAY_MODE - Scene is slot-agnostic, contracts use SlotUtils if needed
+        ComponentContext showContext = savedContext
+            .with(ContextKeys.SHOW_DATA, data)
+            .with(ContextKeys.CONTRACT_CLASS, contractClass)
+            .with(ContextKeys.IS_ACTIVE_CONTRACT, true)  // Mark as active
+            .with(ContextKeys.SCENE, state);  // Add Scene for SlotUtils
+
+        Lookup lookup = createLookup(showContext, commandsEnqueue);
+
+        // Instantiate contract
+        ViewContract contract = factory.apply(lookup);
+        if (contract == null) {
+            return;
+        }
+        contract.registerHandlers();
+
+        // Update state with active contract
+        final Slot slot = targetSlot;
+        stateUpdate.applyStateTransformation(s ->
+            s.withActiveContract(slot, contract, contractClass, data)
+        );
+    }
+
+    /**
+     * Handle HIDE event: destroy contract and remove from scene.
+     */
+    private void handleHideEvent(Scene state,
+                                 Class<? extends ViewContract> contractClass,
+                                 StateUpdate<Scene> stateUpdate) {
+        // Find the contract
+        ViewContract contract = state.findContract(contractClass);
+        if (contract == null) {
+            return; // Not active
+        }
+
+        // Call cleanup hook
+        contract.onDestroy();
+
+        // Update state to remove contract
+        stateUpdate.applyStateTransformation(s -> s.withContractClosed(contractClass));
     }
 
     @Override
@@ -172,31 +286,32 @@ public class SceneComponent extends Component<Scene> {
             Class<? extends ViewContract> contractClass = scene.primaryContract().getClass();
             Component<?> primaryComponent = resolveUiComponent(uiRegistry, contractClass);
 
-            // Resolve overlay contracts to UI components
-            Map<Class<? extends ViewContract>, Component<?>> overlayComponents = new HashMap<>();
-            for (Class<? extends ViewContract> overlayClass : scene.overlayContracts().keySet()) {
-                Component<?> overlayComponent = resolveUiComponent(uiRegistry, overlayClass);
-                overlayComponents.put(overlayClass, overlayComponent);
+            // Resolve active non-primary contracts to UI components
+            Map<Class<? extends ViewContract>, Component<?>> nonPrimaryComponents = new HashMap<>();
+            for (Class<? extends ViewContract> nonPrimaryClass : scene.nonPrimaryContracts().keySet()) {
+                Component<?> nonPrimaryComponent = resolveUiComponent(uiRegistry, nonPrimaryClass);
+                nonPrimaryComponents.put(nonPrimaryClass, nonPrimaryComponent);
             }
 
             // Render page with LayoutComponent, passing auto-open info from scene
-            return page(primaryComponent, overlayComponents,
-                    scene.autoOpenOverlay(), scene.overlayRoutePattern());
+            return page(primaryComponent, nonPrimaryComponents,
+                    scene.autoOpenContract(), scene.autoOpenRoutePattern());
         };
     }
 
     /**
      * Renders the page structure with html, head, and body.
+     * Passes components to Layout which decides how to render each slot.
      */
     private static Definition page(Component<?> primaryComponent,
-                                   Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
-                                   Class<? extends ViewContract> autoOpenOverlay,
-                                   String overlayRoutePattern) {
+                                   Map<Class<? extends ViewContract>, Component<?>> nonPrimaryComponents,
+                                   Class<? extends ViewContract> autoOpenContract,
+                                   String autoOpenRoutePattern) {
         return html(head(title("Posts"),
                         link(attr("rel", "stylesheet"),
                              attr("href", "/res/style.css"))),
-                body(new LayoutComponent(primaryComponent, overlayComponents,
-                        autoOpenOverlay, overlayRoutePattern)));
+                body(new LayoutComponent(primaryComponent, nonPrimaryComponents,
+                        autoOpenContract, autoOpenRoutePattern)));
     }
 
     /**
@@ -228,16 +343,10 @@ public class SceneComponent extends Component<Scene> {
 
     /**
      * Build the Scene from context.
-     * Finds the composition, instantiates contracts, checks authorization.
-     * Uses Slot-based resolution for overlays.
+     * Finds the composition, instantiates primary contract, stores factories for non-primary slots.
      * <p>
-     * Handles 4 cases based on slot and route:
-     * <ul>
-     *   <li>Case 1: PRIMARY + route → full page edit, URL navigation</li>
-     *   <li>Case 2: OVERLAY + route → modal with URL sync (auto-open overlay)</li>
-     *   <li>Case 3: PRIMARY + no route → full page edit via event</li>
-     *   <li>Case 4: OVERLAY + no route → modal via event only</li>
-     * </ul>
+     * Non-primary contracts are NOT pre-instantiated (on-demand instantiation via SHOW events).
+     * Exception: Case 2 (non-primary routed via URL) - the routed non-primary contract is pre-instantiated.
      */
     private Scene buildScene(ComponentContext context) {
         try {
@@ -266,15 +375,15 @@ public class SceneComponent extends Component<Scene> {
 
             Slot routedSlot = routedPlacement.slot();
 
-            // Case 2: OVERLAY slot routed directly via URL
-            // Need to find parent PRIMARY and auto-open this overlay
-            if (routedSlot == Slot.OVERLAY) {
-                return buildOverlayRoutedScene(context, composition, contractClass, routedPlacement,
+            // Case 2: Non-primary slot routed directly via URL
+            // Need to find parent PRIMARY and auto-open this non-primary contract
+            if (routedSlot != Slot.PRIMARY) {
+                return buildNonPrimaryRoutedScene(context, composition, contractClass, routedPlacement,
                         routePattern, router, uiRegistry);
             }
 
             // Cases 1, 3: PRIMARY slot (with or without route)
-            // Standard behavior: instantiate as primary, pre-instantiate OVERLAYs
+            // Standard behavior: instantiate as primary, store factories for non-primary slots
             return buildPrimaryScene(context, composition, routedPlacement, uiRegistry);
 
         } catch (Exception e) {
@@ -283,13 +392,14 @@ public class SceneComponent extends Component<Scene> {
     }
 
     /**
-     * Build scene for OVERLAY contract routed directly via URL (Case 2).
-     * Finds parent PRIMARY, uses it as primary, auto-opens the overlay.
+     * Build scene for non-primary contract routed directly via URL (Case 2).
+     * Finds parent PRIMARY, uses it as primary, auto-opens this non-primary contract.
+     * Only the routed non-primary contract is pre-instantiated.
      */
-    private Scene buildOverlayRoutedScene(ComponentContext context, Composition composition,
-                                          Class<? extends ViewContract> overlayContractClass,
-                                          ViewPlacement overlayPlacement, String routePattern,
-                                          Router router, UiRegistry uiRegistry) {
+    private Scene buildNonPrimaryRoutedScene(ComponentContext context, Composition composition,
+                                             Class<? extends ViewContract> nonPrimaryContractClass,
+                                             ViewPlacement nonPrimaryPlacement, String routePattern,
+                                             Router router, UiRegistry uiRegistry) {
         // Find the parent PRIMARY contract
         ViewPlacement primaryPlacement = composition.primaryPlacement();
         if (primaryPlacement == null) {
@@ -304,7 +414,7 @@ public class SceneComponent extends Component<Scene> {
 
         if (primaryPlacement == null) {
             return Scene.error(new IllegalStateException(
-                    "OVERLAY contract routed directly but no PRIMARY found in composition: " + composition.getClass().getName()));
+                    "Non-primary contract routed directly but no PRIMARY found in composition: " + composition.getClass().getName()));
         }
 
         // Instantiate primary contract
@@ -319,33 +429,36 @@ public class SceneComponent extends Component<Scene> {
             return Scene.unauthorized(primaryContract, composition, uiRegistry);
         }
 
-        // Pre-instantiate all OVERLAY contracts (including the routed one)
-        Map<Class<? extends ViewContract>, ViewContract> overlayContracts = new HashMap<>();
-        ComponentContext overlayContext = context.with(ContextKeys.IS_OVERLAY_MODE, true);
-
-        for (ViewPlacement placement : composition.placementsForSlot(Slot.OVERLAY)) {
-            Class<? extends ViewContract> overlayClass = placement.contractClass();
-            if (overlayClass == null) continue;
-
-            // For the auto-opened overlay, also set IS_AUTO_OPEN_OVERLAY = true
-            ComponentContext contractContext = overlayClass.equals(overlayContractClass)
-                    ? overlayContext.with(ContextKeys.IS_AUTO_OPEN_OVERLAY, true)
-                    : overlayContext;
-
-            ViewContract overlayContract = instantiatePlacement(placement, contractContext);
-            if (overlayContract != null) {
-                overlayContracts.put(overlayClass, overlayContract);
+        // Build factories for all non-primary slots (for on-demand instantiation)
+        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
+        for (ViewPlacement placement : composition.views()) {
+            if (placement.slot() != Slot.PRIMARY) {
+                Class<? extends ViewContract> contractClass = placement.contractClass();
+                if (contractClass != null) {
+                    nonPrimaryFactories.put(contractClass, placement.contractFactory());
+                }
             }
         }
 
-        // Return scene with auto-open overlay
-        return Scene.withAutoOpenOverlay(primaryContract, composition, overlayContracts, uiRegistry,
-                overlayContractClass, routePattern);
+        // Pre-instantiate ONLY the routed non-primary contract (auto-open case)
+        Map<Class<? extends ViewContract>, ViewContract> activeNonPrimary = new HashMap<>();
+        ComponentContext nonPrimaryContext = context
+            .with(ContextKeys.CONTRACT_CLASS, nonPrimaryContractClass);
+        // Note: Don't set IS_OVERLAY_MODE or IS_AUTO_OPEN_OVERLAY - Scene is slot-agnostic
+
+        ViewContract nonPrimaryContract = instantiatePlacement(nonPrimaryPlacement, nonPrimaryContext);
+        if (nonPrimaryContract != null) {
+            activeNonPrimary.put(nonPrimaryContractClass, nonPrimaryContract);
+        }
+
+        // Return scene with auto-open non-primary contract
+        return Scene.withAutoOpenContract(primaryContract, composition, nonPrimaryFactories, activeNonPrimary,
+                uiRegistry, nonPrimaryContractClass, routePattern);
     }
 
     /**
-     * Build scene for PRIMARY contract (Cases 1, 3).
-     * Standard behavior: use as primary, pre-instantiate OVERLAYs.
+     * Build scene for PRIMARY contract (Cases 1, 3, 4).
+     * Standard behavior: use as primary, store factories for non-primary slots (no pre-instantiation).
      */
     private Scene buildPrimaryScene(ComponentContext context, Composition composition,
                                     ViewPlacement primaryPlacement, UiRegistry uiRegistry) {
@@ -360,28 +473,23 @@ public class SceneComponent extends Component<Scene> {
             return Scene.unauthorized(contract, composition, uiRegistry);
         }
 
-        // Pre-instantiate OVERLAY contracts
-        Map<Class<? extends ViewContract>, ViewContract> overlayContracts = Map.of();
-        List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
+        // Build factories for non-primary slots (for on-demand instantiation via SHOW events)
+        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
 
-        if (!overlayPlacements.isEmpty()) {
-            overlayContracts = new HashMap<>();
-            ComponentContext overlayContext = context.with(ContextKeys.IS_OVERLAY_MODE, true);
-
-            for (ViewPlacement overlayPlacement : overlayPlacements) {
-                Class<? extends ViewContract> overlayClass = overlayPlacement.contractClass();
-                if (overlayClass == null) {
+        for (ViewPlacement placement : composition.views()) {
+            // Collect all non-primary placements
+            if (placement.slot() != Slot.PRIMARY) {
+                Class<? extends ViewContract> contractClass = placement.contractClass();
+                if (contractClass == null) {
                     throw new IllegalStateException(
                             "ViewPlacement has null contractClass in composition: " + composition.getClass().getName());
                 }
-                ViewContract overlayContract = instantiatePlacement(overlayPlacement, overlayContext);
-                if (overlayContract != null) {
-                    overlayContracts.put(overlayClass, overlayContract);
-                }
+                nonPrimaryFactories.put(contractClass, placement.contractFactory());
             }
         }
 
-        return Scene.of(contract, composition, overlayContracts, uiRegistry);
+        // No pre-instantiation - non-primary contracts created on-demand via SHOW events
+        return Scene.of(contract, composition, nonPrimaryFactories, uiRegistry);
     }
 
     /**
@@ -402,6 +510,14 @@ public class SceneComponent extends Component<Scene> {
      */
     private Lookup createLookup(ComponentContext context) {
         CommandsEnqueue commandsEnqueue = context.getRequired(CommandsEnqueue.class);
+        Subscriber subscriber = context.getRequired(Subscriber.class);
+        return new ContextLookup(context, commandsEnqueue, subscriber);
+    }
+
+    /**
+     * Create a Lookup with explicit CommandsEnqueue (for event handlers).
+     */
+    private Lookup createLookup(ComponentContext context, CommandsEnqueue commandsEnqueue) {
         Subscriber subscriber = context.getRequired(Subscriber.class);
         return new ContextLookup(context, commandsEnqueue, subscriber);
     }

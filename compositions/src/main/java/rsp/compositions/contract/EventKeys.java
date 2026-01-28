@@ -6,8 +6,57 @@ import rsp.component.definitions.ContextStateComponent;
 import java.util.Map;
 import java.util.Set;
 
+import static rsp.compositions.contract.ActionBindings.*;
+
 public final class EventKeys {
     private EventKeys() {}
+
+    // ===== SHOW/HIDE EVENTS (Scene-level contract lifecycle) =====
+
+    /**
+     * Show a contract (on-demand instantiation).
+     * Emitted by: Contracts (via ACTION binding translation)
+     * Handled by: SceneComponent (instantiates contract, adds to scene)
+     * Payload: ShowPayload with contract class and data
+     * <p>
+     * Data flow:
+     * <ol>
+     *   <li>View emits ACTION("edit", {id: "123"})</li>
+     *   <li>Contract translates via actionBindings() to SHOW(EditContract.class, {id: "123"})</li>
+     *   <li>SceneComponent receives SHOW, instantiates contract on-demand</li>
+     * </ol>
+     */
+    public static final EventKey.SimpleKey<ShowPayload> SHOW =
+            new EventKey.SimpleKey<>("show", ShowPayload.class);
+
+    /**
+     * Hide a contract (destroy instance).
+     * Emitted by: Views (close button), Contracts (after save/delete)
+     * Handled by: SceneComponent (calls onDestroy, removes from scene)
+     * Payload: Contract class to hide (always explicit about what to close)
+     * <p>
+     * Unlike CLOSE_OVERLAY which is generic, HIDE always specifies which
+     * contract to close. This supports multiple overlays being shown.
+     */
+    @SuppressWarnings("unchecked")
+    public static final EventKey.SimpleKey<Class<? extends ViewContract>> HIDE =
+            new EventKey.SimpleKey<>("hide",
+                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+
+    /**
+     * Abstract action event.
+     * Emitted by: Views (DefaultListView buttons)
+     * Handled by: Contracts (translated to SHOW via actionBindings())
+     * Payload: ActionPayload with action name and data
+     * <p>
+     * Views emit abstract actions (e.g., "edit", "create") without
+     * knowing about concrete contract classes. Contracts declare
+     * bindings that translate these to SHOW events.
+     * <p>
+     * Example: ACTION("edit", {id: "123"}) → SHOW(PostEditContract.class, {id: "123"})
+     */
+    public static final EventKey.SimpleKey<ActionPayload> ACTION =
+            new EventKey.SimpleKey<>("action", ActionPayload.class);
 
     // ===== FORM EVENTS =====
 

@@ -30,6 +30,23 @@ public abstract class ViewContract {
     }
 
     /**
+     * Cleanup hook called when contract is hidden via HIDE event.
+     * <p>
+     * Override to perform cleanup logic such as:
+     * <ul>
+     *   <li>Unsubscribing from external event sources</li>
+     *   <li>Releasing resources (connections, timers, etc.)</li>
+     *   <li>Saving unsaved state</li>
+     * </ul>
+     * <p>
+     * Called by SceneComponent when processing HIDE events.
+     * The contract instance will be removed from active contracts after this call.
+     */
+    protected void onDestroy() {
+        // Default: no cleanup - override in subclasses
+    }
+
+    /**
      * Override to implement custom authorization logic.
      * Default: delegates to auth.strategy from context if present,
      * otherwise allows all (public access).

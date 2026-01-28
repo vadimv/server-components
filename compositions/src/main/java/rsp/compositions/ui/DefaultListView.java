@@ -10,7 +10,9 @@ import rsp.dsl.Definition;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
+import static rsp.compositions.contract.ActionBindings.ActionPayload;
 import static rsp.compositions.contract.EventKeys.*;
 import static rsp.dsl.Html.*;
 
@@ -163,7 +165,7 @@ public class DefaultListView extends ListView {
 
     /**
      * Render the Create button.
-     * Triggers OPEN_CREATE_MODAL event to open the overlay.
+     * Emits abstract ACTION("create") event - contract translates to SHOW via actionBindings().
      */
     private Definition renderCreateButton() {
         return button(
@@ -171,6 +173,9 @@ public class DefaultListView extends ListView {
             attr("class", "create-button"),
             text("Create New"),
             on("click", ctx -> {
+                // New flow: emit abstract action (decoupled from concrete contracts)
+                lookup.publish(ACTION, ActionPayload.of("create"));
+                // Legacy support: also emit old event for backward compatibility
                 lookup.publish(OPEN_CREATE_MODAL);
             })
         );
@@ -212,6 +217,9 @@ public class DefaultListView extends ListView {
             attr("class", "edit-button"),
             text("Edit"),
             on("click", ctx -> {
+                // New flow: emit abstract action (decoupled from concrete contracts)
+                lookup.publish(ACTION, ActionPayload.of("edit", "id", rowId));
+                // Legacy support: also emit old event for backward compatibility
                 lookup.publish(OPEN_EDIT_MODAL, rowId);
             })
         );

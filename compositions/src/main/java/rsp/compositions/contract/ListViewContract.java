@@ -7,8 +7,9 @@ import rsp.compositions.schema.DataSchema;
 import java.util.List;
 import java.util.Set;
 
+import static rsp.compositions.contract.ActionBindings.*;
 import static rsp.compositions.contract.ContextKeys.LIST_DEFAULT_PAGE_SIZE;
-import static rsp.compositions.contract.EventKeys.BULK_DELETE_REQUESTED;
+import static rsp.compositions.contract.EventKeys.*;
 
 public abstract class ListViewContract<T> extends ViewContract {
 
@@ -87,12 +88,54 @@ public abstract class ListViewContract<T> extends ViewContract {
             .with(ContextKeys.LIST_SORT, sort());
     }
 
+    // ========== Action Bindings ==========
+
+    /**
+     * Define action bindings for this list contract.
+     * <p>
+     * Action bindings map abstract action names to concrete contract classes.
+     * When a View emits ACTION("edit", data), this contract translates it
+     * to SHOW(targetContract, data) based on the bindings defined here.
+     * <p>
+     * Override in subclasses to bind actions to contracts:
+     * <pre>
+     * {@code
+     * @Override
+     * protected ActionBindings actionBindings() {
+     *     return ActionBindings.builder()
+     *         .bind("edit", PostEditContract.class)
+     *         .bind("create", PostCreateContract.class)
+     *         .build();
+     * }
+     * }
+     * </pre>
+     *
+     * @return ActionBindings for this contract (default: empty)
+     */
+    protected ActionBindings actionBindings() {
+        return ActionBindings.empty();
+    }
+
     // ========== Event Handlers ==========
 
     @Override
     protected void registerHandlers() {
+        // Handle bulk delete requests
         lookup.subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
             handleBulkDelete(selectedIds);
+        });
+
+        // Translate abstract ACTION events to SHOW events via action bindings
+        lookup.subscribe(ACTION, (name, payload) -> {
+            ActionBindings bindings = actionBindings();
+            ActionBinding binding = bindings.get(payload.actionName());
+            if (binding != null) {
+                // Translate to SHOW event with target contract and data
+                lookup.publish(SHOW, new ShowPayload(
+                    binding.targetContract(),
+                    payload.data()
+                ));
+            }
         });
     }
 

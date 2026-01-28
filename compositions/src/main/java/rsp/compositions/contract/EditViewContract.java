@@ -5,7 +5,6 @@ import rsp.component.Lookup;
 
 import static rsp.compositions.contract.EventKeys.DELETE_REQUESTED;
 import static rsp.compositions.contract.EventKeys.MODAL_DELETE_SUCCESS;
-import static rsp.compositions.contract.EventKeys.OPEN_EDIT_MODAL;
 
 /**
  * EditViewContract - Base contract for editing existing entities.
@@ -78,26 +77,35 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     protected EditViewContract(final Lookup lookup) {
         super(lookup);
 
-        // In overlay mode, listen for the entity ID and activate
-        if (isModalMode) {
-            lookup.subscribe(OPEN_EDIT_MODAL, (eventName, entityId) -> {
-                this.overlayEntityId = entityId;
-                setActive();  // Mark this overlay as active for event handling
-            });
-
-            // For auto-opened overlays (Case 2: OVERLAY + route), activate immediately
-            Boolean isAutoOpen = lookup.get(ContextKeys.IS_AUTO_OPEN_OVERLAY);
-            if (isAutoOpen != null && isAutoOpen) {
-                setActive();
-            }
-        }
-
         // Handle delete request - only if this is the active overlay
         lookup.subscribe(DELETE_REQUESTED, () -> {
             if (shouldHandleEvent()) {
-                handleDeleteRequested(isModalMode);
+                handleDeleteRequested();
             }
         });
+    }
+
+    @Override
+    public void registerHandlers() {
+        super.registerHandlers();
+
+        // On-demand instantiation: detect SHOW_DATA (placement-agnostic)
+        java.util.Map<String, Object> showData = lookup.get(ContextKeys.SHOW_DATA);
+        if (showData != null && showData.get("id") != null) {
+            String entityId = String.valueOf(showData.get("id"));
+            setOverlayEntityId(entityId);
+            setActive();
+        }
+    }
+
+    /**
+     * Set the entity ID for on-demand activation.
+     * Used when contract is instantiated via SHOW event with data.
+     *
+     * @param id The entity ID
+     */
+    protected void setOverlayEntityId(String id) {
+        this.overlayEntityId = id;
     }
 
     /**
@@ -164,20 +172,18 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     }
 
     // ========================================================================
-    // Delete Event Handling
+    // Delete Event Handling - Simplified, uses generic utilities
     // ========================================================================
 
     /**
      * Handle delete request event.
      * <p>
      * Calls {@link #delete()} and navigates on success.
-     *
-     * @param isModalMode Whether in modal mode
      */
-    protected void handleDeleteRequested(boolean isModalMode) {
+    protected void handleDeleteRequested() {
         boolean success = delete();
         if (success) {
-            onDeleteSuccess(isModalMode);
+            onDeleteSuccess();
         } else {
             onDeleteFailure();
         }
@@ -186,14 +192,26 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     /**
      * Called when delete succeeds.
      * <p>
-     * Default: In modal mode, publishes "modalDeleteSuccess". Otherwise, navigates to list.
-     *
-     * @param isModalMode Whether in modal mode
+     * Same pattern as onSaveSuccess() - contracts decide based on slot.
+     * <ul>
+     *   <li>OVERLAY slot: emit HIDE to close overlay, emit REFRESH_LIST to update data</li>
+     *   <li>PRIMARY slot: emit NAVIGATE to list route</li>
+     * </ul>
      */
-    protected void onDeleteSuccess(boolean isModalMode) {
-        if (isModalMode) {
+    protected void onDeleteSuccess() {
+        Class<? extends ViewContract> contractClass = lookup.get(ContextKeys.CONTRACT_CLASS);
+        Scene scene = lookup.get(ContextKeys.SCENE);
+
+        // Use generic utility - no application-specific logic
+        if (SlotUtils.isInOverlay(contractClass, scene)) {
+            // Overlay: close and refresh
+            lookup.publish(EventKeys.HIDE, contractClass);
+            // Also emit legacy event for backward compatibility
             lookup.publish(MODAL_DELETE_SUCCESS);
+            // Refresh list to show updated data
+            lookup.publish(EventKeys.REFRESH_LIST);
         } else {
+            // PRIMARY: navigate to list
             lookup.publish(EventKeys.NAVIGATE, listRoute());
         }
     }

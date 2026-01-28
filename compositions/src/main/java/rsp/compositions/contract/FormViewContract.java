@@ -24,71 +24,46 @@ import static rsp.compositions.contract.EventKeys.FORM_SUBMITTED;
  *   <li>{@link CreateViewContract} - For creating new entities</li>
  *   <li>{@link EditViewContract} - For editing existing entities</li>
  * </ul>
+ * <p>
+ * <b>Placement-agnostic:</b> Contracts don't store placement state (isModalMode, isActiveOverlay).
+ * Instead, they query the scene via SlotUtils to determine their slot when making decisions.
  *
  * @param <T> The type of entity being created or edited
  */
 public abstract class FormViewContract<T> extends ViewContract {
 
-    /**
-     * Whether this contract is currently the active overlay.
-     * Used to prevent handling events when another overlay is active.
-     * Only relevant for overlay contracts (IS_OVERLAY_MODE = true).
-     */
-    private boolean isActiveOverlay = false;
-
-    /**
-     * Whether this contract is running in modal/overlay mode.
-     */
-    protected final boolean isModalMode;
-
     protected FormViewContract(final Lookup lookup) {
         super(lookup);
 
-        // Check if running as an overlay (modal/popup) via Slot.OVERLAY
-        final Boolean overlayMode = lookup.get(ContextKeys.IS_OVERLAY_MODE);
-        this.isModalMode = overlayMode != null && overlayMode;
-
-        // Handle form submission - only if this is the active overlay (or not in overlay mode)
+        // Handle form submission - check if active using context
         lookup.subscribe(FORM_SUBMITTED, (eventName, fieldValues) -> {
             if (shouldHandleEvent()) {
-                handleFormSubmitted(fieldValues, isModalMode);
+                handleFormSubmitted(fieldValues);
             }
         });
-
-        // Track overlay deactivation
-        if (isModalMode) {
-            lookup.subscribe(EventKeys.CLOSE_OVERLAY, () -> {
-                isActiveOverlay = false;
-            });
-
-            lookup.subscribe(EventKeys.MODAL_SAVE_SUCCESS, () -> {
-                isActiveOverlay = false;
-            });
-
-            lookup.subscribe(EventKeys.MODAL_DELETE_SUCCESS, () -> {
-                isActiveOverlay = false;
-            });
-        } else {
-            // Non-overlay (PRIMARY) mode - always active
-            isActiveOverlay = true;
-        }
     }
 
     /**
-     * Set this overlay as active. Called by subclasses when the overlay is opened.
+     * Set this contract as active. Called by subclasses when instantiated via SHOW event.
+     * <p>
+     * Note: This method is kept for backward compatibility with subclasses that call it.
+     * SceneComponent now sets IS_ACTIVE_CONTRACT in context, so this method does nothing.
      */
     protected void setActive() {
-        this.isActiveOverlay = true;
+        // No-op - IS_ACTIVE_CONTRACT is set by SceneComponent in context
     }
 
     /**
      * Check if this contract should handle events.
-     * Returns true if:
-     * - Not in overlay mode (PRIMARY slot), or
-     * - In overlay mode AND this is the currently active overlay
+     * <p>
+     * Generic - reads from context, no local state.
+     * When multiple overlays are stacked, only the topmost has IS_ACTIVE_CONTRACT=true.
+     *
+     * @return true if this contract should handle events
      */
     protected boolean shouldHandleEvent() {
-        return !isModalMode || isActiveOverlay;
+        Boolean isActive = lookup.get(ContextKeys.IS_ACTIVE_CONTRACT);
+        return isActive == null || isActive;  // Default true if not set
     }
 
     /**
@@ -122,11 +97,7 @@ public abstract class FormViewContract<T> extends ViewContract {
     /**
      * Get the list route to navigate back to after save/cancel.
      * <p>
-     * Default implementation uses convention based on the route pattern:
-     * Removes the last segment if it's a parameter (starts with :).
-     * <p>
-     * Also restores query parameters that were preserved from the list view
-     * (e.g., fromP → p, fromSort → sort).
+     * Uses generic RouteUtils - no URL logic in contract.
      * <p>
      * Examples:
      * <ul>
@@ -142,69 +113,11 @@ public abstract class FormViewContract<T> extends ViewContract {
         if (routePattern == null) {
             throw new IllegalStateException("route.pattern not found in context");
         }
-
-        // Convention: remove last segment if it's a parameter or token
-        String basePath;
-        int lastSlash = routePattern.lastIndexOf('/');
-        if (lastSlash > 0) {
-            String lastSegment = routePattern.substring(lastSlash + 1);
-
-            // Strip last segment if it's a parameter (starts with :) or a token
-            if (lastSegment.startsWith(":") || isPathToken(lastSegment)) {
-                basePath = routePattern.substring(0, lastSlash);
-            } else {
-                basePath = routePattern;
-            }
-        } else {
-            basePath = routePattern;
-        }
-
-        // Restore query parameters from url.query.from* attributes
-        String queryString = buildRestoredQueryString();
-        if (queryString.isEmpty()) {
-            return basePath;
-        }
-
-        return basePath + "?" + queryString;
-    }
-
-    /**
-     * Check if a path segment is a recognized token (e.g., "new", "create").
-     * <p>
-     * Override to recognize custom tokens.
-     *
-     * @param segment The path segment to check
-     * @return true if it's a token that should be stripped for list route
-     */
-    protected boolean isPathToken(String segment) {
-        return "new".equals(segment) || "create".equals(segment);
-    }
-
-    /**
-     * Build query string by restoring from* parameters to original names.
-     *
-     * @return Query string (e.g., "p=3&sort=desc"), or empty string
-     */
-    private String buildRestoredQueryString() {
-        java.util.List<String> params = new java.util.ArrayList<>();
-
-        // Restore page parameter (fromP → p)
-        String fromP = lookup.get(ContextKeys.URL_QUERY.with("fromP"));
-        if (fromP != null && !fromP.isEmpty()) {
-            params.add("p=" + fromP);
-        }
-
-        // Restore sort parameter (fromSort → sort)
-        String fromSort = lookup.get(ContextKeys.URL_QUERY.with("fromSort"));
-        if (fromSort != null && !fromSort.isEmpty()) {
-            params.add("sort=" + fromSort);
-        }
-
-        return params.isEmpty() ? "" : String.join("&", params);
+        return RouteUtils.buildParentRoute(routePattern, lookup);
     }
 
     // ========================================================================
-    // Event Handling
+    // Event Handling - Simplified, uses generic utilities
     // ========================================================================
 
     /**
@@ -213,10 +126,8 @@ public abstract class FormViewContract<T> extends ViewContract {
      * Validates field values, then calls {@link #save(Map)} on success.
      *
      * @param fieldValues The submitted field values
-     * @param isModalMode Whether in modal mode
      */
-    protected void handleFormSubmitted(Map<String, Object> fieldValues,
-                                       boolean isModalMode) {
+    protected void handleFormSubmitted(Map<String, Object> fieldValues) {
         // Validate before saving
         ValidationResult result = schema().validate(fieldValues);
         if (!result.isValid()) {
@@ -226,7 +137,7 @@ public abstract class FormViewContract<T> extends ViewContract {
 
         boolean success = save(fieldValues);
         if (success) {
-            onSaveSuccess(isModalMode);
+            onSaveSuccess();
         } else {
             onSaveFailure();
         }
@@ -246,14 +157,26 @@ public abstract class FormViewContract<T> extends ViewContract {
     /**
      * Called when save succeeds.
      * <p>
-     * Default: In modal mode, publishes "modalSaveSuccess". Otherwise, navigates to list.
-     *
-     * @param isModalMode Whether in modal mode
+     * Contracts decide what to do based on their slot (using generic utilities).
+     * <ul>
+     *   <li>OVERLAY slot: emit HIDE to close overlay, emit REFRESH_LIST to update data</li>
+     *   <li>PRIMARY slot: emit NAVIGATE to list route</li>
+     * </ul>
      */
-    protected void onSaveSuccess(boolean isModalMode) {
-        if (isModalMode) {
+    protected void onSaveSuccess() {
+        Class<? extends ViewContract> contractClass = lookup.get(ContextKeys.CONTRACT_CLASS);
+        Scene scene = lookup.get(ContextKeys.SCENE);
+
+        // Use generic utility - no application-specific logic
+        if (SlotUtils.isInOverlay(contractClass, scene)) {
+            // Overlay: close and refresh
+            lookup.publish(EventKeys.HIDE, contractClass);
+            // Also emit legacy event for backward compatibility
             lookup.publish(EventKeys.MODAL_SAVE_SUCCESS);
+            // Refresh list to show updated data
+            lookup.publish(EventKeys.REFRESH_LIST);
         } else {
+            // PRIMARY: navigate to list
             lookup.publish(EventKeys.NAVIGATE, listRoute());
         }
     }
