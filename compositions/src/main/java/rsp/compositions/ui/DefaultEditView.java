@@ -9,8 +9,7 @@ import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
 
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.SlotUtils;
+import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ViewContract;
 
 import java.time.LocalDate;
@@ -165,40 +164,30 @@ public class DefaultEditView extends EditView {
     }
 
     /**
-     * Render the Cancel button/link.
+     * Render the Cancel button.
      * <p>
-     * In overlay mode: emits HIDE event with contract class.
-     * In non-overlay mode: navigates to list route.
+     * Emits ACTION_SUCCESS(CANCEL) - framework derives behavior from composition config.
+     * This follows the CountersMainComponent pattern: views emit INTENT, framework handles navigation.
+     * <ul>
+     *   <li>OVERLAY → framework emits HIDE + REFRESH_LIST</li>
+     *   <li>PRIMARY → framework navigates to list route (derived from Router)</li>
+     * </ul>
      */
     @SuppressWarnings("unchecked")
     private Definition renderCancelButton(String listRoute) {
-        // Get contract info from context
+        // Get contract class from context
         Class<? extends ViewContract> contractClass = lookup.get(ContextKeys.CONTRACT_CLASS);
-        Scene scene = lookup.get(ContextKeys.SCENE);
 
-        // Use generic utility to check placement
-        if (contractClass != null && scene != null && SlotUtils.isInOverlay(contractClass, scene)) {
-            // Overlay mode: emit HIDE event
-            return button(
-                attr("type", "button"),
-                attr("class", "button cancel-button"),
-                text("Cancel"),
-                on("click", ctx -> {
-                    // Emit HIDE with our contract class
-                    lookup.publish(HIDE, contractClass);
-                    // Also emit CLOSE_OVERLAY for backward compatibility
-                    lookup.publish(CLOSE_OVERLAY);
-                })
-            );
-        }
-
-        // PRIMARY mode: SPA navigation with NAVIGATE event
+        // Emit ACTION_SUCCESS(CANCEL) - framework derives behavior from composition
         return button(
             attr("type", "button"),
             attr("class", "button cancel-button"),
             text("Cancel"),
             on("click", ctx -> {
-                lookup.publish(NAVIGATE, listRoute);
+                if (contractClass != null) {
+                    lookup.publish(ACTION_SUCCESS,
+                        new EventKeys.ActionResult(contractClass, EventKeys.ActionType.CANCEL));
+                }
             })
         );
     }

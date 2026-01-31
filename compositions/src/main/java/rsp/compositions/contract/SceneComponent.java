@@ -272,14 +272,19 @@ public class SceneComponent extends Component<Scene> {
     /**
      * Handle ACTION_SUCCESS event: framework-driven navigation based on contract placement.
      * <p>
-     * This enables complete separation of concerns:
-     * - Contracts emit generic ACTION_SUCCESS events (no placement knowledge)
-     * - Framework decides what to do based on contract's slot
-     * - OVERLAY → HIDE + legacy event + REFRESH_LIST
-     * - PRIMARY → NAVIGATE to target route
+     * This follows the CountersMainComponent pattern:
+     * - Contracts emit INTENT (action type only, no routes)
+     * - Framework derives NAVIGATION from composition/router configuration
+     * <p>
+     * Framework behavior based on placement:
+     * <ul>
+     *   <li>OVERLAY → HIDE + legacy event + REFRESH_LIST</li>
+     *   <li>PRIMARY (same contract) → scene rebuild (refresh in place)</li>
+     *   <li>PRIMARY (different contract) → navigate to list route (derived from Router)</li>
+     * </ul>
      * <p>
      * Benefits:
-     * - Contracts truly placement-agnostic (zero navigation logic)
+     * - Contracts truly route-agnostic (zero URL knowledge)
      * - Centralized navigation in framework
      * - Easy to extend (add new slots/behaviors without touching contracts)
      */
@@ -315,35 +320,48 @@ public class SceneComponent extends Component<Scene> {
             // Refresh list to show updated data
             lookup.publish(EventKeys.REFRESH_LIST);
         } else {
-            // PRIMARY behavior: navigate to target route or refresh in place
-            String targetRoute = result.targetRoute();
-            String currentPath = lookup.get(ContextKeys.ROUTE_PATH);
-
-            // Same URL (or both null): rebuild scene for SPA refresh
-            // Different URL: navigate
-            if (isSameRoute(targetRoute, currentPath)) {
-                // Same URL: rebuild scene state directly (generic re-render mechanism)
+            // PRIMARY behavior: derive navigation from composition
+            // Case 1: Same contract as primary (e.g., bulk delete on list) → refresh in place
+            if (contractClass.equals(state.primaryContract().getClass())) {
                 Scene freshScene = buildScene(savedContext);
                 stateUpdate.setState(freshScene);
-            } else if (targetRoute != null) {
-                // Different URL: use NAVIGATE for SPA navigation
-                lookup.publish(EventKeys.NAVIGATE, targetRoute);
+                return;
             }
+
+            // Case 2: Different contract (e.g., edit/create) → navigate to list
+            String listRoute = deriveListRoute(state.composition());
+            lookup.publish(EventKeys.NAVIGATE, listRoute);
         }
     }
 
     /**
-     * Check if two routes are the same (ignoring query params and handling nulls).
+     * Derive the list route from composition configuration.
+     * <p>
+     * Finds the PRIMARY contract and looks up its route in the Router.
+     * This follows the CountersMainComponent pattern where framework computes URLs from mappings.
+     *
+     * @param composition The composition to derive route from
+     * @return The list route pattern (e.g., "/posts")
+     * @throws IllegalStateException if no PRIMARY contract or route found
      */
-    private boolean isSameRoute(String route1, String route2) {
-        if (route1 == null && route2 == null) return true;
-        if (route1 == null || route2 == null) return false;
+    private String deriveListRoute(Composition composition) {
+        if (composition == null) {
+            throw new IllegalStateException("No composition available to derive list route");
+        }
 
-        // Strip query params for comparison
-        String path1 = route1.contains("?") ? route1.substring(0, route1.indexOf("?")) : route1;
-        String path2 = route2.contains("?") ? route2.substring(0, route2.indexOf("?")) : route2;
+        ViewPlacement primaryPlacement = composition.primaryPlacement();
+        if (primaryPlacement == null) {
+            throw new IllegalStateException("No PRIMARY contract in composition");
+        }
 
-        return path1.equals(path2);
+        Router router = composition.router();
+        if (router == null) {
+            throw new IllegalStateException("No router in composition");
+        }
+
+        return router.findRoutePattern(primaryPlacement.contractClass())
+            .orElseThrow(() -> new IllegalStateException(
+                "No route for PRIMARY contract: " + primaryPlacement.contractClass().getName()));
     }
 
     @Override

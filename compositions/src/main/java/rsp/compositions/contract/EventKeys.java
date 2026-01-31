@@ -188,19 +188,26 @@ public final class EventKeys {
     /**
      * Action succeeded (generic success event).
      * Emitted by: Contracts (EditViewContract, FormViewContract) after successful operations
-     * Handled by: Framework (SceneComponent) which decides navigation based on placement
-     * Payload: ActionResult containing operation type and target route
+     * Handled by: Framework (SceneComponent) which derives navigation from composition config
+     * Payload: ActionResult containing contract class and operation type
      * <p>
-     * This enables complete separation of concerns:
-     * - Contracts emit generic success events (no placement knowledge)
-     * - Framework decides what to do (navigate vs close overlay) based on slot
+     * This follows the CountersMainComponent pattern:
+     * - Contracts emit INTENT (action type only, no routes)
+     * - Framework derives NAVIGATION from composition/router configuration
+     * <p>
+     * Framework behavior based on placement:
+     * <ul>
+     *   <li>OVERLAY → HIDE + legacy event + REFRESH_LIST</li>
+     *   <li>PRIMARY (same contract) → scene rebuild (refresh in place)</li>
+     *   <li>PRIMARY (different contract) → navigate to list route (derived from Router)</li>
+     * </ul>
      * <p>
      * Example flow:
      * <ol>
-     *   <li>Contract saves entity, emits ACTION_SUCCESS(SAVE, "/posts")</li>
+     *   <li>Contract saves entity, emits ACTION_SUCCESS(SAVE)</li>
      *   <li>SceneComponent receives event, checks contract placement</li>
-     *   <li>If OVERLAY: emit HIDE + REFRESH_LIST</li>
-     *   <li>If PRIMARY: emit NAVIGATE to target route</li>
+     *   <li>Framework derives list route from composition's Router</li>
+     *   <li>Framework navigates to derived route</li>
      * </ol>
      */
     public static final EventKey.SimpleKey<ActionResult> ACTION_SUCCESS =
@@ -216,17 +223,24 @@ public final class EventKeys {
             new EventKey.SimpleKey<>("action.failure", ActionResult.class);
 
     /**
-     * Action result containing operation type and navigation target.
-     * Framework uses this to decide navigation behavior based on contract placement.
+     * Action result containing operation type.
+     * <p>
+     * Framework derives navigation from composition configuration:
+     * <ul>
+     *   <li>OVERLAY → HIDE + REFRESH_LIST</li>
+     *   <li>PRIMARY (same contract) → scene rebuild (refresh in place)</li>
+     *   <li>PRIMARY (different contract) → navigate to list route (derived from Router)</li>
+     * </ul>
+     * <p>
+     * This follows the CountersMainComponent pattern: contracts emit INTENT (action type),
+     * framework derives NAVIGATION from composition/router configuration.
      *
      * @param contractClass The class of the contract that performed the action
      * @param type The type of action that was performed (SAVE, DELETE, CANCEL)
-     * @param targetRoute Where to navigate (for PRIMARY placement), or null if staying on page
      */
     public record ActionResult(
         Class<? extends ViewContract> contractClass,
-        ActionType type,
-        String targetRoute
+        ActionType type
     ) {}
 
     /**

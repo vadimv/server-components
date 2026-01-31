@@ -157,17 +157,17 @@ public abstract class FormViewContract<T> extends ViewContract {
     /**
      * Called when save succeeds.
      * <p>
-     * Emits ACTION_SUCCESS event - framework decides what to do based on placement.
-     * This enables complete separation of concerns:
+     * Emits ACTION_SUCCESS event - framework derives navigation from composition config.
+     * This follows the CountersMainComponent pattern:
      * <ul>
-     *   <li>Contract emits generic success (no placement knowledge)</li>
-     *   <li>Framework (SceneComponent) handles navigation based on slot</li>
+     *   <li>Contract emits INTENT (action type only, no routes)</li>
+     *   <li>Framework derives NAVIGATION from composition/router configuration</li>
      * </ul>
      */
     protected void onSaveSuccess() {
-        // Emit generic success event - framework decides what to do
+        // Emit generic success event - framework derives navigation from composition
         lookup.publish(EventKeys.ACTION_SUCCESS,
-            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.SAVE, listRoute()));
+            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.SAVE));
     }
 
     /**

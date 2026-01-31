@@ -68,6 +68,24 @@ public class Router {
     }
 
     /**
+     * Find the route pattern for a given contract class.
+     * <p>
+     * This enables framework-driven navigation: contracts emit intent (ACTION_SUCCESS),
+     * framework derives the route from composition configuration.
+     *
+     * @param contractClass The contract class to find
+     * @return The route pattern (e.g., "/posts"), or empty if not found
+     */
+    public Optional<String> findRoutePattern(Class<? extends ViewContract> contractClass) {
+        for (RoutePattern pattern : routes.values()) {
+            if (pattern.contractClass().equals(contractClass)) {
+                return Optional.of(pattern.pattern());
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
      * Find the parent route for a given pattern.
      * <p>
      * For example, "/posts/:id" has parent "/posts".

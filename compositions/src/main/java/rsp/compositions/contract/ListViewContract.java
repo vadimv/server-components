@@ -170,22 +170,22 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     /**
      * Called after successful bulk delete.
-     * Emits ACTION_SUCCESS event - framework decides what to do based on placement.
+     * Emits ACTION_SUCCESS event - framework derives behavior from composition config.
      * <p>
-     * This enables complete separation of concerns:
+     * This follows the CountersMainComponent pattern:
      * <ul>
-     *   <li>Contract emits generic success (no placement knowledge)</li>
-     *   <li>Framework (SceneComponent) handles navigation based on slot</li>
+     *   <li>Contract emits INTENT (action type only, no routes)</li>
+     *   <li>Framework derives behavior from composition configuration</li>
+     *   <li>Since this is the primary contract, framework will rebuild scene (refresh in place)</li>
      * </ul>
      *
      * @param deletedCount Number of items deleted
      */
     protected void onBulkDeleteSuccess(int deletedCount) {
-        // Emit generic success event - framework decides what to do
-        // For bulk delete, target route is current list route (refresh in place)
-        String currentPath = lookup.get(ContextKeys.ROUTE_PATH);
+        // Emit generic success event - framework derives behavior from composition
+        // Since this contract IS the primary, framework will rebuild scene (refresh in place)
         lookup.publish(EventKeys.ACTION_SUCCESS,
-            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.DELETE, currentPath));
+            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.DELETE));
     }
 
     /**
