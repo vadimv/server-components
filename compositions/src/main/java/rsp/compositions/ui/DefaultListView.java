@@ -46,7 +46,7 @@ public class DefaultListView extends ListView {
                     renderCreateButton(),
                     // Bulk delete button (only when selectable and has selections)
                     selectable && !state.selectedIds().isEmpty()
-                        ? renderBulkDeleteButton(state)
+                        ? renderBulkDeleteButton(state, newState)
                         : of()
                 ),
 
@@ -137,8 +137,10 @@ public class DefaultListView extends ListView {
 
     /**
      * Render the bulk delete button.
+     * Clears selection immediately after confirming delete (optimistic UI update).
      */
-    private Definition renderBulkDeleteButton(ListViewState state) {
+    private Definition renderBulkDeleteButton(ListViewState state,
+                                              rsp.component.StateUpdate<ListViewState> stateUpdate) {
         int count = state.selectedIds().size();
         return button(
             attr("type", "button"),
@@ -149,6 +151,9 @@ public class DefaultListView extends ListView {
                     .thenAccept(result -> {
                         if (result instanceof rsp.util.json.JsonDataType.Boolean confirmed && confirmed.value()) {
                             lookup.publish(BULK_DELETE_REQUESTED, state.selectedIds());
+                            // Clear selection immediately (optimistic UI update)
+                            // This hides the button and unchecks all checkboxes
+                            stateUpdate.setState(state.clearSelection());
                         }
                     });
             })

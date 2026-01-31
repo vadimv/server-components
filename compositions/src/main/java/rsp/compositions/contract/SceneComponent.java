@@ -178,7 +178,7 @@ public class SceneComponent extends Component<Scene> {
 
         // ACTION_SUCCESS handler: framework-driven navigation based on contract placement
         subscriber.addEventHandler(EventKeys.ACTION_SUCCESS, (eventName, result) -> {
-            handleActionSuccess(state, result, commandsEnqueue);
+            handleActionSuccess(state, result, commandsEnqueue, stateUpdate);
         }, false);
     }
 
@@ -285,7 +285,8 @@ public class SceneComponent extends Component<Scene> {
      */
     private void handleActionSuccess(Scene state,
                                      EventKeys.ActionResult result,
-                                     CommandsEnqueue commandsEnqueue) {
+                                     CommandsEnqueue commandsEnqueue,
+                                     StateUpdate<Scene> stateUpdate) {
         // Get contract class from the action result
         Class<? extends ViewContract> contractClass = result.contractClass();
         if (contractClass == null) {
@@ -314,21 +315,35 @@ public class SceneComponent extends Component<Scene> {
             // Refresh list to show updated data
             lookup.publish(EventKeys.REFRESH_LIST);
         } else {
-            // PRIMARY behavior: navigate to target route
-            if (result.targetRoute() != null) {
-                // Check if navigating to the same URL (e.g., bulk delete refreshing list)
-                String currentPath = lookup.get(ContextKeys.ROUTE_PATH);
-                if (result.targetRoute().equals(currentPath)) {
-                    // Same URL: use RELOAD to force page refresh (full reload)
-                    // This handles cases like bulk delete where we stay on the same page
-                    // but need fresh data. Future: could optimize to SPA refresh.
-                    lookup.publish(EventKeys.RELOAD, result.targetRoute());
-                } else {
-                    // Different URL: use NAVIGATE for SPA navigation
-                    lookup.publish(EventKeys.NAVIGATE, result.targetRoute());
-                }
+            // PRIMARY behavior: navigate to target route or refresh in place
+            String targetRoute = result.targetRoute();
+            String currentPath = lookup.get(ContextKeys.ROUTE_PATH);
+
+            // Same URL (or both null): rebuild scene for SPA refresh
+            // Different URL: navigate
+            if (isSameRoute(targetRoute, currentPath)) {
+                // Same URL: rebuild scene state directly (generic re-render mechanism)
+                Scene freshScene = buildScene(savedContext);
+                stateUpdate.setState(freshScene);
+            } else if (targetRoute != null) {
+                // Different URL: use NAVIGATE for SPA navigation
+                lookup.publish(EventKeys.NAVIGATE, targetRoute);
             }
         }
+    }
+
+    /**
+     * Check if two routes are the same (ignoring query params and handling nulls).
+     */
+    private boolean isSameRoute(String route1, String route2) {
+        if (route1 == null && route2 == null) return true;
+        if (route1 == null || route2 == null) return false;
+
+        // Strip query params for comparison
+        String path1 = route1.contains("?") ? route1.substring(0, route1.indexOf("?")) : route1;
+        String path2 = route2.contains("?") ? route2.substring(0, route2.indexOf("?")) : route2;
+
+        return path1.equals(path2);
     }
 
     @Override

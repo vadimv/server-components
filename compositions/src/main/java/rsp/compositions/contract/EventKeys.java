@@ -141,9 +141,12 @@ public final class EventKeys {
             new EventKey.VoidKey("modalDeleteSuccess");
 
     /**
-     * Refresh list view.
-     * Emitted by: LayoutComponent after modal success
-     * Handled by: ListView
+     * Refresh list view (signal to reload data).
+     * Emitted by: SceneComponent after ACTION_SUCCESS (OVERLAY mode)
+     * Handled by: List view components (optional - for explicit refresh handling)
+     * <p>
+     * Note: PRIMARY mode same-route refresh uses direct state update instead
+     * (stateUpdate.setState) which is the generic re-render mechanism.
      */
     public static final EventKey.VoidKey REFRESH_LIST =
             new EventKey.VoidKey("refreshList");
