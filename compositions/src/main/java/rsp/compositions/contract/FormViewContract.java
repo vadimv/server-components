@@ -72,15 +72,6 @@ public abstract class FormViewContract<T> extends ViewContract {
     }
 
     /**
-     * Check if the contract is in create mode.
-     * <p>
-     * Used by views to adapt rendering (e.g., hide delete button in create mode).
-     *
-     * @return true if creating a new entity, false if editing existing
-     */
-    public abstract boolean isCreateMode();
-
-    /**
      * Get the schema for the entity's fields.
      * <p>
      * Defines form field configuration including types, validation, and UI hints.

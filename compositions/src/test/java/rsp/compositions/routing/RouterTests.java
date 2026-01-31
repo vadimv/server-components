@@ -22,7 +22,7 @@ public class RouterTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "Test";
         }
 
@@ -38,7 +38,7 @@ public class RouterTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "AnotherTest";
         }
 

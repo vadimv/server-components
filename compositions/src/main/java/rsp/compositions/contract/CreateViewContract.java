@@ -66,16 +66,6 @@ public abstract class CreateViewContract<T> extends FormViewContract<T> {
         }
     }
 
-    /**
-     * Always returns true - this is a create-only contract.
-     *
-     * @return true (always)
-     */
-    @Override
-    public final boolean isCreateMode() {
-        return true;
-    }
-
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
         return context

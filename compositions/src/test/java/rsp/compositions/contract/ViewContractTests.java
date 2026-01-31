@@ -20,7 +20,7 @@ public class ViewContractTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "Test";
         }
 

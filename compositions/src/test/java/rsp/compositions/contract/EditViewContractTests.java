@@ -30,7 +30,7 @@ public class EditViewContractTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "TestEntity";
         }
 
@@ -58,28 +58,6 @@ public class EditViewContractTests {
     private TestLookup lookupWithRoutePattern(final String pattern) {
         return new TestLookup()
                 .withData(ContextKeys.ROUTE_PATTERN, pattern);
-    }
-
-    @Nested
-    class EditModeTests {
-
-        @Test
-        void is_create_mode_always_false() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, "123");
-
-            assertFalse(contract.isCreateMode());
-        }
-
-        @Test
-        void is_create_mode_false_even_with_null_id() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/:id");
-            final TestEditContract contract = new TestEditContract(lookup, null);
-
-            // EditViewContract always returns false for isCreateMode
-            // For create behavior, use CreateViewContract
-            assertFalse(contract.isCreateMode());
-        }
     }
 
     @Nested

@@ -30,18 +30,6 @@ class PostCreateContractTests {
     }
 
     @Nested
-    class CreateModeTests {
-
-        @Test
-        void is_create_mode_always_true() {
-            final Lookup lookup = createLookup();
-            final PostCreateContract contract = new PostCreateContract(lookup);
-
-            assertTrue(contract.isCreateMode());
-        }
-    }
-
-    @Nested
     class SaveTests {
 
         @Test

@@ -185,7 +185,7 @@ class ContextKeysTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "Test";
         }
 

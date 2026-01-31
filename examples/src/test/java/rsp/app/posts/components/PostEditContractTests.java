@@ -85,17 +85,4 @@ class PostEditContractTests {
             assertNull(contract.item());
         }
     }
-
-    @Nested
-    class EditModeTests {
-
-        @Test
-        void is_create_mode_always_false() {
-            final Lookup lookup = lookupWithPathId("123");
-            final PostEditContract contract = new PostEditContract(lookup);
-
-            // EditViewContract always returns false for isCreateMode
-            assertFalse(contract.isCreateMode());
-        }
-    }
 }

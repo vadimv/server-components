@@ -27,7 +27,7 @@ public class CreateViewContractTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "TestEntity";
         }
 
@@ -45,18 +45,6 @@ public class CreateViewContractTests {
     private TestLookup lookupWithRoutePattern(final String pattern) {
         return new TestLookup()
                 .withData(ContextKeys.ROUTE_PATTERN, pattern);
-    }
-
-    @Nested
-    class CreateModeTests {
-
-        @Test
-        void is_create_mode_always_true() {
-            final Lookup lookup = lookupWithRoutePattern("/posts/new");
-            final TestCreateContract contract = new TestCreateContract(lookup);
-
-            assertTrue(contract.isCreateMode());
-        }
     }
 
     @Nested

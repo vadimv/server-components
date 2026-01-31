@@ -125,18 +125,6 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     protected abstract String resolveIdFromPath();
 
     /**
-     * Always returns false - this is an edit-only contract.
-     * <p>
-     * For create functionality, use {@link CreateViewContract}.
-     *
-     * @return false (always)
-     */
-    @Override
-    public final boolean isCreateMode() {
-        return false;
-    }
-
-    /**
      * Load the entity to be edited.
      * <p>
      * Typically reads an ID from path parameters and loads from a service.

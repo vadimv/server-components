@@ -184,21 +184,6 @@ public class CompositionTests {
 
     // Test contract classes
 
-    static class TestViewContract extends ViewContract {
-        TestViewContract(final Lookup lookup) {
-            super(lookup);
-        }
-
-        @Override
-        public String entityName() {
-            return "Test";
-        }
-
-        @Override
-        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
-            return context; // Test fixture - no enrichment needed
-        }
-    }
 
     static class TestListContract extends ListViewContract<Object> {
         TestListContract(final Lookup lookup) {
@@ -206,7 +191,7 @@ public class CompositionTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "Test";
         }
 
@@ -234,7 +219,7 @@ public class CompositionTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "TestEntity";
         }
 
@@ -255,7 +240,7 @@ public class CompositionTests {
         }
 
         @Override
-        public String entityName() {
+        public String title() {
             return "TestEntity";
         }
 
