@@ -22,6 +22,7 @@ import java.util.function.Function;
  *   <li>Authorization state</li>
  *   <li>Build metadata (timestamp, any errors)</li>
  *   <li>Auto-open contract (when non-primary contract is routed directly)</li>
+ *   <li>Page title for HTML title tag</li>
  * </ul>
  * <p>
  * On-demand instantiation:
@@ -45,6 +46,7 @@ import java.util.function.Function;
  * @param error If scene building failed, this contains the exception (other fields may be null)
  * @param autoOpenContract Contract to auto-activate (when non-primary contract routed via URL), null otherwise
  * @param autoOpenRoutePattern The route pattern for auto-opened contracts (for restoring URL on close), null otherwise
+ * @param pageTitle The page title for the HTML title tag (derived from primary contract)
  */
 public record Scene(
     ViewContract primaryContract,
@@ -56,7 +58,8 @@ public record Scene(
     long timestamp,
     Exception error,
     Class<? extends ViewContract> autoOpenContract,
-    String autoOpenRoutePattern
+    String autoOpenRoutePattern,
+    String pageTitle
 ) {
     /**
      * Helper record for tracking active contracts with their metadata.
@@ -192,7 +195,7 @@ public record Scene(
         newMap.put(slot, List.copyOf(slotContracts));
         return new Scene(primaryContract, composition, nonPrimaryFactories,
             Map.copyOf(newMap), uiRegistry, authorized, timestamp, error,
-            autoOpenContract, autoOpenRoutePattern);
+            autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
 
     /**
@@ -213,7 +216,7 @@ public record Scene(
         }
         return new Scene(primaryContract, composition, nonPrimaryFactories,
             Map.copyOf(newMap), uiRegistry, authorized, timestamp, error,
-            autoOpenContract, autoOpenRoutePattern);
+            autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
 
     /**
@@ -227,7 +230,7 @@ public record Scene(
         newMap.remove(slot);
         return new Scene(primaryContract, composition, nonPrimaryFactories,
             Map.copyOf(newMap), uiRegistry, authorized, timestamp, error,
-            autoOpenContract, autoOpenRoutePattern);
+            autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
 
     // ===== Factory Methods =====
@@ -236,8 +239,9 @@ public record Scene(
      * Create a valid scene with primary contract, composition, and UI registry (no non-primary contracts).
      */
     public static Scene of(ViewContract primaryContract, Composition composition, UiRegistry uiRegistry) {
+        String title = primaryContract != null ? primaryContract.title() : "App";
         return new Scene(primaryContract, composition, Map.of(), Map.of(), uiRegistry,
-            true, System.currentTimeMillis(), null, null, null);
+            true, System.currentTimeMillis(), null, null, null, title);
     }
 
     /**
@@ -246,9 +250,10 @@ public record Scene(
     public static Scene of(ViewContract primaryContract, Composition composition,
                            Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
                            UiRegistry uiRegistry) {
+        String title = primaryContract != null ? primaryContract.title() : "App";
         return new Scene(primaryContract, composition,
             nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
-            Map.of(), uiRegistry, true, System.currentTimeMillis(), null, null, null);
+            Map.of(), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
     }
 
 
@@ -270,6 +275,8 @@ public record Scene(
                                              Class<? extends ViewContract> autoOpenContract,
                                              String autoOpenRoutePattern) {
         Map<Slot, List<ActiveContract>> activeBySlot = new HashMap<>();
+        // Determine page title - use auto-opened contract's title if available, otherwise primary's
+        String title = "App";
         if (activeContracts != null && !activeContracts.isEmpty()) {
             // Group by slot - don't assume OVERLAY
             for (Map.Entry<Class<? extends ViewContract>, ViewContract> entry : activeContracts.entrySet()) {
@@ -279,6 +286,11 @@ public record Scene(
 
                 List<ActiveContract> slotActives = activeBySlot.computeIfAbsent(slot, k -> new ArrayList<>());
                 slotActives.add(new ActiveContract(entry.getValue(), entry.getKey(), Map.of()));
+
+                // Use the auto-opened contract's page title
+                if (entry.getKey().equals(autoOpenContract)) {
+                    title = entry.getValue().title();
+                }
             }
             // Make immutable
             Map<Slot, List<ActiveContract>> immutable = new HashMap<>();
@@ -287,10 +299,14 @@ public record Scene(
             }
             activeBySlot = Map.copyOf(immutable);
         }
+        // Fallback to primary contract's title if auto-open title wasn't found
+        if ("App".equals(title) && primaryContract != null) {
+            title = primaryContract.title();
+        }
         return new Scene(primaryContract, composition,
             nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
             activeBySlot, uiRegistry, true, System.currentTimeMillis(), null,
-            autoOpenContract, autoOpenRoutePattern);
+            autoOpenContract, autoOpenRoutePattern, title);
     }
 
 
@@ -299,7 +315,7 @@ public record Scene(
      */
     public static Scene unauthorized(ViewContract contract, Composition composition, UiRegistry uiRegistry) {
         return new Scene(contract, composition, Map.of(), Map.of(), uiRegistry,
-            false, System.currentTimeMillis(), null, null, null);
+            false, System.currentTimeMillis(), null, null, null, "Unauthorized");
     }
 
     /**
@@ -307,7 +323,7 @@ public record Scene(
      */
     public static Scene error(Exception e) {
         return new Scene(null, null, Map.of(), Map.of(), null,
-            false, System.currentTimeMillis(), e, null, null);
+            false, System.currentTimeMillis(), e, null, null, "Error");
     }
 
 }

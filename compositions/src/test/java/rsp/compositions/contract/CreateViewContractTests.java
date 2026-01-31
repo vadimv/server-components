@@ -27,6 +27,11 @@ public class CreateViewContractTests {
         }
 
         @Override
+        public String entityName() {
+            return "TestEntity";
+        }
+
+        @Override
         public DataSchema schema() {
             return DataSchema.fromRecordClass(TestEntity.class);
         }

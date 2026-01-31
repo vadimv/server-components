@@ -30,6 +30,11 @@ public class EditViewContractTests {
         }
 
         @Override
+        public String entityName() {
+            return "TestEntity";
+        }
+
+        @Override
         protected String resolveIdFromPath() {
             return resolvedId;
         }

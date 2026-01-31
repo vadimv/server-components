@@ -32,9 +32,10 @@ public abstract class ListView extends Component<ListView.ListViewState> {
      * @param sort Current sort direction
      * @param modulePath Base path for this module (e.g., "/posts")
      * @param selectedIds Set of selected row IDs (only used when schema.selectable() is true)
+     * @param title The list view title (e.g., "Posts")
      */
     public record ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort,
-                                String modulePath, Set<String> selectedIds) {
+                                String modulePath, Set<String> selectedIds, String title) {
         public ListViewState {
             rows = rows != null ? rows : List.of();
             schema = schema != null ? schema : new DataSchema(List.of());
@@ -42,14 +43,23 @@ public abstract class ListView extends Component<ListView.ListViewState> {
             sort = sort != null ? sort : "asc";
             modulePath = modulePath != null ? modulePath : "/";
             selectedIds = selectedIds != null ? Set.copyOf(selectedIds) : Set.of();
+            title = title != null ? title : "Items";
         }
 
         /**
-         * Backwards-compatible constructor without selectedIds.
+         * Backwards-compatible constructor without title.
+         */
+        public ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort,
+                             String modulePath, Set<String> selectedIds) {
+            this(rows, schema, page, sort, modulePath, selectedIds, "Items");
+        }
+
+        /**
+         * Backwards-compatible constructor without selectedIds and title.
          */
         public ListViewState(List<Map<String, Object>> rows, DataSchema schema, int page, String sort,
                              String modulePath) {
-            this(rows, schema, page, sort, modulePath, Set.of());
+            this(rows, schema, page, sort, modulePath, Set.of(), "Items");
         }
 
         /**
@@ -65,7 +75,7 @@ public abstract class ListView extends Component<ListView.ListViewState> {
             } else {
                 newSelected.add(rowId);
             }
-            return new ListViewState(rows, schema, page, sort, modulePath, newSelected);
+            return new ListViewState(rows, schema, page, sort, modulePath, newSelected, title);
         }
 
         /**
@@ -81,7 +91,7 @@ public abstract class ListView extends Component<ListView.ListViewState> {
                     newSelected.add(String.valueOf(id));
                 }
             }
-            return new ListViewState(rows, schema, page, sort, modulePath, newSelected);
+            return new ListViewState(rows, schema, page, sort, modulePath, newSelected, title);
         }
 
         /**
@@ -90,7 +100,7 @@ public abstract class ListView extends Component<ListView.ListViewState> {
          * @return New state with no selections
          */
         public ListViewState clearSelection() {
-            return new ListViewState(rows, schema, page, sort, modulePath, Set.of());
+            return new ListViewState(rows, schema, page, sort, modulePath, Set.of(), title);
         }
 
         /**
@@ -123,26 +133,28 @@ public abstract class ListView extends Component<ListView.ListViewState> {
     @Override
     public ComponentStateSupplier<ListViewState> initStateSupplier() {
         return (_, context) -> {
-            // Read items, schema, page, and sort from context (populated by ServicesComponent)
+            // Read items, schema, page, sort, and title from context (populated by contract)
             List<?> items = (List<?>) context.get(ContextKeys.LIST_ITEMS);
             DataSchema schema = context.get(ContextKeys.LIST_SCHEMA);
             Integer page = context.get(ContextKeys.LIST_PAGE);
             String sort = context.get(ContextKeys.LIST_SORT);
+            String pluralName = context.get(ContextKeys.CONTRACT_TITLE);
 
             if (page == null) page = 1;
             if (sort == null) sort = "asc";
+            String title = pluralName != null ? pluralName : "Items";
 
             // Derive module path from current route
             String modulePath = deriveModulePath(context);
 
             if (items == null || items.isEmpty()) {
-                return new ListViewState(List.of(), schema, page, sort, modulePath, Set.of());
+                return new ListViewState(List.of(), schema, page, sort, modulePath, Set.of(), title);
             }
 
             // Convert domain objects to Map representation using schema
             List<Map<String, Object>> rows = schema.toMapList(items);
 
-            return new ListViewState(rows, schema, page, sort, modulePath, Set.of());
+            return new ListViewState(rows, schema, page, sort, modulePath, Set.of(), title);
         };
     }
 

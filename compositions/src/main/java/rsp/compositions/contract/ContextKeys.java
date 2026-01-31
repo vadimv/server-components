@@ -351,6 +351,14 @@ public final class ContextKeys {
     public static final ContextKey.StringKey<String[]> AUTH_ROLES =
             new ContextKey.StringKey<>("auth.roles", String[].class);
 
+
+    /**
+     * The title of the current contract.
+     * Used by views to derive context-specific titles.
+     */
+    public static final ContextKey.StringKey<String> CONTRACT_TITLE =
+            new ContextKey.StringKey<>("contract.title", String.class);
+
     /**
      * List of application compositions.
      * Type: {@code List<Composition>}

@@ -39,7 +39,7 @@ public class DefaultListView extends ListView {
             final String currentQueryParams = buildQueryString(page, sort);
 
             return div(
-                h1(text("Items List")),
+                h1(text(state.title())),
 
                 // Create New action - triggers event to open overlay
                 div(attr("class", "list-actions"),

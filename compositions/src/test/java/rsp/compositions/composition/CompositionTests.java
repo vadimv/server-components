@@ -190,6 +190,11 @@ public class CompositionTests {
         }
 
         @Override
+        public String entityName() {
+            return "Test";
+        }
+
+        @Override
         public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
             return context; // Test fixture - no enrichment needed
         }
@@ -198,6 +203,11 @@ public class CompositionTests {
     static class TestListContract extends ListViewContract<Object> {
         TestListContract(final Lookup lookup) {
             super(lookup);
+        }
+
+        @Override
+        public String entityName() {
+            return "Test";
         }
 
         @Override
@@ -224,6 +234,11 @@ public class CompositionTests {
         }
 
         @Override
+        public String entityName() {
+            return "TestEntity";
+        }
+
+        @Override
         public DataSchema schema() {
             return DataSchema.fromRecordClass(TestEntity.class);
         }
@@ -237,6 +252,11 @@ public class CompositionTests {
     static class TestEditContract extends EditViewContract<TestEntity> {
         TestEditContract(final Lookup lookup) {
             super(lookup);
+        }
+
+        @Override
+        public String entityName() {
+            return "TestEntity";
         }
 
         @Override

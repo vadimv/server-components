@@ -185,6 +185,11 @@ class ContextKeysTests {
         }
 
         @Override
+        public String entityName() {
+            return "Test";
+        }
+
+        @Override
         public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
             return context; // Test fixture - no enrichment needed
         }

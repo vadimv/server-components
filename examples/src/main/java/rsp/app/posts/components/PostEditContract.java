@@ -30,6 +30,11 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
+    public String title() {
+        return "Edit Post";
+    }
+
+    @Override
     protected String resolveIdFromPath() {
         // Extract ID from URL path parameter
         // Parent class handles SHOW_DATA automatically

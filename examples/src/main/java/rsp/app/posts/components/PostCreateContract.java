@@ -33,6 +33,11 @@ public class PostCreateContract extends CreateViewContract<Post> {
     }
 
     @Override
+    public String title() {
+        return "Create Post";
+    }
+
+    @Override
     public DataSchema schema() {
         // Create form schema - no ID field needed
         return DataSchema.builder()

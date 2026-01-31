@@ -24,6 +24,11 @@ public class PostsListContract extends ListViewContract<Post> {
     }
 
     @Override
+    public String title() {
+        return "Posts";
+    }
+
+    @Override
     public int page() {
         return resolve(PAGE);
     }

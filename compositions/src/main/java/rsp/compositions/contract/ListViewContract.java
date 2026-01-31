@@ -81,6 +81,7 @@ public abstract class ListViewContract<T> extends ViewContract {
         return schema;
     }
 
+
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
         return context
@@ -88,7 +89,8 @@ public abstract class ListViewContract<T> extends ViewContract {
             .with(ContextKeys.LIST_ITEMS, items())
             .with(ContextKeys.LIST_SCHEMA, schema())
             .with(ContextKeys.LIST_PAGE, page())
-            .with(ContextKeys.LIST_SORT, sort());
+            .with(ContextKeys.LIST_SORT, sort())
+            .with(ContextKeys.CONTRACT_TITLE, title());
     }
 
     // ========== Action Bindings ==========

@@ -83,6 +83,7 @@ public abstract class CreateViewContract<T> extends FormViewContract<T> {
             .with(ContextKeys.EDIT_ENTITY, null)
             .with(ContextKeys.EDIT_SCHEMA, schema())
             .with(ContextKeys.EDIT_LIST_ROUTE, listRoute())
-            .with(ContextKeys.EDIT_IS_CREATE_MODE, true);
+            .with(ContextKeys.EDIT_IS_CREATE_MODE, true)
+            .with(ContextKeys.CONTRACT_TITLE, title());
     }
 }

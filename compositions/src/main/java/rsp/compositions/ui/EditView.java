@@ -33,6 +33,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
      * @param listRoute Route to navigate back to list
      * @param isCreateMode Whether in create mode (new entity) vs edit mode (existing entity)
      * @param validationErrors Map of field names to validation error messages
+     * @param title The form title (e.g., "Create Post", "Edit Post")
      */
     public record EditViewState(
         Map<String, Object> fieldValues,
@@ -40,29 +41,41 @@ public abstract class EditView extends Component<EditView.EditViewState> {
         boolean isDirty,
         String listRoute,
         boolean isCreateMode,
-        Map<String, List<String>> validationErrors
+        Map<String, List<String>> validationErrors,
+        String title
     ) {
         public EditViewState {
             fieldValues = fieldValues != null ? fieldValues : Map.of();
             schema = schema != null ? schema : new DataSchema(java.util.List.of());
             listRoute = listRoute != null ? listRoute : "/";
             validationErrors = validationErrors != null ? validationErrors : Map.of();
+            title = title != null ? title : (isCreateMode ? "Create Item" : "Edit Item");
+        }
+
+        /**
+         * Backwards-compatible constructor without title.
+         */
+        public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty,
+                             String listRoute, boolean isCreateMode, Map<String, List<String>> validationErrors) {
+            this(fieldValues, schema, isDirty, listRoute, isCreateMode, validationErrors,
+                 isCreateMode ? "Create Item" : "Edit Item");
         }
 
         public EditViewState(Map<String, Object> fieldValues, DataSchema schema) {
-            this(fieldValues, schema, false, "/", false, Map.of());
+            this(fieldValues, schema, false, "/", false, Map.of(), "Edit Item");
         }
 
         public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty) {
-            this(fieldValues, schema, isDirty, "/", false, Map.of());
+            this(fieldValues, schema, isDirty, "/", false, Map.of(), "Edit Item");
         }
 
         public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty, String listRoute) {
-            this(fieldValues, schema, isDirty, listRoute, false, Map.of());
+            this(fieldValues, schema, isDirty, listRoute, false, Map.of(), "Edit Item");
         }
 
         public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty, String listRoute, boolean isCreateMode) {
-            this(fieldValues, schema, isDirty, listRoute, isCreateMode, Map.of());
+            this(fieldValues, schema, isDirty, listRoute, isCreateMode, Map.of(),
+                 isCreateMode ? "Create Item" : "Edit Item");
         }
 
         /**
@@ -86,15 +99,17 @@ public abstract class EditView extends Component<EditView.EditViewState> {
     @Override
     public ComponentStateSupplier<EditViewState> initStateSupplier() {
         return (_, context) -> {
-            // Read entity and schema from context (populated by ServicesComponent via contract.enrichContext())
+            // Read entity, schema, and title from context (populated by contract.enrichContext())
             Object entity = context.get(ContextKeys.EDIT_ENTITY);
             DataSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
             String listRoute = context.get(ContextKeys.EDIT_LIST_ROUTE);
             Boolean isCreateModeValue = context.get(ContextKeys.EDIT_IS_CREATE_MODE);
+            String pageTitle = context.get(ContextKeys.CONTRACT_TITLE);
 
             // Apply defaults
             listRoute = listRoute != null ? listRoute : "/";
             boolean isCreateMode = isCreateModeValue != null && isCreateModeValue;
+            String title = pageTitle != null ? pageTitle : (isCreateMode ? "Create Item" : "Edit Item");
 
             if (schema == null && entity != null) {
                 // Auto-derive schema from entity if not provided
@@ -102,7 +117,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             }
 
             if (schema == null) {
-                return new EditViewState(Map.of(), new DataSchema(java.util.List.of()), false, listRoute, isCreateMode, Map.of());
+                return new EditViewState(Map.of(), new DataSchema(java.util.List.of()), false, listRoute, isCreateMode, Map.of(), title);
             }
 
             // Convert entity to Map for editing
@@ -110,7 +125,7 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                 ? schema.toMap(entity)
                 : createEmptyFieldValues(schema);
 
-            return new EditViewState(fieldValues, schema, false, listRoute, isCreateMode, Map.of());
+            return new EditViewState(fieldValues, schema, false, listRoute, isCreateMode, Map.of(), title);
         };
     }
 

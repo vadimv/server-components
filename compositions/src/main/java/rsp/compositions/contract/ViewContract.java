@@ -62,6 +62,13 @@ public abstract class ViewContract {
     }
 
     /**
+     * Get the contract's title.
+     * Used to derive views' context-specific titles
+     * @return the contract's title
+     */
+    public abstract String title();
+
+    /**
      * Enrich context with data needed by the view.
      * <p>
      * Called by ServicesComponent after contract instantiation.

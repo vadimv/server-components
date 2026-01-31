@@ -50,11 +50,8 @@ public class DefaultEditView extends EditView {
                 fieldRefs.put(field.name(), createElementRef());
             }
 
-            // Determine title based on create/edit mode
-            final String title = state.isCreateMode() ? "Create Item" : "Edit Item";
-
             return div(
-                h1(text(title)),
+                h1(text(state.title())),
 
                 form(
                     // Render fields dynamically based on schema
@@ -119,7 +116,8 @@ public class DefaultEditView extends EditView {
                                             true,
                                             state.listRoute(),
                                             state.isCreateMode(),
-                                            result.errors()
+                                            result.errors(),
+                                            state.title()
                                         ));
                                     } else {
                                         // Clear any previous errors and submit
@@ -129,7 +127,8 @@ public class DefaultEditView extends EditView {
                                             state.isDirty(),
                                             state.listRoute(),
                                             state.isCreateMode(),
-                                            Map.of()
+                                            Map.of(),
+                                            state.title()
                                         ));
                                         // Emit form.submitted event with collected field values
                                         // Contract will decide what to do (save, etc.)

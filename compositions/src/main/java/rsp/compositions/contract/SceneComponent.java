@@ -398,7 +398,7 @@ public class SceneComponent extends Component<Scene> {
 
             // Render page with LayoutComponent, passing auto-open info from scene
             return page(primaryComponent, nonPrimaryComponents,
-                    scene.autoOpenContract(), scene.autoOpenRoutePattern());
+                    scene.autoOpenContract(), scene.autoOpenRoutePattern(), scene.pageTitle());
         };
     }
 
@@ -409,8 +409,9 @@ public class SceneComponent extends Component<Scene> {
     private static Definition page(Component<?> primaryComponent,
                                    Map<Class<? extends ViewContract>, Component<?>> nonPrimaryComponents,
                                    Class<? extends ViewContract> autoOpenContract,
-                                   String autoOpenRoutePattern) {
-        return html(head(title("Posts"),
+                                   String autoOpenRoutePattern,
+                                   String pageTitle) {
+        return html(head(title(pageTitle != null ? pageTitle : "App"),
                         link(attr("rel", "stylesheet"),
                              attr("href", "/res/style.css"))),
                 body(new LayoutComponent(primaryComponent, nonPrimaryComponents,

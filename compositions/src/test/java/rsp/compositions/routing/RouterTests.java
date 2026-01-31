@@ -22,6 +22,11 @@ public class RouterTests {
         }
 
         @Override
+        public String entityName() {
+            return "Test";
+        }
+
+        @Override
         public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
             return context; // Test fixture - no enrichment needed
         }
@@ -30,6 +35,11 @@ public class RouterTests {
     static class AnotherTestContract extends ViewContract {
         protected AnotherTestContract(final Lookup lookup) {
             super(lookup);
+        }
+
+        @Override
+        public String entityName() {
+            return "AnotherTest";
         }
 
         @Override
