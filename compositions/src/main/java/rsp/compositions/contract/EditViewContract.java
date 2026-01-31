@@ -4,7 +4,6 @@ import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 
 import static rsp.compositions.contract.EventKeys.DELETE_REQUESTED;
-import static rsp.compositions.contract.EventKeys.MODAL_DELETE_SUCCESS;
 
 /**
  * EditViewContract - Base contract for editing existing entities.
@@ -76,11 +75,12 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
         super(lookup);
 
         // Handle delete request - only if this is the active contract
-        lookup.subscribe(DELETE_REQUESTED, () -> {
-            if (shouldHandleEvent()) {
-                handleDeleteRequested();
-            }
-        });
+        handlerRegistrations.add(
+            lookup.subscribe(DELETE_REQUESTED, () -> {
+                if (shouldHandleEvent()) {
+                    handleDeleteRequested();
+                }
+            }));
     }
 
     @Override

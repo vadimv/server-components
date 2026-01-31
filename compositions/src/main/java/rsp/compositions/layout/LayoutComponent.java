@@ -158,6 +158,9 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
         @Override
         public void addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
                                              boolean preventDefault) {}
+
+        @Override
+        public void removeComponentEventHandler(String eventType) {}
     }
 
     @Override

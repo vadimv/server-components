@@ -40,7 +40,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final TreeBuilderFactory treeBuilderFactory;
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
-    private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>();
+    private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>(); // should it be a dictionary?
     private final Subscriber subscriber = new DefaultSubscriber();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<ComponentSegment<?>> children = new ArrayList<>();
@@ -373,6 +373,15 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         addEventHandler(key, handler, false);
     }
 
+    public void removeComponentEventHandler(final String eventType) {
+        final Optional<ComponentEventEntry> eventEntry = componentEventEntries.stream()
+                .filter(entry -> entry.eventName().equals(eventType))
+                .findFirst();
+        if (eventEntry.isPresent()) {
+            componentEventEntries.remove(eventEntry.get());
+        }
+    }
+
     public void addRef(final Ref ref, final TreePositionPath path) {
         refs.put(ref, path);
     }
@@ -439,6 +448,11 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         @Override
         public void addComponentEventHandler(String eventType, Consumer<ComponentEventEntry.EventContext> eventHandler, boolean preventDefault) {
             ComponentSegment.this.addComponentEventHandler(eventType, eventHandler, preventDefault);
+        }
+
+        @Override
+        public void removeComponentEventHandler(String eventType) {
+            ComponentSegment.this.removeComponentEventHandler(eventType);
         }
     }
 

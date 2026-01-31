@@ -7,9 +7,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Interface for subscribing to DOM and component events.
+ * Interface for subscribing and unsubscribing for component events.
  */
-public interface Subscriber {
+public interface Subscriber { // TODO as it also unsubscribes, should this class has a different name?
     void addWindowEventHandler(final String eventType,
                                final Consumer<EventContext> eventHandler,
                                final boolean preventDefault,
@@ -25,6 +25,12 @@ public interface Subscriber {
     void addComponentEventHandler(final String eventType,
                                   final Consumer<ComponentEventEntry.EventContext> eventHandler,
                                   final boolean preventDefault);
+
+    /**
+     * Unregisters a component's handler by name
+     * @param eventType the full event name
+     */
+    void removeComponentEventHandler(final String eventType);
 
     // ========================================================================
     // Type-safe event handlers using EventKey

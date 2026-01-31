@@ -276,6 +276,11 @@ public class ContextLookupTests {
             voidHandlerCount++;
         }
 
+        @Override
+        public void removeComponentEventHandler(String eventType) {
+            // No-op for test
+        }
+
         public int getTypedHandlerCount() {
             return typedHandlerCount;
         }

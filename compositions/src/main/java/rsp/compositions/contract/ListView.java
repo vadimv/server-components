@@ -203,5 +203,8 @@ public abstract class ListView extends Component<ListView.ListViewState> {
         @Override
         public void addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
                                              boolean preventDefault) {}
+
+        @Override
+        public void removeComponentEventHandler(String eventType) {}
     }
 }

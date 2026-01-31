@@ -4,6 +4,7 @@ import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -13,6 +14,7 @@ import static rsp.compositions.contract.EventKeys.*;
 
 public abstract class ListViewContract<T> extends ViewContract {
 
+    private Set<Lookup.Registration> handlerRegistrations = new HashSet<>();
     /**
      * Context key for default page size configuration.
      * Framework-agnostic: contracts don't need to know about AppConfig structure.
@@ -122,22 +124,30 @@ public abstract class ListViewContract<T> extends ViewContract {
     @Override
     protected void registerHandlers() {
         // Handle bulk delete requests
-        lookup.subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
-            handleBulkDelete(selectedIds);
-        });
+        handlerRegistrations.add(
+                lookup.subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
+                       handleBulkDelete(selectedIds);
+        }));
 
         // Translate abstract ACTION events to SHOW events via action bindings
-        lookup.subscribe(ACTION, (name, payload) -> {
-            ActionBindings bindings = actionBindings();
-            ActionBinding binding = bindings.get(payload.actionName());
-            if (binding != null) {
-                // Translate to SHOW event with target contract and data
-                lookup.publish(SHOW, new ShowPayload(
-                    binding.targetContract(),
-                    payload.data()
-                ));
-            }
-        });
+        handlerRegistrations.add(
+            lookup.subscribe(ACTION, (name, payload) -> {
+                ActionBindings bindings = actionBindings();
+                ActionBinding binding = bindings.get(payload.actionName());
+                if (binding != null) {
+                    // Translate to SHOW event with target contract and data
+                    lookup.publish(SHOW, new ShowPayload(
+                        binding.targetContract(),
+                        payload.data()
+                    ));
+                }
+            }));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handlerRegistrations.forEach(registration -> registration.unsubscribe());
     }
 
     /**

@@ -4,7 +4,9 @@ import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.ValidationResult;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static rsp.compositions.contract.EventKeys.FORM_SUBMITTED;
 
@@ -32,15 +34,18 @@ import static rsp.compositions.contract.EventKeys.FORM_SUBMITTED;
  */
 public abstract class FormViewContract<T> extends ViewContract {
 
+    protected final Set<Lookup.Registration> handlerRegistrations = new HashSet<>();
+
     protected FormViewContract(final Lookup lookup) {
         super(lookup);
 
         // Handle form submission - check if active using context
-        lookup.subscribe(FORM_SUBMITTED, (eventName, fieldValues) -> {
-            if (shouldHandleEvent()) {
-                handleFormSubmitted(fieldValues);
-            }
-        });
+        handlerRegistrations.add(
+            lookup.subscribe(FORM_SUBMITTED, (eventName, fieldValues) -> {
+                if (shouldHandleEvent()) {
+                    handleFormSubmitted(fieldValues);
+                }
+            }));
     }
 
     /**
@@ -177,5 +182,11 @@ public abstract class FormViewContract<T> extends ViewContract {
      */
     protected void onSaveFailure() {
         // Default: stay on page
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handlerRegistrations.forEach(Lookup.Registration::unsubscribe);
     }
 }
