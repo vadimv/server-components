@@ -13,10 +13,14 @@ import static rsp.compositions.contract.EventKeys.MODAL_DELETE_SUCCESS;
  * <ul>
  *   <li>Entity loading via {@link #item()}</li>
  *   <li>Entity deletion via {@link #delete()}</li>
- *   <li>ID resolution from URL path</li>
+ *   <li>ID resolution from URL path or SHOW_DATA</li>
  * </ul>
  * <p>
  * For creating new entities, use {@link CreateViewContract} instead.
+ * <p>
+ * <b>Placement-agnostic:</b> This contract works in any slot (PRIMARY, OVERLAY, etc.)
+ * without knowing about its placement. ID resolution automatically checks SHOW_DATA first
+ * (for on-demand instantiation), then falls back to URL path parameters.
  * <p>
  * Example implementation:
  * <pre>{@code
@@ -30,8 +34,8 @@ import static rsp.compositions.contract.EventKeys.MODAL_DELETE_SUCCESS;
  *     }
  *
  *     @Override
- *     protected String resolveId() {
- *         return resolve(POST_ID);
+ *     protected String resolveIdFromPath() {
+ *         return resolve(POST_ID);  // Extract ID from URL path parameter
  *     }
  *
  *     @Override
@@ -68,16 +72,10 @@ import static rsp.compositions.contract.EventKeys.MODAL_DELETE_SUCCESS;
  */
 public abstract class EditViewContract<T> extends FormViewContract<T> {
 
-    /**
-     * Entity ID received via OPEN_EDIT_MODAL event (for overlay mode).
-     * Null when not in overlay mode or before event received.
-     */
-    private String overlayEntityId = null;
-
     protected EditViewContract(final Lookup lookup) {
         super(lookup);
 
-        // Handle delete request - only if this is the active overlay
+        // Handle delete request - only if this is the active contract
         lookup.subscribe(DELETE_REQUESTED, () -> {
             if (shouldHandleEvent()) {
                 handleDeleteRequested();
@@ -89,34 +87,42 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     public void registerHandlers() {
         super.registerHandlers();
 
-        // On-demand instantiation: detect SHOW_DATA (placement-agnostic)
+        // On-demand instantiation: if SHOW_DATA present, mark as active
         java.util.Map<String, Object> showData = lookup.get(ContextKeys.SHOW_DATA);
-        if (showData != null && showData.get("id") != null) {
-            String entityId = String.valueOf(showData.get("id"));
-            setOverlayEntityId(entityId);
+        if (showData != null) {
             setActive();
         }
     }
 
     /**
-     * Set the entity ID for on-demand activation.
-     * Used when contract is instantiated via SHOW event with data.
+     * Resolve the entity ID.
+     * <p>
+     * <b>Placement-agnostic implementation:</b>
+     * Checks SHOW_DATA first (on-demand instantiation), then falls back to URL path.
+     * This allows the contract to work in any slot without knowing about its placement.
      *
-     * @param id The entity ID
+     * @return The resolved ID
      */
-    protected void setOverlayEntityId(String id) {
-        this.overlayEntityId = id;
+    protected String resolveId() {
+        // First check SHOW_DATA (placement-agnostic on-demand instantiation)
+        java.util.Map<String, Object> showData = lookup.get(ContextKeys.SHOW_DATA);
+        if (showData != null && showData.get("id") != null) {
+            return String.valueOf(showData.get("id"));
+        }
+
+        // Otherwise resolve from URL path parameter
+        return resolveIdFromPath();
     }
 
     /**
-     * Get the entity ID received via OPEN_EDIT_MODAL event.
-     * Use this in overlay mode instead of path parameter resolution.
+     * Resolve the entity ID from the URL path.
+     * <p>
+     * Subclasses must implement this to extract the ID from path parameters.
+     * The parent {@link #resolveId()} method calls this as a fallback when SHOW_DATA is not available.
      *
-     * @return The entity ID, or null if not in overlay mode or event not received
+     * @return The resolved ID from path
      */
-    protected String getOverlayEntityId() {
-        return overlayEntityId;
-    }
+    protected abstract String resolveIdFromPath();
 
     /**
      * Always returns false - this is an edit-only contract.
@@ -131,15 +137,6 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     }
 
     /**
-     * Resolve the entity ID from the URL path.
-     * <p>
-     * Subclasses must implement this to extract the ID from path parameters.
-     *
-     * @return The resolved ID
-     */
-    protected abstract String resolveId();
-
-    /**
      * Load the entity to be edited.
      * <p>
      * Typically reads an ID from path parameters and loads from a service.
@@ -151,6 +148,7 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
         return context
+            .with(ContextKeys.CONTRACT_CLASS, getClass())
             .with(ContextKeys.EDIT_ENTITY, item())
             .with(ContextKeys.EDIT_SCHEMA, schema())
             .with(ContextKeys.EDIT_LIST_ROUTE, listRoute())
@@ -192,28 +190,17 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     /**
      * Called when delete succeeds.
      * <p>
-     * Same pattern as onSaveSuccess() - contracts decide based on slot.
+     * Emits ACTION_SUCCESS event - framework decides what to do based on placement.
+     * This enables complete separation of concerns:
      * <ul>
-     *   <li>OVERLAY slot: emit HIDE to close overlay, emit REFRESH_LIST to update data</li>
-     *   <li>PRIMARY slot: emit NAVIGATE to list route</li>
+     *   <li>Contract emits generic success (no placement knowledge)</li>
+     *   <li>Framework (SceneComponent) handles navigation based on slot</li>
      * </ul>
      */
     protected void onDeleteSuccess() {
-        Class<? extends ViewContract> contractClass = lookup.get(ContextKeys.CONTRACT_CLASS);
-        Scene scene = lookup.get(ContextKeys.SCENE);
-
-        // Use generic utility - no application-specific logic
-        if (SlotUtils.isInOverlay(contractClass, scene)) {
-            // Overlay: close and refresh
-            lookup.publish(EventKeys.HIDE, contractClass);
-            // Also emit legacy event for backward compatibility
-            lookup.publish(MODAL_DELETE_SUCCESS);
-            // Refresh list to show updated data
-            lookup.publish(EventKeys.REFRESH_LIST);
-        } else {
-            // PRIMARY: navigate to list
-            lookup.publish(EventKeys.NAVIGATE, listRoute());
-        }
+        // Emit generic success event - framework decides what to do
+        lookup.publish(EventKeys.ACTION_SUCCESS,
+            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.DELETE, listRoute()));
     }
 
     /**

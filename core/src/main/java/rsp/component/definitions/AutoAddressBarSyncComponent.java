@@ -159,17 +159,51 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
         subscribeForQueryParameterUpdates(subscriber, commandsEnqueue, stateUpdate);
         subscribeForPathElementUpdates(state, subscriber, commandsEnqueue, stateUpdate);
         subscribeForNavigationEvents(subscriber, commandsEnqueue);
+        subscribeForReloadEvents(subscriber, commandsEnqueue);
     }
 
     /**
-     * Subscribe to navigation events that trigger full page navigation.
+     * Subscribe to navigation events for SPA-style navigation.
      * Event name: "navigate" with payload being the target URL path.
-     *
-     * Uses SetHref (not PushHistory) to trigger a full page reload at the new URL.
+     * <p>
+     * <b>Smart routing:</b>
+     * <ul>
+     *   <li>Internal paths (relative URLs): Uses PushHistory for SPA navigation (no page reload)</li>
+     *   <li>External URLs (http://, https://, //): Uses SetHref for full page reload</li>
+     * </ul>
+     * <p>
+     * This enables Single Page Application behavior for internal navigation while preserving
+     * traditional full-page navigation for external links.
      */
     private void subscribeForNavigationEvents(Subscriber subscriber,
                                               CommandsEnqueue commandsEnqueue) {
         subscriber.addComponentEventHandler("navigate",
+            eventContext -> {
+                final Object pathObject = eventContext.eventObject();
+                if (pathObject instanceof String path) {
+                    // Smart routing: external URLs get full reload, internal paths get SPA navigation
+                    if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("//")) {
+                        // External URL: full page reload
+                        commandsEnqueue.offer(new RemoteCommand.SetHref(path));
+                    } else {
+                        // Internal path: SPA navigation (no page reload)
+                        commandsEnqueue.offer(new RemoteCommand.PushHistory(path));
+                    }
+                }
+            },
+            false);
+    }
+
+    /**
+     * Subscribe to reload events that trigger full page reload.
+     * Event name: "reload" with payload being the target URL path.
+     * <p>
+     * Use this when you explicitly need a full page reload (e.g., after logout, critical errors).
+     * For normal navigation, use "navigate" event which provides SPA behavior.
+     */
+    private void subscribeForReloadEvents(Subscriber subscriber,
+                                          CommandsEnqueue commandsEnqueue) {
+        subscriber.addComponentEventHandler("reload",
             eventContext -> {
                 final Object pathObject = eventContext.eventObject();
                 if (pathObject instanceof String path) {

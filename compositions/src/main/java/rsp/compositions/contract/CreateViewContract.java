@@ -79,6 +79,7 @@ public abstract class CreateViewContract<T> extends FormViewContract<T> {
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
         return context
+            .with(ContextKeys.CONTRACT_CLASS, getClass())
             .with(ContextKeys.EDIT_ENTITY, null)
             .with(ContextKeys.EDIT_SCHEMA, schema())
             .with(ContextKeys.EDIT_LIST_ROUTE, listRoute())

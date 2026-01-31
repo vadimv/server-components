@@ -157,28 +157,17 @@ public abstract class FormViewContract<T> extends ViewContract {
     /**
      * Called when save succeeds.
      * <p>
-     * Contracts decide what to do based on their slot (using generic utilities).
+     * Emits ACTION_SUCCESS event - framework decides what to do based on placement.
+     * This enables complete separation of concerns:
      * <ul>
-     *   <li>OVERLAY slot: emit HIDE to close overlay, emit REFRESH_LIST to update data</li>
-     *   <li>PRIMARY slot: emit NAVIGATE to list route</li>
+     *   <li>Contract emits generic success (no placement knowledge)</li>
+     *   <li>Framework (SceneComponent) handles navigation based on slot</li>
      * </ul>
      */
     protected void onSaveSuccess() {
-        Class<? extends ViewContract> contractClass = lookup.get(ContextKeys.CONTRACT_CLASS);
-        Scene scene = lookup.get(ContextKeys.SCENE);
-
-        // Use generic utility - no application-specific logic
-        if (SlotUtils.isInOverlay(contractClass, scene)) {
-            // Overlay: close and refresh
-            lookup.publish(EventKeys.HIDE, contractClass);
-            // Also emit legacy event for backward compatibility
-            lookup.publish(EventKeys.MODAL_SAVE_SUCCESS);
-            // Refresh list to show updated data
-            lookup.publish(EventKeys.REFRESH_LIST);
-        } else {
-            // PRIMARY: navigate to list
-            lookup.publish(EventKeys.NAVIGATE, listRoute());
-        }
+        // Emit generic success event - framework decides what to do
+        lookup.publish(EventKeys.ACTION_SUCCESS,
+            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.SAVE, listRoute()));
     }
 
     /**

@@ -163,11 +163,79 @@ public final class EventKeys {
     // ===== NAVIGATION EVENTS =====
 
     /**
-     * Navigate to a URL path.
-     * Emitted by: EditViewContract after save/delete success
-     * Handled by: Framework (triggers browser navigation via RemoteCommand.SetHref)
+     * Navigate to a URL path (SPA-style navigation).
+     * Emitted by: Framework (SceneComponent) after ACTION_SUCCESS
+     * Handled by: AutoAddressBarSyncComponent (uses PushHistory for internal paths)
      * Payload: The URL path to navigate to
      */
     public static final EventKey.SimpleKey<String> NAVIGATE =
             new EventKey.SimpleKey<>("navigate", String.class);
+
+    /**
+     * Reload page (full page reload).
+     * Emitted by: Application code when full reload is needed
+     * Handled by: AutoAddressBarSyncComponent (uses SetHref for full reload)
+     * Payload: The URL path to reload
+     */
+    public static final EventKey.SimpleKey<String> RELOAD =
+            new EventKey.SimpleKey<>("reload", String.class);
+
+    // ===== ACTION RESULT EVENTS (Framework-Driven Navigation) =====
+
+    /**
+     * Action succeeded (generic success event).
+     * Emitted by: Contracts (EditViewContract, FormViewContract) after successful operations
+     * Handled by: Framework (SceneComponent) which decides navigation based on placement
+     * Payload: ActionResult containing operation type and target route
+     * <p>
+     * This enables complete separation of concerns:
+     * - Contracts emit generic success events (no placement knowledge)
+     * - Framework decides what to do (navigate vs close overlay) based on slot
+     * <p>
+     * Example flow:
+     * <ol>
+     *   <li>Contract saves entity, emits ACTION_SUCCESS(SAVE, "/posts")</li>
+     *   <li>SceneComponent receives event, checks contract placement</li>
+     *   <li>If OVERLAY: emit HIDE + REFRESH_LIST</li>
+     *   <li>If PRIMARY: emit NAVIGATE to target route</li>
+     * </ol>
+     */
+    public static final EventKey.SimpleKey<ActionResult> ACTION_SUCCESS =
+            new EventKey.SimpleKey<>("action.success", ActionResult.class);
+
+    /**
+     * Action failed (generic failure event).
+     * Emitted by: Contracts when operations fail
+     * Handled by: Framework (SceneComponent) or UI layer for error display
+     * Payload: ActionResult containing operation type and error info
+     */
+    public static final EventKey.SimpleKey<ActionResult> ACTION_FAILURE =
+            new EventKey.SimpleKey<>("action.failure", ActionResult.class);
+
+    /**
+     * Action result containing operation type and navigation target.
+     * Framework uses this to decide navigation behavior based on contract placement.
+     *
+     * @param contractClass The class of the contract that performed the action
+     * @param type The type of action that was performed (SAVE, DELETE, CANCEL)
+     * @param targetRoute Where to navigate (for PRIMARY placement), or null if staying on page
+     */
+    public record ActionResult(
+        Class<? extends ViewContract> contractClass,
+        ActionType type,
+        String targetRoute
+    ) {}
+
+    /**
+     * Type of action performed by a contract.
+     * Used by framework to determine appropriate UI response (e.g., which legacy event to emit).
+     */
+    public enum ActionType {
+        /** Entity save operation */
+        SAVE,
+        /** Entity delete operation */
+        DELETE,
+        /** User cancelled operation */
+        CANCEL
+    }
 }

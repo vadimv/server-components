@@ -82,6 +82,7 @@ public abstract class ListViewContract<T> extends ViewContract {
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
         return context
+            .with(ContextKeys.CONTRACT_CLASS, getClass())
             .with(ContextKeys.LIST_ITEMS, items())
             .with(ContextKeys.LIST_SCHEMA, schema())
             .with(ContextKeys.LIST_PAGE, page())
@@ -169,16 +170,22 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     /**
      * Called after successful bulk delete.
-     * Default navigates to current list route (page reload).
+     * Emits ACTION_SUCCESS event - framework decides what to do based on placement.
+     * <p>
+     * This enables complete separation of concerns:
+     * <ul>
+     *   <li>Contract emits generic success (no placement knowledge)</li>
+     *   <li>Framework (SceneComponent) handles navigation based on slot</li>
+     * </ul>
      *
      * @param deletedCount Number of items deleted
      */
     protected void onBulkDeleteSuccess(int deletedCount) {
-        // Navigate to current route to refresh the list
+        // Emit generic success event - framework decides what to do
+        // For bulk delete, target route is current list route (refresh in place)
         String currentPath = lookup.get(ContextKeys.ROUTE_PATH);
-        if (currentPath != null) {
-            lookup.publish(EventKeys.NAVIGATE, currentPath);
-        }
+        lookup.publish(EventKeys.ACTION_SUCCESS,
+            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.DELETE, currentPath));
     }
 
     /**

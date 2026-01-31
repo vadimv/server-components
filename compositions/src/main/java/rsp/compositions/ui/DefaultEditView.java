@@ -192,11 +192,14 @@ public class DefaultEditView extends EditView {
             );
         }
 
-        // PRIMARY mode: navigate via link
-        return a(
-            attr("href", listRoute),
+        // PRIMARY mode: SPA navigation with NAVIGATE event
+        return button(
+            attr("type", "button"),
             attr("class", "button cancel-button"),
-            text("Cancel")
+            text("Cancel"),
+            on("click", ctx -> {
+                lookup.publish(NAVIGATE, listRoute);
+            })
         );
     }
 

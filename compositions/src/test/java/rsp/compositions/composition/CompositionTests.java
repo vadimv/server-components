@@ -240,7 +240,7 @@ public class CompositionTests {
         }
 
         @Override
-        protected String resolveId() {
+        protected String resolveIdFromPath() {
             return null;
         }
 

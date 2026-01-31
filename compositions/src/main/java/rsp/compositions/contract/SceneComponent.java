@@ -9,6 +9,7 @@ import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
+import rsp.compositions.contract.SlotUtils;
 import rsp.dsl.Definition;
 
 import java.util.HashMap;
@@ -156,7 +157,9 @@ public class SceneComponent extends Component<Scene> {
     }
 
     /**
-     * Register SHOW and HIDE event handlers for on-demand contract lifecycle management.
+     * Register SHOW, HIDE, and ACTION_SUCCESS event handlers.
+     * SHOW/HIDE manage on-demand contract lifecycle.
+     * ACTION_SUCCESS enables framework-driven navigation (contracts emit generic success, framework decides what to do).
      */
     @Override
     public void onAfterRendered(Scene state,
@@ -171,6 +174,11 @@ public class SceneComponent extends Component<Scene> {
         // HIDE handler: destroy contract
         subscriber.addEventHandler(HIDE, (eventName, contractClass) -> {
             handleHideEvent(state, contractClass, stateUpdate);
+        }, false);
+
+        // ACTION_SUCCESS handler: framework-driven navigation based on contract placement
+        subscriber.addEventHandler(EventKeys.ACTION_SUCCESS, (eventName, result) -> {
+            handleActionSuccess(state, result, commandsEnqueue);
         }, false);
     }
 
@@ -259,6 +267,68 @@ public class SceneComponent extends Component<Scene> {
 
         // Update state to remove contract
         stateUpdate.applyStateTransformation(s -> s.withContractClosed(contractClass));
+    }
+
+    /**
+     * Handle ACTION_SUCCESS event: framework-driven navigation based on contract placement.
+     * <p>
+     * This enables complete separation of concerns:
+     * - Contracts emit generic ACTION_SUCCESS events (no placement knowledge)
+     * - Framework decides what to do based on contract's slot
+     * - OVERLAY → HIDE + legacy event + REFRESH_LIST
+     * - PRIMARY → NAVIGATE to target route
+     * <p>
+     * Benefits:
+     * - Contracts truly placement-agnostic (zero navigation logic)
+     * - Centralized navigation in framework
+     * - Easy to extend (add new slots/behaviors without touching contracts)
+     */
+    private void handleActionSuccess(Scene state,
+                                     EventKeys.ActionResult result,
+                                     CommandsEnqueue commandsEnqueue) {
+        // Get contract class from the action result
+        Class<? extends ViewContract> contractClass = result.contractClass();
+        if (contractClass == null) {
+            return; // No contract class in result
+        }
+
+        // Create lookup for publishing events
+        ComponentContext context = savedContext;
+        if (context == null) {
+            return; // No context available
+        }
+        Lookup lookup = createLookup(context, commandsEnqueue);
+
+        // Determine behavior based on placement
+        if (SlotUtils.isInOverlay(contractClass, state)) {
+            // OVERLAY behavior: close overlay and refresh list
+            lookup.publish(EventKeys.HIDE, contractClass);
+
+            // Emit legacy events for backward compatibility
+            if (result.type() == EventKeys.ActionType.SAVE) {
+                lookup.publish(EventKeys.MODAL_SAVE_SUCCESS);
+            } else if (result.type() == EventKeys.ActionType.DELETE) {
+                lookup.publish(EventKeys.MODAL_DELETE_SUCCESS);
+            }
+
+            // Refresh list to show updated data
+            lookup.publish(EventKeys.REFRESH_LIST);
+        } else {
+            // PRIMARY behavior: navigate to target route
+            if (result.targetRoute() != null) {
+                // Check if navigating to the same URL (e.g., bulk delete refreshing list)
+                String currentPath = lookup.get(ContextKeys.ROUTE_PATH);
+                if (result.targetRoute().equals(currentPath)) {
+                    // Same URL: use RELOAD to force page refresh (full reload)
+                    // This handles cases like bulk delete where we stay on the same page
+                    // but need fresh data. Future: could optimize to SPA refresh.
+                    lookup.publish(EventKeys.RELOAD, result.targetRoute());
+                } else {
+                    // Different URL: use NAVIGATE for SPA navigation
+                    lookup.publish(EventKeys.NAVIGATE, result.targetRoute());
+                }
+            }
+        }
     }
 
     @Override

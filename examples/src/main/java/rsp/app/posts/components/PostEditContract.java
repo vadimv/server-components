@@ -30,20 +30,9 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
-    protected String resolveId() {
-        // First, check SHOW_DATA (on-demand instantiation, placement-agnostic)
-        java.util.Map<String, Object> showData = lookup.get(rsp.compositions.contract.ContextKeys.SHOW_DATA);
-        if (showData != null && showData.get("id") != null) {
-            return String.valueOf(showData.get("id"));
-        }
-
-        // Second, check overlay entity ID (legacy OPEN_EDIT_MODAL flow)
-        String overlayId = getOverlayEntityId();
-        if (overlayId != null) {
-            return overlayId;
-        }
-
-        // Finally, resolve from URL path
+    protected String resolveIdFromPath() {
+        // Extract ID from URL path parameter
+        // Parent class handles SHOW_DATA automatically
         return resolve(POST_ID);
     }
 
