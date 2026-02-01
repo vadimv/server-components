@@ -33,6 +33,11 @@ public class PostCreateContract extends CreateViewContract<Post> {
     }
 
     @Override
+    public Object typeHint() {
+        return Post.class;
+    }
+
+    @Override
     public String title() {
         return "Create Post";
     }

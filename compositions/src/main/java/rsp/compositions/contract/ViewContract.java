@@ -62,6 +62,16 @@ public abstract class ViewContract {
     }
 
     /**
+     * Get an object which identifies the purpose of this contract.
+     * <p>
+     * Type hints can be shared between contracts for logical grouping,
+     * for example as an entity node in a menu.
+     *
+     * @return the object used to identify the contract's target
+     */
+    public abstract Object typeHint();
+
+    /**
      * Get the contract's title.
      * Used to derive views' context-specific titles
      * @return the contract's title

@@ -30,6 +30,11 @@ public class EditViewContractTests {
         }
 
         @Override
+        public Object typeHint() {
+            return TestEntity.class;
+        }
+
+        @Override
         public String title() {
             return "TestEntity";
         }

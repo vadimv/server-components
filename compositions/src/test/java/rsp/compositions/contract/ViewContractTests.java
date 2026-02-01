@@ -20,6 +20,11 @@ public class ViewContractTests {
         }
 
         @Override
+        public Object typeHint() {
+            return "Test";
+        }
+
+        @Override
         public String title() {
             return "Test";
         }
