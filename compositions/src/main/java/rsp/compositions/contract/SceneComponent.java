@@ -321,9 +321,6 @@ public class SceneComponent extends Component<Scene> {
             } else if (result.type() == EventKeys.ActionType.DELETE) {
                 lookup.publish(EventKeys.MODAL_DELETE_SUCCESS);
             }
-
-            // Refresh list to show updated data
-            lookup.publish(EventKeys.REFRESH_LIST);
         } else {
             // PRIMARY behavior: derive navigation from composition
             // Case 1: Same contract as primary (e.g., bulk delete on list) → refresh in place

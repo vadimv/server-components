@@ -214,6 +214,16 @@ public class CompositionTests {
         public List<Object> items() {
             return List.of();
         }
+
+        @Override
+        protected Class<? extends ViewContract> createElementContract() {
+            return null;
+        }
+
+        @Override
+        protected Class<? extends ViewContract> editElementContract() {
+            return null;
+        }
     }
 
     record TestEntity(String id, String name) {}

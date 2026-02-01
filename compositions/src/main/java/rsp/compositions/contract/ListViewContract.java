@@ -1,20 +1,34 @@
 package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
+import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
 
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static rsp.compositions.contract.ActionBindings.*;
 import static rsp.compositions.contract.ContextKeys.LIST_DEFAULT_PAGE_SIZE;
-import static rsp.compositions.contract.EventKeys.*;
+import static rsp.compositions.contract.EventKeys.SHOW;
 
 public abstract class ListViewContract<T> extends ViewContract {
 
-    private Set<Lookup.Registration> handlerRegistrations = new HashSet<>();
+
+    public static final EventKey.VoidKey CREATE_ELEMENT_REQUESTED = new EventKey.VoidKey("list.create.element.requested");
+
+    public static final EventKey.SimpleKey<String> EDIT_ELEMENT_REQUESTED = new EventKey.SimpleKey<>("list.edit.element", String.class);
+    /**
+     * Bulk delete action requested for selected rows.
+     * Emitted by: DefaultListView (Delete Selected button)
+     * Handled by: ListViewContract.registerHandlers()
+     * Payload: Set of row IDs to delete
+     */
+    @SuppressWarnings("unchecked")
+    public static final EventKey.SimpleKey<Set<String>> BULK_DELETE_REQUESTED =
+            new EventKey.SimpleKey<>("bulk.delete.requested",
+                    (Class<Set<String>>) (Class<?>) Set.class);
     /**
      * Context key for default page size configuration.
      * Framework-agnostic: contracts don't need to know about AppConfig structure.
@@ -93,64 +107,32 @@ public abstract class ListViewContract<T> extends ViewContract {
             .with(ContextKeys.CONTRACT_TITLE, title());
     }
 
-    // ========== Action Bindings ==========
-
-    /**
-     * Define action bindings for this list contract.
-     * <p>
-     * Action bindings map abstract action names to concrete contract classes.
-     * When a View emits ACTION("edit", data), this contract translates it
-     * to SHOW(targetContract, data) based on the bindings defined here.
-     * <p>
-     * Override in subclasses to bind actions to contracts:
-     * <pre>
-     * {@code
-     * @Override
-     * protected ActionBindings actionBindings() {
-     *     return ActionBindings.builder()
-     *         .bind("edit", PostEditContract.class)
-     *         .bind("create", PostCreateContract.class)
-     *         .build();
-     * }
-     * }
-     * </pre>
-     *
-     * @return ActionBindings for this contract (default: empty)
-     */
-    protected ActionBindings actionBindings() {
-        return ActionBindings.empty();
-    }
-
-    // ========== Event Handlers ==========
-
     @Override
     protected void registerHandlers() {
         // Handle bulk delete requests
-        handlerRegistrations.add(
-                lookup.subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
-                       handleBulkDelete(selectedIds);
-        }));
+        subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
+            handleBulkDelete(selectedIds);
+        });
 
-        // Translate abstract ACTION events to SHOW events via action bindings
-        handlerRegistrations.add(
-            lookup.subscribe(ACTION, (name, payload) -> {
-                ActionBindings bindings = actionBindings();
-                ActionBinding binding = bindings.get(payload.actionName());
-                if (binding != null) {
-                    // Translate to SHOW event with target contract and data
-                    lookup.publish(SHOW, new ShowPayload(
-                        binding.targetContract(),
-                        payload.data()
-                    ));
-                }
-            }));
+        subscribe(CREATE_ELEMENT_REQUESTED, () -> {
+            lookup.publish(SHOW, new ShowPayload(
+                    createElementContract(),
+                    Map.of()
+            ));
+        });
+
+        subscribe(EDIT_ELEMENT_REQUESTED, (_, rowId) -> {
+            lookup.publish(SHOW, new ShowPayload(
+                    editElementContract(),
+                    Map.of("id", rowId)
+            ));
+        });
     }
 
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        handlerRegistrations.forEach(registration -> registration.unsubscribe());
-    }
+    protected abstract Class<? extends ViewContract> createElementContract();
+
+
+    protected abstract Class<? extends ViewContract> editElementContract();
 
     /**
      * Handle bulk delete request for selected items.

@@ -1,14 +1,13 @@
 package rsp.compositions.contract;
 
+import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.ValidationResult;
 
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
-import static rsp.compositions.contract.EventKeys.FORM_SUBMITTED;
+import static rsp.compositions.contract.EventKeys.ACTION_SUCCESS;
 
 /**
  * FormViewContract - Base contract for form-based views (create and edit).
@@ -34,28 +33,33 @@ import static rsp.compositions.contract.EventKeys.FORM_SUBMITTED;
  */
 public abstract class FormViewContract<T> extends ViewContract {
 
-    protected final Set<Lookup.Registration> handlerRegistrations = new HashSet<>();
+    public static final EventKey.VoidKey CANCEL_REQUESTED =
+            new EventKey.VoidKey("cancel.requested");
+    /**
+     * Form submitted with field values.
+     * Emitted by: DefaultEditView
+     * Handled by: EditViewContract.registerHandlers()
+     */
+    @SuppressWarnings("unchecked")
+    public static final EventKey.SimpleKey<Map<String, Object>> FORM_SUBMITTED =
+            new EventKey.SimpleKey<>("form.submitted",
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
 
     protected FormViewContract(final Lookup lookup) {
         super(lookup);
 
         // Handle form submission - check if active using context
-        handlerRegistrations.add(
-            lookup.subscribe(FORM_SUBMITTED, (eventName, fieldValues) -> {
-                if (shouldHandleEvent()) {
-                    handleFormSubmitted(fieldValues);
-                }
-            }));
-    }
+        subscribe(FORM_SUBMITTED, (eventName, fieldValues) -> {
+            if (shouldHandleEvent()) {
+                handleFormSubmitted(fieldValues);
+            }
+        });
 
-    /**
-     * Set this contract as active. Called by subclasses when instantiated via SHOW event.
-     * <p>
-     * Note: This method is kept for backward compatibility with subclasses that call it.
-     * SceneComponent now sets IS_ACTIVE_CONTRACT in context, so this method does nothing.
-     */
-    protected void setActive() {
-        // No-op - IS_ACTIVE_CONTRACT is set by SceneComponent in context
+        // Handle cancel request
+        subscribe(CANCEL_REQUESTED, () -> {
+            lookup.publish(ACTION_SUCCESS,
+                    new EventKeys.ActionResult(this.getClass(), EventKeys.ActionType.CANCEL));
+        });
     }
 
     /**
@@ -173,11 +177,5 @@ public abstract class FormViewContract<T> extends ViewContract {
      */
     protected void onSaveFailure() {
         // Default: stay on page
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        handlerRegistrations.forEach(Lookup.Registration::unsubscribe);
     }
 }

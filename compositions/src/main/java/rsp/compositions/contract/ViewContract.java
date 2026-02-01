@@ -1,10 +1,16 @@
 package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
+import rsp.component.EventKey;
 import rsp.component.Lookup;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.BiConsumer;
 
 public abstract class ViewContract {
 
+    private Set<Lookup.Registration> handlerRegistrations = new HashSet<>();
     protected final Lookup lookup;
 
     protected ViewContract(Lookup lookup) {
@@ -29,6 +35,14 @@ public abstract class ViewContract {
         // Default: no handlers - override in subclasses
     }
 
+    protected <T> void subscribe(EventKey<T> key, BiConsumer<String, T> handler) {
+        handlerRegistrations.add(lookup.subscribe(key, handler));
+    }
+
+    protected <T> void subscribe(EventKey.VoidKey key, Runnable handler) {
+        handlerRegistrations.add(lookup.subscribe(key, handler));
+    }
+
     /**
      * Cleanup hook called when contract is hidden via HIDE event.
      * <p>
@@ -43,7 +57,7 @@ public abstract class ViewContract {
      * The contract instance will be removed from active contracts after this call.
      */
     protected void onDestroy() {
-        // Default: no cleanup - override in subclasses
+        handlerRegistrations.forEach(registration -> registration.unsubscribe());
     }
 
     /**

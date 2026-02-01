@@ -56,17 +56,6 @@ public abstract class CreateViewContract<T> extends FormViewContract<T> {
     }
 
     @Override
-    public void registerHandlers() {
-        super.registerHandlers();
-
-        // On-demand instantiation: detect SHOW_DATA (placement-agnostic)
-        java.util.Map<String, Object> showData = lookup.get(ContextKeys.SHOW_DATA);
-        if (showData != null) {
-            setActive();
-        }
-    }
-
-    @Override
     public ComponentContext enrichContext(ComponentContext context) {
         return context
             .with(ContextKeys.CONTRACT_CLASS, getClass())

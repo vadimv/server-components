@@ -1,9 +1,8 @@
 package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
+import rsp.component.EventKey;
 import rsp.component.Lookup;
-
-import static rsp.compositions.contract.EventKeys.DELETE_REQUESTED;
 
 /**
  * EditViewContract - Base contract for editing existing entities.
@@ -71,27 +70,23 @@ import static rsp.compositions.contract.EventKeys.DELETE_REQUESTED;
  */
 public abstract class EditViewContract<T> extends FormViewContract<T> {
 
+    /**
+     * Delete action requested (after confirmation).
+     * Emitted by: DefaultEditView
+     * Handled by: EditViewContract.registerHandlers()
+     */
+    public static final EventKey.VoidKey DELETE_REQUESTED =
+            new EventKey.VoidKey("delete.requested");
+
     protected EditViewContract(final Lookup lookup) {
         super(lookup);
 
         // Handle delete request - only if this is the active contract
-        handlerRegistrations.add(
-            lookup.subscribe(DELETE_REQUESTED, () -> {
-                if (shouldHandleEvent()) {
-                    handleDeleteRequested();
-                }
-            }));
-    }
-
-    @Override
-    public void registerHandlers() {
-        super.registerHandlers();
-
-        // On-demand instantiation: if SHOW_DATA present, mark as active
-        java.util.Map<String, Object> showData = lookup.get(ContextKeys.SHOW_DATA);
-        if (showData != null) {
-            setActive();
-        }
+        subscribe(DELETE_REQUESTED, () -> {
+            if (shouldHandleEvent()) {
+                handleDeleteRequested();
+            }
+        });
     }
 
     /**
@@ -157,10 +152,6 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     public boolean delete() {
         throw new UnsupportedOperationException("Delete not implemented for " + getClass().getSimpleName());
     }
-
-    // ========================================================================
-    // Delete Event Handling - Simplified, uses generic utilities
-    // ========================================================================
 
     /**
      * Handle delete request event.

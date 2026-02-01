@@ -3,6 +3,7 @@ package rsp.app.posts.components;
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
 import rsp.component.Lookup;
+import rsp.compositions.contract.ViewContract;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ListViewContract;
@@ -65,19 +66,13 @@ public class PostsListContract extends ListViewContract<Post> {
         return postService.bulkDelete(ids);
     }
 
-    /**
-     * Bind abstract actions to concrete contract classes.
-     * <p>
-     * When DefaultListView emits ACTION("edit", {id: "123"}),
-     * this contract translates it to SHOW(PostEditContract.class, {id: "123"}).
-     * <p>
-     * This decouples the View from knowing about concrete contract classes.
-     */
     @Override
-    protected ActionBindings actionBindings() {
-        return ActionBindings.builder()
-            .bind("edit", PostEditContract.class)
-            .bind("create", PostCreateContract.class)
-            .build();
+    protected Class<? extends ViewContract> createElementContract() {
+        return PostCreateContract.class;
+    }
+
+    @Override
+    protected Class<? extends ViewContract> editElementContract() {
+        return PostEditContract.class;
     }
 }

@@ -1,5 +1,7 @@
 package rsp.compositions.ui;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.contract.ContextKeys;
@@ -10,10 +12,10 @@ import rsp.dsl.Definition;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Map;
 
 import static rsp.compositions.contract.ActionBindings.ActionPayload;
 import static rsp.compositions.contract.EventKeys.*;
+import static rsp.compositions.contract.ListViewContract.*;
 import static rsp.dsl.Html.*;
 
 /**
@@ -26,6 +28,8 @@ import static rsp.dsl.Html.*;
  * Create/Edit actions trigger events that open overlay contracts (Slot.OVERLAY).
  */
 public class DefaultListView extends ListView {
+
+    private static final Logger log = LoggerFactory.getLogger(DefaultListView.class);
 
     @Override
     public ComponentView<ListViewState> componentView() {
@@ -178,12 +182,8 @@ public class DefaultListView extends ListView {
             attr("class", "create-button"),
             text("Create New"),
             on("click", ctx -> {
-                // New flow: emit abstract action (decoupled from concrete contracts)
-                lookup.publish(ACTION, ActionPayload.of("create"));
-                // Legacy support: also emit old event for backward compatibility
-                lookup.publish(OPEN_CREATE_MODAL);
-            })
-        );
+                lookup.publish(CREATE_ELEMENT_REQUESTED);
+            }));
     }
 
     /**
@@ -222,10 +222,7 @@ public class DefaultListView extends ListView {
             attr("class", "edit-button"),
             text("Edit"),
             on("click", ctx -> {
-                // New flow: emit abstract action (decoupled from concrete contracts)
-                lookup.publish(ACTION, ActionPayload.of("edit", "id", rowId));
-                // Legacy support: also emit old event for backward compatibility
-                lookup.publish(OPEN_EDIT_MODAL, rowId);
+                lookup.publish(EDIT_ELEMENT_REQUESTED, rowId);
             })
         );
     }

@@ -3,6 +3,7 @@ package rsp.app.posts.components;
 import rsp.app.posts.entities.Comment;
 import rsp.app.posts.services.CommentService;
 import rsp.component.Lookup;
+import rsp.compositions.contract.ViewContract;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ListViewContract;
@@ -60,10 +61,12 @@ public class CommentsListContract extends ListViewContract<Comment> {
     }
 
     @Override
-    protected ActionBindings actionBindings() {
-        return ActionBindings.builder()
-            .bind("edit", CommentEditContract.class)
-            .bind("create", CommentCreateContract.class)
-            .build();
+    protected Class<? extends ViewContract> createElementContract() {
+        return CommentCreateContract.class;
+    }
+
+    @Override
+    protected Class<? extends ViewContract> editElementContract() {
+        return CommentEditContract.class;
     }
 }

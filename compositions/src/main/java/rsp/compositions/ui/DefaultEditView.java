@@ -9,7 +9,6 @@ import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
 
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ViewContract;
 
 import java.time.LocalDate;
@@ -18,7 +17,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static rsp.compositions.contract.EventKeys.*;
+import static rsp.compositions.contract.EditViewContract.CANCEL_REQUESTED;
+import static rsp.compositions.contract.EditViewContract.DELETE_REQUESTED;
+import static rsp.compositions.contract.FormViewContract.FORM_SUBMITTED;
 import static rsp.compositions.ui.FormField.formField;
 import static rsp.dsl.Html.*;
 
@@ -184,8 +185,7 @@ public class DefaultEditView extends EditView {
             text("Cancel"),
             on("click", ctx -> {
                 if (contractClass != null) {
-                    lookup.publish(ACTION_SUCCESS,
-                        new EventKeys.ActionResult(contractClass, EventKeys.ActionType.CANCEL));
+                    lookup.publish(CANCEL_REQUESTED);
                 }
             })
         );
