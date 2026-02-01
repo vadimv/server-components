@@ -1,10 +1,14 @@
 package rsp.app.posts;
 
+import rsp.app.posts.components.CommentCreateContract;
+import rsp.app.posts.components.CommentEditContract;
+import rsp.app.posts.components.CommentsListContract;
 import rsp.app.posts.components.ExplorerContract;
 import rsp.app.posts.components.ExplorerView;
 import rsp.app.posts.components.PostCreateContract;
 import rsp.app.posts.components.PostEditContract;
 import rsp.app.posts.components.PostsListContract;
+import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
 import rsp.compositions.application.App;
 import rsp.compositions.application.AppConfig;
@@ -38,24 +42,31 @@ public class CrudApp {
 
         // Router defines URL routes for this composition
         // OVERLAY contracts (create/edit) are typically triggered by events, not URLs
-        // However, PostEditContract has a route to enable direct URL editing
+        // However, edit contracts have routes to enable direct URL editing
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
-                .route("/posts/:id", PostEditContract.class); // enable editing a post with its direct URL
+                .route("/posts/:id", PostEditContract.class)
+                .route("/comments", CommentsListContract.class)
+                .route("/comments/:id", CommentEditContract.class);
 
         final ViewsPlacements places = new ViewsPlacements()
                 .place(Slot.LEFT_SIDEBAR, ExplorerContract.class, ExplorerContract::new)  // Explorer in sidebar
                 .place(Slot.PRIMARY, PostsListContract.class, PostsListContract::new)
+                .place(Slot.PRIMARY, CommentsListContract.class, CommentsListContract::new)
                 .place(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new)
-                .place(Slot.OVERLAY, PostEditContract.class, PostEditContract::new);
+                .place(Slot.OVERLAY, PostEditContract.class, PostEditContract::new)
+                .place(Slot.OVERLAY, CommentCreateContract.class, CommentCreateContract::new)
+                .place(Slot.OVERLAY, CommentEditContract.class, CommentEditContract::new);
 
         final Composition postsModule = new Composition(router, places);
 
         // Create services
         final PostService postService = new PostService();
+        final CommentService commentService = new CommentService();
 
         // Services and auth provider will be added to the components context and referenced by their classes
         final var services = List.of(postService,
+                                     commentService,
                                      new StubAuthProvider());// Optional: defaults to anonymous if omitted
 
         // Create app with AppConfig
