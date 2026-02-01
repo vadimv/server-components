@@ -1,5 +1,7 @@
 package rsp.app.posts;
 
+import rsp.app.posts.components.ExplorerContract;
+import rsp.app.posts.components.ExplorerView;
 import rsp.app.posts.components.PostCreateContract;
 import rsp.app.posts.components.PostEditContract;
 import rsp.app.posts.components.PostsListContract;
@@ -30,8 +32,9 @@ public class CrudApp {
 
         final UiRegistry uiRegistry = new UiRegistry()
                 .register(ListViewContract.class, DefaultListView::new)
-                .register(CreateViewContract.class, DefaultEditView::new) // Create form UI
-                .register(EditViewContract.class, DefaultEditView::new);  // Edit form UI
+                .register(CreateViewContract.class, DefaultEditView::new)
+                .register(EditViewContract.class, DefaultEditView::new)
+                .register(ExplorerContract.class, ExplorerView::new);  // Explorer UI
 
         // Router defines URL routes for this composition
         // OVERLAY contracts (create/edit) are typically triggered by events, not URLs
@@ -41,6 +44,7 @@ public class CrudApp {
                 .route("/posts/:id", PostEditContract.class); // enable editing a post with its direct URL
 
         final ViewsPlacements places = new ViewsPlacements()
+                .place(Slot.LEFT_SIDEBAR, ExplorerContract.class, ExplorerContract::new)  // Explorer in sidebar
                 .place(Slot.PRIMARY, PostsListContract.class, PostsListContract::new)
                 .place(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new)
                 .place(Slot.OVERLAY, PostEditContract.class, PostEditContract::new);
@@ -54,7 +58,7 @@ public class CrudApp {
         final var services = List.of(postService,
                                      new StubAuthProvider());// Optional: defaults to anonymous if omitted
 
-        // Create app with AppConfig (flows to AppComponent → Context)
+        // Create app with AppConfig
         final App app = new App(appConfig, uiRegistry, List.of(postsModule), services);
 
         final WebServer server = new WebServer(8080,

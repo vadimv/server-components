@@ -22,6 +22,13 @@ public enum Slot {
     PRIMARY,
 
     /**
+     * Left sidebar panel.
+     * Contracts with this slot are always visible alongside PRIMARY content.
+     * Instantiated together with PRIMARY (not on-demand like OVERLAY).
+     */
+    LEFT_SIDEBAR,
+
+    /**
      * Split view panel (reserved for future use).
      */
     SECONDARY,

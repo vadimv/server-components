@@ -9,7 +9,6 @@ import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
-import rsp.compositions.contract.SlotUtils;
 import rsp.dsl.Definition;
 
 import java.util.HashMap;
@@ -83,8 +82,14 @@ public class SceneComponent extends Component<Scene> {
             // Add Scene to context so contracts can use SlotUtils
             ComponentContext enrichedContext = context.with(ContextKeys.SCENE, scene);
 
-            // Let the contract enrich context with its data (items, schema, etc.)
+            // Let the primary contract enrich context with its data (items, schema, etc.)
             enrichedContext = contract.enrichContext(enrichedContext);
+
+            // Let the LEFT_SIDEBAR contract enrich context with its data (if present)
+            ViewContract leftSidebarContract = scene.leftSidebarContract();
+            if (leftSidebarContract != null) {
+                enrichedContext = leftSidebarContract.enrichContext(enrichedContext);
+            }
 
             // Add active contracts by slot to context (for Layout to read)
             enrichedContext = enrichedContext.with(
@@ -389,33 +394,42 @@ public class SceneComponent extends Component<Scene> {
             Class<? extends ViewContract> contractClass = scene.primaryContract().getClass();
             Component<?> primaryComponent = resolveUiComponent(uiRegistry, contractClass);
 
-            // Resolve active non-primary contracts to UI components
-            Map<Class<? extends ViewContract>, Component<?>> nonPrimaryComponents = new HashMap<>();
-            for (Class<? extends ViewContract> nonPrimaryClass : scene.nonPrimaryContracts().keySet()) {
-                Component<?> nonPrimaryComponent = resolveUiComponent(uiRegistry, nonPrimaryClass);
-                nonPrimaryComponents.put(nonPrimaryClass, nonPrimaryComponent);
+            // Resolve LEFT_SIDEBAR contract to UI component (if present)
+            Component<?> leftSidebarComponent = null;
+            ViewContract leftSidebarContract = scene.leftSidebarContract();
+            if (leftSidebarContract != null) {
+                leftSidebarComponent = resolveUiComponent(uiRegistry, leftSidebarContract.getClass());
+            }
+
+            // Resolve active overlay contracts to UI components
+            Map<Class<? extends ViewContract>, Component<?>> overlayComponents = new HashMap<>();
+            for (Class<? extends ViewContract> overlayClass : scene.nonPrimaryContracts().keySet()) {
+                Component<?> overlayComponent = resolveUiComponent(uiRegistry, overlayClass);
+                overlayComponents.put(overlayClass, overlayComponent);
             }
 
             // Render page with LayoutComponent, passing auto-open info from scene
-            return page(primaryComponent, nonPrimaryComponents,
+            return page(primaryComponent, leftSidebarComponent, overlayComponents,
                     scene.autoOpenContract(), scene.autoOpenRoutePattern(), scene.pageTitle());
         };
     }
 
     /**
      * Renders the page structure with html, head, and body.
-     * Passes components to Layout which decides how to render each slot.
      */
     private static Definition page(Component<?> primaryComponent,
-                                   Map<Class<? extends ViewContract>, Component<?>> nonPrimaryComponents,
+                                   Component<?> leftSidebarComponent,
+                                   Map<Class<? extends ViewContract>, Component<?>> overlayComponents,
                                    Class<? extends ViewContract> autoOpenContract,
                                    String autoOpenRoutePattern,
                                    String pageTitle) {
+        Component<?> layoutComponent = new LayoutComponent(
+                primaryComponent, leftSidebarComponent, overlayComponents, autoOpenContract, autoOpenRoutePattern);
+
         return html(head(title(pageTitle != null ? pageTitle : "App"),
                         link(attr("rel", "stylesheet"),
                              attr("href", "/res/style.css"))),
-                body(new LayoutComponent(primaryComponent, nonPrimaryComponents,
-                        autoOpenContract, autoOpenRoutePattern)));
+                body(layoutComponent));
     }
 
     /**
@@ -498,7 +512,7 @@ public class SceneComponent extends Component<Scene> {
     /**
      * Build scene for non-primary contract routed directly via URL (Case 2).
      * Finds parent PRIMARY, uses it as primary, auto-opens this non-primary contract.
-     * Only the routed non-primary contract is pre-instantiated.
+     * Also instantiates LEFT_SIDEBAR contracts (always visible).
      */
     private Scene buildNonPrimaryRoutedScene(ComponentContext context, Composition composition,
                                              Class<? extends ViewContract> nonPrimaryContractClass,
@@ -533,10 +547,19 @@ public class SceneComponent extends Component<Scene> {
             return Scene.unauthorized(primaryContract, composition, uiRegistry);
         }
 
-        // Build factories for all non-primary slots (for on-demand instantiation)
+        // Instantiate LEFT_SIDEBAR contracts (always visible, not on-demand)
+        ViewContract leftSidebarContract = null;
+        for (ViewPlacement placement : composition.views()) {
+            if (placement.slot() == Slot.LEFT_SIDEBAR) {
+                leftSidebarContract = instantiatePlacement(placement, context);
+                break; // Only one LEFT_SIDEBAR contract expected
+            }
+        }
+
+        // Build factories for on-demand slots (OVERLAY, etc. - excludes PRIMARY and LEFT_SIDEBAR)
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
         for (ViewPlacement placement : composition.views()) {
-            if (placement.slot() != Slot.PRIMARY) {
+            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR) {
                 Class<? extends ViewContract> contractClass = placement.contractClass();
                 if (contractClass != null) {
                     nonPrimaryFactories.put(contractClass, placement.contractFactory());
@@ -544,15 +567,19 @@ public class SceneComponent extends Component<Scene> {
             }
         }
 
-        // Pre-instantiate ONLY the routed non-primary contract (auto-open case)
+        // Pre-instantiate the routed non-primary contract (auto-open case)
         Map<Class<? extends ViewContract>, ViewContract> activeNonPrimary = new HashMap<>();
         ComponentContext nonPrimaryContext = context
             .with(ContextKeys.CONTRACT_CLASS, nonPrimaryContractClass);
-        // Note: Don't set IS_OVERLAY_MODE or IS_AUTO_OPEN_OVERLAY - Scene is slot-agnostic
 
         ViewContract nonPrimaryContract = instantiatePlacement(nonPrimaryPlacement, nonPrimaryContext);
         if (nonPrimaryContract != null) {
             activeNonPrimary.put(nonPrimaryContractClass, nonPrimaryContract);
+        }
+
+        // Add LEFT_SIDEBAR to active contracts if present
+        if (leftSidebarContract != null) {
+            activeNonPrimary.put(leftSidebarContract.getClass(), leftSidebarContract);
         }
 
         // Return scene with auto-open non-primary contract
@@ -562,7 +589,8 @@ public class SceneComponent extends Component<Scene> {
 
     /**
      * Build scene for PRIMARY contract (Cases 1, 3, 4).
-     * Standard behavior: use as primary, store factories for non-primary slots (no pre-instantiation).
+     * Standard behavior: use as primary, instantiate LEFT_SIDEBAR contracts,
+     * store factories for other non-primary slots (OVERLAY etc. for on-demand instantiation).
      */
     private Scene buildPrimaryScene(ComponentContext context, Composition composition,
                                     ViewPlacement primaryPlacement, UiRegistry uiRegistry) {
@@ -577,12 +605,21 @@ public class SceneComponent extends Component<Scene> {
             return Scene.unauthorized(contract, composition, uiRegistry);
         }
 
-        // Build factories for non-primary slots (for on-demand instantiation via SHOW events)
+        // Instantiate LEFT_SIDEBAR contracts (always visible, not on-demand)
+        ViewContract leftSidebarContract = null;
+        for (ViewPlacement placement : composition.views()) {
+            if (placement.slot() == Slot.LEFT_SIDEBAR) {
+                leftSidebarContract = instantiatePlacement(placement, context);
+                break; // Only one LEFT_SIDEBAR contract expected
+            }
+        }
+
+        // Build factories for on-demand slots (OVERLAY, etc.)
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
 
         for (ViewPlacement placement : composition.views()) {
-            // Collect all non-primary placements
-            if (placement.slot() != Slot.PRIMARY) {
+            // Collect non-primary, non-sidebar placements for on-demand instantiation
+            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR) {
                 Class<? extends ViewContract> contractClass = placement.contractClass();
                 if (contractClass == null) {
                     throw new IllegalStateException(
@@ -592,7 +629,10 @@ public class SceneComponent extends Component<Scene> {
             }
         }
 
-        // No pre-instantiation - non-primary contracts created on-demand via SHOW events
+        // Use withLeftSidebar factory method if we have a sidebar, otherwise use of()
+        if (leftSidebarContract != null) {
+            return Scene.withLeftSidebar(contract, leftSidebarContract, composition, nonPrimaryFactories, uiRegistry);
+        }
         return Scene.of(contract, composition, nonPrimaryFactories, uiRegistry);
     }
 

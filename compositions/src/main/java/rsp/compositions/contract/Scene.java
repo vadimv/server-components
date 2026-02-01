@@ -84,15 +84,30 @@ public record Scene(
     }
 
     /**
-     * Get non-primary contracts map.
-     * Returns all active contracts from non-PRIMARY slots as a map keyed by class.
+     * Get the LEFT_SIDEBAR contract if present.
      *
-     * @return Map of non-primary contracts
+     * @return The LEFT_SIDEBAR contract, or null if not present
+     */
+    public ViewContract leftSidebarContract() {
+        List<ActiveContract> sidebarContracts = activeContractsBySlot.get(Slot.LEFT_SIDEBAR);
+        if (sidebarContracts == null || sidebarContracts.isEmpty()) {
+            return null;
+        }
+        // Only one LEFT_SIDEBAR contract is expected
+        return sidebarContracts.get(0).contract();
+    }
+
+    /**
+     * Get overlay contracts map (excludes PRIMARY and LEFT_SIDEBAR).
+     * Returns active contracts from OVERLAY and similar slots as a map keyed by class.
+     *
+     * @return Map of overlay contracts
      */
     public Map<Class<? extends ViewContract>, ViewContract> nonPrimaryContracts() {
         Map<Class<? extends ViewContract>, ViewContract> result = new HashMap<>();
         for (Map.Entry<Slot, List<ActiveContract>> entry : activeContractsBySlot.entrySet()) {
-            if (entry.getKey() != Slot.PRIMARY) {
+            // Exclude PRIMARY and LEFT_SIDEBAR (sidebar is handled separately)
+            if (entry.getKey() != Slot.PRIMARY && entry.getKey() != Slot.LEFT_SIDEBAR) {
                 for (ActiveContract active : entry.getValue()) {
                     result.put(active.contractClass(), active.contract());
                 }
@@ -103,13 +118,15 @@ public record Scene(
 
 
     /**
-     * Check if this scene has any active non-primary contracts.
+     * Check if this scene has any active overlay contracts (excludes PRIMARY and LEFT_SIDEBAR).
      *
-     * @return true if there are active non-primary contracts
+     * @return true if there are active overlay contracts
      */
     public boolean hasNonPrimaryContracts() {
         for (Map.Entry<Slot, List<ActiveContract>> entry : activeContractsBySlot.entrySet()) {
-            if (entry.getKey() != Slot.PRIMARY && !entry.getValue().isEmpty()) {
+            // Exclude PRIMARY and LEFT_SIDEBAR
+            if (entry.getKey() != Slot.PRIMARY && entry.getKey() != Slot.LEFT_SIDEBAR
+                    && !entry.getValue().isEmpty()) {
                 return true;
             }
         }
@@ -254,6 +271,33 @@ public record Scene(
         return new Scene(primaryContract, composition,
             nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
             Map.of(), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
+    }
+
+    /**
+     * Create a valid scene with primary contract, left sidebar contract, non-primary factories, and UI registry.
+     *
+     * @param primaryContract The primary contract
+     * @param leftSidebarContract The left sidebar contract (can be null)
+     * @param composition The composition
+     * @param nonPrimaryFactories Factories for lazy instantiation
+     * @param uiRegistry The UI registry
+     */
+    public static Scene withLeftSidebar(ViewContract primaryContract, ViewContract leftSidebarContract,
+                                        Composition composition,
+                                        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
+                                        UiRegistry uiRegistry) {
+        String title = primaryContract != null ? primaryContract.title() : "App";
+        Map<Slot, List<ActiveContract>> activeBySlot = new HashMap<>();
+
+        if (leftSidebarContract != null) {
+            activeBySlot.put(Slot.LEFT_SIDEBAR, List.of(
+                new ActiveContract(leftSidebarContract, leftSidebarContract.getClass(), Map.of())
+            ));
+        }
+
+        return new Scene(primaryContract, composition,
+            nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
+            Map.copyOf(activeBySlot), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
     }
 
 

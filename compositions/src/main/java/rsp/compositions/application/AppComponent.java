@@ -60,6 +60,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
 
             // Add all services to context using their actual classes as keys for each service instance
             enrichedContext = enrichedContext.with(services);
+
             return enrichedContext;
         };
     }
