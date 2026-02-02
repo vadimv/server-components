@@ -1,5 +1,7 @@
 package rsp.app.posts.components;
 
+import rsp.compositions.contract.ViewContract;
+
 /**
  * Represents an item in the Explorer menu.
  * Each item corresponds to a unique typeHint from registered contracts.
@@ -8,7 +10,7 @@ package rsp.app.posts.components;
  * @param label The display label for the menu item
  * @param route The route to navigate to when clicked
  */
-public record ExplorerItem(Object typeHint, String label, String route) {
+public record ExplorerItem(Object typeHint, String label, Class<? extends ViewContract> contract, String route) {
 
     /**
      * Derive a display label from a typeHint.

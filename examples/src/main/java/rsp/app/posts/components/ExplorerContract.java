@@ -13,6 +13,8 @@ import rsp.compositions.contract.ViewContract;
 import java.util.*;
 import java.util.function.BiConsumer;
 
+import static rsp.compositions.contract.EventKeys.SET_PRIMARY;
+
 /**
  * ExplorerContract - Provides navigation menu data based on typeHints from registered contracts.
  * <p>
@@ -26,6 +28,8 @@ import java.util.function.BiConsumer;
  */
 public class ExplorerContract extends ViewContract {
 
+    public static EventKey.SimpleKey<ExplorerItem> REQUEST_OPEN_CONTRACT = new EventKey.SimpleKey<>("explorer.open.contract", ExplorerItem.class);
+
     private final List<ExplorerItem> items;
     private final Object activeHint;
 
@@ -36,6 +40,11 @@ public class ExplorerContract extends ViewContract {
         Lookup readOnlyLookup = new ReadOnlyLookup(lookup);
         this.items = extractTypeHints(readOnlyLookup);
         this.activeHint = getActiveTypeHint(readOnlyLookup);
+
+        subscribe(REQUEST_OPEN_CONTRACT, (eventName, explorerItem) -> {
+            System.out.println(explorerItem);
+            lookup.publish(SET_PRIMARY, explorerItem.contract());
+        });
     }
 
     @Override
@@ -79,7 +88,7 @@ public class ExplorerContract extends ViewContract {
                                 .findRoutePattern(placement.contractClass())
                                 .orElse("/");
                         String label = ExplorerItem.deriveLabel(hint);
-                        uniqueByHint.put(hint, new ExplorerItem(hint, label, route));
+                        uniqueByHint.put(hint, new ExplorerItem(hint, label, placement.contractClass(), route));
                     }
                 } catch (Exception e) {
                     // Skip contracts that fail to instantiate

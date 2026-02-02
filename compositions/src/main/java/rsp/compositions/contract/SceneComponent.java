@@ -181,6 +181,64 @@ public class SceneComponent extends Component<Scene> {
             handleHideEvent(state, contractClass, stateUpdate);
         }, false);
 
+        subscriber.addEventHandler(SET_PRIMARY, (eventName, contractClass) -> {
+
+            // Check if already active
+            if (state.findContract(contractClass) != null) {
+                return; // Already shown
+            }
+
+            // Get factory from scene
+            Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
+            if (factory == null) {
+                // Not found in factories - check composition placements
+                Composition composition = state.composition();
+                ViewPlacement placement = composition != null ? composition.placementFor(contractClass) : null;
+                if (placement != null) {
+                    factory = placement.contractFactory();
+                }
+            }
+
+            if (factory == null) {
+                return; // No factory available
+            }
+
+            // Resolve target slot from composition (no default assumption)
+            Composition composition = state.composition();
+            Slot targetSlot = null;
+            if (composition != null) {
+                ViewPlacement placement = composition.placementFor(contractClass);
+                if (placement != null) {
+                    targetSlot = placement.slot();
+                }
+            }
+
+            if (targetSlot == null) {
+                // Fallback: if no placement found, cannot determine slot
+                return;
+            }
+
+            // Create lookup with SHOW_DATA, marking contract as active
+            // Note: Don't set IS_OVERLAY_MODE - Scene is slot-agnostic, contracts use SlotUtils if needed
+            ComponentContext showContext = savedContext
+                    .with(ContextKeys.CONTRACT_CLASS, contractClass)
+                    .with(ContextKeys.IS_ACTIVE_CONTRACT, true)  // Mark as active
+                    .with(ContextKeys.SCENE, state);  // Add Scene for SlotUtils
+
+            Lookup lookup = createLookup(showContext, commandsEnqueue);
+
+            // Instantiate contract
+            ViewContract contract = factory.apply(lookup);
+            if (contract == null) {
+                return;
+            }
+            contract.registerHandlers();
+
+            stateUpdate.applyStateTransformation(s ->
+                    s.withPrimaryContract(contract)
+            );
+        }, false);
+
         // ACTION_SUCCESS handler: framework-driven navigation based on contract placement
         subscriber.addEventHandler(EventKeys.ACTION_SUCCESS, (eventName, result) -> {
             handleActionSuccess(state, result, commandsEnqueue, stateUpdate);
@@ -253,7 +311,7 @@ public class SceneComponent extends Component<Scene> {
         stateUpdate.applyStateTransformation(s ->
             s.withActiveContract(slot, contract, contractClass, data)
         );
-    }
+        }
 
     /**
      * Handle HIDE event: destroy contract and remove from scene.
@@ -315,55 +373,14 @@ public class SceneComponent extends Component<Scene> {
             // OVERLAY behavior: close overlay and refresh list
             lookup.publish(EventKeys.HIDE, contractClass);
 
-            // Emit legacy events for backward compatibility
-            if (result.type() == EventKeys.ActionType.SAVE) {
-                lookup.publish(EventKeys.MODAL_SAVE_SUCCESS);
-            } else if (result.type() == EventKeys.ActionType.DELETE) {
-                lookup.publish(EventKeys.MODAL_DELETE_SUCCESS);
-            }
         } else {
             // PRIMARY behavior: derive navigation from composition
             // Case 1: Same contract as primary (e.g., bulk delete on list) → refresh in place
             if (contractClass.equals(state.primaryContract().getClass())) {
                 Scene freshScene = buildScene(savedContext);
                 stateUpdate.setState(freshScene);
-                return;
             }
-
-            // Case 2: Different contract (e.g., edit/create) → navigate to list
-            String listRoute = deriveListRoute(state.composition());
-            lookup.publish(EventKeys.NAVIGATE, listRoute);
         }
-    }
-
-    /**
-     * Derive the list route from composition configuration.
-     * <p>
-     * Finds the PRIMARY contract and looks up its route in the Router.
-     * This follows the CountersMainComponent pattern where framework computes URLs from mappings.
-     *
-     * @param composition The composition to derive route from
-     * @return The list route pattern (e.g., "/posts")
-     * @throws IllegalStateException if no PRIMARY contract or route found
-     */
-    private String deriveListRoute(Composition composition) {
-        if (composition == null) {
-            throw new IllegalStateException("No composition available to derive list route");
-        }
-
-        ViewPlacement primaryPlacement = composition.primaryPlacement();
-        if (primaryPlacement == null) {
-            throw new IllegalStateException("No PRIMARY contract in composition");
-        }
-
-        Router router = composition.router();
-        if (router == null) {
-            throw new IllegalStateException("No router in composition");
-        }
-
-        return router.findRoutePattern(primaryPlacement.contractClass())
-            .orElseThrow(() -> new IllegalStateException(
-                "No route for PRIMARY contract: " + primaryPlacement.contractClass().getName()));
     }
 
     @Override

@@ -1,5 +1,7 @@
 package rsp.app.posts.components;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.EventKeys;
@@ -25,6 +27,7 @@ import static rsp.dsl.Html.*;
  */
 public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
 
+    private static final Logger log = LoggerFactory.getLogger(ExplorerView.class);
     private Lookup lookup;
 
     public record ExplorerViewState(
@@ -83,7 +86,7 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
                 a(
                         attr("href", item.route()),  // Real URL for copy/share
                         on("click", true, ctx -> {   // true = preventDefault
-                            lookup.publish(EventKeys.NAVIGATE, item.route());
+                            lookup.publish(ExplorerContract.REQUEST_OPEN_CONTRACT, item);
                         }),
                         text(label)
                 )

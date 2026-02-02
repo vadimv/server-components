@@ -215,6 +215,12 @@ public record Scene(
             autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
 
+    public Scene withPrimaryContract( ViewContract contract) {
+        return new Scene(contract, composition, nonPrimaryFactories,
+                activeContractsBySlot, uiRegistry, authorized, timestamp, error,
+                autoOpenContract, autoOpenRoutePattern, pageTitle);
+    }
+
     /**
      * Create a new Scene with a contract removed (closed).
      *
@@ -236,21 +242,7 @@ public record Scene(
             autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
 
-    /**
-     * Create a new Scene with all contracts in a slot cleared.
-     *
-     * @param slot The slot to clear
-     * @return New Scene with slot cleared
-     */
-    public Scene withSlotCleared(Slot slot) {
-        Map<Slot, List<ActiveContract>> newMap = new HashMap<>(activeContractsBySlot);
-        newMap.remove(slot);
-        return new Scene(primaryContract, composition, nonPrimaryFactories,
-            Map.copyOf(newMap), uiRegistry, authorized, timestamp, error,
-            autoOpenContract, autoOpenRoutePattern, pageTitle);
-    }
 
-    // ===== Factory Methods =====
 
     /**
      * Create a valid scene with primary contract, composition, and UI registry (no non-primary contracts).

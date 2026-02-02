@@ -29,6 +29,10 @@ public final class EventKeys {
     public static final EventKey.SimpleKey<ShowPayload> SHOW =
             new EventKey.SimpleKey<>("show", ShowPayload.class);
 
+    public static final EventKey.SimpleKey<Class> SET_PRIMARY =
+            new EventKey.SimpleKey<>("setPrimary", Class.class);
+
+
     /**
      * Hide a contract (destroy instance).
      * Emitted by: Views (close button), Contracts (after save/delete)
@@ -45,25 +49,6 @@ public final class EventKeys {
 
 
     /**
-     * Modal save succeeded (close modal + refresh list).
-     * Emitted by: EditViewContract.onSaveSuccess()
-     * Handled by: LayoutComponent
-     */
-    public static final EventKey.VoidKey MODAL_SAVE_SUCCESS =
-            new EventKey.VoidKey("modalSaveSuccess");
-
-    /**
-     * Modal delete succeeded (close modal + refresh list).
-     * Emitted by: EditViewContract.onDeleteSuccess()
-     * Handled by: LayoutComponent
-     */
-    public static final EventKey.VoidKey MODAL_DELETE_SUCCESS =
-            new EventKey.VoidKey("modalDeleteSuccess");
-
-
-    // ===== STATE UPDATE EVENTS (Dynamic) =====
-
-    /**
      * State updated event for any context parameter.
      * Dynamic key: "stateUpdated.*" for "stateUpdated.p", "stateUpdated.sort", etc.
      * Emitted by: DefaultListView (pagination, sorting)
@@ -72,8 +57,6 @@ public final class EventKeys {
      */
     public static final EventKey.DynamicKey<ContextStateComponent.ContextValue> STATE_UPDATED =
             new EventKey.DynamicKey<>("stateUpdated", ContextStateComponent.ContextValue.class);
-
-    // ===== NAVIGATION EVENTS =====
 
     /**
      * Navigate to a URL path (SPA-style navigation).
@@ -84,16 +67,6 @@ public final class EventKeys {
     public static final EventKey.SimpleKey<String> NAVIGATE =
             new EventKey.SimpleKey<>("navigate", String.class);
 
-    /**
-     * Reload page (full page reload).
-     * Emitted by: Application code when full reload is needed
-     * Handled by: AutoAddressBarSyncComponent (uses SetHref for full reload)
-     * Payload: The URL path to reload
-     */
-    public static final EventKey.SimpleKey<String> RELOAD =
-            new EventKey.SimpleKey<>("reload", String.class);
-
-    // ===== ACTION RESULT EVENTS (Framework-Driven Navigation) =====
 
     /**
      * Action succeeded (generic success event).
@@ -122,15 +95,6 @@ public final class EventKeys {
      */
     public static final EventKey.SimpleKey<ActionResult> ACTION_SUCCESS =
             new EventKey.SimpleKey<>("action.success", ActionResult.class);
-
-    /**
-     * Action failed (generic failure event).
-     * Emitted by: Contracts when operations fail
-     * Handled by: Framework (SceneComponent) or UI layer for error display
-     * Payload: ActionResult containing operation type and error info
-     */
-    public static final EventKey.SimpleKey<ActionResult> ACTION_FAILURE =
-            new EventKey.SimpleKey<>("action.failure", ActionResult.class);
 
     /**
      * Action result containing operation type.
