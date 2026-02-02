@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.EventKeys;
+import rsp.compositions.contract.ContextKeys;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
@@ -39,7 +39,12 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
     public ComponentStateSupplier<ExplorerViewState> initStateSupplier() {
         return (_, context) -> {
             List<ExplorerItem> items = context.get(ExplorerContextKeys.EXPLORER_ITEMS);
-            Object activeHint = context.get(ExplorerContextKeys.EXPLORER_ACTIVE_HINT);
+            // Read from PRIMARY_TYPE_HINT for dynamic updates when primary contract changes
+            Object activeHint = context.get(ContextKeys.PRIMARY_TYPE_HINT);
+            // Fallback to static hint if dynamic not available
+            if (activeHint == null) {
+                activeHint = context.get(ExplorerContextKeys.EXPLORER_ACTIVE_HINT);
+            }
             return new ExplorerViewState(
                     items != null ? items : List.of(),
                     activeHint
@@ -80,7 +85,6 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
     private Definition renderMenuItem(ExplorerItem item, Object activeHint) {
         boolean isActive = Objects.equals(item.typeHint(), activeHint);
         String cssClass = isActive ? "explorer-item active" : "explorer-item";
-        String label = isActive ? item.label() + "*" : item.label();
 
         return li(attr("class", cssClass),
                 a(
@@ -88,7 +92,7 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
                         on("click", true, ctx -> {   // true = preventDefault
                             lookup.publish(ExplorerContract.REQUEST_OPEN_CONTRACT, item);
                         }),
-                        text(label)
+                        text(item.label())
                 )
         );
     }

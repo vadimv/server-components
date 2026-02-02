@@ -13,7 +13,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import static rsp.compositions.contract.ActionBindings.ActionPayload;
 import static rsp.compositions.contract.EventKeys.*;
 import static rsp.compositions.contract.ListViewContract.*;
 import static rsp.dsl.Html.*;
@@ -262,11 +261,8 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        // Clear selection when changing page
                         newState.setState(state.clearSelection());
-                        lookup.publish(STATE_UPDATED.with("p"),
-                            new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage - 1))
-                        );
+                        lookup.publish(PAGE_CHANGE_REQUESTED, currentPage - 1);
                     })
                   ),
 
@@ -281,12 +277,8 @@ public class DefaultListView extends ListView {
                 attr("type", "button"),
                 text("Next →"),
                 on("click", ctx -> {
-                    // Clear selection when changing page
                     newState.setState(state.clearSelection());
-                    // Send event to AddressBarSyncComponent
-                    lookup.publish(STATE_UPDATED.with("p"),
-                        new ContextStateComponent.ContextValue.StringValue(String.valueOf(currentPage + 1))
-                    );
+                    lookup.publish(PAGE_CHANGE_REQUESTED, currentPage + 1);
                 })
             )
         );

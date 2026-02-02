@@ -3,15 +3,10 @@ package rsp.compositions.contract;
 import rsp.component.EventKey;
 import rsp.component.definitions.ContextStateComponent;
 
-import java.util.Map;
-import java.util.Set;
-
 import static rsp.compositions.contract.ActionBindings.*;
 
 public final class EventKeys {
     private EventKeys() {}
-
-    // ===== SHOW/HIDE EVENTS (Scene-level contract lifecycle) =====
 
     /**
      * Show a contract (on-demand instantiation).
@@ -110,23 +105,9 @@ public final class EventKeys {
      * framework derives NAVIGATION from composition/router configuration.
      *
      * @param contractClass The class of the contract that performed the action
-     * @param type The type of action that was performed (SAVE, DELETE, CANCEL)
      */
     public record ActionResult(
-        Class<? extends ViewContract> contractClass,
-        ActionType type
+        Class<? extends ViewContract> contractClass
     ) {}
 
-    /**
-     * Type of action performed by a contract.
-     * Used by framework to determine appropriate UI response (e.g., which legacy event to emit).
-     */
-    public enum ActionType {
-        /** Entity save operation */
-        SAVE,
-        /** Entity delete operation */
-        DELETE,
-        /** User cancelled operation */
-        CANCEL
-    }
 }

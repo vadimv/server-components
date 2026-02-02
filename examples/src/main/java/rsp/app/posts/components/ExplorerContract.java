@@ -42,7 +42,6 @@ public class ExplorerContract extends ViewContract {
         this.activeHint = getActiveTypeHint(readOnlyLookup);
 
         subscribe(REQUEST_OPEN_CONTRACT, (eventName, explorerItem) -> {
-            System.out.println(explorerItem);
             lookup.publish(SET_PRIMARY, explorerItem.contract());
         });
     }
@@ -59,10 +58,11 @@ public class ExplorerContract extends ViewContract {
 
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
+        // Note: Don't set CONTRACT_TITLE here - the primary contract's title should be used
+        // The Explorer renders its own title ("Explorer") directly in its view
         return context
                 .with(ExplorerContextKeys.EXPLORER_ITEMS, items)
-                .with(ExplorerContextKeys.EXPLORER_ACTIVE_HINT, activeHint)
-                .with(ContextKeys.CONTRACT_TITLE, title());
+                .with(ExplorerContextKeys.EXPLORER_ACTIVE_HINT, activeHint);
     }
 
     /**

@@ -3,10 +3,7 @@ package rsp.compositions.composition;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.Lookup;
-import rsp.compositions.contract.CreateViewContract;
-import rsp.compositions.contract.EditViewContract;
-import rsp.compositions.contract.ListViewContract;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.*;
 import rsp.compositions.routing.Router;
 import rsp.compositions.schema.DataSchema;
 
@@ -188,6 +185,11 @@ public class CompositionTests {
     static class TestListContract extends ListViewContract<Object> {
         TestListContract(final Lookup lookup) {
             super(lookup);
+        }
+
+        @Override
+        protected QueryParam<Integer> pageQueryParam() {
+            return null;
         }
 
         @Override

@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 public class QueryParam<T> {
-    private final String name;
+    public final String name;
     private final Class<T> type;
     private final Function<String, T> converter;
     private final T defaultValue;

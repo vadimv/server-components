@@ -3,6 +3,7 @@ package rsp.compositions.contract;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
+import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
@@ -12,6 +13,7 @@ import java.util.Set;
 import static rsp.compositions.contract.ActionBindings.*;
 import static rsp.compositions.contract.ContextKeys.LIST_DEFAULT_PAGE_SIZE;
 import static rsp.compositions.contract.EventKeys.SHOW;
+import static rsp.compositions.contract.EventKeys.STATE_UPDATED;
 
 public abstract class ListViewContract<T> extends ViewContract {
 
@@ -29,6 +31,13 @@ public abstract class ListViewContract<T> extends ViewContract {
     public static final EventKey.SimpleKey<Set<String>> BULK_DELETE_REQUESTED =
             new EventKey.SimpleKey<>("bulk.delete.requested",
                     (Class<Set<String>>) (Class<?>) Set.class);
+
+
+    public static final EventKey.SimpleKey<Integer> PAGE_CHANGE_REQUESTED =
+            new EventKey.SimpleKey<>("change.requested",
+                                      Integer.class);
+    /**
+
     /**
      * Context key for default page size configuration.
      * Framework-agnostic: contracts don't need to know about AppConfig structure.
@@ -61,7 +70,12 @@ public abstract class ListViewContract<T> extends ViewContract {
         return pageSize;
     }
 
-    public abstract int page();
+
+    protected  abstract QueryParam<Integer>  pageQueryParam();
+
+    public int page() {
+        return resolve(pageQueryParam());
+    }
 
     public abstract String sort();
 
@@ -112,6 +126,11 @@ public abstract class ListViewContract<T> extends ViewContract {
         // Handle bulk delete requests
         subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
             handleBulkDelete(selectedIds);
+        });
+
+        subscribe(PAGE_CHANGE_REQUESTED, (name, newPage) -> {
+            lookup.publish(STATE_UPDATED.with(pageQueryParam().name),
+                    new ContextStateComponent.ContextValue.StringValue(String.valueOf(newPage)));
         });
 
         subscribe(CREATE_ELEMENT_REQUESTED, () -> {
@@ -179,7 +198,7 @@ public abstract class ListViewContract<T> extends ViewContract {
         // Emit generic success event - framework derives behavior from composition
         // Since this contract IS the primary, framework will rebuild scene (refresh in place)
         lookup.publish(EventKeys.ACTION_SUCCESS,
-            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.DELETE));
+            new EventKeys.ActionResult(getClass()));
     }
 
     /**

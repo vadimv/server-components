@@ -5,7 +5,6 @@ import rsp.app.posts.services.PostService;
 import rsp.component.Lookup;
 import rsp.compositions.contract.ViewContract;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.QueryParam;
 
@@ -25,6 +24,11 @@ public class PostsListContract extends ListViewContract<Post> {
     }
 
     @Override
+    protected QueryParam<Integer> pageQueryParam() {
+        return PAGE;
+    }
+
+    @Override
     public Object typeHint() {
         return Post.class;
     }
@@ -32,11 +36,6 @@ public class PostsListContract extends ListViewContract<Post> {
     @Override
     public String title() {
         return "Posts";
-    }
-
-    @Override
-    public int page() {
-        return resolve(PAGE);
     }
 
     @Override

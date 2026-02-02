@@ -104,7 +104,11 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             DataSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
             String listRoute = context.get(ContextKeys.EDIT_LIST_ROUTE);
             Boolean isCreateModeValue = context.get(ContextKeys.EDIT_IS_CREATE_MODE);
-            String pageTitle = context.get(ContextKeys.CONTRACT_TITLE);
+            // Read from OVERLAY_TITLE first (specific to overlays), fallback to CONTRACT_TITLE
+            String pageTitle = context.get(ContextKeys.OVERLAY_TITLE);
+            if (pageTitle == null) {
+                pageTitle = context.get(ContextKeys.CONTRACT_TITLE);
+            }
 
             // Apply defaults
             listRoute = listRoute != null ? listRoute : "/";

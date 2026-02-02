@@ -12,7 +12,6 @@ import rsp.compositions.routing.Router;
 import rsp.dsl.Definition;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -85,6 +84,13 @@ public class SceneComponent extends Component<Scene> {
             // Let the primary contract enrich context with its data (items, schema, etc.)
             enrichedContext = contract.enrichContext(enrichedContext);
 
+            // Add primary contract's typeHint to context for Explorer highlighting
+            // This is dynamic - it updates when the primary contract changes via SET_PRIMARY
+            Object primaryTypeHint = contract.typeHint();
+            if (primaryTypeHint != null) {
+                enrichedContext = enrichedContext.with(ContextKeys.PRIMARY_TYPE_HINT, primaryTypeHint);
+            }
+
             // Let the LEFT_SIDEBAR contract enrich context with its data (if present)
             ViewContract leftSidebarContract = scene.leftSidebarContract();
             if (leftSidebarContract != null) {
@@ -106,6 +112,10 @@ public class SceneComponent extends Component<Scene> {
                 Map<Class<? extends ViewContract>, ViewContract> nonPrimary = scene.nonPrimaryContracts();
                 enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACTS, nonPrimary);
 
+                // Preserve primary contract's title before overlay enrichment
+                // (overlay contracts may set their own CONTRACT_TITLE which would overwrite it)
+                String primaryTitle = enrichedContext.get(ContextKeys.CONTRACT_TITLE);
+
                 // Enrich context with each non-primary contract's data
                 for (ViewContract nonPrimaryContract : nonPrimary.values()) {
                     enrichedContext = nonPrimaryContract.enrichContext(enrichedContext);
@@ -113,6 +123,18 @@ public class SceneComponent extends Component<Scene> {
                     enrichedContext = enrichedContext.with(
                             ContextKeys.OVERLAY_VIEW_CONTRACT.with(nonPrimaryContract.getClass().getName()),
                             nonPrimaryContract);
+                }
+
+                // Capture overlay title (set by overlay contracts during enrichment)
+                // and store it in OVERLAY_TITLE for EditView to use
+                String overlayTitle = enrichedContext.get(ContextKeys.CONTRACT_TITLE);
+                if (overlayTitle != null && !overlayTitle.equals(primaryTitle)) {
+                    enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_TITLE, overlayTitle);
+                }
+
+                // Restore primary contract's title (the list view should show "Posts", not "Edit Post")
+                if (primaryTitle != null) {
+                    enrichedContext = enrichedContext.with(ContextKeys.CONTRACT_TITLE, primaryTitle);
                 }
             }
 
@@ -188,6 +210,10 @@ public class SceneComponent extends Component<Scene> {
                 return; // Already shown
             }
 
+            if (state.primaryContract() != null) {
+                state.primaryContract().onDestroy();
+            }
+
             // Get factory from scene
             Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
             if (factory == null) {
@@ -234,13 +260,26 @@ public class SceneComponent extends Component<Scene> {
             }
             contract.registerHandlers();
 
+            // Update URL to reflect the new primary contract's route
+            if (composition != null && composition.router() != null) {
+                @SuppressWarnings("unchecked")
+                Class<? extends ViewContract> typedContractClass = (Class<? extends ViewContract>) contractClass;
+                String route = composition.router()
+                    .findRoutePattern(typedContractClass)
+                    .orElse(null);
+                if (route != null) {
+                    // Publish NAVIGATE to update browser URL
+                    lookup.publish(EventKeys.NAVIGATE, route);
+                }
+            }
+
             stateUpdate.applyStateTransformation(s ->
                     s.withPrimaryContract(contract)
             );
         }, false);
 
         // ACTION_SUCCESS handler: framework-driven navigation based on contract placement
-        subscriber.addEventHandler(EventKeys.ACTION_SUCCESS, (eventName, result) -> {
+        subscriber.addEventHandler(ACTION_SUCCESS, (eventName, result) -> {
             handleActionSuccess(state, result, commandsEnqueue, stateUpdate);
         }, false);
     }
@@ -352,7 +391,7 @@ public class SceneComponent extends Component<Scene> {
      * - Easy to extend (add new slots/behaviors without touching contracts)
      */
     private void handleActionSuccess(Scene state,
-                                     EventKeys.ActionResult result,
+                                     ActionResult result,
                                      CommandsEnqueue commandsEnqueue,
                                      StateUpdate<Scene> stateUpdate) {
         // Get contract class from the action result
@@ -371,7 +410,7 @@ public class SceneComponent extends Component<Scene> {
         // Determine behavior based on placement
         if (SlotUtils.isInOverlay(contractClass, state)) {
             // OVERLAY behavior: close overlay and refresh list
-            lookup.publish(EventKeys.HIDE, contractClass);
+            lookup.publish(HIDE, contractClass);
 
         } else {
             // PRIMARY behavior: derive navigation from composition

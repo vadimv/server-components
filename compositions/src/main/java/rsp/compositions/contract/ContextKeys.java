@@ -39,13 +39,6 @@ public final class ContextKeys {
             new ContextKey.ClassKey<>(Router.class);
 
     /**
-     * HTTP request object containing request details.
-     * Stored as: HttpRequest.class → HttpRequest instance
-     */
-    public static final ContextKey.ClassKey<HttpRequest> HTTP_REQUEST =
-            new ContextKey.ClassKey<>(HttpRequest.class);
-
-    /**
      * UI registry for mapping view contracts to UI implementations.
      * Stored as: UiRegistry.class → UiRegistry instance
      */
@@ -59,13 +52,6 @@ public final class ContextKeys {
      */
     public static final ContextKey.ClassKey<AuthComponent.AuthProvider> AUTH_PROVIDER =
             new ContextKey.ClassKey<>(AuthComponent.AuthProvider.class);
-
-    /**
-     * View contract for the current route.
-     * Stored as: ViewContract.class → ViewContract instance
-     */
-    public static final ContextKey.ClassKey<ViewContract> VIEW_CONTRACT =
-            new ContextKey.ClassKey<>(ViewContract.class);
 
     /**
      * Authorization strategy for access control.
@@ -239,28 +225,6 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("layout.isOverlayMode", Boolean.class);
 
     /**
-     * Whether the current overlay contract is being auto-opened (Case 2: OVERLAY + route).
-     * Type: Boolean
-     * Set to true when SceneComponent instantiates an overlay contract that was routed directly via URL.
-     * Contracts should immediately activate themselves when this is true.
-     */
-    public static final ContextKey.StringKey<Boolean> IS_AUTO_OPEN_OVERLAY =
-            new ContextKey.StringKey<>("layout.isAutoOpenOverlay", Boolean.class);
-
-    /**
-     * The currently active overlay contract class.
-     * Type: Class (contract class)
-     * Set by LayoutComponent when an overlay is activated.
-     * Used by overlay contracts to determine if they should handle events.
-     */
-    @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<Class<? extends ViewContract>> ACTIVE_OVERLAY_CLASS =
-            new ContextKey.StringKey<>("layout.activeOverlayClass",
-                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
-
-    // ===== SHOW/HIDE KEYS (On-demand contract instantiation) =====
-
-    /**
      * Data passed to a contract when shown via SHOW event.
      * Type: {@code Map<String, Object>}
      * Example: {id: "123"} for edit contract
@@ -358,6 +322,25 @@ public final class ContextKeys {
      */
     public static final ContextKey.StringKey<String> CONTRACT_TITLE =
             new ContextKey.StringKey<>("contract.title", String.class);
+
+    /**
+     * The title of the currently active overlay contract.
+     * Used by EditView/CreateView to display their title independently of the primary contract's title.
+     * Type: String (e.g., "Edit Post", "Create Comment")
+     */
+    public static final ContextKey.StringKey<String> OVERLAY_TITLE =
+            new ContextKey.StringKey<>("overlay.title", String.class);
+
+    /**
+     * The typeHint of the current primary contract.
+     * Used by Explorer to highlight the active menu item.
+     * Type: Object (typically Class like Post.class, Comment.class)
+     *
+     * Set by SceneComponent when enriching context with primary contract data.
+     * This is dynamic - it updates when the primary contract changes via SET_PRIMARY.
+     */
+    public static final ContextKey.StringKey<Object> PRIMARY_TYPE_HINT =
+            new ContextKey.StringKey<>("primary.typeHint", Object.class);
 
     /**
      * List of application compositions.

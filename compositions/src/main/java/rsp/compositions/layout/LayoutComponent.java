@@ -3,8 +3,6 @@ package rsp.compositions.layout;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.CreateViewContract;
-import rsp.compositions.contract.EditViewContract;
 import rsp.compositions.contract.ViewContract;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
@@ -12,7 +10,6 @@ import rsp.page.QualifiedSessionId;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import static rsp.compositions.contract.ActionBindings.ShowPayload;
 import static rsp.compositions.contract.EventKeys.*;
 import static rsp.dsl.Html.*;
 

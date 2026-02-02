@@ -5,7 +5,6 @@ import rsp.app.posts.services.CommentService;
 import rsp.component.Lookup;
 import rsp.compositions.contract.ViewContract;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.QueryParam;
 
@@ -34,8 +33,8 @@ public class CommentsListContract extends ListViewContract<Comment> {
     }
 
     @Override
-    public int page() {
-        return resolve(PAGE);
+    public QueryParam<Integer> pageQueryParam() {
+        return PAGE;
     }
 
     @Override

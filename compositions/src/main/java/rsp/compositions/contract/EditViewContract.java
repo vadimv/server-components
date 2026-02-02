@@ -180,7 +180,7 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     protected void onDeleteSuccess() {
         // Emit generic success event - framework derives navigation from composition
         lookup.publish(EventKeys.ACTION_SUCCESS,
-            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.DELETE));
+            new EventKeys.ActionResult(getClass()));
     }
 
     /**

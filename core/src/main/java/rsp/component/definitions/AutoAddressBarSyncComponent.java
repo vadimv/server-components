@@ -75,8 +75,6 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
  */
 public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponent {
 
-    private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
-
     public AutoAddressBarSyncComponent(final RelativeUrl initialRelativeUrl) {
         super(initialRelativeUrl);
     }
@@ -155,10 +153,10 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
                                 StateUpdate<RelativeUrl> stateUpdate) {
-        subscribeForBrowserHistoryEvents(subscriber, stateUpdate);
+        super.onAfterRendered(state, subscriber, commandsEnqueue, stateUpdate);
         subscribeForQueryParameterUpdates(subscriber, commandsEnqueue, stateUpdate);
         subscribeForPathElementUpdates(state, subscriber, commandsEnqueue, stateUpdate);
-        subscribeForNavigationEvents(subscriber, commandsEnqueue);
+        subscribeForNavigationEvents(subscriber, commandsEnqueue, stateUpdate);
         subscribeForReloadEvents(subscriber, commandsEnqueue);
     }
 
@@ -176,7 +174,8 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      * traditional full-page navigation for external links.
      */
     private void subscribeForNavigationEvents(Subscriber subscriber,
-                                              CommandsEnqueue commandsEnqueue) {
+                                              CommandsEnqueue commandsEnqueue,
+                                              StateUpdate<RelativeUrl> stateUpdate) {
         subscriber.addComponentEventHandler("navigate",
             eventContext -> {
                 final Object pathObject = eventContext.eventObject();
@@ -187,7 +186,12 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                         commandsEnqueue.offer(new RemoteCommand.SetHref(path));
                     } else {
                         // Internal path: SPA navigation (no page reload)
-                        commandsEnqueue.offer(new RemoteCommand.PushHistory(path));
+                        stateUpdate.applyStateTransformation(currentState -> {
+                            RelativeUrl updatedUrl = new RelativeUrl(Path.of(path), Query.EMPTY, Fragment.EMPTY);
+                            commandsEnqueue.offer(new RemoteCommand.PushHistory(path));
+                            return updatedUrl;
+                        });
+
                     }
                 }
             },
@@ -211,17 +215,6 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                 }
             },
             false);
-    }
-
-    private void subscribeForBrowserHistoryEvents(Subscriber subscriber,
-                                                  StateUpdate<RelativeUrl> stateUpdate) {
-        subscriber.addWindowEventHandler(HISTORY_ENTRY_CHANGE_EVENT_NAME,
-            eventContext -> {
-                final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
-                stateUpdate.setState(newRelativeUrl);
-            },
-            true,
-            DomEventEntry.NO_MODIFIER);
     }
 
     /**
@@ -315,13 +308,4 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
         return new RelativeUrl(newPath, oldUrl.query(), oldUrl.fragment());
     }
 
-    private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
-        if (eventObject.value("path") instanceof JsonDataType.String(String path)
-            && eventObject.value("query") instanceof JsonDataType.String(String query)
-            && eventObject.value("fragment") instanceof JsonDataType.String(String fragment)) {
-            return new RelativeUrl(Path.of(path), Query.of(query), new Fragment(fragment));
-        } else {
-            throw new JsonDataType.JsonException("Error unpacking JSON event object:" + eventObject);
-        }
-    }
 }

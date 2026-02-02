@@ -58,7 +58,7 @@ public abstract class FormViewContract<T> extends ViewContract {
         // Handle cancel request
         subscribe(CANCEL_REQUESTED, () -> {
             lookup.publish(ACTION_SUCCESS,
-                    new EventKeys.ActionResult(this.getClass(), EventKeys.ActionType.CANCEL));
+                    new EventKeys.ActionResult(this.getClass()));
         });
     }
 
@@ -167,7 +167,7 @@ public abstract class FormViewContract<T> extends ViewContract {
     protected void onSaveSuccess() {
         // Emit generic success event - framework derives navigation from composition
         lookup.publish(EventKeys.ACTION_SUCCESS,
-            new EventKeys.ActionResult(getClass(), EventKeys.ActionType.SAVE));
+            new EventKeys.ActionResult(getClass()));
     }
 
     /**
