@@ -179,8 +179,6 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
                                 StateUpdate<LayoutComponentState> stateUpdate) {
-        // NO EVENT SUBSCRIPTIONS - Layout is purely reactive
-        // SceneComponent handles all SHOW/HIDE events
     }
 
 
@@ -289,44 +287,5 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
             this(primaryComponent, null, overlayComponents, activeOverlayClass, null);
         }
 
-        /**
-         * Creates a new state with the specified overlay active.
-         *
-         * @param overlayClass The overlay contract class to show (null to close)
-         * @return New state with overlay active/closed
-         */
-        public LayoutComponentState withActiveOverlay(Class<? extends ViewContract> overlayClass) {
-            return new LayoutComponentState(primaryComponent, leftSidebarComponent, overlayComponents, overlayClass, overlayRoutePattern);
-        }
-
-        /**
-         * Creates a new state with overlay and route pattern for URL sync.
-         *
-         * @param overlayClass The overlay contract class to show
-         * @param routePattern The route pattern for URL sync
-         * @return New state with overlay active and route pattern
-         */
-        public LayoutComponentState withActiveOverlayAndRoute(Class<? extends ViewContract> overlayClass,
-                                                              String routePattern) {
-            return new LayoutComponentState(primaryComponent, leftSidebarComponent, overlayComponents, overlayClass, routePattern);
-        }
-
-        /**
-         * Check if any overlay is currently shown.
-         *
-         * @return true if overlay is active
-         */
-        public boolean hasOverlay() {
-            return activeOverlayClass != null && overlayComponents.containsKey(activeOverlayClass);
-        }
-
-        /**
-         * Check if this overlay has URL sync enabled.
-         *
-         * @return true if overlay route pattern is set
-         */
-        public boolean hasOverlayRoute() {
-            return overlayRoutePattern != null && !overlayRoutePattern.isEmpty();
-        }
     }
 }
