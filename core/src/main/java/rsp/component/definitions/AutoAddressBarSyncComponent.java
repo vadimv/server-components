@@ -1,18 +1,14 @@
 package rsp.component.definitions;
 
 import rsp.component.*;
-import rsp.dom.DomEventEntry;
-import rsp.page.events.Command;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
-import rsp.util.json.JsonDataType;
 
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVENT_PREFIX;
 
@@ -74,6 +70,9 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
  * @see AddressBarSyncComponent
  */
 public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponent {
+
+    public static final EventKey.SimpleKey<String> SET_PATH =
+            new EventKey.SimpleKey<>("setPath", String.class);
 
     public AutoAddressBarSyncComponent(final RelativeUrl initialRelativeUrl) {
         super(initialRelativeUrl);
@@ -176,26 +175,13 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     private void subscribeForNavigationEvents(Subscriber subscriber,
                                               CommandsEnqueue commandsEnqueue,
                                               StateUpdate<RelativeUrl> stateUpdate) {
-        subscriber.addComponentEventHandler("navigate",
-            eventContext -> {
-                final Object pathObject = eventContext.eventObject();
-                if (pathObject instanceof String path) {
-                    // Smart routing: external URLs get full reload, internal paths get SPA navigation
-                    if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("//")) {
-                        // External URL: full page reload
-                        commandsEnqueue.offer(new RemoteCommand.SetHref(path));
-                    } else {
-                        // Internal path: SPA navigation (no page reload)
-                        stateUpdate.applyStateTransformation(currentState -> {
-                            RelativeUrl updatedUrl = new RelativeUrl(Path.of(path), Query.EMPTY, Fragment.EMPTY);
-                            commandsEnqueue.offer(new RemoteCommand.PushHistory(path));
-                            return updatedUrl;
-                        });
-
-                    }
-                }
-            },
-            false);
+        subscriber.addEventHandler(SET_PATH, (eventName, path) -> {
+            stateUpdate.applyStateTransformation(url -> {
+                RelativeUrl updatedUrl = new RelativeUrl(Path.of(path), Query.EMPTY, Fragment.EMPTY);
+                commandsEnqueue.offer(new RemoteCommand.PushHistory(path));
+                return updatedUrl;
+            });
+        }, false);
     }
 
     /**

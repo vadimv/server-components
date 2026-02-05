@@ -53,15 +53,6 @@ public final class EventKeys {
     public static final EventKey.DynamicKey<ContextStateComponent.ContextValue> STATE_UPDATED =
             new EventKey.DynamicKey<>("stateUpdated", ContextStateComponent.ContextValue.class);
 
-    /**
-     * Navigate to a URL path (SPA-style navigation).
-     * Emitted by: Framework (SceneComponent) after ACTION_SUCCESS
-     * Handled by: AutoAddressBarSyncComponent (uses PushHistory for internal paths)
-     * Payload: The URL path to navigate to
-     */
-    public static final EventKey.SimpleKey<String> NAVIGATE =
-            new EventKey.SimpleKey<>("navigate", String.class);
-
 
     /**
      * Action succeeded (generic success event).

@@ -1,6 +1,7 @@
 package rsp.compositions.contract;
 
 import rsp.component.*;
+import rsp.component.definitions.AutoAddressBarSyncComponent;
 import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthorizationException;
 import rsp.compositions.layout.LayoutComponent;
@@ -269,7 +270,7 @@ public class SceneComponent extends Component<Scene> {
                     .orElse(null);
                 if (route != null) {
                     // Publish NAVIGATE to update browser URL
-                    lookup.publish(EventKeys.NAVIGATE, route);
+                    lookup.publish(AutoAddressBarSyncComponent.SET_PATH, route);
                 }
             }
 
