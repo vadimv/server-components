@@ -105,7 +105,11 @@ public final class MainWebSocketEndpoint extends Endpoint {
     @Override
     public void onError(final Session session, final Throwable thr) {
         shutdown(session);
-        logger.log(ERROR, () -> "WebSocket error: " + thr.getMessage(), thr);
+        if (thr instanceof ClosedChannelException) {
+            logger.log(DEBUG, () -> "WebSocket channel closed for session: " + session.getId());
+        } else {
+            logger.log(ERROR, () -> "WebSocket error: " + thr.getMessage(), thr);
+        }
     }
 
     private void shutdown(final Session session) {

@@ -46,6 +46,7 @@ class StoredStateComponentTests {
     @Test
     void component_renders_initial_html_and_after_state_set_generates_dom_update_commands() {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("test-device", "test-session");
+
         final URI uri = URI.create("http://localhost");
         final HttpRequest httpRequest = new HttpRequest(HttpMethod.GET,
                                                         uri,
@@ -57,7 +58,7 @@ class StoredStateComponentTests {
                                                           new ComponentContext(),
                                                           commands);
         final Component<Boolean> scd = new InitialStateComponent<>(true,
-                                                                                               view);
+                                                                    view);
         // Initial render
         scd.render(renderContext);
 

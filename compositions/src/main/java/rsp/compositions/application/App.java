@@ -20,7 +20,10 @@ public class App implements Function<HttpRequest, Component<?>> {
     private final List<Composition> compositions;
     private final List<Object> services;
 
-    public App(AppConfig config, UiRegistry uiRegistry, List<Composition> compositions, List<Object> services) {
+    public App(AppConfig config,
+               UiRegistry uiRegistry,
+               List<Composition> compositions,
+               List<Object> services) { // TODO should be Map<Class<?>, Object>
         this.config = config;
         this.uiRegistry = uiRegistry;
         this.compositions = compositions;
