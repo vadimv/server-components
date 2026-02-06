@@ -1,7 +1,7 @@
 package rsp.compositions.contract;
 
 import rsp.component.*;
-import rsp.component.definitions.AutoAddressBarSyncComponent;
+import rsp.compositions.routing.AutoAddressBarSyncComponent;
 import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthorizationException;
 import rsp.compositions.layout.LayoutComponent;
@@ -14,6 +14,7 @@ import rsp.dsl.Definition;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 import static rsp.compositions.contract.ActionBindings.ShowPayload;
@@ -48,10 +49,19 @@ import static rsp.dsl.Html.*;
  */
 public class SceneComponent extends Component<Scene> {
 
+    private final Composition composition;
+    private final Class<? extends ViewContract> contractClass;
+    private final String routePattern;
+
     private ComponentContext savedContext;
 
-    public SceneComponent() {
+    public SceneComponent(Composition composition,
+                          Class<? extends ViewContract> contractClass,
+                          String routePattern) {
         super();
+        this.composition = Objects.requireNonNull(composition, "composition");
+        this.contractClass = Objects.requireNonNull(contractClass, "contractClass");
+        this.routePattern = Objects.requireNonNull(routePattern, "routePattern");
     }
 
     /**
@@ -171,14 +181,11 @@ public class SceneComponent extends Component<Scene> {
         boolean hasRoute = router != null && router.hasRoute(editPlacement.contractClass());
         context = context.with(ContextKeys.EDIT_HAS_ROUTE, hasRoute);
 
-        // If it has a route, find the pattern
+        // If it has a route, derive the edit pattern from the constructor-provided routePattern
         if (hasRoute && router != null) {
-            String listRoutePattern = context.get(ContextKeys.ROUTE_PATTERN);
-            if (listRoutePattern != null) {
-                // Assume edit pattern is list pattern + "/:id"
-                String editPattern = listRoutePattern + "/:id";
-                context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editPattern);
-            }
+            // Assume edit pattern is list pattern + "/:id"
+            String editPattern = this.routePattern + "/:id";
+            context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editPattern);
         }
 
         return context;
@@ -269,7 +276,7 @@ public class SceneComponent extends Component<Scene> {
                     .findRoutePattern(typedContractClass)
                     .orElse(null);
                 if (route != null) {
-                    // Publish NAVIGATE to update browser URL
+                    // To update browser URL
                     lookup.publish(AutoAddressBarSyncComponent.SET_PATH, route);
                 }
             }
@@ -522,27 +529,21 @@ public class SceneComponent extends Component<Scene> {
      */
     private Scene buildScene(ComponentContext context) {
         try {
-            // Read from context (populated by RoutingComponent)
-            Composition composition = context.get(ContextKeys.ROUTE_COMPOSITION);
-            Class<? extends ViewContract> contractClass = context.get(ContextKeys.ROUTE_CONTRACT_CLASS);
+            // composition, contractClass, routePattern come from constructor (validated with Objects.requireNonNull)
+            // UI_REGISTRY still comes from context (set by AppComponent, not RoutingComponent)
             UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
-            String routePattern = context.get(ContextKeys.ROUTE_PATTERN);
-
-            if (composition == null || contractClass == null) {
-                return Scene.error(new IllegalStateException("Missing ROUTE_COMPOSITION or ROUTE_CONTRACT_CLASS in context"));
-            }
 
             if (uiRegistry == null) {
                 return Scene.error(new IllegalStateException("Missing UI_REGISTRY in context"));
             }
 
             // Router is inside the composition
-            Router router = composition.router();
+            Router router = this.composition.router();
 
             // Get the placement for the routed contract
-            ViewPlacement routedPlacement = composition.placementFor(contractClass);
+            ViewPlacement routedPlacement = this.composition.placementFor(this.contractClass);
             if (routedPlacement == null) {
-                return Scene.error(new IllegalStateException("Contract not found in composition: " + contractClass.getName()));
+                return Scene.error(new IllegalStateException("Contract not found in composition: " + this.contractClass.getName()));
             }
 
             Slot routedSlot = routedPlacement.slot();
@@ -550,13 +551,18 @@ public class SceneComponent extends Component<Scene> {
             // Case 2: Non-primary slot routed directly via URL
             // Need to find parent PRIMARY and auto-open this non-primary contract
             if (routedSlot != Slot.PRIMARY) {
-                return buildNonPrimaryRoutedScene(context, composition, contractClass, routedPlacement,
-                        routePattern, router, uiRegistry);
+                return buildNonPrimaryRoutedScene(context,
+                                                  this.composition,
+                                                  this.contractClass,
+                                                  routedPlacement,
+                                                  this.routePattern,
+                                                  router,
+                                                  uiRegistry);
             }
 
             // Cases 1, 3: PRIMARY slot (with or without route)
             // Standard behavior: instantiate as primary, store factories for non-primary slots
-            return buildPrimaryScene(context, composition, routedPlacement, uiRegistry);
+            return buildPrimaryScene(context, this.composition, routedPlacement, uiRegistry);
 
         } catch (Exception e) {
             return Scene.error(e);

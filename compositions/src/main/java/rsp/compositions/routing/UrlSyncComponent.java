@@ -1,7 +1,6 @@
 package rsp.compositions.routing;
 
 import rsp.component.ComponentView;
-import rsp.component.definitions.AutoAddressBarSyncComponent;
 import rsp.server.http.RelativeUrl;
 
 /**

@@ -7,9 +7,11 @@ import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.SceneComponent;
+import rsp.compositions.contract.ViewContract;
 import rsp.server.Path;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -33,40 +35,29 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
         super();
     }
 
-    @Override
-    public ComponentStateSupplier<RoutingComponentState> initStateSupplier() {
-        return (_, _) -> new RoutingComponentState();
-    }
-
     /**
-     * Enrich context with routing results.
-     * Reads url.path from context (populated by UrlSyncComponent), iterates Compositions
-     * to find a matching route, and enriches context with routing info.
+     * Match URL path to a route at component init time.
+     * Reads compositions and URL path from context, finds the first matching route,
+     * and stores the match result in state for use by subComponentsContext() and componentView().
      */
     @Override
-    public BiFunction<ComponentContext, RoutingComponentState, ComponentContext> subComponentsContext() {
-        return (context, state) -> {
-            // Read compositions from context (populated by AppComponent)
+    public ComponentStateSupplier<RoutingComponentState> initStateSupplier() {
+        return (_, context) -> {
             List<Composition> compositions = context.get(ContextKeys.APP_COMPOSITIONS);
-
-            // Read url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
             Path path = context.get(ContextKeys.URL_PATH_FULL);
 
             if (compositions == null || path == null) {
-                return context; // Graceful degradation
+                throw new IllegalStateException("Missing APP_COMPOSITIONS or URL_PATH_FULL in context");
             }
 
-            // Iterate Compositions in order - first match wins
             for (Composition composition : compositions) {
                 Optional<Router.RouteMatch> match = composition.router().match(path);
                 if (match.isPresent()) {
                     Router.RouteMatch routeMatch = match.get();
-                    // Enrich context with composition and routing results
-                    return context
-                            .with(ContextKeys.ROUTE_COMPOSITION, composition)
-                            .with(ContextKeys.ROUTE_CONTRACT_CLASS, routeMatch.contractClass())
-                            .with(ContextKeys.ROUTE_PATH, path.toString())
-                            .with(ContextKeys.ROUTE_PATTERN, routeMatch.pattern());
+                    return new RoutingComponentState(composition,
+                                                     routeMatch.contractClass(),
+                                                     path.toString(),
+                                                     routeMatch.pattern());
                 }
             }
 
@@ -74,12 +65,35 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
         };
     }
 
+    /**
+     * Enrich context with routing results from state.
+     * Downstream components (ExplorerContract, ListView, FormViewContract) read these keys from context.
+     */
     @Override
-    public ComponentView<RoutingComponentState> componentView() {
-        // SceneComponent builds scene and stores in state
-        return _ -> _ -> new SceneComponent();
+    public BiFunction<ComponentContext, RoutingComponentState, ComponentContext> subComponentsContext() {
+        return (context, state) -> context
+                .with(ContextKeys.ROUTE_COMPOSITION, state.composition())
+                .with(ContextKeys.ROUTE_CONTRACT_CLASS, state.contractClass())
+                .with(ContextKeys.ROUTE_PATH, state.path())
+                .with(ContextKeys.ROUTE_PATTERN, state.pattern());
     }
 
-    public record RoutingComponentState() {
+    @Override
+    public ComponentView<RoutingComponentState> componentView() {
+        return _ -> state -> new SceneComponent(state.composition(), state.contractClass(), state.pattern());
+    }
+
+    public record RoutingComponentState(
+            Composition composition,
+            Class<? extends ViewContract> contractClass,
+            String path,
+            String pattern
+    ) {
+        public RoutingComponentState {
+            Objects.requireNonNull(composition, "composition");
+            Objects.requireNonNull(contractClass, "contractClass");
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(pattern, "pattern");
+        }
     }
 }

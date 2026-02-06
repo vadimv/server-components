@@ -1,6 +1,7 @@
 package rsp.compositions.contract;
 
 import rsp.component.Lookup;
+import rsp.compositions.routing.AutoAddressBarSyncComponent;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -8,7 +9,7 @@ import java.util.function.Function;
 /**
  * PathParam - Helper for extracting typed path parameters from URL paths.
  * <p>
- * Works with {@link rsp.component.definitions.AutoAddressBarSyncComponent} which
+ * Works with {@link AutoAddressBarSyncComponent} which
  * populates context with {@code "url.path.{index}"} keys for each path segment.
  * <p>
  * Example:

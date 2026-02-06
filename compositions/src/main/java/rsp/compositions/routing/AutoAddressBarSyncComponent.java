@@ -1,6 +1,8 @@
-package rsp.component.definitions;
+package rsp.compositions.routing;
 
 import rsp.component.*;
+import rsp.component.definitions.AddressBarSyncComponent;
+import rsp.component.definitions.ContextStateComponent;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
 import rsp.server.http.Fragment;

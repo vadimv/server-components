@@ -56,7 +56,8 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
      * @param overlayComponents Map of overlay components keyed by contract class
      */
     public LayoutComponent(Component<?> primaryComponent,
-                           Map<Class<? extends ViewContract>, Component<?>> overlayComponents) {
+                           Map<Class<? extends ViewContract>,
+                           Component<?>> overlayComponents) {
         this(primaryComponent, null, overlayComponents, null, null);
     }
 
@@ -93,7 +94,7 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
                            Class<? extends ViewContract> autoOpenOverlay,
                            String overlayRoutePattern) {
         super();
-        this.primaryComponent = primaryComponent;
+        this.primaryComponent = java.util.Objects.requireNonNull(primaryComponent, "primaryComponent");
         this.leftSidebarComponent = leftSidebarComponent;
         this.overlayComponents = overlayComponents != null ? overlayComponents : Map.of();
         this.autoOpenOverlay = autoOpenOverlay;
