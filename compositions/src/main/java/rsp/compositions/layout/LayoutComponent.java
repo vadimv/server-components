@@ -136,10 +136,10 @@ public class LayoutComponent extends Component<LayoutComponent.LayoutComponentSt
 
     @Override
     public ComponentSegment<LayoutComponentState> createComponentSegment(final QualifiedSessionId sessionId,
-                                                                          final TreePositionPath componentPath,
-                                                                          final TreeBuilderFactory treeBuilderFactory,
-                                                                          final ComponentContext componentContext,
-                                                                          final CommandsEnqueue commandsEnqueue) {
+                                                                         final TreePositionPath componentPath,
+                                                                         final TreeBuilderFactory treeBuilderFactory,
+                                                                         final ComponentContext componentContext,
+                                                                         final CommandsEnqueue commandsEnqueue) {
         // Create Lookup for use in view (for event publishing)
         this.lookup = createLookup(componentContext, commandsEnqueue);
         return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);

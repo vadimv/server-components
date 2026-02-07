@@ -3,7 +3,6 @@ package rsp.component.definitions;
 import rsp.component.*;
 import rsp.dom.DomEventEntry;
 import rsp.page.events.RemoteCommand;
-import rsp.page.events.Command;
 import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
@@ -12,7 +11,6 @@ import rsp.util.json.JsonDataType;
 
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVENT_PREFIX;
 

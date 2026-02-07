@@ -433,10 +433,6 @@ public class SceneComponent extends Component<Scene> {
     @Override
     public ComponentView<Scene> componentView() {
         return _ -> scene -> {
-            if (scene == null) {
-                throw new IllegalStateException("Scene is null - check context setup");
-            }
-
             if (scene.error() != null) {
                 throw new IllegalStateException("Scene build failed", scene.error());
             }
@@ -470,8 +466,12 @@ public class SceneComponent extends Component<Scene> {
             }
 
             // Render page with LayoutComponent, passing auto-open info from scene
-            return page(primaryComponent, leftSidebarComponent, overlayComponents,
-                    scene.autoOpenContract(), scene.autoOpenRoutePattern(), scene.pageTitle());
+            return page(primaryComponent,
+                        leftSidebarComponent,
+                        overlayComponents,
+                        scene.autoOpenContract(),
+                        scene.autoOpenRoutePattern(),
+                        scene.pageTitle());
         };
     }
 
@@ -484,8 +484,11 @@ public class SceneComponent extends Component<Scene> {
                                    Class<? extends ViewContract> autoOpenContract,
                                    String autoOpenRoutePattern,
                                    String pageTitle) {
-        Component<?> layoutComponent = new LayoutComponent(
-                primaryComponent, leftSidebarComponent, overlayComponents, autoOpenContract, autoOpenRoutePattern);
+        Component<?> layoutComponent = new LayoutComponent(primaryComponent,
+                                                           leftSidebarComponent,
+                                                           overlayComponents,
+                                                           autoOpenContract,
+                                                           autoOpenRoutePattern);
 
         return html(head(title(pageTitle != null ? pageTitle : "App"),
                         link(attr("rel", "stylesheet"),
