@@ -3,14 +3,11 @@ package rsp.compositions.contract;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthorizationException;
-import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Layout;
-import rsp.dsl.Definition;
 
 import java.util.Objects;
 
-import static rsp.compositions.contract.EventKeys.HIDE;
 import static rsp.dsl.Html.*;
 
 /**
@@ -22,8 +19,7 @@ import static rsp.dsl.Html.*;
  *   <li>{@link SceneBuilder} - Scene construction from composition</li>
  *   <li>{@link SceneEventHandler} - SHOW/HIDE/SET_PRIMARY/ACTION_SUCCESS handlers</li>
  *   <li>{@link SceneContextEnricher} - Context enrichment for downstream components</li>
- *   <li>{@link UiComponentResolver} - ViewContract to UI component resolution</li>
- *   <li>{@link Layout} - Visual arrangement of resolved UI components</li>
+ *   <li>{@link Layout} - Contract resolution and visual arrangement</li>
  * </ul>
  * <p>
  * Position in component chain: RoutingComponent → SceneComponent → (Layout renders children)
@@ -55,10 +51,6 @@ public class SceneComponent extends Component<Scene> {
         this.layout = Objects.requireNonNull(layout, "layout");
     }
 
-    /**
-     * Build the Scene at component mount time.
-     * Primary contract is instantiated, factories for non-primary slots are stored for lazy instantiation.
-     */
     @Override
     public ComponentStateSupplier<Scene> initStateSupplier() {
         return (_, context) -> {
@@ -67,17 +59,11 @@ public class SceneComponent extends Component<Scene> {
         };
     }
 
-    /**
-     * Enrich context with scene data for downstream components.
-     */
     @Override
     public java.util.function.BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
         return contextEnricher::enrich;
     }
 
-    /**
-     * Register SHOW, HIDE, SET_PRIMARY, and ACTION_SUCCESS event handlers.
-     */
     @Override
     public void onAfterRendered(Scene state,
                                 Subscriber subscriber,
@@ -98,46 +84,14 @@ public class SceneComponent extends Component<Scene> {
                 throw new AuthorizationException("Access denied: insufficient permissions");
             }
 
-            UiRegistry uiRegistry = scene.uiRegistry();
-            if (uiRegistry == null) {
+            if (scene.uiRegistry() == null) {
                 throw new IllegalStateException("UiRegistry not found in scene");
             }
-
-            // Resolve primary contract to UI component
-            Component<?> primaryComponent = UiComponentResolver.resolve(
-                    uiRegistry, scene.primaryContract().getClass());
-
-            // Resolve LEFT_SIDEBAR contract to UI component (if present)
-            Component<?> sidebarComponent = null;
-            ViewContract sidebarContract = scene.leftSidebarContract();
-            if (sidebarContract != null) {
-                sidebarComponent = UiComponentResolver.resolve(uiRegistry, sidebarContract.getClass());
-            }
-
-            // Determine active overlay and resolve to UI component
-            Component<?> activeOverlayComponent = null;
-            Class<? extends ViewContract> activeOverlayClass = scene.autoOpenContract();
-            if (activeOverlayClass == null && scene.hasNonPrimaryContracts()) {
-                activeOverlayClass = scene.nonPrimaryContracts().keySet().iterator().next();
-            }
-            if (activeOverlayClass != null) {
-                activeOverlayComponent = UiComponentResolver.resolve(uiRegistry, activeOverlayClass);
-            }
-
-            // Create close handler for the active overlay
-            final Class<? extends ViewContract> overlayToClose = activeOverlayClass;
-            Runnable onOverlayClose = overlayToClose != null
-                    ? () -> LookupFactory.create(savedContext).publish(HIDE, overlayToClose)
-                    : null;
-
-            // Render layout
-            Definition layoutDef = layout.render(
-                    primaryComponent, sidebarComponent, activeOverlayComponent, onOverlayClose);
 
             return html(head(title(scene.pageTitle() != null ? scene.pageTitle() : "App"),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
-                    body(layoutDef));
+                    body(layout.resolve(scene, LookupFactory.create(savedContext))));
         };
     }
 }

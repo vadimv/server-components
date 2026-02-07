@@ -1,28 +1,26 @@
 package rsp.compositions.layout;
 
-import rsp.component.definitions.Component;
+import rsp.component.Lookup;
+import rsp.compositions.contract.Scene;
 import rsp.dsl.Definition;
 
 /**
- * Strategy interface for rendering UI components in a visual layout.
+ * Strategy interface for resolving and rendering Scene content in a visual layout.
  * <p>
- * Implementations define how primary content, sidebar, and overlay components
- * are visually arranged (e.g., sidebar left of content, overlay as modal).
+ * Each implementation owns the full pipeline: extracting contracts from Scene,
+ * resolving them to UI components, and rendering the visual structure.
+ * <p>
+ * Examples: sidebar layout, dashboard grid, map view.
  *
  * @see DefaultLayout
  */
 public interface Layout {
     /**
-     * Render components in the layout.
+     * Resolve and render the scene content.
      *
-     * @param primary        the main content component (always present)
-     * @param sidebar        optional sidebar component (null if none)
-     * @param activeOverlay  optional active overlay component (null if none)
-     * @param onOverlayClose callback to close the active overlay (null if no overlay)
+     * @param scene  the scene containing contracts, UiRegistry, and layout data
+     * @param lookup for event publishing (e.g., overlay close)
      * @return the rendered layout definition
      */
-    Definition render(Component<?> primary,
-                      Component<?> sidebar,
-                      Component<?> activeOverlay,
-                      Runnable onOverlayClose);
+    Definition resolve(Scene scene, Lookup lookup);
 }

@@ -1,12 +1,21 @@
 package rsp.compositions.layout;
 
+import rsp.component.Lookup;
 import rsp.component.definitions.Component;
+import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.contract.Scene;
+import rsp.compositions.contract.UiComponentResolver;
+import rsp.compositions.contract.ViewContract;
 import rsp.dsl.Definition;
 
+import static rsp.compositions.contract.EventKeys.HIDE;
 import static rsp.dsl.Html.*;
 
 /**
  * Default layout with CSS class-based slot rendering.
+ * <p>
+ * Resolves primary, sidebar, and overlay contracts from the Scene,
+ * then renders them in a standard content layout with optional modal overlay.
  * <p>
  * Structure:
  * <ul>
@@ -19,10 +28,31 @@ import static rsp.dsl.Html.*;
 public final class DefaultLayout implements Layout {
 
     @Override
-    public Definition render(Component<?> primary,
-                             Component<?> sidebar,
-                             Component<?> activeOverlay,
-                             Runnable onOverlayClose) {
+    public Definition resolve(Scene scene, Lookup lookup) {
+        UiRegistry uiRegistry = scene.uiRegistry();
+
+        // Resolve primary contract to UI component
+        Component<?> primary = UiComponentResolver.resolve(
+                uiRegistry, scene.primaryContract().getClass());
+
+        // Resolve LEFT_SIDEBAR contract to UI component (if present)
+        Component<?> sidebar = null;
+        ViewContract sidebarContract = scene.leftSidebarContract();
+        if (sidebarContract != null) {
+            sidebar = UiComponentResolver.resolve(uiRegistry, sidebarContract.getClass());
+        }
+
+        // Determine active overlay and resolve to UI component
+        Component<?> activeOverlay = null;
+        Class<? extends ViewContract> activeOverlayClass = scene.autoOpenContract();
+        if (activeOverlayClass == null && scene.hasNonPrimaryContracts()) {
+            activeOverlayClass = scene.nonPrimaryContracts().keySet().iterator().next();
+        }
+        if (activeOverlayClass != null) {
+            activeOverlay = UiComponentResolver.resolve(uiRegistry, activeOverlayClass);
+        }
+
+        // Render
         if (activeOverlay == null) {
             if (sidebar == null) {
                 return div(attr("class", "layout-container"),
@@ -33,7 +63,10 @@ public final class DefaultLayout implements Layout {
                     div(attr("class", "layout-primary"), primary));
         }
 
-        Definition overlay = renderOverlay(activeOverlay, onOverlayClose);
+        final Class<? extends ViewContract> overlayToClose = activeOverlayClass;
+        Definition overlay = renderOverlay(activeOverlay,
+                () -> lookup.publish(HIDE, overlayToClose));
+
         if (sidebar == null) {
             return div(attr("class", "layout-container"),
                     div(attr("class", "layout-primary"), primary),
