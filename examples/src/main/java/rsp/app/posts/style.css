@@ -308,3 +308,81 @@ h1 {
     max-height: 90%;
     overflow-y: auto;
 }
+
+/* ========== Right Sidebar ========== */
+.layout-right-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    background-color: #f8f9fa;
+    border-left: 1px solid #dee2e6;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* ========== Prompt Panel ========== */
+.prompt-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.prompt-header {
+    padding: 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    color: #6c757d;
+    border-bottom: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+.prompt-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+}
+
+.prompt-message {
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    word-wrap: break-word;
+    max-width: 90%;
+}
+
+.prompt-message.user {
+    background-color: #007bff;
+    color: white;
+    align-self: flex-end;
+}
+
+.prompt-message.system {
+    background-color: #e9ecef;
+    color: #212529;
+    align-self: flex-start;
+}
+
+.prompt-input-form {
+    padding: 0.75rem;
+    border-top: 1px solid #dee2e6;
+    flex-shrink: 0;
+}
+
+.prompt-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    box-sizing: border-box;
+}
+
+.prompt-input:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

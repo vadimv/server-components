@@ -34,6 +34,13 @@ public enum Slot {
     SECONDARY,
 
     /**
+     * Right sidebar panel.
+     * Contracts with this slot are always visible alongside PRIMARY content.
+     * Instantiated together with PRIMARY (not on-demand like OVERLAY).
+     */
+    RIGHT_SIDEBAR,
+
+    /**
      * Popup/modal overlay.
      * Contracts with this slot are shown as modals/dialogs over the PRIMARY content.
      * They are triggered by component state changes, NOT by URL navigation.

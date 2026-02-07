@@ -3,10 +3,12 @@ package rsp.compositions.contract;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthorizationException;
+import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Layout;
 
 import java.util.Objects;
+import java.util.function.BiFunction;
 
 import static rsp.dsl.Html.*;
 
@@ -32,13 +34,13 @@ public class SceneComponent extends Component<Scene> {
 
     private ComponentContext savedContext;
 
-    public SceneComponent(rsp.compositions.composition.Composition composition,
+    public SceneComponent(Composition composition,
                           Class<? extends ViewContract> contractClass,
                           String routePattern) {
         this(composition, contractClass, routePattern, new DefaultLayout());
     }
 
-    public SceneComponent(rsp.compositions.composition.Composition composition,
+    public SceneComponent(Composition composition,
                           Class<? extends ViewContract> contractClass,
                           String routePattern,
                           Layout layout) {
@@ -60,7 +62,7 @@ public class SceneComponent extends Component<Scene> {
     }
 
     @Override
-    public java.util.function.BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
+    public BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
         return contextEnricher::enrich;
     }
 

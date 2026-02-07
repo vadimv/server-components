@@ -7,9 +7,12 @@ import rsp.app.posts.components.ExplorerContract;
 import rsp.app.posts.components.ExplorerView;
 import rsp.app.posts.components.PostCreateContract;
 import rsp.app.posts.components.PostEditContract;
+import rsp.app.posts.components.PromptContract;
+import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
+import rsp.app.posts.services.PromptService;
 import rsp.compositions.application.App;
 import rsp.compositions.application.AppConfig;
 import rsp.compositions.auth.StubAuthProvider;
@@ -49,7 +52,8 @@ public final class CrudAppTestServer {
                 .register(ListViewContract.class, DefaultListView::new)
                 .register(CreateViewContract.class, DefaultEditView::new)
                 .register(EditViewContract.class, DefaultEditView::new)
-                .register(ExplorerContract.class, ExplorerView::new);
+                .register(ExplorerContract.class, ExplorerView::new)
+                .register(PromptContract.class, PromptView::new);
 
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
@@ -64,15 +68,19 @@ public final class CrudAppTestServer {
                 .place(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new)
                 .place(Slot.OVERLAY, PostEditContract.class, PostEditContract::new)
                 .place(Slot.OVERLAY, CommentCreateContract.class, CommentCreateContract::new)
-                .place(Slot.OVERLAY, CommentEditContract.class, CommentEditContract::new);
+                .place(Slot.OVERLAY, CommentEditContract.class, CommentEditContract::new)
+                .place(Slot.RIGHT_SIDEBAR, PromptContract.class, PromptContract::new);
 
         final Composition postsModule = new Composition(router, places);
 
         final PostService postService = new PostService();
         final CommentService commentService = new CommentService();
+        final PromptService promptService = new PromptService();
+        promptService.startTicking();
 
         final var services = List.of(postService,
                                      commentService,
+                                     promptService,
                                      new StubAuthProvider());
 
         final App app = new App(appConfig, uiRegistry, List.of(postsModule), services);

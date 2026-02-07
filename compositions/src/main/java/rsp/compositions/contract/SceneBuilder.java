@@ -85,7 +85,7 @@ public final class SceneBuilder {
     /**
      * Build scene for non-primary contract routed directly via URL (Case 2).
      * Finds parent PRIMARY, uses it as primary, auto-opens this non-primary contract.
-     * Also instantiates LEFT_SIDEBAR contracts (always visible).
+     * Also instantiates sidebar contracts (always visible).
      */
     private Scene buildNonPrimaryRoutedScene(ComponentContext context, Composition composition,
                                              Class<? extends ViewContract> nonPrimaryContractClass,
@@ -120,19 +120,22 @@ public final class SceneBuilder {
             return Scene.unauthorized(primaryContract, composition, uiRegistry);
         }
 
-        // Instantiate LEFT_SIDEBAR contracts (always visible, not on-demand)
+        // Instantiate sidebar contracts (always visible, not on-demand)
         ViewContract leftSidebarContract = null;
+        ViewContract rightSidebarContract = null;
         for (ViewPlacement placement : composition.views()) {
-            if (placement.slot() == Slot.LEFT_SIDEBAR) {
+            if (placement.slot() == Slot.LEFT_SIDEBAR && leftSidebarContract == null) {
                 leftSidebarContract = instantiatePlacement(placement, context);
-                break; // Only one LEFT_SIDEBAR contract expected
+            } else if (placement.slot() == Slot.RIGHT_SIDEBAR && rightSidebarContract == null) {
+                rightSidebarContract = instantiatePlacement(placement, context);
             }
         }
 
-        // Build factories for on-demand slots (OVERLAY, etc. - excludes PRIMARY and LEFT_SIDEBAR)
+        // Build factories for on-demand slots (OVERLAY, etc. - excludes PRIMARY and sidebars)
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
         for (ViewPlacement placement : composition.views()) {
-            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR) {
+            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR
+                    && placement.slot() != Slot.RIGHT_SIDEBAR) {
                 Class<? extends ViewContract> contractClass = placement.contractClass();
                 if (contractClass != null) {
                     nonPrimaryFactories.put(contractClass, placement.contractFactory());
@@ -150,9 +153,12 @@ public final class SceneBuilder {
             activeNonPrimary.put(nonPrimaryContractClass, nonPrimaryContract);
         }
 
-        // Add LEFT_SIDEBAR to active contracts if present
+        // Add sidebar contracts to active contracts if present
         if (leftSidebarContract != null) {
             activeNonPrimary.put(leftSidebarContract.getClass(), leftSidebarContract);
+        }
+        if (rightSidebarContract != null) {
+            activeNonPrimary.put(rightSidebarContract.getClass(), rightSidebarContract);
         }
 
         // Return scene with auto-open non-primary contract
@@ -162,7 +168,7 @@ public final class SceneBuilder {
 
     /**
      * Build scene for PRIMARY contract (Cases 1, 3, 4).
-     * Standard behavior: use as primary, instantiate LEFT_SIDEBAR contracts,
+     * Standard behavior: use as primary, instantiate sidebar contracts,
      * store factories for other non-primary slots (OVERLAY etc. for on-demand instantiation).
      */
     private Scene buildPrimaryScene(ComponentContext context, Composition composition,
@@ -178,12 +184,14 @@ public final class SceneBuilder {
             return Scene.unauthorized(contract, composition, uiRegistry);
         }
 
-        // Instantiate LEFT_SIDEBAR contracts (always visible, not on-demand)
+        // Instantiate sidebar contracts (always visible, not on-demand)
         ViewContract leftSidebarContract = null;
+        ViewContract rightSidebarContract = null;
         for (ViewPlacement placement : composition.views()) {
-            if (placement.slot() == Slot.LEFT_SIDEBAR) {
+            if (placement.slot() == Slot.LEFT_SIDEBAR && leftSidebarContract == null) {
                 leftSidebarContract = instantiatePlacement(placement, context);
-                break; // Only one LEFT_SIDEBAR contract expected
+            } else if (placement.slot() == Slot.RIGHT_SIDEBAR && rightSidebarContract == null) {
+                rightSidebarContract = instantiatePlacement(placement, context);
             }
         }
 
@@ -192,7 +200,8 @@ public final class SceneBuilder {
 
         for (ViewPlacement placement : composition.views()) {
             // Collect non-primary, non-sidebar placements for on-demand instantiation
-            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR) {
+            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR
+                    && placement.slot() != Slot.RIGHT_SIDEBAR) {
                 Class<? extends ViewContract> contractClass = placement.contractClass();
                 if (contractClass == null) {
                     throw new IllegalStateException(
@@ -202,9 +211,10 @@ public final class SceneBuilder {
             }
         }
 
-        // Use withLeftSidebar factory method if we have a sidebar, otherwise use of()
-        if (leftSidebarContract != null) {
-            return Scene.withLeftSidebar(contract, leftSidebarContract, composition, nonPrimaryFactories, uiRegistry);
+        // Use appropriate factory method based on which sidebars are present
+        if (leftSidebarContract != null || rightSidebarContract != null) {
+            return Scene.withSidebars(contract, leftSidebarContract, rightSidebarContract,
+                    composition, nonPrimaryFactories, uiRegistry);
         }
         return Scene.of(contract, composition, nonPrimaryFactories, uiRegistry);
     }

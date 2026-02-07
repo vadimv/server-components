@@ -98,7 +98,20 @@ public record Scene(
     }
 
     /**
-     * Get overlay contracts map (excludes PRIMARY and LEFT_SIDEBAR).
+     * Get the RIGHT_SIDEBAR contract if present.
+     *
+     * @return The RIGHT_SIDEBAR contract, or null if not present
+     */
+    public ViewContract rightSidebarContract() {
+        List<ActiveContract> sidebarContracts = activeContractsBySlot.get(Slot.RIGHT_SIDEBAR);
+        if (sidebarContracts == null || sidebarContracts.isEmpty()) {
+            return null;
+        }
+        return sidebarContracts.get(0).contract();
+    }
+
+    /**
+     * Get overlay contracts map (excludes PRIMARY, LEFT_SIDEBAR, and RIGHT_SIDEBAR).
      * Returns active contracts from OVERLAY and similar slots as a map keyed by class.
      *
      * @return Map of overlay contracts
@@ -106,8 +119,8 @@ public record Scene(
     public Map<Class<? extends ViewContract>, ViewContract> nonPrimaryContracts() {
         Map<Class<? extends ViewContract>, ViewContract> result = new HashMap<>();
         for (Map.Entry<Slot, List<ActiveContract>> entry : activeContractsBySlot.entrySet()) {
-            // Exclude PRIMARY and LEFT_SIDEBAR (sidebar is handled separately)
-            if (entry.getKey() != Slot.PRIMARY && entry.getKey() != Slot.LEFT_SIDEBAR) {
+            if (entry.getKey() != Slot.PRIMARY && entry.getKey() != Slot.LEFT_SIDEBAR
+                    && entry.getKey() != Slot.RIGHT_SIDEBAR) {
                 for (ActiveContract active : entry.getValue()) {
                     result.put(active.contractClass(), active.contract());
                 }
@@ -118,14 +131,14 @@ public record Scene(
 
 
     /**
-     * Check if this scene has any active overlay contracts (excludes PRIMARY and LEFT_SIDEBAR).
+     * Check if this scene has any active overlay contracts (excludes PRIMARY and sidebars).
      *
      * @return true if there are active overlay contracts
      */
     public boolean hasNonPrimaryContracts() {
         for (Map.Entry<Slot, List<ActiveContract>> entry : activeContractsBySlot.entrySet()) {
-            // Exclude PRIMARY and LEFT_SIDEBAR
             if (entry.getKey() != Slot.PRIMARY && entry.getKey() != Slot.LEFT_SIDEBAR
+                    && entry.getKey() != Slot.RIGHT_SIDEBAR
                     && !entry.getValue().isEmpty()) {
                 return true;
             }
@@ -292,6 +305,41 @@ public record Scene(
             Map.copyOf(activeBySlot), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
     }
 
+
+    /**
+     * Create a valid scene with primary contract, both sidebar contracts, non-primary factories, and UI registry.
+     *
+     * @param primaryContract The primary contract
+     * @param leftSidebarContract The left sidebar contract (can be null)
+     * @param rightSidebarContract The right sidebar contract (can be null)
+     * @param composition The composition
+     * @param nonPrimaryFactories Factories for lazy instantiation
+     * @param uiRegistry The UI registry
+     */
+    public static Scene withSidebars(ViewContract primaryContract,
+                                      ViewContract leftSidebarContract,
+                                      ViewContract rightSidebarContract,
+                                      Composition composition,
+                                      Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
+                                      UiRegistry uiRegistry) {
+        String title = primaryContract != null ? primaryContract.title() : "App";
+        Map<Slot, List<ActiveContract>> activeBySlot = new HashMap<>();
+
+        if (leftSidebarContract != null) {
+            activeBySlot.put(Slot.LEFT_SIDEBAR, List.of(
+                new ActiveContract(leftSidebarContract, leftSidebarContract.getClass(), Map.of())
+            ));
+        }
+        if (rightSidebarContract != null) {
+            activeBySlot.put(Slot.RIGHT_SIDEBAR, List.of(
+                new ActiveContract(rightSidebarContract, rightSidebarContract.getClass(), Map.of())
+            ));
+        }
+
+        return new Scene(primaryContract, composition,
+            nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
+            Map.copyOf(activeBySlot), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
+    }
 
     /**
      * Create a valid scene with auto-open contract (for non-primary contracts routed via URL).
