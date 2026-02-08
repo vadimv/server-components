@@ -6,6 +6,7 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.contract.ViewContract;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class PromptContract extends ViewContract {
@@ -19,6 +20,7 @@ public class PromptContract extends ViewContract {
     public static final EventKey.SimpleKey<Message> NEW_MESSAGE =
             new EventKey.SimpleKey<>("prompt.newMessage", Message.class);
 
+    private final List<Message> messages = new ArrayList<>();
     private Runnable serviceUnsubscribe;
 
     public PromptContract(Lookup lookup) {
@@ -27,12 +29,15 @@ public class PromptContract extends ViewContract {
         PromptService promptService = lookup.get(PromptService.class);
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
+            messages.add(new Message(text, true));
             promptService.sendPrompt(text);
         });
 
-        serviceUnsubscribe = promptService.subscribe(message ->
-            lookup.publish(NEW_MESSAGE, new Message(message.text(), message.fromUser()))
-        );
+        serviceUnsubscribe = promptService.subscribe(message -> {
+            Message msg = new Message(message.text(), message.fromUser());
+            messages.add(msg);
+            lookup.publish(NEW_MESSAGE, msg);
+        });
         logger.log(System.Logger.Level.INFO, () -> "PromptContract created");
     }
 
@@ -48,7 +53,7 @@ public class PromptContract extends ViewContract {
 
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
-        return context.with(PromptContextKeys.PROMPT_MESSAGES, List.of());
+        return context.with(PromptContextKeys.PROMPT_MESSAGES, List.copyOf(messages));
     }
 
     @Override
