@@ -353,6 +353,19 @@ public final class ContextKeys {
                     (Class<List<Composition>>) (Class<?>) List.class);
 
     /**
+     * Pre-computed navigation entries for PRIMARY contracts.
+     * Type: {@code List<NavigationEntry>}
+     * <p>
+     * Computed from composition registrations at app startup.
+     * Used by navigation/explorer components to render menus
+     * without needing to instantiate contracts or access framework internals.
+     */
+    @SuppressWarnings("unchecked")
+    public static final ContextKey.StringKey<List<NavigationEntry>> NAVIGATION_ENTRIES =
+            new ContextKey.StringKey<>("app.navigationEntries",
+                    (Class<List<NavigationEntry>>) (Class<?>) List.class);
+
+    /**
      * Default page size for list views.
      * Type: Integer
      * This is a framework-agnostic configuration value that list view contracts

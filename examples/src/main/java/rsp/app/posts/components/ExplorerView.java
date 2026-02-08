@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.NavigationEntry;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
@@ -17,7 +18,7 @@ import static rsp.dsl.Html.*;
 /**
  * ExplorerView - Renders the Explorer navigation menu.
  * <p>
- * Reads EXPLORER_ITEMS and EXPLORER_ACTIVE_HINT from context (set by ExplorerContract)
+ * Reads {@link NavigationEntry} list and active type hint from context
  * and renders a navigation menu with SPA-style navigation.
  * <p>
  * Register in UiRegistry:
@@ -31,22 +32,17 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
     private Lookup lookup;
 
     public record ExplorerViewState(
-            List<ExplorerItem> items,
+            List<NavigationEntry> entries,
             Object activeHint
     ) {}
 
     @Override
     public ComponentStateSupplier<ExplorerViewState> initStateSupplier() {
         return (_, context) -> {
-            List<ExplorerItem> items = context.get(ExplorerContextKeys.EXPLORER_ITEMS);
-            // Read from PRIMARY_TYPE_HINT for dynamic updates when primary contract changes
+            List<NavigationEntry> entries = context.get(ContextKeys.NAVIGATION_ENTRIES);
             Object activeHint = context.get(ContextKeys.PRIMARY_TYPE_HINT);
-            // Fallback to static hint if dynamic not available
-            if (activeHint == null) {
-                activeHint = context.get(ExplorerContextKeys.EXPLORER_ACTIVE_HINT);
-            }
             return new ExplorerViewState(
-                    items != null ? items : List.of(),
+                    entries != null ? entries : List.of(),
                     activeHint
             );
         };
@@ -75,24 +71,24 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
         return _ -> state -> div(attr("class", "explorer-panel"),
                 div(attr("class", "explorer-header"), text("Explorer")),
                 ul(attr("class", "explorer-menu"),
-                        of(state.items().stream().map(item ->
-                                renderMenuItem(item, state.activeHint())
+                        of(state.entries().stream().map(entry ->
+                                renderMenuItem(entry, state.activeHint())
                         ))
                 )
         );
     }
 
-    private Definition renderMenuItem(ExplorerItem item, Object activeHint) {
-        boolean isActive = Objects.equals(item.typeHint(), activeHint);
+    private Definition renderMenuItem(NavigationEntry entry, Object activeHint) {
+        boolean isActive = Objects.equals(entry.typeHint(), activeHint);
         String cssClass = isActive ? "explorer-item active" : "explorer-item";
 
         return li(attr("class", cssClass),
                 a(
-                        attr("href", item.route()),  // Real URL for copy/share
-                        on("click", true, ctx -> {   // true = preventDefault
-                            lookup.publish(ExplorerContract.REQUEST_OPEN_CONTRACT, item);
+                        attr("href", entry.route()),
+                        on("click", true, ctx -> {
+                            lookup.publish(ExplorerContract.REQUEST_OPEN_CONTRACT, entry);
                         }),
-                        text(item.label())
+                        text(entry.label())
                 )
         );
     }

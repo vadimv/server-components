@@ -8,6 +8,7 @@ import rsp.component.definitions.Component;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ListViewContract;
+import rsp.compositions.contract.NavigationEntry;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.UiRegistry;
 import rsp.server.http.HttpRequest;
@@ -51,7 +52,8 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
                 .with(AppConfig.class, config)
                 .with(HttpRequest.class, httpRequest)
                 .with(ContextKeys.UI_REGISTRY, uiRegistry)
-                .with(ContextKeys.APP_COMPOSITIONS, compositions);
+                .with(ContextKeys.APP_COMPOSITIONS, compositions)
+                .with(ContextKeys.NAVIGATION_ENTRIES, NavigationEntry.fromCompositions(compositions));
 
             // Add generic configuration values for framework components
             // This allows contracts to be agnostic of AppConfig structure

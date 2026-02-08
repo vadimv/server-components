@@ -47,7 +47,7 @@ public class PromptContract extends ViewContract {
             messages.add(msg);
             lookup.publish(NEW_MESSAGE, msg);
         });
-        logger.log(System.Logger.Level.INFO, () -> "PromptContract created");
+        logger.log(System.Logger.Level.TRACE, () -> "PromptContract created");
     }
 
     @Override
@@ -72,6 +72,6 @@ public class PromptContract extends ViewContract {
             serviceUnsubscribe.run();
             serviceUnsubscribe = null;
         }
-        logger.log(System.Logger.Level.INFO, () -> "PromptContract destroyed");
+        logger.log(System.Logger.Level.TRACE, () -> "PromptContract destroyed");
     }
 }
