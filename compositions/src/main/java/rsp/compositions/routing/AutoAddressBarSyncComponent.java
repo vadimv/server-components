@@ -73,8 +73,17 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
  */
 public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponent {
 
-    public static final EventKey.SimpleKey<String> SET_PATH =
-            new EventKey.SimpleKey<>("setPath", String.class);
+    /**
+     * Payload for SET_PATH events.
+     *
+     * @param path the target URL path
+     * @param reRender if true, updates component state (triggers subtree re-render);
+     *                 if false, only pushes browser history (URL-only update)
+     */
+    public record PathUpdate(String path, boolean reRender) {}
+
+    public static final EventKey.SimpleKey<PathUpdate> SET_PATH =
+            new EventKey.SimpleKey<>("setPath", PathUpdate.class);
 
     public AutoAddressBarSyncComponent(final RelativeUrl initialRelativeUrl) {
         super(initialRelativeUrl);
@@ -177,12 +186,18 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     private void subscribeForNavigationEvents(Subscriber subscriber,
                                               CommandsEnqueue commandsEnqueue,
                                               StateUpdate<RelativeUrl> stateUpdate) {
-        subscriber.addEventHandler(SET_PATH, (eventName, path) -> {
-            stateUpdate.applyStateTransformation(url -> {
-                RelativeUrl updatedUrl = new RelativeUrl(Path.of(path), Query.EMPTY, Fragment.EMPTY);
-                commandsEnqueue.offer(new RemoteCommand.PushHistory(path));
-                return updatedUrl;
-            });
+        subscriber.addEventHandler(SET_PATH, (eventName, pathUpdate) -> {
+            if (pathUpdate.reRender()) {
+                // Full navigation: update state (triggers subtree re-render) + push history
+                stateUpdate.applyStateTransformation(url -> {
+                    RelativeUrl updatedUrl = new RelativeUrl(Path.of(pathUpdate.path()), Query.EMPTY, Fragment.EMPTY);
+                    commandsEnqueue.offer(new RemoteCommand.PushHistory(pathUpdate.path()));
+                    return updatedUrl;
+                });
+            } else {
+                // URL-only update: push browser history without re-rendering
+                commandsEnqueue.offer(new RemoteCommand.PushHistory(pathUpdate.path()));
+            }
         }, false);
     }
 

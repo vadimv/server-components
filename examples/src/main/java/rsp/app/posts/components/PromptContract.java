@@ -9,6 +9,7 @@ import rsp.compositions.contract.ViewContract;
 import java.util.List;
 
 public class PromptContract extends ViewContract {
+    private final System.Logger logger = System.getLogger(getClass().getName());
 
     public record Message(String text, boolean fromUser) {}
 
@@ -32,6 +33,7 @@ public class PromptContract extends ViewContract {
         serviceUnsubscribe = promptService.subscribe(message ->
             lookup.publish(NEW_MESSAGE, new Message(message.text(), message.fromUser()))
         );
+        logger.log(System.Logger.Level.INFO, () -> "PromptContract created");
     }
 
     @Override
@@ -56,5 +58,6 @@ public class PromptContract extends ViewContract {
             serviceUnsubscribe.run();
             serviceUnsubscribe = null;
         }
+        logger.log(System.Logger.Level.INFO, () -> "PromptContract destroyed");
     }
 }

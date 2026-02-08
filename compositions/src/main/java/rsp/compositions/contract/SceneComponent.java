@@ -77,6 +77,22 @@ public class SceneComponent extends Component<Scene> {
     }
 
     @Override
+    public void onUnmounted(ComponentCompositeKey componentId, Scene scene) {
+        if (scene == null) {
+            return;
+        }
+        // Destroy all ViewContracts to release resources (service subscriptions, etc.)
+        if (scene.primaryContract() != null) {
+            scene.primaryContract().onDestroy();
+        }
+        for (var slotEntry : scene.activeContractsBySlot().entrySet()) {
+            for (var activeContract : slotEntry.getValue()) {
+                activeContract.contract().onDestroy();
+            }
+        }
+    }
+
+    @Override
     public ComponentView<Scene> componentView() {
         return _ -> scene -> {
             if (scene.error() != null) {

@@ -198,7 +198,8 @@ public final class SceneEventHandler {
             if (route != null) {
                 // To update browser URL
                 Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
-                lookup.publish(AutoAddressBarSyncComponent.SET_PATH, route);
+                lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
+                               new AutoAddressBarSyncComponent.PathUpdate(route, false));
             }
         }
 
