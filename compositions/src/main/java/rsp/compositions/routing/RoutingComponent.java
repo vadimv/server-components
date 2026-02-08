@@ -81,9 +81,9 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
     @Override
     public ComponentView<RoutingComponentState> componentView() {
         return _ -> state -> new SceneComponent(state.path().toString(),
-                                                state.composition(),
-                                                state.contractClass(),
-                                                state.pattern());
+                                                                                                      state.composition(),
+                                                                                                      state.contractClass(),
+                                                                                                      state.pattern());
     }
 
     public record RoutingComponentState(

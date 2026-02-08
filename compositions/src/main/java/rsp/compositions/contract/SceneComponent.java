@@ -35,24 +35,12 @@ public class SceneComponent extends Component<Scene> {
 
     private ComponentContext savedContext;
 
-    public SceneComponent(Composition composition,
-                          Class<? extends ViewContract> contractClass,
-                          String routePattern) {
-        this(SceneComponent.class, composition, contractClass, routePattern, new DefaultLayout());
-    }
 
     public SceneComponent(Object componentType,
                           Composition composition,
                           Class<? extends ViewContract> contractClass,
                           String routePattern) {
         this(componentType, composition, contractClass, routePattern, new DefaultLayout());
-    }
-
-    public SceneComponent(Composition composition,
-                          Class<? extends ViewContract> contractClass,
-                          String routePattern,
-                          Layout layout) {
-        this(SceneComponent.class, composition, contractClass, routePattern, layout);
     }
 
     public SceneComponent(Object componentType,

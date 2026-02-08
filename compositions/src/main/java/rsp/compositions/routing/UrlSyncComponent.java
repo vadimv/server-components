@@ -3,6 +3,8 @@ package rsp.compositions.routing;
 import rsp.component.ComponentView;
 import rsp.server.http.RelativeUrl;
 
+import java.util.Objects;
+
 /**
  * UrlSyncComponent - Synchronizes browser URL with component context.
  * <p>
@@ -16,7 +18,7 @@ import rsp.server.http.RelativeUrl;
 public class UrlSyncComponent extends AutoAddressBarSyncComponent {
 
     public UrlSyncComponent(RelativeUrl initialRelativeUrl) {
-        super(initialRelativeUrl);
+        super(Objects.requireNonNull(initialRelativeUrl, "initialRelativeUrl"));
     }
 
     @Override
