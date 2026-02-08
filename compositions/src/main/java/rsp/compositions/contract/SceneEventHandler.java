@@ -252,7 +252,17 @@ public final class SceneEventHandler {
 
         // Determine behavior based on placement
         if (SlotUtils.isInOverlay(contractClass, state)) {
-            // OVERLAY behavior: close overlay and refresh list
+            // OVERLAY behavior:
+            // If this overlay was auto-opened via direct URL, navigate back to parent route.
+            // Otherwise just close the overlay.
+            if (state.autoOpenContract() != null
+                && state.autoOpenContract().equals(contractClass)
+                && state.autoOpenRoutePattern() != null) {
+                String parentRoute = RouteUtils.buildParentRoute(state.autoOpenRoutePattern(), lookup);
+                lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
+                               new AutoAddressBarSyncComponent.PathUpdate(parentRoute, true));
+                return;
+            }
             lookup.publish(HIDE, contractClass);
 
         } else {
