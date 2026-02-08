@@ -2,7 +2,6 @@ package rsp.compositions.contract;
 
 import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.compositions.auth.AuthorizationException;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Layout;
@@ -85,9 +84,7 @@ public class SceneComponent extends Component<Scene> {
             return;
         }
         // Destroy all ViewContracts to release resources (service subscriptions, etc.)
-        if (scene.primaryContract() != null) {
-            scene.primaryContract().onDestroy();
-        }
+        scene.primaryContract().onDestroy();
         for (var slotEntry : scene.activeContractsBySlot().entrySet()) {
             for (var activeContract : slotEntry.getValue()) {
                 activeContract.contract().onDestroy();
@@ -97,23 +94,10 @@ public class SceneComponent extends Component<Scene> {
 
     @Override
     public ComponentView<Scene> componentView() {
-        return _ -> scene -> {
-            if (scene.error() != null) {
-                throw new IllegalStateException("Scene build failed", scene.error());
-            }
-
-            if (!scene.authorized()) {
-                throw new AuthorizationException("Access denied: insufficient permissions");
-            }
-
-            if (scene.uiRegistry() == null) {
-                throw new IllegalStateException("UiRegistry not found in scene");
-            }
-
-            return html(head(title(scene.pageTitle() != null ? scene.pageTitle() : "App"),
+        return _ -> scene ->
+            html(head(title(scene.pageTitle() != null ? scene.pageTitle() : "App"),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
                     body(layout.resolve(scene, LookupFactory.create(savedContext))));
-        };
     }
 }

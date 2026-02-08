@@ -2,6 +2,7 @@ package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
+import rsp.compositions.auth.AuthorizationException;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.UiRegistry;
@@ -21,6 +22,9 @@ import java.util.function.Function;
  * <p>
  * Non-primary contracts are NOT pre-instantiated (on-demand via SHOW events).
  * Exception: non-primary contracts routed directly via URL are pre-instantiated.
+ * <p>
+ * Throws {@link AuthorizationException} if the contract's authorization check fails.
+ * Throws {@link IllegalStateException} if scene building fails for any other reason.
  */
 public final class SceneBuilder {
 
@@ -40,46 +44,44 @@ public final class SceneBuilder {
      * Build a complete Scene from the given context.
      * Determines whether the route targets a PRIMARY or non-PRIMARY slot
      * and delegates to the appropriate build method.
+     *
+     * @throws AuthorizationException if the contract's authorization check fails
+     * @throws IllegalStateException if scene building fails
      */
     public Scene buildScene(ComponentContext context) {
-        try {
-            // UI_REGISTRY comes from context (set by AppComponent, not RoutingComponent)
-            UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
+        // UI_REGISTRY comes from context (set by AppComponent, not RoutingComponent)
+        UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
 
-            if (uiRegistry == null) {
-                return Scene.error(new IllegalStateException("Missing UI_REGISTRY in context"));
-            }
-
-            // Router is inside the composition
-            Router router = this.composition.router();
-
-            // Get the placement for the routed contract
-            ViewPlacement routedPlacement = this.composition.placementFor(this.contractClass);
-            if (routedPlacement == null) {
-                return Scene.error(new IllegalStateException("Contract not found in composition: " + this.contractClass.getName()));
-            }
-
-            Slot routedSlot = routedPlacement.slot();
-
-            // Case 2: Non-primary slot routed directly via URL
-            // Need to find parent PRIMARY and auto-open this non-primary contract
-            if (routedSlot != Slot.PRIMARY) {
-                return buildNonPrimaryRoutedScene(context,
-                                                  this.composition,
-                                                  this.contractClass,
-                                                  routedPlacement,
-                                                  this.routePattern,
-                                                  router,
-                                                  uiRegistry);
-            }
-
-            // Cases 1, 3: PRIMARY slot (with or without route)
-            // Standard behavior: instantiate as primary, store factories for non-primary slots
-            return buildPrimaryScene(context, this.composition, routedPlacement, uiRegistry);
-
-        } catch (Exception e) {
-            return Scene.error(e);
+        if (uiRegistry == null) {
+            throw new IllegalStateException("Missing UI_REGISTRY in context");
         }
+
+        // Router is inside the composition
+        Router router = this.composition.router();
+
+        // Get the placement for the routed contract
+        ViewPlacement routedPlacement = this.composition.placementFor(this.contractClass);
+        if (routedPlacement == null) {
+            throw new IllegalStateException("Contract not found in composition: " + this.contractClass.getName());
+        }
+
+        Slot routedSlot = routedPlacement.slot();
+
+        // Case 2: Non-primary slot routed directly via URL
+        // Need to find parent PRIMARY and auto-open this non-primary contract
+        if (routedSlot != Slot.PRIMARY) {
+            return buildNonPrimaryRoutedScene(context,
+                                              this.composition,
+                                              this.contractClass,
+                                              routedPlacement,
+                                              this.routePattern,
+                                              router,
+                                              uiRegistry);
+        }
+
+        // Cases 1, 3: PRIMARY slot (with or without route)
+        // Standard behavior: instantiate as primary, store factories for non-primary slots
+        return buildPrimaryScene(context, this.composition, routedPlacement, uiRegistry);
     }
 
     /**
@@ -104,20 +106,20 @@ public final class SceneBuilder {
         }
 
         if (primaryPlacement == null) {
-            return Scene.error(new IllegalStateException(
-                    "Non-primary contract routed directly but no PRIMARY found in composition: " + composition.getClass().getName()));
+            throw new IllegalStateException(
+                    "Non-primary contract routed directly but no PRIMARY found in composition: " + composition.getClass().getName());
         }
 
         // Instantiate primary contract
         ViewContract primaryContract = instantiatePlacement(primaryPlacement, context);
         if (primaryContract == null) {
-            return Scene.error(new IllegalStateException(
-                    "Failed to instantiate primary contract: " + primaryPlacement.contractClass().getName()));
+            throw new IllegalStateException(
+                    "Failed to instantiate primary contract: " + primaryPlacement.contractClass().getName());
         }
 
         // Check authorization
         if (!primaryContract.isAuthorized()) {
-            return Scene.unauthorized(primaryContract, composition, uiRegistry);
+            throw new AuthorizationException("Access denied: insufficient permissions for " + primaryPlacement.contractClass().getName());
         }
 
         // Instantiate sidebar contracts (always visible, not on-demand)
@@ -175,13 +177,13 @@ public final class SceneBuilder {
                                     ViewPlacement primaryPlacement, UiRegistry uiRegistry) {
         ViewContract contract = instantiatePlacement(primaryPlacement, context);
         if (contract == null) {
-            return Scene.error(new IllegalStateException(
-                    "Failed to instantiate contract: " + primaryPlacement.contractClass().getName()));
+            throw new IllegalStateException(
+                    "Failed to instantiate contract: " + primaryPlacement.contractClass().getName());
         }
 
         // Check authorization
         if (!contract.isAuthorized()) {
-            return Scene.unauthorized(contract, composition, uiRegistry);
+            throw new AuthorizationException("Access denied: insufficient permissions for " + primaryPlacement.contractClass().getName());
         }
 
         // Instantiate sidebar contracts (always visible, not on-demand)

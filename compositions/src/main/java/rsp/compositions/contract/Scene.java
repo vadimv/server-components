@@ -12,6 +12,9 @@ import java.util.function.Function;
 /**
  * Scene - Immutable snapshot of a rendered view's complete contract setup.
  * <p>
+ * A Scene is always valid — it represents a successfully built, authorized view.
+ * Error and authorization failures are handled via exceptions during scene building.
+ * <p>
  * A Scene represents everything needed to render a view:
  * <ul>
  *   <li>Primary contract instance (fully instantiated, authorized, handlers registered)</li>
@@ -19,8 +22,7 @@ import java.util.function.Function;
  *   <li>Non-primary factories (for on-demand instantiation via SHOW events)</li>
  *   <li>Active contracts by slot (currently shown contracts)</li>
  *   <li>UiRegistry for resolving contracts to UI components</li>
- *   <li>Authorization state</li>
- *   <li>Build metadata (timestamp, any errors)</li>
+ *   <li>Build metadata (timestamp)</li>
  *   <li>Auto-open contract (when non-primary contract is routed directly)</li>
  *   <li>Page title for HTML title tag</li>
  * </ul>
@@ -41,9 +43,7 @@ import java.util.function.Function;
  * @param nonPrimaryFactories Factories for lazy instantiation of non-primary contracts
  * @param activeContractsBySlot Currently active contracts organized by slot
  * @param uiRegistry Registry for resolving contracts to UI components
- * @param authorized Whether user is authorized for this contract
  * @param timestamp When the scene was built (for debugging/caching)
- * @param error If scene building failed, this contains the exception (other fields may be null)
  * @param autoOpenContract Contract to auto-activate (when non-primary contract routed via URL), null otherwise
  * @param autoOpenRoutePattern The route pattern for auto-opened contracts (for restoring URL on close), null otherwise
  * @param pageTitle The page title for the HTML title tag (derived from primary contract)
@@ -54,13 +54,19 @@ public record Scene(
     Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
     Map<Slot, List<ActiveContract>> activeContractsBySlot,
     UiRegistry uiRegistry,
-    boolean authorized,
     long timestamp,
-    Exception error,
     Class<? extends ViewContract> autoOpenContract,
     String autoOpenRoutePattern,
     String pageTitle
 ) {
+    public Scene {
+        Objects.requireNonNull(primaryContract, "primaryContract");
+        Objects.requireNonNull(composition, "composition");
+        Objects.requireNonNull(nonPrimaryFactories, "nonPrimaryFactories");
+        Objects.requireNonNull(activeContractsBySlot, "activeContractsBySlot");
+        Objects.requireNonNull(uiRegistry, "uiRegistry");
+    }
+
     /**
      * Helper record for tracking active contracts with their metadata.
      *
@@ -73,15 +79,6 @@ public record Scene(
         Class<? extends ViewContract> contractClass,
         Map<String, Object> showData
     ) {}
-
-    /**
-     * Check if the scene is valid and ready for rendering.
-     *
-     * @return true if no error occurred, contract exists, and user is authorized
-     */
-    public boolean isValid() {
-        return error == null && primaryContract != null && authorized;
-    }
 
     /**
      * Get the LEFT_SIDEBAR contract if present.
@@ -147,21 +144,13 @@ public record Scene(
     }
 
     /**
-     * @deprecated Use {@link #hasNonPrimaryContracts()} instead. This method assumes OVERLAY slot.
-     */
-    @Deprecated
-    public boolean hasOverlays() {
-        return hasNonPrimaryContracts();
-    }
-
-    /**
      * Get factory for a contract class.
      *
      * @param contractClass The contract class
      * @return The factory, or null if not found
      */
     public Function<Lookup, ViewContract> getFactory(Class<? extends ViewContract> contractClass) {
-        return nonPrimaryFactories != null ? nonPrimaryFactories.get(contractClass) : null;
+        return nonPrimaryFactories.get(contractClass);
     }
 
     /**
@@ -224,13 +213,13 @@ public record Scene(
         slotContracts.add(new ActiveContract(contract, contractClass, showData));
         newMap.put(slot, List.copyOf(slotContracts));
         return new Scene(primaryContract, composition, nonPrimaryFactories,
-            Map.copyOf(newMap), uiRegistry, authorized, timestamp, error,
+            Map.copyOf(newMap), uiRegistry, timestamp,
             autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
 
-    public Scene withPrimaryContract( ViewContract contract) {
+    public Scene withPrimaryContract(ViewContract contract) {
         return new Scene(contract, composition, nonPrimaryFactories,
-                activeContractsBySlot, uiRegistry, authorized, timestamp, error,
+                activeContractsBySlot, uiRegistry, timestamp,
                 autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
 
@@ -251,19 +240,18 @@ public record Scene(
             }
         }
         return new Scene(primaryContract, composition, nonPrimaryFactories,
-            Map.copyOf(newMap), uiRegistry, authorized, timestamp, error,
+            Map.copyOf(newMap), uiRegistry, timestamp,
             autoOpenContract, autoOpenRoutePattern, pageTitle);
     }
-
 
 
     /**
      * Create a valid scene with primary contract, composition, and UI registry (no non-primary contracts).
      */
     public static Scene of(ViewContract primaryContract, Composition composition, UiRegistry uiRegistry) {
-        String title = primaryContract != null ? primaryContract.title() : "App";
+        String title = primaryContract.title() != null ? primaryContract.title() : "App";
         return new Scene(primaryContract, composition, Map.of(), Map.of(), uiRegistry,
-            true, System.currentTimeMillis(), null, null, null, title);
+            System.currentTimeMillis(), null, null, title);
     }
 
     /**
@@ -272,39 +260,11 @@ public record Scene(
     public static Scene of(ViewContract primaryContract, Composition composition,
                            Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
                            UiRegistry uiRegistry) {
-        String title = primaryContract != null ? primaryContract.title() : "App";
+        String title = primaryContract.title() != null ? primaryContract.title() : "App";
         return new Scene(primaryContract, composition,
-            nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
-            Map.of(), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
+            nonPrimaryFactories, Map.of(), uiRegistry,
+            System.currentTimeMillis(), null, null, title);
     }
-
-    /**
-     * Create a valid scene with primary contract, left sidebar contract, non-primary factories, and UI registry.
-     *
-     * @param primaryContract The primary contract
-     * @param leftSidebarContract The left sidebar contract (can be null)
-     * @param composition The composition
-     * @param nonPrimaryFactories Factories for lazy instantiation
-     * @param uiRegistry The UI registry
-     */
-    public static Scene withLeftSidebar(ViewContract primaryContract, ViewContract leftSidebarContract,
-                                        Composition composition,
-                                        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
-                                        UiRegistry uiRegistry) {
-        String title = primaryContract != null ? primaryContract.title() : "App";
-        Map<Slot, List<ActiveContract>> activeBySlot = new HashMap<>();
-
-        if (leftSidebarContract != null) {
-            activeBySlot.put(Slot.LEFT_SIDEBAR, List.of(
-                new ActiveContract(leftSidebarContract, leftSidebarContract.getClass(), Map.of())
-            ));
-        }
-
-        return new Scene(primaryContract, composition,
-            nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
-            Map.copyOf(activeBySlot), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
-    }
-
 
     /**
      * Create a valid scene with primary contract, both sidebar contracts, non-primary factories, and UI registry.
@@ -322,7 +282,7 @@ public record Scene(
                                       Composition composition,
                                       Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
                                       UiRegistry uiRegistry) {
-        String title = primaryContract != null ? primaryContract.title() : "App";
+        String title = primaryContract.title() != null ? primaryContract.title() : "App";
         Map<Slot, List<ActiveContract>> activeBySlot = new HashMap<>();
 
         if (leftSidebarContract != null) {
@@ -337,8 +297,9 @@ public record Scene(
         }
 
         return new Scene(primaryContract, composition,
-            nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
-            Map.copyOf(activeBySlot), uiRegistry, true, System.currentTimeMillis(), null, null, null, title);
+            nonPrimaryFactories,
+            Map.copyOf(activeBySlot), uiRegistry,
+            System.currentTimeMillis(), null, null, title);
     }
 
     /**
@@ -384,30 +345,13 @@ public record Scene(
             activeBySlot = Map.copyOf(immutable);
         }
         // Fallback to primary contract's title if auto-open title wasn't found
-        if ("App".equals(title) && primaryContract != null) {
+        if ("App".equals(title)) {
             title = primaryContract.title();
         }
         return new Scene(primaryContract, composition,
-            nonPrimaryFactories != null ? nonPrimaryFactories : Map.of(),
-            activeBySlot, uiRegistry, true, System.currentTimeMillis(), null,
+            nonPrimaryFactories,
+            activeBySlot, uiRegistry,
+            System.currentTimeMillis(),
             autoOpenContract, autoOpenRoutePattern, title);
     }
-
-
-    /**
-     * Create an unauthorized scene.
-     */
-    public static Scene unauthorized(ViewContract contract, Composition composition, UiRegistry uiRegistry) {
-        return new Scene(contract, composition, Map.of(), Map.of(), uiRegistry,
-            false, System.currentTimeMillis(), null, null, null, "Unauthorized");
-    }
-
-    /**
-     * Create an error scene.
-     */
-    public static Scene error(Exception e) {
-        return new Scene(null, null, Map.of(), Map.of(), null,
-            false, System.currentTimeMillis(), e, null, null, "Error");
-    }
-
 }

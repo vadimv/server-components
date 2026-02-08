@@ -31,8 +31,8 @@ public final class SceneContextEnricher {
      * Enrich context with scene data for downstream components.
      */
     public ComponentContext enrich(ComponentContext context, Scene scene) {
-        if (scene == null || !scene.isValid()) {
-            return context; // Render will show error
+        if (scene == null) {
+            return context;
         }
 
         ViewContract contract = scene.primaryContract();
