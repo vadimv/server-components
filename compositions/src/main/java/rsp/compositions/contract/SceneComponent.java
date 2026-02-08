@@ -95,7 +95,7 @@ public class SceneComponent extends Component<Scene> {
     @Override
     public ComponentView<Scene> componentView() {
         return _ -> scene ->
-            html(head(title(scene.pageTitle() != null ? scene.pageTitle() : "App"),
+            html(head(title(scene.pageTitle()),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
                     body(layout.resolve(scene, LookupFactory.create(savedContext))));

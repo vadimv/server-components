@@ -165,7 +165,7 @@ public final class SceneBuilder {
 
         // Return scene with auto-open non-primary contract
         return Scene.withAutoOpenContract(primaryContract, composition, nonPrimaryFactories, activeNonPrimary,
-                uiRegistry, nonPrimaryContractClass, routePattern);
+                uiRegistry, new Scene.AutoOpen(nonPrimaryContractClass, routePattern));
     }
 
     /**

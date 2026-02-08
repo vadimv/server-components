@@ -256,10 +256,9 @@ public final class SceneEventHandler {
             // OVERLAY behavior:
             // If this overlay was auto-opened via direct URL, navigate back to parent route.
             // Otherwise just close the overlay.
-            if (state.autoOpenContract() != null
-                && state.autoOpenContract().equals(contractClass)
-                && state.autoOpenRoutePattern() != null) {
-                String parentRoute = RouteUtils.buildParentRoute(state.autoOpenRoutePattern(), lookup);
+            if (state.autoOpen() != null
+                && state.autoOpen().contractClass().equals(contractClass)) {
+                String parentRoute = RouteUtils.buildParentRoute(state.autoOpen().routePattern(), lookup);
                 lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
                                new AutoAddressBarSyncComponent.PathUpdate(parentRoute, RE_RENDER_SUBTREE));
                 return;

@@ -58,7 +58,8 @@ public final class DefaultLayout implements Layout {
 
         // Determine active overlay and resolve to UI component
         Component<?> activeOverlay = null;
-        Class<? extends ViewContract> activeOverlayClass = scene.autoOpenContract();
+        Class<? extends ViewContract> activeOverlayClass = scene.autoOpen() != null
+            ? scene.autoOpen().contractClass() : null;
         if (activeOverlayClass == null && scene.hasNonPrimaryContracts()) {
             activeOverlayClass = scene.nonPrimaryContracts().keySet().iterator().next();
         }

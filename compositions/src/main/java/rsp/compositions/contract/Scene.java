@@ -14,6 +14,7 @@ import java.util.function.Function;
  * <p>
  * A Scene is always valid — it represents a successfully built, authorized view.
  * Error and authorization failures are handled via exceptions during scene building.
+ * All fields are non-null (enforced by compact constructor).
  * <p>
  * A Scene represents everything needed to render a view:
  * <ul>
@@ -23,20 +24,9 @@ import java.util.function.Function;
  *   <li>Active contracts by slot (currently shown contracts)</li>
  *   <li>UiRegistry for resolving contracts to UI components</li>
  *   <li>Build metadata (timestamp)</li>
- *   <li>Auto-open contract (when non-primary contract is routed directly)</li>
+ *   <li>Auto-open info (when non-primary contract is routed directly)</li>
  *   <li>Page title for HTML title tag</li>
  * </ul>
- * <p>
- * On-demand instantiation:
- * <ul>
- *   <li>Non-primary contracts are NOT pre-instantiated at mount</li>
- *   <li>Factories are stored for lazy instantiation on SHOW events</li>
- *   <li>SceneComponent handles SHOW/HIDE to manage active contracts</li>
- *   <li>Supports multiple active contracts per slot (e.g., nested non-primary contracts)</li>
- * </ul>
- * <p>
- * Slot-agnostic: Scene doesn't know about specific slot types (OVERLAY, SECONDARY, etc.).
- * It only distinguishes PRIMARY vs non-PRIMARY. Layout decides how to render each slot.
  *
  * @param primaryContract The main ViewContract for this route (fully instantiated)
  * @param composition The Composition containing the contract
@@ -44,8 +34,7 @@ import java.util.function.Function;
  * @param activeContractsBySlot Currently active contracts organized by slot
  * @param uiRegistry Registry for resolving contracts to UI components
  * @param timestamp When the scene was built (for debugging/caching)
- * @param autoOpenContract Contract to auto-activate (when non-primary contract routed via URL), null otherwise
- * @param autoOpenRoutePattern The route pattern for auto-opened contracts (for restoring URL on close), null otherwise
+ * @param autoOpen Auto-open info for non-primary contracts routed via URL, empty if not applicable
  * @param pageTitle The page title for the HTML title tag (derived from primary contract)
  */
 public record Scene(
@@ -55,8 +44,7 @@ public record Scene(
     Map<Slot, List<ActiveContract>> activeContractsBySlot,
     UiRegistry uiRegistry,
     long timestamp,
-    Class<? extends ViewContract> autoOpenContract,
-    String autoOpenRoutePattern,
+    AutoOpen autoOpen,
     String pageTitle
 ) {
     public Scene {
@@ -65,6 +53,23 @@ public record Scene(
         Objects.requireNonNull(nonPrimaryFactories, "nonPrimaryFactories");
         Objects.requireNonNull(activeContractsBySlot, "activeContractsBySlot");
         Objects.requireNonNull(uiRegistry, "uiRegistry");
+        Objects.requireNonNull(pageTitle, "pageTitle");
+    }
+
+    /**
+     * Auto-open info for non-primary contracts routed directly via URL.
+     *
+     * @param contractClass The contract class that was auto-activated
+     * @param routePattern The route pattern for URL restoration on close (e.g., "/posts/:id")
+     */
+    public record AutoOpen(
+        Class<? extends ViewContract> contractClass,
+        String routePattern
+    ) {
+        public AutoOpen {
+            Objects.requireNonNull(contractClass, "contractClass");
+            Objects.requireNonNull(routePattern, "routePattern");
+        }
     }
 
     /**
@@ -213,14 +218,12 @@ public record Scene(
         slotContracts.add(new ActiveContract(contract, contractClass, showData));
         newMap.put(slot, List.copyOf(slotContracts));
         return new Scene(primaryContract, composition, nonPrimaryFactories,
-            Map.copyOf(newMap), uiRegistry, timestamp,
-            autoOpenContract, autoOpenRoutePattern, pageTitle);
+            Map.copyOf(newMap), uiRegistry, timestamp, autoOpen, pageTitle);
     }
 
     public Scene withPrimaryContract(ViewContract contract) {
         return new Scene(contract, composition, nonPrimaryFactories,
-                activeContractsBySlot, uiRegistry, timestamp,
-                autoOpenContract, autoOpenRoutePattern, pageTitle);
+                activeContractsBySlot, uiRegistry, timestamp, autoOpen, pageTitle);
     }
 
     /**
@@ -240,34 +243,31 @@ public record Scene(
             }
         }
         return new Scene(primaryContract, composition, nonPrimaryFactories,
-            Map.copyOf(newMap), uiRegistry, timestamp,
-            autoOpenContract, autoOpenRoutePattern, pageTitle);
+            Map.copyOf(newMap), uiRegistry, timestamp, autoOpen, pageTitle);
     }
 
 
     /**
-     * Create a valid scene with primary contract, composition, and UI registry (no non-primary contracts).
+     * Create a scene with primary contract, composition, and UI registry (no non-primary contracts).
      */
     public static Scene of(ViewContract primaryContract, Composition composition, UiRegistry uiRegistry) {
-        String title = primaryContract.title() != null ? primaryContract.title() : "App";
         return new Scene(primaryContract, composition, Map.of(), Map.of(), uiRegistry,
-            System.currentTimeMillis(), null, null, title);
+            System.currentTimeMillis(), null, titleOf(primaryContract));
     }
 
     /**
-     * Create a valid scene with primary contract, composition, non-primary factories, and UI registry.
+     * Create a scene with primary contract, composition, non-primary factories, and UI registry.
      */
     public static Scene of(ViewContract primaryContract, Composition composition,
                            Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
                            UiRegistry uiRegistry) {
-        String title = primaryContract.title() != null ? primaryContract.title() : "App";
         return new Scene(primaryContract, composition,
             nonPrimaryFactories, Map.of(), uiRegistry,
-            System.currentTimeMillis(), null, null, title);
+            System.currentTimeMillis(), null, titleOf(primaryContract));
     }
 
     /**
-     * Create a valid scene with primary contract, both sidebar contracts, non-primary factories, and UI registry.
+     * Create a scene with primary contract, both sidebar contracts, non-primary factories, and UI registry.
      *
      * @param primaryContract The primary contract
      * @param leftSidebarContract The left sidebar contract (can be null)
@@ -282,7 +282,6 @@ public record Scene(
                                       Composition composition,
                                       Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
                                       UiRegistry uiRegistry) {
-        String title = primaryContract.title() != null ? primaryContract.title() : "App";
         Map<Slot, List<ActiveContract>> activeBySlot = new HashMap<>();
 
         if (leftSidebarContract != null) {
@@ -299,26 +298,24 @@ public record Scene(
         return new Scene(primaryContract, composition,
             nonPrimaryFactories,
             Map.copyOf(activeBySlot), uiRegistry,
-            System.currentTimeMillis(), null, null, title);
+            System.currentTimeMillis(), null, titleOf(primaryContract));
     }
 
     /**
-     * Create a valid scene with auto-open contract (for non-primary contracts routed via URL).
+     * Create a scene with auto-open contract (for non-primary contracts routed via URL).
      *
      * @param primaryContract The primary contract (parent route's contract)
      * @param composition The composition
      * @param nonPrimaryFactories Factories for lazy instantiation
      * @param activeContracts Pre-activated non-primary contracts (for auto-open case)
      * @param uiRegistry The UI registry
-     * @param autoOpenContract The contract class to auto-activate
-     * @param autoOpenRoutePattern The route pattern for URL sync (e.g., "/posts/:id")
+     * @param autoOpen The auto-open info (contract class and route pattern)
      */
     public static Scene withAutoOpenContract(ViewContract primaryContract, Composition composition,
                                              Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
                                              Map<Class<? extends ViewContract>, ViewContract> activeContracts,
                                              UiRegistry uiRegistry,
-                                             Class<? extends ViewContract> autoOpenContract,
-                                             String autoOpenRoutePattern) {
+                                             AutoOpen autoOpen) {
         Map<Slot, List<ActiveContract>> activeBySlot = new HashMap<>();
         // Determine page title - use auto-opened contract's title if available, otherwise primary's
         String title = "App";
@@ -333,7 +330,7 @@ public record Scene(
                 slotActives.add(new ActiveContract(entry.getValue(), entry.getKey(), Map.of()));
 
                 // Use the auto-opened contract's page title
-                if (entry.getKey().equals(autoOpenContract)) {
+                if (entry.getKey().equals(autoOpen.contractClass())) {
                     title = entry.getValue().title();
                 }
             }
@@ -346,12 +343,17 @@ public record Scene(
         }
         // Fallback to primary contract's title if auto-open title wasn't found
         if ("App".equals(title)) {
-            title = primaryContract.title();
+            title = titleOf(primaryContract);
         }
         return new Scene(primaryContract, composition,
             nonPrimaryFactories,
             activeBySlot, uiRegistry,
             System.currentTimeMillis(),
-            autoOpenContract, autoOpenRoutePattern, title);
+            autoOpen, title);
+    }
+
+    private static String titleOf(ViewContract contract) {
+        String title = contract.title();
+        return title != null ? title : "App";
     }
 }
