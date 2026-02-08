@@ -28,6 +28,11 @@ public class PromptContract extends ViewContract {
 
         PromptService promptService = lookup.get(PromptService.class);
 
+        // Initialize from service history (survives contract recreation)
+        for (PromptService.Message msg : promptService.getMessageHistory()) {
+            messages.add(new Message(msg.text(), msg.fromUser()));
+        }
+
         subscribe(SEND_PROMPT, (eventName, text) -> {
             messages.add(new Message(text, true));
             promptService.sendPrompt(text);

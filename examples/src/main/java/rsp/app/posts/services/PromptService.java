@@ -12,6 +12,7 @@ public class PromptService {
     private final AtomicInteger messageCount = new AtomicInteger(0);
     private final AtomicInteger tickCount = new AtomicInteger(0);
     private final List<Consumer<Message>> subscribers = new CopyOnWriteArrayList<>();
+    private final List<Message> messageHistory = new CopyOnWriteArrayList<>();
     private ScheduledExecutorService scheduler;
 
     /**
@@ -31,9 +32,17 @@ public class PromptService {
      * @param text the prompt text
      */
     public void sendPrompt(String text) {
+        messageHistory.add(new Message(text, true));
         int count = messageCount.incrementAndGet();
         Message reply = new Message("echo-" + count, false);
         notifySubscribers(reply);
+    }
+
+    /**
+     * Get the full message history (user prompts + service replies + ticks).
+     */
+    public List<Message> getMessageHistory() {
+        return List.copyOf(messageHistory);
     }
 
     /**
@@ -66,6 +75,7 @@ public class PromptService {
     }
 
     private void notifySubscribers(Message message) {
+        messageHistory.add(message);
         for (Consumer<Message> subscriber : subscribers) {
             try {
                 subscriber.accept(message);
