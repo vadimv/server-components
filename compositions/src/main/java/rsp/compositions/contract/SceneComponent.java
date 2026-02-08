@@ -27,6 +27,7 @@ import static rsp.dsl.Html.*;
  * Position in component chain: RoutingComponent → SceneComponent → (Layout renders children)
  */
 public class SceneComponent extends Component<Scene> {
+    private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final SceneBuilder sceneBuilder;
     private final SceneContextEnricher contextEnricher;

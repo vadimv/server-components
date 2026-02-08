@@ -11,6 +11,7 @@ import rsp.dsl.Definition;
 import java.util.ArrayList;
 import java.util.List;
 
+import static java.lang.System.Logger.Level.TRACE;
 import static rsp.compositions.contract.EventKeys.HIDE;
 import static rsp.dsl.Html.*;
 
@@ -30,14 +31,16 @@ import static rsp.dsl.Html.*;
  * </ul>
  */
 public final class DefaultLayout implements Layout {
+    private final System.Logger logger = System.getLogger(getClass().getName());
 
     @Override
     public Definition resolve(Scene scene, Lookup lookup) {
+        logger.log(TRACE, () -> "Resolving a standard content three column layout with optional modal overlay");
+
         UiRegistry uiRegistry = scene.uiRegistry();
 
         // Resolve primary contract to UI component
-        Component<?> primary = UiComponentResolver.resolve(
-                uiRegistry, scene.primaryContract().getClass());
+        Component<?> primary = UiComponentResolver.resolve(uiRegistry, scene.primaryContract().getClass());
 
         // Resolve LEFT_SIDEBAR contract to UI component (if present)
         Component<?> leftSidebar = null;
@@ -75,8 +78,7 @@ public final class DefaultLayout implements Layout {
         }
         if (activeOverlay != null) {
             final Class<? extends ViewContract> overlayToClose = activeOverlayClass;
-            children.add(renderOverlay(activeOverlay,
-                    () -> lookup.publish(HIDE, overlayToClose)));
+            children.add(renderOverlay(activeOverlay, () -> lookup.publish(HIDE, overlayToClose)));
         }
 
         return div(children.toArray(Definition[]::new));
@@ -85,7 +87,7 @@ public final class DefaultLayout implements Layout {
     private static Definition renderOverlay(Component<?> content, Runnable onClose) {
         return div(attr("class", "modal-overlay"),
                 div(attr("class", "modal-backdrop"),
-                        on("click", ctx -> onClose.run())),
+                        on("click", _ -> onClose.run())),
                 div(attr("class", "modal-content"),
                         content));
     }
