@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import rsp.jetty.WebServer;
 
 import java.util.stream.Stream;
 
@@ -24,11 +25,11 @@ class CommentsSmokeIT {
     private static final String BASE_URL = "http://localhost:" + PORT;
 
     private static final Playwright playwright = Playwright.create();
-    private static CrudAppTestServer server;
+    private static WebServer server;
 
     @BeforeAll
     public static void init() {
-        server = CrudAppTestServer.run(false);
+        server = CrudApp.run(false);
     }
 
     @AfterAll
@@ -73,13 +74,13 @@ class CommentsSmokeIT {
         assertOnCommentsList(page);
 
         // Verify table is visible
-        assertThat(page.locator("table")).isVisible();
+        assertThat(primaryScope(page).locator("table")).isVisible();
 
         // Verify Create button is present
-        assertThat(page.locator("button.create-button")).isVisible();
+        assertThat(primaryScope(page).locator("button.create-button")).isVisible();
 
         // Verify pagination indicator (use first() to avoid strict mode violation with multiple pagination controls)
-        assertThat(page.locator("span:has-text(\"Page\")").first()).isVisible();
+        assertThat(primaryScope(page).locator("span:has-text(\"Page\")").first()).isVisible();
 
         System.out.println("✓ List view validated successfully");
     }
@@ -92,14 +93,14 @@ class CommentsSmokeIT {
 
         // Verify on first page
         assertTrue(page.url().contains("/comments"));
-        assertThat(page.locator("span:has-text(\"Page 1\")").first()).isVisible();
+        assertThat(primaryScope(page).locator("span:has-text(\"Page 1\")").first()).isVisible();
 
         // Verify Previous button is disabled on first page (use first() for duplicate pagination controls)
-        Locator previousButton = page.locator("button:has-text(\"← Previous\")").first();
+        Locator previousButton = primaryScope(page).locator("button:has-text(\"← Previous\")").first();
         assertTrue(previousButton.isDisabled());
 
         // Click Next button (use first() for duplicate pagination controls)
-        Locator nextButton = page.locator("button:has-text(\"Next →\")").first();
+        Locator nextButton = primaryScope(page).locator("button:has-text(\"Next →\")").first();
         if (!nextButton.isDisabled()) {
             String beforeUrl = page.url();
             System.out.println("Before Next click, URL: " + beforeUrl);
@@ -107,7 +108,8 @@ class CommentsSmokeIT {
 
             // Wait for page indicator to change to Page 2 (with timeout)
             try {
-                page.locator("span:has-text(\"Page 2\")").first().waitFor(new Locator.WaitForOptions().setTimeout(5000));
+                primaryScope(page).locator("span:has-text(\"Page 2\")").first()
+                        .waitFor(new Locator.WaitForOptions().setTimeout(5000));
             } catch (Exception e) {
                 System.out.println("Timeout waiting for Page 2 indicator. URL: " + page.url());
             }
@@ -116,14 +118,15 @@ class CommentsSmokeIT {
             System.out.println("After Next click, URL: " + afterUrl);
 
             // Verify we're on page 2
-            assertThat(page.locator("span:has-text(\"Page 2\")").first()).isVisible();
+            assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
 
             // Click Previous to go back
             previousButton.click();
-            page.locator("span:has-text(\"Page 1\")").first().waitFor(new Locator.WaitForOptions().setTimeout(5000));
+            primaryScope(page).locator("span:has-text(\"Page 1\")").first()
+                    .waitFor(new Locator.WaitForOptions().setTimeout(5000));
 
             // Verify back on page 1
-            assertThat(page.locator("span:has-text(\"Page 1\")").first()).isVisible();
+            assertThat(primaryScope(page).locator("span:has-text(\"Page 1\")").first()).isVisible();
         }
 
         System.out.println("✓ Pagination validated successfully");
@@ -159,18 +162,18 @@ class CommentsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Search for the new comment across all pages (it may be on page 2 due to alphabetical sorting)
-        boolean found = page.content().contains(testText);
+        boolean found = primaryTableText(page).contains(testText);
         int maxPagesToCheck = 5; // Prevent infinite loop
         int pagesChecked = 1;
 
         while (!found && pagesChecked < maxPagesToCheck) {
-            Locator nextButton = page.locator("button:has-text(\"Next →\")").first();
+            Locator nextButton = primaryScope(page).locator("button:has-text(\"Next →\")").first();
             if (nextButton.isDisabled()) {
                 break; // No more pages
             }
             nextButton.click();
             waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-            found = page.content().contains(testText);
+            found = primaryTableText(page).contains(testText);
             pagesChecked++;
         }
 
@@ -193,8 +196,8 @@ class CommentsSmokeIT {
         assertFormVisible(page, "Edit Comment");
 
         // Verify current values are loaded
-        assertThat(page.locator("#text")).not().isEmpty();
-        assertThat(page.locator("#postId")).not().isEmpty();
+        assertThat(formScope(page).locator("#text")).not().isEmpty();
+        assertThat(formScope(page).locator("#postId")).not().isEmpty();
 
         // Modify the comment
         final String updatedText = "Updated Comment Text " + System.currentTimeMillis();
@@ -213,18 +216,18 @@ class CommentsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Search across all pages for the updated comment
-        boolean found = page.content().contains(updatedText);
+        boolean found = primaryTableText(page).contains(updatedText);
         int maxPagesToCheck = 5;
         int pagesChecked = 1;
 
         while (!found && pagesChecked < maxPagesToCheck) {
-            Locator nextButton = page.locator("button:has-text(\"Next →\")").first();
+            Locator nextButton = primaryScope(page).locator("button:has-text(\"Next →\")").first();
             if (nextButton.isDisabled()) {
                 break;
             }
             nextButton.click();
             waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-            found = page.content().contains(updatedText);
+            found = primaryTableText(page).contains(updatedText);
             pagesChecked++;
         }
 
@@ -287,7 +290,7 @@ class CommentsSmokeIT {
 
         // Get a comment text to delete (from the last row to avoid pagination issues)
         // Column order: [checkbox, id, text, postId, actions] - so text is at index 2
-        Locator lastRow = page.locator("tbody tr").last();
+        Locator lastRow = primaryScope(page).locator("tbody tr").last();
         String textToDelete = lastRow.locator("td").nth(2).textContent().trim();
 
         // Click Edit on last comment
@@ -311,7 +314,7 @@ class CommentsSmokeIT {
 
         // Verify comment is gone by checking if the exact text appears in any table cell
         // Use a more specific check than page.content() to avoid false positives from similar text
-        Locator textCells = page.locator("tbody tr td:nth-child(3)"); // 3rd column is text (1-indexed)
+        Locator textCells = primaryScope(page).locator("tbody tr td:nth-child(3)"); // 3rd column is text (1-indexed)
         int count = textCells.count();
         for (int i = 0; i < count; i++) {
             String cellText = textCells.nth(i).textContent().trim();
@@ -329,9 +332,9 @@ class CommentsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Get text of first 3 comments to delete (text is at column index 2)
-        String text1 = page.locator("tbody tr").nth(0).locator("td").nth(2).textContent().trim();
-        String text2 = page.locator("tbody tr").nth(1).locator("td").nth(2).textContent().trim();
-        String text3 = page.locator("tbody tr").nth(2).locator("td").nth(2).textContent().trim();
+        String text1 = primaryScope(page).locator("tbody tr").nth(0).locator("td").nth(2).textContent().trim();
+        String text2 = primaryScope(page).locator("tbody tr").nth(1).locator("td").nth(2).textContent().trim();
+        String text3 = primaryScope(page).locator("tbody tr").nth(2).locator("td").nth(2).textContent().trim();
 
         // Select first 3 comments
         selectRowCheckbox(page, 1);
@@ -340,7 +343,8 @@ class CommentsSmokeIT {
         waitFor(100);
 
         // Verify bulk delete button appears
-        Locator bulkDeleteButton = page.locator("button.btn-delete.btn-danger:has-text(\"Delete Selected\")");
+        Locator bulkDeleteButton = primaryScope(page)
+                .locator("button.btn-delete.btn-danger:has-text(\"Delete Selected\")");
         assertThat(bulkDeleteButton).isVisible();
 
         // Click bulk delete (dialog handler from previous test should still be active)
@@ -348,7 +352,7 @@ class CommentsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Verify deleted comments are gone by checking exact matches in text cells
-        Locator textCells = page.locator("tbody tr td:nth-child(3)");
+        Locator textCells = primaryScope(page).locator("tbody tr td:nth-child(3)");
         int count = textCells.count();
         for (int i = 0; i < count; i++) {
             String cellText = textCells.nth(i).textContent().trim();
@@ -368,11 +372,11 @@ class CommentsSmokeIT {
     }
 
     private void clickCreateButton(final Page page) {
-        page.click("button.create-button");
+        primaryScope(page).locator("button.create-button").click();
     }
 
     private void clickEditButton(final Page page, final int rowIndex) {
-        page.locator("tbody tr").nth(rowIndex - 1).locator("button.edit-button").click();
+        primaryScope(page).locator("tbody tr").nth(rowIndex - 1).locator("button.edit-button").click();
     }
 
     private void fillCommentForm(final Page page, final String text, final String postId) {
@@ -381,15 +385,15 @@ class CommentsSmokeIT {
     }
 
     private void saveForm(final Page page) {
-        page.click("button:has-text(\"Save\")");
+        formScope(page).locator("button:has-text(\"Save\")").click();
     }
 
     private void cancelForm(final Page page) {
-        page.click("button.cancel-button");
+        formScope(page).locator("button.cancel-button").click();
     }
 
     private void deleteComment(final Page page) {
-        Locator deleteButton = page.locator("button.btn-delete.btn-danger");
+        Locator deleteButton = formScope(page).locator("button.btn-delete.btn-danger");
         deleteButton.click();
     }
 
@@ -399,12 +403,31 @@ class CommentsSmokeIT {
     }
 
     private void assertFormVisible(final Page page, final String expectedTitle) {
-        assertThat(page.locator("h1:has-text(\"" + expectedTitle + "\")")).isVisible();
-        assertThat(page.locator("form")).isVisible();
+        Locator scope = formScope(page);
+        assertThat(scope.locator("h1:has-text(\"" + expectedTitle + "\")")).isVisible();
+        assertThat(scope.locator("form")).isVisible();
     }
 
     private void selectRowCheckbox(final Page page, final int rowIndex) {
-        page.locator("tbody tr").nth(rowIndex - 1).locator("input[type='checkbox']").check();
+        primaryScope(page).locator("tbody tr").nth(rowIndex - 1).locator("input[type='checkbox']").check();
+    }
+
+    private Locator primaryScope(final Page page) {
+        return page.locator(".layout-primary");
+    }
+
+    private Locator formScope(final Page page) {
+        Locator modal = page.locator(".modal-content");
+        if (modal.count() > 0 && modal.first().isVisible()) {
+            return modal.first();
+        }
+        return primaryScope(page);
+    }
+
+    private String primaryTableText(final Page page) {
+        Locator tbody = primaryScope(page).locator("tbody");
+        String text = tbody.textContent();
+        return text != null ? text : "";
     }
 
     private static void waitFor(final long timeMs) throws InterruptedException {

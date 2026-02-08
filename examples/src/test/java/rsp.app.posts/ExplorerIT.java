@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import rsp.jetty.WebServer;
 
 import java.util.stream.Stream;
 
@@ -23,11 +24,11 @@ class ExplorerIT {
     private static final String BASE_URL = "http://localhost:" + PORT;
 
     private static final Playwright playwright = Playwright.create();
-    private static CrudAppTestServer server;
+    private static WebServer server;
 
     @BeforeAll
     public static void init() {
-        server = CrudAppTestServer.run(false);
+        server = CrudApp.run(false);
     }
 
     @AfterAll

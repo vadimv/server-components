@@ -34,7 +34,10 @@ import java.util.List;
 
 public class CrudApp {
     static void main(final String[] args) {
+        run(true);
+    }
 
+    public static WebServer run(final boolean blockCurrentThread) {
         final AppConfig appConfig = AppConfig.fromSystemProperties();
 
         final UiRegistry uiRegistry = new UiRegistry()
@@ -75,7 +78,7 @@ public class CrudApp {
         final var services = List.of(postService,
                                      commentService,
                                      promptService,
-                                     new StubAuthProvider());// Optional: defaults to anonymous if omitted
+                                     new StubAuthProvider()); // Optional: defaults to anonymous if omitted
 
         // Create app with AppConfig
         final App app = new App(appConfig, uiRegistry, List.of(postsModule), services);
@@ -85,6 +88,9 @@ public class CrudApp {
                                                new StaticResources(new File("src/main/java/rsp/app/posts"),
                                                                    "/res/"));
         server.start();
-        server.join();
+        if (blockCurrentThread) {
+            server.join();
+        }
+        return server;
     }
 }
