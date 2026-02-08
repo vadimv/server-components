@@ -198,8 +198,9 @@ public final class SceneEventHandler {
             if (route != null) {
                 // To update browser URL
                 Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
+                // Re-render to reset query params (e.g., pagination) when switching primary via Explorer.
                 lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                               new AutoAddressBarSyncComponent.PathUpdate(route, false));
+                               new AutoAddressBarSyncComponent.PathUpdate(route, true));
             }
         }
 

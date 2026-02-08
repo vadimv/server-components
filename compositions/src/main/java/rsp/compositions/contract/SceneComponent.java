@@ -38,14 +38,29 @@ public class SceneComponent extends Component<Scene> {
     public SceneComponent(Composition composition,
                           Class<? extends ViewContract> contractClass,
                           String routePattern) {
-        this(composition, contractClass, routePattern, new DefaultLayout());
+        this(SceneComponent.class, composition, contractClass, routePattern, new DefaultLayout());
+    }
+
+    public SceneComponent(Object componentType,
+                          Composition composition,
+                          Class<? extends ViewContract> contractClass,
+                          String routePattern) {
+        this(componentType, composition, contractClass, routePattern, new DefaultLayout());
     }
 
     public SceneComponent(Composition composition,
                           Class<? extends ViewContract> contractClass,
                           String routePattern,
                           Layout layout) {
-        super();
+        this(SceneComponent.class, composition, contractClass, routePattern, layout);
+    }
+
+    public SceneComponent(Object componentType,
+                          Composition composition,
+                          Class<? extends ViewContract> contractClass,
+                          String routePattern,
+                          Layout layout) {
+        super(componentType);
         Objects.requireNonNull(composition, "composition");
         Objects.requireNonNull(contractClass, "contractClass");
         Objects.requireNonNull(routePattern, "routePattern");
