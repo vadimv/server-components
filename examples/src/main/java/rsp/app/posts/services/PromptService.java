@@ -7,12 +7,20 @@ import java.util.function.Consumer;
 
 public class PromptService {
 
+    /**
+     * Scope for message history and subscriptions.
+     * Defaults to per-session id, but can be extended to user/device/etc.
+     */
+    public enum Scope {
+        SESSION_ID
+    }
+
     public record Message(String text, boolean fromUser) {}
 
     private final AtomicInteger messageCount = new AtomicInteger(0);
     private final AtomicInteger tickCount = new AtomicInteger(0);
-    private final List<Consumer<Message>> subscribers = new CopyOnWriteArrayList<>();
-    private final List<Message> messageHistory = new CopyOnWriteArrayList<>();
+    private final ConcurrentMap<String, List<Consumer<Message>>> subscribersByScope = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, List<Message>> messageHistoryByScope = new ConcurrentHashMap<>();
     private ScheduledExecutorService scheduler;
 
     /**
@@ -21,9 +29,14 @@ public class PromptService {
      * @param listener callback invoked with each new message
      * @return a Runnable to unsubscribe
      */
-    public Runnable subscribe(Consumer<Message> listener) {
-        subscribers.add(listener);
-        return () -> subscribers.remove(listener);
+    public Runnable subscribe(String scopeKey, Consumer<Message> listener) {
+        subscribersByScope.computeIfAbsent(scopeKey, _ -> new CopyOnWriteArrayList<>()).add(listener);
+        return () -> {
+            List<Consumer<Message>> listeners = subscribersByScope.get(scopeKey);
+            if (listeners != null) {
+                listeners.remove(listener);
+            }
+        };
     }
 
     /**
@@ -31,18 +44,18 @@ public class PromptService {
      *
      * @param text the prompt text
      */
-    public void sendPrompt(String text) {
-        messageHistory.add(new Message(text, true));
+    public void sendPrompt(String scopeKey, String text) {
+        history(scopeKey).add(new Message(text, true));
         int count = messageCount.incrementAndGet();
         Message reply = new Message("echo-" + count, false);
-        notifySubscribers(reply);
+        notifySubscribers(scopeKey, reply);
     }
 
     /**
      * Get the full message history (user prompts + service replies + ticks).
      */
-    public List<Message> getMessageHistory() {
-        return List.copyOf(messageHistory);
+    public List<Message> getMessageHistory(String scopeKey) {
+        return List.copyOf(history(scopeKey));
     }
 
     /**
@@ -60,7 +73,10 @@ public class PromptService {
         scheduler.scheduleAtFixedRate(() -> {
             int count = tickCount.incrementAndGet();
             Message tick = new Message("tick-" + count, false);
-            notifySubscribers(tick);
+            // Broadcast tick to all active scopes
+            for (String scopeKey : subscribersByScope.keySet()) {
+                notifySubscribers(scopeKey, tick);
+            }
         }, 5, 5, TimeUnit.SECONDS);
     }
 
@@ -74,8 +90,12 @@ public class PromptService {
         }
     }
 
-    private void notifySubscribers(Message message) {
-        messageHistory.add(message);
+    private void notifySubscribers(String scopeKey, Message message) {
+        history(scopeKey).add(message);
+        List<Consumer<Message>> subscribers = subscribersByScope.get(scopeKey);
+        if (subscribers == null) {
+            return;
+        }
         for (Consumer<Message> subscriber : subscribers) {
             try {
                 subscriber.accept(message);
@@ -83,5 +103,9 @@ public class PromptService {
                 // Ignore individual subscriber failures
             }
         }
+    }
+
+    private List<Message> history(String scopeKey) {
+        return messageHistoryByScope.computeIfAbsent(scopeKey, _ -> new CopyOnWriteArrayList<>());
     }
 }

@@ -5,6 +5,7 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.contract.ViewContract;
+import rsp.page.QualifiedSessionId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,23 +23,26 @@ public class PromptContract extends ViewContract {
 
     private final List<Message> messages = new ArrayList<>();
     private Runnable serviceUnsubscribe;
+    private final String scopeKey;
 
     public PromptContract(Lookup lookup) {
         super(lookup);
 
         PromptService promptService = lookup.get(PromptService.class);
+        QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
+        this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
 
         // Initialize from service history (survives contract recreation)
-        for (PromptService.Message msg : promptService.getMessageHistory()) {
+        for (PromptService.Message msg : promptService.getMessageHistory(scopeKey)) {
             messages.add(new Message(msg.text(), msg.fromUser()));
         }
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
             messages.add(new Message(text, true));
-            promptService.sendPrompt(text);
+            promptService.sendPrompt(scopeKey, text);
         });
 
-        serviceUnsubscribe = promptService.subscribe(message -> {
+        serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
             Message msg = new Message(message.text(), message.fromUser());
             messages.add(msg);
             lookup.publish(NEW_MESSAGE, msg);
