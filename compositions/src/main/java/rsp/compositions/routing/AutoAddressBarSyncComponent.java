@@ -77,10 +77,18 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      * Payload for SET_PATH events.
      *
      * @param path the target URL path
-     * @param reRender if true, updates component state (triggers subtree re-render);
-     *                 if false, only pushes browser history (URL-only update)
+     * @param mode whether to update component state (re-render subtree) or update URL only
      */
-    public record PathUpdate(String path, boolean reRender) {}
+    public record PathUpdate(String path, PathUpdateMode mode) {
+        public PathUpdate {
+            Objects.requireNonNull(mode, "mode");
+        }
+    }
+
+    public enum PathUpdateMode {
+        RE_RENDER_SUBTREE,
+        UPDATE_PATH_ONLY
+    }
 
     public static final EventKey.SimpleKey<PathUpdate> SET_PATH =
             new EventKey.SimpleKey<>("setPath", PathUpdate.class);
@@ -187,7 +195,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                                               CommandsEnqueue commandsEnqueue,
                                               StateUpdate<RelativeUrl> stateUpdate) {
         subscriber.addEventHandler(SET_PATH, (eventName, pathUpdate) -> {
-            if (pathUpdate.reRender()) {
+            if (pathUpdate.mode() == PathUpdateMode.RE_RENDER_SUBTREE) {
                 // Full navigation: update state (triggers subtree re-render) + push history
                 stateUpdate.applyStateTransformation(url -> {
                     RelativeUrl updatedUrl = new RelativeUrl(Path.of(pathUpdate.path()), Query.EMPTY, Fragment.EMPTY);

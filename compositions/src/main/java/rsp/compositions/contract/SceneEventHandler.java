@@ -12,6 +12,7 @@ import java.util.function.Function;
 
 import static rsp.compositions.contract.ActionBindings.ShowPayload;
 import static rsp.compositions.contract.EventKeys.*;
+import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.RE_RENDER_SUBTREE;
 
 /**
  * Registers and handles Scene lifecycle events.
@@ -200,7 +201,7 @@ public final class SceneEventHandler {
                 Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
                 // Re-render to reset query params (e.g., pagination) when switching primary via Explorer.
                 lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                               new AutoAddressBarSyncComponent.PathUpdate(route, true));
+                               new AutoAddressBarSyncComponent.PathUpdate(route, RE_RENDER_SUBTREE));
             }
         }
 
@@ -260,7 +261,7 @@ public final class SceneEventHandler {
                 && state.autoOpenRoutePattern() != null) {
                 String parentRoute = RouteUtils.buildParentRoute(state.autoOpenRoutePattern(), lookup);
                 lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                               new AutoAddressBarSyncComponent.PathUpdate(parentRoute, true));
+                               new AutoAddressBarSyncComponent.PathUpdate(parentRoute, RE_RENDER_SUBTREE));
                 return;
             }
             lookup.publish(HIDE, contractClass);
