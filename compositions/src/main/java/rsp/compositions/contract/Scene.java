@@ -34,19 +34,17 @@ import java.util.function.Function;
  * @param activeContractsBySlot Currently active contracts organized by slot
  * @param uiRegistry Registry for resolving contracts to UI components
  * @param timestamp When the scene was built (for debugging/caching)
- * @param autoOpen Auto-open info for non-primary contracts routed via URL, empty if not applicable
+ * @param autoOpen Auto-open info for non-primary contracts routed via URL, empty if not applicable, can be null
  * @param pageTitle The page title for the HTML title tag (derived from primary contract)
  */
-public record Scene(
-    ViewContract primaryContract,
-    Composition composition,
-    Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
-    Map<Slot, List<ActiveContract>> activeContractsBySlot,
-    UiRegistry uiRegistry,
-    long timestamp,
-    AutoOpen autoOpen,
-    String pageTitle
-) {
+public record Scene(ViewContract primaryContract,
+                    Composition composition,
+                    Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories,
+                    Map<Slot, List<ActiveContract>> activeContractsBySlot,
+                    UiRegistry uiRegistry,
+                    long timestamp,
+                    AutoOpen autoOpen,
+                    String pageTitle) {
     public Scene {
         Objects.requireNonNull(primaryContract, "primaryContract");
         Objects.requireNonNull(composition, "composition");
@@ -62,10 +60,7 @@ public record Scene(
      * @param contractClass The contract class that was auto-activated
      * @param routePattern The route pattern for URL restoration on close (e.g., "/posts/:id")
      */
-    public record AutoOpen(
-        Class<? extends ViewContract> contractClass,
-        String routePattern
-    ) {
+    public record AutoOpen(Class<? extends ViewContract> contractClass, String routePattern) {
         public AutoOpen {
             Objects.requireNonNull(contractClass, "contractClass");
             Objects.requireNonNull(routePattern, "routePattern");
@@ -79,11 +74,16 @@ public record Scene(
      * @param contractClass The contract class (for lookup and HIDE matching)
      * @param showData Data passed with the SHOW event
      */
-    public record ActiveContract(
-        ViewContract contract,
-        Class<? extends ViewContract> contractClass,
-        Map<String, Object> showData
-    ) {}
+    public record ActiveContract(ViewContract contract,
+                                 Class<? extends ViewContract> contractClass,
+                                 Map<String, Object> showData) {
+        public ActiveContract {
+            Objects.requireNonNull(contract, "contract");
+            Objects.requireNonNull(contractClass, "contractClass");
+            Objects.requireNonNull(showData, "showData");
+            showData = Map.copyOf(showData);
+        }
+    }
 
     /**
      * Get the LEFT_SIDEBAR contract if present.
@@ -212,6 +212,7 @@ public record Scene(
     public Scene withActiveContract(Slot slot, ViewContract contract,
                                     Class<? extends ViewContract> contractClass,
                                     Map<String, Object> showData) {
+        Objects.requireNonNull(showData, "showData");
         Map<Slot, List<ActiveContract>> newMap = new HashMap<>(activeContractsBySlot);
         List<ActiveContract> slotContracts = new ArrayList<>(
             newMap.getOrDefault(slot, List.of()));

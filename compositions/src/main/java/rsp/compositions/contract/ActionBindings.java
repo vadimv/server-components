@@ -1,7 +1,7 @@
 package rsp.compositions.contract;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * ActionBindings - Maps abstract action names to target contract classes.
@@ -37,8 +37,11 @@ public class ActionBindings {
      * @param contractClass The contract class to instantiate and show
      * @param data Data to pass to the contract (e.g., {id: "123"} for edit)
      */
-    public record ShowPayload(
-        Class<? extends ViewContract> contractClass,
-        Map<String, Object> data
-    ) {}
+    public record ShowPayload(Class<? extends ViewContract> contractClass, Map<String, Object> data) {
+        public ShowPayload {
+            Objects.requireNonNull(contractClass, "contractClass");
+            Objects.requireNonNull(data, "data");
+            data = Map.copyOf(data);
+        }
+    }
 }
