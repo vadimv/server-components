@@ -1,6 +1,5 @@
 package rsp.app.posts.components;
 
-import rsp.app.posts.services.PromptService;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
@@ -14,21 +13,21 @@ import static rsp.dsl.Html.*;
 
 public class PromptView extends Component<PromptView.PromptViewState> {
 
-    public record PromptViewState(List<PromptService.Message> messages) {
-        public PromptViewState withMessage(PromptService.Message message) {
-            List<PromptService.Message> updated = new ArrayList<>(messages);
+    public record PromptViewState(List<PromptContract.Message> messages) {
+        public PromptViewState withMessage(PromptContract.Message message) {
+            List<PromptContract.Message> updated = new ArrayList<>(messages);
             updated.add(message);
             return new PromptViewState(List.copyOf(updated));
         }
     }
 
     private Lookup lookup;
-    private Runnable unsubscribe;
+    private Lookup.Registration eventSubscription;
 
     @Override
     public ComponentStateSupplier<PromptViewState> initStateSupplier() {
         return (_, context) -> {
-            List<PromptService.Message> messages = context.get(PromptContextKeys.PROMPT_MESSAGES);
+            List<PromptContract.Message> messages = context.get(PromptContextKeys.PROMPT_MESSAGES);
             return new PromptViewState(messages != null ? messages : List.of());
         };
     }
@@ -73,16 +72,13 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                             if (promptValue != null) {
                                 String text = promptValue.toString().replace("\"", "");
                                 if (!text.isEmpty()) {
-                                    // Add user message to state
                                     if (stateUpdate != null) {
                                         stateUpdate.applyStateTransformation(s ->
-                                                s.withMessage(new PromptService.Message(text, true)));
+                                                s.withMessage(new PromptContract.Message(text, true)));
                                     }
-                                    // Send to contract/service
                                     lookup.publish(PromptContract.SEND_PROMPT, text);
                                 }
                             }
-                            // Clear the input field
                             ctx.evalJs("document.querySelector('.prompt-input').value = ''");
                         })
                 )
@@ -91,20 +87,16 @@ public class PromptView extends Component<PromptView.PromptViewState> {
 
     @Override
     public void onMounted(ComponentCompositeKey componentId, PromptViewState state, StateUpdate<PromptViewState> stateUpdate) {
-        // Subscribe to PromptService for async messages (echo replies + ticks)
-        PromptService promptService = lookup.get(PromptService.class);
-        if (promptService != null) {
-            unsubscribe = promptService.subscribe(message ->
-                stateUpdate.applyStateTransformation(s -> s.withMessage(message))
-            );
-        }
+        eventSubscription = lookup.subscribe(PromptContract.NEW_MESSAGE, (eventName, message) ->
+            stateUpdate.applyStateTransformation(s -> s.withMessage(message))
+        );
     }
 
     @Override
     public void onUnmounted(ComponentCompositeKey componentId, PromptViewState state) {
-        if (unsubscribe != null) {
-            unsubscribe.run();
-            unsubscribe = null;
+        if (eventSubscription != null) {
+            eventSubscription.unsubscribe();
+            eventSubscription = null;
         }
     }
 
