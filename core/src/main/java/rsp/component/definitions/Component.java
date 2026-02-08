@@ -59,11 +59,6 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
      * Provides a capability to define common context for downstream components states.
      * <p>
      * By default, this method propagates the parent's context as-is.
-     * Override this method to:
-     * <ul>
-     *     <li>Add or modify values in the context for child components (using {@link ComponentContext#with} methods ).</li>
-     *     <li>Isolate child components from the parent context by returning a new, empty {@link ComponentContext}.</li>
-     * </ul>
      *
      * @return a function for creating components context to be uses in the wrapped components subtree
      */

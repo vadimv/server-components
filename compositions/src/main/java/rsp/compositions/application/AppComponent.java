@@ -14,6 +14,7 @@ import rsp.compositions.composition.UiRegistry;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
@@ -23,10 +24,14 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     private final AppConfig config;
     private final UiRegistry uiRegistry;
     private final List<Composition> compositions;
-    private final List<Object> services;
+    private final Map<Class<?>, Object> services;
     private final HttpRequest httpRequest;
 
-    public AppComponent(AppConfig config, UiRegistry uiRegistry, List<Composition> compositions, List<Object> services, HttpRequest httpRequest) {
+    public AppComponent(AppConfig config,
+                        UiRegistry uiRegistry,
+                        List<Composition> compositions,
+                        Map<Class<?>, Object> services,
+                        HttpRequest httpRequest) {
         super();
         this.config = Objects.requireNonNull(config);
         this.uiRegistry = Objects.requireNonNull(uiRegistry);

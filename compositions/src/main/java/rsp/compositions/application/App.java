@@ -18,16 +18,16 @@ public class App implements Function<HttpRequest, Component<?>> {
     private final AppConfig config;
     private final UiRegistry uiRegistry;
     private final List<Composition> compositions;
-    private final List<Object> services;
+    private final Map<Class<?>, Object> services;
 
     public App(AppConfig config,
                UiRegistry uiRegistry,
                List<Composition> compositions,
-               List<Object> services) { // TODO should be Map<Class<?>, Object>
-        this.config = config;
-        this.uiRegistry = uiRegistry;
-        this.compositions = compositions;
-        this.services = services;
+               Map<Class<?>, Object> services) {
+        this.config = Objects.requireNonNull(config);
+        this.uiRegistry = Objects.requireNonNull(uiRegistry);
+        this.compositions = Objects.requireNonNull(compositions);
+        this.services = Objects.requireNonNull(services);
     }
 
     @Override

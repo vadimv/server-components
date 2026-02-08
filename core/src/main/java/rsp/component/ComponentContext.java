@@ -35,28 +35,6 @@ import java.util.Objects;
  *       Only service instances (not their config) are added to ComponentContext.</li>
  * </ul>
  *
- * <p><strong>Configuration Pattern:</strong></p>
- * <ul>
- *   <li><strong>AppConfig:</strong> Contains non-sensitive configuration (page size, locale, date format, etc.).
- *       Added to ComponentContext and accessible to all contracts/components.</li>
- *   <li><strong>Service Configuration:</strong> MAY contain secrets (DB credentials, API keys, etc.).
- *       Used ONLY during service initialization in application main(). NEVER added to ComponentContext.</li>
- *   <li>Service instances (not their config) are added to context for use by contracts</li>
- * </ul>
- *
- * <p><strong>Example:</strong></p>
- * <pre>{@code
- * // In CrudApp.main()
- * AppConfig appConfig = AppConfig.defaults();  // Only non-sensitive config
- *
- * // Service gets secrets during init (secrets stay encapsulated in service)
- * PostService postService = new PostService(databaseConfig);  // databaseConfig has credentials
- *
- * // Only AppConfig and service INSTANCE go to context (NOT databaseConfig)
- * App app = new App(appConfig, ...);  // AppConfig flows to context
- * // Service instance added to context by AppComponent
- * }</pre>
- *
  * <p><strong>Security Notice:</strong> This context may contain sensitive information, such as session identifiers
  * or device IDs. By design, this information is accessible to all components in the subtree.
  * It is assumed that all components running on the server are trusted. Developers must ensure that
@@ -82,8 +60,6 @@ public final class ComponentContext {
         this.classBased = classBased;
         this.stringBased = stringBased;
     }
-
-    // ===== TYPE-SAFE KEY-BASED METHODS (New API) =====
 
     /**
      * Retrieves a value by a type-safe key using pattern matching.
@@ -231,16 +207,25 @@ public final class ComponentContext {
 
     /**
      * Creates a new context with a service/component instance added.
-     * Convenience method that wraps the class with a key represented by the exact class of the object.
-     * @param instances the instances to store
+     * Convenience method that wraps the class with a class as a key.
+     * @param instances the instances map to store
      * @return a new ComponentContext instance with the services added
      */
-    public ComponentContext with(final List<Object> instances) {
+    public ComponentContext with(final Map<Class<?>, Object> instances) {
+        Objects.requireNonNull(instances, "instances");
         ComponentContext enrichedContext = this;
-        for (Object service : instances) {
-            Objects.requireNonNull(service, "Cannot be a null reference in a Services list");
-            // Services are stored by their actual class, not by string key
-            enrichedContext = enrichedContext.with(service);
+        for (Map.Entry<Class<?>, Object> serviceEntry : instances.entrySet()) {
+            Class<?> clazz = Objects.requireNonNull(serviceEntry.getKey(), "service class key");
+            Object instance = Objects.requireNonNull(serviceEntry.getValue(), "service instance");
+            if (!clazz.isInstance(instance)) {
+                throw new IllegalArgumentException(
+                    "Service instance type mismatch: expected " + clazz.getName() +
+                    " but got " + instance.getClass().getName()
+                );
+            }
+            @SuppressWarnings("unchecked")
+            Class<Object> typedClass = (Class<Object>) clazz;
+            enrichedContext = enrichedContext.with(new ContextKey.ClassKey<>(typedClass), instance);
         }
         return enrichedContext;
     }
