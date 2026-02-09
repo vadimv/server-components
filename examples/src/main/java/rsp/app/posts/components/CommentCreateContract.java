@@ -23,11 +23,6 @@ public class CommentCreateContract extends CreateViewContract<Comment> {
     }
 
     @Override
-    public Object typeHint() {
-        return Comment.class;
-    }
-
-    @Override
     public String title() {
         return "Create Comment";
     }

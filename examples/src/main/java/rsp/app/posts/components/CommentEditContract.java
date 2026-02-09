@@ -25,11 +25,6 @@ public class CommentEditContract extends EditViewContract<Comment> {
     }
 
     @Override
-    public Object typeHint() {
-        return Comment.class;
-    }
-
-    @Override
     public String title() {
         return "Edit Comment";
     }

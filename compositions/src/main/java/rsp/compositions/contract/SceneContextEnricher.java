@@ -2,6 +2,7 @@ package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.ContractMetadata;
 import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
@@ -15,7 +16,7 @@ import java.util.stream.Collectors;
  * <p>
  * Pure data transformation: (context, scene) -> enriched context.
  * <p>
- * Enrichments include: Scene reference, primary contract data and typeHint,
+ * Enrichments include: Scene reference, primary contract data and category key,
  * left sidebar data, active contracts by slot, overlay contract data with title
  * preservation, and edit slot/route info.
  */
@@ -44,12 +45,13 @@ public final class SceneContextEnricher {
         // Let the primary contract enrich context with its data (items, schema, etc.)
         enrichedContext = contract.enrichContext(enrichedContext);
 
-        // Add primary contract's typeHint to context for Explorer highlighting
-        // This is dynamic - it updates when the primary contract changes via SET_PRIMARY
-        Object primaryTypeHint = contract.typeHint();
-        if (primaryTypeHint != null) {
-            enrichedContext = enrichedContext.with(ContextKeys.PRIMARY_TYPE_HINT, primaryTypeHint);
-        }
+        // Resolve metadata from composition categories
+        ContractMetadata primaryMeta = composition != null
+                ? composition.metadataFor(contract.getClass())
+                : new ContractMetadata("App", "App");
+
+        // Add primary contract's category key to context for Explorer highlighting
+        enrichedContext = enrichedContext.with(ContextKeys.PRIMARY_CATEGORY_KEY, primaryMeta.categoryKey());
 
         // Let the LEFT_SIDEBAR contract enrich context with its data (if present)
         ViewContract leftSidebarContract = scene.leftSidebarContract();

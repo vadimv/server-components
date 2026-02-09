@@ -40,11 +40,6 @@ public class ExplorerContract extends ViewContract {
     }
 
     @Override
-    public Object typeHint() {
-        return ExplorerContract.class;
-    }
-
-    @Override
     public String title() {
         return "Explorer";
     }

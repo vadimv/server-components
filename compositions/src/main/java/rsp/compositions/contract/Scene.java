@@ -332,7 +332,7 @@ public record Scene(ViewContract primaryContract,
 
                 // Use the auto-opened contract's page title
                 if (entry.getKey().equals(autoOpen.contractClass())) {
-                    title = entry.getValue().title();
+                    title = titleOf(entry.getValue());
                 }
             }
             // Make immutable
@@ -354,6 +354,9 @@ public record Scene(ViewContract primaryContract,
     }
 
     private static String titleOf(ViewContract contract) {
+        if (contract == null) {
+            return "App";
+        }
         String title = contract.title();
         return title != null ? title : "App";
     }

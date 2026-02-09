@@ -30,11 +30,6 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
-    public Object typeHint() {
-        return Post.class;
-    }
-
-    @Override
     public String title() {
         return "Edit Post";
     }

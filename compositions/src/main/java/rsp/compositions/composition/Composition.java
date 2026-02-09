@@ -24,6 +24,7 @@ import java.util.Objects;
 public class Composition {
     private final Router router;
     private final List<ViewPlacement> views;
+    private final Category categories;
 
     /**
      * Create a Composition with its router and view placements.
@@ -32,10 +33,22 @@ public class Composition {
      * @param placements The view placements builder
      */
     public Composition(Router router, ViewsPlacements placements) {
+        this(router, placements, new Category());
+    }
+
+    /**
+     * Create a Composition with its router, view placements, and explicit categories.
+     *
+     * @param router The router for this composition's routes
+     * @param placements The view placements builder
+     * @param categories Explicit contract categories for navigation/title metadata
+     */
+    public Composition(Router router, ViewsPlacements placements, Category categories) {
         Objects.requireNonNull(router, "router cannot be null");
         Objects.requireNonNull(placements, "placements cannot be null");
         this.router = router;
         this.views = placements.toList();
+        this.categories = Objects.requireNonNull(categories, "categories cannot be null");
     }
 
     /**
@@ -55,6 +68,20 @@ public class Composition {
      */
     public List<ViewPlacement> views() {
         return views;
+    }
+
+    /**
+     * Categories used for navigation grouping and display metadata.
+     */
+    public Category categories() {
+        return categories;
+    }
+
+    /**
+     * Resolve display metadata for a contract class.
+     */
+    public ContractMetadata metadataFor(Class<? extends ViewContract> contractClass) {
+        return categories.metadataFor(contractClass);
     }
 
     /**

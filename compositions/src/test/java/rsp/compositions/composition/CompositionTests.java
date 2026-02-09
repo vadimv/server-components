@@ -193,11 +193,6 @@ public class CompositionTests {
         }
 
         @Override
-        public Object typeHint() {
-            return "Test";
-        }
-
-        @Override
         public String title() {
             return "Test";
         }
@@ -236,11 +231,6 @@ public class CompositionTests {
         }
 
         @Override
-        public Object typeHint() {
-            return TestEntity.class;
-        }
-
-        @Override
         public String title() {
             return "TestEntity";
         }
@@ -259,11 +249,6 @@ public class CompositionTests {
     static class TestEditContract extends EditViewContract<TestEntity> {
         TestEditContract(final Lookup lookup) {
             super(lookup);
-        }
-
-        @Override
-        public Object typeHint() {
-            return TestEntity.class;
         }
 
         @Override

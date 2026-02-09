@@ -27,11 +27,6 @@ public class CreateViewContractTests {
         }
 
         @Override
-        public Object typeHint() {
-            return TestEntity.class;
-        }
-
-        @Override
         public String title() {
             return "TestEntity";
         }

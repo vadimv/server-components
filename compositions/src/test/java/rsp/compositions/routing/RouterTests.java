@@ -22,11 +22,6 @@ public class RouterTests {
         }
 
         @Override
-        public Object typeHint() {
-            return "Test";
-        }
-
-        @Override
         public String title() {
             return "Test";
         }
@@ -40,11 +35,6 @@ public class RouterTests {
     static class AnotherTestContract extends ViewContract {
         protected AnotherTestContract(final Lookup lookup) {
             super(lookup);
-        }
-
-        @Override
-        public Object typeHint() {
-            return "Test";
         }
 
         @Override

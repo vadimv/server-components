@@ -185,11 +185,6 @@ class ContextKeysTests {
         }
 
         @Override
-        public Object typeHint() {
-            return TestRecord.class;
-        }
-
-        @Override
         public String title() {
             return "Test";
         }

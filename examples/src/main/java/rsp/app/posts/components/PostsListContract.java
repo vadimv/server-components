@@ -29,11 +29,6 @@ public class PostsListContract extends ListViewContract<Post> {
     }
 
     @Override
-    public Object typeHint() {
-        return Post.class;
-    }
-
-    @Override
     public String title() {
         return "Posts";
     }

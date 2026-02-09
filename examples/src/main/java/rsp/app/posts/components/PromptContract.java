@@ -51,11 +51,6 @@ public class PromptContract extends ViewContract {
     }
 
     @Override
-    public Object typeHint() {
-        return PromptContract.class;
-    }
-
-    @Override
     public String title() {
         return "Prompt";
     }

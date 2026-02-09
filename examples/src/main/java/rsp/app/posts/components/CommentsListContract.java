@@ -23,18 +23,13 @@ public class CommentsListContract extends ListViewContract<Comment> {
     }
 
     @Override
-    public Object typeHint() {
-        return Comment.class;
+    public QueryParam<Integer> pageQueryParam() {
+        return PAGE;
     }
 
     @Override
     public String title() {
         return "Comments";
-    }
-
-    @Override
-    public QueryParam<Integer> pageQueryParam() {
-        return PAGE;
     }
 
     @Override

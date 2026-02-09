@@ -332,15 +332,14 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("overlay.title", String.class);
 
     /**
-     * The typeHint of the current primary contract.
+     * The category key of the current primary contract.
      * Used by Explorer to highlight the active menu item.
-     * Type: Object (typically Class like Post.class, Comment.class)
+     * Type: String (e.g., "Posts", "Comments")
      *
-     * Set by SceneComponent when enriching context with primary contract data.
-     * This is dynamic - it updates when the primary contract changes via SET_PRIMARY.
+     * Set by SceneContextEnricher and updated when the primary contract changes via SET_PRIMARY.
      */
-    public static final ContextKey.StringKey<Object> PRIMARY_TYPE_HINT =
-            new ContextKey.StringKey<>("primary.typeHint", Object.class);
+    public static final ContextKey.StringKey<String> PRIMARY_CATEGORY_KEY =
+            new ContextKey.StringKey<>("primary.categoryKey", String.class);
 
     /**
      * List of application compositions.
@@ -356,9 +355,8 @@ public final class ContextKeys {
      * Pre-computed navigation entries for PRIMARY contracts.
      * Type: {@code List<NavigationEntry>}
      * <p>
-     * Computed from composition registrations at app startup.
-     * Used by navigation/explorer components to render menus
-     * without needing to instantiate contracts or access framework internals.
+     * Computed from composition registrations and explicit categories at app startup.
+     * Used by navigation/explorer components to render menus without instantiating contracts.
      */
     @SuppressWarnings("unchecked")
     public static final ContextKey.StringKey<List<NavigationEntry>> NAVIGATION_ENTRIES =

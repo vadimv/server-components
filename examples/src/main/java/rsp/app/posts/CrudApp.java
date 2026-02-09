@@ -17,6 +17,7 @@ import rsp.compositions.application.App;
 import rsp.compositions.application.AppConfig;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.StubAuthProvider;
+import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.UiRegistry;
@@ -50,8 +51,6 @@ public class CrudApp {
                 .register(PromptContract.class, PromptView::new);
 
         // Router defines URL routes for this composition
-        // OVERLAY contracts (create/edit) are typically triggered by events, not URLs
-        // However, edit contracts have routes to enable direct URL editing
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
                 .route("/posts/:id", PostEditContract.class)
@@ -68,7 +67,11 @@ public class CrudApp {
                 .place(Slot.OVERLAY, CommentEditContract.class, CommentEditContract::new)
                 .place(Slot.RIGHT_SIDEBAR, PromptContract.class, PromptContract::new);
 
-        final Composition postsModule = new Composition(router, places);
+        final Category categories = new Category()
+                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
+                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
+
+        final Composition postsComposition = new Composition(router, places, categories);
 
         // Create services
         final PostService postService = new PostService();
@@ -83,7 +86,7 @@ public class CrudApp {
                                     AuthComponent.AuthProvider.class, new StubAuthProvider());
 
         // Create app with AppConfig
-        final App app = new App(appConfig, uiRegistry, List.of(postsModule), services);
+        final App app = new App(appConfig, uiRegistry, List.of(postsComposition), services);
 
         final WebServer server = new WebServer(8080,
                                                app,
