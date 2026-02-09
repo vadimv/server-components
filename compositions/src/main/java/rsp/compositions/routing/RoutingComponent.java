@@ -9,6 +9,7 @@ import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.SceneComponent;
 import rsp.compositions.contract.ViewContract;
 import rsp.server.Path;
+import rsp.server.http.NotFoundException;
 
 import java.util.List;
 import java.util.Objects;
@@ -61,7 +62,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
                 }
             }
 
-            throw new IllegalStateException("No route found for path: " + path);
+            throw new NotFoundException("No route found for path: " + path);
         };
     }
 

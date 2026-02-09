@@ -2,7 +2,7 @@ package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
-import rsp.compositions.auth.AuthorizationException;
+import rsp.server.http.AuthorizationException;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.UiRegistry;

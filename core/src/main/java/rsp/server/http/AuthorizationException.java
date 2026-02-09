@@ -1,9 +1,8 @@
-package rsp.compositions.auth;
+package rsp.server.http;
 
 /**
- * AuthorizationException - Thrown when user lacks required permissions.
- * <p>
- * Should be mapped to HTTP 403 Forbidden by the web server.
+ * Thrown when the user lacks required permissions.
+ * Mapped to HTTP 403 Forbidden.
  */
 public class AuthorizationException extends RuntimeException {
 

@@ -5,9 +5,11 @@ import rsp.component.ComponentContext;
 import rsp.component.ContextKey;
 import rsp.component.definitions.Component;
 import rsp.server.StaticResourceHandler;
+import rsp.server.http.AuthorizationException;
 import rsp.server.http.Header;
 import rsp.server.http.HttpRequest;
 import rsp.server.http.HttpResponse;
+import rsp.server.http.NotFoundException;
 import rsp.util.RandomString;
 
 import java.io.InputStream;
@@ -95,8 +97,19 @@ public final class HttpHandler {
             final Component<?> pageRootComponent = rootComponentDefinition.apply(request);
             pageRootComponent.render(pageBuilder);
             final List<Throwable> renderExceptions = pageBuilder.exceptions();
-            if (renderExceptions.size() > 0) { // TODO
-                throw new RuntimeException(renderExceptions.get(0));
+            if (renderExceptions.size() > 0) {
+                Throwable firstException = renderExceptions.get(0);
+                // Map known exceptions to HTTP status codes
+                if (firstException instanceof NotFoundException) {
+                    return CompletableFuture.completedFuture(new HttpResponse(404,
+                        Collections.emptyList(),
+                        "404 Not Found\n" + firstException.getMessage()));
+                } else if (firstException instanceof AuthorizationException) {
+                    return CompletableFuture.completedFuture(new HttpResponse(403,
+                        Collections.emptyList(),
+                        "403 Forbidden\n" + firstException.getMessage()));
+                }
+                throw new RuntimeException(firstException);
             }
 
             final RenderedPage pageSnapshot = new RenderedPage(pageBuilder, commandsEnqueue);
