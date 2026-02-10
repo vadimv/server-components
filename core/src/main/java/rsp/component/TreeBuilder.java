@@ -101,6 +101,9 @@ public class TreeBuilder implements TreeBuilderFactory {
             final int nextChild = parent.children.size() + 1;
             domPath = domPath.addChild(nextChild);
             parent.addChild(tag);
+            if (component.isRootNodesEmpty()) {
+                component.setParentTag(parent);
+            }
         }
         tagsStack.push(tag);
 

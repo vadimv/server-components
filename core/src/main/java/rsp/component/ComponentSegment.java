@@ -47,6 +47,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final List<Node> rootNodes = new ArrayList<>();
 
     private TreePositionPath startNodeDomPath;
+    private TagNode parentTag;
 
     /**
      * This component's current state. It is expected that the state's type is immutable.
@@ -122,6 +123,12 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     public boolean hasStartNodeDomPath() {
         return startNodeDomPath != null;
+    }
+
+    void setParentTag(final TagNode parentTag) {
+        if (this.parentTag == null) {
+            this.parentTag = parentTag;
+        }
     }
 
     public void addRootDomNode(final TreePositionPath domPath, final Node newNode) {
@@ -217,6 +224,9 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
         commandsEnqueue.offer(new RemoteCommand.ModifyDom(domChangePerformer.changes));
 
+        // Keep parent component's tag tree in sync with this component's latest root nodes
+        updateParentTagTree(oldRootNodes);
+
         // Unregister events
         final Set<DomEventEntry> newEvents = new HashSet<>(recursiveDomEvents());
         for (final DomEventEntry event : oldEvents) {
@@ -267,6 +277,34 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
                 nodes.addAll(comp.rootNodes());
             }
             return nodes;
+        }
+    }
+
+    /**
+     * After this component re-renders, replace its old root nodes in the parent tag's children list
+     * with the new ones. This keeps the parent component's tag tree in sync with the client DOM,
+     * so that when the parent re-renders, the diff is computed against the actual current state.
+     */
+    private void updateParentTagTree(final List<Node> oldRootNodes) {
+        if (parentTag == null || oldRootNodes.isEmpty()) {
+            return;
+        }
+        final List<Node> newRootNodes = rootNodes();
+        // Find first old root node in parent's children by identity
+        int startIdx = -1;
+        for (int i = 0; i < parentTag.children.size(); i++) {
+            if (parentTag.children.get(i) == oldRootNodes.get(0)) {
+                startIdx = i;
+                break;
+            }
+        }
+        if (startIdx >= 0) {
+            for (int i = 0; i < oldRootNodes.size(); i++) {
+                parentTag.children.remove(startIdx);
+            }
+            for (int i = 0; i < newRootNodes.size(); i++) {
+                parentTag.children.add(startIdx + i, newRootNodes.get(i));
+            }
         }
     }
 
