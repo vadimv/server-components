@@ -1,0 +1,82 @@
+package rsp.app.posts.services;
+
+import rsp.app.posts.entities.Post;
+import rsp.component.ContextKey;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+public class PostService {
+
+    /**
+     * Post service for CRUD operations on posts.
+     * Stored as: PostService.class → PostService instance
+     */
+    public static final ContextKey.ClassKey<PostService> POST_SERVICE =
+            new ContextKey.ClassKey<>(PostService.class);
+
+
+    private final Map<String, Post> posts = new ConcurrentHashMap<>();
+    private final AtomicInteger idGenerator = new AtomicInteger(1);
+
+    public PostService() {
+        // Pre-populate with dummy data
+        for (int i = 1; i <= 25; i++) {
+            create(new Post(null, "Post Title " + i, "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " + i));
+        }
+    }
+
+    public List<Post> findAll(final int page, final int pageSize, final String sort) {
+        Comparator<Post> comparator = Comparator.comparing(Post::title);
+        if ("desc".equalsIgnoreCase(sort)) {
+            comparator = comparator.reversed();
+        }
+
+        return posts.values().stream()
+                .sorted(comparator)
+                .skip((long) (page - 1) * pageSize)
+                .limit(pageSize)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<Post> find(final String id) {
+        return Optional.ofNullable(posts.get(id));
+    }
+
+    public String create(final Post post) {
+        String id = String.valueOf(idGenerator.getAndIncrement());
+        Post newPost = new Post(id, post.title(), post.content());
+        posts.put(id, newPost);
+        return id;
+    }
+
+    public boolean update(final String id, final Post post) {
+        if (posts.containsKey(id)) {
+            posts.put(id, new Post(id, post.title(), post.content()));
+            return true;
+        }
+        return false;
+    }
+
+    public boolean delete(final String id) {
+        return posts.remove(id) != null;
+    }
+
+    /**
+     * Delete multiple posts by their IDs.
+     *
+     * @param ids Set of post IDs to delete
+     * @return Number of posts successfully deleted
+     */
+    public int bulkDelete(final Set<String> ids) {
+        int deleted = 0;
+        for (String id : ids) {
+            if (posts.remove(id) != null) {
+                deleted++;
+            }
+        }
+        return deleted;
+    }
+}

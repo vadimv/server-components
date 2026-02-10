@@ -31,7 +31,7 @@ import java.util.Objects;
  *   ↓
  * User clicks button → state changes
  *   ↓
- * onComponentUpdated() saves state to store
+ * onUpdated() saves state to store
  *   ↓
  * Component unmounts
  *   ↓
@@ -75,7 +75,7 @@ public abstract class StoredStateComponent<S> extends Component<S> {
     }
 
     @Override
-    public void onComponentUpdated(final ComponentCompositeKey componentId, final S oldState, final S newState, final StateUpdate<S> stateUpdate) {
+    public void onUpdated(final ComponentCompositeKey componentId, final S oldState, final S newState, final StateUpdate<S> stateUpdate) {
         stateStore.put(componentId, newState);
     }
 

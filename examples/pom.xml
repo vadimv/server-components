@@ -17,6 +17,11 @@
             <artifactId>jetty-web-server</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>compositions</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
 

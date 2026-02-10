@@ -1,0 +1,164 @@
+package rsp.component;
+
+import java.util.function.BiConsumer;
+
+/**
+ * Unified lookup interface for context data and events.
+ *
+ * <p>This is the <b>primary injection point</b> for components, replacing
+ * direct injection of {@link ComponentContext}, {@link Subscriber}, and {@link CommandsEnqueue}.</p>
+ *
+ * <p><b>Immutability model:</b></p>
+ * <ul>
+ *   <li>Data: immutable - {@code with()} returns new instance</li>
+ *   <li>Events: shared channel - {@code publish()} uses same instance</li>
+ * </ul>
+ *
+ * <p><b>Usage:</b></p>
+ * <pre>{@code
+ * public EditViewContract(Lookup lookup) {
+ *     // Service lookup
+ *     Router router = lookup.get(Router.class);
+ *
+ *     // Context value lookup
+ *     String pattern = lookup.get(ContextKeys.ROUTE_PATTERN);
+ *
+ *     // Event subscription
+ *     lookup.subscribe(FORM_SUBMITTED, (name, data) -> save(data));
+ *
+ *     // Event publishing
+ *     lookup.publish(FORM_SUBMITTED, formData);
+ * }
+ * }</pre>
+ *
+ * @see ContextLookup for the facade implementation
+ */
+public interface Lookup {
+
+    // ===== Data Access =====
+
+    /**
+     * Retrieves a value by a type-safe key.
+     *
+     * @param key the context key
+     * @param <T> the type of value
+     * @return the value, or null if not present
+     */
+    <T> T get(ContextKey<T> key);
+
+    /**
+     * Retrieves a service/component by its class.
+     *
+     * @param clazz the class to look up
+     * @param <T> the type of the service/component
+     * @return the instance, or null if not present
+     */
+    <T> T get(Class<T> clazz);
+
+    /**
+     * Retrieves a required value by a type-safe key.
+     *
+     * @param key the context key
+     * @param <T> the type of value
+     * @return the value, never null
+     * @throws IllegalStateException if not present
+     */
+    <T> T getRequired(ContextKey<T> key);
+
+    /**
+     * Retrieves a required service/component by its class.
+     *
+     * @param clazz the class to look up
+     * @param <T> the type of the service/component
+     * @return the instance, never null
+     * @throws IllegalStateException if not present
+     */
+    <T> T getRequired(Class<T> clazz);
+
+    // ===== Context Creation (returns new instance) =====
+
+    /**
+     * Creates a new Lookup with a value added.
+     * The original Lookup is unchanged (immutable).
+     *
+     * @param key the context key
+     * @param value the value to store
+     * @param <T> the type of value
+     * @return a new Lookup instance with the value added
+     */
+    <T> Lookup with(ContextKey<T> key, T value);
+
+    /**
+     * Creates a new Lookup with a service/component instance added.
+     * The original Lookup is unchanged (immutable).
+     *
+     * @param clazz the class serving as the key
+     * @param instance the instance to store
+     * @param <T> the type of the service/component
+     * @return a new Lookup instance with the service added
+     */
+    <T> Lookup with(Class<T> clazz, T instance);
+
+    // ===== Event Subscription =====
+
+    /**
+     * Subscribe to events with a typed payload.
+     *
+     * <p>Handler is registered with component-scoped lifecycle.
+     * Cleanup is automatic when component unmounts.</p>
+     *
+     * @param key the typed event key
+     * @param handler receives the event name and typed payload
+     * @param <T> the payload type
+     * @return registration handle (unsubscribe typically not needed)
+     */
+    <T> Registration subscribe(EventKey<T> key, BiConsumer<String, T> handler);
+
+    /**
+     * Subscribe to void events (no payload).
+     *
+     * <p>Handler is registered with component-scoped lifecycle.
+     * Cleanup is automatic when component unmounts.</p>
+     *
+     * @param key the void event key
+     * @param handler the handler to invoke
+     * @return registration handle (unsubscribe typically not needed)
+     */
+    Registration subscribe(EventKey.VoidKey key, Runnable handler);
+
+    // ===== Event Publishing =====
+
+    /**
+     * Publish an event with a typed payload.
+     *
+     * <p>Event is delivered asynchronously via Reactor queue.</p>
+     *
+     * @param key the typed event key
+     * @param payload the event payload
+     * @param <T> the payload type
+     */
+    <T> void publish(EventKey<T> key, T payload);
+
+    /**
+     * Publish a void event (no payload).
+     *
+     * <p>Event is delivered asynchronously via Reactor queue.</p>
+     *
+     * @param key the void event key
+     */
+    void publish(EventKey.VoidKey key);
+
+    /**
+     * Registration handle for event subscriptions.
+     *
+     * <p>Unsubscribe is typically not needed since handlers are
+     * automatically cleaned up with component lifecycle.</p>
+     */
+    interface Registration {
+        /**
+         * Unsubscribe the handler.
+         * Usually not needed - component lifecycle handles cleanup.
+         */
+        void unsubscribe();
+    }
+}

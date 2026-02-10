@@ -19,14 +19,10 @@ import java.util.function.Consumer;
  * Subclasses of this class provide an implementation an initial state supplier and a function defining of its UI subtree.
  * Optionally they provide a way to pass information to the component's downstream component which these components can use to set up states.
  * There are a number of methods available for overriding representing callbacks for various phases of the defined component's lifecycle.
- * The mechanisms of extension described above can be described of the application level.
- * <p>
- * Also, it is possible to override the method which creates component's segment which can be overridden as well to substitute the new instance with
- * the one of extended ComponentSegment class. This gives more control over the created segment's behaviour.
- * @see ComponentSegment<S>
+ *
  * @param <S> this component's state type
  */
-public abstract class Component<S> implements Definition, ComponentSegmentFactory<S>, ComponentSegmentLifeCycle<S> {
+public abstract class Component<S> implements Definition, ComponentSegmentFactory<S>, ComponentCallbacks<S> {
 
     protected final Object componentType;
 
@@ -63,11 +59,6 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
      * Provides a capability to define common context for downstream components states.
      * <p>
      * By default, this method propagates the parent's context as-is.
-     * Override this method to:
-     * <ul>
-     *     <li>Add or modify values in the context for child components (using {@link ComponentContext#with(java.util.Map)}).</li>
-     *     <li>Isolate child components from the parent context by returning a new, empty {@link ComponentContext}.</li>
-     * </ul>
      *
      * @return a function for creating components context to be uses in the wrapped components subtree
      */
@@ -75,35 +66,28 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
         return (c, s) -> c;
     }
 
-    /**
-     * This method provides a callback for the event when this component is mounted to the segments tree.
-     * It is threadsafe to call the state update's methods e.g. to change the component's state in this callback.
-
-     */
-    public void onComponentMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate) {
-        Objects.requireNonNull(componentId);
-        Objects.requireNonNull(state);
-        Objects.requireNonNull(stateUpdate);
+    @Override
+    public boolean onBeforeUpdated(S newState, CommandsEnqueue commandsEnqueue) {
+        return true;
     }
 
-    /**
-     * This method provides a callback for the event when this component's state is updated.
-     * It is threadsafe to call the state update's methods e.g. to change the component's state in this callback.
-     *
-     */
-    public void onComponentUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate) {
-        Objects.requireNonNull(componentId);
-        Objects.requireNonNull(oldState);
-        Objects.requireNonNull(newState);
-        Objects.requireNonNull(stateUpdate);
+    @Override
+    public void onAfterRendered(S state,
+                                Subscriber subscriber,
+                                CommandsEnqueue commandsEnqueue,
+                                StateUpdate<S> stateUpdate) {
     }
 
-    /**
-     * This method provides a callback for the event when this component's will be unmounted from the rendered tree.
-     */
-    public void onComponentUnmounted(ComponentCompositeKey componentId, S state) {
-        Objects.requireNonNull(componentId);
-        Objects.requireNonNull(state);
+    @Override
+    public void onMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate) {
+    }
+
+    @Override
+    public void onUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate) {
+    }
+
+    @Override
+    public void onUnmounted(ComponentCompositeKey componentId, S state) {
     }
 
     @Override
@@ -111,7 +95,7 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
                                                       final TreePositionPath componentPath,
                                                       final TreeBuilderFactory treeBuilderFactory,
                                                       final ComponentContext componentContext,
-                                                      final Consumer<Command> commandsEnqueue) {
+                                                      final CommandsEnqueue commandsEnqueue) {
         Objects.requireNonNull(sessionId);
         Objects.requireNonNull(componentPath);
         Objects.requireNonNull(treeBuilderFactory);

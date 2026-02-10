@@ -1,9 +1,6 @@
 package rsp.component.definitions;
 
 import rsp.component.*;
-import rsp.dom.TreePositionPath;
-import rsp.page.QualifiedSessionId;
-import rsp.component.TreeBuilderFactory;
 import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.Command;
 
@@ -42,7 +39,11 @@ public abstract class ContextStateComponent<S> extends Component<S> {
     @Override
     public ComponentStateSupplier<S> initStateSupplier() {
         return (_, componentContext) -> {
-            if (componentContext.getAttribute(contextAttributeName) instanceof ContextValue contextValue) {
+            // Create a StringKey dynamically for this context attribute
+            final ContextKey<ContextValue> contextKey = new ContextKey.StringKey<>(contextAttributeName, ContextValue.class);
+            final ContextValue contextValue = componentContext.get(contextKey);
+
+            if (contextValue != null) {
                 return contextValueToStateFunction().apply(contextValue);
             } else {
                 throw new IllegalStateException("Attribute " + contextAttributeName + " of type ContextValue not found in component context");
@@ -64,30 +65,11 @@ public abstract class ContextStateComponent<S> extends Component<S> {
     protected abstract Function<S, ContextValue> stateToContextValueFunction();
 
     @Override
-    public ComponentSegment<S> createComponentSegment(final QualifiedSessionId sessionId,
-                                                      final TreePositionPath componentPath,
-                                                      final TreeBuilderFactory treeBuilderFactory,
-                                                      final ComponentContext sessionObjects,
-                                                      final Consumer<Command> commandsEnqueue) {
-        super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, sessionObjects, commandsEnqueue);
-        return new ComponentSegment<>(new ComponentCompositeKey(sessionId, componentType, componentPath),
-                                      initStateSupplier(),
-                                      subComponentsContext(),
-                                      componentView(),
-                                      this,
-                                      treeBuilderFactory,
-                                      sessionObjects,
-                                      commandsEnqueue) {
-
-
-            @Override
-            protected boolean onBeforeUpdated(final S state) {
-                // notify a component up in the tree hierarchy
-                commandsEnqueue.accept(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + contextAttributeName,
-                                                                      stateToContextValueFunction().apply(state)));
-                return false; // do not update this component, it will be re-rendered as a part of the subtree
-            }
-        };
+    public boolean onBeforeUpdated(S newState, CommandsEnqueue commandsEnqueue) {
+        // notify a component up in the tree hierarchy
+        commandsEnqueue.offer(new ComponentEventNotification(STATE_UPDATED_EVENT_PREFIX + contextAttributeName,
+                                                              stateToContextValueFunction().apply(newState)));
+        return false; // do not update this component, it will be re-rendered as a part of the subtree
     }
 
     /**

@@ -1,5 +1,6 @@
 package rsp.page;
 
+import rsp.component.CommandsEnqueue;
 import rsp.page.events.Command;
 
 import java.util.*;
@@ -8,7 +9,7 @@ import java.util.function.Consumer;
 /**
  * Initially commands are enqueued but after a redirect those commands are moved to the new destination and all new commands also sent there.
  */
-public final class RedirectableEventsConsumer implements Consumer<Command> {
+public final class RedirectableEventsConsumer implements CommandsEnqueue {
 
     private final Queue<Command> queue = new LinkedList<>();
     private Consumer<Command> eventConsumer;
@@ -27,7 +28,7 @@ public final class RedirectableEventsConsumer implements Consumer<Command> {
      * @param command the input command
      */
     @Override
-    public synchronized void accept(Command command) {
+    public synchronized void offer(Command command) {
        Objects.requireNonNull(command);
        this.eventConsumer.accept(command);
     }

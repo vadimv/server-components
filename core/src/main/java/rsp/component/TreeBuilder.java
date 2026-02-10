@@ -18,11 +18,12 @@ public class TreeBuilder implements TreeBuilderFactory {
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
 
     protected final QualifiedSessionId sessionId;
-    protected final Consumer<Command> remotePageMessagesOut;
+    protected final CommandsEnqueue remotePageMessagesOut;
 
     private final Deque<TagNode> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<ComponentSegment<?>> componentsStack = new ArrayDeque<>();
+    private final List<Throwable> exceptions = new ArrayList<>();
 
     protected ComponentContext componentContext;
 
@@ -33,7 +34,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     public TreeBuilder(final QualifiedSessionId sessionId,
                        final TreePositionPath startDomPath,
                        final ComponentContext componentContext,
-                       final Consumer<Command> remotePageMessagesOut) {
+                       final CommandsEnqueue remotePageMessagesOut) {
         this.domPath = Objects.requireNonNull(startDomPath);
         this.sessionId = Objects.requireNonNull(sessionId);
         this.componentContext = componentContext;
@@ -100,6 +101,9 @@ public class TreeBuilder implements TreeBuilderFactory {
             final int nextChild = parent.children.size() + 1;
             domPath = domPath.addChild(nextChild);
             parent.addChild(tag);
+            if (component.isRootNodesEmpty()) {
+                component.setParentTag(parent);
+            }
         }
         tagsStack.push(tag);
 
@@ -200,6 +204,14 @@ public class TreeBuilder implements TreeBuilderFactory {
         final TagNode tag = tagsStack.peek();
         assert tag != null;
         component.addRef(ref, domPath);
+    }
+
+    public void addException(final Throwable exception) {
+        exceptions.add(exception);
+    }
+
+    public List<Throwable> exceptions() {
+        return exceptions;
     }
 
     @Override

@@ -17,7 +17,7 @@ class RemotePageMessageDecoderTests {
     @Test
     void should_deserialize_dom_event_correctly() {
         final TestSessonEventsConsumer collector = new TestSessonEventsConsumer();
-        final MessageDecoder decoder = createDecoder(collector);
+        final MessageDecoder decoder = createDecoder(e -> collector.offer(e));
 
         decoder.decode("[0,\"0:1_2_1_2_2_1:click\",{}]");
 
@@ -32,7 +32,7 @@ class RemotePageMessageDecoderTests {
     @Test
     void should_deserialize_extract_property() {
         final TestSessonEventsConsumer collector = new TestSessonEventsConsumer();
-        final RemotePageMessageDecoder p = createDecoder(collector);
+        final RemotePageMessageDecoder p = createDecoder(e -> collector.offer(e));
         p.decode("[2,\"1:0\",\"bar\"]");
 
         assertTrue(collector.list.getFirst() instanceof ExtractPropertyResponseEvent);
@@ -48,7 +48,7 @@ class RemotePageMessageDecoderTests {
     @Test
     void should_deserialize_eval_js_response() {
         final TestSessonEventsConsumer collector = new TestSessonEventsConsumer();
-        final RemotePageMessageDecoder p = createDecoder(collector);
+        final RemotePageMessageDecoder p = createDecoder(e -> collector.offer(e));
         p.decode("[4,\"1:0\",\"foo\"]");
 
         assertTrue(collector.list.getFirst() instanceof EvalJsResponseEvent);

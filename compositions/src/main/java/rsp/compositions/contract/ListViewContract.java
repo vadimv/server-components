@@ -1,0 +1,213 @@
+package rsp.compositions.contract;
+
+import rsp.component.ComponentContext;
+import rsp.component.EventKey;
+import rsp.component.Lookup;
+import rsp.component.definitions.ContextStateComponent;
+import rsp.compositions.schema.DataSchema;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static rsp.compositions.contract.ActionBindings.*;
+import static rsp.compositions.contract.ContextKeys.LIST_DEFAULT_PAGE_SIZE;
+import static rsp.compositions.contract.EventKeys.SHOW;
+import static rsp.compositions.contract.EventKeys.STATE_UPDATED;
+
+public abstract class ListViewContract<T> extends ViewContract {
+
+
+    public static final EventKey.VoidKey CREATE_ELEMENT_REQUESTED = new EventKey.VoidKey("list.create.element.requested");
+
+    public static final EventKey.SimpleKey<String> EDIT_ELEMENT_REQUESTED = new EventKey.SimpleKey<>("list.edit.element", String.class);
+    /**
+     * Bulk delete action requested for selected rows.
+     * Emitted by: DefaultListView (Delete Selected button)
+     * Handled by: ListViewContract.registerHandlers()
+     * Payload: Set of row IDs to delete
+     */
+    @SuppressWarnings("unchecked")
+    public static final EventKey.SimpleKey<Set<String>> BULK_DELETE_REQUESTED =
+            new EventKey.SimpleKey<>("bulk.delete.requested",
+                    (Class<Set<String>>) (Class<?>) Set.class);
+
+
+    public static final EventKey.SimpleKey<Integer> PAGE_CHANGE_REQUESTED =
+            new EventKey.SimpleKey<>("change.requested",
+                                      Integer.class);
+    /**
+
+    /**
+     * Context key for default page size configuration.
+     * Framework-agnostic: contracts don't need to know about AppConfig structure.
+     */
+    public static final String CONFIG_DEFAULT_PAGE_SIZE = "list.defaultPageSize";
+
+    /**
+     * Default page size fallback if no configuration is provided.
+     */
+    private static final int DEFAULT_PAGE_SIZE_FALLBACK = 10;
+
+    private final int pageSize;
+    private DataSchema cachedSchema;
+
+    protected ListViewContract(Lookup lookup) {
+        super(lookup);
+        // Read page size from generic config context, completely agnostic of AppConfig
+        Integer configuredPageSize = lookup.get(LIST_DEFAULT_PAGE_SIZE);
+        this.pageSize = configuredPageSize != null ? configuredPageSize : DEFAULT_PAGE_SIZE_FALLBACK;
+    }
+
+    /**
+     * Get the configured page size for this list view.
+     * This value is read from context using a generic string key, making this contract
+     * completely independent of any specific configuration class (AppConfig, etc.).
+     *
+     * @return The page size (number of items per page)
+     */
+    protected int pageSize() {
+        return pageSize;
+    }
+
+
+    protected  abstract QueryParam<Integer>  pageQueryParam();
+
+    public int page() {
+        return resolve(pageQueryParam());
+    }
+
+    public abstract String sort();
+
+    public abstract List<T> items();
+
+    /**
+     * Get schema - auto-extracted from items + customization.
+     * Schema is cached after first access to avoid repeated extraction.
+     * 
+     * @return DataSchema for rendering list columns
+     */
+    public DataSchema schema() {
+        if (cachedSchema == null) {
+            List<T> items = items();
+            DataSchema baseSchema = items.isEmpty()
+                ? new DataSchema(List.of())
+                : DataSchema.fromFirstItem(items.get(0));
+            cachedSchema = customizeSchema(baseSchema);
+        }
+        return cachedSchema;
+    }
+
+    /**
+     * Override to customize the auto-extracted schema.
+     * Called only once, before schema is cached.
+     *
+     * @param schema The auto-extracted schema from first item
+     * @return The customized schema (default: returns unchanged)
+     */
+    protected DataSchema customizeSchema(DataSchema schema) {
+        return schema;
+    }
+
+
+    @Override
+    public ComponentContext enrichContext(ComponentContext context) {
+        return context
+            .with(ContextKeys.CONTRACT_CLASS, getClass())
+            .with(ContextKeys.LIST_ITEMS, items())
+            .with(ContextKeys.LIST_SCHEMA, schema())
+            .with(ContextKeys.LIST_PAGE, page())
+            .with(ContextKeys.LIST_SORT, sort())
+            .with(ContextKeys.CONTRACT_TITLE, title());
+    }
+
+    @Override
+    protected void registerHandlers() {
+        // Handle bulk delete requests
+        subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
+            handleBulkDelete(selectedIds);
+        });
+
+        subscribe(PAGE_CHANGE_REQUESTED, (name, newPage) -> {
+            lookup.publish(STATE_UPDATED.with(pageQueryParam().name),
+                    new ContextStateComponent.ContextValue.StringValue(String.valueOf(newPage)));
+        });
+
+        subscribe(CREATE_ELEMENT_REQUESTED, () -> {
+            lookup.publish(SHOW, new ShowPayload(
+                    createElementContract(),
+                    Map.of()
+            ));
+        });
+
+        subscribe(EDIT_ELEMENT_REQUESTED, (_, rowId) -> {
+            lookup.publish(SHOW, new ShowPayload(
+                    editElementContract(),
+                    Map.of("id", rowId)
+            ));
+        });
+    }
+
+    protected abstract Class<? extends ViewContract> createElementContract();
+
+
+    protected abstract Class<? extends ViewContract> editElementContract();
+
+    /**
+     * Handle bulk delete request for selected items.
+     * Default implementation calls bulkDelete() and refreshes the list on success.
+     *
+     * @param selectedIds Set of row IDs to delete
+     */
+    protected void handleBulkDelete(Set<String> selectedIds) {
+        int deletedCount = bulkDelete(selectedIds);
+        if (deletedCount > 0) {
+            onBulkDeleteSuccess(deletedCount);
+        } else {
+            onBulkDeleteFailure(selectedIds);
+        }
+    }
+
+    /**
+     * Delete multiple items by their IDs.
+     * <p>
+     * Subclasses should override to provide actual deletion logic.
+     * Default throws UnsupportedOperationException.
+     *
+     * @param ids Set of item IDs to delete
+     * @return Number of items successfully deleted
+     */
+    protected int bulkDelete(Set<String> ids) {
+        throw new UnsupportedOperationException("Bulk delete not implemented. Override bulkDelete() in your contract.");
+    }
+
+    /**
+     * Called after successful bulk delete.
+     * Emits ACTION_SUCCESS event - framework derives behavior from composition config.
+     * <p>
+     * This follows the CountersMainComponent pattern:
+     * <ul>
+     *   <li>Contract emits INTENT (action type only, no routes)</li>
+     *   <li>Framework derives behavior from composition configuration</li>
+     *   <li>Since this is the primary contract, framework will rebuild scene (refresh in place)</li>
+     * </ul>
+     *
+     * @param deletedCount Number of items deleted
+     */
+    protected void onBulkDeleteSuccess(int deletedCount) {
+        // Emit generic success event - framework derives behavior from composition
+        // Since this contract IS the primary, framework will rebuild scene (refresh in place)
+        lookup.publish(EventKeys.ACTION_SUCCESS,
+            new EventKeys.ActionResult(getClass()));
+    }
+
+    /**
+     * Called when bulk delete fails.
+     * Default does nothing - override for custom error handling.
+     *
+     * @param failedIds IDs that failed to delete
+     */
+    protected void onBulkDeleteFailure(Set<String> failedIds) {
+        // Default: silent failure - override for error handling
+    }
+}

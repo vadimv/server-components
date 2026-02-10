@@ -1,6 +1,9 @@
 package rsp.server.http;
 
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -17,6 +20,10 @@ public record Query(List<Parameter> parameters) {
 
     /**
      * Creates a new instance of a Query given a list of query parameters.
+     * <p>
+     * The parameters are expected to be <b>decoded</b> (e.g., "hello world", not "hello%20world").
+     * This is consistent with how Servlet containers provide parameters.
+     * </p>
      * @param parameters a list of parameters
      */
     public Query(final List<Parameter> parameters) {
@@ -26,6 +33,10 @@ public record Query(List<Parameter> parameters) {
     /**
      * Creates a new instance of this class by parsing a query string in the format attribute-value pairs separated by the delimiter.
      * A query string optionally can start with '?'.
+     * <p>
+     * The input string is expected to be <b>URL-encoded</b> (e.g., "q=hello%20world").
+     * The method will decode the names and values before storing them.
+     * </p>
      * @param queryString a query string
      * @return a new instance
      */
@@ -34,7 +45,9 @@ public record Query(List<Parameter> parameters) {
         final String trimmedStr = queryString.trim().replaceFirst("^\\?", "");
         final List<Parameter> params = Arrays.stream(trimmedStr.split("&")).filter(s -> !s.isEmpty()).map(paramString -> {
             final String[] tokens = paramString.split("=");
-            return tokens.length > 1 ? new Parameter(tokens[0], tokens[1]) : new Parameter(tokens[0], "");
+            final String name = URLDecoder.decode(tokens[0], StandardCharsets.UTF_8);
+            final String value = tokens.length > 1 ? URLDecoder.decode(tokens[1], StandardCharsets.UTF_8) : "";
+            return new Parameter(name, value);
         }).toList();
         return new Query(params);
     }
@@ -46,7 +59,7 @@ public record Query(List<Parameter> parameters) {
      */
     public String parameterValue(final String name) {
         Objects.requireNonNull(name);
-        for (Parameter param : parameters) {
+        for (final Parameter param : parameters) {
             if (param.name.equals(name)) {
                 return param.value;
             }
@@ -59,7 +72,9 @@ public record Query(List<Parameter> parameters) {
         if (parameters.isEmpty()) {
             return "";
         }
-        final var paramStrings = parameters.stream().map(parameter -> parameter.name + '=' + parameter.value).toArray(String[]::new);
+        final var paramStrings = parameters.stream()
+                .map(parameter -> URLEncoder.encode(parameter.name, StandardCharsets.UTF_8) + '=' + URLEncoder.encode(parameter.value, StandardCharsets.UTF_8))
+                .toArray(String[]::new);
         return "?" + String.join("&", paramStrings);
     }
 

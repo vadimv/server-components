@@ -57,25 +57,30 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
                                 && messageJson[2] instanceof JsonDataType.Object eventObject) {
                                 parseDomEvent(str, eventObject);
                             } else {
-                                throw new JsonDataType.JsonException();
+                                throw new JsonDataType.JsonException("Invalid DOM_EVENT message format, length="
+                                    + messageJson.length + ", elements: " + java.util.Arrays.toString(messageJson));
                             }
                         }
                         case EXTRACT_PROPERTY_RESPONSE -> {
-                            if (messageJson.length == 3 && messageJson[1] instanceof JsonDataType.String(String str)) {
-                                parseExtractPropertyResponse(str, messageJson[2]);
+                            if (messageJson.length >= 2 && messageJson[1] instanceof JsonDataType.String(String str)) {
+                                // Handle both 2 and 3 element responses (2 elements when value is undefined/null)
+                                JsonDataType value = messageJson.length >= 3 ? messageJson[2] : JsonDataType.String.EMPTY;
+                                parseExtractPropertyResponse(str, value);
                             } else {
-                                throw new JsonDataType.JsonException();
+                                throw new JsonDataType.JsonException("Invalid EXTRACT_PROPERTY_RESPONSE message format, length="
+                                    + messageJson.length + ", elements: " + java.util.Arrays.toString(messageJson));
                             }
                         }
                         case EVAL_JS_RESPONSE -> {
-                            if (messageJson[1] instanceof JsonDataType.String(String metadata)) {
+                            if (messageJson.length >= 2 && messageJson[1] instanceof JsonDataType.String(String metadata)) {
                                 if (messageJson.length == 2) {
                                     parseEvalJsResponse(metadata, JsonDataType.String.EMPTY);
-                                } else if (messageJson.length == 3) {
-                                    parseEvalJsResponse(metadata, messageJson[2]);
                                 } else {
-                                    throw new JsonDataType.JsonException();
+                                    parseEvalJsResponse(metadata, messageJson[2]);
                                 }
+                            } else {
+                                throw new JsonDataType.JsonException("Invalid EVAL_JS_RESPONSE message format, length="
+                                    + messageJson.length + ", elements: " + java.util.Arrays.toString(messageJson));
                             }
                         }
                         case HEARTBEAT -> heartBeat();
@@ -84,7 +89,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
             }
 
         } catch (final Exception ex) {
-            logger.log(System.Logger.Level.ERROR, "Incoming message parse exception", ex);
+            logger.log(System.Logger.Level.ERROR, "Incoming message parse exception for message: " + message, ex);
         }
     }
 

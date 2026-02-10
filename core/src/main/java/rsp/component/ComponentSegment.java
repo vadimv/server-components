@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.function.*;
 
 import static java.lang.System.Logger.Level.*;
+import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 /**
  * Represents a stateful component which is a part of a UI components tree.
@@ -26,34 +27,27 @@ import static java.lang.System.Logger.Level.*;
  *
  * @param <S> a type for this component's state snapshot
  */
-public class ComponentSegment<S> implements Segment, StateUpdate<S> {
+public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    /**
-     * A unique identifier of this instance, e.g. to be used as a key for its state in cache.
-     */
-    protected final ComponentCompositeKey componentId;
-
-    /**
-     * A sink object for the commands to be executed in the event loop.
-     */
-    protected final Consumer<Command> commandsEnqueue;
-
+    private final ComponentCompositeKey componentId;
+    private final CommandsEnqueue commandsEnqueue;
     private final ComponentContext componentContext;
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
     private final ComponentView<S> componentView;
-    private final ComponentSegmentLifeCycle<S> lifeCycleCallbacks;
+    private final ComponentCallbacks<S> callbacks;
     private final TreeBuilderFactory treeBuilderFactory;
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
-    private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>();
-
+    private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>(); // should it be a dictionary?
+    private final Subscriber subscriber = new DefaultSubscriber();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<ComponentSegment<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
 
     private TreePositionPath startNodeDomPath;
+    private TagNode parentTag;
 
     /**
      * This component's current state. It is expected that the state's type is immutable.
@@ -62,14 +56,13 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private S state;
 
     /**
-     * Creates a new instance of a component. To be called in a relevant component's definition class.
-     * @see rsp.component.definitions.Component<S>
+     * Creates a new instance of a component segment.
      *
-     * @param componentId an identity of this component, an object to be used as a key to store and retrieve a current state snapshot
+     * @param componentId an identity of this component
      * @param stateResolver a function to resolve an initial state
-     * @param contextResolver a function that build a context object that is propagated to descendant components
-     * @param componentView contains DOM subtree definition.
-     * @param lifeCycleCallbacks a bundle of this component's life cycle events callbacks
+     * @param contextResolver a function that builds a context object propagated to descendant components
+     * @param componentView contains DOM subtree definition
+     * @param callbacks the callbacks invoked during component lifecycle
      * @param treeBuilderFactory a factory for a render context for children components
      * @param componentContext a context object from ascendant components
      * @param commandsEnqueue a consumer for the page's control loop commands
@@ -78,15 +71,15 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
                             final ComponentStateSupplier<S> stateResolver,
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
                             final ComponentView<S> componentView,
-                            final ComponentSegmentLifeCycle<S> lifeCycleCallbacks,
+                            final ComponentCallbacks<S> callbacks,
                             final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
-                            final Consumer<Command> commandsEnqueue) {
+                            final CommandsEnqueue commandsEnqueue) {
         this.componentId = Objects.requireNonNull(componentId);
         this.stateResolver = Objects.requireNonNull(stateResolver);
         this.contextResolver = Objects.requireNonNull(contextResolver);
         this.componentView = Objects.requireNonNull(componentView);
-        this.lifeCycleCallbacks = lifeCycleCallbacks;
+        this.callbacks = Objects.requireNonNull(callbacks);
         this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
         this.componentContext = Objects.requireNonNull(componentContext);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
@@ -132,6 +125,12 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         return startNodeDomPath != null;
     }
 
+    void setParentTag(final TagNode parentTag) {
+        if (this.parentTag == null) {
+            this.parentTag = parentTag;
+        }
+    }
+
     public void addRootDomNode(final TreePositionPath domPath, final Node newNode) {
         if (rootNodes.isEmpty() || domPath.elementsCount() == this.startNodeDomPath.elementsCount()) {
             rootNodes.add(newNode);
@@ -140,22 +139,24 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     public void render(final TreeBuilder renderContext) {
         try {
-            onBeforeInitiallyRendered();
             state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext),
                                            "Initial state cannot be null for component " + componentId);
-            renderContext.setComponentContext(contextResolver.apply(componentContext, state));
-            final Definition view = componentView.use(this).apply(state);
+            renderContext.setComponentContext(componentContext().apply(componentContext, state));
 
-            view.render(renderContext);
-            onAfterRendered(state);
-            onAfterMounted(state);
+            final View<S> view = componentView.use(this);
+            final Definition uiDefinition = view.apply(state);
+
+            uiDefinition.render(renderContext);
+            callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
+            callbacks.onMounted(componentId, state, this.new EnqueueTaskStateUpdate());
         } catch (Throwable renderEx) {
-            logger.log(ERROR, "Component " + this + " rendering exception", renderEx);
+            renderContext.addException(renderEx);
+            logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
         }
     }
 
-    protected S getState() {
-        return state;
+    private BiFunction<ComponentContext, S, ComponentContext> componentContext() {
+        return (ctx, s) -> contextResolver.apply(ctx, s).with(Subscriber.class, subscriber);
     }
 
     /**
@@ -186,8 +187,8 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final S newState = Objects.requireNonNull(newStateFunction.apply(state),
                                                   "State transformer function cannot return null for component " + componentId);
 
-        if (!onBeforeUpdated(newState)) {
-            return; // this component segment instance state change will not initiate re-rendering and will be discarded
+        if (!callbacks.onBeforeUpdated(newState, commandsEnqueue)) {
+            return; // update vetoed by component
         }
 
         final S oldState = state;
@@ -210,18 +211,21 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
 
-        renderContext.setComponentContext(contextResolver.apply(componentContext, state));
+        renderContext.setComponentContext(componentContext().apply(componentContext, state));
         renderContext.openComponent(this);
         final Definition view = componentView.use(this).apply(state);
         view.render(renderContext);
         renderContext.closeComponent();
-        onAfterRendered(state);
+        callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
         final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
-        commandsEnqueue.accept(new RemoteCommand.ModifyDom(domChangePerformer.changes));
+        commandsEnqueue.offer(new RemoteCommand.ModifyDom(domChangePerformer.changes));
+
+        // Keep parent component's tag tree in sync with this component's latest root nodes
+        updateParentTagTree(oldRootNodes);
 
         // Unregister events
         final Set<DomEventEntry> newEvents = new HashSet<>(recursiveDomEvents());
@@ -229,7 +233,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             if (!newEvents.contains(event)
                 && event instanceof DomEventEntry domEventEntry
                 && !elementsToRemove.contains(domEventEntry.eventTarget.elementPath())) {
-                commandsEnqueue.accept(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.elementPath()));
+                commandsEnqueue.offer(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.elementPath()));
             }
         }
 
@@ -241,7 +245,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             }
         }
         if (!eventsToAdd.isEmpty()) {
-            commandsEnqueue.accept(new RemoteCommand.ListenEvent(eventsToAdd));
+            commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
         }
 
         // Notify unmounted child components
@@ -252,29 +256,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
             }
         }
 
-        onAfterUpdated(oldState, state);
-    }
-
-    protected void onBeforeInitiallyRendered() {
-    }
-
-    protected void onAfterMounted(final S state) {
-        lifeCycleCallbacks.onComponentMounted(componentId, state, this.new EnqueueTaskStateUpdate());
-    }
-
-    protected void onAfterRendered(final S state) {
-    }
-
-    protected boolean onBeforeUpdated(final S state) {
-        return true;
-    }
-
-    protected void onAfterUpdated(final S oldState, final S state) {
-        lifeCycleCallbacks.onComponentUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
-    }
-
-    protected void onAfterUnmounted(final ComponentCompositeKey key, final S oldState) {
-        lifeCycleCallbacks.onComponentUnmounted(componentId, state);
+        callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
     }
 
     public List<ComponentSegment<?>> directChildren() {
@@ -283,7 +265,7 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     public void unmount() {
         recursiveChildren().forEach(c -> c.unmount());
-        onAfterUnmounted(componentId, state);
+        callbacks.onUnmounted(componentId, state);
     }
 
     private List<Node> rootNodes() {
@@ -295,6 +277,34 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
                 nodes.addAll(comp.rootNodes());
             }
             return nodes;
+        }
+    }
+
+    /**
+     * After this component re-renders, replace its old root nodes in the parent tag's children list
+     * with the new ones. This keeps the parent component's tag tree in sync with the client DOM,
+     * so that when the parent re-renders, the diff is computed against the actual current state.
+     */
+    private void updateParentTagTree(final List<Node> oldRootNodes) {
+        if (parentTag == null || oldRootNodes.isEmpty()) {
+            return;
+        }
+        final List<Node> newRootNodes = rootNodes();
+        // Find first old root node in parent's children by identity
+        int startIdx = -1;
+        for (int i = 0; i < parentTag.children.size(); i++) {
+            if (parentTag.children.get(i) == oldRootNodes.get(0)) {
+                startIdx = i;
+                break;
+            }
+        }
+        if (startIdx >= 0) {
+            for (int i = 0; i < oldRootNodes.size(); i++) {
+                parentTag.children.remove(startIdx);
+            }
+            for (int i = 0; i < newRootNodes.size(); i++) {
+                parentTag.children.add(startIdx + i, newRootNodes.get(i));
+            }
         }
     }
 
@@ -347,6 +357,69 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
         componentEventEntries.add(new ComponentEventEntry(eventType, eventHandler, preventDefault));
     }
 
+    /**
+     * Register a type-safe handler for a component event.
+     *
+     * @param <T> the payload type
+     * @param key the typed event key
+     * @param handler receives the event name and typed payload
+     * @param preventDefault (currently unused for component events)
+     */
+    public <T> void addEventHandler(final EventKey<T> key,
+                                    final java.util.function.BiConsumer<String, T> handler,
+                                    final boolean preventDefault) {
+        addComponentEventHandler(key.name(), ctx -> {
+            @SuppressWarnings("unchecked")
+            T payload = (T) ctx.eventObject();
+            handler.accept(ctx.eventName(), payload);
+        }, preventDefault);
+    }
+
+    /**
+     * Register a type-safe handler for a void event (no payload).
+     *
+     * @param key the void event key
+     * @param handler the handler to invoke
+     * @param preventDefault (currently unused for component events)
+     */
+    public void addEventHandler(final EventKey.VoidKey key,
+                                final Runnable handler,
+                                final boolean preventDefault) {
+        addComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
+    }
+
+    /**
+     * Register a type-safe handler for a component event (convenience overload).
+     *
+     * @param <T> the payload type
+     * @param key the typed event key
+     * @param handler receives the event name and typed payload
+     */
+    public <T> void addEventHandler(final EventKey<T> key,
+                                    final java.util.function.BiConsumer<String, T> handler) {
+        addEventHandler(key, handler, false);
+    }
+
+    /**
+     * Register a type-safe handler for a void event (convenience overload).
+     *
+     * @param key the void event key
+     * @param handler the handler to invoke
+     */
+    public void addEventHandler(final EventKey.VoidKey key,
+                                final Runnable handler) {
+        addEventHandler(key, handler, false);
+    }
+
+    public void removeComponentEventHandler(final String eventType) {
+        final Optional<ComponentEventEntry> eventEntry = componentEventEntries.stream()
+                .filter(entry -> entry.eventName().equals(eventType))
+                .findFirst();
+        if (eventEntry.isPresent()) {
+            componentEventEntries.remove(eventEntry.get());
+        }
+    }
+
     public void addRef(final Ref ref, final TreePositionPath path) {
         refs.put(ref, path);
     }
@@ -383,23 +456,42 @@ public class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final class EnqueueTaskStateUpdate implements StateUpdate<S> {
         @Override
         public void setState(final S newState) {
-            commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.offer(new GenericTaskEvent(() -> {
                 ComponentSegment.this.setState(newState);
             }));
         }
 
         @Override
         public void applyStateTransformation(final UnaryOperator<S> stateTransformer) {
-            commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.offer(new GenericTaskEvent(() -> {
                 ComponentSegment.this.applyStateTransformation(stateTransformer);
             }));
         }
 
         @Override
         public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
-            commandsEnqueue.accept(new GenericTaskEvent(() -> {
+            commandsEnqueue.offer(new GenericTaskEvent(() -> {
                 ComponentSegment.this.applyStateTransformationIfPresent(stateTransformer);
             }));
         }
     }
+
+    private final class DefaultSubscriber implements Subscriber {
+
+        @Override
+        public void addWindowEventHandler(String eventType, Consumer<EventContext> eventHandler, boolean preventDefault, DomEventEntry.Modifier modifier) {
+            ComponentSegment.this.addDomEventHandler(WINDOW_DOM_PATH, eventType, eventHandler, preventDefault, modifier);
+        }
+
+        @Override
+        public void addComponentEventHandler(String eventType, Consumer<ComponentEventEntry.EventContext> eventHandler, boolean preventDefault) {
+            ComponentSegment.this.addComponentEventHandler(eventType, eventHandler, preventDefault);
+        }
+
+        @Override
+        public void removeComponentEventHandler(String eventType) {
+            ComponentSegment.this.removeComponentEventHandler(eventType);
+        }
+    }
+
 }

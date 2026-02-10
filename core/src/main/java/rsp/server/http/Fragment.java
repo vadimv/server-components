@@ -13,6 +13,11 @@ public record Fragment(String fragmentString) {
     public Fragment {
         Objects.requireNonNull(fragmentString);
    }
+
+   public boolean isEmpty() {
+        return fragmentString.isEmpty();
+   }
+
     @Override
     public String toString() {
         return fragmentString.isEmpty() ? "" : "#" + fragmentString;

@@ -7,12 +7,7 @@ import rsp.component.TreeBuilder;
 import rsp.component.definitions.InitialStateComponent;
 import rsp.component.View;
 import rsp.page.QualifiedSessionId;
-import rsp.server.Path;
 import rsp.server.TestCollectingRemoteOut;
-import rsp.server.http.HttpMethod;
-import rsp.server.http.HttpRequest;
-
-import java.net.URI;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.dsl.Html.*;
@@ -20,11 +15,11 @@ import static rsp.page.PageBuilder.DOCUMENT_DOM_PATH;
 
 public class HtmlDefinitionsTests {
 
-    final View<String> view = __ -> html(head(title("test-title"),
-                                              script(attr("type", "text/javascript"))),
-                                        body(div(span("text-0"),
-                                                 br(),
-                                                 a("link", "link"))));
+    final View<String> view =_ -> html(head(title("test-title"),
+                                             script(attr("type", "text/javascript"))),
+                                         body(div(span("text-0"),
+                                                  br(),
+                                                  a("link", "link"))));
 
     final String expectedHtml = """
                 <!DOCTYPE html>
@@ -42,6 +37,7 @@ public class HtmlDefinitionsTests {
                     </body>
                 </html>
                 """;
+
     @Test
     void properly_defines_html_markup() {
         final Document html = org.jsoup.Jsoup.parse(htmlOf(view, ""));
@@ -59,15 +55,10 @@ public class HtmlDefinitionsTests {
 
     private static TreeBuilder createRenderContext() {
         final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("0", "0");
-        final URI uri = URI.create("http://localhost");
-        final HttpRequest httpRequest = new HttpRequest(HttpMethod.GET,
-                                                        uri,
-                                                        uri.toString(),
-                                                        Path.ROOT);
         final TreeBuilder rc = new TreeBuilder(qualifiedSessionId,
-                                                                     DOCUMENT_DOM_PATH,
-                                                                     new ComponentContext(),
-                                                                     __ -> new TestCollectingRemoteOut());
+                                               DOCUMENT_DOM_PATH,
+                                               new ComponentContext(),
+                                              __ -> new TestCollectingRemoteOut());
         return rc;
 
     }

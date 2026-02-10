@@ -2,11 +2,7 @@ package rsp.component.definitions;
 
 import rsp.component.*;
 import rsp.dom.DomEventEntry;
-import rsp.dom.TreePositionPath;
-import rsp.page.QualifiedSessionId;
-import rsp.component.TreeBuilderFactory;
 import rsp.page.events.RemoteCommand;
-import rsp.page.events.Command;
 import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
@@ -15,10 +11,8 @@ import rsp.util.json.JsonDataType;
 
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVENT_PREFIX;
-import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
 
 
 /**
@@ -60,7 +54,6 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
 
     public abstract List<PositionKey> pathElementsPositionKeys();
 
-
     public abstract List<ParameterNameKey> queryParametersNamedKeys();
 
     @Override
@@ -68,141 +61,136 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
         return (_, _) -> initialRelativeUrl;
     }
 
-
     @Override
     public BiFunction<ComponentContext, RelativeUrl, ComponentContext> subComponentsContext() {
         return (componentContext, relativeUrl) -> {
             Objects.requireNonNull(componentContext);
             Objects.requireNonNull(relativeUrl);
-            final Map<String, ContextStateComponent.ContextValue> m = new HashMap<>();
+            ComponentContext enrichedContext = componentContext;
+
             // add URL's path elements for configured positions
             for (PositionKey pathElementsKey : pathElementsPositionKeys()) {
                 final String contextValue = relativeUrl.path().get(pathElementsKey.position);
-                m.put(pathElementsKey.key, contextValue == null ?
-                        new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(contextValue));
+                final ContextStateComponent.ContextValue value = contextValue == null ?
+                        new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(contextValue);
+                enrichedContext = enrichedContext.with(
+                    new ContextKey.StringKey<>(pathElementsKey.key, ContextStateComponent.ContextValue.class),
+                    value
+                );
             }
             // add query parameters for configured parameters names
             for (ParameterNameKey queryParametersNameKey : queryParametersNamedKeys()) {
                 final String parameterValue = relativeUrl.query().parameterValue(queryParametersNameKey.parameterName());
-                    m.put(queryParametersNameKey.key(), parameterValue == null ?
-                            new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(parameterValue));
+                final ContextStateComponent.ContextValue value = parameterValue == null ?
+                        new ContextStateComponent.ContextValue.Empty() : new ContextStateComponent.ContextValue.StringValue(parameterValue);
+                enrichedContext = enrichedContext.with(
+                    new ContextKey.StringKey<>(queryParametersNameKey.key(), ContextStateComponent.ContextValue.class),
+                    value
+                );
             }
-            return componentContext.with(m);
+            return enrichedContext;
         };
     }
 
-
     @Override
-    public ComponentSegment<RelativeUrl> createComponentSegment(final QualifiedSessionId sessionId,
-                                                                final TreePositionPath componentPath,
-                                                                final TreeBuilderFactory treeBuilderFactory,
-                                                                final ComponentContext componentContext,
-                                                                final Consumer<Command> commandsEnqueue) {
-        super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
-        final ComponentCompositeKey componentId = new ComponentCompositeKey(sessionId, componentType, componentPath);// TODO should it be a method for that?
+    public void onAfterRendered(RelativeUrl state,
+                                Subscriber subscriber,
+                                CommandsEnqueue commandsEnqueue,
+                                StateUpdate<RelativeUrl> stateUpdate) {
+        subscribeForBrowserHistoryEvents(subscriber, stateUpdate);
+        subscribeForSessionObjectsUpdates(subscriber, commandsEnqueue, stateUpdate);
+    }
 
+    private void subscribeForBrowserHistoryEvents(Subscriber subscriber,
+                                                  StateUpdate<RelativeUrl> stateUpdate) {
+        subscriber.addWindowEventHandler(HISTORY_ENTRY_CHANGE_EVENT_NAME,
+            eventContext -> {
+                final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
+                stateUpdate.setState(newRelativeUrl);
+            },
+            true,
+            DomEventEntry.NO_MODIFIER);
+    }
+
+    private void subscribeForSessionObjectsUpdates(Subscriber subscriber,
+                                                   CommandsEnqueue commandsEnqueue,
+                                                   StateUpdate<RelativeUrl> stateUpdate) {
         // prepare indices for path elements session keys
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
         for (final PositionKey pathElementsKey : pathElementsPositionKeys()) {
             pathElementsKeysIndices.put(pathElementsKey.key, pathElementsKey.position);
         }
 
-        return new ComponentSegment<>(componentId,
-                                      initStateSupplier(),
-                                      subComponentsContext(),
-                                      componentView(),
-                                      this,
-                                      treeBuilderFactory,
-                                      componentContext,
-                                      commandsEnqueue) {
-
-            @Override
-            protected void onAfterRendered(final RelativeUrl state) {
-                subscribeForBrowserHistoryEvents();
-                subscribeForSessionObjectsUpdates();
-            }
-
-            private void subscribeForSessionObjectsUpdates() {
-                // subscribe for path elements changes
-                for (final PositionKey pathElementKey : pathElementsPositionKeys()) {
-                    this.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + pathElementKey.key,
-                                        eventContext -> {
-                        final Object valueObject = eventContext.eventObject();
-                        if (valueObject instanceof ContextStateComponent.ContextValue.StringValue(String value)) {
-                            final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
-                            final RelativeUrl relativeUrl = updatedRelativeUrlForPathElement(getState(), pathElementKey.key, value, pathElementIndex);
-                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
-                            setState(relativeUrl);
-                        }
-                    },
-                                        true);
-                }
-
-                // subscribe for query parameters changes
-                for (final ParameterNameKey parameterNameKey : queryParametersNamedKeys()) {
-                    this.addComponentEventHandler("stateUpdated." + parameterNameKey.key(),
-                                        eventContext -> {
-                        final Object valueObject = eventContext.eventObject();
-                        if (valueObject instanceof ContextStateComponent.ContextValue.StringValue(String value)) {
-                            final RelativeUrl relativeUrl = updatedRelativeUrlForParameter(getState(), parameterNameKey.key(), value);
-                            this.commandsEnqueue.accept(new RemoteCommand.PushHistory(relativeUrl.toString()));
-                            setState(relativeUrl);
-                        } else {
-                            throw new IllegalStateException();
-                        }
-                    },true);
-                }
-
-            }
-
-            private RelativeUrl updatedRelativeUrlForPathElement(RelativeUrl oldRelativeUrl,
-                                                                 String pathElementKey,
-                                                                 String value, int pathElementIndex) {
-
-                final List<String> pathElements = new ArrayList<>();
-                for (int j = 0; j < oldRelativeUrl.path().elementsCount(); j++) {
-                    pathElements.add(oldRelativeUrl.path().get(j));
-                }
-                pathElements.set(pathElementIndex, value);
-                final Path newPath = new Path(true, pathElements.toArray(new String[0]));
-
-                return new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment());
-            }
-
-            private RelativeUrl updatedRelativeUrlForParameter(RelativeUrl oldRelativeUrl, String parameterName, String parameterValue) {
-                final List<Query.Parameter> parameters = new ArrayList<>(oldRelativeUrl.query().parameters());
-                for (int i = 0; i < parameters.size(); i++) {
-                    if (parameters.get(i).name().equals(parameterName)) {
-                        parameters.set(i, new Query.Parameter(parameterName, parameterValue));
-                        return new RelativeUrl(oldRelativeUrl.path(), new Query(parameters), oldRelativeUrl.fragment());
+        // subscribe for path elements changes
+        for (final PositionKey pathElementKey : pathElementsPositionKeys()) {
+            subscriber.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + pathElementKey.key,
+                eventContext -> {
+                    final Object valueObject = eventContext.eventObject();
+                    if (valueObject instanceof ContextStateComponent.ContextValue.StringValue(String value)) {
+                        final int pathElementIndex = pathElementsKeysIndices.get(pathElementKey.key);
+                        stateUpdate.applyStateTransformation(currentState -> {
+                            final RelativeUrl relativeUrl = updatedRelativeUrlForPathElement(currentState, value, pathElementIndex);
+                            commandsEnqueue.offer(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                            return relativeUrl;
+                        });
                     }
-                }
-                parameters.add(new Query.Parameter(parameterName, parameterValue));
+                },
+                true);
+        }
+
+        // subscribe for query parameters changes
+        for (final ParameterNameKey parameterNameKey : queryParametersNamedKeys()) {
+            subscriber.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + parameterNameKey.key(),
+                eventContext -> {
+                    final Object valueObject = eventContext.eventObject();
+                    if (valueObject instanceof ContextStateComponent.ContextValue.StringValue(String value)) {
+                        stateUpdate.applyStateTransformation(currentState -> {
+                            final RelativeUrl relativeUrl = updatedRelativeUrlForParameter(currentState, parameterNameKey.parameterName(), value);
+                            commandsEnqueue.offer(new RemoteCommand.PushHistory(relativeUrl.toString()));
+                            return relativeUrl;
+                        });
+                    } else {
+                        throw new IllegalStateException();
+                    }
+                },
+                true);
+        }
+    }
+
+    private static RelativeUrl updatedRelativeUrlForPathElement(RelativeUrl oldRelativeUrl,
+                                                                String value,
+                                                                int pathElementIndex) {
+        final List<String> pathElements = new ArrayList<>();
+        for (int j = 0; j < oldRelativeUrl.path().elementsCount(); j++) {
+            pathElements.add(oldRelativeUrl.path().get(j));
+        }
+        pathElements.set(pathElementIndex, value);
+        final Path newPath = new Path(true, pathElements.toArray(new String[0]));
+        return new RelativeUrl(newPath, oldRelativeUrl.query(), oldRelativeUrl.fragment());
+    }
+
+    private static RelativeUrl updatedRelativeUrlForParameter(RelativeUrl oldRelativeUrl,
+                                                              String parameterName,
+                                                              String parameterValue) {
+        final List<Query.Parameter> parameters = new ArrayList<>(oldRelativeUrl.query().parameters());
+        for (int i = 0; i < parameters.size(); i++) {
+            if (parameters.get(i).name().equals(parameterName)) {
+                parameters.set(i, new Query.Parameter(parameterName, parameterValue));
                 return new RelativeUrl(oldRelativeUrl.path(), new Query(parameters), oldRelativeUrl.fragment());
             }
+        }
+        parameters.add(new Query.Parameter(parameterName, parameterValue));
+        return new RelativeUrl(oldRelativeUrl.path(), new Query(parameters), oldRelativeUrl.fragment());
+    }
 
-            private void subscribeForBrowserHistoryEvents() {
-                this.addDomEventHandler(WINDOW_DOM_PATH,
-                                        HISTORY_ENTRY_CHANGE_EVENT_NAME,
-                             eventContext -> {
-                                 final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
-                                 setState(newRelativeUrl);
-                             },
-                             true,
-                              DomEventEntry.NO_MODIFIER);
-            }
-
-            private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
-                if (eventObject.value("path") instanceof JsonDataType.String(String path)
-                    && eventObject.value("query") instanceof JsonDataType.String(String query)
-                    && eventObject.value("fragment") instanceof JsonDataType.String(String fragment)) {
-                    return new RelativeUrl(Path.of(path), Query.of(query), new Fragment(fragment));
-                } else {
-                    throw new JsonDataType.JsonException("Error unpacking JSON event object:" + eventObject);
-                }
-            }
-
-        };
+    private static RelativeUrl extractRelativeUrl(final JsonDataType.Object eventObject) {
+        if (eventObject.value("path") instanceof JsonDataType.String(String path)
+            && eventObject.value("query") instanceof JsonDataType.String(String query)
+            && eventObject.value("fragment") instanceof JsonDataType.String(String fragment)) {
+            return new RelativeUrl(Path.of(path), Query.of(query), new Fragment(fragment));
+        } else {
+            throw new JsonDataType.JsonException("Error unpacking JSON event object:" + eventObject);
+        }
     }
 
     /**
@@ -229,6 +217,4 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
             Objects.requireNonNull(key);
         }
     }
-
-
 }

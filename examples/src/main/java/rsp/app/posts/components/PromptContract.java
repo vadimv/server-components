@@ -1,0 +1,72 @@
+package rsp.app.posts.components;
+
+import rsp.app.posts.services.PromptService;
+import rsp.component.ComponentContext;
+import rsp.component.EventKey;
+import rsp.component.Lookup;
+import rsp.compositions.contract.ViewContract;
+import rsp.page.QualifiedSessionId;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class PromptContract extends ViewContract {
+    private final System.Logger logger = System.getLogger(getClass().getName());
+
+    public record Message(String text, boolean fromUser) {}
+
+    public static final EventKey.SimpleKey<String> SEND_PROMPT =
+            new EventKey.SimpleKey<>("prompt.send", String.class);
+
+    public static final EventKey.SimpleKey<Message> NEW_MESSAGE =
+            new EventKey.SimpleKey<>("prompt.newMessage", Message.class);
+
+    private final List<Message> messages = new ArrayList<>();
+    private Runnable serviceUnsubscribe;
+    private final String scopeKey;
+
+    public PromptContract(Lookup lookup) {
+        super(lookup);
+
+        PromptService promptService = lookup.get(PromptService.class);
+        QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
+        this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
+
+        // Initialize from service history (survives contract recreation)
+        for (PromptService.Message msg : promptService.getMessageHistory(scopeKey)) {
+            messages.add(new Message(msg.text(), msg.fromUser()));
+        }
+
+        subscribe(SEND_PROMPT, (eventName, text) -> {
+            messages.add(new Message(text, true));
+            promptService.sendPrompt(scopeKey, text);
+        });
+
+        serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
+            Message msg = new Message(message.text(), message.fromUser());
+            messages.add(msg);
+            lookup.publish(NEW_MESSAGE, msg);
+        });
+        logger.log(System.Logger.Level.TRACE, () -> "PromptContract created");
+    }
+
+    @Override
+    public String title() {
+        return "Prompt";
+    }
+
+    @Override
+    public ComponentContext enrichContext(ComponentContext context) {
+        return context.with(PromptContextKeys.PROMPT_MESSAGES, List.copyOf(messages));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (serviceUnsubscribe != null) {
+            serviceUnsubscribe.run();
+            serviceUnsubscribe = null;
+        }
+        logger.log(System.Logger.Level.TRACE, () -> "PromptContract destroyed");
+    }
+}
