@@ -48,6 +48,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     private TreePositionPath startNodeDomPath;
     private TagNode parentTag;
+    private boolean isUnmounted;
 
     /**
      * This component's current state. It is expected that the state's type is immutable.
@@ -173,6 +174,10 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     @Override
     public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
+        if (isUnmounted) {
+            logger.log(WARNING, () -> "Ignored state update on unmounted component: " + componentId);
+            return;
+        }
         stateTransformer.apply(state).ifPresent(this::setState);
     }
 
@@ -184,6 +189,11 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      */
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
+        if (isUnmounted) {
+            logger.log(WARNING, () -> "Ignored state update on unmounted component: " + componentId);
+            return;
+        }
+
         final S newState = Objects.requireNonNull(newStateFunction.apply(state),
                                                   "State transformer function cannot return null for component " + componentId);
 
@@ -264,6 +274,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     public void unmount() {
+        isUnmounted = true;
         recursiveChildren().forEach(c -> c.unmount());
         callbacks.onUnmounted(componentId, state);
     }
@@ -305,6 +316,8 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             for (int i = 0; i < newRootNodes.size(); i++) {
                 parentTag.children.add(startIdx + i, newRootNodes.get(i));
             }
+        } else {
+            throw new IllegalStateException("Component " + componentId + " is not referenced by its parent component's tags");
         }
     }
 
