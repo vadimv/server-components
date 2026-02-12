@@ -23,6 +23,13 @@ public class App implements Function<HttpRequest, Component<?>> {
     public App(AppConfig config,
                UiRegistry uiRegistry,
                List<Composition> compositions,
+               Services services) {
+        this(config, uiRegistry, compositions, services.asMap());
+    }
+
+    public App(AppConfig config,
+               UiRegistry uiRegistry,
+               List<Composition> compositions,
                Map<Class<?>, Object> services) {
         this.config = Objects.requireNonNull(config);
         this.uiRegistry = Objects.requireNonNull(uiRegistry);

@@ -15,6 +15,7 @@ import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
 import rsp.compositions.application.App;
 import rsp.compositions.application.AppConfig;
+import rsp.compositions.application.Services;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.StubAuthProvider;
 import rsp.compositions.composition.Category;
@@ -33,7 +34,6 @@ import rsp.server.StaticResources;
 
 import java.io.File;
 import java.util.List;
-import java.util.Map;
 
 public class CrudApp {
     static void main(final String[] args) {
@@ -80,10 +80,11 @@ public class CrudApp {
         promptService.startTicking();
 
         // Services and auth provider will be added to the components context and referenced by their classes
-        final var services = Map.of(PostService.class, postService,
-                                    CommentService.class, commentService,
-                                    PromptService.class,  promptService,
-                                    AuthComponent.AuthProvider.class, new StubAuthProvider());
+        final Services services = new Services()
+                .service(PostService.class, postService)
+                .service(CommentService.class, commentService)
+                .service(PromptService.class, promptService)
+                .service(AuthComponent.AuthProvider.class, new StubAuthProvider());
 
         // Create app with AppConfig
         final App app = new App(appConfig, uiRegistry, List.of(postsComposition), services);

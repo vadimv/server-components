@@ -217,7 +217,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final Set<ComponentSegment<?>> oldChildren = new HashSet<>(recursiveChildren());
         children.clear();
 
-        logger.log(TRACE, () -> "Component " + this + " old state was " + oldState + " applied new state " + state);
+        logger.log(TRACE, () -> "Component state updated, previous: " + oldState + " new: " + state + " for " + componentId);
 
         final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
 
