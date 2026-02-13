@@ -3,8 +3,11 @@ package rsp.compositions.contract;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.Slot;
 import rsp.compositions.layout.DefaultLayout;
+import rsp.compositions.layout.LayerLayout;
 import rsp.compositions.layout.Layout;
+import rsp.compositions.layout.ModalLayerLayout;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
@@ -12,18 +15,19 @@ import java.util.function.BiFunction;
 import static rsp.dsl.Html.*;
 
 /**
- * SceneComponent - Orchestrates Scene building, event handling, context enrichment,
- * and UI rendering.
+ * SceneComponent — the base layer (Layer 0) orchestrating scene building,
+ * event handling, context enrichment, and UI rendering.
  * <p>
  * Delegates to:
  * <ul>
  *   <li>{@link SceneBuilder} - Scene construction from composition</li>
- *   <li>{@link SceneEventHandler} - SHOW/HIDE/SET_PRIMARY/ACTION_SUCCESS handlers</li>
+ *   <li>{@link SceneEventHandler} - SET_PRIMARY/ACTION_SUCCESS handlers for base layer</li>
  *   <li>{@link SceneContextEnricher} - Context enrichment for downstream components</li>
- *   <li>{@link Layout} - Contract resolution and visual arrangement</li>
+ *   <li>{@link Layout} - Base layer visual arrangement (primary + sidebars)</li>
+ *   <li>{@link LayerComponent} - Upper layers (overlays, panels) with pluggable {@link LayerLayout}</li>
  * </ul>
  * <p>
- * Position in component chain: RoutingComponent → SceneComponent → (Layout renders children)
+ * Position in component chain: RoutingComponent → SceneComponent → [Layout, LayerComponent]
  */
 public class SceneComponent extends Component<Scene> {
     private final System.Logger logger = System.getLogger(getClass().getName());
@@ -31,6 +35,7 @@ public class SceneComponent extends Component<Scene> {
     private final SceneBuilder sceneBuilder;
     private final SceneContextEnricher contextEnricher;
     private final Layout layout;
+    private final LayerLayout layerLayout;
 
     private ComponentContext savedContext;
 
@@ -39,7 +44,7 @@ public class SceneComponent extends Component<Scene> {
                           Composition composition,
                           Class<? extends ViewContract> contractClass,
                           String routePattern) {
-        this(componentType, composition, contractClass, routePattern, new DefaultLayout());
+        this(componentType, composition, contractClass, routePattern, new DefaultLayout(), new ModalLayerLayout());
     }
 
     public SceneComponent(Object componentType,
@@ -47,6 +52,15 @@ public class SceneComponent extends Component<Scene> {
                           Class<? extends ViewContract> contractClass,
                           String routePattern,
                           Layout layout) {
+        this(componentType, composition, contractClass, routePattern, layout, new ModalLayerLayout());
+    }
+
+    public SceneComponent(Object componentType,
+                          Composition composition,
+                          Class<? extends ViewContract> contractClass,
+                          String routePattern,
+                          Layout layout,
+                          LayerLayout layerLayout) {
         super(componentType);
         Objects.requireNonNull(composition, "composition");
         Objects.requireNonNull(contractClass, "contractClass");
@@ -54,6 +68,7 @@ public class SceneComponent extends Component<Scene> {
         this.sceneBuilder = new SceneBuilder(composition, contractClass, routePattern);
         this.contextEnricher = new SceneContextEnricher(routePattern);
         this.layout = Objects.requireNonNull(layout, "layout");
+        this.layerLayout = Objects.requireNonNull(layerLayout, "layerLayout");
     }
 
     @Override
@@ -83,11 +98,15 @@ public class SceneComponent extends Component<Scene> {
         if (scene == null) {
             return;
         }
-        // Destroy all ViewContracts to release resources (service subscriptions, etc.)
+        // Destroy primary contract
         scene.primaryContract().onDestroy();
+        // Destroy sidebar contracts only — layer contracts are managed by LayerComponent
         for (var slotEntry : scene.activeContractsBySlot().entrySet()) {
-            for (var activeContract : slotEntry.getValue()) {
-                activeContract.contract().onDestroy();
+            Slot slot = slotEntry.getKey();
+            if (slot == Slot.LEFT_SIDEBAR || slot == Slot.RIGHT_SIDEBAR) {
+                for (var activeContract : slotEntry.getValue()) {
+                    activeContract.contract().onDestroy();
+                }
             }
         }
     }
@@ -98,6 +117,7 @@ public class SceneComponent extends Component<Scene> {
             html(head(title(scene.pageTitle()),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
-                    body(layout.resolve(scene, LookupFactory.create(savedContext))));
+                    body(layout.resolve(scene, LookupFactory.create(savedContext)),
+                         new LayerComponent(layerLayout)));
     }
 }

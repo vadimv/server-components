@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
  * Pure data transformation: (context, scene) -> enriched context.
  * <p>
  * Enrichments include: Scene reference, primary contract data and category key,
- * left sidebar data, active contracts by slot, overlay contract data with title
- * preservation, and edit slot/route info.
+ * sidebar data, active contracts by slot, and edit slot/route info.
+ * Overlay/layer context enrichment is handled by LayerComponent.
  */
 public final class SceneContextEnricher {
 
@@ -74,37 +74,6 @@ public final class SceneContextEnricher {
                     e -> e.getValue().stream().map(Scene.ActiveContract::contract).toList()
                 ))
         );
-
-        // Add non-primary contracts to context if present (backward compatibility)
-        if (scene.hasNonPrimaryContracts()) {
-            Map<Class<? extends ViewContract>, ViewContract> nonPrimary = scene.nonPrimaryContracts();
-            enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_CONTRACTS, nonPrimary);
-
-            // Preserve primary contract's title before overlay enrichment
-            // (overlay contracts may set their own CONTRACT_TITLE which would overwrite it)
-            String primaryTitle = enrichedContext.get(ContextKeys.CONTRACT_TITLE);
-
-            // Enrich context with each non-primary contract's data
-            for (ViewContract nonPrimaryContract : nonPrimary.values()) {
-                enrichedContext = nonPrimaryContract.enrichContext(enrichedContext);
-                // Store the contract instance for event handling
-                enrichedContext = enrichedContext.with(
-                        ContextKeys.OVERLAY_VIEW_CONTRACT.with(nonPrimaryContract.getClass().getName()),
-                        nonPrimaryContract);
-            }
-
-            // Capture overlay title (set by overlay contracts during enrichment)
-            // and store it in OVERLAY_TITLE for EditView to use
-            String overlayTitle = enrichedContext.get(ContextKeys.CONTRACT_TITLE);
-            if (overlayTitle != null && !overlayTitle.equals(primaryTitle)) {
-                enrichedContext = enrichedContext.with(ContextKeys.OVERLAY_TITLE, overlayTitle);
-            }
-
-            // Restore primary contract's title (the list view should show "Posts", not "Edit Post")
-            if (primaryTitle != null) {
-                enrichedContext = enrichedContext.with(ContextKeys.CONTRACT_TITLE, primaryTitle);
-            }
-        }
 
         // Add edit slot/route info to context for DefaultListView (use composition's router)
         enrichedContext = enrichEditSlotInfo(enrichedContext, composition, composition.router());
