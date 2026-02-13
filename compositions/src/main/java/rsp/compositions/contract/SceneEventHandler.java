@@ -28,11 +28,9 @@ import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMod
 public final class SceneEventHandler {
 
     private final ComponentContext savedContext;
-    private final SceneBuilder sceneBuilder;
 
-    public SceneEventHandler(ComponentContext savedContext, SceneBuilder sceneBuilder) {
+    public SceneEventHandler(ComponentContext savedContext) {
         this.savedContext = Objects.requireNonNull(savedContext, "savedContext");
-        this.sceneBuilder = Objects.requireNonNull(sceneBuilder, "sceneBuilder");
     }
 
     /**
@@ -269,8 +267,12 @@ public final class SceneEventHandler {
             // PRIMARY behavior: derive navigation from composition
             // Case 1: Same contract as primary (e.g., bulk delete on list) → refresh in place
             if (contractClass.equals(state.primaryContract().getClass())) {
-                Scene freshScene = sceneBuilder.buildScene(savedContext);
-                stateUpdate.setState(freshScene);
+                // Destroy old primary and recreate it with fresh data, preserving sidebars
+                state.primaryContract().onDestroy();
+                ResolvedContract resolved = resolveAndInstantiate(state, contractClass, null, commandsEnqueue);
+                if (resolved != null) {
+                    stateUpdate.applyStateTransformation(s -> s.withPrimaryContract(resolved.contract()));
+                }
             }
         }
     }

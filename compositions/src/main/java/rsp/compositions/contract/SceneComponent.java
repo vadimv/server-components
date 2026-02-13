@@ -74,7 +74,7 @@ public class SceneComponent extends Component<Scene> {
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
                                 StateUpdate<Scene> stateUpdate) {
-        SceneEventHandler eventHandler = new SceneEventHandler(savedContext, sceneBuilder);
+        SceneEventHandler eventHandler = new SceneEventHandler(savedContext);
         eventHandler.registerHandlers(state, subscriber, commandsEnqueue, stateUpdate);
     }
 
