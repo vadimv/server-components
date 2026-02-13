@@ -87,9 +87,9 @@ public class PromptView extends Component<PromptView.PromptViewState> {
 
     @Override
     public void onMounted(ComponentCompositeKey componentId, PromptViewState state, StateUpdate<PromptViewState> stateUpdate) {
-        eventSubscription = lookup.subscribe(PromptContract.NEW_MESSAGE, (eventName, message) ->
-            stateUpdate.applyStateTransformation(s -> s.withMessage(message))
-        );
+        eventSubscription = lookup.subscribe(PromptContract.NEW_MESSAGE, (eventName, message) -> {
+            stateUpdate.applyStateTransformation(s -> s.withMessage(message));
+        });
     }
 
     @Override
