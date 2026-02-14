@@ -101,6 +101,7 @@ public interface Lookup {
 
     /**
      * Retrieves a config value parsed as an int.
+     * Returns the default if the key is absent or not parseable.
      *
      * @param key the property key
      * @param defaultValue fallback if key is not present or not parseable
@@ -119,11 +120,33 @@ public interface Lookup {
     }
 
     /**
-     * Retrieves a config value parsed as a boolean.
-     * Returns true only if the value is "true" (case-insensitive).
+     * Retrieves a required config value parsed as an int.
+     * Throws if the key is absent or the value is not a valid integer.
      *
      * @param key the property key
-     * @param defaultValue fallback if key is not present
+     * @return the parsed int value
+     * @throws IllegalArgumentException if the key is absent or the value is not a valid integer
+     */
+    default int getRequiredInt(final String key) {
+        final String value = getString(key);
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    "Required config property '" + key + "' is not set");
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (final NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "Config property '" + key + "' has invalid integer value: '" + value + "'", e);
+        }
+    }
+
+    /**
+     * Retrieves a config value parsed as a boolean.
+     * Returns the default if the key is absent or not parseable.
+     *
+     * @param key the property key
+     * @param defaultValue fallback if key is not present or not parseable
      * @return the parsed boolean value, or defaultValue
      */
     default boolean getBoolean(final String key, final boolean defaultValue) {
@@ -132,6 +155,31 @@ public interface Lookup {
             return defaultValue;
         }
         return Boolean.parseBoolean(value.trim());
+    }
+
+    /**
+     * Retrieves a required config value parsed as a boolean.
+     * Throws if the key is absent or the value is not "true"/"false".
+     *
+     * @param key the property key
+     * @return the parsed boolean value
+     * @throws IllegalArgumentException if the key is absent or the value is not "true" or "false"
+     */
+    default boolean getRequiredBoolean(final String key) {
+        final String value = getString(key);
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    "Required config property '" + key + "' is not set");
+        }
+        final String trimmed = value.trim().toLowerCase();
+        if ("true".equals(trimmed)) {
+            return true;
+        }
+        if ("false".equals(trimmed)) {
+            return false;
+        }
+        throw new IllegalArgumentException(
+                "Config property '" + key + "' has invalid boolean value: '" + value + "' (expected 'true' or 'false')");
     }
 
     // ===== Context Creation (returns new instance) =====

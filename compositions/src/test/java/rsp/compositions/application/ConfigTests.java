@@ -150,6 +150,61 @@ class ConfigTests {
         }
 
         @Test
+        void getBoolean_returns_default_for_non_parseable() {
+            final Config config = new Config().with("flag", "yes");
+            assertFalse(config.getBoolean("flag", false));
+        }
+
+        // ===== Required variants =====
+
+        @Test
+        void getRequiredInt_parses_integer() {
+            final Config config = new Config().with("port", "8080");
+            assertEquals(8080, config.getRequiredInt("port"));
+        }
+
+        @Test
+        void getRequiredInt_throws_when_absent() {
+            final Config config = new Config();
+            final var ex = assertThrows(IllegalArgumentException.class,
+                    () -> config.getRequiredInt("missing.key"));
+            assertTrue(ex.getMessage().contains("missing.key"));
+            assertTrue(ex.getMessage().contains("not set"));
+        }
+
+        @Test
+        void getRequiredInt_throws_for_non_numeric() {
+            final Config config = new Config().with("bad", "not-a-number");
+            final var ex = assertThrows(IllegalArgumentException.class,
+                    () -> config.getRequiredInt("bad"));
+            assertTrue(ex.getMessage().contains("bad"));
+            assertTrue(ex.getMessage().contains("not-a-number"));
+        }
+
+        @Test
+        void getRequiredBoolean_parses_true() {
+            final Config config = new Config().with("flag", "true");
+            assertTrue(config.getRequiredBoolean("flag"));
+        }
+
+        @Test
+        void getRequiredBoolean_throws_when_absent() {
+            final Config config = new Config();
+            final var ex = assertThrows(IllegalArgumentException.class,
+                    () -> config.getRequiredBoolean("missing.key"));
+            assertTrue(ex.getMessage().contains("missing.key"));
+        }
+
+        @Test
+        void getRequiredBoolean_throws_for_invalid_value() {
+            final Config config = new Config().with("flag", "yes");
+            final var ex = assertThrows(IllegalArgumentException.class,
+                    () -> config.getRequiredBoolean("flag"));
+            assertTrue(ex.getMessage().contains("flag"));
+            assertTrue(ex.getMessage().contains("yes"));
+        }
+
+        @Test
         void getInt_trims_whitespace() {
             final Config config = new Config().with("port", " 8080 ");
             assertEquals(8080, config.getInt("port", 0));
