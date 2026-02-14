@@ -121,7 +121,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
                     scene.uiRegistry(), state.contractClass());
             Lookup lookup = LookupFactory.create(savedContext);
             return div(
-                    layout.render(uiComponent, state.contractClass(), lookup),
+                    layout.resolve(uiComponent, state.contractClass(), lookup),
                     new LayerComponent(layout, level + 1));
         };
     }

@@ -28,7 +28,7 @@ import java.util.Objects;
  *
  * <p><strong>Security Policy:</strong></p>
  * <ul>
- *   <li><strong>ALLOWED:</strong> Service instances, request data, user sessions, business data, non-sensitive config (AppConfig)</li>
+ *   <li><strong>ALLOWED:</strong> Service instances, request data, user sessions, business data, non-sensitive config</li>
  *   <li><strong>FORBIDDEN:</strong> DB credentials, API secrets, encryption keys, private certificates</li>
  *   <li><strong>Critical Rule:</strong> Everything sensitive must be provided on Service init outside the Context.
  *       Services are initialized in main() with their configuration (which may contain secrets).

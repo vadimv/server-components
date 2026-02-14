@@ -15,19 +15,19 @@ import java.util.function.Function;
  * Routes are defined within each Composition, not separately.
  */
 public class App implements Function<HttpRequest, Component<?>> {
-    private final AppConfig config;
+    private final Config config;
     private final UiRegistry uiRegistry;
     private final List<Composition> compositions;
     private final Map<Class<?>, Object> services;
 
-    public App(AppConfig config,
+    public App(Config config,
                UiRegistry uiRegistry,
                List<Composition> compositions,
                Services services) {
         this(config, uiRegistry, compositions, services.asMap());
     }
 
-    public App(AppConfig config,
+    public App(Config config,
                UiRegistry uiRegistry,
                List<Composition> compositions,
                Map<Class<?>, Object> services) {

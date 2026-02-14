@@ -15,9 +15,9 @@ import static rsp.dsl.Html.*;
  */
 public final class ModalLayerLayout implements LayerLayout {
     @Override
-    public Definition render(Component<?> content,
-                             Class<? extends ViewContract> contractClass,
-                             Lookup lookup) {
+    public Definition resolve(Component<?> content,
+                              Class<? extends ViewContract> contractClass,
+                              Lookup lookup) {
         return div(attr("class", "modal-overlay"),
                 div(attr("class", "modal-backdrop"),
                         on("click", _ -> lookup.publish(HIDE, contractClass))),

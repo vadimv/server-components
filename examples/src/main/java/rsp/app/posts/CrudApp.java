@@ -14,7 +14,7 @@ import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
 import rsp.compositions.application.App;
-import rsp.compositions.application.AppConfig;
+import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.StubAuthProvider;
@@ -41,7 +41,8 @@ public class CrudApp {
     }
 
     public static WebServer run(final boolean blockCurrentThread) {
-        final AppConfig appConfig = AppConfig.fromSystemProperties();
+        final Config config = new Config()
+                .with(System.getProperties());
 
         final UiRegistry uiRegistry = new UiRegistry()
                 .register(ListViewContract.class, DefaultListView::new)
@@ -86,8 +87,7 @@ public class CrudApp {
                 .service(PromptService.class, promptService)
                 .service(AuthComponent.AuthProvider.class, new StubAuthProvider());
 
-        // Create app with AppConfig
-        final App app = new App(appConfig, uiRegistry, List.of(postsComposition), services);
+        final App app = new App(config, uiRegistry, List.of(postsComposition), services);
 
         final WebServer server = new WebServer(8080,
                                                app,

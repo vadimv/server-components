@@ -75,6 +75,65 @@ public interface Lookup {
      */
     <T> T getRequired(Class<T> clazz);
 
+    // ===== Config Access (String-based keys with type conversion) =====
+
+    /**
+     * Retrieves a config value as a String by its dot-separated key.
+     *
+     * @param key the property key (e.g., "list.defaultPageSize")
+     * @return the value, or null if not present
+     */
+    default String getString(final String key) {
+        return get(new ContextKey.StringKey<>(key, String.class));
+    }
+
+    /**
+     * Retrieves a config value as a String with a default.
+     *
+     * @param key the property key
+     * @param defaultValue fallback if key is not present
+     * @return the value, or defaultValue if not present
+     */
+    default String getString(final String key, final String defaultValue) {
+        final String value = getString(key);
+        return value != null ? value : defaultValue;
+    }
+
+    /**
+     * Retrieves a config value parsed as an int.
+     *
+     * @param key the property key
+     * @param defaultValue fallback if key is not present or not parseable
+     * @return the parsed int value, or defaultValue
+     */
+    default int getInt(final String key, final int defaultValue) {
+        final String value = getString(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (final NumberFormatException e) {
+            return defaultValue;
+        }
+    }
+
+    /**
+     * Retrieves a config value parsed as a boolean.
+     * Returns true only if the value is "true" (case-insensitive).
+     *
+     * @param key the property key
+     * @param defaultValue fallback if key is not present
+     * @return the parsed boolean value, or defaultValue
+     */
+    default boolean getBoolean(final String key, final boolean defaultValue) {
+        final String value = getString(key);
+        if (value == null) {
+            return defaultValue;
+        }
+        return Boolean.parseBoolean(value.trim());
+    }
+
     // ===== Context Creation (returns new instance) =====
 
     /**

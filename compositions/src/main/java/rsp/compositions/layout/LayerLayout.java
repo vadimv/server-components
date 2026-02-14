@@ -16,14 +16,14 @@ import rsp.dsl.Definition;
 @FunctionalInterface
 public interface LayerLayout {
     /**
-     * Render the layer content with appropriate visual structure.
+     * Resolve and render the layer content with appropriate visual structure.
      *
      * @param content       the resolved UI component for the contract
      * @param contractClass the contract class (for event targeting, e.g., HIDE)
      * @param lookup        for event publishing
      * @return the rendered layer definition
      */
-    Definition render(Component<?> content,
-                      Class<? extends ViewContract> contractClass,
-                      Lookup lookup);
+    Definition resolve(Component<?> content,
+                       Class<? extends ViewContract> contractClass,
+                       Lookup lookup);
 }

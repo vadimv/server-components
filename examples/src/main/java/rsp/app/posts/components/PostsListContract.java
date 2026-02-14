@@ -45,7 +45,7 @@ public class PostsListContract extends ListViewContract<Post> {
         String sort = sort();  // Uses resolve(SORT) → reads from context "url.query.sort"
 
         // Call service directly (service comes from context)
-        // Use pageSize from base class (configured via AppConfig)
+        // Use pageSize from base class (configured via Config)
         return postService.findAll(page, pageSize(), sort);
     }
 
