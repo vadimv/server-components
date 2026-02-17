@@ -56,6 +56,10 @@ public final class SceneBuilder {
             throw new IllegalStateException("Missing UI_REGISTRY in context");
         }
 
+        // Create a capability bus for synchronous capability negotiation between contracts
+        CapabilityBus capabilityBus = new CapabilityBus();
+        ComponentContext enrichedContext = context.with(CapabilityBus.class, capabilityBus);
+
         // Router is inside the composition
         Router router = this.composition.router();
 
@@ -67,21 +71,27 @@ public final class SceneBuilder {
 
         Slot routedSlot = routedPlacement.slot();
 
+        Scene scene;
         // Case 2: Non-primary slot routed directly via URL
         // Need to find parent PRIMARY and auto-open this non-primary contract
         if (routedSlot != Slot.PRIMARY) {
-            return buildNonPrimaryRoutedScene(context,
+            scene = buildNonPrimaryRoutedScene(enrichedContext,
                                               this.composition,
                                               this.contractClass,
                                               routedPlacement,
                                               this.routePattern,
                                               router,
                                               uiRegistry);
+        } else {
+            // Cases 1, 3: PRIMARY slot (with or without route)
+            // Standard behavior: instantiate as primary, store factories for non-primary slots
+            scene = buildPrimaryScene(enrichedContext, this.composition, routedPlacement, uiRegistry);
         }
 
-        // Cases 1, 3: PRIMARY slot (with or without route)
-        // Standard behavior: instantiate as primary, store factories for non-primary slots
-        return buildPrimaryScene(context, this.composition, routedPlacement, uiRegistry);
+        // Resolve capabilities synchronously — all subscribers receive published values before rendering
+        capabilityBus.resolve();
+
+        return scene;
     }
 
     /**

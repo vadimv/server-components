@@ -7,6 +7,7 @@ import rsp.component.Lookup;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public abstract class ViewContract {
 
@@ -41,6 +42,20 @@ public abstract class ViewContract {
 
     protected <T> void subscribe(EventKey.VoidKey key, Runnable handler) {
         handlerRegistrations.add(lookup.subscribe(key, handler));
+    }
+
+    protected <T> void publishCapability(EventKey<T> key, T value) {
+        final CapabilityBus bus = lookup.get(CapabilityBus.class);
+        if (bus != null) {
+            bus.publish(key, value);
+        }
+    }
+
+    protected <T> void onCapability(EventKey<T> key, Consumer<T> handler) {
+        final CapabilityBus bus = lookup.get(CapabilityBus.class);
+        if (bus != null) {
+            bus.subscribe(key, handler);
+        }
     }
 
     /**
