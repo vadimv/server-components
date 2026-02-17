@@ -65,6 +65,12 @@ public final class SceneContextEnricher {
             enrichedContext = rightSidebarContract.enrichContext(enrichedContext);
         }
 
+        // Let the HEADER contract enrich context with its data (if present)
+        ViewContract headerContract = scene.headerContract();
+        if (headerContract != null) {
+            enrichedContext = headerContract.enrichContext(enrichedContext);
+        }
+
         // Add active contracts by slot to context (for Layout to read)
         enrichedContext = enrichedContext.with(
             ContextKeys.ACTIVE_CONTRACTS_BY_SLOT,

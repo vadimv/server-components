@@ -109,6 +109,9 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     @Override
     protected void registerHandlers() {
+        // Publish active category capability for sibling contracts (e.g., header)
+        publishCapability(Capabilities.ACTIVE_CATEGORY, title());
+
         // Handle bulk delete requests
         subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
             handleBulkDelete(selectedIds);

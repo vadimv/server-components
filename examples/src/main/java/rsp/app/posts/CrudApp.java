@@ -7,6 +7,8 @@ import rsp.app.posts.components.ExplorerContract;
 import rsp.app.posts.components.ExplorerView;
 import rsp.app.posts.components.PostCreateContract;
 import rsp.app.posts.components.PostEditContract;
+import rsp.app.posts.components.HeaderContract;
+import rsp.app.posts.components.HeaderView;
 import rsp.app.posts.components.PromptContract;
 import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
@@ -49,7 +51,8 @@ public class CrudApp {
                 .register(CreateViewContract.class, DefaultEditView::new)
                 .register(EditViewContract.class, DefaultEditView::new)
                 .register(ExplorerContract.class, ExplorerView::new)
-                .register(PromptContract.class, PromptView::new);
+                .register(PromptContract.class, PromptView::new)
+                .register(HeaderContract.class, HeaderView::new);
 
         // Router defines URL routes for this composition
         final Router router = new Router()
@@ -66,7 +69,8 @@ public class CrudApp {
                 .place(Slot.OVERLAY, PostEditContract.class, PostEditContract::new)
                 .place(Slot.OVERLAY, CommentCreateContract.class, CommentCreateContract::new)
                 .place(Slot.OVERLAY, CommentEditContract.class, CommentEditContract::new)
-                .place(Slot.RIGHT_SIDEBAR, PromptContract.class, PromptContract::new);
+                .place(Slot.RIGHT_SIDEBAR, PromptContract.class, PromptContract::new)
+                .place(Slot.HEADER, HeaderContract.class, HeaderContract::new);
 
         final Category categories = new Category()
                 .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)

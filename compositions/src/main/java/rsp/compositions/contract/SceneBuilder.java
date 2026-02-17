@@ -132,22 +132,25 @@ public final class SceneBuilder {
             throw new AuthorizationException("Access denied: insufficient permissions for " + primaryPlacement.contractClass().getName());
         }
 
-        // Instantiate sidebar contracts (always visible, not on-demand)
+        // Instantiate sidebar and header contracts (always visible, not on-demand)
         ViewContract leftSidebarContract = null;
         ViewContract rightSidebarContract = null;
+        ViewContract headerContract = null;
         for (ViewPlacement placement : composition.views()) {
             if (placement.slot() == Slot.LEFT_SIDEBAR && leftSidebarContract == null) {
                 leftSidebarContract = instantiatePlacement(placement, context);
             } else if (placement.slot() == Slot.RIGHT_SIDEBAR && rightSidebarContract == null) {
                 rightSidebarContract = instantiatePlacement(placement, context);
+            } else if (placement.slot() == Slot.HEADER && headerContract == null) {
+                headerContract = instantiatePlacement(placement, context);
             }
         }
 
-        // Build factories for on-demand slots (OVERLAY, etc. - excludes PRIMARY and sidebars)
+        // Build factories for on-demand slots (OVERLAY, etc. - excludes PRIMARY, sidebars, and HEADER)
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
         for (ViewPlacement placement : composition.views()) {
             if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR
-                    && placement.slot() != Slot.RIGHT_SIDEBAR) {
+                    && placement.slot() != Slot.RIGHT_SIDEBAR && placement.slot() != Slot.HEADER) {
                 Class<? extends ViewContract> contractClass = placement.contractClass();
                 if (contractClass != null) {
                     nonPrimaryFactories.put(contractClass, placement.contractFactory());
@@ -165,12 +168,15 @@ public final class SceneBuilder {
             activeNonPrimary.put(nonPrimaryContractClass, nonPrimaryContract);
         }
 
-        // Add sidebar contracts to active contracts if present
+        // Add sidebar and header contracts to active contracts if present
         if (leftSidebarContract != null) {
             activeNonPrimary.put(leftSidebarContract.getClass(), leftSidebarContract);
         }
         if (rightSidebarContract != null) {
             activeNonPrimary.put(rightSidebarContract.getClass(), rightSidebarContract);
+        }
+        if (headerContract != null) {
+            activeNonPrimary.put(headerContract.getClass(), headerContract);
         }
 
         // Return scene with auto-open non-primary contract
@@ -196,14 +202,17 @@ public final class SceneBuilder {
             throw new AuthorizationException("Access denied: insufficient permissions for " + primaryPlacement.contractClass().getName());
         }
 
-        // Instantiate sidebar contracts (always visible, not on-demand)
+        // Instantiate sidebar and header contracts (always visible, not on-demand)
         ViewContract leftSidebarContract = null;
         ViewContract rightSidebarContract = null;
+        ViewContract headerContract = null;
         for (ViewPlacement placement : composition.views()) {
             if (placement.slot() == Slot.LEFT_SIDEBAR && leftSidebarContract == null) {
                 leftSidebarContract = instantiatePlacement(placement, context);
             } else if (placement.slot() == Slot.RIGHT_SIDEBAR && rightSidebarContract == null) {
                 rightSidebarContract = instantiatePlacement(placement, context);
+            } else if (placement.slot() == Slot.HEADER && headerContract == null) {
+                headerContract = instantiatePlacement(placement, context);
             }
         }
 
@@ -211,9 +220,9 @@ public final class SceneBuilder {
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
 
         for (ViewPlacement placement : composition.views()) {
-            // Collect non-primary, non-sidebar placements for on-demand instantiation
+            // Collect non-primary, non-sidebar, non-header placements for on-demand instantiation
             if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR
-                    && placement.slot() != Slot.RIGHT_SIDEBAR) {
+                    && placement.slot() != Slot.RIGHT_SIDEBAR && placement.slot() != Slot.HEADER) {
                 Class<? extends ViewContract> contractClass = placement.contractClass();
                 if (contractClass == null) {
                     throw new IllegalStateException(
@@ -223,12 +232,18 @@ public final class SceneBuilder {
             }
         }
 
-        // Use appropriate factory method based on which sidebars are present
+        // Build scene with sidebars, then add header if present
+        Scene scene;
         if (leftSidebarContract != null || rightSidebarContract != null) {
-            return Scene.withSidebars(contract, leftSidebarContract, rightSidebarContract,
+            scene = Scene.withSidebars(contract, leftSidebarContract, rightSidebarContract,
                     composition, nonPrimaryFactories, uiRegistry);
+        } else {
+            scene = Scene.of(contract, composition, nonPrimaryFactories, uiRegistry);
         }
-        return Scene.of(contract, composition, nonPrimaryFactories, uiRegistry);
+        if (headerContract != null) {
+            scene = scene.withActiveContract(Slot.HEADER, headerContract, headerContract.getClass(), Map.of());
+        }
+        return scene;
     }
 
     /**

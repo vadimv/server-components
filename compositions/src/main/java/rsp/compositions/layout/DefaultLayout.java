@@ -52,17 +52,33 @@ public final class DefaultLayout implements Layout {
             rightSidebar = UiComponentResolver.resolve(scene.uiRegistry(), rightSidebarContract.getClass());
         }
 
-        // Build layout children: [left-sidebar?] [primary] [right-sidebar?]
-        List<Definition> children = new ArrayList<>();
-        children.add(attr("class", "layout-container"));
-        if (leftSidebar != null) {
-            children.add(div(attr("class", "layout-sidebar"), leftSidebar));
-        }
-        children.add(div(attr("class", "layout-primary"), primary));
-        if (rightSidebar != null) {
-            children.add(div(attr("class", "layout-right-sidebar"), rightSidebar));
+        // Resolve HEADER contract to UI component (if present)
+        Component<?> header = null;
+        ViewContract headerContract = scene.headerContract();
+        if (headerContract != null) {
+            header = UiComponentResolver.resolve(scene.uiRegistry(), headerContract.getClass());
         }
 
-        return div(children.toArray(Definition[]::new));
+        // Build layout: [header?] then container with [left-sidebar?] [primary] [right-sidebar?]
+        List<Definition> wrapper = new ArrayList<>();
+        wrapper.add(attr("class", "layout-wrapper"));
+
+        if (header != null) {
+            wrapper.add(header);
+        }
+
+        List<Definition> containerChildren = new ArrayList<>();
+        containerChildren.add(attr("class", "layout-container"));
+        if (leftSidebar != null) {
+            containerChildren.add(div(attr("class", "layout-sidebar"), leftSidebar));
+        }
+        containerChildren.add(div(attr("class", "layout-primary"), primary));
+        if (rightSidebar != null) {
+            containerChildren.add(div(attr("class", "layout-right-sidebar"), rightSidebar));
+        }
+
+        wrapper.add(div(containerChildren.toArray(Definition[]::new)));
+
+        return div(wrapper.toArray(Definition[]::new));
     }
 }

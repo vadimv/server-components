@@ -113,7 +113,20 @@ public record Scene(ViewContract primaryContract,
     }
 
     /**
-     * Get overlay contracts map (excludes PRIMARY, LEFT_SIDEBAR, and RIGHT_SIDEBAR).
+     * Get the HEADER contract if present.
+     *
+     * @return The HEADER contract, or null if not present
+     */
+    public ViewContract headerContract() {
+        List<ActiveContract> headerContracts = activeContractsBySlot.get(Slot.HEADER);
+        if (headerContracts == null || headerContracts.isEmpty()) {
+            return null;
+        }
+        return headerContracts.get(0).contract();
+    }
+
+    /**
+     * Get overlay contracts map (excludes PRIMARY, sidebars, and HEADER).
      * Returns active contracts from OVERLAY and similar slots as a map keyed by class.
      *
      * @return Map of overlay contracts
@@ -122,7 +135,7 @@ public record Scene(ViewContract primaryContract,
         Map<Class<? extends ViewContract>, ViewContract> result = new HashMap<>();
         for (Map.Entry<Slot, List<ActiveContract>> entry : activeContractsBySlot.entrySet()) {
             if (entry.getKey() != Slot.PRIMARY && entry.getKey() != Slot.LEFT_SIDEBAR
-                    && entry.getKey() != Slot.RIGHT_SIDEBAR) {
+                    && entry.getKey() != Slot.RIGHT_SIDEBAR && entry.getKey() != Slot.HEADER) {
                 for (ActiveContract active : entry.getValue()) {
                     result.put(active.contractClass(), active.contract());
                 }
@@ -140,7 +153,7 @@ public record Scene(ViewContract primaryContract,
     public boolean hasNonPrimaryContracts() {
         for (Map.Entry<Slot, List<ActiveContract>> entry : activeContractsBySlot.entrySet()) {
             if (entry.getKey() != Slot.PRIMARY && entry.getKey() != Slot.LEFT_SIDEBAR
-                    && entry.getKey() != Slot.RIGHT_SIDEBAR
+                    && entry.getKey() != Slot.RIGHT_SIDEBAR && entry.getKey() != Slot.HEADER
                     && !entry.getValue().isEmpty()) {
                 return true;
             }

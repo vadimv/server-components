@@ -103,7 +103,7 @@ public class SceneComponent extends Component<Scene> {
         // Destroy sidebar contracts only — layer contracts are managed by LayerComponent
         for (var slotEntry : scene.activeContractsBySlot().entrySet()) {
             Slot slot = slotEntry.getKey();
-            if (slot == Slot.LEFT_SIDEBAR || slot == Slot.RIGHT_SIDEBAR) {
+            if (slot == Slot.LEFT_SIDEBAR || slot == Slot.RIGHT_SIDEBAR || slot == Slot.HEADER) {
                 for (var activeContract : slotEntry.getValue()) {
                     activeContract.contract().onDestroy();
                 }
