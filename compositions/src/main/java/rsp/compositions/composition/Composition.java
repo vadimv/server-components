@@ -5,14 +5,13 @@ import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.Router;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
  * Composition - Declares a feature domain's view placements and routes.
  * <p>
- * Each composition groups related views by declaring their contract factories and routes.
- * Lifecycle is derived automatically:
+ * Each composition groups related views by declaring their contract factories and routes
+ * through a {@link UiRegistry}. Lifecycle is derived automatically:
  * <ul>
  *   <li>Routed contracts (matched by Router) are eagerly instantiated</li>
  *   <li>Contracts required by the Layout are eagerly instantiated (companions)</li>
@@ -25,37 +24,37 @@ import java.util.Objects;
  */
 public class Composition {
     private final Router router;
-    private final List<ViewPlacement> views;
+    private final UiRegistry uiRegistry;
     private final Category categories;
     private final Layout layout;
 
     /**
-     * Create a Composition with its router and view placements (default layout).
+     * Create a Composition with its router and UI registry (default layout).
      */
-    public Composition(Router router, ViewsPlacements placements) {
-        this(router, placements, new Category(), new DefaultLayout());
+    public Composition(Router router, UiRegistry uiRegistry) {
+        this(router, uiRegistry, new Category(), new DefaultLayout());
     }
 
     /**
-     * Create a Composition with its router, view placements, and explicit categories.
+     * Create a Composition with its router, UI registry, and explicit categories.
      */
-    public Composition(Router router, ViewsPlacements placements, Category categories) {
-        this(router, placements, categories, new DefaultLayout());
+    public Composition(Router router, UiRegistry uiRegistry, Category categories) {
+        this(router, uiRegistry, categories, new DefaultLayout());
     }
 
     /**
-     * Create a Composition with its router, view placements, categories, and layout.
+     * Create a Composition with its router, UI registry, categories, and layout.
      *
-     * @param router The router for this composition's routes
-     * @param placements The view placements builder
+     * @param router     The router for this composition's routes
+     * @param uiRegistry The registry holding contract and view factories
      * @param categories Explicit contract categories for navigation/title metadata
-     * @param layout The layout strategy for visual arrangement
+     * @param layout     The layout strategy for visual arrangement
      */
-    public Composition(Router router, ViewsPlacements placements, Category categories, Layout layout) {
+    public Composition(Router router, UiRegistry uiRegistry, Category categories, Layout layout) {
         Objects.requireNonNull(router, "router cannot be null");
-        Objects.requireNonNull(placements, "placements cannot be null");
+        Objects.requireNonNull(uiRegistry, "uiRegistry cannot be null");
         this.router = router;
-        this.views = placements.toList();
+        this.uiRegistry = uiRegistry;
         this.categories = Objects.requireNonNull(categories, "categories cannot be null");
         this.layout = Objects.requireNonNull(layout, "layout cannot be null");
     }
@@ -68,13 +67,10 @@ public class Composition {
     }
 
     /**
-     * View placements for this composition.
-     * Each placement declares a contract class and its factory.
-     *
-     * @return immutable list of ViewPlacements
+     * The UI registry holding contract factories and view factories for this composition.
      */
-    public List<ViewPlacement> views() {
-        return views;
+    public UiRegistry uiRegistry() {
+        return uiRegistry;
     }
 
     /**
@@ -96,18 +92,5 @@ public class Composition {
      */
     public ContractMetadata metadataFor(Class<? extends ViewContract> contractClass) {
         return categories.metadataFor(contractClass);
-    }
-
-    /**
-     * Find the placement for a specific contract class.
-     *
-     * @param contractClass The contract class to find
-     * @return The ViewPlacement, or null if not found
-     */
-    public ViewPlacement placementFor(Class<? extends ViewContract> contractClass) {
-        return views.stream()
-                .filter(p -> p.contractClass().equals(contractClass))
-                .findFirst()
-                .orElse(null);
     }
 }

@@ -23,11 +23,7 @@ import rsp.compositions.auth.StubAuthProvider;
 import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.UiRegistry;
-import rsp.compositions.composition.ViewsPlacements;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.contract.CreateViewContract;
-import rsp.compositions.contract.EditViewContract;
-import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.routing.Router;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
@@ -46,14 +42,6 @@ public class CrudApp {
         final Config config = new Config()
                 .with(System.getProperties());
 
-        final UiRegistry uiRegistry = new UiRegistry()
-                .register(ListViewContract.class, DefaultListView::new)
-                .register(CreateViewContract.class, DefaultEditView::new)
-                .register(EditViewContract.class, DefaultEditView::new)
-                .register(ExplorerContract.class, ExplorerView::new)
-                .register(PromptContract.class, PromptView::new)
-                .register(HeaderContract.class, HeaderView::new);
-
         // Router defines URL routes for this composition
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
@@ -61,27 +49,31 @@ public class CrudApp {
                 .route("/comments", CommentsListContract.class)
                 .route("/comments/:id", CommentEditContract.class);
 
-        final ViewsPlacements places = new ViewsPlacements()
-                .place(ExplorerContract.class, ExplorerContract::new)
-                .place(PostsListContract.class, PostsListContract::new)
-                .place(CommentsListContract.class, CommentsListContract::new)
-                .place(PostCreateContract.class, PostCreateContract::new)
-                .place(PostEditContract.class, PostEditContract::new)
-                .place(CommentCreateContract.class, CommentCreateContract::new)
-                .place(CommentEditContract.class, CommentEditContract::new)
-                .place(PromptContract.class, PromptContract::new)
-                .place(HeaderContract.class, HeaderContract::new);
+        final UiRegistry postsUi = new UiRegistry()
+                .register(PostsListContract.class, PostsListContract::new, DefaultListView::new)
+                .register(PostCreateContract.class, PostCreateContract::new, DefaultEditView::new)
+                .register(PostEditContract.class, PostEditContract::new, DefaultEditView::new)
+
+                .register(CommentsListContract.class, CommentsListContract::new, DefaultListView::new)
+                .register(CommentCreateContract.class, CommentCreateContract::new, DefaultEditView::new)
+                .register(CommentEditContract.class, CommentEditContract::new, DefaultEditView::new)
+
+                .register(ExplorerContract.class, ExplorerContract::new, ExplorerView::new)
+                .register(PromptContract.class, PromptContract::new, PromptView::new)
+                .register(HeaderContract.class, HeaderContract::new, HeaderView::new);
+
+        final Category categories = new Category()
+                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
+                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
 
         final DefaultLayout layout = new DefaultLayout()
                 .leftSidebar(ExplorerContract.class)
                 .rightSidebar(PromptContract.class)
                 .header(HeaderContract.class);
 
-        final Category categories = new Category()
-                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
-                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
 
-        final Composition postsComposition = new Composition(router, places, categories, layout);
+
+        final Composition postsComposition = new Composition(router, postsUi, categories, layout);
 
         // Create services
         final PostService postService = new PostService();
@@ -96,7 +88,7 @@ public class CrudApp {
                 .service(PromptService.class, promptService)
                 .service(AuthComponent.AuthProvider.class, new StubAuthProvider());
 
-        final App app = new App(config, uiRegistry, List.of(postsComposition), services);
+        final App app = new App(config, List.of(postsComposition), services);
 
         final WebServer server = new WebServer(8080,
                                                app,

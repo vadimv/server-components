@@ -3,7 +3,6 @@ package rsp.compositions.contract;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.layout.LayerLayout;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
 
@@ -117,8 +116,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
             if (scene == null) {
                 return div();
             }
-            Component<?> uiComponent = UiComponentResolver.resolve(
-                    scene.uiRegistry(), state.contractClass());
+            Component<?> uiComponent = scene.uiRegistry().resolveView(state.contractClass());
             Lookup lookup = LookupFactory.create(savedContext);
             return div(
                     layout.resolve(uiComponent, state.contractClass(), lookup),
@@ -169,9 +167,8 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
         Function<Lookup, ViewContract> factory = scene.getFactory(contractClass);
         if (factory == null) {
             Composition composition = scene.composition();
-            ViewPlacement placement = composition != null ? composition.placementFor(contractClass) : null;
-            if (placement != null) {
-                factory = placement.contractFactory();
+            if (composition != null) {
+                factory = composition.uiRegistry().contractFactory(contractClass);
             }
         }
         if (factory == null) return;

@@ -4,7 +4,6 @@ import rsp.component.ContextKey;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.routing.Router;
 import rsp.server.Path;
 
@@ -35,14 +34,6 @@ public final class ContextKeys {
      */
     public static final ContextKey.ClassKey<Router> ROUTER =
             new ContextKey.ClassKey<>(Router.class);
-
-    /**
-     * UI registry for mapping view contracts to UI implementations.
-     * Stored as: UiRegistry.class → UiRegistry instance
-     */
-    public static final ContextKey.ClassKey<UiRegistry> UI_REGISTRY =
-            new ContextKey.ClassKey<>(UiRegistry.class);
-
 
     /**
      * Authentication provider for user authentication.

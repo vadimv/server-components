@@ -2,7 +2,6 @@ package rsp.compositions.contract;
 
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.ContractMetadata;
-import rsp.compositions.composition.ViewPlacement;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -49,17 +48,17 @@ public record NavigationEntry(String categoryKey,
         final Map<String, NavigationEntry> uniqueByCategory = new LinkedHashMap<>();
 
         for (Composition comp : compositions) {
-            for (ViewPlacement placement : comp.views()) {
-                Optional<String> routeOpt = comp.router().findRoutePattern(placement.contractClass());
+            for (Class<? extends ViewContract> contractClass : comp.uiRegistry().contractClasses()) {
+                Optional<String> routeOpt = comp.router().findRoutePattern(contractClass);
                 // Only include contracts with non-parameterized routes
                 if (routeOpt.isPresent() && !routeOpt.get().contains(":")) {
-                    ContractMetadata metadata = comp.metadataFor(placement.contractClass());
+                    ContractMetadata metadata = comp.metadataFor(contractClass);
                     String categoryKey = metadata.categoryKey();
 
                     if (!uniqueByCategory.containsKey(categoryKey)) {
                         String label = metadata.navigationLabel();
                         uniqueByCategory.put(categoryKey,
-                                new NavigationEntry(categoryKey, label, placement.contractClass(), routeOpt.get()));
+                                new NavigationEntry(categoryKey, label, contractClass, routeOpt.get()));
                     }
                 }
             }

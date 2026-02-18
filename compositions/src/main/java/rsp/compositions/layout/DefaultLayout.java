@@ -3,7 +3,6 @@ package rsp.compositions.layout;
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.UiComponentResolver;
 import rsp.compositions.contract.ViewContract;
 import rsp.dsl.Definition;
 
@@ -78,7 +77,7 @@ public final class DefaultLayout implements Layout {
         // Resolve routed contract to UI component
         Component<?> primary = null;
         if (scene.routedContract() != null) {
-            primary = UiComponentResolver.resolve(scene.uiRegistry(), scene.routedContract().getClass());
+            primary = scene.uiRegistry().resolveView(scene.routedContract().getClass());
         }
 
         // Resolve companion contracts to UI components
@@ -115,6 +114,6 @@ public final class DefaultLayout implements Layout {
         if (contractClass == null) return null;
         ViewContract companion = scene.companionContract(contractClass);
         if (companion == null) return null;
-        return UiComponentResolver.resolve(scene.uiRegistry(), companion.getClass());
+        return scene.uiRegistry().resolveView(companion.getClass());
     }
 }

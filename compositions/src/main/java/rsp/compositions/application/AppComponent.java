@@ -8,7 +8,6 @@ import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.NavigationEntry;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.UiRegistry;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
@@ -20,19 +19,16 @@ import java.util.function.BiFunction;
 public class AppComponent extends Component<AppComponent.AppComponentState> {
 
     private final Config config;
-    private final UiRegistry uiRegistry;
     private final List<Composition> compositions;
     private final Map<Class<?>, Object> services;
     private final HttpRequest httpRequest;
 
     public AppComponent(Config config,
-                        UiRegistry uiRegistry,
                         List<Composition> compositions,
                         Map<Class<?>, Object> services,
                         HttpRequest httpRequest) {
         super();
         this.config = Objects.requireNonNull(config);
-        this.uiRegistry = Objects.requireNonNull(uiRegistry);
         this.compositions = Objects.requireNonNull(compositions);
         this.services = Objects.requireNonNull(services);
         this.httpRequest = Objects.requireNonNull(httpRequest);
@@ -46,7 +42,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     /**
      * Enrich context with application-level objects.
      * This is where constructor injection stops and pure context propagation begins.
-     * Note: Router is inside each Composition, not at app level.
+     * Note: Router and UiRegistry are inside each Composition, not at app level.
      */
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {
@@ -58,7 +54,6 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
             enrichedContext = enrichedContext
                 .with(Config.class, config)
                 .with(HttpRequest.class, httpRequest)
-                .with(ContextKeys.UI_REGISTRY, uiRegistry)
                 .with(ContextKeys.APP_COMPOSITIONS, compositions)
                 .with(ContextKeys.NAVIGATION_ENTRIES, NavigationEntry.fromCompositions(compositions));
 

@@ -18,32 +18,31 @@ import static org.junit.jupiter.api.Assertions.*;
 public class CompositionTests {
 
     @Nested
-    class PlacementLookupTests {
+    class ContractLookupTests {
 
         @Test
-        void placementFor_finds_contract_class() {
+        void contractFactory_finds_registered_class() {
             final Composition composition = createCompositionWithMultipleContracts();
 
-            final ViewPlacement placement = composition.placementFor(TestListContract.class);
+            final var factory = composition.uiRegistry().contractFactory(TestListContract.class);
 
-            assertNotNull(placement);
-            assertEquals(TestListContract.class, placement.contractClass());
+            assertNotNull(factory);
         }
 
         @Test
-        void placementFor_returns_null_when_not_found() {
+        void contractFactory_returns_null_when_not_found() {
             final Composition composition = createSimpleComposition();
 
-            final ViewPlacement placement = composition.placementFor(TestEditContract.class);
+            final var factory = composition.uiRegistry().contractFactory(TestEditContract.class);
 
-            assertNull(placement);
+            assertNull(factory);
         }
 
         @Test
-        void views_returns_all_placements() {
+        void contractClasses_returns_all_registered_classes() {
             final Composition composition = createCompositionWithMultipleContracts();
 
-            assertEquals(3, composition.views().size());
+            assertEquals(3, composition.uiRegistry().contractClasses().size());
         }
     }
 
@@ -53,35 +52,35 @@ public class CompositionTests {
         @Test
         void composition_stores_router() {
             final Router router = new Router().route("/test", TestListContract.class);
-            final ViewsPlacements placements = new ViewsPlacements()
-                    .place(TestListContract.class, TestListContract::new);
+            final UiRegistry uiRegistry = new UiRegistry()
+                    .register(TestListContract.class, TestListContract::new, () -> null);
 
-            final Composition composition = new Composition(router, placements);
+            final Composition composition = new Composition(router, uiRegistry);
 
             assertSame(router, composition.router());
         }
 
         @Test
-        void views_returns_immutable_list() {
+        void contractClasses_returns_unmodifiable_set() {
             final Composition composition = createSimpleComposition();
 
-            final List<ViewPlacement> views = composition.views();
+            final var classes = composition.uiRegistry().contractClasses();
 
-            assertThrows(UnsupportedOperationException.class, () -> views.add(null));
+            assertThrows(UnsupportedOperationException.class, () -> classes.add(null));
         }
 
         @Test
         void constructor_rejects_null_router() {
-            final ViewsPlacements placements = new ViewsPlacements();
+            final UiRegistry uiRegistry = new UiRegistry();
 
-            assertThrows(NullPointerException.class, () -> new Composition(null, placements));
+            assertThrows(NullPointerException.class, () -> new Composition(null, uiRegistry));
         }
 
         @Test
-        void constructor_rejects_null_placements() {
+        void constructor_rejects_null_uiRegistry() {
             final Router router = new Router();
 
-            assertThrows(NullPointerException.class, () -> new Composition(router, null));
+            assertThrows(NullPointerException.class, () -> new Composition(router, (UiRegistry) null));
         }
     }
 
@@ -93,11 +92,11 @@ public class CompositionTests {
             final Router router = new Router()
                     .route("/items", TestListContract.class)
                     .route("/items/:id", TestEditContract.class);
-            final ViewsPlacements placements = new ViewsPlacements()
-                    .place(TestListContract.class, TestListContract::new)
-                    .place(TestEditContract.class, TestEditContract::new);
+            final UiRegistry uiRegistry = new UiRegistry()
+                    .register(TestListContract.class, TestListContract::new, () -> null)
+                    .register(TestEditContract.class, TestEditContract::new, () -> null);
 
-            final Composition composition = new Composition(router, placements);
+            final Composition composition = new Composition(router, uiRegistry);
 
             assertTrue(composition.router().hasRoute(TestListContract.class));
             assertTrue(composition.router().hasRoute(TestEditContract.class));
@@ -108,20 +107,20 @@ public class CompositionTests {
 
     private Composition createSimpleComposition() {
         final Router router = new Router().route("/items", TestListContract.class);
-        final ViewsPlacements placements = new ViewsPlacements()
-                .place(TestListContract.class, TestListContract::new);
-        return new Composition(router, placements);
+        final UiRegistry uiRegistry = new UiRegistry()
+                .register(TestListContract.class, TestListContract::new, () -> null);
+        return new Composition(router, uiRegistry);
     }
 
     private Composition createCompositionWithMultipleContracts() {
         final Router router = new Router()
                 .route("/items", TestListContract.class)
                 .route("/items/:id", TestEditContract.class);
-        final ViewsPlacements placements = new ViewsPlacements()
-                .place(TestListContract.class, TestListContract::new)
-                .place(TestCreateContract.class, TestCreateContract::new)
-                .place(TestEditContract.class, TestEditContract::new);
-        return new Composition(router, placements);
+        final UiRegistry uiRegistry = new UiRegistry()
+                .register(TestListContract.class, TestListContract::new, () -> null)
+                .register(TestCreateContract.class, TestCreateContract::new, () -> null)
+                .register(TestEditContract.class, TestEditContract::new, () -> null);
+        return new Composition(router, uiRegistry);
     }
 
     // Test contract classes

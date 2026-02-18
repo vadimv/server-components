@@ -19,8 +19,7 @@ import java.util.function.Function;
  *   <li>Companion contracts (eagerly instantiated, requested by Layout)</li>
  *   <li>Lazy factories (for on-demand instantiation via SHOW events)</li>
  *   <li>Pre-activated contracts (for auto-open when overlay-like contracts are URL-routed)</li>
- *   <li>Composition reference</li>
- *   <li>UiRegistry for resolving contracts to UI components</li>
+ *   <li>Composition reference (UiRegistry is derived from composition)</li>
  *   <li>Build metadata (timestamp)</li>
  *   <li>Auto-open info (when overlay-like contract is routed directly)</li>
  *   <li>Page title for HTML title tag</li>
@@ -30,8 +29,7 @@ import java.util.function.Function;
  * @param companionContracts Eagerly instantiated contracts requested by the Layout
  * @param lazyFactories Factories for on-demand instantiation via SHOW events
  * @param preActivatedContracts Pre-instantiated contracts for LayerComponent auto-open (URL-routed overlays)
- * @param composition The Composition containing the contract
- * @param uiRegistry Registry for resolving contracts to UI components
+ * @param composition The Composition containing the contract (UiRegistry is derived from here)
  * @param timestamp When the scene was built (for debugging/caching)
  * @param autoOpen Auto-open info for URL-routed overlay contracts (nullable)
  * @param pageTitle The page title for the HTML title tag
@@ -41,7 +39,6 @@ public record Scene(ViewContract routedContract,
                     Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories,
                     Map<Class<? extends ViewContract>, ViewContract> preActivatedContracts,
                     Composition composition,
-                    UiRegistry uiRegistry,
                     long timestamp,
                     AutoOpen autoOpen,
                     String pageTitle) {
@@ -50,7 +47,6 @@ public record Scene(ViewContract routedContract,
         Objects.requireNonNull(lazyFactories, "lazyFactories");
         Objects.requireNonNull(preActivatedContracts, "preActivatedContracts");
         Objects.requireNonNull(composition, "composition");
-        Objects.requireNonNull(uiRegistry, "uiRegistry");
         Objects.requireNonNull(pageTitle, "pageTitle");
     }
 
@@ -65,6 +61,13 @@ public record Scene(ViewContract routedContract,
             Objects.requireNonNull(contractClass, "contractClass");
             Objects.requireNonNull(routePattern, "routePattern");
         }
+    }
+
+    /**
+     * Returns the UiRegistry for this scene, derived from the composition.
+     */
+    public UiRegistry uiRegistry() {
+        return composition.uiRegistry();
     }
 
     /**
@@ -115,27 +118,18 @@ public record Scene(ViewContract routedContract,
      */
     public Scene withRoutedContract(ViewContract contract) {
         return new Scene(contract, companionContracts, lazyFactories, preActivatedContracts,
-                composition, uiRegistry, timestamp, autoOpen, titleOf(contract));
+                composition, timestamp, autoOpen, titleOf(contract));
     }
 
     /**
-     * Create a scene with routed contract, companions, lazy factories, and UI registry.
+     * Create a scene with routed contract, companions, and lazy factories.
      */
     public static Scene of(ViewContract routedContract,
                            Map<Class<? extends ViewContract>, ViewContract> companionContracts,
                            Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories,
-                           Composition composition,
-                           UiRegistry uiRegistry) {
+                           Composition composition) {
         return new Scene(routedContract, companionContracts, lazyFactories, Map.of(),
-                composition, uiRegistry, System.currentTimeMillis(), null, titleOf(routedContract));
-    }
-
-    /**
-     * Create a simple scene with routed contract only (no companions or lazy factories).
-     */
-    public static Scene of(ViewContract routedContract, Composition composition, UiRegistry uiRegistry) {
-        return new Scene(routedContract, Map.of(), Map.of(), Map.of(),
-                composition, uiRegistry, System.currentTimeMillis(), null, titleOf(routedContract));
+                composition, System.currentTimeMillis(), null, titleOf(routedContract));
     }
 
     /**
@@ -146,7 +140,6 @@ public record Scene(ViewContract routedContract,
      * @param lazyFactories Lazy factories
      * @param preActivatedContracts Pre-instantiated overlay contracts for LayerComponent
      * @param composition The composition
-     * @param uiRegistry The UI registry
      * @param autoOpen Auto-open metadata
      */
     public static Scene withAutoOpen(ViewContract routedContract,
@@ -154,7 +147,6 @@ public record Scene(ViewContract routedContract,
                                      Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories,
                                      Map<Class<? extends ViewContract>, ViewContract> preActivatedContracts,
                                      Composition composition,
-                                     UiRegistry uiRegistry,
                                      AutoOpen autoOpen) {
         // Use auto-opened contract's title if available
         String title = titleOf(routedContract);
@@ -166,7 +158,7 @@ public record Scene(ViewContract routedContract,
             }
         }
         return new Scene(routedContract, companionContracts, lazyFactories, preActivatedContracts,
-                composition, uiRegistry, System.currentTimeMillis(), autoOpen, title);
+                composition, System.currentTimeMillis(), autoOpen, title);
     }
 
     private static String titleOf(ViewContract contract) {

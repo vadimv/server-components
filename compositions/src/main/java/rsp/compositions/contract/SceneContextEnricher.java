@@ -3,7 +3,6 @@ package rsp.compositions.contract;
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.ContractMetadata;
-import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
 
 import java.util.Objects;
@@ -67,25 +66,25 @@ public final class SceneContextEnricher {
      * This helps DefaultListView determine how to render the Edit button.
      */
     private ComponentContext enrichEditInfo(ComponentContext context, Composition composition, Router router) {
-        // Find EditViewContract-based placement in the composition
-        ViewPlacement editPlacement = null;
-        for (ViewPlacement placement : composition.views()) {
-            if (EditViewContract.class.isAssignableFrom(placement.contractClass())) {
-                editPlacement = placement;
+        // Find EditViewContract-based contract class in the composition
+        Class<? extends ViewContract> editContractClass = null;
+        for (Class<? extends ViewContract> cls : composition.uiRegistry().contractClasses()) {
+            if (EditViewContract.class.isAssignableFrom(cls)) {
+                editContractClass = cls;
                 break;
             }
         }
 
-        if (editPlacement == null) {
+        if (editContractClass == null) {
             return context; // No edit contract in this composition
         }
 
         // Check if edit contract has a route
-        boolean hasRoute = router != null && router.hasRoute(editPlacement.contractClass());
+        boolean hasRoute = router != null && router.hasRoute(editContractClass);
         context = context.with(ContextKeys.EDIT_HAS_ROUTE, hasRoute);
 
         if (hasRoute && router != null) {
-            Optional<String> editRouteOpt = router.findRoutePattern(editPlacement.contractClass());
+            Optional<String> editRouteOpt = router.findRoutePattern(editContractClass);
             if (editRouteOpt.isPresent()) {
                 context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editRouteOpt.get());
                 // Overlay-like if route has a parent (e.g., /posts/:id has parent /posts)

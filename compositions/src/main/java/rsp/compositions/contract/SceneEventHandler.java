@@ -2,7 +2,6 @@ package rsp.compositions.contract;
 
 import rsp.component.*;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
 
 import java.util.Objects;
@@ -96,11 +95,10 @@ public final class SceneEventHandler {
         // Get factory from scene lazy factories
         Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
         if (factory == null) {
-            // Check composition placements
+            // Check composition registry
             Composition composition = state.composition();
-            ViewPlacement placement = composition != null ? composition.placementFor(contractClass) : null;
-            if (placement != null) {
-                factory = placement.contractFactory();
+            if (composition != null) {
+                factory = composition.uiRegistry().contractFactory(contractClass);
             }
         }
 
