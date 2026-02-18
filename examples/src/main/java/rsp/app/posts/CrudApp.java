@@ -71,8 +71,6 @@ public class CrudApp {
                 .rightSidebar(PromptContract.class)
                 .header(HeaderContract.class);
 
-
-
         final Composition postsComposition = new Composition(router, postsUi, categories, layout);
 
         // Create services
