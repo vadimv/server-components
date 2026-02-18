@@ -98,7 +98,7 @@ public final class SceneEventHandler {
             // Check composition registry
             Composition composition = state.composition();
             if (composition != null) {
-                factory = composition.uiRegistry().contractFactory(contractClass);
+                factory = composition.contracts().contractFactory(contractClass);
             }
         }
 

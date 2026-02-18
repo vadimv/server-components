@@ -48,7 +48,7 @@ public record NavigationEntry(String categoryKey,
         final Map<String, NavigationEntry> uniqueByCategory = new LinkedHashMap<>();
 
         for (Composition comp : compositions) {
-            for (Class<? extends ViewContract> contractClass : comp.uiRegistry().contractClasses()) {
+            for (Class<? extends ViewContract> contractClass : comp.contracts().contractClasses()) {
                 Optional<String> routeOpt = comp.router().findRoutePattern(contractClass);
                 // Only include contracts with non-parameterized routes
                 if (routeOpt.isPresent() && !routeOpt.get().contains(":")) {

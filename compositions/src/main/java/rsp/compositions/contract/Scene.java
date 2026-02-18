@@ -2,7 +2,7 @@ package rsp.compositions.contract;
 
 import rsp.component.Lookup;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.composition.Contracts;
 
 import java.util.*;
 import java.util.function.Function;
@@ -19,7 +19,7 @@ import java.util.function.Function;
  *   <li>Companion contracts (eagerly instantiated, requested by Layout)</li>
  *   <li>Lazy factories (for on-demand instantiation via SHOW events)</li>
  *   <li>Pre-activated contracts (for auto-open when overlay-like contracts are URL-routed)</li>
- *   <li>Composition reference (UiRegistry is derived from composition)</li>
+ *   <li>Composition reference (Contracts is derived from composition)</li>
  *   <li>Build metadata (timestamp)</li>
  *   <li>Auto-open info (when overlay-like contract is routed directly)</li>
  *   <li>Page title for HTML title tag</li>
@@ -29,7 +29,7 @@ import java.util.function.Function;
  * @param companionContracts Eagerly instantiated contracts requested by the Layout
  * @param lazyFactories Factories for on-demand instantiation via SHOW events
  * @param preActivatedContracts Pre-instantiated contracts for LayerComponent auto-open (URL-routed overlays)
- * @param composition The Composition containing the contract (UiRegistry is derived from here)
+ * @param composition The Composition containing the contract (Contracts is derived from here)
  * @param timestamp When the scene was built (for debugging/caching)
  * @param autoOpen Auto-open info for URL-routed overlay contracts (nullable)
  * @param pageTitle The page title for the HTML title tag
@@ -64,10 +64,10 @@ public record Scene(ViewContract routedContract,
     }
 
     /**
-     * Returns the UiRegistry for this scene, derived from the composition.
+     * Returns the Contracts for this scene, derived from the composition.
      */
-    public UiRegistry uiRegistry() {
-        return composition.uiRegistry();
+    public Contracts contracts() {
+        return composition.contracts();
     }
 
     /**

@@ -42,7 +42,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     /**
      * Enrich context with application-level objects.
      * This is where constructor injection stops and pure context propagation begins.
-     * Note: Router and UiRegistry are inside each Composition, not at app level.
+     * Note: Router and Contracts are inside each Composition, not at app level.
      */
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {

@@ -77,7 +77,7 @@ public final class DefaultLayout implements Layout {
         // Resolve routed contract to UI component
         Component<?> primary = null;
         if (scene.routedContract() != null) {
-            primary = scene.uiRegistry().resolveView(scene.routedContract().getClass());
+            primary = scene.contracts().resolveView(scene.routedContract().getClass());
         }
 
         // Resolve companion contracts to UI components
@@ -114,6 +114,6 @@ public final class DefaultLayout implements Layout {
         if (contractClass == null) return null;
         ViewContract companion = scene.companionContract(contractClass);
         if (companion == null) return null;
-        return scene.uiRegistry().resolveView(companion.getClass());
+        return scene.contracts().resolveView(companion.getClass());
     }
 }

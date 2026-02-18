@@ -68,7 +68,7 @@ public final class SceneContextEnricher {
     private ComponentContext enrichEditInfo(ComponentContext context, Composition composition, Router router) {
         // Find EditViewContract-based contract class in the composition
         Class<? extends ViewContract> editContractClass = null;
-        for (Class<? extends ViewContract> cls : composition.uiRegistry().contractClasses()) {
+        for (Class<? extends ViewContract> cls : composition.contracts().contractClasses()) {
             if (EditViewContract.class.isAssignableFrom(cls)) {
                 editContractClass = cls;
                 break;

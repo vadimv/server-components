@@ -22,7 +22,7 @@ import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.StubAuthProvider;
 import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.composition.Contracts;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
 import rsp.compositions.ui.DefaultEditView;
@@ -49,18 +49,18 @@ public class CrudApp {
                 .route("/comments", CommentsListContract.class)
                 .route("/comments/:id", CommentEditContract.class);
 
-        final UiRegistry postsUi = new UiRegistry()
-                .register(PostsListContract.class, PostsListContract::new, DefaultListView::new)
-                .register(PostCreateContract.class, PostCreateContract::new, DefaultEditView::new)
-                .register(PostEditContract.class, PostEditContract::new, DefaultEditView::new)
+        final Contracts postsUi = new Contracts()
+                .bind(PostsListContract.class, PostsListContract::new, DefaultListView::new)
+                .bind(PostCreateContract.class, PostCreateContract::new, DefaultEditView::new)
+                .bind(PostEditContract.class, PostEditContract::new, DefaultEditView::new)
 
-                .register(CommentsListContract.class, CommentsListContract::new, DefaultListView::new)
-                .register(CommentCreateContract.class, CommentCreateContract::new, DefaultEditView::new)
-                .register(CommentEditContract.class, CommentEditContract::new, DefaultEditView::new)
+                .bind(CommentsListContract.class, CommentsListContract::new, DefaultListView::new)
+                .bind(CommentCreateContract.class, CommentCreateContract::new, DefaultEditView::new)
+                .bind(CommentEditContract.class, CommentEditContract::new, DefaultEditView::new)
 
-                .register(ExplorerContract.class, ExplorerContract::new, ExplorerView::new)
-                .register(PromptContract.class, PromptContract::new, PromptView::new)
-                .register(HeaderContract.class, HeaderContract::new, HeaderView::new);
+                .bind(ExplorerContract.class, ExplorerContract::new, ExplorerView::new)
+                .bind(PromptContract.class, PromptContract::new, PromptView::new)
+                .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
 
         final Category categories = new Category()
                 .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)

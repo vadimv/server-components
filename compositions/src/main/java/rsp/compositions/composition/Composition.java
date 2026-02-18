@@ -11,7 +11,7 @@ import java.util.Objects;
  * Composition - Declares a feature domain's view placements and routes.
  * <p>
  * Each composition groups related views by declaring their contract factories and routes
- * through a {@link UiRegistry}. Lifecycle is derived automatically:
+ * through a {@link Contracts}. Lifecycle is derived automatically:
  * <ul>
  *   <li>Routed contracts (matched by Router) are eagerly instantiated</li>
  *   <li>Contracts required by the Layout are eagerly instantiated (companions)</li>
@@ -24,37 +24,37 @@ import java.util.Objects;
  */
 public class Composition {
     private final Router router;
-    private final UiRegistry uiRegistry;
+    private final Contracts contracts;
     private final Category categories;
     private final Layout layout;
 
     /**
      * Create a Composition with its router and UI registry (default layout).
      */
-    public Composition(Router router, UiRegistry uiRegistry) {
-        this(router, uiRegistry, new Category(), new DefaultLayout());
+    public Composition(Router router, Contracts contracts) {
+        this(router, contracts, new Category(), new DefaultLayout());
     }
 
     /**
      * Create a Composition with its router, UI registry, and explicit categories.
      */
-    public Composition(Router router, UiRegistry uiRegistry, Category categories) {
-        this(router, uiRegistry, categories, new DefaultLayout());
+    public Composition(Router router, Contracts contracts, Category categories) {
+        this(router, contracts, categories, new DefaultLayout());
     }
 
     /**
      * Create a Composition with its router, UI registry, categories, and layout.
      *
      * @param router     The router for this composition's routes
-     * @param uiRegistry The registry holding contract and view factories
+     * @param contracts The registry holding contract and view factories
      * @param categories Explicit contract categories for navigation/title metadata
      * @param layout     The layout strategy for visual arrangement
      */
-    public Composition(Router router, UiRegistry uiRegistry, Category categories, Layout layout) {
+    public Composition(Router router, Contracts contracts, Category categories, Layout layout) {
         Objects.requireNonNull(router, "router cannot be null");
-        Objects.requireNonNull(uiRegistry, "uiRegistry cannot be null");
+        Objects.requireNonNull(contracts, "contracts cannot be null");
         this.router = router;
-        this.uiRegistry = uiRegistry;
+        this.contracts = contracts;
         this.categories = Objects.requireNonNull(categories, "categories cannot be null");
         this.layout = Objects.requireNonNull(layout, "layout cannot be null");
     }
@@ -69,8 +69,8 @@ public class Composition {
     /**
      * The UI registry holding contract factories and view factories for this composition.
      */
-    public UiRegistry uiRegistry() {
-        return uiRegistry;
+    public Contracts contracts() {
+        return contracts;
     }
 
     /**

@@ -4,7 +4,7 @@ import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.server.http.AuthorizationException;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.composition.Contracts;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.Router;
 
@@ -56,10 +56,10 @@ public final class SceneBuilder {
      * @throws IllegalStateException if scene building fails
      */
     public Scene buildScene(ComponentContext context) {
-        UiRegistry uiRegistry = composition.uiRegistry();
+        Contracts contracts = composition.contracts();
 
         // Verify contract is registered
-        if (uiRegistry.contractFactory(this.contractClass) == null) {
+        if (contracts.contractFactory(this.contractClass) == null) {
             throw new IllegalStateException("Contract not found in composition: " + this.contractClass.getName());
         }
 
@@ -87,8 +87,8 @@ public final class SceneBuilder {
      * Build scene for standard primary contract (no parent route).
      */
     private Scene buildStandardScene(ComponentContext context) {
-        UiRegistry uiRegistry = composition.uiRegistry();
-        Function<Lookup, ViewContract> routedFactory = uiRegistry.contractFactory(this.contractClass);
+        Contracts contracts = composition.contracts();
+        Function<Lookup, ViewContract> routedFactory = contracts.contractFactory(this.contractClass);
 
         ViewContract routedContract = instantiateContract(this.contractClass, routedFactory, context);
         if (routedContract == null) {
@@ -114,17 +114,17 @@ public final class SceneBuilder {
      * The parent contract becomes the routed contract; this contract is pre-activated for LayerComponent.
      */
     private Scene buildAutoOpenScene(ComponentContext context, Router.RouteMatch parentRoute) {
-        UiRegistry uiRegistry = composition.uiRegistry();
+        Contracts contracts = composition.contracts();
 
         // Overlay contract factory
-        Function<Lookup, ViewContract> overlayFactory = uiRegistry.contractFactory(this.contractClass);
+        Function<Lookup, ViewContract> overlayFactory = contracts.contractFactory(this.contractClass);
         if (overlayFactory == null) {
             throw new IllegalStateException("Overlay contract not found: " + this.contractClass.getName());
         }
 
         // Find and instantiate the parent contract as the routed contract
         Class<? extends ViewContract> parentClass = parentRoute.contractClass();
-        Function<Lookup, ViewContract> parentFactory = uiRegistry.contractFactory(parentClass);
+        Function<Lookup, ViewContract> parentFactory = contracts.contractFactory(parentClass);
         if (parentFactory == null) {
             throw new IllegalStateException(
                     "Parent contract not found in composition: " + parentClass.getName());
@@ -154,11 +154,11 @@ public final class SceneBuilder {
 
         // Store remaining contract classes as lazy factories (excludes parent, companions, pre-activated)
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
-        for (Class<? extends ViewContract> cls : uiRegistry.contractClasses()) {
+        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
             if (!cls.equals(parentClass)
                     && !companionContracts.containsKey(cls)
                     && !preActivated.containsKey(cls)) {
-                lazyFactories.put(cls, uiRegistry.contractFactory(cls));
+                lazyFactories.put(cls, contracts.contractFactory(cls));
             }
         }
 
@@ -172,12 +172,12 @@ public final class SceneBuilder {
      */
     private Map<Class<? extends ViewContract>, ViewContract> instantiateCompanions(ComponentContext context) {
         Set<Class<? extends ViewContract>> requiredByLayout = layout.requiredContracts();
-        UiRegistry uiRegistry = composition.uiRegistry();
+        Contracts contracts = composition.contracts();
         Map<Class<? extends ViewContract>, ViewContract> companions = new HashMap<>();
 
-        for (Class<? extends ViewContract> cls : uiRegistry.contractClasses()) {
+        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
             if (requiredByLayout.contains(cls)) {
-                Function<Lookup, ViewContract> factory = uiRegistry.contractFactory(cls);
+                Function<Lookup, ViewContract> factory = contracts.contractFactory(cls);
                 ViewContract companion = instantiateContract(cls, factory, context);
                 if (companion != null) {
                     companions.put(cls, companion);
@@ -194,11 +194,11 @@ public final class SceneBuilder {
     private Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> collectLazyFactories(
             Class<? extends ViewContract> routedClass,
             Map<Class<? extends ViewContract>, ViewContract> companionContracts) {
-        UiRegistry uiRegistry = composition.uiRegistry();
+        Contracts contracts = composition.contracts();
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
-        for (Class<? extends ViewContract> cls : uiRegistry.contractClasses()) {
+        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
             if (!cls.equals(routedClass) && !companionContracts.containsKey(cls)) {
-                lazyFactories.put(cls, uiRegistry.contractFactory(cls));
+                lazyFactories.put(cls, contracts.contractFactory(cls));
             }
         }
         return lazyFactories;

@@ -24,7 +24,7 @@ public class CompositionTests {
         void contractFactory_finds_registered_class() {
             final Composition composition = createCompositionWithMultipleContracts();
 
-            final var factory = composition.uiRegistry().contractFactory(TestListContract.class);
+            final var factory = composition.contracts().contractFactory(TestListContract.class);
 
             assertNotNull(factory);
         }
@@ -33,7 +33,7 @@ public class CompositionTests {
         void contractFactory_returns_null_when_not_found() {
             final Composition composition = createSimpleComposition();
 
-            final var factory = composition.uiRegistry().contractFactory(TestEditContract.class);
+            final var factory = composition.contracts().contractFactory(TestEditContract.class);
 
             assertNull(factory);
         }
@@ -42,7 +42,7 @@ public class CompositionTests {
         void contractClasses_returns_all_registered_classes() {
             final Composition composition = createCompositionWithMultipleContracts();
 
-            assertEquals(3, composition.uiRegistry().contractClasses().size());
+            assertEquals(3, composition.contracts().contractClasses().size());
         }
     }
 
@@ -52,10 +52,10 @@ public class CompositionTests {
         @Test
         void composition_stores_router() {
             final Router router = new Router().route("/test", TestListContract.class);
-            final UiRegistry uiRegistry = new UiRegistry()
-                    .register(TestListContract.class, TestListContract::new, () -> null);
+            final Contracts contracts = new Contracts()
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
 
-            final Composition composition = new Composition(router, uiRegistry);
+            final Composition composition = new Composition(router, contracts);
 
             assertSame(router, composition.router());
         }
@@ -64,23 +64,23 @@ public class CompositionTests {
         void contractClasses_returns_unmodifiable_set() {
             final Composition composition = createSimpleComposition();
 
-            final var classes = composition.uiRegistry().contractClasses();
+            final var classes = composition.contracts().contractClasses();
 
             assertThrows(UnsupportedOperationException.class, () -> classes.add(null));
         }
 
         @Test
         void constructor_rejects_null_router() {
-            final UiRegistry uiRegistry = new UiRegistry();
+            final Contracts contracts = new Contracts();
 
-            assertThrows(NullPointerException.class, () -> new Composition(null, uiRegistry));
+            assertThrows(NullPointerException.class, () -> new Composition(null, contracts));
         }
 
         @Test
-        void constructor_rejects_null_uiRegistry() {
+        void constructor_rejects_null_contracts() {
             final Router router = new Router();
 
-            assertThrows(NullPointerException.class, () -> new Composition(router, (UiRegistry) null));
+            assertThrows(NullPointerException.class, () -> new Composition(router, (Contracts) null));
         }
     }
 
@@ -92,11 +92,11 @@ public class CompositionTests {
             final Router router = new Router()
                     .route("/items", TestListContract.class)
                     .route("/items/:id", TestEditContract.class);
-            final UiRegistry uiRegistry = new UiRegistry()
-                    .register(TestListContract.class, TestListContract::new, () -> null)
-                    .register(TestEditContract.class, TestEditContract::new, () -> null);
+            final Contracts contracts = new Contracts()
+                    .bind(TestListContract.class, TestListContract::new, () -> null)
+                    .bind(TestEditContract.class, TestEditContract::new, () -> null);
 
-            final Composition composition = new Composition(router, uiRegistry);
+            final Composition composition = new Composition(router, contracts);
 
             assertTrue(composition.router().hasRoute(TestListContract.class));
             assertTrue(composition.router().hasRoute(TestEditContract.class));
@@ -107,20 +107,20 @@ public class CompositionTests {
 
     private Composition createSimpleComposition() {
         final Router router = new Router().route("/items", TestListContract.class);
-        final UiRegistry uiRegistry = new UiRegistry()
-                .register(TestListContract.class, TestListContract::new, () -> null);
-        return new Composition(router, uiRegistry);
+        final Contracts contracts = new Contracts()
+                .bind(TestListContract.class, TestListContract::new, () -> null);
+        return new Composition(router, contracts);
     }
 
     private Composition createCompositionWithMultipleContracts() {
         final Router router = new Router()
                 .route("/items", TestListContract.class)
                 .route("/items/:id", TestEditContract.class);
-        final UiRegistry uiRegistry = new UiRegistry()
-                .register(TestListContract.class, TestListContract::new, () -> null)
-                .register(TestCreateContract.class, TestCreateContract::new, () -> null)
-                .register(TestEditContract.class, TestEditContract::new, () -> null);
-        return new Composition(router, uiRegistry);
+        final Contracts contracts = new Contracts()
+                .bind(TestListContract.class, TestListContract::new, () -> null)
+                .bind(TestCreateContract.class, TestCreateContract::new, () -> null)
+                .bind(TestEditContract.class, TestEditContract::new, () -> null);
+        return new Composition(router, contracts);
     }
 
     // Test contract classes

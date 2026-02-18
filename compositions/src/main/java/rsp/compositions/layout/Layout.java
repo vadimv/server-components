@@ -36,7 +36,7 @@ public interface Layout {
     /**
      * Resolve and render the scene content.
      *
-     * @param scene  the scene containing contracts, UiRegistry, and layout data
+     * @param scene  the scene containing contracts, Contracts, and layout data
      * @param lookup for event publishing (e.g., overlay close)
      * @return the rendered layout definition
      */

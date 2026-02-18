@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.composition.Contracts;
 import rsp.compositions.routing.Router;
 
 import java.util.List;
@@ -21,8 +21,8 @@ class NavigationEntryTests {
         void extracts_routable_contracts() {
             final Composition comp = new Composition(
                     new Router().route("/items", TestListContract.class),
-                    new UiRegistry()
-                            .register(TestListContract.class, TestListContract::new, () -> null)
+                    new Contracts()
+                            .bind(TestListContract.class, TestListContract::new, () -> null)
             );
 
             List<NavigationEntry> entries = NavigationEntry.fromCompositions(List.of(comp));
@@ -38,8 +38,8 @@ class NavigationEntryTests {
         void label_comes_from_metadata_title() {
             final Composition comp = new Composition(
                     new Router().route("/entities", TestEntityContract.class),
-                    new UiRegistry()
-                            .register(TestEntityContract.class, TestEntityContract::new, () -> null)
+                    new Contracts()
+                            .bind(TestEntityContract.class, TestEntityContract::new, () -> null)
             );
 
             List<NavigationEntry> entries = NavigationEntry.fromCompositions(List.of(comp));
@@ -54,9 +54,9 @@ class NavigationEntryTests {
                     new Router()
                             .route("/items", TestListContract.class)
                             .route("/items2", TestListContract2.class),
-                    new UiRegistry()
-                            .register(TestListContract.class, TestListContract::new, () -> null)
-                            .register(TestListContract2.class, TestListContract2::new, () -> null)
+                    new Contracts()
+                            .bind(TestListContract.class, TestListContract::new, () -> null)
+                            .bind(TestListContract2.class, TestListContract2::new, () -> null)
             );
 
             List<NavigationEntry> entries = NavigationEntry.fromCompositions(List.of(comp));
@@ -69,9 +69,9 @@ class NavigationEntryTests {
         void ignores_contracts_without_routes() {
             final Composition comp = new Composition(
                     new Router(),
-                    new UiRegistry()
-                            .register(TestOverlayContract.class, TestOverlayContract::new, () -> null)
-                            .register(TestSidebarContract.class, TestSidebarContract::new, () -> null)
+                    new Contracts()
+                            .bind(TestOverlayContract.class, TestOverlayContract::new, () -> null)
+                            .bind(TestSidebarContract.class, TestSidebarContract::new, () -> null)
             );
 
             List<NavigationEntry> entries = NavigationEntry.fromCompositions(List.of(comp));
@@ -83,8 +83,8 @@ class NavigationEntryTests {
         void ignores_parameterized_routes() {
             final Composition comp = new Composition(
                     new Router().route("/items/:id", TestEntityContract.class),
-                    new UiRegistry()
-                            .register(TestEntityContract.class, TestEntityContract::new, () -> null)
+                    new Contracts()
+                            .bind(TestEntityContract.class, TestEntityContract::new, () -> null)
             );
 
             List<NavigationEntry> entries = NavigationEntry.fromCompositions(List.of(comp));
@@ -110,9 +110,9 @@ class NavigationEntryTests {
                     new Router()
                             .route("/failing", FailingContract.class)
                             .route("/items", TestListContract.class),
-                    new UiRegistry()
-                            .register(FailingContract.class, FailingContract::new, () -> null)
-                            .register(TestListContract.class, TestListContract::new, () -> null)
+                    new Contracts()
+                            .bind(FailingContract.class, FailingContract::new, () -> null)
+                            .bind(TestListContract.class, TestListContract::new, () -> null)
             );
 
             List<NavigationEntry> entries = NavigationEntry.fromCompositions(List.of(comp));
@@ -124,13 +124,13 @@ class NavigationEntryTests {
         void collects_from_multiple_compositions() {
             final Composition comp1 = new Composition(
                     new Router().route("/items", TestListContract.class),
-                    new UiRegistry()
-                            .register(TestListContract.class, TestListContract::new, () -> null)
+                    new Contracts()
+                            .bind(TestListContract.class, TestListContract::new, () -> null)
             );
             final Composition comp2 = new Composition(
                     new Router().route("/entities", TestEntityContract.class),
-                    new UiRegistry()
-                            .register(TestEntityContract.class, TestEntityContract::new, () -> null)
+                    new Contracts()
+                            .bind(TestEntityContract.class, TestEntityContract::new, () -> null)
             );
 
             List<NavigationEntry> entries = NavigationEntry.fromCompositions(List.of(comp1, comp2));

@@ -116,7 +116,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
             if (scene == null) {
                 return div();
             }
-            Component<?> uiComponent = scene.uiRegistry().resolveView(state.contractClass());
+            Component<?> uiComponent = scene.contracts().resolveView(state.contractClass());
             Lookup lookup = LookupFactory.create(savedContext);
             return div(
                     layout.resolve(uiComponent, state.contractClass(), lookup),
@@ -168,7 +168,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
         if (factory == null) {
             Composition composition = scene.composition();
             if (composition != null) {
-                factory = composition.uiRegistry().contractFactory(contractClass);
+                factory = composition.contracts().contractFactory(contractClass);
             }
         }
         if (factory == null) return;
