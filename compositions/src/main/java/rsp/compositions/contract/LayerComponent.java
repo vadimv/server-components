@@ -21,7 +21,7 @@ import static rsp.dsl.Html.*;
  * LayerComponent — a scene layer that manages a single active contract independently.
  * <p>
  * By handling SHOW/HIDE events in its own component, the base layer
- * (primary + sidebars) is never re-rendered when layers open/close.
+ * (routed + companions) is never re-rendered when layers open/close.
  * <p>
  * Layers stack recursively: when this layer is active, it renders a child
  * LayerComponent for the next level. A new SHOW event while this layer is
@@ -72,8 +72,8 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
             // Only the first layer picks up auto-opened overlay from Scene
             if (level == 1) {
                 Scene scene = context.get(ContextKeys.SCENE);
-                if (scene != null && scene.hasNonPrimaryContracts()) {
-                    var entry = scene.nonPrimaryContracts().entrySet().iterator().next();
+                if (scene != null && scene.hasPreActivatedContracts()) {
+                    var entry = scene.preActivatedContracts().entrySet().iterator().next();
                     return new LayerState(entry.getValue(), entry.getKey(), Map.of());
                 }
             }

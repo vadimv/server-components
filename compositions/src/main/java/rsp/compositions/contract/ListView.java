@@ -17,7 +17,7 @@ import java.util.Set;
  * Renders lists of any domain objects based on schema metadata.
  * UI adapts to any number of columns and types at runtime.
  * <p>
- * Create/Edit actions trigger events that open overlay contracts (Slot.OVERLAY).
+ * Create/Edit actions trigger events that open overlay contracts via SHOW events.
  */
 public abstract class ListView extends Component<ListView.ListViewState> {
 

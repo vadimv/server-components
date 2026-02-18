@@ -13,47 +13,26 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for Composition class methods and slot-based resolution.
+ * Tests for Composition class methods.
  */
 public class CompositionTests {
 
     @Nested
-    class SlotBasedResolutionTests {
-
-        @Test
-        void placementsForSlot_returns_matching_placements() {
-            final Composition composition = createCompositionWithMixedSlots();
-
-            final List<ViewPlacement> primaryPlacements = composition.placementsForSlot(Slot.PRIMARY);
-            final List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
-
-            assertEquals(1, primaryPlacements.size());
-            assertEquals(2, overlayPlacements.size());
-        }
-
-        @Test
-        void placementsForSlot_returns_empty_when_no_matches() {
-            final Composition composition = createCompositionWithPrimaryOnly();
-
-            final List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
-
-            assertTrue(overlayPlacements.isEmpty());
-        }
+    class PlacementLookupTests {
 
         @Test
         void placementFor_finds_contract_class() {
-            final Composition composition = createCompositionWithMixedSlots();
+            final Composition composition = createCompositionWithMultipleContracts();
 
             final ViewPlacement placement = composition.placementFor(TestListContract.class);
 
             assertNotNull(placement);
             assertEquals(TestListContract.class, placement.contractClass());
-            assertEquals(Slot.PRIMARY, placement.slot());
         }
 
         @Test
         void placementFor_returns_null_when_not_found() {
-            final Composition composition = createCompositionWithPrimaryOnly();
+            final Composition composition = createSimpleComposition();
 
             final ViewPlacement placement = composition.placementFor(TestEditContract.class);
 
@@ -61,36 +40,10 @@ public class CompositionTests {
         }
 
         @Test
-        void slotFor_returns_slot_type() {
-            final Composition composition = createCompositionWithMixedSlots();
+        void views_returns_all_placements() {
+            final Composition composition = createCompositionWithMultipleContracts();
 
-            assertEquals(Slot.PRIMARY, composition.slotFor(TestListContract.class));
-            assertEquals(Slot.OVERLAY, composition.slotFor(TestEditContract.class));
-        }
-
-        @Test
-        void slotFor_returns_null_when_not_found() {
-            final Composition composition = createCompositionWithPrimaryOnly();
-
-            assertNull(composition.slotFor(TestEditContract.class));
-        }
-
-        @Test
-        void primaryPlacement_returns_first_primary() {
-            final Composition composition = createCompositionWithMixedSlots();
-
-            final ViewPlacement primary = composition.primaryPlacement();
-
-            assertNotNull(primary);
-            assertEquals(Slot.PRIMARY, primary.slot());
-            assertEquals(TestListContract.class, primary.contractClass());
-        }
-
-        @Test
-        void primaryPlacement_returns_null_when_no_primary() {
-            final Composition composition = createCompositionWithOverlaysOnly();
-
-            assertNull(composition.primaryPlacement());
+            assertEquals(3, composition.views().size());
         }
     }
 
@@ -101,7 +54,7 @@ public class CompositionTests {
         void composition_stores_router() {
             final Router router = new Router().route("/test", TestListContract.class);
             final ViewsPlacements placements = new ViewsPlacements()
-                    .place(Slot.PRIMARY, TestListContract.class, TestListContract::new);
+                    .place(TestListContract.class, TestListContract::new);
 
             final Composition composition = new Composition(router, placements);
 
@@ -110,7 +63,7 @@ public class CompositionTests {
 
         @Test
         void views_returns_immutable_list() {
-            final Composition composition = createCompositionWithPrimaryOnly();
+            final Composition composition = createSimpleComposition();
 
             final List<ViewPlacement> views = composition.views();
 
@@ -141,8 +94,8 @@ public class CompositionTests {
                     .route("/items", TestListContract.class)
                     .route("/items/:id", TestEditContract.class);
             final ViewsPlacements placements = new ViewsPlacements()
-                    .place(Slot.PRIMARY, TestListContract.class, TestListContract::new)
-                    .place(Slot.OVERLAY, TestEditContract.class, TestEditContract::new);
+                    .place(TestListContract.class, TestListContract::new)
+                    .place(TestEditContract.class, TestEditContract::new);
 
             final Composition composition = new Composition(router, placements);
 
@@ -153,34 +106,25 @@ public class CompositionTests {
 
     // Helper methods to create test compositions
 
-    private Composition createCompositionWithPrimaryOnly() {
+    private Composition createSimpleComposition() {
         final Router router = new Router().route("/items", TestListContract.class);
         final ViewsPlacements placements = new ViewsPlacements()
-                .place(Slot.PRIMARY, TestListContract.class, TestListContract::new);
+                .place(TestListContract.class, TestListContract::new);
         return new Composition(router, placements);
     }
 
-    private Composition createCompositionWithMixedSlots() {
+    private Composition createCompositionWithMultipleContracts() {
         final Router router = new Router()
                 .route("/items", TestListContract.class)
                 .route("/items/:id", TestEditContract.class);
         final ViewsPlacements placements = new ViewsPlacements()
-                .place(Slot.PRIMARY, TestListContract.class, TestListContract::new)
-                .place(Slot.OVERLAY, TestCreateContract.class, TestCreateContract::new)
-                .place(Slot.OVERLAY, TestEditContract.class, TestEditContract::new);
-        return new Composition(router, placements);
-    }
-
-    private Composition createCompositionWithOverlaysOnly() {
-        final Router router = new Router();
-        final ViewsPlacements placements = new ViewsPlacements()
-                .place(Slot.OVERLAY, TestCreateContract.class, TestCreateContract::new)
-                .place(Slot.OVERLAY, TestEditContract.class, TestEditContract::new);
+                .place(TestListContract.class, TestListContract::new)
+                .place(TestCreateContract.class, TestCreateContract::new)
+                .place(TestEditContract.class, TestEditContract::new);
         return new Composition(router, placements);
     }
 
     // Test contract classes
-
 
     static class TestListContract extends ListViewContract<Object> {
         TestListContract(final Lookup lookup) {

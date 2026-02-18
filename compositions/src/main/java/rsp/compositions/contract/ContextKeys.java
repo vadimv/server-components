@@ -4,11 +4,9 @@ import rsp.component.ContextKey;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.routing.Router;
 import rsp.server.Path;
-import rsp.server.http.HttpRequest;
 
 import java.util.List;
 import java.util.Map;
@@ -164,15 +162,6 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.listRoute", String.class);
 
     /**
-     * The slot type for the edit contract in this module.
-     * Type: Slot
-     * Values: Slot.PRIMARY or Slot.OVERLAY
-     * Used by list view to determine how to handle edit button clicks.
-     */
-    public static final ContextKey.StringKey<Slot> EDIT_SLOT =
-            new ContextKey.StringKey<>("edit.slot", Slot.class);
-
-    /**
      * Whether the edit contract has a registered route.
      * Type: Boolean
      * True if Router has a route for the edit contract (e.g., "/posts/:id").
@@ -191,38 +180,15 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("edit.routePattern", String.class);
 
     /**
-     * Map of all overlay contracts for this scene.
-     * Type: {@code Map<Class<? extends ViewContract>, ViewContract>}
-     * Contains pre-instantiated contracts for all Slot.OVERLAY placements.
-     * Keyed by contract class for lookup.
-     */
-    @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<Map<Class<? extends ViewContract>, ViewContract>> OVERLAY_CONTRACTS =
-            new ContextKey.StringKey<>("layout.overlayContracts",
-                    (Class<Map<Class<? extends ViewContract>, ViewContract>>) (Class<?>) Map.class);
-
-    /**
-     * Base key for overlay view contract instances.
-     * Use {@code OVERLAY_VIEW_CONTRACT.with(contractClassName)} to access specific overlay contracts.
-     * Type: ViewContract
-     *
-     * <p>Examples:</p>
-     * <ul>
-     *   <li>{@code OVERLAY_VIEW_CONTRACT.with("PostCreateContract")} - create overlay contract</li>
-     *   <li>{@code OVERLAY_VIEW_CONTRACT.with("PostEditContract")} - edit overlay contract</li>
-     * </ul>
-     */
-    public static final ContextKey.DynamicKey<ViewContract> OVERLAY_VIEW_CONTRACT =
-            new ContextKey.DynamicKey<>("layout.overlayViewContract", ViewContract.class);
-
-    /**
-     * Whether the current contract is being instantiated as an overlay (modal/popup).
+     * Whether the edit contract opens as an overlay (has a parent route).
      * Type: Boolean
-     * Set to true when SceneComponent instantiates contracts with Slot.OVERLAY.
-     * Contracts can check this to adjust their behavior (e.g., publish modal events instead of navigating).
+     * <p>
+     * True when the edit contract's route has a parent route (e.g., "/posts/:id" has parent "/posts"),
+     * meaning it opens as an overlay via SHOW event rather than navigating as a primary view.
+     * Used by list view to determine whether the edit button renders as a link or a SHOW button.
      */
-    public static final ContextKey.StringKey<Boolean> IS_OVERLAY_MODE =
-            new ContextKey.StringKey<>("layout.isOverlayMode", Boolean.class);
+    public static final ContextKey.StringKey<Boolean> EDIT_OPENS_AS_OVERLAY =
+            new ContextKey.StringKey<>("edit.opensAsOverlay", Boolean.class);
 
     /**
      * Data passed to a contract when shown via SHOW event.
@@ -252,32 +218,14 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("contract.isActive", Boolean.class);
 
     /**
-     * The current scene containing activeContractsBySlot state.
+     * The current scene.
      * Type: Scene
      * <p>
      * Set by SceneComponent in subComponentsContext.
-     * Used by contracts to call SlotUtils.findSlot() or SlotUtils.isInOverlay()
-     * to determine their placement without storing placement state.
-     * <p>
-     * Enables placement-agnostic contracts - contracts query the scene for their slot
-     * instead of caching isModalMode field.
+     * Available to downstream components for contract/factory lookups.
      */
     public static final ContextKey.StringKey<Scene> SCENE =
             new ContextKey.StringKey<>("scene", Scene.class);
-
-    /**
-     * Active contracts per slot.
-     * Type: {@code Map<Slot, List<ViewContract>>}
-     * <p>
-     * Set by SceneComponent when contracts are shown/hidden.
-     * Read by LayoutComponent to render contracts in their slots.
-     * <p>
-     * Supports multiple contracts per slot (e.g., nested overlays).
-     */
-    @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<Map<Slot, List<ViewContract>>> ACTIVE_CONTRACTS_BY_SLOT =
-            new ContextKey.StringKey<>("scene.activeContractsBySlot",
-                    (Class<Map<Slot, List<ViewContract>>>) (Class<?>) Map.class);
 
     /**
      * The contract class that is currently being hidden.

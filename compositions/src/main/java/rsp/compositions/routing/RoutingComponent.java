@@ -84,7 +84,8 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
         return _ -> state -> new SceneComponent(state.path().toString(),
                                                                                                       state.composition(),
                                                                                                       state.contractClass(),
-                                                                                                      state.pattern());
+                                                                                                      state.pattern(),
+                                                                                                      state.composition().layout());
     }
 
     public record RoutingComponentState(

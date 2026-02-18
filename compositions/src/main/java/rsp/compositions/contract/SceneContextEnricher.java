@@ -3,29 +3,25 @@ package rsp.compositions.contract;
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.ContractMetadata;
-import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.Router;
 
-import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 /**
  * Enriches ComponentContext with Scene-derived data for downstream UI components.
  * <p>
  * Pure data transformation: (context, scene) -> enriched context.
  * <p>
- * Enrichments include: Scene reference, primary contract data and category key,
- * sidebar data, active contracts by slot, and edit slot/route info.
+ * Enrichments include: Scene reference, routed contract data and category key,
+ * companion contract data, and edit route info.
  * Overlay/layer context enrichment is handled by LayerComponent.
  */
 public final class SceneContextEnricher {
 
-    private final String routePattern;
-
     public SceneContextEnricher(String routePattern) {
-        this.routePattern = Objects.requireNonNull(routePattern, "routePattern");
+        Objects.requireNonNull(routePattern, "routePattern");
     }
 
     /**
@@ -36,62 +32,41 @@ public final class SceneContextEnricher {
             return context;
         }
 
-        ViewContract contract = scene.primaryContract();
+        ViewContract routedContract = scene.routedContract();
         Composition composition = scene.composition();
 
-        // Add Scene to context so contracts can use SlotUtils
+        // Add Scene to context
         ComponentContext enrichedContext = context.with(ContextKeys.SCENE, scene);
 
-        // Let the primary contract enrich context with its data (items, schema, etc.)
-        enrichedContext = contract.enrichContext(enrichedContext);
+        // Let the routed contract enrich context with its data (items, schema, etc.)
+        if (routedContract != null) {
+            enrichedContext = routedContract.enrichContext(enrichedContext);
+        }
 
         // Resolve metadata from composition categories
-        ContractMetadata primaryMeta = composition != null
-                ? composition.metadataFor(contract.getClass())
+        ContractMetadata primaryMeta = composition != null && routedContract != null
+                ? composition.metadataFor(routedContract.getClass())
                 : new ContractMetadata("App", "App");
 
-        // Add primary contract's category key to context for Explorer highlighting
+        // Add routed contract's category key to context for Explorer highlighting
         enrichedContext = enrichedContext.with(ContextKeys.PRIMARY_CATEGORY_KEY, primaryMeta.categoryKey());
 
-        // Let the LEFT_SIDEBAR contract enrich context with its data (if present)
-        ViewContract leftSidebarContract = scene.leftSidebarContract();
-        if (leftSidebarContract != null) {
-            enrichedContext = leftSidebarContract.enrichContext(enrichedContext);
+        // Let all companion contracts enrich context with their data
+        for (ViewContract companion : scene.companionContracts().values()) {
+            enrichedContext = companion.enrichContext(enrichedContext);
         }
 
-        // Let the RIGHT_SIDEBAR contract enrich context with its data (if present)
-        ViewContract rightSidebarContract = scene.rightSidebarContract();
-        if (rightSidebarContract != null) {
-            enrichedContext = rightSidebarContract.enrichContext(enrichedContext);
-        }
-
-        // Let the HEADER contract enrich context with its data (if present)
-        ViewContract headerContract = scene.headerContract();
-        if (headerContract != null) {
-            enrichedContext = headerContract.enrichContext(enrichedContext);
-        }
-
-        // Add active contracts by slot to context (for Layout to read)
-        enrichedContext = enrichedContext.with(
-            ContextKeys.ACTIVE_CONTRACTS_BY_SLOT,
-            scene.activeContractsBySlot().entrySet().stream()
-                .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    e -> e.getValue().stream().map(Scene.ActiveContract::contract).toList()
-                ))
-        );
-
-        // Add edit slot/route info to context for DefaultListView (use composition's router)
-        enrichedContext = enrichEditSlotInfo(enrichedContext, composition, composition.router());
+        // Add edit route info to context for DefaultListView
+        enrichedContext = enrichEditInfo(enrichedContext, composition, composition.router());
 
         return enrichedContext;
     }
 
     /**
-     * Add edit contract slot and route info to context.
+     * Add edit contract route info to context.
      * This helps DefaultListView determine how to render the Edit button.
      */
-    private ComponentContext enrichEditSlotInfo(ComponentContext context, Composition composition, Router router) {
+    private ComponentContext enrichEditInfo(ComponentContext context, Composition composition, Router router) {
         // Find EditViewContract-based placement in the composition
         ViewPlacement editPlacement = null;
         for (ViewPlacement placement : composition.views()) {
@@ -105,18 +80,18 @@ public final class SceneContextEnricher {
             return context; // No edit contract in this composition
         }
 
-        Slot editSlot = editPlacement.slot();
-        context = context.with(ContextKeys.EDIT_SLOT, editSlot);
-
         // Check if edit contract has a route
         boolean hasRoute = router != null && router.hasRoute(editPlacement.contractClass());
         context = context.with(ContextKeys.EDIT_HAS_ROUTE, hasRoute);
 
-        // If it has a route, derive the edit pattern from the constructor-provided routePattern
         if (hasRoute && router != null) {
-            // Assume edit pattern is list pattern + "/:id"
-            String editPattern = this.routePattern + "/:id";
-            context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editPattern);
+            Optional<String> editRouteOpt = router.findRoutePattern(editPlacement.contractClass());
+            if (editRouteOpt.isPresent()) {
+                context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editRouteOpt.get());
+                // Overlay-like if route has a parent (e.g., /posts/:id has parent /posts)
+                boolean opensAsOverlay = router.findParentRoute(editRouteOpt.get()).isPresent();
+                context = context.with(ContextKeys.EDIT_OPENS_AS_OVERLAY, opensAsOverlay);
+            }
         }
 
         return context;

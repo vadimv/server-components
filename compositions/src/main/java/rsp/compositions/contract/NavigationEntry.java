@@ -2,18 +2,21 @@ package rsp.compositions.contract;
 
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.ContractMetadata;
-import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.ViewPlacement;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
- * Framework-computed navigation metadata for PRIMARY contracts.
+ * Framework-computed navigation metadata for routable contracts.
  * <p>
  * Each entry represents a unique navigable category with its
  * route and display label. Computed at app startup from composition registrations.
+ * <p>
+ * Only contracts with non-parameterized routes (no ":id" placeholders) are included,
+ * since parameterized routes require context data and aren't top-level navigable.
  * <p>
  * Used by navigation/explorer UI components to render menus without
  * needing to access framework internals directly.
@@ -31,9 +34,9 @@ public record NavigationEntry(String categoryKey,
     /**
      * Compute navigation entries from all compositions.
      * <p>
-     * Iterates PRIMARY placements across all compositions, resolves metadata from
-     * explicit categories, deduplicates by category key, and resolves routes from each
-     * composition's router.
+     * Iterates all placements across all compositions, includes those with
+     * non-parameterized routes, resolves metadata from explicit categories,
+     * and deduplicates by category key.
      *
      * @param compositions the list of all app compositions
      * @return immutable list of unique navigation entries
@@ -46,17 +49,18 @@ public record NavigationEntry(String categoryKey,
         final Map<String, NavigationEntry> uniqueByCategory = new LinkedHashMap<>();
 
         for (Composition comp : compositions) {
-            for (ViewPlacement placement : comp.placementsForSlot(Slot.PRIMARY)) {
-                ContractMetadata metadata = comp.metadataFor(placement.contractClass());
-                String categoryKey = metadata.categoryKey();
+            for (ViewPlacement placement : comp.views()) {
+                Optional<String> routeOpt = comp.router().findRoutePattern(placement.contractClass());
+                // Only include contracts with non-parameterized routes
+                if (routeOpt.isPresent() && !routeOpt.get().contains(":")) {
+                    ContractMetadata metadata = comp.metadataFor(placement.contractClass());
+                    String categoryKey = metadata.categoryKey();
 
-                if (!uniqueByCategory.containsKey(categoryKey)) {
-                    String route = comp.router()
-                            .findRoutePattern(placement.contractClass())
-                            .orElse("/");
-                    String label = metadata.navigationLabel();
-                    uniqueByCategory.put(categoryKey,
-                            new NavigationEntry(categoryKey, label, placement.contractClass(), route));
+                    if (!uniqueByCategory.containsKey(categoryKey)) {
+                        String label = metadata.navigationLabel();
+                        uniqueByCategory.put(categoryKey,
+                                new NavigationEntry(categoryKey, label, placement.contractClass(), routeOpt.get()));
+                    }
                 }
             }
         }

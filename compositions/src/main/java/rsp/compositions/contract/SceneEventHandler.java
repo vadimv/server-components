@@ -2,11 +2,9 @@ package rsp.compositions.contract;
 
 import rsp.component.*;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.ViewPlacement;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -14,12 +12,12 @@ import static rsp.compositions.contract.EventKeys.*;
 import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.RE_RENDER_SUBTREE;
 
 /**
- * Registers and handles Scene lifecycle events for the base layer (primary + sidebars).
+ * Registers and handles Scene lifecycle events for the base layer (routed + companions).
  * <p>
  * Events handled:
  * <ul>
- *   <li>SET_PRIMARY - Replace the primary contract</li>
- *   <li>ACTION_SUCCESS - Refresh primary contract in place (same contract case)</li>
+ *   <li>SET_PRIMARY - Replace the routed contract</li>
+ *   <li>ACTION_SUCCESS - Refresh routed contract in place (data may have changed)</li>
  * </ul>
  * <p>
  * Overlay events (SHOW, HIDE, overlay ACTION_SUCCESS) are handled by LayerComponent.
@@ -43,114 +41,36 @@ public final class SceneEventHandler {
             handleSetPrimary(state, contractClass, stateUpdate, commandsEnqueue);
         }, false);
 
-        // ACTION_SUCCESS handler: primary contract refresh in place
+        // ACTION_SUCCESS handler: refresh routed contract in place
         subscriber.addEventHandler(ACTION_SUCCESS, (eventName, result) -> {
             handleActionSuccess(state, result, commandsEnqueue, stateUpdate);
         }, false);
     }
 
     /**
-     * Result of resolving and instantiating a contract from an event.
-     */
-    private record ResolvedContract(
-        ViewContract contract,
-        Slot targetSlot
-    ) {}
-
-    /**
-     * Resolve factory, resolve slot, create lookup, instantiate contract, register handlers.
-     *
-     * @param state           current scene
-     * @param contractClass   the contract class to instantiate
-     * @param showData        data from SHOW event (null for SET_PRIMARY)
-     * @param commandsEnqueue for creating the lookup
-     * @return the resolved contract with its slot, or null if resolution failed
-     */
-    @SuppressWarnings("unchecked")
-    private ResolvedContract resolveAndInstantiate(
-            Scene state,
-            Class contractClass,
-            Map<String, Object> showData,
-            CommandsEnqueue commandsEnqueue) {
-
-        // Check if already active
-        if (state.findContract(contractClass) != null) {
-            return null; // Already shown
-        }
-
-        // Get factory from scene
-        Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
-        if (factory == null) {
-            // Not found in factories - check composition placements
-            Composition composition = state.composition();
-            ViewPlacement placement = composition != null ? composition.placementFor(contractClass) : null;
-            if (placement != null) {
-                factory = placement.contractFactory();
-            }
-        }
-
-        if (factory == null) {
-            return null; // No factory available
-        }
-
-        // Resolve target slot from composition (no default assumption)
-        Composition composition = state.composition();
-        Slot targetSlot = null;
-        if (composition != null) {
-            ViewPlacement placement = composition.placementFor(contractClass);
-            if (placement != null) {
-                targetSlot = placement.slot();
-            }
-        }
-
-        if (targetSlot == null) {
-            return null;
-        }
-
-        // Create lookup with context enrichment, marking contract as active
-        ComponentContext showContext = savedContext
-            .with(ContextKeys.CONTRACT_CLASS, contractClass)
-            .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
-            .with(ContextKeys.SCENE, state);
-
-        if (showData != null) {
-            showContext = showContext.with(ContextKeys.SHOW_DATA, showData);
-        }
-
-        Lookup lookup = LookupFactory.create(showContext, commandsEnqueue);
-
-        // Instantiate contract
-        ViewContract contract = factory.apply(lookup);
-        if (contract == null) {
-            return null;
-        }
-        contract.registerHandlers();
-
-        return new ResolvedContract(contract, targetSlot);
-    }
-
-    /**
-     * Handle SET_PRIMARY event: replace the primary contract.
+     * Handle SET_PRIMARY event: replace the routed contract.
      */
     @SuppressWarnings("unchecked")
     private void handleSetPrimary(Scene state, Class contractClass,
                                   StateUpdate<Scene> stateUpdate,
                                   CommandsEnqueue commandsEnqueue) {
-        // Check if already active FIRST (before destroying old primary)
-        if (state.findContract(contractClass) != null) {
-            return; // Already shown
-        }
-
-        if (state.primaryContract() != null) {
-            state.primaryContract().onDestroy();
-        }
-
-        ResolvedContract resolved = resolveAndInstantiate(state, contractClass, null, commandsEnqueue);
-        if (resolved == null) {
+        // Check if already the routed contract
+        if (state.routedContract() != null && state.routedContract().getClass().equals(contractClass)) {
             return;
         }
 
-        // Update URL to reflect the new primary contract's route
+        // Destroy old routed contract
+        if (state.routedContract() != null) {
+            state.routedContract().onDestroy();
+        }
+
+        // Resolve and instantiate the new contract
+        ViewContract newContract = resolveAndInstantiate(state, contractClass, commandsEnqueue);
+        if (newContract == null) {
+            return;
+        }
+
+        // Update URL to reflect the new routed contract's route
         Composition composition = state.composition();
         if (composition != null && composition.router() != null) {
             Class<? extends ViewContract> typedContractClass = (Class<? extends ViewContract>) contractClass;
@@ -164,17 +84,54 @@ public final class SceneEventHandler {
             }
         }
 
-        stateUpdate.applyStateTransformation(s ->
-                s.withPrimaryContract(resolved.contract())
-        );
+        stateUpdate.applyStateTransformation(s -> s.withRoutedContract(newContract));
     }
 
     /**
-     * Handle ACTION_SUCCESS: always refresh the primary contract.
+     * Resolve factory, create lookup, instantiate contract, register handlers.
+     */
+    @SuppressWarnings("unchecked")
+    private ViewContract resolveAndInstantiate(Scene state, Class contractClass,
+                                               CommandsEnqueue commandsEnqueue) {
+        // Get factory from scene lazy factories
+        Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
+        if (factory == null) {
+            // Check composition placements
+            Composition composition = state.composition();
+            ViewPlacement placement = composition != null ? composition.placementFor(contractClass) : null;
+            if (placement != null) {
+                factory = placement.contractFactory();
+            }
+        }
+
+        if (factory == null) {
+            return null;
+        }
+
+        // Create lookup with context enrichment
+        ComponentContext showContext = savedContext
+            .with(ContextKeys.CONTRACT_CLASS, contractClass)
+            .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
+            .with(ContextKeys.SCENE, state);
+
+        Lookup lookup = LookupFactory.create(showContext, commandsEnqueue);
+
+        // Instantiate contract
+        ViewContract contract = factory.apply(lookup);
+        if (contract == null) {
+            return null;
+        }
+        contract.registerHandlers();
+
+        return contract;
+    }
+
+    /**
+     * Handle ACTION_SUCCESS: always refresh the routed contract.
      * <p>
-     * Any successful action (whether from the primary itself or from an overlay layer)
-     * may have modified data visible in the primary view. LayerComponent handles
-     * closing the overlay; this handler ensures the primary list reflects current data.
+     * Any successful action (whether from the routed contract itself or from a layer)
+     * may have modified data visible in the routed view. LayerComponent handles
+     * closing the overlay; this handler ensures the routed list reflects current data.
      */
     @SuppressWarnings("unchecked")
     private void handleActionSuccess(Scene state,
@@ -186,12 +143,12 @@ public final class SceneEventHandler {
             return;
         }
 
-        // Always refresh primary — the action may have modified data visible in the primary view
-        state.primaryContract().onDestroy();
-        Class primaryClass = state.primaryContract().getClass();
-        ResolvedContract resolved = resolveAndInstantiate(state, primaryClass, null, commandsEnqueue);
-        if (resolved != null) {
-            stateUpdate.applyStateTransformation(s -> s.withPrimaryContract(resolved.contract()));
+        // Always refresh routed contract — the action may have modified visible data
+        state.routedContract().onDestroy();
+        Class routedClass = state.routedContract().getClass();
+        ViewContract refreshed = resolveAndInstantiate(state, routedClass, commandsEnqueue);
+        if (refreshed != null) {
+            stateUpdate.applyStateTransformation(s -> s.withRoutedContract(refreshed));
         }
     }
 }

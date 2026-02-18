@@ -22,9 +22,9 @@ import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.StubAuthProvider;
 import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Slot;
 import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.composition.ViewsPlacements;
+import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.contract.CreateViewContract;
 import rsp.compositions.contract.EditViewContract;
 import rsp.compositions.contract.ListViewContract;
@@ -62,21 +62,26 @@ public class CrudApp {
                 .route("/comments/:id", CommentEditContract.class);
 
         final ViewsPlacements places = new ViewsPlacements()
-                .place(Slot.LEFT_SIDEBAR, ExplorerContract.class, ExplorerContract::new)  // Explorer in sidebar
-                .place(Slot.PRIMARY, PostsListContract.class, PostsListContract::new)
-                .place(Slot.PRIMARY, CommentsListContract.class, CommentsListContract::new)
-                .place(Slot.OVERLAY, PostCreateContract.class, PostCreateContract::new)
-                .place(Slot.OVERLAY, PostEditContract.class, PostEditContract::new)
-                .place(Slot.OVERLAY, CommentCreateContract.class, CommentCreateContract::new)
-                .place(Slot.OVERLAY, CommentEditContract.class, CommentEditContract::new)
-                .place(Slot.RIGHT_SIDEBAR, PromptContract.class, PromptContract::new)
-                .place(Slot.HEADER, HeaderContract.class, HeaderContract::new);
+                .place(ExplorerContract.class, ExplorerContract::new)
+                .place(PostsListContract.class, PostsListContract::new)
+                .place(CommentsListContract.class, CommentsListContract::new)
+                .place(PostCreateContract.class, PostCreateContract::new)
+                .place(PostEditContract.class, PostEditContract::new)
+                .place(CommentCreateContract.class, CommentCreateContract::new)
+                .place(CommentEditContract.class, CommentEditContract::new)
+                .place(PromptContract.class, PromptContract::new)
+                .place(HeaderContract.class, HeaderContract::new);
+
+        final DefaultLayout layout = new DefaultLayout()
+                .leftSidebar(ExplorerContract.class)
+                .rightSidebar(PromptContract.class)
+                .header(HeaderContract.class);
 
         final Category categories = new Category()
                 .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
                 .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
 
-        final Composition postsComposition = new Composition(router, places, categories);
+        final Composition postsComposition = new Composition(router, places, categories, layout);
 
         // Create services
         final PostService postService = new PostService();

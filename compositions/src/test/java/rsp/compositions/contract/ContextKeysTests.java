@@ -105,8 +105,8 @@ class ContextKeysTests {
         }
 
         @Test
-        void is_overlay_mode_key_has_correct_type() {
-            assertEquals(Boolean.class, ContextKeys.IS_OVERLAY_MODE.type());
+        void is_active_contract_key_has_correct_type() {
+            assertEquals(Boolean.class, ContextKeys.IS_ACTIVE_CONTRACT.type());
         }
 
         @Test
@@ -143,11 +143,11 @@ class ContextKeysTests {
         }
 
         @Test
-        void can_store_and_retrieve_is_overlay_mode() {
+        void can_store_and_retrieve_is_active_contract() {
             final TestLookup lookup = new TestLookup()
-                    .withData(ContextKeys.IS_OVERLAY_MODE, true);
+                    .withData(ContextKeys.IS_ACTIVE_CONTRACT, true);
 
-            assertEquals(true, lookup.get(ContextKeys.IS_OVERLAY_MODE));
+            assertEquals(true, lookup.get(ContextKeys.IS_ACTIVE_CONTRACT));
         }
 
         @Test

@@ -17,9 +17,10 @@ import static rsp.compositions.contract.EventKeys.SET_PRIMARY;
  * Reads framework-provided {@link NavigationEntry} list from context and relays
  * menu selection events as {@code SET_PRIMARY} commands.
  * <p>
- * Register in LEFT_SIDEBAR slot:
+ * Register in composition and configure as left sidebar in Layout:
  * <pre>{@code
- * places.place(Slot.LEFT_SIDEBAR, ExplorerContract.class, ExplorerContract::new)
+ * places.place(ExplorerContract.class, ExplorerContract::new)
+ * new DefaultLayout().leftSidebar(ExplorerContract.class)
  * }</pre>
  */
 public class ExplorerContract extends ViewContract {

@@ -6,7 +6,6 @@ import rsp.component.ComponentView;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ListView;
-import rsp.compositions.composition.Slot;
 import rsp.dsl.Definition;
 
 import java.time.LocalDate;
@@ -24,7 +23,7 @@ import static rsp.dsl.Html.*;
  * Supports any number of columns and types.
  * Includes pagination and sorting interactivity.
  * <p>
- * Create/Edit actions trigger events that open overlay contracts (Slot.OVERLAY).
+ * Create/Edit actions trigger events that open overlay contracts via SHOW events.
  */
 public class DefaultListView extends ListView {
 
@@ -188,24 +187,23 @@ public class DefaultListView extends ListView {
     /**
      * Render Edit button/link for a row.
      * <p>
-     * Behavior depends on edit contract's slot and route configuration:
+     * Behavior depends on edit contract's route configuration:
      * <ul>
-     *   <li>Case 1: PRIMARY + route → navigate via link (full page edit)</li>
-     *   <li>Case 2: OVERLAY + route → event (modal, URL updated by LayoutComponent)</li>
-     *   <li>Case 4: OVERLAY + no route → event (modal, no URL change)</li>
+     *   <li>Primary-like (no parent route) + has route → navigate via link (full page edit)</li>
+     *   <li>Overlay-like (has parent route) or no route → event (SHOW-based overlay)</li>
      * </ul>
      *
      * @param rowId The row ID for the edit link
      * @param queryParams Query params to preserve (e.g., "fromP=2&fromSort=desc")
      */
     private Definition renderEditButton(String rowId, String queryParams) {
-        // Get edit slot and route info from context
-        Slot editSlot = lookup.get(ContextKeys.EDIT_SLOT);
         Boolean editHasRoute = lookup.get(ContextKeys.EDIT_HAS_ROUTE);
+        Boolean editOpensAsOverlay = lookup.get(ContextKeys.EDIT_OPENS_AS_OVERLAY);
         String editRoutePattern = lookup.get(ContextKeys.EDIT_ROUTE_PATTERN);
 
-        // Case 1: PRIMARY slot with route → navigate via link
-        if (editSlot == Slot.PRIMARY && editHasRoute != null && editHasRoute) {
+        // Primary-like with route → navigate via link
+        if (editHasRoute != null && editHasRoute
+                && (editOpensAsOverlay == null || !editOpensAsOverlay)) {
             String editUrl = buildEditUrl(editRoutePattern, rowId, queryParams);
             return a(
                 attr("href", editUrl),
@@ -214,8 +212,7 @@ public class DefaultListView extends ListView {
             );
         }
 
-        // Cases 2 & 4: OVERLAY slot (with or without route) → trigger event
-        // URL sync for Case 2 is handled by LayoutComponent
+        // Overlay-like or no route → trigger event (LayerComponent handles SHOW)
         return button(
             attr("type", "button"),
             attr("class", "edit-button"),

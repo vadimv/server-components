@@ -55,45 +55,19 @@ public final class EventKeys {
 
 
     /**
-     * Action succeeded (generic success event).
+     * Action succeeded (data event).
      * Emitted by: Contracts (EditViewContract, FormViewContract) after successful operations
-     * Handled by: Framework (SceneComponent) which derives navigation from composition config
-     * Payload: ActionResult containing contract class and operation type
+     * Payload: ActionResult containing contract class
      * <p>
-     * This follows the CountersMainComponent pattern:
-     * - Contracts emit INTENT (action type only, no routes)
-     * - Framework derives NAVIGATION from composition/router configuration
-     * <p>
-     * Framework behavior based on placement:
-     * <ul>
-     *   <li>OVERLAY → HIDE + legacy event + REFRESH_LIST</li>
-     *   <li>PRIMARY (same contract) → scene rebuild (refresh in place)</li>
-     *   <li>PRIMARY (different contract) → navigate to list route (derived from Router)</li>
-     * </ul>
-     * <p>
-     * Example flow:
-     * <ol>
-     *   <li>Contract saves entity, emits ACTION_SUCCESS(SAVE)</li>
-     *   <li>SceneComponent receives event, checks contract placement</li>
-     *   <li>Framework derives list route from composition's Router</li>
-     *   <li>Framework navigates to derived route</li>
-     * </ol>
+     * This is a data event — contracts decide their own post-action behavior.
+     * The framework does not impose auto-close or auto-navigate heuristics.
+     * Contracts that want to close after success should publish HIDE themselves.
      */
     public static final EventKey.SimpleKey<ActionResult> ACTION_SUCCESS =
             new EventKey.SimpleKey<>("action.success", ActionResult.class);
 
     /**
-     * Action result containing operation type.
-     * <p>
-     * Framework derives navigation from composition configuration:
-     * <ul>
-     *   <li>OVERLAY → HIDE + REFRESH_LIST</li>
-     *   <li>PRIMARY (same contract) → scene rebuild (refresh in place)</li>
-     *   <li>PRIMARY (different contract) → navigate to list route (derived from Router)</li>
-     * </ul>
-     * <p>
-     * This follows the CountersMainComponent pattern: contracts emit INTENT (action type),
-     * framework derives NAVIGATION from composition/router configuration.
+     * Action result payload.
      *
      * @param contractClass The class of the contract that performed the action
      */

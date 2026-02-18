@@ -3,7 +3,6 @@ package rsp.compositions.contract;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Slot;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.LayerLayout;
 import rsp.compositions.layout.Layout;
@@ -21,9 +20,9 @@ import static rsp.dsl.Html.*;
  * Delegates to:
  * <ul>
  *   <li>{@link SceneBuilder} - Scene construction from composition</li>
- *   <li>{@link SceneEventHandler} - SET_PRIMARY/ACTION_SUCCESS handlers for base layer</li>
+ *   <li>{@link SceneEventHandler} - SET_PRIMARY handler for base layer</li>
  *   <li>{@link SceneContextEnricher} - Context enrichment for downstream components</li>
- *   <li>{@link Layout} - Base layer visual arrangement (primary + sidebars)</li>
+ *   <li>{@link Layout} - Base layer visual arrangement (also declares required companions)</li>
  *   <li>{@link LayerComponent} - Upper layers (overlays, panels) with pluggable {@link LayerLayout}</li>
  * </ul>
  * <p>
@@ -65,9 +64,9 @@ public class SceneComponent extends Component<Scene> {
         Objects.requireNonNull(composition, "composition");
         Objects.requireNonNull(contractClass, "contractClass");
         Objects.requireNonNull(routePattern, "routePattern");
-        this.sceneBuilder = new SceneBuilder(composition, contractClass, routePattern);
-        this.contextEnricher = new SceneContextEnricher(routePattern);
         this.layout = Objects.requireNonNull(layout, "layout");
+        this.sceneBuilder = new SceneBuilder(composition, contractClass, routePattern, layout);
+        this.contextEnricher = new SceneContextEnricher(routePattern);
         this.layerLayout = Objects.requireNonNull(layerLayout, "layerLayout");
     }
 
@@ -98,16 +97,13 @@ public class SceneComponent extends Component<Scene> {
         if (scene == null) {
             return;
         }
-        // Destroy primary contract
-        scene.primaryContract().onDestroy();
-        // Destroy sidebar contracts only — layer contracts are managed by LayerComponent
-        for (var slotEntry : scene.activeContractsBySlot().entrySet()) {
-            Slot slot = slotEntry.getKey();
-            if (slot == Slot.LEFT_SIDEBAR || slot == Slot.RIGHT_SIDEBAR || slot == Slot.HEADER) {
-                for (var activeContract : slotEntry.getValue()) {
-                    activeContract.contract().onDestroy();
-                }
-            }
+        // Destroy routed contract
+        if (scene.routedContract() != null) {
+            scene.routedContract().onDestroy();
+        }
+        // Destroy all companion contracts
+        for (var companion : scene.companionContracts().values()) {
+            companion.onDestroy();
         }
     }
 
