@@ -9,6 +9,7 @@ import rsp.page.QualifiedSessionId;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class PromptContract extends ViewContract {
     private final System.Logger logger = System.getLogger(getClass().getName());
@@ -25,10 +26,10 @@ public class PromptContract extends ViewContract {
     private Runnable serviceUnsubscribe;
     private final String scopeKey;
 
-    public PromptContract(Lookup lookup) {
+    public PromptContract(Lookup lookup, PromptService promptService) {
         super(lookup);
+        Objects.requireNonNull(promptService);
 
-        PromptService promptService = lookup.get(PromptService.class);
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
         this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
 

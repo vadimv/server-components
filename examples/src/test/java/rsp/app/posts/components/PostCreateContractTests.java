@@ -35,7 +35,7 @@ class PostCreateContractTests {
         @Test
         void save_creates_new_post() {
             final Lookup lookup = createLookup();
-            final PostCreateContract contract = new PostCreateContract(lookup);
+            final PostCreateContract contract = new PostCreateContract(lookup, postService);
 
             final Map<String, Object> fieldValues = Map.of(
                     "title", "Unique Test Post Title",
@@ -62,7 +62,7 @@ class PostCreateContractTests {
         @Test
         void schema_has_title_and_content_fields() {
             final Lookup lookup = createLookup();
-            final PostCreateContract contract = new PostCreateContract(lookup);
+            final PostCreateContract contract = new PostCreateContract(lookup, postService);
 
             final var schema = contract.schema();
 
@@ -79,7 +79,7 @@ class PostCreateContractTests {
         @Test
         void list_route_returns_posts_path() {
             final Lookup lookup = createLookup();
-            final PostCreateContract contract = new PostCreateContract(lookup);
+            final PostCreateContract contract = new PostCreateContract(lookup, postService);
 
             assertEquals("/posts", contract.listRoute());
         }

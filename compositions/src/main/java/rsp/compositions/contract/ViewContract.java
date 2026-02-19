@@ -5,6 +5,7 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -15,7 +16,7 @@ public abstract class ViewContract {
     protected final Lookup lookup;
 
     protected ViewContract(Lookup lookup) {
-        this.lookup = lookup;
+        this.lookup = Objects.requireNonNull(lookup);
     }
 
     protected <T> T resolve(QueryParam<T> param) {

@@ -49,17 +49,22 @@ public class CrudApp {
                 .route("/comments", CommentsListContract.class)
                 .route("/comments/:id", CommentEditContract.class);
 
-        final Contracts postsUi = new Contracts()
-                .bind(PostsListContract.class, PostsListContract::new, DefaultListView::new)
-                .bind(PostCreateContract.class, PostCreateContract::new, DefaultEditView::new)
-                .bind(PostEditContract.class, PostEditContract::new, DefaultEditView::new)
+        final PostService postService = new PostService();
+        final CommentService commentService = new CommentService();
+        final PromptService promptService = new PromptService();
+        promptService.startTicking();
 
-                .bind(CommentsListContract.class, CommentsListContract::new, DefaultListView::new)
-                .bind(CommentCreateContract.class, CommentCreateContract::new, DefaultEditView::new)
-                .bind(CommentEditContract.class, CommentEditContract::new, DefaultEditView::new)
+        final Contracts postsUi = new Contracts()
+                .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
+                .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
+                .bind(PostEditContract.class, ctx -> new PostEditContract(ctx, postService), DefaultEditView::new)
+
+                .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new)
+                .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
+                .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new)
 
                 .bind(ExplorerContract.class, ExplorerContract::new, ExplorerView::new)
-                .bind(PromptContract.class, PromptContract::new, PromptView::new)
+                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
 
         final Category categories = new Category()
@@ -73,17 +78,8 @@ public class CrudApp {
 
         final Composition postsComposition = new Composition(router, postsUi, categories, layout);
 
-        // Create services
-        final PostService postService = new PostService();
-        final CommentService commentService = new CommentService();
-        final PromptService promptService = new PromptService();
-        promptService.startTicking();
-
-        // Services and auth provider will be added to the components context and referenced by their classes
+        // Auth provider will be added to the components context and referenced by its class
         final Services services = new Services()
-                .service(PostService.class, postService)
-                .service(CommentService.class, commentService)
-                .service(PromptService.class, promptService)
                 .service(AuthComponent.AuthProvider.class, new StubAuthProvider());
 
         final App app = new App(config, List.of(postsComposition), services);

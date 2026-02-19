@@ -10,6 +10,7 @@ import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * PostEditContract - Contract for editing an existing post.
@@ -24,9 +25,9 @@ public class PostEditContract extends EditViewContract<Post> {
 
     private final PostService postService;
 
-    public PostEditContract(final Lookup lookup) {
+    public PostEditContract(final Lookup lookup, PostService postService) {
         super(lookup);
-        this.postService = lookup.get(PostService.class);
+        this.postService = Objects.requireNonNull(postService);
     }
 
     @Override

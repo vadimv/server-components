@@ -42,7 +42,7 @@ class PostEditContractTests {
 
             // Delete via contract
             final Lookup lookup = lookupWithPathId(id);
-            final PostEditContract contract = new PostEditContract(lookup);
+            final PostEditContract contract = new PostEditContract(lookup, postService);
 
             final boolean result = contract.delete();
 
@@ -53,7 +53,7 @@ class PostEditContractTests {
         @Test
         void delete_returns_false_for_nonexistent_post() {
             final Lookup lookup = lookupWithPathId("99999");
-            final PostEditContract contract = new PostEditContract(lookup);
+            final PostEditContract contract = new PostEditContract(lookup, postService);
 
             final boolean result = contract.delete();
 
@@ -68,7 +68,7 @@ class PostEditContractTests {
         void item_returns_post_in_edit_mode() {
             final String id = postService.create(new Post(null, "Title", "Content"));
             final Lookup lookup = lookupWithPathId(id);
-            final PostEditContract contract = new PostEditContract(lookup);
+            final PostEditContract contract = new PostEditContract(lookup, postService);
 
             final Post post = contract.item();
 
@@ -80,7 +80,7 @@ class PostEditContractTests {
         @Test
         void item_returns_null_for_nonexistent_post() {
             final Lookup lookup = lookupWithPathId("99999");
-            final PostEditContract contract = new PostEditContract(lookup);
+            final PostEditContract contract = new PostEditContract(lookup, postService);
 
             assertNull(contract.item());
         }
