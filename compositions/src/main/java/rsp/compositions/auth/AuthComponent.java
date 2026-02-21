@@ -1,5 +1,6 @@
 package rsp.compositions.auth;
 
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
@@ -9,10 +10,9 @@ import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.SceneComponent;
 import rsp.compositions.contract.ViewContract;
 
-import java.util.Set;
-import java.util.function.BiFunction;
+import rsp.dsl.Definition;
 
-import static rsp.dsl.Html.html;
+import java.util.function.BiFunction;
 
 /**
  * AuthComponent - Authentication gate.
@@ -63,24 +63,20 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
     @Override
     public BiFunction<ComponentContext, AuthComponentState, ComponentContext> subComponentsContext() {
-        return (context, state) -> {
-            return context
+        return (context, state) -> context
                 .with(ContextKeys.AUTH_USER, state.user())
                 .with(ContextKeys.AUTH_AUTHENTICATED, state.authenticated())
                 .with(ContextKeys.AUTH_ROLES, state.roles());
-        };
     }
 
     @Override
     public ComponentView<AuthComponentState> componentView() {
         return _ -> state -> {
-            String loginPath = authProvider != null ? authProvider.loginPath() : null;
-            if (loginPath != null && !state.authenticated()) {
+            if (authProvider != null && !state.authenticated()) {
                 String currentPath = savedContext.get(ContextKeys.ROUTE_PATH);
-                boolean isPublic = authProvider.publicPathPrefixes().stream()
-                        .anyMatch(currentPath::startsWith);
-                if (!isPublic) {
-                    return html().redirect(loginPath + "?redirect=" + currentPath);
+                Definition gate = authProvider.gateResponse(currentPath);
+                if (gate != null) {
+                    return gate;
                 }
             }
 
@@ -103,25 +99,40 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
     /**
      * AuthProvider interface - implement to provide custom authentication.
      * <p>
-     * Override {@link #loginPath()} and {@link #publicPathPrefixes()} to enable the auth gate.
-     * When {@code loginPath()} returns null (default), the gate is disabled.
+     * Override {@link #gateResponse(String)} to control what happens when a user
+     * is not authenticated on a protected route. The default implementation returns null (no gate).
      */
     public interface AuthProvider {
         AuthResult authenticate(ComponentContext context);
 
         /**
-         * Path to redirect to when authentication is required.
-         * Return null to disable the gate (pass through unconditionally).
+         * Returns the response to render when the user is not authenticated on the given path.
+         * Return null to allow access (no gate, or public path).
+         * <p>
+         * Examples:
+         * <ul>
+         *   <li>Redirect to login page: {@code html().redirect("/login?redirect=" + currentPath)}</li>
+         *   <li>HTTP Basic challenge: {@code html().statusCode(401).addHeader("WWW-Authenticate", "Basic realm=\"app\"")}</li>
+         * </ul>
          */
-        default String loginPath() {
+        default Definition gateResponse(String currentPath) {
             return null;
         }
 
         /**
-         * Path prefixes that bypass the auth gate (e.g., login/callback pages).
+         * Whether this provider supports sign-out.
+         * When true, a "Sign out" button is shown and {@link #signOut(CommandsEnqueue)} is called on click.
+         * Default: false (no sign-out button).
          */
-        default Set<String> publicPathPrefixes() {
-            return Set.of();
+        default boolean supportsSignOut() {
+            return false;
+        }
+
+        /**
+         * Performs sign-out by sending commands to the browser.
+         * Called when the user clicks "Sign out".
+         */
+        default void signOut(CommandsEnqueue commandsEnqueue) {
         }
     }
 

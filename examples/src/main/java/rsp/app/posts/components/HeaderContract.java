@@ -3,6 +3,7 @@ package rsp.app.posts.components;
 import rsp.component.ComponentContext;
 import rsp.component.ContextKey;
 import rsp.component.Lookup;
+import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.Capabilities;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ViewContract;
@@ -26,6 +27,7 @@ public class HeaderContract extends ViewContract {
     private String activeCategory = "";
     private final boolean authenticated;
     private final String username;
+    private final AuthComponent.AuthProvider authProvider;
 
     public HeaderContract(Lookup lookup) {
         super(lookup);
@@ -33,6 +35,7 @@ public class HeaderContract extends ViewContract {
         this.authenticated = Boolean.TRUE.equals(auth);
         Object user = lookup.get(ContextKeys.AUTH_USER);
         this.username = user != null ? user.toString() : "";
+        this.authProvider = lookup.get(ContextKeys.AUTH_PROVIDER);
         onCapability(Capabilities.ACTIVE_CATEGORY, category -> {
             this.activeCategory = category;
         });
@@ -45,9 +48,13 @@ public class HeaderContract extends ViewContract {
 
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
-        return context
+        ComponentContext enriched = context
                 .with(HEADER_CATEGORY, activeCategory)
                 .with(HEADER_AUTHENTICATED, authenticated)
                 .with(HEADER_USERNAME, username);
+        if (authProvider != null) {
+            enriched = enriched.with(ContextKeys.AUTH_PROVIDER, authProvider);
+        }
+        return enriched;
     }
 }

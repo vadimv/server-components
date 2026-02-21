@@ -2,11 +2,11 @@ package rsp.app.posts.components;
 
 import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.compositions.auth.SimpleAuthProvider;
+import rsp.compositions.auth.AuthComponent;
+import rsp.compositions.contract.ContextKeys;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
-import rsp.page.events.RemoteCommand;
 
 import static rsp.dsl.Html.*;
 
@@ -14,11 +14,12 @@ import static rsp.dsl.Html.*;
  * HeaderView - Renders a horizontal stripe showing the active category name and auth status.
  * <p>
  * Reads the active category and auth data from context (set by {@link HeaderContract#enrichContext}).
- * When authenticated, shows username and a "Sign out" button.
+ * When authenticated, shows username and a "Sign out" button (if the auth provider supports it).
  */
 public class HeaderView extends Component<HeaderView.HeaderViewState> {
 
     private CommandsEnqueue commandsEnqueue;
+    private AuthComponent.AuthProvider authProvider;
 
     public record HeaderViewState(String activeCategory, boolean authenticated, String username) {}
 
@@ -38,6 +39,7 @@ public class HeaderView extends Component<HeaderView.HeaderViewState> {
             String category = context.get(HeaderContract.HEADER_CATEGORY);
             Boolean auth = context.get(HeaderContract.HEADER_AUTHENTICATED);
             String username = context.get(HeaderContract.HEADER_USERNAME);
+            this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
             return new HeaderViewState(
                     category != null ? category : "",
                     Boolean.TRUE.equals(auth),
@@ -57,15 +59,14 @@ public class HeaderView extends Component<HeaderView.HeaderViewState> {
         if (!state.authenticated()) {
             return span();
         }
+        if (authProvider == null || !authProvider.supportsSignOut()) {
+            return span(attr("class", "header-auth"),
+                    span(attr("class", "header-username"), text(state.username())));
+        }
         return span(attr("class", "header-auth"),
                 span(attr("class", "header-username"), text(state.username())),
                 a(attr("href", "#"), attr("class", "header-signout"),
-                        on("click", true, ctx -> {
-                            commandsEnqueue.offer(new RemoteCommand.EvalJs(0,
-                                    "document.cookie = '" + SimpleAuthProvider.SESSION_COOKIE_NAME
-                                    + "=; path=/; max-age=0'"));
-                            commandsEnqueue.offer(new RemoteCommand.SetHref("/"));
-                        }),
+                        on("click", true, ctx -> authProvider.signOut(commandsEnqueue)),
                         text("Sign out"))
         );
     }

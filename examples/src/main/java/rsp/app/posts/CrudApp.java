@@ -19,9 +19,7 @@ import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
 import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.auth.LoginContract;
-import rsp.compositions.auth.SimpleAuthProvider;
-import rsp.compositions.auth.SimpleLoginComponent;
+import rsp.compositions.auth.BasicAuthProvider;
 import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Contracts;
@@ -80,21 +78,14 @@ public class CrudApp {
 
         final Composition postsComposition = new Composition(router, postsUi, categories, layout);
 
-        // Auth provider with in-memory session store
-        final SimpleAuthProvider authProvider = new SimpleAuthProvider();
-
-        // Auth composition: login page at /auth/login
-        final Router authRouter = new Router()
-                .route("/auth/login", LoginContract.class);
-        final Contracts authContracts = new Contracts()
-                .bind(LoginContract.class, LoginContract::new, () -> new SimpleLoginComponent(authProvider));
-        final Composition authComposition = new Composition(authRouter, authContracts);
+        // HTTP Basic auth — browser-native login dialog
+        final BasicAuthProvider authProvider = new BasicAuthProvider()
+                .user("admin", "admin", "admin");
 
         final Services services = new Services()
                 .service(AuthComponent.AuthProvider.class, authProvider);
 
-        // Auth composition first — its routes are matched before posts routes
-        final App app = new App(config, List.of(authComposition, postsComposition), services);
+        final App app = new App(config, List.of(postsComposition), services);
 
         final WebServer server = new WebServer(8080,
                                                app,

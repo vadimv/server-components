@@ -1,13 +1,17 @@
 package rsp.compositions.auth;
 
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
+import rsp.dsl.Definition;
+import rsp.page.events.RemoteCommand;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+
+import static rsp.dsl.Html.html;
 
 /**
  * SimpleAuthProvider - Cookie-based authentication with in-memory session store.
@@ -56,13 +60,23 @@ public class SimpleAuthProvider implements AuthComponent.AuthProvider {
     }
 
     @Override
-    public String loginPath() {
-        return "/auth/login";
+    public Definition gateResponse(String currentPath) {
+        if (currentPath.startsWith("/auth")) {
+            return null; // public path — no gate
+        }
+        return html().redirect("/auth/login?redirect=" + currentPath);
     }
 
     @Override
-    public Set<String> publicPathPrefixes() {
-        return Set.of("/auth");
+    public boolean supportsSignOut() {
+        return true;
+    }
+
+    @Override
+    public void signOut(CommandsEnqueue commandsEnqueue) {
+        commandsEnqueue.offer(new RemoteCommand.EvalJs(0,
+                "document.cookie='" + SESSION_COOKIE_NAME + "=;path=/;max-age=0'"));
+        commandsEnqueue.offer(new RemoteCommand.SetHref("/"));
     }
 
     /**
