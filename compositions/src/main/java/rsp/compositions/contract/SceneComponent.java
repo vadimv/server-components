@@ -26,7 +26,7 @@ import static rsp.dsl.Html.*;
  *   <li>{@link LayerComponent} - Upper layers (overlays, panels) with pluggable {@link LayerLayout}</li>
  * </ul>
  * <p>
- * Position in component chain: RoutingComponent → SceneComponent → [Layout, LayerComponent]
+ * Position in component chain: AuthComponent → SceneComponent → [Layout, LayerComponent]
  */
 public class SceneComponent extends Component<Scene> {
     private final System.Logger logger = System.getLogger(getClass().getName());

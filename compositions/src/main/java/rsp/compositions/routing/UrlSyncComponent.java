@@ -13,7 +13,7 @@ import java.util.Objects;
  * 2. Handles bidirectional sync between context changes and browser address bar
  * 3. Renders RoutingComponent which reads path from context (not HttpRequest)
  * <p>
- * Position in component chain: AuthComponent → UrlSyncComponent → RoutingComponent
+ * Position in component chain: AppComponent → UrlSyncComponent → RoutingComponent
  */
 public class UrlSyncComponent extends AutoAddressBarSyncComponent {
 

@@ -4,10 +4,10 @@ import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
-import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.NavigationEntry;
 import rsp.compositions.composition.Composition;
+import rsp.compositions.routing.UrlSyncComponent;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
@@ -66,8 +66,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
 
     @Override
     public ComponentView<AppComponentState> componentView() {
-        // AuthComponent has default constructor - reads everything from context
-        return _ -> _ -> new AuthComponent();
+        return _ -> _ -> new UrlSyncComponent(httpRequest.relativeUrl());
     }
 
     public record AppComponentState() {
