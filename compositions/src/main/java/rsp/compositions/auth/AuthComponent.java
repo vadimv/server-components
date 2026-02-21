@@ -9,7 +9,10 @@ import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.SceneComponent;
 import rsp.compositions.contract.ViewContract;
 
+import java.util.Set;
 import java.util.function.BiFunction;
+
+import static rsp.dsl.Html.html;
 
 /**
  * AuthComponent - Authentication gate.
@@ -18,7 +21,8 @@ import java.util.function.BiFunction;
  * 1. Reads authentication provider from context
  * 2. Authenticates user from session/cookies/headers
  * 3. Enriches context with auth data (auth.user, auth.roles, auth.authenticated)
- * 4. Renders SceneComponent with the routing state from context
+ * 4. Gates access: redirects to login path when not authenticated on protected routes
+ * 5. Passes through to SceneComponent when authenticated or on public routes
  * <p>
  * Position in component chain: UrlSyncComponent → RoutingComponent → AuthComponent → SceneComponent
  * <p>
@@ -27,6 +31,7 @@ import java.util.function.BiFunction;
 public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
     private ComponentContext savedContext;
+    private AuthProvider authProvider;
 
     public AuthComponent() {
         super();
@@ -38,7 +43,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
             this.savedContext = context;
 
             // Read auth provider from context
-            AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
+            this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
 
             if (authProvider == null) {
                 // No auth provider configured - anonymous access
@@ -68,7 +73,18 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
     @Override
     public ComponentView<AuthComponentState> componentView() {
-        return _ -> _ -> {
+        return _ -> state -> {
+            String loginPath = authProvider != null ? authProvider.loginPath() : null;
+            if (loginPath != null && !state.authenticated()) {
+                String currentPath = savedContext.get(ContextKeys.ROUTE_PATH);
+                boolean isPublic = authProvider.publicPathPrefixes().stream()
+                        .anyMatch(currentPath::startsWith);
+                if (!isPublic) {
+                    return html().redirect(loginPath + "?redirect=" + currentPath);
+                }
+            }
+
+            // Pass through — create SceneComponent from routing context
             Composition composition = savedContext.get(ContextKeys.ROUTE_COMPOSITION);
             Class<? extends ViewContract> contractClass = savedContext.get(ContextKeys.ROUTE_CONTRACT_CLASS);
             String path = savedContext.get(ContextKeys.ROUTE_PATH);
@@ -86,9 +102,27 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
     /**
      * AuthProvider interface - implement to provide custom authentication.
+     * <p>
+     * Override {@link #loginPath()} and {@link #publicPathPrefixes()} to enable the auth gate.
+     * When {@code loginPath()} returns null (default), the gate is disabled.
      */
     public interface AuthProvider {
         AuthResult authenticate(ComponentContext context);
+
+        /**
+         * Path to redirect to when authentication is required.
+         * Return null to disable the gate (pass through unconditionally).
+         */
+        default String loginPath() {
+            return null;
+        }
+
+        /**
+         * Path prefixes that bypass the auth gate (e.g., login/callback pages).
+         */
+        default Set<String> publicPathPrefixes() {
+            return Set.of();
+        }
     }
 
     /**
