@@ -5,7 +5,6 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.NavigationEntry;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.routing.UrlSyncComponent;
 import rsp.server.http.HttpRequest;
@@ -54,8 +53,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
             enrichedContext = enrichedContext
                 .with(Config.class, config)
                 .with(HttpRequest.class, httpRequest)
-                .with(ContextKeys.APP_COMPOSITIONS, compositions)
-                .with(ContextKeys.NAVIGATION_ENTRIES, NavigationEntry.fromCompositions(compositions));
+                .with(ContextKeys.APP_COMPOSITIONS, compositions);
 
             // Add all services to context using their actual classes as keys for each service instance
             enrichedContext = enrichedContext.with(services);

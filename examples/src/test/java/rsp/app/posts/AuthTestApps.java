@@ -35,6 +35,10 @@ class AuthTestApps {
                 .route("/comments", CommentsListContract.class)
                 .route("/comments/:id", CommentEditContract.class);
 
+        final Category categories = new Category()
+                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
+                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
+
         final Contracts postsUi = new Contracts()
                 .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
                 .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
@@ -42,18 +46,14 @@ class AuthTestApps {
                 .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new)
                 .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
                 .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new)
-                .bind(ExplorerContract.class, ExplorerContract::new, ExplorerView::new)
+                .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, categories), ExplorerView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
-
-        final Category categories = new Category()
-                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
-                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
 
         final DefaultLayout layout = new DefaultLayout()
                 .leftSidebar(ExplorerContract.class)
                 .header(HeaderContract.class);
 
-        return new Composition(router, postsUi, categories, layout);
+        return new Composition(router, postsUi, layout);
     }
 
     static WebServer simpleAuth(int port) {

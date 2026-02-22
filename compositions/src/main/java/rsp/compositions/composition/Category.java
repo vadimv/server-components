@@ -58,6 +58,13 @@ public final class Category {
     }
 
     /**
+     * Check if a contract class is explicitly registered in a group.
+     */
+    public boolean contains(Class<? extends ViewContract> contractClass) {
+        return contractIndex.containsKey(contractClass);
+    }
+
+    /**
      * Resolve metadata for a contract class.
      */
     public ContractMetadata metadataFor(Class<? extends ViewContract> contractClass) {

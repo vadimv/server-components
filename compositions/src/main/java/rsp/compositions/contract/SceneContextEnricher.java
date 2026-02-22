@@ -2,7 +2,6 @@ package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.ContractMetadata;
 import rsp.compositions.routing.Router;
 
 import java.util.Objects;
@@ -13,7 +12,7 @@ import java.util.Optional;
  * <p>
  * Pure data transformation: (context, scene) -> enriched context.
  * <p>
- * Enrichments include: Scene reference, routed contract data and category key,
+ * Enrichments include: Scene reference, routed contract data,
  * companion contract data, and edit route info.
  * Overlay/layer context enrichment is handled by LayerComponent.
  */
@@ -41,14 +40,6 @@ public final class SceneContextEnricher {
         if (routedContract != null) {
             enrichedContext = routedContract.enrichContext(enrichedContext);
         }
-
-        // Resolve metadata from composition categories
-        ContractMetadata primaryMeta = composition != null && routedContract != null
-                ? composition.metadataFor(routedContract.getClass())
-                : new ContractMetadata("App", "App");
-
-        // Add routed contract's category key to context for Explorer highlighting
-        enrichedContext = enrichedContext.with(ContextKeys.PRIMARY_CATEGORY_KEY, primaryMeta.categoryKey());
 
         // Let all companion contracts enrich context with their data
         for (ViewContract companion : scene.companionContracts().values()) {

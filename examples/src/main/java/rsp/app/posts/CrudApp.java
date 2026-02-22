@@ -54,6 +54,10 @@ public class CrudApp {
         final PromptService promptService = new PromptService();
         promptService.startTicking();
 
+        final Category categories = new Category()
+                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
+                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
+
         final Contracts postsUi = new Contracts()
                 .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
                 .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
@@ -63,20 +67,16 @@ public class CrudApp {
                 .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
                 .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new)
 
-                .bind(ExplorerContract.class, ExplorerContract::new, ExplorerView::new)
+                .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, categories), ExplorerView::new)
                 .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
-
-        final Category categories = new Category()
-                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
-                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
 
         final DefaultLayout layout = new DefaultLayout()
                 .leftSidebar(ExplorerContract.class)
                 .rightSidebar(PromptContract.class)
                 .header(HeaderContract.class);
 
-        final Composition postsComposition = new Composition(router, postsUi, categories, layout);
+        final Composition postsComposition = new Composition(router, postsUi, layout);
 
         // Auth provider with in-memory session store
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
