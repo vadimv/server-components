@@ -18,8 +18,7 @@ import rsp.app.posts.services.PromptService;
 import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
-import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.auth.OAuthPKCEProvider;
+import rsp.compositions.auth.*;
 import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Contracts;
@@ -78,27 +77,19 @@ public class CrudApp {
 
         final Composition postsComposition = new Composition(router, postsUi, categories, layout);
 
-        // OAuth 2.0 PKCE auth with Keycloak
-        final var oauthConfig = new OAuthPKCEProvider.OAuthConfig(
-                "http://localhost:8080/realms/master/protocol/openid-connect/auth",
-                "http://localhost:8080/realms/master/protocol/openid-connect/token",
-                "http://localhost:8080/realms/master/protocol/openid-connect/userinfo",
-                "pkce-client",
-                "",
-                "http://localhost:8085/auth/callback",
-                "/auth/login",
-                "/auth/signin",
-                "/auth/callback",
-                "/auth/signout",
-                "openid profile email"
-        );
-        final var authProvider = new OAuthPKCEProvider(oauthConfig);
-
+        // Auth provider with in-memory session store
+        final SimpleAuthProvider authProvider = new SimpleAuthProvider();
+        // Auth composition: login page at /auth/login
+        final Router authRouter = new Router()
+                .route("/auth/login", LoginContract.class);
+        final Contracts authContracts = new Contracts()
+                .bind(LoginContract.class, LoginContract::new, () -> new SimpleLoginComponent(authProvider));
+        final Composition authComposition = new Composition(authRouter, authContracts);
         final Services services = new Services()
                 .service(AuthComponent.AuthProvider.class, authProvider);
 
         // Auth composition first — login page route matched before posts routes
-        final App app = new App(config, List.of(authProvider.authComposition(), postsComposition), services);
+        final App app = new App(config, List.of(authComposition, postsComposition), services);
 
         final WebServer server = new WebServer(8085,
                                                app,

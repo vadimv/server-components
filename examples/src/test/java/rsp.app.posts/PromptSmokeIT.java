@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @net.jcip.annotations.NotThreadSafe
 class PromptSmokeIT {
 
-    private static final int PORT = 8080;
+    private static final int PORT = 8085;
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final String BASE_URL = "http://localhost:" + PORT;
 
@@ -46,8 +46,7 @@ class PromptSmokeIT {
         final Page page = context.newPage();
         System.out.println("Browser type: " + browserType.name());
 
-        page.navigate(BASE_URL + "/posts");
-        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        login(page);
 
         assertThat(promptPanel(page)).isVisible();
 
@@ -84,6 +83,14 @@ class PromptSmokeIT {
         assertThat(commentsLink).isVisible();
         commentsLink.click();
         page.waitForURL(url -> url.contains("/comments"), new Page.WaitForURLOptions().setTimeout(5000));
+    }
+
+    private void login(final Page page) throws InterruptedException {
+        page.navigate(BASE_URL + "/posts");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.locator("button:has-text('Sign in')").click();
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.waitForURL("**/posts**", new Page.WaitForURLOptions().setTimeout(5000));
     }
 
     private Locator promptPanel(final Page page) {

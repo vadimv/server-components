@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @net.jcip.annotations.NotThreadSafe
 class CommentsSmokeIT {
 
-    private static final int PORT = 8080;
+    private static final int PORT = 8085;
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final int INITIAL_COMMENT_COUNT = 15;
     private static final String BASE_URL = "http://localhost:" + PORT;
@@ -46,6 +46,7 @@ class CommentsSmokeIT {
         final Page page = context.newPage();
         System.out.println("Browser type: " + browserType.name());
 
+        login(page);
         validateListView(page);
         validatePagination(page);
         validateCreateComment(page);
@@ -365,6 +366,14 @@ class CommentsSmokeIT {
     }
 
     // ========== Helper Methods ==========
+
+    private void login(final Page page) throws InterruptedException {
+        page.navigate(BASE_URL + "/comments");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.locator("button:has-text('Sign in')").click();
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.waitForURL("**/comments**", new Page.WaitForURLOptions().setTimeout(5000));
+    }
 
     private void navigateToCommentsList(final Page page) {
         Response response = page.navigate(BASE_URL + "/comments");
