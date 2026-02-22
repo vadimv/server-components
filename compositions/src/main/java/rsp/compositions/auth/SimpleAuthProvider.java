@@ -76,7 +76,7 @@ public class SimpleAuthProvider implements AuthComponent.AuthProvider {
     public void signOut(CommandsEnqueue commandsEnqueue) {
         commandsEnqueue.offer(new RemoteCommand.EvalJs(0,
                 "document.cookie='" + SESSION_COOKIE_NAME + "=;path=/;max-age=0'"));
-        commandsEnqueue.offer(new RemoteCommand.SetHref("/"));
+        commandsEnqueue.offer(new RemoteCommand.SetHref("/auth/login"));
     }
 
     /**

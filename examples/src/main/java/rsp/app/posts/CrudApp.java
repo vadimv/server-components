@@ -44,6 +44,7 @@ public class CrudApp {
         // Router defines URL routes for this composition
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
+                .route("/", PostsListContract.class)
                 .route("/posts/:id", PostEditContract.class)
                 .route("/comments", CommentsListContract.class)
                 .route("/comments/:id", CommentEditContract.class);
