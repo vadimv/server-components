@@ -36,7 +36,7 @@ public final class TagNode implements Node {
 
     @Override
     public String toString() {
-        final HtmlBuilder htmlBuilder = new HtmlBuilder(new StringBuilder());
+        final HtmlBuilder htmlBuilder = new HtmlBuilder(new StringBuilder(), true);
         htmlBuilder.buildHtml(this);
         return htmlBuilder.toString();
     }

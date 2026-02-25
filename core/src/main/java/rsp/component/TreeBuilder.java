@@ -227,7 +227,7 @@ public class TreeBuilder implements TreeBuilderFactory {
 
     public String html() {
         final StringBuilder sb = new StringBuilder();
-        final HtmlBuilder hb = new HtmlBuilder(sb);
+        final HtmlBuilder hb = new HtmlBuilder(sb, true);
         if (docType != null) {
             sb.append(docType);
         }

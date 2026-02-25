@@ -1,21 +1,24 @@
 package rsp.dsl;
 
 import rsp.component.TreeBuilder;
-import rsp.util.html.HtmlEscape;
 
 /**
- * A text content definition. This class ensures that the provided text
- * is always HTML-escaped to prevent XSS vulnerabilities. A null input
- * is converted to the string "null", mimicking Java's string concatenation behavior.
+ * A text content definition. A null input is converted to the string "null",
+ * mimicking Java's string concatenation behavior.
+ * <p>
+ * Text is stored unescaped. HTML escaping is applied at the serialization
+ * boundary ({@link rsp.dom.HtmlBuilder}) where it is needed. The client-side
+ * live-update path uses {@code createTextNode()} which is inherently safe
+ * against XSS and must receive unescaped text.
  */
 public record Text(String text) implements Definition {
 
     /**
-     * Creates an new text definition
+     * Creates a new text definition
      * @param text a string or null
      */
     public Text(final String text) {
-        this.text = text != null ? HtmlEscape.escape(text) : "null";
+        this.text = text != null ? text : "null";
     }
 
     @Override
