@@ -2,9 +2,12 @@ package rsp.compositions.ui;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentView;
+import rsp.component.StateUpdate;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.ListView;
 import rsp.dsl.Definition;
 
@@ -28,6 +31,19 @@ import static rsp.dsl.Html.*;
 public class DefaultListView extends ListView {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultListView.class);
+
+    @Override
+    public void onMounted(ComponentCompositeKey componentId, ListViewState state,
+                          StateUpdate<ListViewState> stateUpdate) {
+        lookup.subscribe(ListViewContract.SELECT_ALL_REQUESTED, () -> {
+            stateUpdate.applyStateTransformation(s -> {
+                ListViewState newState = s.selectAll();
+                lookup.publish(ListViewContract.SELECTION_CHANGED,
+                        new ListViewContract.SelectedItems(newState.selectedIds()));
+                return newState;
+            });
+        });
+    }
 
     @Override
     public ComponentView<ListViewState> componentView() {
@@ -68,11 +84,15 @@ public class DefaultListView extends ListView {
                                         attr("type", "checkbox"),
                                         state.isAllSelected() ? attr("checked", "checked") : of(),
                                         on("click", ctx -> {
+                                            ListViewState updated;
                                             if (state.isAllSelected()) {
-                                                newState.setState(state.clearSelection());
+                                                updated = state.clearSelection();
                                             } else {
-                                                newState.setState(state.selectAll());
+                                                updated = state.selectAll();
                                             }
+                                            newState.setState(updated);
+                                            lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                                    new ListViewContract.SelectedItems(updated.selectedIds()));
                                         })
                                     )
                                   )
@@ -111,7 +131,10 @@ public class DefaultListView extends ListView {
                                             attr("type", "checkbox"),
                                             state.isSelected(rowId) ? attr("checked", "checked") : of(),
                                             on("click", ctx -> {
-                                                newState.setState(state.toggleSelection(rowId));
+                                                ListViewState updated = state.toggleSelection(rowId);
+                                                newState.setState(updated);
+                                                lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                                        new ListViewContract.SelectedItems(updated.selectedIds()));
                                             })
                                         )
                                       )
@@ -155,7 +178,10 @@ public class DefaultListView extends ListView {
                             lookup.publish(BULK_DELETE_REQUESTED, state.selectedIds());
                             // Clear selection immediately (optimistic UI update)
                             // This hides the button and unchecks all checkboxes
-                            stateUpdate.setState(state.clearSelection());
+                            ListViewState cleared = state.clearSelection();
+                            stateUpdate.setState(cleared);
+                            lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                    new ListViewContract.SelectedItems(cleared.selectedIds()));
                         }
                     });
             })
@@ -258,7 +284,10 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        newState.setState(state.clearSelection());
+                        ListViewState cleared = state.clearSelection();
+                        newState.setState(cleared);
+                        lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                new ListViewContract.SelectedItems(cleared.selectedIds()));
                         lookup.publish(PAGE_CHANGE_REQUESTED, currentPage - 1);
                     })
                   ),
@@ -274,7 +303,10 @@ public class DefaultListView extends ListView {
                 attr("type", "button"),
                 text("Next →"),
                 on("click", ctx -> {
-                    newState.setState(state.clearSelection());
+                    ListViewState cleared = state.clearSelection();
+                    newState.setState(cleared);
+                    lookup.publish(ListViewContract.SELECTION_CHANGED,
+                            new ListViewContract.SelectedItems(cleared.selectedIds()));
                     lookup.publish(PAGE_CHANGE_REQUESTED, currentPage + 1);
                 })
             )

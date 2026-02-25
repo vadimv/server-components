@@ -191,4 +191,16 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     protected void onDeleteFailure() {
         // Default: stay on page
     }
+
+    @Override
+    public String agentDescription() {
+        Object entity = item();
+        String fields = schema().fields().stream()
+                .map(f -> f.name())
+                .collect(java.util.stream.Collectors.joining(", "));
+        return "Edit form for " + title() + ".\n"
+             + "Entity: " + (entity != null ? entity.toString() : "none") + "\n"
+             + "Fields: " + fields + "\n"
+             + "Supports: save, delete, cancel.";
+    }
 }

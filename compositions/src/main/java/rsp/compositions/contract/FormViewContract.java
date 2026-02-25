@@ -2,10 +2,12 @@ package rsp.compositions.contract;
 
 import rsp.component.EventKey;
 import rsp.component.Lookup;
+import rsp.compositions.agent.AgentInfo;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.ValidationResult;
 
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static rsp.compositions.contract.EventKeys.ACTION_SUCCESS;
 
@@ -31,7 +33,7 @@ import static rsp.compositions.contract.EventKeys.ACTION_SUCCESS;
  *
  * @param <T> The type of entity being created or edited
  */
-public abstract class FormViewContract<T> extends ViewContract {
+public abstract class FormViewContract<T> extends ViewContract implements AgentInfo {
 
     public static final EventKey.VoidKey CANCEL_REQUESTED =
             new EventKey.VoidKey("cancel.requested");
@@ -177,5 +179,15 @@ public abstract class FormViewContract<T> extends ViewContract {
      */
     protected void onSaveFailure() {
         // Default: stay on page
+    }
+
+    @Override
+    public String agentDescription() {
+        String fields = schema().fields().stream()
+                .map(f -> f.name())
+                .collect(Collectors.joining(", "));
+        return "Form for " + title() + ".\n"
+             + "Fields: " + fields + "\n"
+             + "Supports: save, cancel.";
     }
 }

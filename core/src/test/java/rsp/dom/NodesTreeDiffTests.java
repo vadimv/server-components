@@ -1,5 +1,6 @@
 package rsp.dom;
 
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -207,6 +208,48 @@ class NodesTreeDiffTests {
         final TestChangesContext cp = new TestChangesContext();
         NodesTreeDiff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
         assertEquals("-ATTR:1:attr1", cp.resultAsString());
+    }
+
+    @Nested
+    class DiffEmitsRawText {
+
+        @Test
+        void diff_emits_raw_text_with_html_special_characters() {
+            final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
+            tree1.addChild(new TextNode("hello"));
+
+            final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+            tree2.addChild(new TextNode("<b>&\"quoted\"</b>"));
+
+            final TestChangesContext cp = new TestChangesContext();
+            NodesTreeDiff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
+            assertEquals("+TEXT:1:1_1=<b>&\"quoted\"</b>", cp.resultAsString());
+        }
+
+        @Test
+        void diff_emits_raw_text_for_new_text_node() {
+            final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
+
+            final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+            tree2.addChild(new TextNode("It's <em>bold</em> & fun"));
+
+            final TestChangesContext cp = new TestChangesContext();
+            NodesTreeDiff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
+            assertEquals("+TEXT:1:1_1=It's <em>bold</em> & fun", cp.resultAsString());
+        }
+
+        @Test
+        void diff_emits_raw_text_when_replacing_tag_with_text() {
+            final TagNode tree1 = new TagNode(XmlNs.html, "div", false);
+            tree1.addChild(new TagNode(XmlNs.html, "span", false));
+
+            final TagNode tree2 = new TagNode(XmlNs.html, "div", false);
+            tree2.addChild(new TextNode("a < b & c > d"));
+
+            final TestChangesContext cp = new TestChangesContext();
+            NodesTreeDiff.diff(tree1, tree2, basePath, cp, new HtmlBuilder(new StringBuilder()));
+            assertEquals("-NODE:1:1_1+TEXT:1:1_1=a < b & c > d", cp.resultAsString());
+        }
     }
 
     static class TestChangesContext implements DomChangesContext {

@@ -4,6 +4,7 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.component.definitions.ContextStateComponent;
+import rsp.compositions.agent.AgentInfo;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
@@ -14,7 +15,7 @@ import static rsp.compositions.contract.ActionBindings.*;
 import static rsp.compositions.contract.EventKeys.SHOW;
 import static rsp.compositions.contract.EventKeys.STATE_UPDATED;
 
-public abstract class ListViewContract<T> extends ViewContract {
+public abstract class ListViewContract<T> extends ViewContract implements AgentInfo {
 
 
     public static final EventKey.VoidKey CREATE_ELEMENT_REQUESTED = new EventKey.VoidKey("list.create.element.requested");
@@ -35,7 +36,31 @@ public abstract class ListViewContract<T> extends ViewContract {
     public static final EventKey.SimpleKey<Integer> PAGE_CHANGE_REQUESTED =
             new EventKey.SimpleKey<>("change.requested",
                                       Integer.class);
+
     /**
+     * Select all rows on the current page.
+     * Emitted by: agent (via IntentDispatcher)
+     * Handled by: DefaultListView.onMounted()
+     */
+    public static final EventKey.VoidKey SELECT_ALL_REQUESTED =
+            new EventKey.VoidKey("list.select.all.requested");
+
+    /**
+     * Selection state changed.
+     * Emitted by: DefaultListView when selection changes
+     * Consumed by: agent (to track current selection for "edit selected" commands)
+     */
+    public static final EventKey.SimpleKey<SelectedItems> SELECTION_CHANGED =
+            new EventKey.SimpleKey<>("list.selection.changed", SelectedItems.class);
+
+    /**
+     * Immutable payload for selection change events.
+     *
+     * @param ids the currently selected row IDs
+     */
+    public record SelectedItems(Set<String> ids) {
+        public SelectedItems { ids = Set.copyOf(ids); }
+    }
 
     /**
      * Config key for default page size.
@@ -198,5 +223,13 @@ public abstract class ListViewContract<T> extends ViewContract {
      */
     protected void onBulkDeleteFailure(Set<String> failedIds) {
         // Default: silent failure - override for error handling
+    }
+
+    @Override
+    public String agentDescription() {
+        return "Displays a list of " + title() + ".\n"
+             + "Current page: " + page() + ", sort: " + sort() + "\n"
+             + "Items on page: " + items().size() + ", page size: " + pageSize() + "\n"
+             + "Supports: page navigation, item selection, bulk delete, create, edit.";
     }
 }

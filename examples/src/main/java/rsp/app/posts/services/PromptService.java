@@ -81,6 +81,18 @@ public class PromptService {
     }
 
     /**
+     * Send a reply from the agent (not from the user).
+     * Records in history and notifies subscribers.
+     *
+     * @param scopeKey the session scope key
+     * @param text     the reply text
+     */
+    public void sendReply(String scopeKey, String text) {
+        Message reply = new Message(text, false);
+        notifySubscribers(scopeKey, reply);
+    }
+
+    /**
      * Stop the tick scheduler.
      */
     public void stopTicking() {

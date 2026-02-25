@@ -12,9 +12,13 @@ import rsp.app.posts.components.HeaderView;
 import rsp.app.posts.components.PromptContract;
 import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
+import rsp.app.posts.services.AgentService;
+import rsp.app.posts.services.AllowAllGate;
 import rsp.app.posts.services.CommentService;
+import rsp.app.posts.services.IntentDispatcher;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
+import rsp.compositions.agent.IntentGate;
 import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
@@ -54,6 +58,11 @@ public class CrudApp {
         final PromptService promptService = new PromptService();
         promptService.startTicking();
 
+        // Agent services
+        final AgentService agentService = new AgentService();
+        final IntentDispatcher intentDispatcher = new IntentDispatcher();
+        final IntentGate gate = new AllowAllGate();
+
         final Category categories = new Category()
                 .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
                 .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
@@ -68,7 +77,7 @@ public class CrudApp {
                 .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new)
 
                 .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, categories), ExplorerView::new)
-                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService), PromptView::new)
+                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, gate, categories), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
 
         final DefaultLayout layout = new DefaultLayout()
