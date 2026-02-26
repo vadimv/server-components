@@ -12,11 +12,13 @@ import java.util.Objects;
  * Used by navigation components (ExplorerContract), AI agents (PromptContract),
  * and other consumers that need the application's structural metadata.
  *
- * @param label     The display label for this node (nullable for unlabeled root groups)
- * @param children  Child structure nodes
- * @param contracts Contract classes directly bound at this level
+ * @param label       The display label for this node (nullable for unlabeled root groups)
+ * @param description A natural-language description of this node's purpose (nullable)
+ * @param children    Child structure nodes
+ * @param contracts   Contract classes directly bound at this level
  */
 public record StructureNode(String label,
+                            String description,
                             List<StructureNode> children,
                             List<Class<? extends ViewContract>> contracts) {
     public StructureNode {

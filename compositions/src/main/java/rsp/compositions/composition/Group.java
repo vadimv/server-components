@@ -22,6 +22,7 @@ import java.util.function.Supplier;
 public class Group {
 
     private final String label;
+    private String description;
     private final List<Group> children;
     private final Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> contractFactories;
     private final Map<Class<? extends ViewContract>, Supplier<? extends Component<?>>> views;
@@ -43,6 +44,18 @@ public class Group {
         this.children = new ArrayList<>();
         this.contractFactories = new LinkedHashMap<>();
         this.views = new LinkedHashMap<>();
+    }
+
+    /**
+     * Set a description for this group, providing richer context for AI agents
+     * and other metadata consumers beyond the short label.
+     *
+     * @param description A natural-language description of this group's purpose
+     * @return this for chaining
+     */
+    public Group description(String description) {
+        this.description = description;
+        return this;
     }
 
     /**
@@ -137,6 +150,7 @@ public class Group {
             childNodes.add(child.structureTree());
         }
         return new StructureNode(label,
+                description,
                 List.copyOf(childNodes),
                 List.copyOf(contractFactories.keySet()));
     }
