@@ -23,9 +23,8 @@ import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
 import rsp.compositions.auth.*;
-import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Contracts;
+import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
 import rsp.compositions.ui.DefaultEditView;
@@ -63,21 +62,19 @@ public class CrudApp {
         final IntentDispatcher intentDispatcher = new IntentDispatcher();
         final IntentGate gate = new AllowAllGate();
 
-        final Category categories = new Category()
-                .group(new Category("Posts"), PostsListContract.class, PostCreateContract.class, PostEditContract.class)
-                .group(new Category("Comments"), CommentsListContract.class, CommentCreateContract.class, CommentEditContract.class);
+        final Group mainContracts = new Group("Admin")
+                .add(new Group("Posts")
+                        .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
+                        .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
+                        .bind(PostEditContract.class, ctx -> new PostEditContract(ctx, postService), DefaultEditView::new))
+                .add(new Group("Comments")
+                        .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new)
+                        .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
+                        .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new));
 
-        final Contracts postsUi = new Contracts()
-                .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
-                .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
-                .bind(PostEditContract.class, ctx -> new PostEditContract(ctx, postService), DefaultEditView::new)
-
-                .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new)
-                .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
-                .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new)
-
-                .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, categories), ExplorerView::new)
-                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, gate, categories), PromptView::new)
+        final Group systemContracts = new Group()
+                .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
+                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, gate, mainContracts.structureTree()), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
 
         final DefaultLayout layout = new DefaultLayout()
@@ -85,16 +82,16 @@ public class CrudApp {
                 .rightSidebar(PromptContract.class)
                 .header(HeaderContract.class);
 
-        final Composition postsComposition = new Composition(router, postsUi, layout);
+        final Composition postsComposition = new Composition(router, layout, mainContracts, systemContracts);
 
         // Auth provider with in-memory session store
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
         // Auth composition: login page at /auth/login
         final Router authRouter = new Router()
                 .route("/auth/login", LoginContract.class);
-        final Contracts authContracts = new Contracts()
+        final Group authGroup = new Group()
                 .bind(LoginContract.class, LoginContract::new, () -> new SimpleLoginComponent(authProvider));
-        final Composition authComposition = new Composition(authRouter, authContracts);
+        final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
         final Services services = new Services()
                 .service(AuthComponent.AuthProvider.class, authProvider);
 

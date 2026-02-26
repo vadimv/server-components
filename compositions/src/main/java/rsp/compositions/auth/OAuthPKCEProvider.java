@@ -3,7 +3,8 @@ package rsp.compositions.auth;
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Contracts;
+import rsp.compositions.composition.Group;
+import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
 import rsp.dsl.Definition;
 import rsp.page.events.RemoteCommand;
@@ -145,10 +146,10 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
                 .route(config.signinPath(), LoginContract.class)
                 .route(config.callbackPath(), LoginContract.class)
                 .route(config.signOutPath(), LoginContract.class);
-        final Contracts contracts = new Contracts()
+        final Group group = new Group()
                 .bind(LoginContract.class, LoginContract::new,
                       () -> new OAuthLoginComponent(config.signinPath()));
-        return new Composition(router, contracts);
+        return new Composition(router, new DefaultLayout(), group);
     }
 
     // ===== PKCE Flow =====

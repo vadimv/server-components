@@ -1,6 +1,5 @@
 package rsp.compositions.composition;
 
-import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.Router;
 
@@ -10,7 +9,7 @@ import java.util.Objects;
  * Composition - Declares a feature domain's view placements and routes.
  * <p>
  * Each composition groups related views by declaring their contract factories and routes
- * through a {@link Contracts}. Lifecycle is derived automatically:
+ * through {@link Group}s. Lifecycle is derived automatically:
  * <ul>
  *   <li>Routed contracts (matched by Router) are eagerly instantiated</li>
  *   <li>Contracts required by the Layout are eagerly instantiated (companions)</li>
@@ -18,34 +17,37 @@ import java.util.Objects;
  * </ul>
  * <p>
  * Route resolution iterates Compositions in order - the first matching route wins.
- * <p>
- * Action handling is delegated to Contracts (e.g., EditViewContract.save(), delete()).
  */
 public class Composition {
     private final Router router;
-    private final Contracts contracts;
+    private final Group contracts;
     private final Layout layout;
 
     /**
-     * Create a Composition with its router and contracts (default layout).
-     */
-    public Composition(Router router, Contracts contracts) {
-        this(router, contracts, new DefaultLayout());
-    }
-
-    /**
-     * Create a Composition with its router, contracts, and layout.
+     * Create a Composition with its router, layout, and groups.
+     * Multiple groups are merged into a single group for lookup.
      *
-     * @param router     The router for this composition's routes
-     * @param contracts  The registry holding contract and view factories
-     * @param layout     The layout strategy for visual arrangement
+     * @param router The router for this composition's routes
+     * @param layout The layout strategy for visual arrangement
+     * @param groups One or more groups holding contract and view factories
      */
-    public Composition(Router router, Contracts contracts, Layout layout) {
+    public Composition(Router router, Layout layout, Group... groups) {
         Objects.requireNonNull(router, "router cannot be null");
-        Objects.requireNonNull(contracts, "contracts cannot be null");
+        Objects.requireNonNull(layout, "layout cannot be null");
+        if (groups == null || groups.length == 0) {
+            throw new IllegalArgumentException("at least one group is required");
+        }
         this.router = router;
-        this.contracts = contracts;
-        this.layout = Objects.requireNonNull(layout, "layout cannot be null");
+        this.layout = layout;
+        if (groups.length == 1) {
+            this.contracts = groups[0];
+        } else {
+            Group merged = new Group();
+            for (Group group : groups) {
+                merged.add(group);
+            }
+            this.contracts = merged;
+        }
     }
 
     /**
@@ -56,9 +58,9 @@ public class Composition {
     }
 
     /**
-     * The registry holding contract factories and view factories for this composition.
+     * The group holding contract factories and view factories for this composition.
      */
-    public Contracts contracts() {
+    public Group contracts() {
         return contracts;
     }
 

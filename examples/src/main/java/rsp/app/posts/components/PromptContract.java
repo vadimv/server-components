@@ -8,9 +8,8 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.agent.AgentIntent;
 import rsp.compositions.agent.IntentGate;
-import rsp.compositions.composition.Category;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.ContractMetadata;
+import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.NavigationEntry;
@@ -45,16 +44,16 @@ public class PromptContract extends ViewContract {
 
     public PromptContract(Lookup lookup, PromptService promptService,
                           AgentService agentService, IntentDispatcher dispatcher,
-                          IntentGate gate, Category categories) {
+                          IntentGate gate, StructureNode structure) {
         super(lookup);
         this.promptService = Objects.requireNonNull(promptService);
         this.agentService = Objects.requireNonNull(agentService);
         this.dispatcher = Objects.requireNonNull(dispatcher);
         this.gate = Objects.requireNonNull(gate);
 
-        // Build navigation entries from compositions + categories (available at construction time)
+        // Build navigation entries from compositions + structure tree (available at construction time)
         List<Composition> compositions = lookup.get(ContextKeys.APP_COMPOSITIONS);
-        this.navigationEntries = buildNavigationEntries(compositions, categories);
+        this.navigationEntries = buildNavigationEntries(compositions, structure);
 
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
         this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
@@ -133,20 +132,20 @@ public class PromptContract extends ViewContract {
         return context.with(PromptContextKeys.PROMPT_MESSAGES, List.copyOf(messages));
     }
 
-    private static List<NavigationEntry> buildNavigationEntries(List<Composition> compositions, Category categories) {
-        if (compositions == null || categories == null) {
+    private static List<NavigationEntry> buildNavigationEntries(List<Composition> compositions,
+                                                               StructureNode structure) {
+        if (compositions == null || structure == null) {
             return List.of();
         }
         final Map<String, NavigationEntry> uniqueByCategory = new LinkedHashMap<>();
         for (Composition comp : compositions) {
             for (Class<? extends ViewContract> contractClass : comp.contracts().contractClasses()) {
                 Optional<String> routeOpt = comp.router().findRoutePattern(contractClass);
-                if (routeOpt.isPresent() && !routeOpt.get().contains(":") && categories.contains(contractClass)) {
-                    ContractMetadata metadata = categories.metadataFor(contractClass);
-                    String categoryKey = metadata.categoryKey();
-                    if (!uniqueByCategory.containsKey(categoryKey)) {
-                        uniqueByCategory.put(categoryKey,
-                                new NavigationEntry(categoryKey, metadata.navigationLabel(), contractClass, routeOpt.get()));
+                if (routeOpt.isPresent() && !routeOpt.get().contains(":") && structure.contains(contractClass)) {
+                    String label = structure.labelFor(contractClass);
+                    if (label != null && !uniqueByCategory.containsKey(label)) {
+                        uniqueByCategory.put(label,
+                                new NavigationEntry(label, label, contractClass, routeOpt.get()));
                     }
                 }
             }

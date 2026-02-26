@@ -2,7 +2,7 @@ package rsp.compositions.contract;
 
 import rsp.component.Lookup;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Contracts;
+import rsp.compositions.composition.Group;
 
 import java.util.*;
 import java.util.function.Function;
@@ -64,9 +64,9 @@ public record Scene(ViewContract routedContract,
     }
 
     /**
-     * Returns the Contracts for this scene, derived from the composition.
+     * Returns the Group for this scene, derived from the composition.
      */
-    public Contracts contracts() {
+    public Group contracts() {
         return composition.contracts();
     }
 

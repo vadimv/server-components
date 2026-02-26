@@ -4,7 +4,7 @@ import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.server.http.AuthorizationException;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Contracts;
+import rsp.compositions.composition.Group;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.Router;
 
@@ -56,7 +56,7 @@ public final class SceneBuilder {
      * @throws IllegalStateException if scene building fails
      */
     public Scene buildScene(ComponentContext context) {
-        Contracts contracts = composition.contracts();
+        Group contracts = composition.contracts();
 
         // Verify contract is registered
         if (contracts.contractFactory(this.contractClass) == null) {
@@ -87,7 +87,7 @@ public final class SceneBuilder {
      * Build scene for standard primary contract (no parent route).
      */
     private Scene buildStandardScene(ComponentContext context) {
-        Contracts contracts = composition.contracts();
+        Group contracts = composition.contracts();
         Function<Lookup, ViewContract> routedFactory = contracts.contractFactory(this.contractClass);
 
         ViewContract routedContract = instantiateContract(this.contractClass, routedFactory, context);
@@ -114,7 +114,7 @@ public final class SceneBuilder {
      * The parent contract becomes the routed contract; this contract is pre-activated for LayerComponent.
      */
     private Scene buildAutoOpenScene(ComponentContext context, Router.RouteMatch parentRoute) {
-        Contracts contracts = composition.contracts();
+        Group contracts = composition.contracts();
 
         // Overlay contract factory
         Function<Lookup, ViewContract> overlayFactory = contracts.contractFactory(this.contractClass);
@@ -172,7 +172,7 @@ public final class SceneBuilder {
      */
     private Map<Class<? extends ViewContract>, ViewContract> instantiateCompanions(ComponentContext context) {
         Set<Class<? extends ViewContract>> requiredByLayout = layout.requiredContracts();
-        Contracts contracts = composition.contracts();
+        Group contracts = composition.contracts();
         Map<Class<? extends ViewContract>, ViewContract> companions = new HashMap<>();
 
         for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
@@ -194,7 +194,7 @@ public final class SceneBuilder {
     private Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> collectLazyFactories(
             Class<? extends ViewContract> routedClass,
             Map<Class<? extends ViewContract>, ViewContract> companionContracts) {
-        Contracts contracts = composition.contracts();
+        Group contracts = composition.contracts();
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
         for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
             if (!cls.equals(routedClass) && !companionContracts.containsKey(cls)) {
