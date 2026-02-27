@@ -59,7 +59,7 @@ public class CrudApp {
 
         // Agent services
         final AgentService agentService = new AgentService();
-        final IntentDispatcher intentDispatcher = new IntentDispatcher();
+        final IntentDispatcher intentDispatcher = new IntentDispatcher(postService);
         final IntentGate gate = new AllowAllGate();
 
         final Group mainContracts = new Group("Admin")

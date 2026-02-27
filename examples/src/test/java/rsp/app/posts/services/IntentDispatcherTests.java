@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class IntentDispatcherTests {
 
-    private final IntentDispatcher dispatcher = new IntentDispatcher();
+    private final IntentDispatcher dispatcher = new IntentDispatcher(new PostService());
     private final IntentGate allowAll = new AllowAllGate();
 
     static abstract class StubContract extends ViewContract {

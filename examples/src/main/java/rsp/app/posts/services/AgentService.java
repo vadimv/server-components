@@ -17,6 +17,10 @@ import java.util.regex.Pattern;
 public class AgentService {
 
     private static final Pattern PAGE_PATTERN = Pattern.compile("(?:go to )?page\\s+(\\d+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DELETE_QUOTED_PATTERN = Pattern.compile(
+        "delete\\s+['\"](.+?)['\"]", Pattern.CASE_INSENSITIVE);
+    private static final Pattern DELETE_UNQUOTED_PATTERN = Pattern.compile(
+        "delete\\s+(.+)", Pattern.CASE_INSENSITIVE);
 
     /**
      * Parse a user prompt into an agent intent.
@@ -30,29 +34,42 @@ public class AgentService {
             return null;
         }
 
-        String text = prompt.trim().toLowerCase();
+        String text = prompt.trim();
+        String textLower = text.toLowerCase();
+
+        // Delete by quoted name: delete 'Post Title 1' or delete "Post Title 1"
+        Matcher dm = DELETE_QUOTED_PATTERN.matcher(text);
+        if (dm.find()) {
+            return new AgentIntent("delete", Map.of("name", dm.group(1)));
+        }
 
         // Try navigation: "show posts", "go to comments"
-        AgentIntent nav = tryParseNavigation(text, entries);
+        AgentIntent nav = tryParseNavigation(textLower, entries);
         if (nav != null) return nav;
 
         // Try pagination: "page 3", "go to page 3"
-        AgentIntent page = tryParsePagination(text);
+        AgentIntent page = tryParsePagination(textLower);
         if (page != null) return page;
 
         // Selection commands
-        if (text.equals("select all")) {
+        if (textLower.equals("select all")) {
             return new AgentIntent("select_all");
         }
 
         // Edit selected
-        if (text.equals("edit selected") || text.equals("edit selection")) {
+        if (textLower.equals("edit selected") || textLower.equals("edit selection")) {
             return new AgentIntent("edit");
         }
 
         // Create
-        if (text.startsWith("create") || text.equals("new")) {
+        if (textLower.startsWith("create") || textLower.equals("new")) {
             return new AgentIntent("create");
+        }
+
+        // Delete by unquoted name (last — broad match): delete Post Title 1
+        dm = DELETE_UNQUOTED_PATTERN.matcher(text);
+        if (dm.find()) {
+            return new AgentIntent("delete", Map.of("name", dm.group(1).trim()));
         }
 
         return null;

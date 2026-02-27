@@ -1,5 +1,6 @@
 package rsp.app.posts.services;
 
+import rsp.app.posts.entities.Post;
 import rsp.component.Lookup;
 import rsp.compositions.agent.AgentIntent;
 import rsp.compositions.agent.GateResult;
@@ -7,6 +8,8 @@ import rsp.compositions.agent.IntentGate;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ListViewContract;
 
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -16,6 +19,12 @@ import java.util.function.Consumer;
  * Uses callbacks for replies (not coupled to PromptService directly).
  */
 public class IntentDispatcher {
+
+    private final PostService postService;
+
+    public IntentDispatcher(PostService postService) {
+        this.postService = postService;
+    }
 
     /**
      * Evaluate an intent through the gate and dispatch if allowed.
@@ -62,6 +71,20 @@ public class IntentDispatcher {
                     onMessage.accept("Opening editor for item " + id + ".");
                 } else {
                     onMessage.accept("No item selected to edit.");
+                }
+            }
+            case "delete" -> {
+                String name = (String) intent.params().get("name");
+                if (name != null) {
+                    Optional<Post> post = postService.findByTitle(name);
+                    if (post.isPresent()) {
+                        lookup.publish(ListViewContract.BULK_DELETE_REQUESTED, Set.of(post.get().id()));
+                        onMessage.accept("Deleted '" + name + "'.");
+                    } else {
+                        onMessage.accept("Item '" + name + "' not found.");
+                    }
+                } else {
+                    onMessage.accept("No item name specified for delete.");
                 }
             }
             case "create" -> {

@@ -87,6 +87,30 @@ class AgentServiceTests {
     }
 
     @Test
+    void delete_with_single_quotes() {
+        AgentIntent intent = agentService.handlePrompt("delete 'Post Title 1'", entries);
+        assertNotNull(intent);
+        assertEquals("delete", intent.action());
+        assertEquals("Post Title 1", intent.params().get("name"));
+    }
+
+    @Test
+    void delete_with_double_quotes() {
+        AgentIntent intent = agentService.handlePrompt("delete \"Post Title 2\"", entries);
+        assertNotNull(intent);
+        assertEquals("delete", intent.action());
+        assertEquals("Post Title 2", intent.params().get("name"));
+    }
+
+    @Test
+    void delete_without_quotes() {
+        AgentIntent intent = agentService.handlePrompt("delete Post Title 1", entries);
+        assertNotNull(intent);
+        assertEquals("delete", intent.action());
+        assertEquals("Post Title 1", intent.params().get("name"));
+    }
+
+    @Test
     void unknown_returns_null() {
         AgentIntent intent = agentService.handlePrompt("hello world", entries);
         assertNull(intent);

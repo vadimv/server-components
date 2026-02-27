@@ -4,12 +4,14 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.component.definitions.ContextStateComponent;
+import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.AgentInfo;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static rsp.compositions.contract.ActionBindings.*;
 import static rsp.compositions.contract.EventKeys.SHOW;
@@ -226,10 +228,33 @@ public abstract class ListViewContract<T> extends ViewContract implements AgentI
     }
 
     @Override
+    public List<AgentAction> agentActions() {
+        return List.of(
+            new AgentAction("create", CREATE_ELEMENT_REQUESTED,
+                "Open create form for a new item", null),
+            new AgentAction("edit", EDIT_ELEMENT_REQUESTED,
+                "Open edit form for an item", "String: row ID"),
+            new AgentAction("delete", BULK_DELETE_REQUESTED,
+                "Delete items by their IDs", "Set<String>: row IDs"),
+            new AgentAction("page", PAGE_CHANGE_REQUESTED,
+                "Navigate to a page number", "Integer: page number (1-based)"),
+            new AgentAction("select_all", SELECT_ALL_REQUESTED,
+                "Select all rows on the current page", null)
+        );
+    }
+
+    @Override
     public String agentDescription() {
+        String itemsSummary = items().stream()
+            .map(Object::toString)
+            .collect(Collectors.joining("\n  "));
+        String schemaInfo = schema().fields().stream()
+            .map(f -> f.name() + ":" + f.fieldType())
+            .collect(Collectors.joining(", "));
         return "Displays a list of " + title() + ".\n"
              + "Current page: " + page() + ", sort: " + sort() + "\n"
              + "Items on page: " + items().size() + ", page size: " + pageSize() + "\n"
-             + "Supports: page navigation, item selection, bulk delete, create, edit.";
+             + "Items:\n  " + itemsSummary + "\n"
+             + "Schema: " + schemaInfo;
     }
 }

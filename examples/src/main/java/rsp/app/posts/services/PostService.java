@@ -70,6 +70,18 @@ public class PostService {
      * @param ids Set of post IDs to delete
      * @return Number of posts successfully deleted
      */
+    /**
+     * Find a post by its title (case-insensitive).
+     *
+     * @param title the title to search for
+     * @return the matching post, or empty if not found
+     */
+    public Optional<Post> findByTitle(final String title) {
+        return posts.values().stream()
+                .filter(p -> p.title().equalsIgnoreCase(title))
+                .findFirst();
+    }
+
     public int bulkDelete(final Set<String> ids) {
         int deleted = 0;
         for (String id : ids) {

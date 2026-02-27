@@ -4,7 +4,10 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 
+import rsp.compositions.agent.AgentAction;
+
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -25,6 +28,18 @@ public abstract class ViewContract {
 
     protected <T> T resolve(PathParam<T> param) {
         return param.resolve(lookup);
+    }
+
+    /**
+     * Declare the actions available for agent invocation.
+     * <p>
+     * Base classes ({@code ListViewContract}, {@code FormViewContract}, {@code EditViewContract})
+     * provide sensible defaults. Concrete contracts can override to add, remove, or customize actions.
+     *
+     * @return list of agent-invocable actions (empty by default)
+     */
+    public List<AgentAction> agentActions() {
+        return List.of();
     }
 
     /**
