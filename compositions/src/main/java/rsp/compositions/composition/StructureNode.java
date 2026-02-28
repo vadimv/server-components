@@ -63,4 +63,30 @@ public record StructureNode(String label,
         }
         return null;
     }
+
+    /**
+     * Render this structure tree as a human-readable summary for AI agent consumption.
+     * Includes labels, descriptions, and available sections.
+     *
+     * @return a multi-line text description of the application structure
+     */
+    public String agentDescription() {
+        StringBuilder sb = new StringBuilder();
+        renderAgentDescription(sb, 0);
+        return sb.toString().stripTrailing();
+    }
+
+    private void renderAgentDescription(StringBuilder sb, int depth) {
+        if (label != null) {
+            sb.append("  ".repeat(depth));
+            sb.append(label);
+            if (description != null) {
+                sb.append(" — ").append(description);
+            }
+            sb.append("\n");
+        }
+        for (StructureNode child : children) {
+            child.renderAgentDescription(sb, label != null ? depth + 1 : depth);
+        }
+    }
 }

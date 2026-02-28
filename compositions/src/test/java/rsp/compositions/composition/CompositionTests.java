@@ -173,6 +173,48 @@ public class CompositionTests {
         }
 
         @Test
+        void structureNode_agentDescription_renders_tree() {
+            final Group group = new Group("Admin").description("Administration panel")
+                    .add(new Group("Posts").description("Blog posts with CRUD")
+                            .bind(TestListContract.class, TestListContract::new, () -> null))
+                    .add(new Group("Comments").description("User comments")
+                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
+
+            String desc = group.structureTree().agentDescription();
+
+            assertTrue(desc.contains("Admin"));
+            assertTrue(desc.contains("Administration panel"));
+            assertTrue(desc.contains("Posts"));
+            assertTrue(desc.contains("Blog posts with CRUD"));
+            assertTrue(desc.contains("Comments"));
+            assertTrue(desc.contains("User comments"));
+        }
+
+        @Test
+        void structureNode_agentDescription_indents_children() {
+            final Group group = new Group("Root")
+                    .add(new Group("Child")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            String desc = group.structureTree().agentDescription();
+
+            assertTrue(desc.contains("Root\n"));
+            assertTrue(desc.contains("  Child"));
+        }
+
+        @Test
+        void structureNode_agentDescription_omits_unlabeled_root() {
+            final Group group = new Group()
+                    .add(new Group("Posts")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            String desc = group.structureTree().agentDescription();
+
+            assertTrue(desc.startsWith("Posts"));
+            assertFalse(desc.contains("null"));
+        }
+
+        @Test
         void composition_merges_multiple_groups() {
             final Router router = new Router().route("/items", TestListContract.class);
             final Group main = new Group("Main")

@@ -62,12 +62,12 @@ public class CrudApp {
         final IntentDispatcher intentDispatcher = new IntentDispatcher(postService);
         final IntentGate gate = new AllowAllGate();
 
-        final Group mainContracts = new Group("Admin")
-                .add(new Group("Posts")
+        final Group mainContracts = new Group("Admin").description("Administration panel")
+                .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
                         .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
                         .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
                         .bind(PostEditContract.class, ctx -> new PostEditContract(ctx, postService), DefaultEditView::new))
-                .add(new Group("Comments")
+                .add(new Group("Comments").description("User comments for the posts")
                         .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new)
                         .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
                         .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new));

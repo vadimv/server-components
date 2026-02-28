@@ -38,6 +38,7 @@ public class PromptContract extends ViewContract {
     private final IntentGate gate;
 
     private final List<NavigationEntry> navigationEntries;
+    private final StructureNode structure;
 
     private AgentIntent pendingConfirm;
     private Set<String> lastKnownSelection = Set.of();
@@ -50,6 +51,7 @@ public class PromptContract extends ViewContract {
         this.agentService = Objects.requireNonNull(agentService);
         this.dispatcher = Objects.requireNonNull(dispatcher);
         this.gate = Objects.requireNonNull(gate);
+        this.structure = structure;
 
         // Build navigation entries from compositions + structure tree (available at construction time)
         List<Composition> compositions = lookup.get(ContextKeys.APP_COMPOSITIONS);
@@ -106,7 +108,14 @@ public class PromptContract extends ViewContract {
         AgentIntent intent = agentService.handlePrompt(text, navigationEntries);
 
         if (intent == null) {
-            promptService.sendReply(scopeKey, "I don't understand. Try: show posts, page 3, select all, edit selected.");
+            String help = "I don't understand. Available commands: show <section>, page <n>, select all, edit selected, delete <name>, create.";
+            if (structure != null) {
+                String sections = structure.agentDescription();
+                if (!sections.isEmpty()) {
+                    help += "\nSections:\n" + sections;
+                }
+            }
+            promptService.sendReply(scopeKey, help);
             return;
         }
 
