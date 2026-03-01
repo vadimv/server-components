@@ -8,6 +8,8 @@ import rsp.compositions.agent.IntentGate;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ListViewContract;
 
+import rsp.util.html.HtmlEscape;
+
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -68,7 +70,7 @@ public class IntentDispatcher {
                 String id = (String) intent.params().get("id");
                 if (id != null) {
                     lookup.publish(ListViewContract.EDIT_ELEMENT_REQUESTED, id);
-                    onMessage.accept("Opening editor for item " + id + ".");
+                    onMessage.accept("Opening editor for item " + HtmlEscape.escape(id) + ".");
                 } else {
                     onMessage.accept("No item selected to edit.");
                 }
@@ -79,9 +81,9 @@ public class IntentDispatcher {
                     Optional<Post> post = postService.findByTitle(name);
                     if (post.isPresent()) {
                         lookup.publish(ListViewContract.BULK_DELETE_REQUESTED, Set.of(post.get().id()));
-                        onMessage.accept("Deleted '" + name + "'.");
+                        onMessage.accept("Deleted '" + HtmlEscape.escape(name) + "'.");
                     } else {
-                        onMessage.accept("Item '" + name + "' not found.");
+                        onMessage.accept("Item '" + HtmlEscape.escape(name) + "' not found.");
                     }
                 } else {
                     onMessage.accept("No item name specified for delete.");
@@ -91,7 +93,7 @@ public class IntentDispatcher {
                 lookup.publish(ListViewContract.CREATE_ELEMENT_REQUESTED);
                 onMessage.accept("Opening create form.");
             }
-            default -> onMessage.accept("Unknown action: " + intent.action());
+            default -> onMessage.accept("Unknown action: " + HtmlEscape.escape(intent.action()));
         }
     }
 }

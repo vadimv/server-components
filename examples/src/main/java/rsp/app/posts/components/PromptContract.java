@@ -108,14 +108,22 @@ public class PromptContract extends ViewContract {
         AgentIntent intent = agentService.handlePrompt(text, navigationEntries);
 
         if (intent == null) {
-            String help = "I don't understand. Available commands: show <section>, page <n>, select all, edit selected, delete <name>, create.";
+            StringBuilder help = new StringBuilder("I don't understand..");
+            help.append("<ul>");
+            help.append("<li><b>show</b> &lt;section&gt; \u2014 navigate to a section</li>");
+            help.append("<li><b>page</b> &lt;n&gt; \u2014 go to page number</li>");
+            help.append("<li><b>select all</b> \u2014 select all items</li>");
+            help.append("<li><b>edit selected</b> \u2014 edit the selected item</li>");
+            help.append("<li><b>delete</b> &lt;name&gt; \u2014 delete an item by name</li>");
+            help.append("<li><b>create</b> \u2014 create a new item</li>");
+            help.append("</ul>");
             if (structure != null) {
                 String sections = structure.agentDescription();
                 if (!sections.isEmpty()) {
-                    help += "\nSections:\n" + sections;
+                    help.append("<pre>").append(sections).append("</pre>");
                 }
             }
-            promptService.sendReply(scopeKey, help);
+            promptService.sendReply(scopeKey, help.toString());
             return;
         }
 

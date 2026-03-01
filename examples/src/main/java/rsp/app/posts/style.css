@@ -420,6 +420,17 @@ h1 {
     align-self: flex-start;
 }
 
+.prompt-message.system ul {
+    margin: 0.25rem 0;
+    padding-left: 1.25rem;
+}
+
+.prompt-message.system pre {
+    margin: 0.25rem 0;
+    font-size: 0.8125rem;
+    white-space: pre-wrap;
+}
+
 .prompt-input-form {
     padding: 0.75rem;
     border-top: 1px solid #dee2e6;

@@ -4,6 +4,7 @@ import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
+import rsp.util.html.HtmlEscape;
 import rsp.util.json.JsonDataType;
 
 import java.util.ArrayList;
@@ -57,7 +58,10 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                 div(attr("class", "prompt-messages"),
                         of(state.messages().reversed().stream().map(msg ->
                                 div(attr("class", msg.fromUser() ? "prompt-message user" : "prompt-message system"),
-                                        text(msg.text()))
+                                        attr("innerHTML",
+                                             msg.fromUser() ? HtmlEscape.escape(msg.text())
+                                                            : msg.text(),
+                                             true))
                         ))
                 ),
                 form(attr("class", "prompt-input-form"),
