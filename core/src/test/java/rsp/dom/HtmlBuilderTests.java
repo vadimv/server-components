@@ -73,6 +73,56 @@ class HtmlBuilderTests {
     }
 
     @Nested
+    class InnerHtmlProperty {
+
+        @Test
+        void skips_innerHTML_property_during_ssr_and_strips_from_tree() {
+            TagNode div = new TagNode(XmlNs.html, "div", false);
+            div.addAttribute("innerHTML", "<b>hello</b>", true);
+
+            String html = buildHtml(div, true);
+
+            assertEquals("<div></div>", html);
+            // innerHTML should be removed from the virtual DOM so the first diff will re-apply it
+            assertTrue(div.attributes.isEmpty(),
+                    "innerHTML property should be stripped from virtual DOM after SSR");
+        }
+
+        @Test
+        void keeps_innerHTML_property_in_no_escape_mode() {
+            TagNode div = new TagNode(XmlNs.html, "div", false);
+            div.addAttribute("innerHTML", "<b>hello</b>", true);
+
+            String html = buildHtml(div, false);
+
+            // In no-escape mode (diff path), innerHTML is skipped in HTML output but NOT stripped
+            assertEquals("<div></div>", html);
+            assertFalse(div.attributes.isEmpty(),
+                    "innerHTML property should be retained in diff mode");
+        }
+
+        @Test
+        void renders_regular_class_attribute() {
+            TagNode div = new TagNode(XmlNs.html, "div", false);
+            div.addAttribute("class", "foo", false);
+
+            String html = buildHtml(div, true);
+
+            assertEquals("<div class=\"foo\"></div>", html);
+        }
+
+        @Test
+        void renders_value_property_as_attribute() {
+            TagNode input = new TagNode(XmlNs.html, "input", true);
+            input.addAttribute("value", "foo", true);
+
+            String html = buildHtml(input, true);
+
+            assertEquals("<input value=\"foo\" />", html);
+        }
+    }
+
+    @Nested
     class SsrLiveUpdateParity {
 
         @Test

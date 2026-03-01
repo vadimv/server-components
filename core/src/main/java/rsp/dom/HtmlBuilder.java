@@ -55,8 +55,13 @@ public class HtmlBuilder {
 
         sb.append('<');
         sb.append(tag.name);
+        AttributeNode deferredInnerHtml = null;
         if (tag.attributes.size() > 0) {
             for (final AttributeNode attribute: tag.attributes) {
+                if ("innerHTML".equals(attribute.name()) && attribute.isProperty()) {
+                    deferredInnerHtml = attribute;
+                    continue;
+                }
                 sb.append(' ');
                 sb.append(attribute.name());
                 sb.append('=');
@@ -64,6 +69,11 @@ public class HtmlBuilder {
                 sb.append(attribute.value());
                 sb.append('"');
             }
+        }
+        // Strip innerHTML property from the SSR virtual DOM tree so the first
+        // client-side diff will detect it as new and apply it via WebSocket.
+        if (deferredInnerHtml != null && escapeText) {
+            tag.attributes.remove(deferredInnerHtml);
         }
         if (tag.isSelfClosing) {
             sb.append(" />");

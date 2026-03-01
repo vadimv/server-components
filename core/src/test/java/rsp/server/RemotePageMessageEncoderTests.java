@@ -119,6 +119,40 @@ class RemotePageMessageEncoderTests {
         assertEquals("[15,\"click\",\"1_1\"]", c.result);
     }
 
+    @Test
+    void should_escape_quotes_in_attr_value() {
+        final MessagesConsumer c = new MessagesConsumer();
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(
+                TreePositionPath.of("1_1"), XmlNs.html, "innerHTML",
+                "<b>hello</b>", true)));
+        assertEquals("[4,3,\"1_1\",0,\"innerHTML\",\"<b>hello</b>\",true]", c.result);
+    }
+
+    @Test
+    void should_escape_quotes_in_attr_value_with_double_quotes() {
+        final MessagesConsumer c = new MessagesConsumer();
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(
+                TreePositionPath.of("1_1"), XmlNs.html, "innerHTML",
+                "<a href=\"url\">link</a>", true)));
+        assertEquals("[4,3,\"1_1\",0,\"innerHTML\",\"<a href=\\\"url\\\">link</a>\",true]", c.result);
+    }
+
+    @Test
+    void should_escape_quotes_in_evaljs() {
+        final MessagesConsumer c = new MessagesConsumer();
+        create(c).evalJs(1, "alert(\"hello\")");
+        assertEquals("[10,1,\"alert(\\\"hello\\\")\"]", c.result);
+    }
+
+    @Test
+    void should_escape_newlines_in_attr_value() {
+        final MessagesConsumer c = new MessagesConsumer();
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(
+                TreePositionPath.of("1_1"), XmlNs.html, "innerHTML",
+                "line1\nline2", true)));
+        assertEquals("[4,3,\"1_1\",0,\"innerHTML\",\"line1\\nline2\",true]", c.result);
+    }
+
     private RemotePageMessageEncoder create(final Consumer<String> consumer) {
         return new RemotePageMessageEncoder(consumer);
     }
