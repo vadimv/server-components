@@ -3,6 +3,8 @@ package rsp.compositions.contract;
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.server.http.AuthorizationException;
+import rsp.compositions.application.ServicesLifecycleHandler;
+import rsp.compositions.application.Services;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.Layout;
@@ -79,6 +81,8 @@ public final class SceneBuilder {
 
         // Resolve capabilities synchronously — all subscribers receive published values before rendering
         capabilityBus.resolve();
+
+        startServicesLifecycleHandlers(enrichedContext);
 
         return scene;
     }
@@ -216,5 +220,16 @@ public final class SceneBuilder {
             contract.registerHandlers();
         }
         return contract;
+    }
+
+    private void startServicesLifecycleHandlers(ComponentContext context) {
+        Services services = composition.services();
+        if (services == null) return;
+        Lookup lookup = LookupFactory.create(context);
+        for (Object service : services.asMap().values()) {
+            if (service instanceof ServicesLifecycleHandler handler) {
+                handler.onStart(lookup);
+            }
+        }
     }
 }

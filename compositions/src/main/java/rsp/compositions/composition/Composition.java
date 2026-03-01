@@ -1,5 +1,6 @@
 package rsp.compositions.composition;
 
+import rsp.compositions.application.Services;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.Router;
 
@@ -22,6 +23,7 @@ public class Composition {
     private final Router router;
     private final Group contracts;
     private final Layout layout;
+    private final Services services;
 
     /**
      * Create a Composition with its router, layout, and groups.
@@ -32,6 +34,18 @@ public class Composition {
      * @param groups One or more groups holding contract and view factories
      */
     public Composition(Router router, Layout layout, Group... groups) {
+        this(router, layout, null, groups);
+    }
+
+    /**
+     * Create a Composition with its router, layout, services, and groups.
+     *
+     * @param router   The router for this composition's routes
+     * @param layout   The layout strategy for visual arrangement
+     * @param services Composition-level services (nullable)
+     * @param groups   One or more groups holding contract and view factories
+     */
+    public Composition(Router router, Layout layout, Services services, Group... groups) {
         Objects.requireNonNull(router, "router cannot be null");
         Objects.requireNonNull(layout, "layout cannot be null");
         if (groups == null || groups.length == 0) {
@@ -39,6 +53,7 @@ public class Composition {
         }
         this.router = router;
         this.layout = layout;
+        this.services = services;
         if (groups.length == 1) {
             this.contracts = groups[0];
         } else {
@@ -69,5 +84,12 @@ public class Composition {
      */
     public Layout layout() {
         return layout;
+    }
+
+    /**
+     * Composition-level services (nullable).
+     */
+    public Services services() {
+        return services;
     }
 }

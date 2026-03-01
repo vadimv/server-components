@@ -1,8 +1,6 @@
 package rsp.compositions.application;
 
-import rsp.component.ComponentContext;
-import rsp.component.ComponentStateSupplier;
-import rsp.component.ComponentView;
+import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.composition.Composition;
@@ -65,6 +63,26 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     @Override
     public ComponentView<AppComponentState> componentView() {
         return _ -> _ -> new UrlSyncComponent(httpRequest.relativeUrl());
+    }
+
+    @Override
+    public void onMounted(ComponentCompositeKey componentId, AppComponentState state,
+                          StateUpdate<AppComponentState> stateUpdate) {
+        Lookup lookup = new ServiceMapLookup(services);
+        for (Object service : services.values()) {
+            if (service instanceof ServicesLifecycleHandler handler) {
+                handler.onStart(lookup);
+            }
+        }
+    }
+
+    @Override
+    public void onUnmounted(ComponentCompositeKey componentId, AppComponentState state) {
+        for (Object service : services.values()) {
+            if (service instanceof ServicesLifecycleHandler handler) {
+                handler.onStop();
+            }
+        }
     }
 
     public record AppComponentState() {

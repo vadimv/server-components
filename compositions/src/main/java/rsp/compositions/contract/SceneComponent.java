@@ -2,6 +2,8 @@ package rsp.compositions.contract;
 
 import rsp.component.*;
 import rsp.component.definitions.Component;
+import rsp.compositions.application.ServicesLifecycleHandler;
+import rsp.compositions.application.Services;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.LayerLayout;
@@ -104,6 +106,19 @@ public class SceneComponent extends Component<Scene> {
         // Destroy all companion contracts
         for (var companion : scene.companionContracts().values()) {
             companion.onDestroy();
+        }
+        stopServicesLifecycleHandlers(scene);
+    }
+
+    private void stopServicesLifecycleHandlers(Scene scene) {
+        Composition composition = scene.composition();
+        if (composition == null) return;
+        Services services = composition.services();
+        if (services == null) return;
+        for (Object service : services.asMap().values()) {
+            if (service instanceof ServicesLifecycleHandler handler) {
+                handler.onStop();
+            }
         }
     }
 
