@@ -174,16 +174,12 @@ public class AgentService {
     // --- Edit selected ---
 
     private AgentResult handleEditSelected(ContractProfile profile) {
-        // Look for a "select_all" or selection-related action to confirm this is a list
         if (!profile.isList()) {
             return new AgentResult.TextReply("No list contract active — nothing selected.");
         }
-        // The agent doesn't track selection state directly; it emits the intent
-        // and the framework handles it based on the current selection in DefaultListView.
-        // For the stub, we return a text reply explaining the limitation.
-        return new AgentResult.TextReply(
-            "Selection tracking requires runtime state from DefaultListView. " +
-            "Use 'edit <id>' with a specific row ID instead.");
+        // Emit edit intent without payload — the caller (e.g. PromptContract)
+        // enriches it with the current selection from the list view.
+        return new AgentResult.IntentResult(new AgentIntent("edit", Map.of()));
     }
 
     // --- Search/filter ---

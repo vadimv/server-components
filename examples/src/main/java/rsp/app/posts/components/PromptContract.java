@@ -1,20 +1,26 @@
 package rsp.app.posts.components;
 
-import rsp.app.posts.services.AgentService;
-import rsp.app.posts.services.IntentDispatcher;
 import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
+import rsp.compositions.agent.AgentActionFilter;
+import rsp.compositions.agent.AgentContext;
 import rsp.compositions.agent.AgentIntent;
+import rsp.compositions.agent.AgentService;
+import rsp.compositions.agent.AgentService.AgentResult;
+import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.agent.IntentGate;
-import rsp.compositions.composition.Composition;
+import rsp.compositions.agent.IntentDispatcher;
+import rsp.compositions.agent.IntentDispatcher.DispatchResult;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ListViewContract;
-import rsp.compositions.contract.NavigationEntry;
+import rsp.compositions.contract.Scene;
 import rsp.compositions.contract.ViewContract;
 import rsp.page.QualifiedSessionId;
+import rsp.util.html.HtmlEscape;
 
 import java.util.*;
 
@@ -36,26 +42,24 @@ public class PromptContract extends ViewContract {
     private final AgentService agentService;
     private final IntentDispatcher dispatcher;
     private final IntentGate gate;
-
-    private final List<NavigationEntry> navigationEntries;
+    private final AgentActionFilter actionFilter;
     private final StructureNode structure;
 
+    private Scene currentScene;
     private AgentIntent pendingConfirm;
     private Set<String> lastKnownSelection = Set.of();
 
     public PromptContract(Lookup lookup, PromptService promptService,
                           AgentService agentService, IntentDispatcher dispatcher,
-                          IntentGate gate, StructureNode structure) {
+                          IntentGate gate, AgentActionFilter actionFilter,
+                          StructureNode structure) {
         super(lookup);
         this.promptService = Objects.requireNonNull(promptService);
         this.agentService = Objects.requireNonNull(agentService);
         this.dispatcher = Objects.requireNonNull(dispatcher);
         this.gate = Objects.requireNonNull(gate);
+        this.actionFilter = actionFilter; // nullable = no filtering
         this.structure = structure;
-
-        // Build navigation entries from compositions + structure tree (available at construction time)
-        List<Composition> compositions = lookup.get(ContextKeys.APP_COMPOSITIONS);
-        this.navigationEntries = buildNavigationEntries(compositions, structure);
 
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
         this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
@@ -68,6 +72,12 @@ public class PromptContract extends ViewContract {
         // Track selection changes from list views
         subscribe(ListViewContract.SELECTION_CHANGED, (_, selectedItems) -> {
             lastKnownSelection = selectedItems.ids();
+        });
+
+        // Reset agent state on navigation changes
+        subscribe(EventKeys.SET_PRIMARY, (_, contractClass) -> {
+            agentService.reset();
+            lastKnownSelection = Set.of();
         });
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
@@ -92,9 +102,9 @@ public class PromptContract extends ViewContract {
             if (trimmed.equals("yes") || trimmed.equals("y")) {
                 AgentIntent confirmed = pendingConfirm;
                 pendingConfirm = null;
-                dispatcher.dispatch(confirmed, lookup, gate,
-                        reply -> promptService.sendReply(scopeKey, reply),
-                        intent -> pendingConfirm = intent);
+                ViewContract activeContract = activeContract();
+                DispatchResult result = dispatcher.dispatchDirect(confirmed, activeContract, lookup);
+                handleDispatchResult(result);
                 return;
             }
             if (trimmed.equals("no") || trimmed.equals("n")) {
@@ -104,39 +114,92 @@ public class PromptContract extends ViewContract {
             }
         }
 
-        // Parse user prompt into intent
-        AgentIntent intent = agentService.handlePrompt(text, navigationEntries);
+        // Parse user prompt via framework AgentService (with scoped, filtered profile)
+        AgentContext agentContext = buildAgentContext();
+        ContractProfile profile = agentContext.contractProfile();
+        AgentResult agentResult = agentService.handlePrompt(text, profile, structure);
 
-        if (intent == null) {
-            StringBuilder help = new StringBuilder("I don't understand..");
-            help.append("<ul>");
-            help.append("<li><b>show</b> &lt;section&gt; \u2014 navigate to a section</li>");
-            help.append("<li><b>page</b> &lt;n&gt; \u2014 go to page number</li>");
-            help.append("<li><b>select all</b> \u2014 select all items</li>");
-            help.append("<li><b>edit selected</b> \u2014 edit the selected item</li>");
-            help.append("<li><b>delete</b> &lt;name&gt; \u2014 delete an item by name</li>");
-            help.append("<li><b>create</b> \u2014 create a new item</li>");
-            help.append("</ul>");
-            if (structure != null) {
-                String sections = structure.agentDescription();
-                if (!sections.isEmpty()) {
-                    help.append("<pre>").append(sections).append("</pre>");
+        switch (agentResult) {
+            case AgentResult.TextReply reply -> {
+                if (reply.message().startsWith("I don't understand")) {
+                    promptService.sendReply(scopeKey, buildHelpMessage(profile));
+                } else {
+                    promptService.sendReply(scopeKey, HtmlEscape.escape(reply.message()));
                 }
             }
-            promptService.sendReply(scopeKey, help.toString());
-            return;
-        }
+            case AgentResult.IntentResult intentResult -> {
+                AgentIntent intent = intentResult.intent();
 
-        // Enrich "edit" intent with current selection if no explicit ID
-        if ("edit".equals(intent.action()) && intent.params().get("id") == null
-                && !lastKnownSelection.isEmpty()) {
-            String firstId = lastKnownSelection.iterator().next();
-            intent = new AgentIntent("edit", Map.of("id", firstId), intent.targetContract());
-        }
+                // Enrich "edit" intent with current selection if no explicit payload
+                if ("edit".equals(intent.action()) && intent.params().get("payload") == null
+                        && !lastKnownSelection.isEmpty()) {
+                    String firstId = lastKnownSelection.iterator().next();
+                    intent = new AgentIntent("edit", Map.of("payload", firstId), intent.targetContract());
+                }
 
-        dispatcher.dispatch(intent, lookup, gate,
-                reply -> promptService.sendReply(scopeKey, reply),
-                pending -> pendingConfirm = pending);
+                ViewContract activeContract = activeContract();
+                DispatchResult result = dispatcher.dispatch(intent, activeContract, lookup, gate);
+                handleDispatchResult(result);
+            }
+        }
+    }
+
+    private void handleDispatchResult(DispatchResult result) {
+        switch (result) {
+            case DispatchResult.Dispatched d -> {
+                String reply = replyForIntent(d.intent());
+                promptService.sendReply(scopeKey, reply);
+            }
+            case DispatchResult.Blocked b ->
+                promptService.sendReply(scopeKey, b.reason());
+            case DispatchResult.AwaitingConfirmation c -> {
+                promptService.sendReply(scopeKey, c.question());
+                pendingConfirm = c.intent();
+            }
+            case DispatchResult.UnknownAction u ->
+                promptService.sendReply(scopeKey, "Unknown action: " + HtmlEscape.escape(u.action()));
+        }
+    }
+
+    private String replyForIntent(AgentIntent intent) {
+        return switch (intent.action()) {
+            case "navigate" -> "Navigating...";
+            case "page" -> "Going to page " + intent.params().get("payload") + ".";
+            case "select_all" -> "Selected all items.";
+            case "edit" -> "Opening editor...";
+            case "create" -> "Opening create form.";
+            case "delete" -> "Deleting...";
+            case "save" -> "Saving...";
+            default -> "Done.";
+        };
+    }
+
+    private String buildHelpMessage(ContractProfile profile) {
+        StringBuilder help = new StringBuilder("I don't understand..");
+        help.append("<ul>");
+        help.append("<li><b>show</b> &lt;section&gt; &mdash; navigate to a section</li>");
+        help.append("<li><b>page</b> &lt;n&gt; &mdash; go to page number</li>");
+        help.append("<li><b>select all</b> &mdash; select all items</li>");
+        help.append("<li><b>edit selected</b> &mdash; edit the selected item</li>");
+        help.append("<li><b>delete</b> &lt;name&gt; &mdash; delete an item by name</li>");
+        help.append("<li><b>create</b> &mdash; create a new item</li>");
+        help.append("</ul>");
+        if (structure != null) {
+            String sections = structure.agentDescription();
+            if (!sections.isEmpty()) {
+                help.append("<pre>").append(sections).append("</pre>");
+            }
+        }
+        return help.toString();
+    }
+
+    private AgentContext buildAgentContext() {
+        ViewContract active = currentScene != null ? currentScene.routedContract() : null;
+        return AgentContext.forScope(AgentContext.Scope.APP, active, structure, actionFilter, lookup);
+    }
+
+    private ViewContract activeContract() {
+        return currentScene != null ? currentScene.routedContract() : null;
     }
 
     @Override
@@ -146,28 +209,9 @@ public class PromptContract extends ViewContract {
 
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
+        // Capture Scene from enriched context (not available in lookup at construction time)
+        this.currentScene = context.get(ContextKeys.SCENE);
         return context.with(PromptContextKeys.PROMPT_MESSAGES, List.copyOf(messages));
-    }
-
-    private static List<NavigationEntry> buildNavigationEntries(List<Composition> compositions,
-                                                               StructureNode structure) {
-        if (compositions == null || structure == null) {
-            return List.of();
-        }
-        final Map<String, NavigationEntry> uniqueByCategory = new LinkedHashMap<>();
-        for (Composition comp : compositions) {
-            for (Class<? extends ViewContract> contractClass : comp.contracts().contractClasses()) {
-                Optional<String> routeOpt = comp.router().findRoutePattern(contractClass);
-                if (routeOpt.isPresent() && !routeOpt.get().contains(":") && structure.contains(contractClass)) {
-                    String label = structure.labelFor(contractClass);
-                    if (label != null && !uniqueByCategory.containsKey(label)) {
-                        uniqueByCategory.put(label,
-                                new NavigationEntry(label, label, contractClass, routeOpt.get()));
-                    }
-                }
-            }
-        }
-        return List.copyOf(uniqueByCategory.values());
     }
 
     @Override

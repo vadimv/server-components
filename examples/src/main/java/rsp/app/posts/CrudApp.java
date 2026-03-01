@@ -12,12 +12,12 @@ import rsp.app.posts.components.HeaderView;
 import rsp.app.posts.components.PromptContract;
 import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
-import rsp.app.posts.services.AgentService;
 import rsp.app.posts.services.AllowAllGate;
 import rsp.app.posts.services.CommentService;
-import rsp.app.posts.services.IntentDispatcher;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
+import rsp.compositions.agent.AgentService;
+import rsp.compositions.agent.IntentDispatcher;
 import rsp.compositions.agent.IntentGate;
 import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
@@ -59,7 +59,7 @@ public class CrudApp {
 
         // Agent services
         final AgentService agentService = new AgentService();
-        final IntentDispatcher intentDispatcher = new IntentDispatcher(postService);
+        final IntentDispatcher intentDispatcher = new IntentDispatcher();
         final IntentGate gate = new AllowAllGate();
 
         final Group mainContracts = new Group("Admin").description("Administration panel")
@@ -74,7 +74,7 @@ public class CrudApp {
 
         final Group systemContracts = new Group()
                 .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
-                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, gate, mainContracts.structureTree()), PromptView::new)
+                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, gate, null, mainContracts.structureTree()), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
 
         final DefaultLayout layout = new DefaultLayout()

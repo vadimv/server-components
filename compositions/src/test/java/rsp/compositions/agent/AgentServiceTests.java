@@ -271,13 +271,14 @@ class AgentServiceTests {
     class EditSelected {
 
         @Test
-        void returns_text_reply_for_stub() {
+        void returns_edit_intent_without_payload() {
             AgentService.AgentResult result = agent.handlePrompt(
                 "edit selected", listProfile("desc"), emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.TextReply.class, result);
-            String message = ((AgentService.AgentResult.TextReply) result).message();
-            assertTrue(message.contains("row ID"));
+            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
+            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
+            assertEquals("edit", intent.action());
+            assertFalse(intent.params().containsKey("payload"));
         }
     }
 
