@@ -9,10 +9,15 @@ import rsp.compositions.agent.AgentContext;
 import rsp.compositions.agent.AgentIntent;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentService.AgentResult;
+import rsp.compositions.agent.AgentSession;
+import rsp.compositions.agent.AgentSpawner;
 import rsp.compositions.agent.ContractProfile;
+import rsp.compositions.agent.ControlMode;
 import rsp.compositions.agent.IntentGate;
 import rsp.compositions.agent.IntentDispatcher;
 import rsp.compositions.agent.IntentDispatcher.DispatchResult;
+import rsp.compositions.agent.SpawnRequest;
+import rsp.compositions.agent.SpawnResult;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.EventKeys;
@@ -44,6 +49,7 @@ public class PromptContract extends ViewContract {
     private final IntentGate gate;
     private final AgentActionFilter actionFilter;
     private final StructureNode structure;
+    private final AgentSession agentSession;
 
     private Scene currentScene;
     private AgentIntent pendingConfirm;
@@ -52,7 +58,7 @@ public class PromptContract extends ViewContract {
     public PromptContract(Lookup lookup, PromptService promptService,
                           AgentService agentService, IntentDispatcher dispatcher,
                           IntentGate gate, AgentActionFilter actionFilter,
-                          StructureNode structure) {
+                          AgentSpawner spawner, StructureNode structure) {
         super(lookup);
         this.promptService = Objects.requireNonNull(promptService);
         this.agentService = Objects.requireNonNull(agentService);
@@ -63,6 +69,23 @@ public class PromptContract extends ViewContract {
 
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
         this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
+
+        // Spawn agent session via centralized spawner
+        SpawnResult spawnResult = spawner.spawn(
+            new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null), lookup);
+        this.agentSession = switch (spawnResult) {
+            case SpawnResult.Approved approved -> approved.session();
+            case SpawnResult.Denied denied -> {
+                logger.log(System.Logger.Level.WARNING,
+                    () -> "Agent session denied: " + denied.reason());
+                yield null;
+            }
+            case SpawnResult.RequiresApproval pending -> {
+                logger.log(System.Logger.Level.INFO,
+                    () -> "Agent session pending approval: " + pending.reason());
+                yield null;
+            }
+        };
 
         // Initialize from service history (survives contract recreation)
         for (PromptService.Message msg : promptService.getMessageHistory(scopeKey)) {
@@ -95,6 +118,11 @@ public class PromptContract extends ViewContract {
     }
 
     private void handleUserInput(String text) {
+        if (agentSession == null || !agentSession.isValid()) {
+            promptService.sendReply(scopeKey, "Agent session is not active.");
+            return;
+        }
+
         String trimmed = text.trim().toLowerCase();
 
         // Handle pending confirmation
