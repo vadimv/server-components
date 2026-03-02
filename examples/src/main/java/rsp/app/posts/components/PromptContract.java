@@ -4,6 +4,7 @@ import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
+import rsp.compositions.agent.AccessPolicy;
 import rsp.compositions.agent.AgentActionFilter;
 import rsp.compositions.agent.AgentContext;
 import rsp.compositions.agent.AgentIntent;
@@ -16,6 +17,9 @@ import rsp.compositions.agent.ControlMode;
 import rsp.compositions.agent.IntentGate;
 import rsp.compositions.agent.IntentDispatcher;
 import rsp.compositions.agent.IntentDispatcher.DispatchResult;
+import rsp.compositions.agent.PolicyActionFilter;
+import rsp.compositions.agent.PolicyGate;
+import rsp.compositions.agent.PolicySpawner;
 import rsp.compositions.agent.SpawnRequest;
 import rsp.compositions.agent.SpawnResult;
 import rsp.compositions.composition.StructureNode;
@@ -57,14 +61,12 @@ public class PromptContract extends ViewContract {
 
     public PromptContract(Lookup lookup, PromptService promptService,
                           AgentService agentService, IntentDispatcher dispatcher,
-                          IntentGate gate, AgentActionFilter actionFilter,
-                          AgentSpawner spawner, StructureNode structure) {
+                          AccessPolicy policy, AgentSpawner spawner,
+                          StructureNode structure) {
         super(lookup);
         this.promptService = Objects.requireNonNull(promptService);
         this.agentService = Objects.requireNonNull(agentService);
         this.dispatcher = Objects.requireNonNull(dispatcher);
-        this.gate = Objects.requireNonNull(gate);
-        this.actionFilter = actionFilter; // nullable = no filtering
         this.structure = structure;
 
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
@@ -86,6 +88,15 @@ public class PromptContract extends ViewContract {
                 yield null;
             }
         };
+
+        // Derive gate and filter from the session's grant via unified policy
+        if (agentSession != null) {
+            this.gate = new PolicyGate(policy, agentSession.grant());
+            this.actionFilter = new PolicyActionFilter(policy, agentSession.grant());
+        } else {
+            this.gate = (intent, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
+            this.actionFilter = (actions, ctx) -> List.of();
+        }
 
         // Initialize from service history (survives contract recreation)
         for (PromptService.Message msg : promptService.getMessageHistory(scopeKey)) {

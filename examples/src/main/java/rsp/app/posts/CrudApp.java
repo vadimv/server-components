@@ -12,15 +12,16 @@ import rsp.app.posts.components.HeaderView;
 import rsp.app.posts.components.PromptContract;
 import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
-import rsp.app.posts.services.AllowAllGate;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
+import rsp.compositions.agent.AccessPolicy;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentSpawner;
-import rsp.compositions.agent.AllowAllSpawner;
+import rsp.compositions.agent.CompositePolicy;
+import rsp.compositions.agent.ExamplePolicies;
 import rsp.compositions.agent.IntentDispatcher;
-import rsp.compositions.agent.IntentGate;
+import rsp.compositions.agent.PolicySpawner;
 import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
@@ -59,11 +60,11 @@ public class CrudApp {
         final PromptService promptService = new PromptService();
         promptService.startTicking();
 
-        // Agent services
+        // Agent services — unified ABAC policy for spawn, discovery, and execution
         final AgentService agentService = new AgentService();
         final IntentDispatcher intentDispatcher = new IntentDispatcher();
-        final IntentGate gate = new AllowAllGate();
-        final AgentSpawner spawner = new AllowAllSpawner();
+        final AccessPolicy policy = new CompositePolicy(ExamplePolicies.grantConstraints());
+        final AgentSpawner spawner = new PolicySpawner(policy);
 
         final Group mainContracts = new Group("Admin").description("Administration panel")
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
@@ -77,7 +78,7 @@ public class CrudApp {
 
         final Group systemContracts = new Group()
                 .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
-                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, gate, null, spawner, mainContracts.structureTree()), PromptView::new)
+                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, policy, spawner, mainContracts.structureTree()), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
 
         final DefaultLayout layout = new DefaultLayout()
