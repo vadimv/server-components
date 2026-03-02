@@ -14,15 +14,16 @@ import rsp.compositions.agent.AgentSession;
 import rsp.compositions.agent.AgentSpawner;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.agent.ControlMode;
+import rsp.compositions.agent.DelegationApprovalContract;
 import rsp.compositions.agent.IntentGate;
 import rsp.compositions.agent.IntentDispatcher;
 import rsp.compositions.agent.IntentDispatcher.DispatchResult;
 import rsp.compositions.agent.PolicyActionFilter;
 import rsp.compositions.agent.PolicyGate;
-import rsp.compositions.agent.PolicySpawner;
 import rsp.compositions.agent.SpawnRequest;
 import rsp.compositions.agent.SpawnResult;
 import rsp.compositions.composition.StructureNode;
+import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ListViewContract;
@@ -50,10 +51,16 @@ public class PromptContract extends ViewContract {
     private final PromptService promptService;
     private final AgentService agentService;
     private final IntentDispatcher dispatcher;
-    private final IntentGate gate;
-    private final AgentActionFilter actionFilter;
+    private final AgentSpawner spawner;
+    private final AccessPolicy policy;
     private final StructureNode structure;
-    private final AgentSession agentSession;
+
+    private IntentGate gate;
+    private AgentActionFilter actionFilter;
+    private AgentSession agentSession;
+    private SpawnRequest pendingSpawnRequest;
+    private String pendingTicketId;
+    private String queuedPrompt;
 
     private Scene currentScene;
     private AgentIntent pendingConfirm;
@@ -67,14 +74,16 @@ public class PromptContract extends ViewContract {
         this.promptService = Objects.requireNonNull(promptService);
         this.agentService = Objects.requireNonNull(agentService);
         this.dispatcher = Objects.requireNonNull(dispatcher);
+        this.spawner = Objects.requireNonNull(spawner);
+        this.policy = Objects.requireNonNull(policy);
         this.structure = structure;
 
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
         this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
 
         // Spawn agent session via centralized spawner
-        SpawnResult spawnResult = spawner.spawn(
-            new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null), lookup);
+        this.pendingSpawnRequest = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
+        SpawnResult spawnResult = spawner.spawn(pendingSpawnRequest, lookup);
         this.agentSession = switch (spawnResult) {
             case SpawnResult.Approved approved -> approved.session();
             case SpawnResult.Denied denied -> {
@@ -85,6 +94,7 @@ public class PromptContract extends ViewContract {
             case SpawnResult.RequiresApproval pending -> {
                 logger.log(System.Logger.Level.INFO,
                     () -> "Agent session pending approval: " + pending.reason());
+                this.pendingTicketId = pending.ticketId();
                 yield null;
             }
         };
@@ -120,6 +130,30 @@ public class PromptContract extends ViewContract {
             handleUserInput(text);
         });
 
+        // Listen for approval decisions from delegation dialog
+        subscribe(DelegationApprovalContract.APPROVAL_DECIDED, (eventName, approved) -> {
+            if (approved) {
+                SpawnResult retryResult = this.spawner.spawn(pendingSpawnRequest, lookup);
+                if (retryResult instanceof SpawnResult.Approved a) {
+                    this.agentSession = a.session();
+                    this.gate = new PolicyGate(this.policy, agentSession.grant());
+                    this.actionFilter = new PolicyActionFilter(this.policy, agentSession.grant());
+                    this.pendingTicketId = null;
+                    promptService.sendReply(scopeKey, "Agent access approved. How can I help?");
+                    if (queuedPrompt != null) {
+                        String prompt = queuedPrompt;
+                        queuedPrompt = null;
+                        handleUserInput(prompt);
+                    }
+                } else {
+                    promptService.sendReply(scopeKey, "Agent session could not be established.");
+                }
+            } else {
+                this.pendingTicketId = null;
+                promptService.sendReply(scopeKey, "Agent delegation denied.");
+            }
+        });
+
         serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
             Message msg = new Message(message.text(), message.fromUser());
             messages.add(msg);
@@ -130,6 +164,17 @@ public class PromptContract extends ViewContract {
 
     private void handleUserInput(String text) {
         if (agentSession == null || !agentSession.isValid()) {
+            if (pendingTicketId != null) {
+                this.queuedPrompt = text;
+                lookup.publish(EventKeys.SHOW, new ActionBindings.ShowPayload(
+                        DelegationApprovalContract.class,
+                        Map.of("scope", pendingSpawnRequest.scope().name(),
+                               "controlMode", pendingSpawnRequest.controlMode().name(),
+                               "reason", pendingSpawnRequest.purpose() != null
+                                       ? pendingSpawnRequest.purpose() : "")));
+                promptService.sendReply(scopeKey, "Awaiting your approval for agent access...");
+                return;
+            }
             promptService.sendReply(scopeKey, "Agent session is not active.");
             return;
         }
