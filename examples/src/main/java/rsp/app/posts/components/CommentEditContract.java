@@ -10,6 +10,7 @@ import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * CommentEditContract - Contract for editing an existing comment.
@@ -19,9 +20,9 @@ public class CommentEditContract extends EditViewContract<Comment> {
 
     private final CommentService commentService;
 
-    public CommentEditContract(final Lookup lookup) {
+    public CommentEditContract(final Lookup lookup, final CommentService commentService) {
         super(lookup);
-        this.commentService = lookup.get(CommentService.class);
+        this.commentService = Objects.requireNonNull(commentService);
     }
 
     @Override

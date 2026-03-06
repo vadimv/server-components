@@ -23,6 +23,7 @@ public class TreeBuilder implements TreeBuilderFactory {
     private final Deque<TagNode> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<ComponentSegment<?>> componentsStack = new ArrayDeque<>();
+    private final Deque<ComponentContext> componentContextStack = new ArrayDeque<>();
     private final List<Throwable> exceptions = new ArrayList<>();
 
     protected ComponentContext componentContext;
@@ -69,6 +70,7 @@ public class TreeBuilder implements TreeBuilderFactory {
 
     public <S> void openComponent(final ComponentSegment<S> component) {
         Objects.requireNonNull(component);
+        componentContextStack.push(componentContext);
         if (rootComponent == null) {
             rootComponent = component;
         } else {
@@ -81,6 +83,7 @@ public class TreeBuilder implements TreeBuilderFactory {
 
     public void closeComponent() {
         componentsStack.pop();
+        componentContext = componentContextStack.pop();
     }
 
     public void openNode(XmlNs xmlns, String name, boolean isSelfClosing) {
@@ -224,7 +227,7 @@ public class TreeBuilder implements TreeBuilderFactory {
 
     public String html() {
         final StringBuilder sb = new StringBuilder();
-        final HtmlBuilder hb = new HtmlBuilder(sb);
+        final HtmlBuilder hb = new HtmlBuilder(sb, true);
         if (docType != null) {
             sb.append(docType);
         }

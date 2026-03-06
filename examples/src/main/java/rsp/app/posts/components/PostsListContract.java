@@ -9,6 +9,7 @@ import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.QueryParam;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class PostsListContract extends ListViewContract<Post> {
@@ -17,10 +18,9 @@ public class PostsListContract extends ListViewContract<Post> {
 
     private final PostService postService;
 
-    public PostsListContract(final Lookup lookup) {
+    public PostsListContract(final Lookup lookup, PostService postService) {
         super(lookup);
-        // Read service from lookup
-        this.postService = lookup.get(PostService.class);
+        this.postService = Objects.requireNonNull(postService);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class PostsListContract extends ListViewContract<Post> {
         String sort = sort();  // Uses resolve(SORT) → reads from context "url.query.sort"
 
         // Call service directly (service comes from context)
-        // Use pageSize from base class (configured via AppConfig)
+        // Use pageSize from base class (configured via Config)
         return postService.findAll(page, pageSize(), sort);
     }
 

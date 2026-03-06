@@ -4,18 +4,20 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.component.definitions.ContextStateComponent;
+import rsp.compositions.agent.AgentAction;
+import rsp.compositions.agent.AgentInfo;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static rsp.compositions.contract.ActionBindings.*;
-import static rsp.compositions.contract.ContextKeys.LIST_DEFAULT_PAGE_SIZE;
 import static rsp.compositions.contract.EventKeys.SHOW;
 import static rsp.compositions.contract.EventKeys.STATE_UPDATED;
 
-public abstract class ListViewContract<T> extends ViewContract {
+public abstract class ListViewContract<T> extends ViewContract implements AgentInfo {
 
 
     public static final EventKey.VoidKey CREATE_ELEMENT_REQUESTED = new EventKey.VoidKey("list.create.element.requested");
@@ -36,17 +38,37 @@ public abstract class ListViewContract<T> extends ViewContract {
     public static final EventKey.SimpleKey<Integer> PAGE_CHANGE_REQUESTED =
             new EventKey.SimpleKey<>("change.requested",
                                       Integer.class);
-    /**
 
     /**
-     * Context key for default page size configuration.
-     * Framework-agnostic: contracts don't need to know about AppConfig structure.
+     * Select all rows on the current page.
+     * Emitted by: agent (via IntentDispatcher)
+     * Handled by: DefaultListView.onMounted()
+     */
+    public static final EventKey.VoidKey SELECT_ALL_REQUESTED =
+            new EventKey.VoidKey("list.select.all.requested");
+
+    /**
+     * Selection state changed.
+     * Emitted by: DefaultListView when selection changes
+     * Consumed by: agent (to track current selection for "edit selected" commands)
+     */
+    public static final EventKey.SimpleKey<SelectedItems> SELECTION_CHANGED =
+            new EventKey.SimpleKey<>("list.selection.changed", SelectedItems.class);
+
+    /**
+     * Immutable payload for selection change events.
+     *
+     * @param ids the currently selected row IDs
+     */
+    public record SelectedItems(Set<String> ids) {
+        public SelectedItems { ids = Set.copyOf(ids); }
+    }
+
+    /**
+     * Config key for default page size.
      */
     public static final String CONFIG_DEFAULT_PAGE_SIZE = "list.defaultPageSize";
 
-    /**
-     * Default page size fallback if no configuration is provided.
-     */
     private static final int DEFAULT_PAGE_SIZE_FALLBACK = 10;
 
     private final int pageSize;
@@ -54,18 +76,9 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     protected ListViewContract(Lookup lookup) {
         super(lookup);
-        // Read page size from generic config context, completely agnostic of AppConfig
-        Integer configuredPageSize = lookup.get(LIST_DEFAULT_PAGE_SIZE);
-        this.pageSize = configuredPageSize != null ? configuredPageSize : DEFAULT_PAGE_SIZE_FALLBACK;
+        this.pageSize = lookup.getInt(CONFIG_DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_FALLBACK);
     }
 
-    /**
-     * Get the configured page size for this list view.
-     * This value is read from context using a generic string key, making this contract
-     * completely independent of any specific configuration class (AppConfig, etc.).
-     *
-     * @return The page size (number of items per page)
-     */
     protected int pageSize() {
         return pageSize;
     }
@@ -123,6 +136,9 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     @Override
     protected void registerHandlers() {
+        // Publish active category capability for sibling contracts (e.g., header)
+        publishCapability(Capabilities.ACTIVE_CATEGORY, title());
+
         // Handle bulk delete requests
         subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
             handleBulkDelete(selectedIds);
@@ -209,5 +225,36 @@ public abstract class ListViewContract<T> extends ViewContract {
      */
     protected void onBulkDeleteFailure(Set<String> failedIds) {
         // Default: silent failure - override for error handling
+    }
+
+    @Override
+    public List<AgentAction> agentActions() {
+        return List.of(
+            new AgentAction("create", CREATE_ELEMENT_REQUESTED,
+                "Open create form for a new item", null),
+            new AgentAction("edit", EDIT_ELEMENT_REQUESTED,
+                "Open edit form for an item", "String: row ID"),
+            new AgentAction("delete", BULK_DELETE_REQUESTED,
+                "Delete items by their IDs", "Set<String>: row IDs"),
+            new AgentAction("page", PAGE_CHANGE_REQUESTED,
+                "Navigate to a page number", "Integer: page number (1-based)"),
+            new AgentAction("select_all", SELECT_ALL_REQUESTED,
+                "Select all rows on the current page", null)
+        );
+    }
+
+    @Override
+    public String agentDescription() {
+        String itemsSummary = items().stream()
+            .map(Object::toString)
+            .collect(Collectors.joining("\n  "));
+        String schemaInfo = schema().fields().stream()
+            .map(f -> f.name() + ":" + f.fieldType())
+            .collect(Collectors.joining(", "));
+        return "Displays a list of " + title() + ".\n"
+             + "Current page: " + page() + ", sort: " + sort() + "\n"
+             + "Items on page: " + items().size() + ", page size: " + pageSize() + "\n"
+             + "Items:\n  " + itemsSummary + "\n"
+             + "Schema: " + schemaInfo;
     }
 }

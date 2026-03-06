@@ -202,10 +202,19 @@ h1 {
     margin-bottom: 1rem;
 }
 
+/* Outer wrapper: full viewport, vertical flex for header + body */
+.layout-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
 /* Layout container with sidebar support */
 .layout-container {
     display: flex;
-    min-height: 100vh;
+    flex: 1;
+    min-height: 0;
 }
 
 /* Left sidebar */
@@ -220,6 +229,13 @@ h1 {
 .layout-primary {
     flex: 1;
     padding: 1rem;
+    overflow-y: auto;
+    display: flex;
+    justify-content: center;
+}
+
+.layout-primary > * {
+    width: 100%;
     max-width: 1000px;
 }
 
@@ -262,6 +278,43 @@ h1 {
     background-color: #007bff;
     color: white;
     font-weight: 500;
+}
+
+/* ========== Header Styles ========== */
+.layout-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    color: #212529;
+}
+
+.header-category {
+    font-weight: 600;
+}
+
+.header-auth {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-username {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.header-signout {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 0.875rem;
+}
+
+.header-signout:hover {
+    color: #0056b3;
+    text-decoration: underline;
 }
 
 /* ========== Overlay Styles ========== */
@@ -313,11 +366,12 @@ h1 {
 .layout-right-sidebar {
     width: 300px;
     flex-shrink: 0;
+    margin-left: auto;
     background-color: #f8f9fa;
     border-left: 1px solid #dee2e6;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    overflow: hidden;
 }
 
 /* ========== Prompt Panel ========== */
@@ -366,6 +420,17 @@ h1 {
     align-self: flex-start;
 }
 
+.prompt-message.system ul {
+    margin: 0.25rem 0;
+    padding-left: 1.25rem;
+}
+
+.prompt-message.system pre {
+    margin: 0.25rem 0;
+    font-size: 0.8125rem;
+    white-space: pre-wrap;
+}
+
 .prompt-input-form {
     padding: 0.75rem;
     border-top: 1px solid #dee2e6;
@@ -385,4 +450,55 @@ h1 {
     outline: none;
     border-color: #80bdff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* ========== Delegation Approval Dialog ========== */
+.approval-dialog {
+    padding: 1.5rem;
+    min-width: 400px;
+}
+
+.approval-header {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.approval-body {
+    margin-bottom: 1.5rem;
+}
+
+.approval-field {
+    margin-bottom: 0.75rem;
+}
+
+.approval-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.approval-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+.btn-approve {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-deny {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    border-radius: 4px;
+    cursor: pointer;
 }

@@ -2,94 +2,118 @@ package rsp.compositions.layout;
 
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.composition.UiRegistry;
 import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.UiComponentResolver;
 import rsp.compositions.contract.ViewContract;
 import rsp.dsl.Definition;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static java.lang.System.Logger.Level.TRACE;
-import static rsp.compositions.contract.EventKeys.HIDE;
 import static rsp.dsl.Html.*;
 
 /**
- * Default layout with CSS class-based slot rendering.
+ * Default base layout with CSS class-based positioning.
  * <p>
- * Resolves primary, sidebar, and overlay contracts from the Scene,
- * then renders them in a standard content layout with optional modal overlay.
+ * Configurable via builder methods that declare which contract classes
+ * should appear in which position. These contracts are eagerly instantiated
+ * as companions during scene building (via {@link #requiredContracts()}).
  * <p>
  * Structure:
  * <ul>
- *   <li>{@code layout-container} - wrapper div</li>
+ *   <li>{@code layout-wrapper} - outer wrapper div</li>
+ *   <li>{@code layout-container} - content container</li>
  *   <li>{@code layout-sidebar} - optional left sidebar</li>
- *   <li>{@code layout-primary} - main content area</li>
+ *   <li>{@code layout-primary} - main content area (routed contract)</li>
  *   <li>{@code layout-right-sidebar} - optional right sidebar</li>
- *   <li>{@code modal-overlay / modal-backdrop / modal-content} - overlay modal</li>
  * </ul>
  */
 public final class DefaultLayout implements Layout {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    @Override
-    public Definition resolve(Scene scene, Lookup lookup) {
-        logger.log(TRACE, () -> "Resolving a standard content three column layout with optional modal overlay");
+    private final Class<? extends ViewContract> leftSidebarClass;
+    private final Class<? extends ViewContract> rightSidebarClass;
+    private final Class<? extends ViewContract> headerClass;
 
-        UiRegistry uiRegistry = scene.uiRegistry();
-
-        // Resolve primary contract to UI component
-        Component<?> primary = UiComponentResolver.resolve(uiRegistry, scene.primaryContract().getClass());
-
-        // Resolve LEFT_SIDEBAR contract to UI component (if present)
-        Component<?> leftSidebar = null;
-        ViewContract leftSidebarContract = scene.leftSidebarContract();
-        if (leftSidebarContract != null) {
-            leftSidebar = UiComponentResolver.resolve(uiRegistry, leftSidebarContract.getClass());
-        }
-
-        // Resolve RIGHT_SIDEBAR contract to UI component (if present)
-        Component<?> rightSidebar = null;
-        ViewContract rightSidebarContract = scene.rightSidebarContract();
-        if (rightSidebarContract != null) {
-            rightSidebar = UiComponentResolver.resolve(uiRegistry, rightSidebarContract.getClass());
-        }
-
-        // Determine active overlay and resolve to UI component
-        Component<?> activeOverlay = null;
-        Class<? extends ViewContract> activeOverlayClass = scene.autoOpen() != null
-            ? scene.autoOpen().contractClass() : null;
-        if (activeOverlayClass == null && scene.hasNonPrimaryContracts()) {
-            activeOverlayClass = scene.nonPrimaryContracts().keySet().iterator().next();
-        }
-        if (activeOverlayClass != null) {
-            activeOverlay = UiComponentResolver.resolve(uiRegistry, activeOverlayClass);
-        }
-
-        // Build layout children: [left-sidebar?] [primary] [right-sidebar?] [overlay?]
-        List<Definition> children = new ArrayList<>();
-        children.add(attr("class", "layout-container"));
-        if (leftSidebar != null) {
-            children.add(div(attr("class", "layout-sidebar"), leftSidebar));
-        }
-        children.add(div(attr("class", "layout-primary"), primary));
-        if (rightSidebar != null) {
-            children.add(div(attr("class", "layout-right-sidebar"), rightSidebar));
-        }
-        if (activeOverlay != null) {
-            final Class<? extends ViewContract> overlayToClose = activeOverlayClass;
-            children.add(renderOverlay(activeOverlay, () -> lookup.publish(HIDE, overlayToClose)));
-        }
-
-        return div(children.toArray(Definition[]::new));
+    public DefaultLayout() {
+        this(null, null, null);
     }
 
-    private static Definition renderOverlay(Component<?> content, Runnable onClose) {
-        return div(attr("class", "modal-overlay"),
-                div(attr("class", "modal-backdrop"),
-                        on("click", _ -> onClose.run())),
-                div(attr("class", "modal-content"),
-                        content));
+    private DefaultLayout(Class<? extends ViewContract> leftSidebarClass,
+                          Class<? extends ViewContract> rightSidebarClass,
+                          Class<? extends ViewContract> headerClass) {
+        this.leftSidebarClass = leftSidebarClass;
+        this.rightSidebarClass = rightSidebarClass;
+        this.headerClass = headerClass;
+    }
+
+    public DefaultLayout leftSidebar(Class<? extends ViewContract> contractClass) {
+        return new DefaultLayout(contractClass, rightSidebarClass, headerClass);
+    }
+
+    public DefaultLayout rightSidebar(Class<? extends ViewContract> contractClass) {
+        return new DefaultLayout(leftSidebarClass, contractClass, headerClass);
+    }
+
+    public DefaultLayout header(Class<? extends ViewContract> contractClass) {
+        return new DefaultLayout(leftSidebarClass, rightSidebarClass, contractClass);
+    }
+
+    @Override
+    public Set<Class<? extends ViewContract>> requiredContracts() {
+        Set<Class<? extends ViewContract>> required = new HashSet<>();
+        if (leftSidebarClass != null) required.add(leftSidebarClass);
+        if (rightSidebarClass != null) required.add(rightSidebarClass);
+        if (headerClass != null) required.add(headerClass);
+        return Set.copyOf(required);
+    }
+
+    @Override
+    public Definition resolve(Scene scene, Lookup lookup) {
+        logger.log(TRACE, () -> "Resolving default layout");
+
+        // Resolve routed contract to UI component
+        Component<?> primary = null;
+        if (scene.routedContract() != null) {
+            primary = scene.contracts().resolveView(scene.routedContract().getClass());
+        }
+
+        // Resolve companion contracts to UI components
+        Component<?> leftSidebar = resolveCompanion(scene, leftSidebarClass);
+        Component<?> rightSidebar = resolveCompanion(scene, rightSidebarClass);
+        Component<?> header = resolveCompanion(scene, headerClass);
+
+        // Build layout: [header?] then container with [left-sidebar?] [primary] [right-sidebar?]
+        List<Definition> wrapper = new ArrayList<>();
+        wrapper.add(attr("class", "layout-wrapper"));
+
+        if (header != null) {
+            wrapper.add(header);
+        }
+
+        List<Definition> containerChildren = new ArrayList<>();
+        containerChildren.add(attr("class", "layout-container"));
+        if (leftSidebar != null) {
+            containerChildren.add(div(attr("class", "layout-sidebar"), leftSidebar));
+        }
+        if (primary != null) {
+            containerChildren.add(div(attr("class", "layout-primary"), primary));
+        }
+        if (rightSidebar != null) {
+            containerChildren.add(div(attr("class", "layout-right-sidebar"), rightSidebar));
+        }
+
+        wrapper.add(div(containerChildren.toArray(Definition[]::new)));
+
+        return div(wrapper.toArray(Definition[]::new));
+    }
+
+    private Component<?> resolveCompanion(Scene scene, Class<? extends ViewContract> contractClass) {
+        if (contractClass == null) return null;
+        ViewContract companion = scene.companionContract(contractClass);
+        if (companion == null) return null;
+        return scene.contracts().resolveView(companion.getClass());
     }
 }

@@ -1,15 +1,29 @@
 package rsp.dom;
 
+import rsp.util.html.HtmlEscape;
+
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * A mutable HTML string which is built from nodes trees.
  */
 public class HtmlBuilder {
     private final StringBuilder sb;
+    private final boolean escapeText;
+
+    /** HTML raw text elements whose content must not be HTML-escaped. */
+    private static final Set<String> RAW_TEXT_ELEMENTS = Set.of("script", "style");
+
+    private boolean inRawTextElement;
 
     public HtmlBuilder(final StringBuilder sb) {
+        this(sb, false);
+    }
+
+    public HtmlBuilder(final StringBuilder sb, final boolean escapeText) {
         this.sb = Objects.requireNonNull(sb);
+        this.escapeText = escapeText;
     }
 
     /**
@@ -33,10 +47,21 @@ public class HtmlBuilder {
      }
 
     private void buildHtml(final TagNode tag) {
+        final boolean isRawText = RAW_TEXT_ELEMENTS.contains(tag.name);
+        final boolean previousInRawText = inRawTextElement;
+        if (isRawText) {
+            inRawTextElement = true;
+        }
+
         sb.append('<');
         sb.append(tag.name);
+        AttributeNode deferredInnerHtml = null;
         if (tag.attributes.size() > 0) {
             for (final AttributeNode attribute: tag.attributes) {
+                if ("innerHTML".equals(attribute.name()) && attribute.isProperty()) {
+                    deferredInnerHtml = attribute;
+                    continue;
+                }
                 sb.append(' ');
                 sb.append(attribute.name());
                 sb.append('=');
@@ -44,6 +69,11 @@ public class HtmlBuilder {
                 sb.append(attribute.value());
                 sb.append('"');
             }
+        }
+        // Strip innerHTML property from the SSR virtual DOM tree so the first
+        // client-side diff will detect it as new and apply it via WebSocket.
+        if (deferredInnerHtml != null && escapeText) {
+            tag.attributes.remove(deferredInnerHtml);
         }
         if (tag.isSelfClosing) {
             sb.append(" />");
@@ -64,10 +94,13 @@ public class HtmlBuilder {
             sb.append(tag.name);
             sb.append('>');
         }
+
+        inRawTextElement = previousInRawText;
     }
 
     private void buildHtml(TextNode textNode) {
-        textNode.parts.forEach(part -> sb.append(part));
+        final boolean shouldEscape = escapeText && !inRawTextElement;
+        textNode.parts.forEach(part -> sb.append(shouldEscape ? HtmlEscape.escape(part) : part));
     }
 
     /**

@@ -3,6 +3,10 @@ package rsp.compositions.contract;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
+import rsp.compositions.agent.AgentAction;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * EditViewContract - Base contract for editing existing entities.
@@ -190,5 +194,24 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
      */
     protected void onDeleteFailure() {
         // Default: stay on page
+    }
+
+    @Override
+    public List<AgentAction> agentActions() {
+        List<AgentAction> actions = new ArrayList<>(super.agentActions());
+        actions.add(new AgentAction("delete", DELETE_REQUESTED,
+            "Delete the current entity", null));
+        return List.copyOf(actions);
+    }
+
+    @Override
+    public String agentDescription() {
+        Object entity = item();
+        String fields = schema().fields().stream()
+                .map(f -> f.name() + ":" + f.fieldType())
+                .collect(java.util.stream.Collectors.joining(", "));
+        return "Edit form for " + title() + ".\n"
+             + "Entity: " + (entity != null ? entity.toString() : "none") + "\n"
+             + "Fields: " + fields;
     }
 }

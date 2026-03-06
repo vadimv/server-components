@@ -9,6 +9,7 @@ import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * PostCreateContract - Contract for creating a new post.
@@ -27,9 +28,9 @@ public class PostCreateContract extends CreateViewContract<Post> {
 
     private final PostService postService;
 
-    public PostCreateContract(final Lookup lookup) {
+    public PostCreateContract(final Lookup lookup, PostService postService) {
         super(lookup);
-        this.postService = lookup.get(PostService.class);
+        this.postService = Objects.requireNonNull(postService);
     }
 
     @Override

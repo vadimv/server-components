@@ -75,7 +75,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     public void listenEvents(final List<DomEventEntry> events) {
         Objects.requireNonNull(events);
         if (!events.isEmpty()) {
-            final String[] changes = events.stream().map(e -> joinString(quote(e.eventName),
+            final String[] changes = events.stream().map(e -> joinString(quote(escape(e.eventName)),
                                                          e.preventDefault,
                                                          quote(e.eventTarget.elementPath().toString()),
                                                          quote(modifierString(e.modifier)))).toArray(String[]::new);
@@ -130,14 +130,14 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     @Override
     public void setHref(final String path) {
         Objects.requireNonNull(path);
-        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(path)));
+        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(escape(path))));
         messagesOut.accept(message);
     }
 
     @Override
     public void pushHistory(final String path) {
         Objects.requireNonNull(path);
-        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(path)));
+        final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(escape(path))));
         messagesOut.accept(message);
     }
 
@@ -146,7 +146,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
             case RemoveAttr c -> joinString(REMOVE_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), c.isProperty());
             case RemoveStyle(TreePositionPath path, String name) -> joinString(REMOVE_STYLE, quote(path), quote(escape(name)), false);
             case Remove c -> joinString(REMOVE, quote(c.parentPath()), quote(c.path()));
-            case SetAttr c -> joinString(SET_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), quote(c.value()), c.isProperty());
+            case SetAttr c -> joinString(SET_ATTR, quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.name())), quote(escape(c.value())), c.isProperty());
             case SetStyle c -> joinString(SET_STYLE, quote(c.path()), quote(escape(c.name())), quote(escape(c.value())));
             case CreateText c -> joinString(CREATE_TEXT, quote(c.parentPath()), quote(c.path()), quote(escape(c.text())));
             case Create c -> joinString(CREATE, quote(c.path().parent()), quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.tag())));
@@ -160,7 +160,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     @Override
     public void evalJs(final int descriptor, final String js) {
         Objects.requireNonNull(js);
-        final String message = addSquareBrackets(joinString(EVAL_JS, descriptor, quote(js)));
+        final String message = addSquareBrackets(joinString(EVAL_JS, descriptor, quote(escape(js))));
         messagesOut.accept(message);
     }
 

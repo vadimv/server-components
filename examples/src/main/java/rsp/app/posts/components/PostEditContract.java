@@ -10,12 +10,13 @@ import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * PostEditContract - Contract for editing an existing post.
  * <p>
- * In overlay mode (Slot.OVERLAY), receives the post ID via OPEN_EDIT_MODAL event.
- * In URL mode (Slot.PRIMARY), loads the post by ID from the URL path (e.g., /posts/123).
+ * If shown via SHOW event, receives the post ID via show data.
+ * If routed via URL, loads the post by ID from the URL path (e.g., /posts/123).
  * <p>
  * For creating new posts, use {@link PostCreateContract}.
  */
@@ -24,9 +25,9 @@ public class PostEditContract extends EditViewContract<Post> {
 
     private final PostService postService;
 
-    public PostEditContract(final Lookup lookup) {
+    public PostEditContract(final Lookup lookup, PostService postService) {
         super(lookup);
-        this.postService = lookup.get(PostService.class);
+        this.postService = Objects.requireNonNull(postService);
     }
 
     @Override

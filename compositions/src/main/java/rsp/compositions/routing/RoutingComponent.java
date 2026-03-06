@@ -5,8 +5,8 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
+import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.SceneComponent;
 import rsp.compositions.contract.ViewContract;
 import rsp.server.Path;
 import rsp.server.http.NotFoundException;
@@ -23,9 +23,9 @@ import java.util.function.BiFunction;
  * 1. Reads url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
  * 2. Iterates Compositions in order, trying each one's Router
  * 3. First matching route wins - enriches context with route.composition, route.contractClass, route.path, route.pattern
- * 4. Renders SceneComponent
+ * 4. Renders AuthComponent
  * <p>
- * Position in component chain: AuthComponent → UrlSyncComponent → RoutingComponent → SceneComponent
+ * Position in component chain: AppComponent → UrlSyncComponent → RoutingComponent → AuthComponent → SceneComponent
  * <p>
  * Note: This component does NOT depend on HttpRequest - it reads the path from context,
  * allowing for better separation of concerns and testability.
@@ -81,10 +81,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
 
     @Override
     public ComponentView<RoutingComponentState> componentView() {
-        return _ -> state -> new SceneComponent(state.path().toString(),
-                                                                                                      state.composition(),
-                                                                                                      state.contractClass(),
-                                                                                                      state.pattern());
+        return _ -> _ -> new AuthComponent();
     }
 
     public record RoutingComponentState(

@@ -1,16 +1,10 @@
 package rsp.compositions.application;
 
-import rsp.component.ComponentContext;
-import rsp.component.ComponentStateSupplier;
-import rsp.component.ComponentView;
-import rsp.component.ContextKey;
+import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.ListViewContract;
-import rsp.compositions.contract.NavigationEntry;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.UiRegistry;
+import rsp.compositions.routing.UrlSyncComponent;
 import rsp.server.http.HttpRequest;
 
 import java.util.List;
@@ -21,20 +15,17 @@ import java.util.function.BiFunction;
 
 public class AppComponent extends Component<AppComponent.AppComponentState> {
 
-    private final AppConfig config;
-    private final UiRegistry uiRegistry;
+    private final Config config;
     private final List<Composition> compositions;
     private final Map<Class<?>, Object> services;
     private final HttpRequest httpRequest;
 
-    public AppComponent(AppConfig config,
-                        UiRegistry uiRegistry,
+    public AppComponent(Config config,
                         List<Composition> compositions,
                         Map<Class<?>, Object> services,
                         HttpRequest httpRequest) {
         super();
         this.config = Objects.requireNonNull(config);
-        this.uiRegistry = Objects.requireNonNull(uiRegistry);
         this.compositions = Objects.requireNonNull(compositions);
         this.services = Objects.requireNonNull(services);
         this.httpRequest = Objects.requireNonNull(httpRequest);
@@ -48,23 +39,19 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     /**
      * Enrich context with application-level objects.
      * This is where constructor injection stops and pure context propagation begins.
-     * Note: Router is inside each Composition, not at app level.
+     * Note: Router and Contracts are inside each Composition, not at app level.
      */
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> {
-            // Add app-level objects using ClassKey (ServiceLoader style)
-            ComponentContext enrichedContext = context
-                .with(AppConfig.class, config)
-                .with(HttpRequest.class, httpRequest)
-                .with(ContextKeys.UI_REGISTRY, uiRegistry)
-                .with(ContextKeys.APP_COMPOSITIONS, compositions)
-                .with(ContextKeys.NAVIGATION_ENTRIES, NavigationEntry.fromCompositions(compositions));
+            // Inject all config properties into context as StringKey<String> entries
+            ComponentContext enrichedContext = config.applyTo(context);
 
-            // Add generic configuration values for framework components
-            // This allows contracts to be agnostic of AppConfig structure
-            ContextKey<Integer> sc = new ContextKey.StringKey<>(ListViewContract.CONFIG_DEFAULT_PAGE_SIZE, Integer.class);
-            enrichedContext = enrichedContext.with(sc, Integer.valueOf(config.defaultPageSize()));
+            // Add app-level objects using ClassKey (ServiceLoader style)
+            enrichedContext = enrichedContext
+                .with(Config.class, config)
+                .with(HttpRequest.class, httpRequest)
+                .with(ContextKeys.APP_COMPOSITIONS, compositions);
 
             // Add all services to context using their actual classes as keys for each service instance
             enrichedContext = enrichedContext.with(services);
@@ -75,8 +62,27 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
 
     @Override
     public ComponentView<AppComponentState> componentView() {
-        // AuthComponent has default constructor - reads everything from context
-        return _ -> _ -> new AuthComponent();
+        return _ -> _ -> new UrlSyncComponent(httpRequest.relativeUrl());
+    }
+
+    @Override
+    public void onMounted(ComponentCompositeKey componentId, AppComponentState state,
+                          StateUpdate<AppComponentState> stateUpdate) {
+        Lookup lookup = new ServiceMapLookup(services);
+        for (Object service : services.values()) {
+            if (service instanceof ServicesLifecycleHandler handler) {
+                handler.onStart(lookup);
+            }
+        }
+    }
+
+    @Override
+    public void onUnmounted(ComponentCompositeKey componentId, AppComponentState state) {
+        for (Object service : services.values()) {
+            if (service instanceof ServicesLifecycleHandler handler) {
+                handler.onStop();
+            }
+        }
     }
 
     public record AppComponentState() {

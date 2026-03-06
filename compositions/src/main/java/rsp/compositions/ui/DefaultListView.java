@@ -2,11 +2,13 @@ package rsp.compositions.ui;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentView;
+import rsp.component.StateUpdate;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.ListView;
-import rsp.compositions.composition.Slot;
 import rsp.dsl.Definition;
 
 import java.time.LocalDate;
@@ -24,11 +26,24 @@ import static rsp.dsl.Html.*;
  * Supports any number of columns and types.
  * Includes pagination and sorting interactivity.
  * <p>
- * Create/Edit actions trigger events that open overlay contracts (Slot.OVERLAY).
+ * Create/Edit actions trigger events that open overlay contracts via SHOW events.
  */
 public class DefaultListView extends ListView {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultListView.class);
+
+    @Override
+    public void onMounted(ComponentCompositeKey componentId, ListViewState state,
+                          StateUpdate<ListViewState> stateUpdate) {
+        lookup.subscribe(ListViewContract.SELECT_ALL_REQUESTED, () -> {
+            stateUpdate.applyStateTransformation(s -> {
+                ListViewState newState = s.selectAll();
+                lookup.publish(ListViewContract.SELECTION_CHANGED,
+                        new ListViewContract.SelectedItems(newState.selectedIds()));
+                return newState;
+            });
+        });
+    }
 
     @Override
     public ComponentView<ListViewState> componentView() {
@@ -69,11 +84,15 @@ public class DefaultListView extends ListView {
                                         attr("type", "checkbox"),
                                         state.isAllSelected() ? attr("checked", "checked") : of(),
                                         on("click", ctx -> {
+                                            ListViewState updated;
                                             if (state.isAllSelected()) {
-                                                newState.setState(state.clearSelection());
+                                                updated = state.clearSelection();
                                             } else {
-                                                newState.setState(state.selectAll());
+                                                updated = state.selectAll();
                                             }
+                                            newState.setState(updated);
+                                            lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                                    new ListViewContract.SelectedItems(updated.selectedIds()));
                                         })
                                     )
                                   )
@@ -112,7 +131,10 @@ public class DefaultListView extends ListView {
                                             attr("type", "checkbox"),
                                             state.isSelected(rowId) ? attr("checked", "checked") : of(),
                                             on("click", ctx -> {
-                                                newState.setState(state.toggleSelection(rowId));
+                                                ListViewState updated = state.toggleSelection(rowId);
+                                                newState.setState(updated);
+                                                lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                                        new ListViewContract.SelectedItems(updated.selectedIds()));
                                             })
                                         )
                                       )
@@ -156,7 +178,10 @@ public class DefaultListView extends ListView {
                             lookup.publish(BULK_DELETE_REQUESTED, state.selectedIds());
                             // Clear selection immediately (optimistic UI update)
                             // This hides the button and unchecks all checkboxes
-                            stateUpdate.setState(state.clearSelection());
+                            ListViewState cleared = state.clearSelection();
+                            stateUpdate.setState(cleared);
+                            lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                    new ListViewContract.SelectedItems(cleared.selectedIds()));
                         }
                     });
             })
@@ -188,24 +213,23 @@ public class DefaultListView extends ListView {
     /**
      * Render Edit button/link for a row.
      * <p>
-     * Behavior depends on edit contract's slot and route configuration:
+     * Behavior depends on edit contract's route configuration:
      * <ul>
-     *   <li>Case 1: PRIMARY + route → navigate via link (full page edit)</li>
-     *   <li>Case 2: OVERLAY + route → event (modal, URL updated by LayoutComponent)</li>
-     *   <li>Case 4: OVERLAY + no route → event (modal, no URL change)</li>
+     *   <li>Primary-like (no parent route) + has route → navigate via link (full page edit)</li>
+     *   <li>Overlay-like (has parent route) or no route → event (SHOW-based overlay)</li>
      * </ul>
      *
      * @param rowId The row ID for the edit link
      * @param queryParams Query params to preserve (e.g., "fromP=2&fromSort=desc")
      */
     private Definition renderEditButton(String rowId, String queryParams) {
-        // Get edit slot and route info from context
-        Slot editSlot = lookup.get(ContextKeys.EDIT_SLOT);
         Boolean editHasRoute = lookup.get(ContextKeys.EDIT_HAS_ROUTE);
+        Boolean editOpensAsOverlay = lookup.get(ContextKeys.EDIT_OPENS_AS_OVERLAY);
         String editRoutePattern = lookup.get(ContextKeys.EDIT_ROUTE_PATTERN);
 
-        // Case 1: PRIMARY slot with route → navigate via link
-        if (editSlot == Slot.PRIMARY && editHasRoute != null && editHasRoute) {
+        // Primary-like with route → navigate via link
+        if (editHasRoute != null && editHasRoute
+                && (editOpensAsOverlay == null || !editOpensAsOverlay)) {
             String editUrl = buildEditUrl(editRoutePattern, rowId, queryParams);
             return a(
                 attr("href", editUrl),
@@ -214,8 +238,7 @@ public class DefaultListView extends ListView {
             );
         }
 
-        // Cases 2 & 4: OVERLAY slot (with or without route) → trigger event
-        // URL sync for Case 2 is handled by LayoutComponent
+        // Overlay-like or no route → trigger event (LayerComponent handles SHOW)
         return button(
             attr("type", "button"),
             attr("class", "edit-button"),
@@ -261,7 +284,10 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        newState.setState(state.clearSelection());
+                        ListViewState cleared = state.clearSelection();
+                        newState.setState(cleared);
+                        lookup.publish(ListViewContract.SELECTION_CHANGED,
+                                new ListViewContract.SelectedItems(cleared.selectedIds()));
                         lookup.publish(PAGE_CHANGE_REQUESTED, currentPage - 1);
                     })
                   ),
@@ -277,7 +303,10 @@ public class DefaultListView extends ListView {
                 attr("type", "button"),
                 text("Next →"),
                 on("click", ctx -> {
-                    newState.setState(state.clearSelection());
+                    ListViewState cleared = state.clearSelection();
+                    newState.setState(cleared);
+                    lookup.publish(ListViewContract.SELECTION_CHANGED,
+                            new ListViewContract.SelectedItems(cleared.selectedIds()));
                     lookup.publish(PAGE_CHANGE_REQUESTED, currentPage + 1);
                 })
             )

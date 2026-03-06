@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.Lookup;
 import rsp.compositions.contract.*;
+import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
 import rsp.compositions.schema.DataSchema;
 
@@ -13,84 +14,36 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Tests for Composition class methods and slot-based resolution.
+ * Tests for Composition class methods.
  */
 public class CompositionTests {
 
     @Nested
-    class SlotBasedResolutionTests {
+    class ContractLookupTests {
 
         @Test
-        void placementsForSlot_returns_matching_placements() {
-            final Composition composition = createCompositionWithMixedSlots();
+        void contractFactory_finds_registered_class() {
+            final Composition composition = createCompositionWithMultipleContracts();
 
-            final List<ViewPlacement> primaryPlacements = composition.placementsForSlot(Slot.PRIMARY);
-            final List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
+            final var factory = composition.contracts().contractFactory(TestListContract.class);
 
-            assertEquals(1, primaryPlacements.size());
-            assertEquals(2, overlayPlacements.size());
+            assertNotNull(factory);
         }
 
         @Test
-        void placementsForSlot_returns_empty_when_no_matches() {
-            final Composition composition = createCompositionWithPrimaryOnly();
+        void contractFactory_returns_null_when_not_found() {
+            final Composition composition = createSimpleComposition();
 
-            final List<ViewPlacement> overlayPlacements = composition.placementsForSlot(Slot.OVERLAY);
+            final var factory = composition.contracts().contractFactory(TestEditContract.class);
 
-            assertTrue(overlayPlacements.isEmpty());
+            assertNull(factory);
         }
 
         @Test
-        void placementFor_finds_contract_class() {
-            final Composition composition = createCompositionWithMixedSlots();
+        void contractClasses_returns_all_registered_classes() {
+            final Composition composition = createCompositionWithMultipleContracts();
 
-            final ViewPlacement placement = composition.placementFor(TestListContract.class);
-
-            assertNotNull(placement);
-            assertEquals(TestListContract.class, placement.contractClass());
-            assertEquals(Slot.PRIMARY, placement.slot());
-        }
-
-        @Test
-        void placementFor_returns_null_when_not_found() {
-            final Composition composition = createCompositionWithPrimaryOnly();
-
-            final ViewPlacement placement = composition.placementFor(TestEditContract.class);
-
-            assertNull(placement);
-        }
-
-        @Test
-        void slotFor_returns_slot_type() {
-            final Composition composition = createCompositionWithMixedSlots();
-
-            assertEquals(Slot.PRIMARY, composition.slotFor(TestListContract.class));
-            assertEquals(Slot.OVERLAY, composition.slotFor(TestEditContract.class));
-        }
-
-        @Test
-        void slotFor_returns_null_when_not_found() {
-            final Composition composition = createCompositionWithPrimaryOnly();
-
-            assertNull(composition.slotFor(TestEditContract.class));
-        }
-
-        @Test
-        void primaryPlacement_returns_first_primary() {
-            final Composition composition = createCompositionWithMixedSlots();
-
-            final ViewPlacement primary = composition.primaryPlacement();
-
-            assertNotNull(primary);
-            assertEquals(Slot.PRIMARY, primary.slot());
-            assertEquals(TestListContract.class, primary.contractClass());
-        }
-
-        @Test
-        void primaryPlacement_returns_null_when_no_primary() {
-            final Composition composition = createCompositionWithOverlaysOnly();
-
-            assertNull(composition.primaryPlacement());
+            assertEquals(3, composition.contracts().contractClasses().size());
         }
     }
 
@@ -100,35 +53,35 @@ public class CompositionTests {
         @Test
         void composition_stores_router() {
             final Router router = new Router().route("/test", TestListContract.class);
-            final ViewsPlacements placements = new ViewsPlacements()
-                    .place(Slot.PRIMARY, TestListContract.class, TestListContract::new);
+            final Group group = new Group()
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
 
-            final Composition composition = new Composition(router, placements);
+            final Composition composition = new Composition(router, new DefaultLayout(), group);
 
             assertSame(router, composition.router());
         }
 
         @Test
-        void views_returns_immutable_list() {
-            final Composition composition = createCompositionWithPrimaryOnly();
+        void contractClasses_returns_unmodifiable_set() {
+            final Composition composition = createSimpleComposition();
 
-            final List<ViewPlacement> views = composition.views();
+            final var classes = composition.contracts().contractClasses();
 
-            assertThrows(UnsupportedOperationException.class, () -> views.add(null));
+            assertThrows(UnsupportedOperationException.class, () -> classes.add(null));
         }
 
         @Test
         void constructor_rejects_null_router() {
-            final ViewsPlacements placements = new ViewsPlacements();
+            final Group group = new Group();
 
-            assertThrows(NullPointerException.class, () -> new Composition(null, placements));
+            assertThrows(NullPointerException.class, () -> new Composition(null, new DefaultLayout(), group));
         }
 
         @Test
-        void constructor_rejects_null_placements() {
+        void constructor_rejects_no_groups() {
             final Router router = new Router();
 
-            assertThrows(NullPointerException.class, () -> new Composition(router, null));
+            assertThrows(IllegalArgumentException.class, () -> new Composition(router, new DefaultLayout()));
         }
     }
 
@@ -140,47 +93,164 @@ public class CompositionTests {
             final Router router = new Router()
                     .route("/items", TestListContract.class)
                     .route("/items/:id", TestEditContract.class);
-            final ViewsPlacements placements = new ViewsPlacements()
-                    .place(Slot.PRIMARY, TestListContract.class, TestListContract::new)
-                    .place(Slot.OVERLAY, TestEditContract.class, TestEditContract::new);
+            final Group group = new Group()
+                    .bind(TestListContract.class, TestListContract::new, () -> null)
+                    .bind(TestEditContract.class, TestEditContract::new, () -> null);
 
-            final Composition composition = new Composition(router, placements);
+            final Composition composition = new Composition(router, new DefaultLayout(), group);
 
             assertTrue(composition.router().hasRoute(TestListContract.class));
             assertTrue(composition.router().hasRoute(TestEditContract.class));
         }
     }
 
-    // Helper methods to create test compositions
+    @Nested
+    class GroupTests {
 
-    private Composition createCompositionWithPrimaryOnly() {
-        final Router router = new Router().route("/items", TestListContract.class);
-        final ViewsPlacements placements = new ViewsPlacements()
-                .place(Slot.PRIMARY, TestListContract.class, TestListContract::new);
-        return new Composition(router, placements);
+        @Test
+        void nested_group_contractClasses_aggregates() {
+            final Group group = new Group("Root")
+                    .add(new Group("A")
+                            .bind(TestListContract.class, TestListContract::new, () -> null))
+                    .add(new Group("B")
+                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
+
+            assertEquals(2, group.contractClasses().size());
+            assertTrue(group.contractClasses().contains(TestListContract.class));
+            assertTrue(group.contractClasses().contains(TestCreateContract.class));
+        }
+
+        @Test
+        void nested_group_contractFactory_finds_in_children() {
+            final Group group = new Group("Root")
+                    .add(new Group("A")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            assertNotNull(group.contractFactory(TestListContract.class));
+        }
+
+        @Test
+        void structureTree_reflects_group_hierarchy() {
+            final Group group = new Group("Root")
+                    .bind(TestListContract.class, TestListContract::new, () -> null)
+                    .add(new Group("Child")
+                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
+
+            StructureNode tree = group.structureTree();
+
+            assertEquals("Root", tree.label());
+            assertEquals(1, tree.contracts().size());
+            assertEquals(1, tree.children().size());
+            assertEquals("Child", tree.children().get(0).label());
+            assertEquals(1, tree.children().get(0).contracts().size());
+        }
+
+        @Test
+        void structureNode_contains_searches_subtree() {
+            final Group group = new Group("Root")
+                    .add(new Group("Child")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            StructureNode tree = group.structureTree();
+
+            assertTrue(tree.contains(TestListContract.class));
+            assertFalse(tree.contains(TestEditContract.class));
+        }
+
+        @Test
+        void structureNode_labelFor_finds_owning_group() {
+            final Group group = new Group("Root")
+                    .add(new Group("Posts")
+                            .bind(TestListContract.class, TestListContract::new, () -> null))
+                    .add(new Group("Comments")
+                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
+
+            StructureNode tree = group.structureTree();
+
+            assertEquals("Posts", tree.labelFor(TestListContract.class));
+            assertEquals("Comments", tree.labelFor(TestCreateContract.class));
+            assertNull(tree.labelFor(TestEditContract.class));
+        }
+
+        @Test
+        void structureNode_agentDescription_renders_tree() {
+            final Group group = new Group("Admin").description("Administration panel")
+                    .add(new Group("Posts").description("Blog posts with CRUD")
+                            .bind(TestListContract.class, TestListContract::new, () -> null))
+                    .add(new Group("Comments").description("User comments")
+                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
+
+            String desc = group.structureTree().agentDescription();
+
+            assertTrue(desc.contains("Admin"));
+            assertTrue(desc.contains("Administration panel"));
+            assertTrue(desc.contains("Posts"));
+            assertTrue(desc.contains("Blog posts with CRUD"));
+            assertTrue(desc.contains("Comments"));
+            assertTrue(desc.contains("User comments"));
+        }
+
+        @Test
+        void structureNode_agentDescription_indents_children() {
+            final Group group = new Group("Root")
+                    .add(new Group("Child")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            String desc = group.structureTree().agentDescription();
+
+            assertTrue(desc.contains("Root\n"));
+            assertTrue(desc.contains("  Child"));
+        }
+
+        @Test
+        void structureNode_agentDescription_omits_unlabeled_root() {
+            final Group group = new Group()
+                    .add(new Group("Posts")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            String desc = group.structureTree().agentDescription();
+
+            assertTrue(desc.startsWith("Posts"));
+            assertFalse(desc.contains("null"));
+        }
+
+        @Test
+        void composition_merges_multiple_groups() {
+            final Router router = new Router().route("/items", TestListContract.class);
+            final Group main = new Group("Main")
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
+            final Group system = new Group()
+                    .bind(TestCreateContract.class, TestCreateContract::new, () -> null);
+
+            final Composition composition = new Composition(router, new DefaultLayout(), main, system);
+
+            assertEquals(2, composition.contracts().contractClasses().size());
+            assertNotNull(composition.contracts().contractFactory(TestListContract.class));
+            assertNotNull(composition.contracts().contractFactory(TestCreateContract.class));
+        }
     }
 
-    private Composition createCompositionWithMixedSlots() {
+    // Helper methods to create test compositions
+
+    private Composition createSimpleComposition() {
+        final Router router = new Router().route("/items", TestListContract.class);
+        final Group group = new Group()
+                .bind(TestListContract.class, TestListContract::new, () -> null);
+        return new Composition(router, new DefaultLayout(), group);
+    }
+
+    private Composition createCompositionWithMultipleContracts() {
         final Router router = new Router()
                 .route("/items", TestListContract.class)
                 .route("/items/:id", TestEditContract.class);
-        final ViewsPlacements placements = new ViewsPlacements()
-                .place(Slot.PRIMARY, TestListContract.class, TestListContract::new)
-                .place(Slot.OVERLAY, TestCreateContract.class, TestCreateContract::new)
-                .place(Slot.OVERLAY, TestEditContract.class, TestEditContract::new);
-        return new Composition(router, placements);
-    }
-
-    private Composition createCompositionWithOverlaysOnly() {
-        final Router router = new Router();
-        final ViewsPlacements placements = new ViewsPlacements()
-                .place(Slot.OVERLAY, TestCreateContract.class, TestCreateContract::new)
-                .place(Slot.OVERLAY, TestEditContract.class, TestEditContract::new);
-        return new Composition(router, placements);
+        final Group group = new Group()
+                .bind(TestListContract.class, TestListContract::new, () -> null)
+                .bind(TestCreateContract.class, TestCreateContract::new, () -> null)
+                .bind(TestEditContract.class, TestEditContract::new, () -> null);
+        return new Composition(router, new DefaultLayout(), group);
     }
 
     // Test contract classes
-
 
     static class TestListContract extends ListViewContract<Object> {
         TestListContract(final Lookup lookup) {

@@ -9,6 +9,7 @@ import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.QueryParam;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 public class CommentsListContract extends ListViewContract<Comment> {
@@ -17,9 +18,9 @@ public class CommentsListContract extends ListViewContract<Comment> {
 
     private final CommentService commentService;
 
-    public CommentsListContract(final Lookup lookup) {
+    public CommentsListContract(final Lookup lookup, final CommentService commentService) {
         super(lookup);
-        this.commentService = lookup.get(CommentService.class);
+        this.commentService = Objects.requireNonNull(commentService);
     }
 
     @Override

@@ -15,7 +15,11 @@ public class PromptService {
         SESSION_ID
     }
 
-    public record Message(String text, boolean fromUser) {}
+    public record Message(String text, boolean fromUser, boolean update) {
+        public Message(String text, boolean fromUser) {
+            this(text, fromUser, false);
+        }
+    }
 
     private final AtomicInteger messageCount = new AtomicInteger(0);
     private final AtomicInteger tickCount = new AtomicInteger(0);
@@ -48,7 +52,7 @@ public class PromptService {
         history(scopeKey).add(new Message(text, true));
         int count = messageCount.incrementAndGet();
         Message reply = new Message("echo-" + count, false);
-        notifySubscribers(scopeKey, reply);
+       // notifySubscribers(scopeKey, reply);
     }
 
     /**
@@ -75,9 +79,50 @@ public class PromptService {
             Message tick = new Message("tick-" + count, false);
             // Broadcast tick to all active scopes
             for (String scopeKey : subscribersByScope.keySet()) {
-                notifySubscribers(scopeKey, tick);
+              //  notifySubscribers(scopeKey, tick);
             }
         }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Send a reply from the agent (not from the user).
+     * Records in history and notifies subscribers.
+     *
+     * @param scopeKey the session scope key
+     * @param text     the reply text
+     */
+    public void sendReply(String scopeKey, String text) {
+        Message reply = new Message(text, false);
+        notifySubscribers(scopeKey, reply);
+    }
+
+    /**
+     * Update the last non-user message in history (for streaming token accumulation).
+     * Replaces the text of the most recent system message and notifies subscribers
+     * with {@code update=true}.
+     */
+    public void updateLastReply(String scopeKey, String text) {
+        List<Message> hist = history(scopeKey);
+        // Replace last non-user message in history
+        for (int i = hist.size() - 1; i >= 0; i--) {
+            if (!hist.get(i).fromUser()) {
+                hist.set(i, new Message(text, false, true));
+                break;
+            }
+        }
+        // Notify with update flag
+        Message update = new Message(text, false, true);
+        List<Consumer<Message>> subscribers = subscribersByScope.get(scopeKey);
+        if (subscribers == null) {
+            return;
+        }
+        for (Consumer<Message> subscriber : subscribers) {
+            try {
+                subscriber.accept(update);
+            } catch (Exception e) {
+                // Ignore individual subscriber failures
+            }
+        }
     }
 
     /**

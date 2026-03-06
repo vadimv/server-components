@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.dom.TreePositionPath;
+import rsp.dom.TagNode;
+import rsp.dom.Node;
 import rsp.dom.XmlNs;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
@@ -11,7 +13,7 @@ import rsp.page.events.Command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
+import java.lang.reflect.Field;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -233,6 +235,106 @@ public class ComponentSegmentTests {
     }
 
     @Nested
+    public class ParentTagSyncTests {
+
+        private ComponentSegment<String> createChildSegment(final String initialState, final TreeBuilderFactory factory) {
+            final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> initialState;
+            final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
+            final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {
+                renderContext.openNode(XmlNs.html, "span", false);
+                renderContext.closeNode("span", false);
+                if ("with-button".equals(state)) {
+                    renderContext.openNode(XmlNs.html, "button", false);
+                    renderContext.closeNode("button", false);
+                }
+            };
+
+            return new ComponentSegment<>(
+                    componentId,
+                    stateSupplier,
+                    contextResolver,
+                    componentView,
+                    callbacks,
+                    factory,
+                    componentContext,
+                    commandsEnqueue
+            );
+        }
+
+        private ComponentSegment<String> createParentSegment(final ComponentSegment<String> child, final TreeBuilderFactory factory) {
+            final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> INITIAL_STATE;
+            final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
+            final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {
+                renderContext.openNode(XmlNs.html, "div", false);
+                renderContext.openComponent(child);
+                child.render(renderContext);
+                renderContext.closeComponent();
+                renderContext.closeNode("div", false);
+            };
+
+            return new ComponentSegment<>(
+                    new ComponentCompositeKey(sessionId, "parentType", TreePositionPath.of("1_1")),
+                    stateSupplier,
+                    contextResolver,
+                    componentView,
+                    callbacks,
+                    factory,
+                    componentContext,
+                    commandsEnqueue
+            );
+        }
+
+        @Test
+        void updates_parent_tag_children_when_child_root_nodes_change() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> child = createChildSegment("with-button", treeBuilder);
+            final ComponentSegment<String> parent = createParentSegment(child, treeBuilder);
+
+            renderSegment(treeBuilder, parent);
+
+            final TagNode parentTag = getParentTag(child);
+            final List<Node> oldChildRootNodes = getRootNodes(child);
+            assertEquals(2, oldChildRootNodes.size());
+            assertEquals(oldChildRootNodes.get(0), parentTag.children.get(0));
+            assertEquals(oldChildRootNodes.get(1), parentTag.children.get(1));
+
+            child.applyStateTransformation(_ -> "no-button");
+
+            final List<Node> newChildRootNodes = getRootNodes(child);
+            assertEquals(1, newChildRootNodes.size());
+            assertEquals(1, parentTag.children.size());
+            assertEquals(newChildRootNodes.get(0), parentTag.children.get(0));
+        }
+
+        @Test
+        void throws_when_parent_no_longer_references_child_root_nodes() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> child = createChildSegment("with-button", treeBuilder);
+            final ComponentSegment<String> parent = createParentSegment(child, treeBuilder);
+
+            renderSegment(treeBuilder, parent);
+
+            final TagNode parentTag = getParentTag(child);
+            parentTag.children.clear();
+
+            assertThrows(IllegalStateException.class, () -> child.applyStateTransformation(_ -> "no-button"));
+        }
+
+        @SuppressWarnings("unchecked")
+        private List<Node> getRootNodes(final ComponentSegment<String> segment) throws Exception {
+            final Field field = ComponentSegment.class.getDeclaredField("rootNodes");
+            field.setAccessible(true);
+            return (List<Node>) field.get(segment);
+        }
+
+        private TagNode getParentTag(final ComponentSegment<String> segment) throws Exception {
+            final Field field = ComponentSegment.class.getDeclaredField("parentTag");
+            field.setAccessible(true);
+            return (TagNode) field.get(segment);
+        }
+    }
+
+    @Nested
     public class NullStateRejectionTests {
 
         @Test
@@ -316,6 +418,92 @@ public class ComponentSegmentTests {
             segment.unmount();
 
             assertEquals(List.of("onUnmounted:" + NEW_STATE), callbacks.callOrder);
+        }
+    }
+
+    @Nested
+    public class SiblingContextIsolationTests {
+
+        @Test
+        void component_event_handler_registered_via_context_subscriber_survives_sibling_rerender() {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+
+            final Subscriber[] capturedSubscriber = new Subscriber[1];
+            @SuppressWarnings("unchecked")
+            final ComponentSegment<String>[] childARef = new ComponentSegment[1];
+
+            final ComponentSegmentFactory<String> childAFactory = (sid, path, tbf, ctx, cmd) ->
+                    new ComponentSegment<>(
+                            new ComponentCompositeKey(sid, "childA", path),
+                            (key, c) -> "stateA",
+                            (c, s) -> c,
+                            stateUpdate -> state -> renderContext -> {
+                                renderContext.openNode(XmlNs.html, "span", false);
+                                renderContext.closeNode("span", false);
+                            },
+                            new TestCallbacks(),
+                            tbf,
+                            ctx,
+                            cmd
+                    );
+
+            final ComponentSegmentFactory<String> childBFactory = (sid, path, tbf, ctx, cmd) -> {
+                capturedSubscriber[0] = ctx.get(Subscriber.class);
+                return new ComponentSegment<>(
+                        new ComponentCompositeKey(sid, "childB", path),
+                        (key, c) -> "stateB",
+                        (c, s) -> c,
+                        stateUpdate -> state -> renderContext -> {
+                            renderContext.openNode(XmlNs.html, "div", false);
+                            renderContext.closeNode("div", false);
+                        },
+                        new TestCallbacks(),
+                        tbf,
+                        ctx,
+                        cmd
+                );
+            };
+
+            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+                childARef[0] = renderContext.openComponent(childAFactory);
+                childARef[0].render(renderContext);
+                renderContext.closeComponent();
+
+                final ComponentSegment<String> childB = renderContext.openComponent(childBFactory);
+                childB.render(renderContext);
+                renderContext.closeComponent();
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx,
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+
+            assertNotNull(capturedSubscriber[0], "Child B should have received a Subscriber from context");
+
+            // Register a handler via the subscriber B received from its context
+            capturedSubscriber[0].addComponentEventHandler("test.event", ctx -> {}, false);
+
+            final long handlerCountBefore = parent.recursiveComponentEvents().stream()
+                    .filter(e -> e.matches("test.event")).count();
+            assertEquals(1, handlerCountBefore, "Handler should exist after registration");
+
+            // Re-render child A — this clears A's componentEventEntries
+            childARef[0].applyStateTransformation(s -> "updatedA");
+
+            // The handler should survive because it was registered on the parent's segment, not on A's
+            final long handlerCountAfter = parent.recursiveComponentEvents().stream()
+                    .filter(e -> e.matches("test.event")).count();
+            assertEquals(1, handlerCountAfter,
+                    "Handler registered via context subscriber should survive sibling re-render");
         }
     }
 }

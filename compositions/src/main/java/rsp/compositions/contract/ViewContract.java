@@ -4,9 +4,14 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 
+import rsp.compositions.agent.AgentAction;
+
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public abstract class ViewContract {
 
@@ -14,7 +19,7 @@ public abstract class ViewContract {
     protected final Lookup lookup;
 
     protected ViewContract(Lookup lookup) {
-        this.lookup = lookup;
+        this.lookup = Objects.requireNonNull(lookup);
     }
 
     protected <T> T resolve(QueryParam<T> param) {
@@ -23,6 +28,25 @@ public abstract class ViewContract {
 
     protected <T> T resolve(PathParam<T> param) {
         return param.resolve(lookup);
+    }
+
+    /**
+     * Declare the actions available for agent invocation.
+     * <p>
+     * Base classes ({@code ListViewContract}, {@code FormViewContract}, {@code EditViewContract})
+     * provide sensible defaults. Concrete contracts can override to add, remove, or customize actions.
+     *
+     * @return list of agent-invocable actions (empty by default)
+     */
+    /**
+     * Returns this contract's lookup context for event publishing.
+     */
+    public Lookup lookup() {
+        return lookup;
+    }
+
+    public List<AgentAction> agentActions() {
+        return List.of();
     }
 
     /**
@@ -41,6 +65,20 @@ public abstract class ViewContract {
 
     protected <T> void subscribe(EventKey.VoidKey key, Runnable handler) {
         handlerRegistrations.add(lookup.subscribe(key, handler));
+    }
+
+    protected <T> void publishCapability(EventKey<T> key, T value) {
+        final CapabilityBus bus = lookup.get(CapabilityBus.class);
+        if (bus != null) {
+            bus.publish(key, value);
+        }
+    }
+
+    protected <T> void onCapability(EventKey<T> key, Consumer<T> handler) {
+        final CapabilityBus bus = lookup.get(CapabilityBus.class);
+        if (bus != null) {
+            bus.subscribe(key, handler);
+        }
     }
 
     /**

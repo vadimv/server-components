@@ -16,6 +16,14 @@
 
 import { getDeviceId, throttle, debounce } from './utils.js';
 
+/** Trusted Types policy — passthrough; sanitisation is the server's responsibility. */
+const rspPolicy = (typeof trustedTypes !== 'undefined' && trustedTypes.createPolicy)
+    ? trustedTypes.createPolicy('rsp', {
+        createHTML: (input) => input,
+        createScript: (input) => input
+      })
+    : { createHTML: (input) => input, createScript: (input) => input };
+
 /** @enum {number} */
 export const CallbackType = {
   DOM_EVENT: 0, // `$renderNum:$elementId:$eventType`
@@ -330,7 +338,7 @@ export class RSP {
     */
   setAttr(id, xmlNs, name, value, isProperty) {
     var element = id == '1' ? window : this.els[id];
-    if (isProperty) element[name] = value;
+    if (isProperty) element[name] = (name === 'innerHTML') ? rspPolicy.createHTML(value) : value;
     else if (xmlNs === 0) {
       element.setAttribute(name, value);
     } else {
@@ -524,7 +532,7 @@ export class RSP {
     var result;
     var status = 0;
     try {
-      result = eval(code);
+      result = eval(rspPolicy.createScript(code));
     } catch (e) {
       console.error(`Error evaluating code ${code}`, e);
       result = e;

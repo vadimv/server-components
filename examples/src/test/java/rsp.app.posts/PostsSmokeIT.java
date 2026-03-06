@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @net.jcip.annotations.NotThreadSafe
 class PostsSmokeIT {
 
-    private static final int PORT = 8080;
+    private static final int PORT = 8085;
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final int INITIAL_POST_COUNT = 25;
     private static final String BASE_URL = "http://localhost:" + PORT;
@@ -29,7 +29,7 @@ class PostsSmokeIT {
 
     @BeforeAll
     public static void init() {
-        server = CrudApp.run(false);
+        server = new CrudApp().run(false);
     }
 
     @AfterAll
@@ -46,6 +46,7 @@ class PostsSmokeIT {
         final Page page = context.newPage();
         System.out.println("Browser type: " + browserType.name());
 
+        login(page);
         validateListView(page);
         validatePagination(page);
         validateCreatePost(page);
@@ -365,6 +366,14 @@ class PostsSmokeIT {
     }
 
     // ========== Helper Methods ==========
+
+    private void login(final Page page) throws InterruptedException {
+        page.navigate(BASE_URL + "/posts");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.locator("button:has-text('Sign in')").click();
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.waitForURL("**/posts**", new Page.WaitForURLOptions().setTimeout(5000));
+    }
 
     private void navigateToPostsList(final Page page) {
         Response response = page.navigate(BASE_URL + "/posts");

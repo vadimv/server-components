@@ -3,25 +3,33 @@ package rsp.compositions.contract;
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.server.http.AuthorizationException;
+import rsp.compositions.application.ServicesLifecycleHandler;
+import rsp.compositions.application.Services;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.composition.Slot;
-import rsp.compositions.composition.UiRegistry;
-import rsp.compositions.composition.ViewPlacement;
+import rsp.compositions.composition.Group;
+import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.Router;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
  * Constructs Scene instances from composition configuration.
  * <p>
- * Reads composition, contract class, and route pattern; resolves UiRegistry from context;
- * instantiates primary contract and stores factories for non-primary slots.
+ * Lifecycle derivation:
+ * <ul>
+ *   <li>The routed contract (matched by RoutingComponent) is eagerly instantiated</li>
+ *   <li>Contracts required by the Layout are eagerly instantiated (companions)</li>
+ *   <li>All other contracts are stored as lazy factories (for on-demand SHOW events)</li>
+ * </ul>
  * <p>
- * Non-primary contracts are NOT pre-instantiated (on-demand via SHOW events).
- * Exception: non-primary contracts routed directly via URL are pre-instantiated.
+ * When the routed contract has a parent route (e.g., "/posts/:id" has parent "/posts"),
+ * it is treated as an overlay-like contract: the parent is instantiated as the routed contract
+ * and this contract is pre-activated for LayerComponent auto-open.
  * <p>
  * Throws {@link AuthorizationException} if the contract's authorization check fails.
  * Throws {@link IllegalStateException} if scene building fails for any other reason.
@@ -31,205 +39,197 @@ public final class SceneBuilder {
     private final Composition composition;
     private final Class<? extends ViewContract> contractClass;
     private final String routePattern;
+    private final Layout layout;
 
     public SceneBuilder(Composition composition,
                         Class<? extends ViewContract> contractClass,
-                        String routePattern) {
+                        String routePattern,
+                        Layout layout) {
         this.composition = Objects.requireNonNull(composition, "composition");
         this.contractClass = Objects.requireNonNull(contractClass, "contractClass");
         this.routePattern = Objects.requireNonNull(routePattern, "routePattern");
+        this.layout = Objects.requireNonNull(layout, "layout");
     }
 
     /**
      * Build a complete Scene from the given context.
-     * Determines whether the route targets a PRIMARY or non-PRIMARY slot
-     * and delegates to the appropriate build method.
      *
      * @throws AuthorizationException if the contract's authorization check fails
      * @throws IllegalStateException if scene building fails
      */
     public Scene buildScene(ComponentContext context) {
-        // UI_REGISTRY comes from context (set by AppComponent, not RoutingComponent)
-        UiRegistry uiRegistry = context.get(ContextKeys.UI_REGISTRY);
+        Group contracts = composition.contracts();
 
-        if (uiRegistry == null) {
-            throw new IllegalStateException("Missing UI_REGISTRY in context");
-        }
-
-        // Router is inside the composition
-        Router router = this.composition.router();
-
-        // Get the placement for the routed contract
-        ViewPlacement routedPlacement = this.composition.placementFor(this.contractClass);
-        if (routedPlacement == null) {
+        // Verify contract is registered
+        if (contracts.contractFactory(this.contractClass) == null) {
             throw new IllegalStateException("Contract not found in composition: " + this.contractClass.getName());
         }
 
-        Slot routedSlot = routedPlacement.slot();
+        // Create a capability bus for synchronous capability negotiation between contracts
+        CapabilityBus capabilityBus = new CapabilityBus();
+        ComponentContext enrichedContext = context.with(CapabilityBus.class, capabilityBus);
 
-        // Case 2: Non-primary slot routed directly via URL
-        // Need to find parent PRIMARY and auto-open this non-primary contract
-        if (routedSlot != Slot.PRIMARY) {
-            return buildNonPrimaryRoutedScene(context,
-                                              this.composition,
-                                              this.contractClass,
-                                              routedPlacement,
-                                              this.routePattern,
-                                              router,
-                                              uiRegistry);
+        // Check if this contract has a parent route → overlay-like (auto-open case)
+        Optional<Router.RouteMatch> parentRoute = composition.router().findParentRoute(routePattern);
+
+        Scene scene;
+        if (parentRoute.isPresent()) {
+            scene = buildAutoOpenScene(enrichedContext, parentRoute.get());
+        } else {
+            scene = buildStandardScene(enrichedContext);
         }
 
-        // Cases 1, 3: PRIMARY slot (with or without route)
-        // Standard behavior: instantiate as primary, store factories for non-primary slots
-        return buildPrimaryScene(context, this.composition, routedPlacement, uiRegistry);
+        // Resolve capabilities synchronously — all subscribers receive published values before rendering
+        capabilityBus.resolve();
+
+        startServicesLifecycleHandlers(enrichedContext);
+
+        return scene;
     }
 
     /**
-     * Build scene for non-primary contract routed directly via URL (Case 2).
-     * Finds parent PRIMARY, uses it as primary, auto-opens this non-primary contract.
-     * Also instantiates sidebar contracts (always visible).
+     * Build scene for standard primary contract (no parent route).
      */
-    private Scene buildNonPrimaryRoutedScene(ComponentContext context, Composition composition,
-                                             Class<? extends ViewContract> nonPrimaryContractClass,
-                                             ViewPlacement nonPrimaryPlacement, String routePattern,
-                                             Router router, UiRegistry uiRegistry) {
-        // Find the parent PRIMARY contract
-        ViewPlacement primaryPlacement = composition.primaryPlacement();
-        if (primaryPlacement == null) {
-            // Fallback: try to find parent route
-            if (router != null && routePattern != null) {
-                var parentRoute = router.findParentRoute(routePattern);
-                if (parentRoute.isPresent()) {
-                    primaryPlacement = composition.placementFor(parentRoute.get().contractClass());
+    private Scene buildStandardScene(ComponentContext context) {
+        Group contracts = composition.contracts();
+        Function<Lookup, ViewContract> routedFactory = contracts.contractFactory(this.contractClass);
+
+        ViewContract routedContract = instantiateContract(this.contractClass, routedFactory, context);
+        if (routedContract == null) {
+            throw new IllegalStateException("Failed to instantiate contract: " + this.contractClass.getName());
+        }
+
+        if (!routedContract.isAuthorized()) {
+            throw new AuthorizationException("Access denied: insufficient permissions for " + this.contractClass.getName());
+        }
+
+        // Instantiate companion contracts (requested by Layout)
+        Map<Class<? extends ViewContract>, ViewContract> companionContracts = instantiateCompanions(context);
+
+        // Store remaining contract classes as lazy factories
+        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories =
+                collectLazyFactories(this.contractClass, companionContracts);
+
+        return Scene.of(routedContract, Map.copyOf(companionContracts), Map.copyOf(lazyFactories), composition);
+    }
+
+    /**
+     * Build scene for overlay-like contract routed directly via URL.
+     * The parent contract becomes the routed contract; this contract is pre-activated for LayerComponent.
+     */
+    private Scene buildAutoOpenScene(ComponentContext context, Router.RouteMatch parentRoute) {
+        Group contracts = composition.contracts();
+
+        // Overlay contract factory
+        Function<Lookup, ViewContract> overlayFactory = contracts.contractFactory(this.contractClass);
+        if (overlayFactory == null) {
+            throw new IllegalStateException("Overlay contract not found: " + this.contractClass.getName());
+        }
+
+        // Find and instantiate the parent contract as the routed contract
+        Class<? extends ViewContract> parentClass = parentRoute.contractClass();
+        Function<Lookup, ViewContract> parentFactory = contracts.contractFactory(parentClass);
+        if (parentFactory == null) {
+            throw new IllegalStateException(
+                    "Parent contract not found in composition: " + parentClass.getName());
+        }
+
+        ViewContract parentContract = instantiateContract(parentClass, parentFactory, context);
+        if (parentContract == null) {
+            throw new IllegalStateException(
+                    "Failed to instantiate parent contract: " + parentClass.getName());
+        }
+
+        if (!parentContract.isAuthorized()) {
+            throw new AuthorizationException(
+                    "Access denied: insufficient permissions for " + parentClass.getName());
+        }
+
+        // Instantiate companion contracts (requested by Layout)
+        Map<Class<? extends ViewContract>, ViewContract> companionContracts = instantiateCompanions(context);
+
+        // Pre-instantiate the overlay contract for LayerComponent auto-open
+        ComponentContext overlayContext = context.with(ContextKeys.CONTRACT_CLASS, this.contractClass);
+        ViewContract overlayContract = instantiateContract(this.contractClass, overlayFactory, overlayContext);
+        Map<Class<? extends ViewContract>, ViewContract> preActivated = new HashMap<>();
+        if (overlayContract != null) {
+            preActivated.put(this.contractClass, overlayContract);
+        }
+
+        // Store remaining contract classes as lazy factories (excludes parent, companions, pre-activated)
+        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
+        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
+            if (!cls.equals(parentClass)
+                    && !companionContracts.containsKey(cls)
+                    && !preActivated.containsKey(cls)) {
+                lazyFactories.put(cls, contracts.contractFactory(cls));
+            }
+        }
+
+        return Scene.withAutoOpen(parentContract, Map.copyOf(companionContracts), Map.copyOf(lazyFactories),
+                Map.copyOf(preActivated), composition,
+                new Scene.AutoOpen(this.contractClass, routePattern));
+    }
+
+    /**
+     * Instantiate companion contracts declared by the Layout.
+     */
+    private Map<Class<? extends ViewContract>, ViewContract> instantiateCompanions(ComponentContext context) {
+        Set<Class<? extends ViewContract>> requiredByLayout = layout.requiredContracts();
+        Group contracts = composition.contracts();
+        Map<Class<? extends ViewContract>, ViewContract> companions = new HashMap<>();
+
+        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
+            if (requiredByLayout.contains(cls)) {
+                Function<Lookup, ViewContract> factory = contracts.contractFactory(cls);
+                ViewContract companion = instantiateContract(cls, factory, context);
+                if (companion != null) {
+                    companions.put(cls, companion);
                 }
             }
         }
 
-        if (primaryPlacement == null) {
-            throw new IllegalStateException(
-                    "Non-primary contract routed directly but no PRIMARY found in composition: " + composition.getClass().getName());
-        }
-
-        // Instantiate primary contract
-        ViewContract primaryContract = instantiatePlacement(primaryPlacement, context);
-        if (primaryContract == null) {
-            throw new IllegalStateException(
-                    "Failed to instantiate primary contract: " + primaryPlacement.contractClass().getName());
-        }
-
-        // Check authorization
-        if (!primaryContract.isAuthorized()) {
-            throw new AuthorizationException("Access denied: insufficient permissions for " + primaryPlacement.contractClass().getName());
-        }
-
-        // Instantiate sidebar contracts (always visible, not on-demand)
-        ViewContract leftSidebarContract = null;
-        ViewContract rightSidebarContract = null;
-        for (ViewPlacement placement : composition.views()) {
-            if (placement.slot() == Slot.LEFT_SIDEBAR && leftSidebarContract == null) {
-                leftSidebarContract = instantiatePlacement(placement, context);
-            } else if (placement.slot() == Slot.RIGHT_SIDEBAR && rightSidebarContract == null) {
-                rightSidebarContract = instantiatePlacement(placement, context);
-            }
-        }
-
-        // Build factories for on-demand slots (OVERLAY, etc. - excludes PRIMARY and sidebars)
-        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
-        for (ViewPlacement placement : composition.views()) {
-            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR
-                    && placement.slot() != Slot.RIGHT_SIDEBAR) {
-                Class<? extends ViewContract> contractClass = placement.contractClass();
-                if (contractClass != null) {
-                    nonPrimaryFactories.put(contractClass, placement.contractFactory());
-                }
-            }
-        }
-
-        // Pre-instantiate the routed non-primary contract (auto-open case)
-        Map<Class<? extends ViewContract>, ViewContract> activeNonPrimary = new HashMap<>();
-        ComponentContext nonPrimaryContext = context
-            .with(ContextKeys.CONTRACT_CLASS, nonPrimaryContractClass);
-
-        ViewContract nonPrimaryContract = instantiatePlacement(nonPrimaryPlacement, nonPrimaryContext);
-        if (nonPrimaryContract != null) {
-            activeNonPrimary.put(nonPrimaryContractClass, nonPrimaryContract);
-        }
-
-        // Add sidebar contracts to active contracts if present
-        if (leftSidebarContract != null) {
-            activeNonPrimary.put(leftSidebarContract.getClass(), leftSidebarContract);
-        }
-        if (rightSidebarContract != null) {
-            activeNonPrimary.put(rightSidebarContract.getClass(), rightSidebarContract);
-        }
-
-        // Return scene with auto-open non-primary contract
-        return Scene.withAutoOpenContract(primaryContract, composition, nonPrimaryFactories, activeNonPrimary,
-                uiRegistry, new Scene.AutoOpen(nonPrimaryContractClass, routePattern));
+        return companions;
     }
 
     /**
-     * Build scene for PRIMARY contract (Cases 1, 3, 4).
-     * Standard behavior: use as primary, instantiate sidebar contracts,
-     * store factories for other non-primary slots (OVERLAY etc. for on-demand instantiation).
+     * Collect lazy factories for all contracts that are not the routed contract or companions.
      */
-    private Scene buildPrimaryScene(ComponentContext context, Composition composition,
-                                    ViewPlacement primaryPlacement, UiRegistry uiRegistry) {
-        ViewContract contract = instantiatePlacement(primaryPlacement, context);
-        if (contract == null) {
-            throw new IllegalStateException(
-                    "Failed to instantiate contract: " + primaryPlacement.contractClass().getName());
-        }
-
-        // Check authorization
-        if (!contract.isAuthorized()) {
-            throw new AuthorizationException("Access denied: insufficient permissions for " + primaryPlacement.contractClass().getName());
-        }
-
-        // Instantiate sidebar contracts (always visible, not on-demand)
-        ViewContract leftSidebarContract = null;
-        ViewContract rightSidebarContract = null;
-        for (ViewPlacement placement : composition.views()) {
-            if (placement.slot() == Slot.LEFT_SIDEBAR && leftSidebarContract == null) {
-                leftSidebarContract = instantiatePlacement(placement, context);
-            } else if (placement.slot() == Slot.RIGHT_SIDEBAR && rightSidebarContract == null) {
-                rightSidebarContract = instantiatePlacement(placement, context);
+    private Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> collectLazyFactories(
+            Class<? extends ViewContract> routedClass,
+            Map<Class<? extends ViewContract>, ViewContract> companionContracts) {
+        Group contracts = composition.contracts();
+        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
+        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
+            if (!cls.equals(routedClass) && !companionContracts.containsKey(cls)) {
+                lazyFactories.put(cls, contracts.contractFactory(cls));
             }
         }
-
-        // Build factories for on-demand slots (OVERLAY, etc.)
-        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> nonPrimaryFactories = new HashMap<>();
-
-        for (ViewPlacement placement : composition.views()) {
-            // Collect non-primary, non-sidebar placements for on-demand instantiation
-            if (placement.slot() != Slot.PRIMARY && placement.slot() != Slot.LEFT_SIDEBAR
-                    && placement.slot() != Slot.RIGHT_SIDEBAR) {
-                Class<? extends ViewContract> contractClass = placement.contractClass();
-                if (contractClass == null) {
-                    throw new IllegalStateException(
-                            "ViewPlacement has null contractClass in composition: " + composition.getClass().getName());
-                }
-                nonPrimaryFactories.put(contractClass, placement.contractFactory());
-            }
-        }
-
-        // Use appropriate factory method based on which sidebars are present
-        if (leftSidebarContract != null || rightSidebarContract != null) {
-            return Scene.withSidebars(contract, leftSidebarContract, rightSidebarContract,
-                    composition, nonPrimaryFactories, uiRegistry);
-        }
-        return Scene.of(contract, composition, nonPrimaryFactories, uiRegistry);
+        return lazyFactories;
     }
 
     /**
-     * Instantiate a contract from its ViewPlacement.
+     * Instantiate a contract from its factory.
      */
-    ViewContract instantiatePlacement(ViewPlacement placement, ComponentContext context) {
+    ViewContract instantiateContract(Class<? extends ViewContract> contractClass,
+                                     Function<Lookup, ViewContract> factory,
+                                     ComponentContext context) {
         Lookup lookup = LookupFactory.create(context);
-        ViewContract contract = placement.contractFactory().apply(lookup);
+        ViewContract contract = factory.apply(lookup);
         if (contract != null) {
             contract.registerHandlers();
         }
         return contract;
+    }
+
+    private void startServicesLifecycleHandlers(ComponentContext context) {
+        Services services = composition.services();
+        if (services == null) return;
+        Lookup lookup = LookupFactory.create(context);
+        for (Object service : services.asMap().values()) {
+            if (service instanceof ServicesLifecycleHandler handler) {
+                handler.onStart(lookup);
+            }
+        }
     }
 }

@@ -1,26 +1,37 @@
 package rsp.compositions.auth;
 
+import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
+import rsp.compositions.composition.Composition;
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.routing.UrlSyncComponent;
-import rsp.server.http.HttpRequest;
+import rsp.compositions.contract.SceneComponent;
+import rsp.compositions.contract.ViewContract;
+
+import rsp.dsl.Definition;
 
 import java.util.function.BiFunction;
 
 /**
- * AuthComponent - Authentication layer (Framework Layer #2).
+ * AuthComponent - Authentication gate.
  * <p>
  * This component:
  * 1. Reads authentication provider from context
  * 2. Authenticates user from session/cookies/headers
  * 3. Enriches context with auth data (auth.user, auth.roles, auth.authenticated)
+ * 4. Gates access: redirects to login path when not authenticated on protected routes
+ * 5. Passes through to SceneComponent when authenticated or on public routes
+ * <p>
+ * Position in component chain: UrlSyncComponent → RoutingComponent → AuthComponent → SceneComponent
  * <p>
  * This is a pure framework component - no application-specific dependencies.
  */
 public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
+
+    private ComponentContext savedContext;
+    private AuthProvider authProvider;
 
     public AuthComponent() {
         super();
@@ -29,22 +40,20 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
     @Override
     public ComponentStateSupplier<AuthComponentState> initStateSupplier() {
         return (_, context) -> {
-            // Read HttpRequest from context (needed for UrlSyncComponent)
-            HttpRequest httpRequest = context.get(HttpRequest.class);
+            this.savedContext = context;
 
             // Read auth provider from context
-            AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
+            this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
 
             if (authProvider == null) {
                 // No auth provider configured - anonymous access
-                return new AuthComponentState(httpRequest, null, false, new String[0]);
+                return new AuthComponentState(null, false, new String[0]);
             }
 
             // Authenticate user
             AuthResult authResult = authProvider.authenticate(context);
 
             return new AuthComponentState(
-                httpRequest,
                 authResult.user(),
                 authResult.authenticated(),
                 authResult.roles()
@@ -54,29 +63,77 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
     @Override
     public BiFunction<ComponentContext, AuthComponentState, ComponentContext> subComponentsContext() {
-        return (context, state) -> {
-            return context
+        return (context, state) -> context
                 .with(ContextKeys.AUTH_USER, state.user())
                 .with(ContextKeys.AUTH_AUTHENTICATED, state.authenticated())
                 .with(ContextKeys.AUTH_ROLES, state.roles());
-        };
     }
 
     @Override
     public ComponentView<AuthComponentState> componentView() {
-        // UrlSyncComponent populates url.path, url.query.*, etc. into context
-        // Then renders RoutingComponent which reads from context
-        return _ -> state -> new UrlSyncComponent(state.httpRequest().relativeUrl());
+        return _ -> state -> {
+            if (authProvider != null && !state.authenticated()) {
+                String currentPath = savedContext.get(ContextKeys.ROUTE_PATH);
+                Definition gate = authProvider.gateResponse(currentPath);
+                if (gate != null) {
+                    return gate;
+                }
+            }
+
+            // Pass through — create SceneComponent from routing context
+            Composition composition = savedContext.get(ContextKeys.ROUTE_COMPOSITION);
+            Class<? extends ViewContract> contractClass = savedContext.get(ContextKeys.ROUTE_CONTRACT_CLASS);
+            String path = savedContext.get(ContextKeys.ROUTE_PATH);
+            String pattern = savedContext.get(ContextKeys.ROUTE_PATTERN);
+            return new SceneComponent(path,
+                                      composition,
+                                      contractClass,
+                                      pattern,
+                                      composition.layout());
+        };
     }
 
-    public record AuthComponentState(HttpRequest httpRequest, Object user, boolean authenticated, String[] roles) {
+    public record AuthComponentState(Object user, boolean authenticated, String[] roles) {
     }
 
     /**
      * AuthProvider interface - implement to provide custom authentication.
+     * <p>
+     * Override {@link #gateResponse(String)} to control what happens when a user
+     * is not authenticated on a protected route. The default implementation returns null (no gate).
      */
     public interface AuthProvider {
         AuthResult authenticate(ComponentContext context);
+
+        /**
+         * Returns the response to render when the user is not authenticated on the given path.
+         * Return null to allow access (no gate, or public path).
+         * <p>
+         * Examples:
+         * <ul>
+         *   <li>Redirect to login page: {@code html().redirect("/login?redirect=" + currentPath)}</li>
+         *   <li>HTTP Basic challenge: {@code html().statusCode(401).addHeader("WWW-Authenticate", "Basic realm=\"app\"")}</li>
+         * </ul>
+         */
+        default Definition gateResponse(String currentPath) {
+            return null;
+        }
+
+        /**
+         * Whether this provider supports sign-out.
+         * When true, a "Sign out" button is shown and {@link #signOut(CommandsEnqueue)} is called on click.
+         * Default: false (no sign-out button).
+         */
+        default boolean supportsSignOut() {
+            return false;
+        }
+
+        /**
+         * Performs sign-out by sending commands to the browser.
+         * Called when the user clicks "Sign out".
+         */
+        default void signOut(CommandsEnqueue commandsEnqueue) {
+        }
     }
 
     /**

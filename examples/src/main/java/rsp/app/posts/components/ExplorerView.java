@@ -21,9 +21,9 @@ import static rsp.dsl.Html.*;
  * Reads {@link NavigationEntry} list and active category key from context
  * and renders a navigation menu with SPA-style navigation.
  * <p>
- * Register in UiRegistry:
+ * Register in Contracts:
  * <pre>{@code
- * uiRegistry.register(ExplorerContract.class, ExplorerView::new)
+ * contracts.register(ExplorerContract.class, ExplorerView::new)
  * }</pre>
  */
 public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
