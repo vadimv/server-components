@@ -4,6 +4,7 @@ import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ViewContract;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -134,6 +135,23 @@ public class AgentService {
         }
 
         return new AgentResult.TextReply("I don't understand: " + prompt);
+    }
+
+    /**
+     * Process a user prompt with streaming token callback.
+     * Default implementation ignores the callback and delegates to the non-streaming version.
+     * Subclasses (e.g., OllamaAgentService) override this for progressive token delivery.
+     *
+     * @param prompt           the user's natural-language input
+     * @param profile          the active contract's profile
+     * @param structureTree    the navigation structure
+     * @param onPartialContent called with accumulated content as tokens arrive
+     * @return the result (intent or text reply)
+     */
+    public AgentResult handlePrompt(String prompt, ContractProfile profile,
+                                    StructureNode structureTree,
+                                    Consumer<String> onPartialContent) {
+        return handlePrompt(prompt, profile, structureTree);
     }
 
     /**

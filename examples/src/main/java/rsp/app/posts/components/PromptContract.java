@@ -45,6 +45,9 @@ public class PromptContract extends ViewContract {
     public static final EventKey.SimpleKey<Message> NEW_MESSAGE =
             new EventKey.SimpleKey<>("prompt.newMessage", Message.class);
 
+    public static final EventKey.SimpleKey<Message> UPDATE_MESSAGE =
+            new EventKey.SimpleKey<>("prompt.updateMessage", Message.class);
+
     private final List<Message> messages = new ArrayList<>();
     private Runnable serviceUnsubscribe;
     private final String scopeKey;
@@ -139,7 +142,7 @@ public class PromptContract extends ViewContract {
                     this.gate = new PolicyGate(this.policy, agentSession.grant());
                     this.actionFilter = new PolicyActionFilter(this.policy, agentSession.grant());
                     this.pendingTicketId = null;
-                    promptService.sendReply(scopeKey, "Agent access approved. How can I help?");
+                    promptService.sendReply(scopeKey, "Agent access approved.");
                     if (queuedPrompt != null) {
                         String prompt = queuedPrompt;
                         queuedPrompt = null;
@@ -156,8 +159,19 @@ public class PromptContract extends ViewContract {
 
         serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
             Message msg = new Message(message.text(), message.fromUser());
-            messages.add(msg);
-            lookup.publish(NEW_MESSAGE, msg);
+            if (message.update()) {
+                // Replace last system message in local list
+                for (int i = messages.size() - 1; i >= 0; i--) {
+                    if (!messages.get(i).fromUser()) {
+                        messages.set(i, msg);
+                        break;
+                    }
+                }
+                lookup.publish(UPDATE_MESSAGE, msg);
+            } else {
+                messages.add(msg);
+                lookup.publish(NEW_MESSAGE, msg);
+            }
         });
         logger.log(System.Logger.Level.TRACE, () -> "PromptContract created");
     }
@@ -198,34 +212,39 @@ public class PromptContract extends ViewContract {
             }
         }
 
-        // Parse user prompt via framework AgentService (with scoped, filtered profile)
+        // Parse user prompt via AgentService off the event loop
         AgentContext agentContext = buildAgentContext();
         ContractProfile profile = agentContext.contractProfile();
-        AgentResult agentResult = agentService.handlePrompt(text, profile, structure);
 
-        switch (agentResult) {
-            case AgentResult.TextReply reply -> {
-                if (reply.message().startsWith("I don't understand")) {
-                    promptService.sendReply(scopeKey, buildHelpMessage(profile));
-                } else {
+        final long startTime = System.currentTimeMillis();
+        promptService.sendReply(scopeKey, "<em>Thinking...</em>");
+        Thread.startVirtualThread(() -> {
+            AgentResult agentResult = agentService.handlePrompt(text, profile, structure,
+                    partial -> {
+                        long elapsed = (System.currentTimeMillis() - startTime) / 1000;
+                        promptService.updateLastReply(scopeKey,
+                                "<em>Thinking... (" + elapsed + "s)</em>");
+                    });
+            // Dispatch result back on the event loop via publish
+            switch (agentResult) {
+                case AgentResult.TextReply reply ->
                     promptService.sendReply(scopeKey, HtmlEscape.escape(reply.message()));
+                case AgentResult.IntentResult intentResult -> {
+                    AgentIntent intent = intentResult.intent();
+
+                    // Enrich "edit" intent with current selection if no explicit payload
+                    if ("edit".equals(intent.action()) && intent.params().get("payload") == null
+                            && !lastKnownSelection.isEmpty()) {
+                        String firstId = lastKnownSelection.iterator().next();
+                        intent = new AgentIntent("edit", Map.of("payload", firstId), intent.targetContract());
+                    }
+
+                    ViewContract activeContract = activeContract();
+                    DispatchResult result = dispatcher.dispatch(intent, activeContract, lookup, gate);
+                    handleDispatchResult(result);
                 }
             }
-            case AgentResult.IntentResult intentResult -> {
-                AgentIntent intent = intentResult.intent();
-
-                // Enrich "edit" intent with current selection if no explicit payload
-                if ("edit".equals(intent.action()) && intent.params().get("payload") == null
-                        && !lastKnownSelection.isEmpty()) {
-                    String firstId = lastKnownSelection.iterator().next();
-                    intent = new AgentIntent("edit", Map.of("payload", firstId), intent.targetContract());
-                }
-
-                ViewContract activeContract = activeContract();
-                DispatchResult result = dispatcher.dispatch(intent, activeContract, lookup, gate);
-                handleDispatchResult(result);
-            }
-        }
+        });
     }
 
     private void handleDispatchResult(DispatchResult result) {

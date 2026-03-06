@@ -56,25 +56,54 @@ public class IntentDispatcher {
 
     @SuppressWarnings("unchecked")
     private DispatchResult publishEvent(AgentIntent intent, ViewContract contract, Lookup lookup) {
-        // Navigation is contract-independent
+        // Navigation is contract-independent — publish on caller's lookup
         if ("navigate".equals(intent.action())) {
             lookup.publish(EventKeys.SET_PRIMARY, intent.targetContract());
             return new DispatchResult.Dispatched(intent);
         }
 
-        // All other actions: look up in the contract's declared actions
+        // All other actions: publish on the contract's own lookup so its subscribers receive the event
+        Lookup contractLookup = contract.lookup();
         return contract.agentActions().stream()
             .filter(a -> a.action().equals(intent.action()))
             .findFirst()
             .<DispatchResult>map(action -> {
                 EventKey<?> key = action.eventKey();
                 if (key instanceof EventKey.VoidKey vk) {
-                    lookup.publish(vk);
-                } else if (key instanceof EventKey.SimpleKey sk) {
-                    lookup.publish(sk, intent.params().get("payload"));
+                    contractLookup.publish(vk);
+                } else if (key instanceof EventKey.SimpleKey<?> sk) {
+                    Object payload = coercePayload(intent.params().get("payload"), sk.payloadType());
+                    contractLookup.publish((EventKey.SimpleKey) sk, payload);
                 }
                 return new DispatchResult.Dispatched(intent);
             })
             .orElse(new DispatchResult.UnknownAction(intent.action()));
+    }
+
+    /**
+     * Coerce an LLM-produced payload to the type expected by the event key.
+     * JSON numbers may arrive as Long or Double, but event keys may expect Integer.
+     */
+    private static Object coercePayload(Object value, Class<?> targetType) {
+        if (value == null || targetType.isInstance(value)) {
+            return value;
+        }
+        if (value instanceof Number num) {
+            if (targetType == Integer.class || targetType == int.class) {
+                return num.intValue();
+            }
+            if (targetType == Long.class || targetType == long.class) {
+                return num.longValue();
+            }
+            if (targetType == Double.class || targetType == double.class) {
+                return num.doubleValue();
+            }
+        }
+        if (value instanceof String str && (targetType == Integer.class || targetType == int.class)) {
+            try {
+                return Integer.parseInt(str);
+            } catch (NumberFormatException ignored) {}
+        }
+        return value;
     }
 }

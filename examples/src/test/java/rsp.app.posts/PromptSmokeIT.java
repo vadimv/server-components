@@ -29,7 +29,7 @@ class PromptSmokeIT {
 
     @BeforeAll
     public static void init() {
-        server = CrudApp.run(false);
+        server = new CrudApp().run(false);
     }
 
     @AfterAll

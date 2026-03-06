@@ -83,6 +83,14 @@ public record StructureNode(String label,
             if (description != null) {
                 sb.append(" — ").append(description);
             }
+            if (!contracts.isEmpty()) {
+                sb.append(" [");
+                for (int i = 0; i < contracts.size(); i++) {
+                    if (i > 0) sb.append(", ");
+                    sb.append(contracts.get(i).getSimpleName());
+                }
+                sb.append("]");
+            }
             sb.append("\n");
         }
         for (StructureNode child : children) {

@@ -13,6 +13,7 @@ import rsp.app.posts.components.PromptContract;
 import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.services.CommentService;
+import rsp.app.posts.services.OllamaAgentService;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
 import rsp.compositions.agent.AccessPolicy;
@@ -44,11 +45,30 @@ import java.io.File;
 import java.util.List;
 
 public class CrudApp {
-    static void main(final String[] args) {
-        run(true);
+    private final AgentService agentService;
+
+    public CrudApp() {
+        this(new AgentService());
     }
 
-    public static WebServer run(final boolean blockCurrentThread) {
+    public CrudApp(AgentService agentService) {
+        this.agentService = agentService;
+    }
+
+    static void main(final String[] args) {
+        new CrudApp().run(true);
+
+/*        var agent = new OllamaAgentService(
+                "http://127.0.0.1:11434/api/chat",
+                "mistral",   // was "tinyllama"
+                java.time.Duration.ofSeconds(120)
+        );
+        new CrudApp(agent).run(true);*/
+
+
+    }
+
+    public WebServer run(final boolean blockCurrentThread) {
         final Config config = new Config()
                 .with(System.getProperties());
 
@@ -66,7 +86,6 @@ public class CrudApp {
         promptService.startTicking();
 
         // Agent services — unified ABAC policy for spawn, discovery, and execution
-        final AgentService agentService = new AgentService();
         final IntentDispatcher intentDispatcher = new IntentDispatcher();
         final AccessPolicy policy = new CompositePolicy(ExamplePolicies.grantConstraints());
         final DelegationStore delegationStore = new InMemoryDelegationStore();

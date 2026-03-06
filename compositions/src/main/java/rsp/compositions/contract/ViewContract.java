@@ -38,6 +38,13 @@ public abstract class ViewContract {
      *
      * @return list of agent-invocable actions (empty by default)
      */
+    /**
+     * Returns this contract's lookup context for event publishing.
+     */
+    public Lookup lookup() {
+        return lookup;
+    }
+
     public List<AgentAction> agentActions() {
         return List.of();
     }

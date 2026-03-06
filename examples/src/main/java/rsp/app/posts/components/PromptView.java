@@ -20,10 +20,22 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             updated.add(message);
             return new PromptViewState(List.copyOf(updated));
         }
+
+        public PromptViewState withLastSystemMessageUpdated(String text) {
+            List<PromptContract.Message> updated = new ArrayList<>(messages);
+            for (int i = updated.size() - 1; i >= 0; i--) {
+                if (!updated.get(i).fromUser()) {
+                    updated.set(i, new PromptContract.Message(text, false));
+                    break;
+                }
+            }
+            return new PromptViewState(List.copyOf(updated));
+        }
     }
 
     private Lookup lookup;
     private Lookup.Registration eventSubscription;
+    private Lookup.Registration updateSubscription;
 
     @Override
     public ComponentStateSupplier<PromptViewState> initStateSupplier() {
@@ -94,6 +106,9 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         eventSubscription = lookup.subscribe(PromptContract.NEW_MESSAGE, (eventName, message) -> {
             stateUpdate.applyStateTransformation(s -> s.withMessage(message));
         });
+        updateSubscription = lookup.subscribe(PromptContract.UPDATE_MESSAGE, (eventName, message) -> {
+            stateUpdate.applyStateTransformation(s -> s.withLastSystemMessageUpdated(message.text()));
+        });
     }
 
     @Override
@@ -101,6 +116,10 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         if (eventSubscription != null) {
             eventSubscription.unsubscribe();
             eventSubscription = null;
+        }
+        if (updateSubscription != null) {
+            updateSubscription.unsubscribe();
+            updateSubscription = null;
         }
     }
 

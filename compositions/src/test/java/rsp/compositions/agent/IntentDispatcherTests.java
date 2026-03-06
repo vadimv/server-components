@@ -27,7 +27,7 @@ class IntentDispatcherTests {
         EventKey.VoidKey key = new EventKey.VoidKey("test.void");
         List<String> published = new ArrayList<>();
 
-        Lookup lookup = new StubLookup() {
+        Lookup contractLookup = new StubLookup() {
             @Override
             public void publish(EventKey.VoidKey k) {
                 published.add(k.name());
@@ -35,10 +35,10 @@ class IntentDispatcherTests {
         };
 
         StubContract contract = new StubContract(
-            List.of(new AgentAction("do_thing", key, "Do a thing", null)));
+            List.of(new AgentAction("do_thing", key, "Do a thing", null)), contractLookup);
 
         IntentDispatcher.DispatchResult result = dispatcher.dispatch(
-            new AgentIntent("do_thing"), contract, lookup, allowAllGate);
+            new AgentIntent("do_thing"), contract, new StubLookup(), allowAllGate);
 
         assertInstanceOf(IntentDispatcher.DispatchResult.Dispatched.class, result);
         assertEquals(List.of("test.void"), published);
@@ -49,7 +49,7 @@ class IntentDispatcherTests {
         EventKey.SimpleKey<String> key = new EventKey.SimpleKey<>("test.simple", String.class);
         List<Object> published = new ArrayList<>();
 
-        Lookup lookup = new StubLookup() {
+        Lookup contractLookup = new StubLookup() {
             @Override
             @SuppressWarnings("unchecked")
             public <T> void publish(EventKey<T> k, T payload) {
@@ -58,11 +58,11 @@ class IntentDispatcherTests {
         };
 
         StubContract contract = new StubContract(
-            List.of(new AgentAction("edit", key, "Edit item", "String: id")));
+            List.of(new AgentAction("edit", key, "Edit item", "String: id")), contractLookup);
 
         dispatcher.dispatch(
             new AgentIntent("edit", Map.of("payload", "42")),
-            contract, lookup, allowAllGate);
+            contract, new StubLookup(), allowAllGate);
 
         assertEquals(List.of("42"), published);
     }
@@ -115,7 +115,7 @@ class IntentDispatcherTests {
         EventKey.VoidKey key = new EventKey.VoidKey("test.direct");
         List<String> published = new ArrayList<>();
 
-        Lookup lookup = new StubLookup() {
+        Lookup contractLookup = new StubLookup() {
             @Override
             public void publish(EventKey.VoidKey k) {
                 published.add(k.name());
@@ -123,9 +123,9 @@ class IntentDispatcherTests {
         };
 
         StubContract contract = new StubContract(
-            List.of(new AgentAction("act", key, "An action", null)));
+            List.of(new AgentAction("act", key, "An action", null)), contractLookup);
 
-        dispatcher.dispatchDirect(new AgentIntent("act"), contract, lookup);
+        dispatcher.dispatchDirect(new AgentIntent("act"), contract, new StubLookup());
 
         assertEquals(List.of("test.direct"), published);
     }
@@ -137,7 +137,11 @@ class IntentDispatcherTests {
         private final List<AgentAction> actions;
 
         StubContract(List<AgentAction> actions) {
-            super(new StubLookup());
+            this(actions, new StubLookup());
+        }
+
+        StubContract(List<AgentAction> actions, Lookup lookup) {
+            super(lookup);
             this.actions = actions;
         }
 
