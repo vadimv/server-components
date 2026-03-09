@@ -13,6 +13,7 @@ import rsp.app.posts.components.PromptContract;
 import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.services.CommentService;
+import rsp.app.posts.services.ClaudeAgentService;
 import rsp.app.posts.services.OllamaAgentService;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
@@ -56,7 +57,7 @@ public class CrudApp {
     }
 
     static void main(final String[] args) {
-        new CrudApp().run(true);
+   //     new CrudApp().run(true);
 
 /*        var agent = new OllamaAgentService(
                 "http://127.0.0.1:11434/api/chat",
@@ -64,6 +65,13 @@ public class CrudApp {
                 java.time.Duration.ofSeconds(120)
         );
         new CrudApp(agent).run(true);*/
+
+        var agent = new ClaudeAgentService(
+                System.getenv("ANTHROPIC_API_KEY"),
+                "claude-haiku-4-5-20251001",
+                java.time.Duration.ofSeconds(30)
+        );
+        new CrudApp(agent).run(true);
 
 
     }
