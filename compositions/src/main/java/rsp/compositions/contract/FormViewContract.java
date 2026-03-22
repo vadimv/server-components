@@ -3,7 +3,7 @@ package rsp.compositions.contract;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.AgentInfo;
+import rsp.compositions.agent.ContractMetadata;
 import rsp.compositions.agent.PayloadParsers;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.ValidationResult;
@@ -36,7 +36,7 @@ import static rsp.compositions.contract.EventKeys.ACTION_SUCCESS;
  *
  * @param <T> The type of entity being created or edited
  */
-public abstract class FormViewContract<T> extends ViewContract implements AgentInfo {
+public abstract class FormViewContract<T> extends ViewContract {
 
     public static final EventKey.VoidKey CANCEL_REQUESTED =
             new EventKey.VoidKey("cancel.requested");
@@ -200,11 +200,7 @@ public abstract class FormViewContract<T> extends ViewContract implements AgentI
     }
 
     @Override
-    public String agentDescription() {
-        String fields = schema().fields().stream()
-                .map(f -> f.name() + ":" + f.fieldType())
-                .collect(Collectors.joining(", "));
-        return "Form for " + title() + ".\n"
-             + "Fields: " + fields;
+    public ContractMetadata contractMetadata() {
+        return new ContractMetadata(title(), "Form for creating a new entity", schema(), Map.of());
     }
 }

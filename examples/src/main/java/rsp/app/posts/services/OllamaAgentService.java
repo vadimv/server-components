@@ -375,7 +375,9 @@ public final class OllamaAgentService extends AgentService {
             ? structureTree.agentDescription()
             : "";
 
-        String contractDesc = Objects.toString(profile.description(), "");
+        String contractDesc = profile.metadata() != null
+            ? profile.metadata().title() + " — " + profile.metadata().description()
+            : "";
 
         return """
             You are an intent parser. Return ONE JSON object with type, action, payload, targetContract, message.

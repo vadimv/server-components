@@ -10,17 +10,17 @@ import java.util.List;
 /**
  * Profile of a contract's capabilities for agent discovery.
  * <p>
- * Combines the natural-language description from {@link AgentInfo#agentDescription()}
+ * Combines structured metadata from {@link ViewContract#contractMetadata()}
  * with the declared action vocabulary from {@link ViewContract#agentActions()}.
  * <p>
- * The agent receives the description for reasoning (live state, visible items)
+ * The agent receives the metadata for reasoning (live state, schema)
  * and the actions for intent construction (what can be done).
  *
- * @param description   natural-language description (null if contract doesn't implement AgentInfo)
+ * @param metadata      structured metadata (nullable — contract may not expose metadata)
  * @param actions       declared agent-invocable actions
  * @param contractClass the contract's class
  */
-public record ContractProfile(String description,
+public record ContractProfile(ContractMetadata metadata,
                                List<AgentAction> actions,
                                Class<?> contractClass) {
 
@@ -35,13 +35,10 @@ public record ContractProfile(String description,
             return new ContractProfile(null, List.of(), Void.class);
         }
 
-        String description = contract instanceof AgentInfo info
-                ? info.agentDescription()
-                : null;
-
+        ContractMetadata metadata = contract.contractMetadata();
         List<AgentAction> actions = contract.agentActions();
 
-        return new ContractProfile(description, actions, contract.getClass());
+        return new ContractProfile(metadata, actions, contract.getClass());
     }
 
     /**

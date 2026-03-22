@@ -3,9 +3,7 @@ package rsp.compositions.agent;
 /**
  * Stores user approval/denial decisions for agent delegation requests.
  * <p>
- * Keyed by session ID. The store holds only the user's intent (approve/deny);
- * the actual {@link DelegationGrant} is minted by the {@link AgentSpawner}
- * after approval.
+ * Keyed by session ID. The store holds only the user's intent (approve/deny).
  */
 public interface DelegationStore {
 

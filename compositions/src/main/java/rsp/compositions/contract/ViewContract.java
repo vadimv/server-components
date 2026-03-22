@@ -5,6 +5,7 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 
 import rsp.compositions.agent.AgentAction;
+import rsp.compositions.agent.ContractMetadata;
 
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +48,18 @@ public abstract class ViewContract {
 
     public List<AgentAction> agentActions() {
         return List.of();
+    }
+
+    /**
+     * Returns structured metadata about this contract's current state and capabilities.
+     * <p>
+     * Override to expose contract state for AI agents and other external consumers.
+     * Returns null by default — contracts that expose metadata override this method.
+     *
+     * @return structured metadata, or null if this contract doesn't expose metadata
+     */
+    public ContractMetadata contractMetadata() {
+        return null;
     }
 
     /**

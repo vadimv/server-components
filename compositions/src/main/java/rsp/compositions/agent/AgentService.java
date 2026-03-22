@@ -60,9 +60,6 @@ public class AgentService {
         "edit\\s+selected", Pattern.CASE_INSENSITIVE);
     private static final Pattern NAVIGATE_PATTERN = Pattern.compile(
         "(?:show|open|go to)\\s+(.+)", Pattern.CASE_INSENSITIVE);
-    // Pattern to extract items from agentDescription()
-    private static final Pattern ITEM_LINE_PATTERN = Pattern.compile(
-        "^\\s*\\S+\\[(.+)]\\s*$");
 
     private AgentState state = new AgentState.Idle();
 
@@ -70,7 +67,7 @@ public class AgentService {
      * Process a user prompt against the active contract's profile and structure tree.
      *
      * @param prompt        the user's natural-language input
-     * @param profile       the active contract's profile (description + actions)
+     * @param profile       the active contract's profile (metadata + actions)
      * @param structureTree the navigation structure
      * @return the result (intent or text reply)
      */
@@ -164,12 +161,12 @@ public class AgentService {
     // --- Delete by name ---
 
     private AgentResult handleDelete(String name, ContractProfile profile) {
-        List<Map<String, String>> items = parseItems(profile.description());
-        for (Map<String, String> item : items) {
+        List<Map<String, Object>> items = extractItems(profile);
+        for (Map<String, Object> item : items) {
             if (matchesName(item, name)) {
-                String id = item.get("id");
+                Object id = item.get("id");
                 if (id != null) {
-                    Set<String> ids = Set.of(id);
+                    Set<String> ids = Set.of(String.valueOf(id));
                     return new AgentResult.IntentResult(
                         new AgentIntent("delete", Map.of("payload", ids)));
                 }
@@ -178,11 +175,11 @@ public class AgentService {
         return new AgentResult.TextReply("Item '" + name + "' not found on the current page.");
     }
 
-    private boolean matchesName(Map<String, String> item, String name) {
+    private boolean matchesName(Map<String, Object> item, String name) {
         // Check title, name, or label fields
         for (String key : List.of("title", "name", "label")) {
-            String value = item.get(key);
-            if (value != null && value.equalsIgnoreCase(name)) {
+            Object value = item.get(key);
+            if (value != null && String.valueOf(value).equalsIgnoreCase(name)) {
                 return true;
             }
         }
@@ -204,12 +201,12 @@ public class AgentService {
 
     private AgentResult handleSearch(String field, String operator, String value,
                                      ContractProfile profile) {
-        List<Map<String, String>> items = parseItems(profile.description());
-        List<Map<String, String>> matches = new ArrayList<>();
+        List<Map<String, Object>> items = extractItems(profile);
+        List<Map<String, Object>> matches = new ArrayList<>();
 
-        for (Map<String, String> item : items) {
-            String fieldValue = item.get(field);
-            if (fieldValue != null && compareValues(fieldValue, operator, value)) {
+        for (Map<String, Object> item : items) {
+            Object fieldValue = item.get(field);
+            if (fieldValue != null && compareValues(String.valueOf(fieldValue), operator, value)) {
                 matches.add(item);
             }
         }
@@ -222,7 +219,7 @@ public class AgentService {
         StringBuilder sb = new StringBuilder();
         sb.append("Found ").append(matches.size()).append(" item(s) matching '")
           .append(field).append(" ").append(operator).append(" ").append(value).append("':\n");
-        for (Map<String, String> match : matches) {
+        for (Map<String, Object> match : matches) {
             sb.append("  - ").append(formatItem(match)).append("\n");
         }
         return new AgentResult.TextReply(sb.toString().trim());
@@ -270,16 +267,9 @@ public class AgentService {
                 "Expected edit form to be active, but current contract is not a form.");
         }
 
-        // Parse entity from edit contract's agentDescription
-        String description = profile.description();
-        if (description == null) {
-            return new AgentResult.TextReply("Cannot read entity from the active contract.");
-        }
-
-        // Extract entity fields from "Entity: TypeName[field1=val1, field2=val2]"
-        Map<String, Object> fieldValues = parseEntityFields(description);
+        Map<String, Object> fieldValues = new LinkedHashMap<>(extractEntity(profile));
         if (fieldValues.isEmpty()) {
-            return new AgentResult.TextReply("Cannot parse entity fields from description.");
+            return new AgentResult.TextReply("Cannot read entity from the active contract.");
         }
 
         // Apply modification: append text to the first text-like field
@@ -341,76 +331,37 @@ public class AgentService {
         return null;
     }
 
-    // --- Parsing helpers ---
+    // --- Metadata extraction helpers ---
 
     /**
-     * Parse item data from the agentDescription() "Items:" section.
-     * Expected format: {@code TypeName[field1=val1, field2=val2]}
+     * Extract items list from the contract's structured metadata.
      */
-    List<Map<String, String>> parseItems(String description) {
-        if (description == null) return List.of();
-
-        List<Map<String, String>> result = new ArrayList<>();
-        boolean inItems = false;
-        for (String line : description.split("\n")) {
-            if (line.trim().startsWith("Items:")) {
-                inItems = true;
-                continue;
-            }
-            if (inItems) {
-                if (!line.startsWith(" ") && !line.startsWith("\t")) {
-                    break; // End of items section
-                }
-                Matcher m = ITEM_LINE_PATTERN.matcher(line);
-                if (m.find()) {
-                    result.add(parseRecordFields(m.group(1)));
-                }
-            }
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> extractItems(ContractProfile profile) {
+        if (profile.metadata() != null
+                && profile.metadata().state().get("items") instanceof List<?> list) {
+            return (List<Map<String, Object>>) list;
         }
-        return result;
+        return List.of();
     }
 
     /**
-     * Parse "field1=val1, field2=val2" from inside a record toString().
+     * Extract entity map from the contract's structured metadata.
      */
-    private Map<String, String> parseRecordFields(String fieldsStr) {
-        Map<String, String> fields = new LinkedHashMap<>();
-        for (String pair : fieldsStr.split(",\\s*")) {
-            int eq = pair.indexOf('=');
-            if (eq > 0) {
-                fields.put(pair.substring(0, eq).trim(), pair.substring(eq + 1).trim());
-            }
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractEntity(ContractProfile profile) {
+        if (profile.metadata() != null
+                && profile.metadata().state().get("entity") instanceof Map<?, ?> map) {
+            return (Map<String, Object>) map;
         }
-        return fields;
+        return Map.of();
     }
 
-    /**
-     * Parse entity fields from EditViewContract's agentDescription().
-     * Expected: "Entity: TypeName[field1=val1, field2=val2]"
-     */
-    Map<String, Object> parseEntityFields(String description) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        for (String line : description.split("\n")) {
-            String trimmed = line.trim();
-            if (trimmed.startsWith("Entity:")) {
-                String entity = trimmed.substring("Entity:".length()).trim();
-                Matcher m = ITEM_LINE_PATTERN.matcher(entity);
-                if (m.find()) {
-                    for (Map.Entry<String, String> e : parseRecordFields(m.group(1)).entrySet()) {
-                        result.put(e.getKey(), (Object) e.getValue());
-                    }
-                }
-                break;
-            }
-        }
-        return result;
-    }
-
-    private String formatItem(Map<String, String> item) {
-        String name = item.getOrDefault("title",
+    private String formatItem(Map<String, Object> item) {
+        String name = String.valueOf(item.getOrDefault("title",
                        item.getOrDefault("name",
-                       item.getOrDefault("label", "?")));
-        String id = item.getOrDefault("id", "?");
+                       item.getOrDefault("label", "?"))));
+        String id = String.valueOf(item.getOrDefault("id", "?"));
         return name + " (id: " + id + ")";
     }
 }

@@ -4,9 +4,11 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.agent.AgentAction;
+import rsp.compositions.agent.ContractMetadata;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * EditViewContract - Base contract for editing existing entities.
@@ -205,13 +207,11 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     }
 
     @Override
-    public String agentDescription() {
-        Object entity = item();
-        String fields = schema().fields().stream()
-                .map(f -> f.name() + ":" + f.fieldType())
-                .collect(java.util.stream.Collectors.joining(", "));
-        return "Edit form for " + title() + ".\n"
-             + "Entity: " + (entity != null ? entity.toString() : "none") + "\n"
-             + "Fields: " + fields;
+    public ContractMetadata contractMetadata() {
+        T entity = item();
+        Map<String, Object> state = entity != null
+            ? Map.of("entity", schema().toMap(entity))
+            : Map.of();
+        return new ContractMetadata(title(), "Form for editing an existing entity", schema(), state);
     }
 }

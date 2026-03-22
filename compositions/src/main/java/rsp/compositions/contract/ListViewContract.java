@@ -5,20 +5,19 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.AgentInfo;
+import rsp.compositions.agent.ContractMetadata;
 import rsp.compositions.agent.PayloadParsers;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static rsp.compositions.contract.ActionBindings.*;
 import static rsp.compositions.contract.EventKeys.SHOW;
 import static rsp.compositions.contract.EventKeys.STATE_UPDATED;
 
-public abstract class ListViewContract<T> extends ViewContract implements AgentInfo {
+public abstract class ListViewContract<T> extends ViewContract {
 
 
     public static final EventKey.VoidKey CREATE_ELEMENT_REQUESTED = new EventKey.VoidKey("list.create.element.requested");
@@ -248,17 +247,11 @@ public abstract class ListViewContract<T> extends ViewContract implements AgentI
     }
 
     @Override
-    public String agentDescription() {
-        String itemsSummary = items().stream()
-            .map(Object::toString)
-            .collect(Collectors.joining("\n  "));
-        String schemaInfo = schema().fields().stream()
-            .map(f -> f.name() + ":" + f.fieldType())
-            .collect(Collectors.joining(", "));
-        return "Displays a list of " + title() + ".\n"
-             + "Current page: " + page() + ", sort: " + sort() + "\n"
-             + "Items on page: " + items().size() + ", page size: " + pageSize() + "\n"
-             + "Items:\n  " + itemsSummary + "\n"
-             + "Schema: " + schemaInfo;
+    public ContractMetadata contractMetadata() {
+        return new ContractMetadata(title(),
+            "Paginated data list",
+            schema(),
+            Map.of("page", page(), "pageSize", pageSize(), "sort", sort(),
+                   "items", schema().toMapList(items())));
     }
 }

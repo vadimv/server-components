@@ -9,6 +9,7 @@ import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ViewContract;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,11 +28,14 @@ class AgentContextTests {
         List.of(new StructureNode("Posts", "Blog posts", List.of(), List.of())),
         List.of());
 
-    static class StubAgentContract extends ViewContract implements AgentInfo {
+    static class StubAgentContract extends ViewContract {
         StubAgentContract(Lookup lookup) { super(lookup); }
 
         @Override
-        public String agentDescription() { return "Displays a list of Posts.\nItems on page: 3"; }
+        public ContractMetadata contractMetadata() {
+            return new ContractMetadata("Posts", "Paginated data list", null,
+                Map.of("page", 1, "items", List.of()));
+        }
 
         @Override
         public List<AgentAction> agentActions() { return ACTIONS; }
@@ -53,18 +57,19 @@ class AgentContextTests {
         public String title() { return "Plain"; }
     }
 
-    // --- Scope: CONTRACT ---
+    // --- Contract metadata ---
 
     @Test
-    void contract_scope_provides_contract_description() {
+    void contract_scope_provides_contract_metadata() {
         TestLookup lookup = new TestLookup();
         StubAgentContract contract = new StubAgentContract(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.CONTRACT,
             contract, STRUCTURE, null, lookup);
 
-        assertNotNull(ctx.contractDescription());
-        assertTrue(ctx.contractDescription().contains("Posts"));
+        ContractMetadata metadata = ctx.contractMetadata();
+        assertNotNull(metadata);
+        assertEquals("Posts", metadata.title());
     }
 
     @Test
@@ -103,14 +108,14 @@ class AgentContextTests {
     // --- Scope: APP ---
 
     @Test
-    void app_scope_provides_both_contract_and_app_description() {
+    void app_scope_provides_both_metadata_and_app_description() {
         TestLookup lookup = new TestLookup();
         StubAgentContract contract = new StubAgentContract(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
             contract, STRUCTURE, null, lookup);
 
-        assertNotNull(ctx.contractDescription());
+        assertNotNull(ctx.contractMetadata());
         assertNotNull(ctx.appDescription());
         assertTrue(ctx.appDescription().contains("Admin"));
     }
@@ -136,7 +141,7 @@ class AgentContextTests {
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.FRAMEWORK,
             contract, STRUCTURE, null, lookup);
 
-        assertNotNull(ctx.contractDescription());
+        assertNotNull(ctx.contractMetadata());
         assertNotNull(ctx.appDescription());
         assertNotNull(ctx.frameworkDescription());
         assertTrue(ctx.frameworkDescription().contains("List view"));
@@ -170,7 +175,7 @@ class AgentContextTests {
             contract, STRUCTURE, filter, lookup);
 
         ContractProfile profile = ctx.contractProfile();
-        assertNotNull(profile.description());
+        assertNotNull(profile.metadata());
         assertEquals(2, profile.actions().size());
         assertEquals(StubAgentContract.class, profile.contractClass());
     }
@@ -197,32 +202,62 @@ class AgentContextTests {
             null, STRUCTURE, null, lookup);
 
         assertTrue(ctx.contractActions().isEmpty());
-        assertNull(ctx.contractDescription());
+        assertNull(ctx.contractMetadata());
     }
 
     @Test
-    void null_contract_profile_matches_ContractProfile_of_null() {
+    void null_contract_profile_has_null_metadata() {
         TestLookup lookup = new TestLookup();
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
             null, STRUCTURE, null, lookup);
 
         ContractProfile profile = ctx.contractProfile();
-        assertNull(profile.description());
+        assertNull(profile.metadata());
         assertTrue(profile.actions().isEmpty());
     }
 
-    // --- Non-AgentInfo contract ---
+    // --- Contract without metadata ---
 
     @Test
-    void non_agentInfo_contract_returns_title_as_description() {
+    void plain_contract_returns_null_metadata() {
         TestLookup lookup = new TestLookup();
         StubPlainContract contract = new StubPlainContract(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
             contract, STRUCTURE, null, lookup);
 
-        assertEquals("Plain", ctx.contractDescription());
+        assertNull(ctx.contractMetadata());
+    }
+
+    // --- Structured metadata ---
+
+    @Test
+    void contractMetadata_returns_structured_data() {
+        TestLookup lookup = new TestLookup();
+        StubAgentContract contract = new StubAgentContract(lookup);
+
+        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.CONTRACT,
+            contract, STRUCTURE, null, lookup);
+
+        ContractMetadata metadata = ctx.contractMetadata();
+        assertNotNull(metadata);
+        assertEquals("Posts", metadata.title());
+        assertEquals("Paginated data list", metadata.description());
+        assertEquals(1, metadata.state().get("page"));
+    }
+
+    @Test
+    void contractProfile_includes_metadata() {
+        TestLookup lookup = new TestLookup();
+        StubAgentContract contract = new StubAgentContract(lookup);
+
+        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
+            contract, STRUCTURE, null, lookup);
+
+        ContractProfile profile = ctx.contractProfile();
+        assertNotNull(profile.metadata());
+        assertEquals("Posts", profile.metadata().title());
     }
 
     // --- Accessors ---

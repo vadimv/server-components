@@ -65,15 +65,13 @@ public class AgentContext {
     // --- Contract layer ---
 
     /**
-     * Live description of the active contract's state.
+     * Structured metadata from the active contract.
      *
-     * @return natural-language description, or null if contract is not agent-discoverable
+     * @return metadata, or null if contract doesn't expose metadata
      */
-    public String contractDescription() {
-        if (activeContract instanceof AgentInfo info) {
-            return info.agentDescription();
-        }
-        return activeContract != null ? activeContract.title() : null;
+    public ContractMetadata contractMetadata() {
+        if (activeContract == null) return null;
+        return activeContract.contractMetadata();
     }
 
     /**
@@ -118,9 +116,9 @@ public class AgentContext {
         if (activeContract == null) {
             return ContractProfile.of(null);
         }
-        String desc = contractDescription();
+        ContractMetadata metadata = contractMetadata();
         List<AgentAction> filteredActions = contractActions();
-        return new ContractProfile(desc, filteredActions, activeContract.getClass());
+        return new ContractProfile(metadata, filteredActions, activeContract.getClass());
     }
 
     public Scope scope() { return scope; }
