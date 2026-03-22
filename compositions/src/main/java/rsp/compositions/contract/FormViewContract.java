@@ -4,6 +4,7 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.AgentInfo;
+import rsp.compositions.agent.PayloadParsers;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.ValidationResult;
 
@@ -191,7 +192,8 @@ public abstract class FormViewContract<T> extends ViewContract implements AgentI
         return List.of(
             new AgentAction("save", FORM_SUBMITTED,
                 "Submit form data",
-                "Map<String, Object>: {" + fieldNames + "}"),
+                "Map<String, Object>: {" + fieldNames + "}",
+                PayloadParsers.toMapOfStringObject()),
             new AgentAction("cancel", CANCEL_REQUESTED,
                 "Cancel and go back", null)
         );

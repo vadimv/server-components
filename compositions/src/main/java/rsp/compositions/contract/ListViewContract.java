@@ -6,6 +6,7 @@ import rsp.component.Lookup;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.AgentInfo;
+import rsp.compositions.agent.PayloadParsers;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
@@ -233,11 +234,14 @@ public abstract class ListViewContract<T> extends ViewContract implements AgentI
             new AgentAction("create", CREATE_ELEMENT_REQUESTED,
                 "Open create form for a new item", null),
             new AgentAction("edit", EDIT_ELEMENT_REQUESTED,
-                "Open edit form for an item", "String: row ID"),
+                "Open edit form for an item", "String: row ID",
+                PayloadParsers.toStringPayload()),
             new AgentAction("delete", BULK_DELETE_REQUESTED,
-                "Delete items by their IDs", "Set<String>: row IDs"),
+                "Delete items by their IDs", "Set<String>: row IDs",
+                PayloadParsers.toSetOfStrings()),
             new AgentAction("page", PAGE_CHANGE_REQUESTED,
-                "Navigate to a page number", "Integer: page number (1-based)"),
+                "Navigate to a page number", "Integer: page number (1-based)",
+                PayloadParsers.toInteger()),
             new AgentAction("select_all", SELECT_ALL_REQUESTED,
                 "Select all rows on the current page", null)
         );

@@ -8,6 +8,7 @@ import rsp.component.Lookup;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -108,6 +109,52 @@ class IntentDispatcherTests {
         assertInstanceOf(IntentDispatcher.DispatchResult.AwaitingConfirmation.class, result);
         assertEquals("Are you sure?",
             ((IntentDispatcher.DispatchResult.AwaitingConfirmation) result).question());
+    }
+
+    @Test
+    void returns_payload_error_when_parser_rejects() {
+        EventKey.SimpleKey<Set<String>> key = new EventKey.SimpleKey<>("test.delete",
+                (Class<Set<String>>) (Class<?>) Set.class);
+
+        StubContract contract = new StubContract(
+            List.of(new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
+                PayloadParsers.toSetOfStrings())));
+
+        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
+            new AgentIntent("delete", Map.of("payload", true)),
+            contract, new StubLookup(), allowAllGate);
+
+        assertInstanceOf(IntentDispatcher.DispatchResult.PayloadError.class, result);
+        IntentDispatcher.DispatchResult.PayloadError pe =
+            (IntentDispatcher.DispatchResult.PayloadError) result;
+        assertEquals("delete", pe.action());
+        assertTrue(pe.message().contains("Boolean"));
+    }
+
+    @Test
+    void parse_payload_converts_string_to_set() {
+        EventKey.SimpleKey<Set<String>> key = new EventKey.SimpleKey<>("test.delete",
+                (Class<Set<String>>) (Class<?>) Set.class);
+        List<Object> published = new ArrayList<>();
+
+        Lookup contractLookup = new StubLookup() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public <T> void publish(EventKey<T> k, T payload) {
+                published.add(payload);
+            }
+        };
+
+        StubContract contract = new StubContract(
+            List.of(new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
+                PayloadParsers.toSetOfStrings())), contractLookup);
+
+        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
+            new AgentIntent("delete", Map.of("payload", "1")),
+            contract, new StubLookup(), allowAllGate);
+
+        assertInstanceOf(IntentDispatcher.DispatchResult.Dispatched.class, result);
+        assertEquals(List.of(Set.of("1")), published);
     }
 
     @Test

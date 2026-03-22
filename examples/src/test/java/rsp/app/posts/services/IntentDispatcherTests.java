@@ -10,6 +10,7 @@ import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.IntentDispatcher;
 import rsp.compositions.agent.IntentDispatcher.DispatchResult;
 import rsp.compositions.agent.IntentGate;
+import rsp.compositions.agent.PayloadParsers;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.ViewContract;
@@ -37,11 +38,14 @@ class IntentDispatcherTests {
                 new AgentAction("create", ListViewContract.CREATE_ELEMENT_REQUESTED,
                     "Open create form", null),
                 new AgentAction("edit", ListViewContract.EDIT_ELEMENT_REQUESTED,
-                    "Open edit form", "String: row ID"),
+                    "Open edit form", "String: row ID",
+                    PayloadParsers.toStringPayload()),
                 new AgentAction("delete", ListViewContract.BULK_DELETE_REQUESTED,
-                    "Delete items", "Set<String>: row IDs"),
+                    "Delete items", "Set<String>: row IDs",
+                    PayloadParsers.toSetOfStrings()),
                 new AgentAction("page", ListViewContract.PAGE_CHANGE_REQUESTED,
-                    "Navigate to page", "Integer: page number"),
+                    "Navigate to page", "Integer: page number",
+                    PayloadParsers.toInteger()),
                 new AgentAction("select_all", ListViewContract.SELECT_ALL_REQUESTED,
                     "Select all rows", null)
             );

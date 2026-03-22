@@ -25,6 +25,7 @@ public class IntentDispatcher {
         record UnknownAction(String action) implements DispatchResult {}
         record Blocked(String reason) implements DispatchResult {}
         record AwaitingConfirmation(String question, AgentIntent intent) implements DispatchResult {}
+        record PayloadError(String action, String message) implements DispatchResult {}
     }
 
     /**
@@ -72,38 +73,17 @@ public class IntentDispatcher {
                 if (key instanceof EventKey.VoidKey vk) {
                     contractLookup.publish(vk);
                 } else if (key instanceof EventKey.SimpleKey<?> sk) {
-                    Object payload = coercePayload(intent.params().get("payload"), sk.payloadType());
+                    Object raw = intent.params().get("payload");
+                    Object payload;
+                    try {
+                        payload = action.parsePayload().apply(raw);
+                    } catch (IllegalArgumentException e) {
+                        return new DispatchResult.PayloadError(intent.action(), e.getMessage());
+                    }
                     contractLookup.publish((EventKey.SimpleKey) sk, payload);
                 }
                 return new DispatchResult.Dispatched(intent);
             })
             .orElse(new DispatchResult.UnknownAction(intent.action()));
-    }
-
-    /**
-     * Coerce an LLM-produced payload to the type expected by the event key.
-     * JSON numbers may arrive as Long or Double, but event keys may expect Integer.
-     */
-    private static Object coercePayload(Object value, Class<?> targetType) {
-        if (value == null || targetType.isInstance(value)) {
-            return value;
-        }
-        if (value instanceof Number num) {
-            if (targetType == Integer.class || targetType == int.class) {
-                return num.intValue();
-            }
-            if (targetType == Long.class || targetType == long.class) {
-                return num.longValue();
-            }
-            if (targetType == Double.class || targetType == double.class) {
-                return num.doubleValue();
-            }
-        }
-        if (value instanceof String str && (targetType == Integer.class || targetType == int.class)) {
-            try {
-                return Integer.parseInt(str);
-            } catch (NumberFormatException ignored) {}
-        }
-        return value;
     }
 }

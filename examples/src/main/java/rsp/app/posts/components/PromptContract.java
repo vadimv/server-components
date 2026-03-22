@@ -263,6 +263,9 @@ public class PromptContract extends ViewContract {
             }
             case DispatchResult.UnknownAction u ->
                 promptService.sendReply(scopeKey, "Unknown action: " + HtmlEscape.escape(u.action()));
+            case DispatchResult.PayloadError pe ->
+                promptService.sendReply(scopeKey, "Invalid payload for '" + HtmlEscape.escape(pe.action())
+                    + "': " + HtmlEscape.escape(pe.message()));
         }
     }
 
