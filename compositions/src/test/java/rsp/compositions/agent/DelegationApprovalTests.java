@@ -3,6 +3,10 @@ package rsp.compositions.agent;
 import org.junit.jupiter.api.Test;
 import rsp.page.QualifiedSessionId;
 import rsp.compositions.application.TestLookup;
+import rsp.compositions.authorization.Attributes;
+import rsp.compositions.authorization.Authorization;
+import rsp.compositions.authorization.DelegationGrant;
+import rsp.compositions.authorization.ExamplePolicies;
 import rsp.compositions.contract.ContextKeys;
 
 import java.util.Map;
@@ -133,7 +137,7 @@ class DelegationApprovalTests {
             innerCalled[0] = true;
             return new SpawnResult.Approved(
                     new AgentSession("s1", new DelegationGrant(
-                            "g1", AgentContext.Scope.APP, ControlMode.ASSIST,
+                            "g1", Attributes.empty(),
                             java.time.Instant.now(), null)));
         };
         ApprovalSpawner spawner = new ApprovalSpawner(inner, store);
@@ -152,7 +156,7 @@ class DelegationApprovalTests {
     @Test
     void approvalSpawner_inner_denied_propagated_after_approval() {
         DelegationStore store = new InMemoryDelegationStore();
-        AgentSpawner inner = new PolicySpawner(ExamplePolicies.denyAll());
+        AgentSpawner inner = new PolicySpawner(new Authorization(ExamplePolicies.denyAll(), Attributes.empty()));
         ApprovalSpawner spawner = new ApprovalSpawner(inner, store);
 
         TestLookup lookup = new TestLookup()

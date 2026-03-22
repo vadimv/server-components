@@ -14,21 +14,22 @@ import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.ClaudeAgentService;
-import rsp.app.posts.services.OllamaAgentService;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
-import rsp.compositions.agent.AccessPolicy;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentSpawner;
 import rsp.compositions.agent.ApprovalSpawner;
-import rsp.compositions.agent.CompositePolicy;
 import rsp.compositions.agent.DelegationApprovalContract;
 import rsp.compositions.agent.DelegationApprovalView;
 import rsp.compositions.agent.DelegationStore;
-import rsp.compositions.agent.ExamplePolicies;
 import rsp.compositions.agent.InMemoryDelegationStore;
 import rsp.compositions.agent.IntentDispatcher;
 import rsp.compositions.agent.PolicySpawner;
+import rsp.compositions.authorization.AccessPolicy;
+import rsp.compositions.authorization.Attributes;
+import rsp.compositions.authorization.CompositePolicy;
+import rsp.compositions.authorization.ExamplePolicies;
+import rsp.compositions.authorization.Authorization;
 import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
@@ -93,11 +94,12 @@ public class CrudApp {
         final PromptService promptService = new PromptService();
         promptService.startTicking();
 
-        // Agent services — unified ABAC policy for spawn, discovery, and execution
+        // Agent services — unified ABAC authorization for spawn, discovery, and execution
         final IntentDispatcher intentDispatcher = new IntentDispatcher();
         final AccessPolicy policy = new CompositePolicy(ExamplePolicies.grantConstraints());
+        final Authorization authorization = new Authorization(policy, Attributes.empty());
         final DelegationStore delegationStore = new InMemoryDelegationStore();
-        final AgentSpawner spawner = new ApprovalSpawner(new PolicySpawner(policy), delegationStore);
+        final AgentSpawner spawner = new ApprovalSpawner(new PolicySpawner(authorization), delegationStore);
 
         final Group mainContracts = new Group("Admin").description("Administration panel")
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
@@ -111,7 +113,7 @@ public class CrudApp {
 
         final Group systemContracts = new Group()
                 .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
-                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, policy, spawner, mainContracts.structureTree()), PromptView::new)
+                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, authorization, spawner, mainContracts.structureTree()), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new)
                 .bind(DelegationApprovalContract.class, ctx -> new DelegationApprovalContract(ctx, delegationStore), DelegationApprovalView::new);
 

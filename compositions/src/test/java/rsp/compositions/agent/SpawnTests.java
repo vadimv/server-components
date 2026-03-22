@@ -1,6 +1,9 @@
 package rsp.compositions.agent;
 
 import org.junit.jupiter.api.Test;
+import rsp.compositions.authorization.Attributes;
+import rsp.compositions.authorization.AttributeKeys;
+import rsp.compositions.authorization.DelegationGrant;
 
 import java.time.Instant;
 
@@ -42,14 +45,14 @@ class SpawnTests {
     @Test
     void grant_notExpired_when_no_expiry() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST, Instant.now(), null);
+            "g1", Attributes.empty(), Instant.now(), null);
         assertFalse(grant.isExpired());
     }
 
     @Test
     void grant_notExpired_when_future_expiry() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST,
+            "g1", Attributes.empty(),
             Instant.now(), Instant.now().plusSeconds(3600));
         assertFalse(grant.isExpired());
     }
@@ -57,7 +60,7 @@ class SpawnTests {
     @Test
     void grant_expired_when_past_expiry() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST,
+            "g1", Attributes.empty(),
             Instant.now().minusSeconds(7200), Instant.now().minusSeconds(3600));
         assertTrue(grant.isExpired());
     }
@@ -65,7 +68,7 @@ class SpawnTests {
     @Test
     void grant_nullGrantId_throws() {
         assertThrows(NullPointerException.class,
-            () -> new DelegationGrant(null, AgentContext.Scope.APP, ControlMode.ASSIST, Instant.now(), null));
+            () -> new DelegationGrant(null, Attributes.empty(), Instant.now(), null));
     }
 
     // --- AgentSession ---
@@ -73,7 +76,7 @@ class SpawnTests {
     @Test
     void session_valid_when_grant_not_expired() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST, Instant.now(), null);
+            "g1", Attributes.empty(), Instant.now(), null);
         AgentSession session = new AgentSession("s1", grant);
         assertTrue(session.isValid());
     }
@@ -81,7 +84,7 @@ class SpawnTests {
     @Test
     void session_invalid_when_grant_expired() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST,
+            "g1", Attributes.empty(),
             Instant.now().minusSeconds(7200), Instant.now().minusSeconds(3600));
         AgentSession session = new AgentSession("s1", grant);
         assertFalse(session.isValid());
@@ -90,7 +93,7 @@ class SpawnTests {
     @Test
     void session_nullSessionId_throws() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST, Instant.now(), null);
+            "g1", Attributes.empty(), Instant.now(), null);
         assertThrows(NullPointerException.class,
             () -> new AgentSession(null, grant));
     }
@@ -106,7 +109,7 @@ class SpawnTests {
     @Test
     void approved_carries_session() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST, Instant.now(), null);
+            "g1", Attributes.empty(), Instant.now(), null);
         AgentSession session = new AgentSession("s1", grant);
         SpawnResult result = new SpawnResult.Approved(session);
         assertInstanceOf(SpawnResult.Approved.class, result);
@@ -131,7 +134,7 @@ class SpawnTests {
     @Test
     void exhaustive_switch() {
         DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST, Instant.now(), null);
+            "g1", Attributes.empty(), Instant.now(), null);
         SpawnResult result = new SpawnResult.Approved(new AgentSession("s1", grant));
         String outcome = switch (result) {
             case SpawnResult.Approved a -> "approved";
@@ -162,8 +165,7 @@ class SpawnTests {
         assertTrue(session.isValid());
         assertNotNull(session.sessionId());
         assertNotNull(session.grant().grantId());
-        assertEquals(AgentContext.Scope.APP, session.grant().scope());
-        assertEquals(ControlMode.ASSIST, session.grant().controlMode());
+        assertEquals("assist", session.grant().entitlements().getString(AttributeKeys.CONTROL_MODE));
         assertNull(session.grant().expiresAt());
     }
 

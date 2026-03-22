@@ -2,6 +2,15 @@ package rsp.compositions.agent;
 
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
+import rsp.compositions.authorization.AccessDecision;
+import rsp.compositions.authorization.AccessPolicy;
+import rsp.compositions.authorization.Attributes;
+import rsp.compositions.authorization.AttributeKeys;
+import rsp.compositions.authorization.Authorization;
+import rsp.compositions.authorization.CompositePolicy;
+import rsp.compositions.authorization.DelegationGrant;
+import rsp.compositions.authorization.ExamplePolicies;
+import rsp.compositions.authorization.GrantConstraints;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -82,6 +91,37 @@ class AccessPolicyTests {
         Attributes attrs = Attributes.builder().put("exists", "yes").build();
         assertTrue(attrs.hasKey("exists"));
         assertFalse(attrs.hasKey("missing"));
+    }
+
+    @Test
+    void attributes_merge_combines_maps() {
+        Attributes a = Attributes.builder().put("x", 1).put("y", 2).build();
+        Attributes b = Attributes.builder().put("z", 3).build();
+        Attributes merged = a.merge(b);
+        assertEquals(1, merged.get("x"));
+        assertEquals(2, merged.get("y"));
+        assertEquals(3, merged.get("z"));
+    }
+
+    @Test
+    void attributes_merge_other_wins_on_conflict() {
+        Attributes a = Attributes.builder().put("k", "old").build();
+        Attributes b = Attributes.builder().put("k", "new").build();
+        assertEquals("new", a.merge(b).getString("k"));
+    }
+
+    @Test
+    void attributes_extend_adds_single_key() {
+        Attributes attrs = Attributes.builder().put("a", 1).build();
+        Attributes extended = attrs.extend("b", 2);
+        assertEquals(1, extended.get("a"));
+        assertEquals(2, extended.get("b"));
+    }
+
+    @Test
+    void attributes_empty() {
+        Attributes empty = Attributes.empty();
+        assertTrue(empty.values().isEmpty());
     }
 
     // --- CompositePolicy ---
@@ -188,7 +228,8 @@ class AccessPolicyTests {
 
     @Test
     void policySpawner_allow_returns_approved() {
-        PolicySpawner spawner = new PolicySpawner(ExamplePolicies.allowAll());
+        Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
+        PolicySpawner spawner = new PolicySpawner(auth);
         SpawnRequest request = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
         SpawnResult result = spawner.spawn(request, null);
         assertInstanceOf(SpawnResult.Approved.class, result);
@@ -198,7 +239,8 @@ class AccessPolicyTests {
 
     @Test
     void policySpawner_deny_returns_denied() {
-        PolicySpawner spawner = new PolicySpawner(ExamplePolicies.denyAll());
+        Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
+        PolicySpawner spawner = new PolicySpawner(auth);
         SpawnRequest request = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
         SpawnResult result = spawner.spawn(request, null);
         assertInstanceOf(SpawnResult.Denied.class, result);
@@ -207,7 +249,8 @@ class AccessPolicyTests {
 
     @Test
     void policySpawner_ttl_applied() {
-        PolicySpawner spawner = new PolicySpawner(ExamplePolicies.allowAll(), Duration.ofHours(1));
+        Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
+        PolicySpawner spawner = new PolicySpawner(auth, Duration.ofHours(1));
         SpawnRequest request = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
         SpawnResult.Approved approved = (SpawnResult.Approved) spawner.spawn(request, null);
         assertNotNull(approved.session().grant().expiresAt());
@@ -215,7 +258,8 @@ class AccessPolicyTests {
 
     @Test
     void policySpawner_no_ttl_means_no_expiry() {
-        PolicySpawner spawner = new PolicySpawner(ExamplePolicies.allowAll());
+        Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
+        PolicySpawner spawner = new PolicySpawner(auth);
         SpawnRequest request = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
         SpawnResult.Approved approved = (SpawnResult.Approved) spawner.spawn(request, null);
         assertNull(approved.session().grant().expiresAt());
@@ -231,7 +275,8 @@ class AccessPolicyTests {
                 ? new AccessDecision.Allow()
                 : new AccessDecision.Deny("blocked");
         };
-        PolicyActionFilter filter = new PolicyActionFilter(readOnly, null);
+        Authorization auth = new Authorization(readOnly, Attributes.empty());
+        PolicyActionFilter filter = new PolicyActionFilter(auth);
 
         AgentAction pageAction = new AgentAction("page", DUMMY_KEY, "Go to page", null);
         AgentAction deleteAction = new AgentAction("delete", DUMMY_KEY, "Delete items", null);
@@ -243,7 +288,8 @@ class AccessPolicyTests {
 
     @Test
     void policyActionFilter_allow_all_passes_everything() {
-        PolicyActionFilter filter = new PolicyActionFilter(ExamplePolicies.allowAll(), null);
+        Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
+        PolicyActionFilter filter = new PolicyActionFilter(auth);
         AgentAction a1 = new AgentAction("page", DUMMY_KEY, "page", null);
         AgentAction a2 = new AgentAction("delete", DUMMY_KEY, "delete", null);
         assertEquals(2, filter.filter(List.of(a1, a2), null).size());
@@ -251,7 +297,8 @@ class AccessPolicyTests {
 
     @Test
     void policyActionFilter_deny_all_filters_everything() {
-        PolicyActionFilter filter = new PolicyActionFilter(ExamplePolicies.denyAll(), null);
+        Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
+        PolicyActionFilter filter = new PolicyActionFilter(auth);
         AgentAction a1 = new AgentAction("page", DUMMY_KEY, "page", null);
         assertEquals(0, filter.filter(List.of(a1), null).size());
     }
@@ -260,7 +307,8 @@ class AccessPolicyTests {
 
     @Test
     void policyGate_allow_maps_to_gateResult_allow() {
-        PolicyGate gate = new PolicyGate(ExamplePolicies.allowAll(), null);
+        Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
+        PolicyGate gate = new PolicyGate(auth);
         AgentIntent intent = new AgentIntent("navigate");
         GateResult result = gate.evaluate(intent, null);
         assertInstanceOf(GateResult.Allow.class, result);
@@ -269,7 +317,8 @@ class AccessPolicyTests {
 
     @Test
     void policyGate_deny_maps_to_gateResult_block() {
-        PolicyGate gate = new PolicyGate(ExamplePolicies.denyAll(), null);
+        Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
+        PolicyGate gate = new PolicyGate(auth);
         AgentIntent intent = new AgentIntent("delete");
         GateResult result = gate.evaluate(intent, null);
         assertInstanceOf(GateResult.Block.class, result);
@@ -279,10 +328,12 @@ class AccessPolicyTests {
     @Test
     void policyGate_with_grant_constraints() {
         AccessPolicy policy = ExamplePolicies.grantConstraints();
-        DelegationGrant grant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST,
+        Authorization auth = new Authorization(policy, Attributes.empty());
+        DelegationGrant expiredGrant = new DelegationGrant(
+            "g1", Attributes.empty(),
             Instant.now().minusSeconds(7200), Instant.now().minusSeconds(3600));
-        PolicyGate gate = new PolicyGate(policy, grant);
+        Authorization agentAuth = auth.delegated(expiredGrant);
+        PolicyGate gate = new PolicyGate(agentAuth);
         GateResult result = gate.evaluate(new AgentIntent("navigate"), null);
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Grant expired", ((GateResult.Block) result).reason());
@@ -338,6 +389,61 @@ class AccessPolicyTests {
             ExamplePolicies.readOnly().evaluate(attrs));
     }
 
+    // --- Authorization ---
+
+    @Test
+    void authorization_merges_subject_and_action_attributes() {
+        Attributes subject = Attributes.builder()
+            .put(AttributeKeys.SUBJECT_USER_ID, "user-1")
+            .build();
+        AccessPolicy policy = attrs -> attrs.hasKey(AttributeKeys.SUBJECT_USER_ID)
+                && attrs.hasKey(AttributeKeys.ACTION_NAME)
+            ? new AccessDecision.Allow()
+            : new AccessDecision.Deny("missing attrs");
+
+        Authorization auth = new Authorization(policy, subject);
+        Attributes action = Attributes.builder().put(AttributeKeys.ACTION_NAME, "edit").build();
+        assertInstanceOf(AccessDecision.Allow.class, auth.evaluate(action));
+    }
+
+    @Test
+    void authorization_delegated_merges_grant_attributes() {
+        AccessPolicy policy = ExamplePolicies.grantConstraints();
+        Authorization auth = new Authorization(policy, Attributes.empty());
+
+        DelegationGrant grant = new DelegationGrant(
+            "g1", Attributes.builder()
+                .put(AttributeKeys.GRANT_SCOPE_ACTIONS, Set.of("navigate"))
+                .build(),
+            Instant.now(), null);
+
+        Authorization agentAuth = auth.delegated(grant);
+        // "navigate" is in scope — should allow
+        Attributes navigateAction = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "navigate").build();
+        assertInstanceOf(AccessDecision.Allow.class, agentAuth.evaluate(navigateAction));
+
+        // "delete" is not in scope — should deny
+        Attributes deleteAction = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "delete").build();
+        assertInstanceOf(AccessDecision.Deny.class, agentAuth.evaluate(deleteAction));
+    }
+
+    @Test
+    void authorization_scoped_restricts_actions() {
+        AccessPolicy policy = ExamplePolicies.grantConstraints();
+        Authorization auth = new Authorization(policy, Attributes.empty());
+
+        Authorization scoped = auth.scoped(Set.of("read:game_state", "write:level_data"));
+        Attributes allowed = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "read:game_state").build();
+        assertInstanceOf(AccessDecision.Allow.class, scoped.evaluate(allowed));
+
+        Attributes denied = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "delete_everything").build();
+        assertInstanceOf(AccessDecision.Deny.class, scoped.evaluate(denied));
+    }
+
     // --- Integration: composite policy through all 3 adapters ---
 
     @Test
@@ -347,22 +453,24 @@ class AccessPolicyTests {
             ExamplePolicies.requireAuthenticated(),
             ExamplePolicies.grantConstraints()
         );
+        Authorization auth = new Authorization(policy, Attributes.empty());
 
         // Spawner: deny when not authenticated
-        PolicySpawner spawner = new PolicySpawner(policy);
+        PolicySpawner spawner = new PolicySpawner(auth);
         SpawnRequest request = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
         SpawnResult spawnResult = spawner.spawn(request, null);
         assertInstanceOf(SpawnResult.Denied.class, spawnResult);
 
         // Gate with valid grant: deny when not authenticated (no subject in attrs)
         DelegationGrant validGrant = new DelegationGrant(
-            "g1", AgentContext.Scope.APP, ControlMode.ASSIST, Instant.now(), null);
-        PolicyGate gate = new PolicyGate(policy, validGrant);
+            "g1", Attributes.empty(), Instant.now(), null);
+        Authorization agentAuth = auth.delegated(validGrant);
+        PolicyGate gate = new PolicyGate(agentAuth);
         GateResult gateResult = gate.evaluate(new AgentIntent("delete"), null);
         assertInstanceOf(GateResult.Block.class, gateResult);
 
         // Filter with valid grant: deny all when not authenticated
-        PolicyActionFilter filter = new PolicyActionFilter(policy, validGrant);
+        PolicyActionFilter filter = new PolicyActionFilter(agentAuth);
         AgentAction action = new AgentAction("page", DUMMY_KEY, "page", null);
         assertEquals(0, filter.filter(List.of(action), null).size());
     }

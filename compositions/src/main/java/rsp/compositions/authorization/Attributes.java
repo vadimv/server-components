@@ -1,4 +1,4 @@
-package rsp.compositions.agent;
+package rsp.compositions.authorization;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -36,6 +36,24 @@ public record Attributes(Map<String, Object> values) {
 
     public boolean hasKey(String key) {
         return values.containsKey(key);
+    }
+
+    public Attributes merge(Attributes other) {
+        HashMap<String, Object> merged = new HashMap<>(this.values);
+        merged.putAll(other.values);
+        return new Attributes(merged);
+    }
+
+    public Attributes extend(String key, Object value) {
+        HashMap<String, Object> copy = new HashMap<>(this.values);
+        if (value != null) {
+            copy.put(key, value);
+        }
+        return new Attributes(copy);
+    }
+
+    public static Attributes empty() {
+        return new Attributes(Map.of());
     }
 
     public static Builder builder() {

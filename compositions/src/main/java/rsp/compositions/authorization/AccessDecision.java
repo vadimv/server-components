@@ -1,10 +1,10 @@
-package rsp.compositions.agent;
+package rsp.compositions.authorization;
 
 /**
  * Result of an {@link AccessPolicy#evaluate} call.
  * <p>
  * Binary outcome: Allow or Deny. Confirmation is a UI concern
- * handled by {@link IntentGate} adapters, not the policy engine.
+ * handled by gate adapters, not the policy engine.
  */
 public sealed interface AccessDecision {
     record Allow() implements AccessDecision {}

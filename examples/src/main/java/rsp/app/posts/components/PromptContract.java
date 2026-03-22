@@ -4,7 +4,6 @@ import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
-import rsp.compositions.agent.AccessPolicy;
 import rsp.compositions.agent.AgentActionFilter;
 import rsp.compositions.agent.AgentContext;
 import rsp.compositions.agent.AgentIntent;
@@ -22,6 +21,7 @@ import rsp.compositions.agent.PolicyActionFilter;
 import rsp.compositions.agent.PolicyGate;
 import rsp.compositions.agent.SpawnRequest;
 import rsp.compositions.agent.SpawnResult;
+import rsp.compositions.authorization.Authorization;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ContextKeys;
@@ -55,7 +55,7 @@ public class PromptContract extends ViewContract {
     private final AgentService agentService;
     private final IntentDispatcher dispatcher;
     private final AgentSpawner spawner;
-    private final AccessPolicy policy;
+    private final Authorization authorization;
     private final StructureNode structure;
 
     private IntentGate gate;
@@ -71,14 +71,14 @@ public class PromptContract extends ViewContract {
 
     public PromptContract(Lookup lookup, PromptService promptService,
                           AgentService agentService, IntentDispatcher dispatcher,
-                          AccessPolicy policy, AgentSpawner spawner,
+                          Authorization authorization, AgentSpawner spawner,
                           StructureNode structure) {
         super(lookup);
         this.promptService = Objects.requireNonNull(promptService);
         this.agentService = Objects.requireNonNull(agentService);
         this.dispatcher = Objects.requireNonNull(dispatcher);
         this.spawner = Objects.requireNonNull(spawner);
-        this.policy = Objects.requireNonNull(policy);
+        this.authorization = Objects.requireNonNull(authorization);
         this.structure = structure;
 
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
@@ -102,10 +102,11 @@ public class PromptContract extends ViewContract {
             }
         };
 
-        // Derive gate and filter from the session's grant via unified policy
+        // Derive gate and filter from the session's grant via unified authorization
         if (agentSession != null) {
-            this.gate = new PolicyGate(policy, agentSession.grant());
-            this.actionFilter = new PolicyActionFilter(policy, agentSession.grant());
+            Authorization agentAuth = authorization.delegated(agentSession.grant());
+            this.gate = new PolicyGate(agentAuth);
+            this.actionFilter = new PolicyActionFilter(agentAuth);
         } else {
             this.gate = (intent, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
             this.actionFilter = (actions, ctx) -> List.of();
@@ -139,8 +140,9 @@ public class PromptContract extends ViewContract {
                 SpawnResult retryResult = this.spawner.spawn(pendingSpawnRequest, lookup);
                 if (retryResult instanceof SpawnResult.Approved a) {
                     this.agentSession = a.session();
-                    this.gate = new PolicyGate(this.policy, agentSession.grant());
-                    this.actionFilter = new PolicyActionFilter(this.policy, agentSession.grant());
+                    Authorization agentAuth = this.authorization.delegated(agentSession.grant());
+                    this.gate = new PolicyGate(agentAuth);
+                    this.actionFilter = new PolicyActionFilter(agentAuth);
                     this.pendingTicketId = null;
                     promptService.sendReply(scopeKey, "Agent access approved.");
                     if (queuedPrompt != null) {

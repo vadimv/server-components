@@ -1,5 +1,7 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.authorization.DelegationGrant;
+
 import java.util.Objects;
 
 /**

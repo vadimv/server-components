@@ -1,4 +1,4 @@
-package rsp.compositions.agent;
+package rsp.compositions.authorization;
 
 import java.util.Set;
 
@@ -11,7 +11,7 @@ public final class ExamplePolicies {
     private ExamplePolicies() {}
 
     /**
-     * Allows everything. Equivalent to {@link AllowAllSpawner} / AllowAllGate.
+     * Allows everything.
      */
     public static AccessPolicy allowAll() {
         return _ -> new AccessDecision.Allow();

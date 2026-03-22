@@ -1,4 +1,4 @@
-package rsp.compositions.agent;
+package rsp.compositions.authorization;
 
 /**
  * Well-known attribute keys for ABAC policy evaluation.
@@ -12,10 +12,7 @@ public final class AttributeKeys {
     // --- subject.* (who acts) ---
     public static final String SUBJECT_TYPE = "subject.type";
     public static final String SUBJECT_USER_ID = "subject.user_id";
-    public static final String SUBJECT_AGENT_ID = "subject.agent_id";
     public static final String SUBJECT_ROLES = "subject.roles";
-    public static final String SUBJECT_DELEGATION_GRANT_ID = "subject.delegation_grant_id";
-    public static final String SUBJECT_DELEGATED_BY_USER_ID = "subject.delegated_by_user_id";
 
     // --- resource.* (what is targeted) ---
     public static final String RESOURCE_KIND = "resource.kind";

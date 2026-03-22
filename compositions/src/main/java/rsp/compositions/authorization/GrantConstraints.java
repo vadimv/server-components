@@ -1,4 +1,4 @@
-package rsp.compositions.agent;
+package rsp.compositions.authorization;
 
 import java.time.Instant;
 import java.util.Collection;

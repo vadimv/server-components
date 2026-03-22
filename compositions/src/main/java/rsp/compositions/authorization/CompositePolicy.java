@@ -1,4 +1,4 @@
-package rsp.compositions.agent;
+package rsp.compositions.authorization;
 
 import java.util.List;
 import java.util.Objects;

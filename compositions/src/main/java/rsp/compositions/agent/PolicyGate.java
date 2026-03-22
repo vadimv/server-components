@@ -1,13 +1,16 @@
 package rsp.compositions.agent;
 
 import rsp.component.Lookup;
-import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.authorization.AccessDecision;
+import rsp.compositions.authorization.Attributes;
+import rsp.compositions.authorization.AttributeKeys;
+import rsp.compositions.authorization.Authorization;
 
 import java.time.Instant;
 import java.util.Objects;
 
 /**
- * {@link IntentGate} that delegates execution decisions to an {@link AccessPolicy}.
+ * {@link IntentGate} that delegates execution decisions to an {@link Authorization}.
  * <p>
  * Maps {@link AccessDecision.Allow} to {@link GateResult.Allow},
  * and {@link AccessDecision.Deny} to {@link GateResult.Block}.
@@ -16,25 +19,14 @@ import java.util.Objects;
  * if confirmation is needed.
  */
 public final class PolicyGate implements IntentGate {
-    private final AccessPolicy policy;
-    private final DelegationGrant grant;
+    private final Authorization authorization;
 
-    public PolicyGate(AccessPolicy policy, DelegationGrant grant) {
-        this.policy = Objects.requireNonNull(policy);
-        this.grant = grant;
+    public PolicyGate(Authorization authorization) {
+        this.authorization = Objects.requireNonNull(authorization);
     }
 
     @Override
     public GateResult evaluate(AgentIntent intent, Lookup lookup) {
-        Attributes attrs = buildAttributes(intent, lookup);
-        AccessDecision decision = policy.evaluate(attrs);
-        return switch (decision) {
-            case AccessDecision.Allow _ -> new GateResult.Allow(intent);
-            case AccessDecision.Deny d -> new GateResult.Block(d.reason());
-        };
-    }
-
-    private Attributes buildAttributes(AgentIntent intent, Lookup lookup) {
         Attributes.Builder b = Attributes.builder()
             .put(AttributeKeys.ACTION_NAME, intent.action())
             .put(AttributeKeys.CONTROL_CHANNEL, "agent_intent")
@@ -45,18 +37,10 @@ public final class PolicyGate implements IntentGate {
             b.put(AttributeKeys.RESOURCE_KIND, "contract");
         }
 
-        if (lookup != null) {
-            b.put(AttributeKeys.SUBJECT_TYPE, "agent");
-            b.put(AttributeKeys.SUBJECT_USER_ID, lookup.get(ContextKeys.AUTH_USER));
-            b.put(AttributeKeys.SUBJECT_ROLES, lookup.get(ContextKeys.AUTH_ROLES));
-        }
-
-        if (grant != null) {
-            b.put(AttributeKeys.SUBJECT_DELEGATION_GRANT_ID, grant.grantId());
-            b.put(AttributeKeys.GRANT_EXPIRES_AT, grant.expiresAt());
-            b.put(AttributeKeys.GRANT_REVOKED, false);
-        }
-
-        return b.build();
+        AccessDecision decision = authorization.evaluate(b.build());
+        return switch (decision) {
+            case AccessDecision.Allow _ -> new GateResult.Allow(intent);
+            case AccessDecision.Deny d -> new GateResult.Block(d.reason());
+        };
     }
 }
