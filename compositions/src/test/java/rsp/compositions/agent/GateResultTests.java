@@ -1,17 +1,21 @@
 package rsp.compositions.agent;
 
 import org.junit.jupiter.api.Test;
+import rsp.component.EventKey;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class GateResultTests {
 
+    private static final AgentAction TEST_ACTION =
+        new AgentAction("delete", new EventKey.VoidKey("test.delete"), "Delete items", null);
+
     @Test
-    void allow_carries_intent() {
-        AgentIntent intent = new AgentIntent("navigate");
-        GateResult result = new GateResult.Allow(intent);
+    void allow_carries_action_and_payload() {
+        GateResult result = new GateResult.Allow(TEST_ACTION, "payload-value");
         assertInstanceOf(GateResult.Allow.class, result);
-        assertEquals(intent, ((GateResult.Allow) result).intent());
+        assertEquals(TEST_ACTION, ((GateResult.Allow) result).action());
+        assertEquals("payload-value", ((GateResult.Allow) result).rawPayload());
     }
 
     @Test
@@ -22,17 +26,17 @@ class GateResultTests {
     }
 
     @Test
-    void confirm_carries_question_and_intent() {
-        AgentIntent intent = new AgentIntent("delete");
-        GateResult result = new GateResult.Confirm("Are you sure?", intent);
+    void confirm_carries_question_action_and_payload() {
+        GateResult result = new GateResult.Confirm("Are you sure?", TEST_ACTION, null);
         assertInstanceOf(GateResult.Confirm.class, result);
         assertEquals("Are you sure?", ((GateResult.Confirm) result).question());
-        assertEquals(intent, ((GateResult.Confirm) result).intent());
+        assertEquals(TEST_ACTION, ((GateResult.Confirm) result).action());
+        assertNull(((GateResult.Confirm) result).rawPayload());
     }
 
     @Test
     void exhaustive_switch() {
-        GateResult result = new GateResult.Allow(new AgentIntent("test"));
+        GateResult result = new GateResult.Allow(TEST_ACTION, null);
         String outcome = switch (result) {
             case GateResult.Allow a -> "allow";
             case GateResult.Block b -> "block";

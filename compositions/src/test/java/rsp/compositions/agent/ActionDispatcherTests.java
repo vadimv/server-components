@@ -7,20 +7,19 @@ import rsp.component.Lookup;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class IntentDispatcherTests {
+class ActionDispatcherTests {
 
-    private IntentDispatcher dispatcher;
-    private IntentGate allowAllGate;
+    private ActionDispatcher dispatcher;
+    private ActionGate allowAllGate;
 
     @BeforeEach
     void setUp() {
-        dispatcher = new IntentDispatcher();
-        allowAllGate = (intent, lookup) -> new GateResult.Allow(intent);
+        dispatcher = new ActionDispatcher();
+        allowAllGate = (action, rawPayload, lookup) -> new GateResult.Allow(action, rawPayload);
     }
 
     @Test
@@ -35,13 +34,13 @@ class IntentDispatcherTests {
             }
         };
 
-        StubContract contract = new StubContract(
-            List.of(new AgentAction("do_thing", key, "Do a thing", null)), contractLookup);
+        AgentAction action = new AgentAction("do_thing", key, "Do a thing", null);
+        StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
-            new AgentIntent("do_thing"), contract, new StubLookup(), allowAllGate);
+        ActionDispatcher.DispatchResult result = dispatcher.dispatch(
+            action, null, contract, new StubLookup(), allowAllGate);
 
-        assertInstanceOf(IntentDispatcher.DispatchResult.Dispatched.class, result);
+        assertInstanceOf(ActionDispatcher.DispatchResult.Dispatched.class, result);
         assertEquals(List.of("test.void"), published);
     }
 
@@ -58,81 +57,70 @@ class IntentDispatcherTests {
             }
         };
 
-        StubContract contract = new StubContract(
-            List.of(new AgentAction("edit", key, "Edit item", "String: id")), contractLookup);
+        AgentAction action = new AgentAction("edit", key, "Edit item", "String: id");
+        StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        dispatcher.dispatch(
-            new AgentIntent("edit", Map.of("payload", "42")),
-            contract, new StubLookup(), allowAllGate);
+        dispatcher.dispatch(action, "42", contract, new StubLookup(), allowAllGate);
 
         assertEquals(List.of("42"), published);
     }
 
     @Test
-    void returns_unknown_action_for_undeclared_action() {
-        StubContract contract = new StubContract(List.of());
-
-        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
-            new AgentIntent("nonexistent"), contract, new StubLookup(), allowAllGate);
-
-        assertInstanceOf(IntentDispatcher.DispatchResult.UnknownAction.class, result);
-        assertEquals("nonexistent",
-            ((IntentDispatcher.DispatchResult.UnknownAction) result).action());
-    }
-
-    @Test
     void returns_blocked_when_gate_blocks() {
-        IntentGate blockGate = (intent, lookup) ->
-            new GateResult.Block("Not permitted");
+        EventKey.VoidKey key = new EventKey.VoidKey("test.delete");
+        AgentAction action = new AgentAction("delete", key, "Delete items", null);
+        ActionGate blockGate = (a, p, lookup) -> new GateResult.Block("Not permitted");
 
-        StubContract contract = new StubContract(List.of());
+        StubContract contract = new StubContract(List.of(action));
 
-        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
-            new AgentIntent("delete"), contract, new StubLookup(), blockGate);
+        ActionDispatcher.DispatchResult result = dispatcher.dispatch(
+            action, null, contract, new StubLookup(), blockGate);
 
-        assertInstanceOf(IntentDispatcher.DispatchResult.Blocked.class, result);
+        assertInstanceOf(ActionDispatcher.DispatchResult.Blocked.class, result);
         assertEquals("Not permitted",
-            ((IntentDispatcher.DispatchResult.Blocked) result).reason());
+            ((ActionDispatcher.DispatchResult.Blocked) result).reason());
     }
 
     @Test
     void returns_awaiting_confirmation_when_gate_confirms() {
-        AgentIntent intent = new AgentIntent("delete");
-        IntentGate confirmGate = (i, lookup) ->
-            new GateResult.Confirm("Are you sure?", i);
+        EventKey.VoidKey key = new EventKey.VoidKey("test.delete");
+        AgentAction action = new AgentAction("delete", key, "Delete items", null);
+        ActionGate confirmGate = (a, p, lookup) ->
+            new GateResult.Confirm("Are you sure?", a, p);
 
-        StubContract contract = new StubContract(List.of());
+        StubContract contract = new StubContract(List.of(action));
 
-        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
-            intent, contract, new StubLookup(), confirmGate);
+        ActionDispatcher.DispatchResult result = dispatcher.dispatch(
+            action, null, contract, new StubLookup(), confirmGate);
 
-        assertInstanceOf(IntentDispatcher.DispatchResult.AwaitingConfirmation.class, result);
+        assertInstanceOf(ActionDispatcher.DispatchResult.AwaitingConfirmation.class, result);
         assertEquals("Are you sure?",
-            ((IntentDispatcher.DispatchResult.AwaitingConfirmation) result).question());
+            ((ActionDispatcher.DispatchResult.AwaitingConfirmation) result).question());
     }
 
     @Test
     void returns_payload_error_when_parser_rejects() {
+        @SuppressWarnings("unchecked")
         EventKey.SimpleKey<Set<String>> key = new EventKey.SimpleKey<>("test.delete",
                 (Class<Set<String>>) (Class<?>) Set.class);
 
-        StubContract contract = new StubContract(
-            List.of(new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
-                PayloadParsers.toSetOfStrings())));
+        AgentAction action = new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
+            PayloadParsers.toSetOfStrings());
+        StubContract contract = new StubContract(List.of(action));
 
-        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
-            new AgentIntent("delete", Map.of("payload", true)),
-            contract, new StubLookup(), allowAllGate);
+        ActionDispatcher.DispatchResult result = dispatcher.dispatch(
+            action, true, contract, new StubLookup(), allowAllGate);
 
-        assertInstanceOf(IntentDispatcher.DispatchResult.PayloadError.class, result);
-        IntentDispatcher.DispatchResult.PayloadError pe =
-            (IntentDispatcher.DispatchResult.PayloadError) result;
+        assertInstanceOf(ActionDispatcher.DispatchResult.PayloadError.class, result);
+        ActionDispatcher.DispatchResult.PayloadError pe =
+            (ActionDispatcher.DispatchResult.PayloadError) result;
         assertEquals("delete", pe.action());
         assertTrue(pe.message().contains("Boolean"));
     }
 
     @Test
     void parse_payload_converts_string_to_set() {
+        @SuppressWarnings("unchecked")
         EventKey.SimpleKey<Set<String>> key = new EventKey.SimpleKey<>("test.delete",
                 (Class<Set<String>>) (Class<?>) Set.class);
         List<Object> published = new ArrayList<>();
@@ -145,15 +133,14 @@ class IntentDispatcherTests {
             }
         };
 
-        StubContract contract = new StubContract(
-            List.of(new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
-                PayloadParsers.toSetOfStrings())), contractLookup);
+        AgentAction action = new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
+            PayloadParsers.toSetOfStrings());
+        StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        IntentDispatcher.DispatchResult result = dispatcher.dispatch(
-            new AgentIntent("delete", Map.of("payload", "1")),
-            contract, new StubLookup(), allowAllGate);
+        ActionDispatcher.DispatchResult result = dispatcher.dispatch(
+            action, "1", contract, new StubLookup(), allowAllGate);
 
-        assertInstanceOf(IntentDispatcher.DispatchResult.Dispatched.class, result);
+        assertInstanceOf(ActionDispatcher.DispatchResult.Dispatched.class, result);
         assertEquals(List.of(Set.of("1")), published);
     }
 
@@ -169,10 +156,10 @@ class IntentDispatcherTests {
             }
         };
 
-        StubContract contract = new StubContract(
-            List.of(new AgentAction("act", key, "An action", null)), contractLookup);
+        AgentAction action = new AgentAction("act", key, "An action", null);
+        StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        dispatcher.dispatchDirect(new AgentIntent("act"), contract, new StubLookup());
+        dispatcher.dispatchDirect(action, null, contract);
 
         assertEquals(List.of("test.direct"), published);
     }

@@ -5,26 +5,39 @@ import rsp.app.posts.components.TestLookup;
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.AgentIntent;
 import rsp.compositions.agent.GateResult;
-import rsp.compositions.agent.IntentDispatcher;
-import rsp.compositions.agent.IntentDispatcher.DispatchResult;
-import rsp.compositions.agent.IntentGate;
+import rsp.compositions.agent.ActionDispatcher;
+import rsp.compositions.agent.ActionDispatcher.DispatchResult;
+import rsp.compositions.agent.ActionGate;
 import rsp.compositions.agent.PayloadParsers;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.ViewContract;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class IntentDispatcherTests {
+class ActionDispatcherTests {
 
-    private final IntentDispatcher dispatcher = new IntentDispatcher();
-    private final IntentGate allowAll = new AllowAllGate();
+    private final ActionDispatcher dispatcher = new ActionDispatcher();
+    private final ActionGate allowAll = new AllowAllGate();
+
+    // Declared actions for the stub contract
+    private static final AgentAction CREATE_ACTION = new AgentAction("create",
+        ListViewContract.CREATE_ELEMENT_REQUESTED, "Open create form", null);
+    private static final AgentAction EDIT_ACTION = new AgentAction("edit",
+        ListViewContract.EDIT_ELEMENT_REQUESTED, "Open edit form", "String: row ID",
+        PayloadParsers.toStringPayload());
+    private static final AgentAction DELETE_ACTION = new AgentAction("delete",
+        ListViewContract.BULK_DELETE_REQUESTED, "Delete items", "Set<String>: row IDs",
+        PayloadParsers.toSetOfStrings());
+    private static final AgentAction PAGE_ACTION = new AgentAction("page",
+        ListViewContract.PAGE_CHANGE_REQUESTED, "Navigate to page", "Integer: page number",
+        PayloadParsers.toInteger());
+    private static final AgentAction SELECT_ALL_ACTION = new AgentAction("select_all",
+        ListViewContract.SELECT_ALL_REQUESTED, "Select all rows", null);
 
     /**
      * Stub contract that declares standard list actions for testing.
@@ -34,21 +47,7 @@ class IntentDispatcherTests {
 
         @Override
         public List<AgentAction> agentActions() {
-            return List.of(
-                new AgentAction("create", ListViewContract.CREATE_ELEMENT_REQUESTED,
-                    "Open create form", null),
-                new AgentAction("edit", ListViewContract.EDIT_ELEMENT_REQUESTED,
-                    "Open edit form", "String: row ID",
-                    PayloadParsers.toStringPayload()),
-                new AgentAction("delete", ListViewContract.BULK_DELETE_REQUESTED,
-                    "Delete items", "Set<String>: row IDs",
-                    PayloadParsers.toSetOfStrings()),
-                new AgentAction("page", ListViewContract.PAGE_CHANGE_REQUESTED,
-                    "Navigate to page", "Integer: page number",
-                    PayloadParsers.toInteger()),
-                new AgentAction("select_all", ListViewContract.SELECT_ALL_REQUESTED,
-                    "Select all rows", null)
-            );
+            return List.of(CREATE_ACTION, EDIT_ACTION, DELETE_ACTION, PAGE_ACTION, SELECT_ALL_ACTION);
         }
 
         @Override
@@ -61,12 +60,9 @@ class IntentDispatcherTests {
     @Test
     void navigate_publishes_set_primary() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
 
-        AgentIntent intent = new AgentIntent("navigate", Map.of(), StubListContract.class);
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, allowAll);
+        dispatcher.dispatchNavigate(StubListContract.class, lookup);
 
-        assertInstanceOf(DispatchResult.Dispatched.class, result);
         assertTrue(lookup.wasPublished(EventKeys.SET_PRIMARY));
     }
 
@@ -75,8 +71,7 @@ class IntentDispatcherTests {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
 
-        AgentIntent intent = new AgentIntent("page", Map.of("payload", 3));
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(PAGE_ACTION, 3, contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
         assertTrue(lookup.wasPublished(ListViewContract.PAGE_CHANGE_REQUESTED));
@@ -88,8 +83,7 @@ class IntentDispatcherTests {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
 
-        AgentIntent intent = new AgentIntent("select_all");
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(SELECT_ALL_ACTION, null, contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
         assertTrue(lookup.wasPublished(ListViewContract.SELECT_ALL_REQUESTED));
@@ -100,8 +94,7 @@ class IntentDispatcherTests {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
 
-        AgentIntent intent = new AgentIntent("edit", Map.of("payload", "42"));
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(EDIT_ACTION, "42", contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
         assertTrue(lookup.wasPublished(ListViewContract.EDIT_ELEMENT_REQUESTED));
@@ -113,8 +106,7 @@ class IntentDispatcherTests {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
 
-        AgentIntent intent = new AgentIntent("create");
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(CREATE_ACTION, null, contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
         assertTrue(lookup.wasPublished(ListViewContract.CREATE_ELEMENT_REQUESTED));
@@ -125,33 +117,19 @@ class IntentDispatcherTests {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
 
-        AgentIntent intent = new AgentIntent("delete", Map.of("payload", Set.of("1")));
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, Set.of("1"), contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
         assertTrue(lookup.wasPublished(ListViewContract.BULK_DELETE_REQUESTED));
     }
 
     @Test
-    void unknown_action_returns_unknown() {
-        TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
-
-        AgentIntent intent = new AgentIntent("nonexistent");
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, allowAll);
-
-        assertInstanceOf(DispatchResult.UnknownAction.class, result);
-        assertEquals("nonexistent", ((DispatchResult.UnknownAction) result).action());
-    }
-
-    @Test
     void block_gate_returns_blocked() {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
-        IntentGate blockGate = (intent, l) -> new GateResult.Block("Not allowed");
+        ActionGate blockGate = (a, p, l) -> new GateResult.Block("Not allowed");
 
-        AgentIntent intent = new AgentIntent("navigate", Map.of(), StubListContract.class);
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, blockGate);
+        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, Set.of("1"), contract, lookup, blockGate);
 
         assertInstanceOf(DispatchResult.Blocked.class, result);
         assertEquals("Not allowed", ((DispatchResult.Blocked) result).reason());
@@ -162,10 +140,9 @@ class IntentDispatcherTests {
     void confirm_gate_returns_awaiting_confirmation() {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
-        IntentGate confirmGate = (intent, l) -> new GateResult.Confirm("Sure?", intent);
+        ActionGate confirmGate = (a, p, l) -> new GateResult.Confirm("Sure?", a, p);
 
-        AgentIntent intent = new AgentIntent("delete", Map.of("payload", Set.of("1")));
-        DispatchResult result = dispatcher.dispatch(intent, contract, lookup, confirmGate);
+        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, Set.of("1"), contract, lookup, confirmGate);
 
         assertInstanceOf(DispatchResult.AwaitingConfirmation.class, result);
         assertEquals("Sure?", ((DispatchResult.AwaitingConfirmation) result).question());
@@ -177,8 +154,7 @@ class IntentDispatcherTests {
         TestLookup lookup = new TestLookup();
         StubListContract contract = new StubListContract(lookup);
 
-        AgentIntent intent = new AgentIntent("select_all");
-        DispatchResult result = dispatcher.dispatchDirect(intent, contract, lookup);
+        DispatchResult result = dispatcher.dispatchDirect(SELECT_ALL_ACTION, null, contract);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
         assertTrue(lookup.wasPublished(ListViewContract.SELECT_ALL_REQUESTED));

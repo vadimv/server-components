@@ -41,7 +41,7 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     /**
      * Select all rows on the current page.
-     * Emitted by: agent (via IntentDispatcher)
+     * Emitted by: agent (via ActionDispatcher)
      * Handled by: DefaultListView.onMounted()
      */
     public static final EventKey.VoidKey SELECT_ALL_REQUESTED =
@@ -50,7 +50,7 @@ public abstract class ListViewContract<T> extends ViewContract {
     /**
      * Selection state changed.
      * Emitted by: DefaultListView when selection changes
-     * Consumed by: agent (to track current selection for "edit selected" commands)
+     * Consumed by: ListViewContract (to enrich edit actions with current selection)
      */
     public static final EventKey.SimpleKey<SelectedItems> SELECTION_CHANGED =
             new EventKey.SimpleKey<>("list.selection.changed", SelectedItems.class);
@@ -73,6 +73,7 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     private final int pageSize;
     private DataSchema cachedSchema;
+    private Set<String> selectedIds = Set.of();
 
     protected ListViewContract(Lookup lookup) {
         super(lookup);
@@ -139,9 +140,14 @@ public abstract class ListViewContract<T> extends ViewContract {
         // Publish active category capability for sibling contracts (e.g., header)
         publishCapability(Capabilities.ACTIVE_CATEGORY, title());
 
+        // Track selection changes from the list view component
+        subscribe(SELECTION_CHANGED, (_, selectionEvent) -> {
+            selectedIds = selectionEvent.ids();
+        });
+
         // Handle bulk delete requests
-        subscribe(BULK_DELETE_REQUESTED, (name, selectedIds) -> {
-            handleBulkDelete(selectedIds);
+        subscribe(BULK_DELETE_REQUESTED, (name, bulkDeleteIds) -> {
+            handleBulkDelete(bulkDeleteIds);
         });
 
         subscribe(PAGE_CHANGE_REQUESTED, (name, newPage) -> {
@@ -225,6 +231,18 @@ public abstract class ListViewContract<T> extends ViewContract {
      */
     protected void onBulkDeleteFailure(Set<String> failedIds) {
         // Default: silent failure - override for error handling
+    }
+
+    @Override
+    public Object enrichPayload(AgentAction action, Object rawPayload) {
+        if (rawPayload != null || selectedIds.isEmpty()) {
+            return rawPayload;
+        }
+        return switch (action.action()) {
+            case "edit" -> selectedIds.iterator().next();
+            case "delete" -> selectedIds;
+            default -> rawPayload;
+        };
     }
 
     @Override

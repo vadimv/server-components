@@ -23,7 +23,7 @@ import rsp.compositions.agent.DelegationApprovalContract;
 import rsp.compositions.agent.DelegationApprovalView;
 import rsp.compositions.agent.DelegationStore;
 import rsp.compositions.agent.InMemoryDelegationStore;
-import rsp.compositions.agent.IntentDispatcher;
+import rsp.compositions.agent.ActionDispatcher;
 import rsp.compositions.agent.PolicySpawner;
 import rsp.compositions.authorization.AccessPolicy;
 import rsp.compositions.authorization.Attributes;
@@ -95,7 +95,7 @@ public class CrudApp {
         promptService.startTicking();
 
         // Agent services — unified ABAC authorization for spawn, discovery, and execution
-        final IntentDispatcher intentDispatcher = new IntentDispatcher();
+        final ActionDispatcher actionDispatcher = new ActionDispatcher();
         final AccessPolicy policy = new CompositePolicy(ExamplePolicies.grantConstraints());
         final Authorization authorization = new Authorization(policy, Attributes.empty());
         final DelegationStore delegationStore = new InMemoryDelegationStore();
@@ -113,7 +113,7 @@ public class CrudApp {
 
         final Group systemContracts = new Group()
                 .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
-                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, intentDispatcher, authorization, spawner, mainContracts.structureTree()), PromptView::new)
+                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, actionDispatcher, authorization, spawner, mainContracts.structureTree()), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new)
                 .bind(DelegationApprovalContract.class, ctx -> new DelegationApprovalContract(ctx, delegationStore), DelegationApprovalView::new);
 

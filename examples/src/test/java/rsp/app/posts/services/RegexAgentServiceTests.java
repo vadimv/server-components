@@ -1,9 +1,13 @@
-package rsp.compositions.agent;
+package rsp.app.posts.services;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import rsp.component.EventKey;
+import rsp.compositions.agent.*;
 import rsp.compositions.composition.StructureNode;
+import rsp.compositions.contract.EditViewContract;
+import rsp.compositions.contract.ListViewContract;
 
 import java.util.List;
 import java.util.Map;
@@ -11,14 +15,43 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class AgentServiceTests {
+class RegexAgentServiceTests {
 
-    private AgentService agent;
+    private RegexAgentService agent;
     private StructureNode emptyTree;
+
+    // Dummy event keys for test actions
+    private static final EventKey.VoidKey CREATE_KEY = new EventKey.VoidKey("test.create");
+    private static final EventKey.VoidKey SELECT_ALL_KEY = new EventKey.VoidKey("test.selectAll");
+    @SuppressWarnings("unchecked")
+    private static final EventKey.SimpleKey<Set<String>> DELETE_KEY =
+        new EventKey.SimpleKey<>("test.delete", (Class<Set<String>>) (Class<?>) Set.class);
+    private static final EventKey.SimpleKey<Integer> PAGE_KEY =
+        new EventKey.SimpleKey<>("test.page", Integer.class);
+    private static final EventKey.SimpleKey<String> EDIT_KEY =
+        new EventKey.SimpleKey<>("test.edit", String.class);
+    @SuppressWarnings("unchecked")
+    private static final EventKey.SimpleKey<Map<String, Object>> SAVE_KEY =
+        new EventKey.SimpleKey<>("test.save", (Class<Map<String, Object>>) (Class<?>) Map.class);
+
+    private static final List<AgentAction> LIST_ACTIONS = List.of(
+        new AgentAction("create", CREATE_KEY, "Create item", null),
+        new AgentAction("delete", DELETE_KEY, "Delete items", "Set<String>: IDs",
+            PayloadParsers.toSetOfStrings()),
+        new AgentAction("edit", EDIT_KEY, "Edit item", "String: id"),
+        new AgentAction("page", PAGE_KEY, "Go to page", "Integer: page number",
+            PayloadParsers.toInteger()),
+        new AgentAction("select_all", SELECT_ALL_KEY, "Select all", null)
+    );
+
+    private static final List<AgentAction> EDIT_ACTIONS = List.of(
+        new AgentAction("save", SAVE_KEY, "Save entity", "Map<String, Object>: fields",
+            PayloadParsers.toMapOfStringObject())
+    );
 
     @BeforeEach
     void setUp() {
-        agent = new AgentService();
+        agent = new RegexAgentService();
         emptyTree = new StructureNode(null, null, List.of(), List.of());
     }
 
@@ -33,20 +66,20 @@ class AgentServiceTests {
     private ContractProfile listProfileWithItems(List<Map<String, Object>> items) {
         ContractMetadata metadata = new ContractMetadata("Posts", "Paginated data list", null,
             Map.of("page", 1, "pageSize", 10, "sort", "asc", "items", items));
-        return new ContractProfile(metadata, List.of(), MockListContract.class);
+        return new ContractProfile(metadata, LIST_ACTIONS, MockListContract.class);
     }
 
     private ContractProfile editProfileWithEntity(Map<String, Object> entity) {
         ContractMetadata metadata = new ContractMetadata("Posts", "Form for editing an existing entity", null,
             Map.of("entity", entity));
-        return new ContractProfile(metadata, List.of(), MockEditContract.class);
+        return new ContractProfile(metadata, EDIT_ACTIONS, MockEditContract.class);
     }
 
     // Marker classes for isList()/isEdit() checks
-    static abstract class MockListContract extends rsp.compositions.contract.ListViewContract<Object> {
+    static abstract class MockListContract extends ListViewContract<Object> {
         MockListContract() { super(null); }
     }
-    static abstract class MockEditContract extends rsp.compositions.contract.EditViewContract<Object> {
+    static abstract class MockEditContract extends EditViewContract<Object> {
         MockEditContract() { super(null); }
     }
 
@@ -59,10 +92,10 @@ class AgentServiceTests {
             AgentService.AgentResult result = agent.handlePrompt(
                 "delete 'Post Title 1'", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("delete", intent.action());
-            assertEquals(Set.of("1"), intent.params().get("payload"));
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("delete", ar.action().action());
+            assertEquals(Set.of("1"), ar.rawPayload());
         }
 
         @Test
@@ -71,9 +104,9 @@ class AgentServiceTests {
             AgentService.AgentResult result = agent.handlePrompt(
                 "delete \"Post Title 2\"", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals(Set.of("2"), intent.params().get("payload"));
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals(Set.of("2"), ar.rawPayload());
         }
 
         @Test
@@ -82,10 +115,10 @@ class AgentServiceTests {
             AgentService.AgentResult result = agent.handlePrompt(
                 "delete Post Title 1", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("delete", intent.action());
-            assertEquals(Set.of("1"), intent.params().get("payload"));
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("delete", ar.action().action());
+            assertEquals(Set.of("1"), ar.rawPayload());
         }
 
         @Test
@@ -150,19 +183,19 @@ class AgentServiceTests {
         );
 
         @Test
-        void step1_emits_edit_intent() {
+        void step1_emits_edit_action() {
             ContractProfile profile = listProfileWithItems(SINGLE_ITEM);
             AgentService.AgentResult result = agent.handlePrompt(
                 "update post 2 adding 'test'", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("edit", intent.action());
-            assertEquals("2", intent.params().get("payload"));
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("edit", ar.action().action());
+            assertEquals("2", ar.rawPayload());
         }
 
         @Test
-        void step2_emits_save_intent_with_modified_content() {
+        void step2_emits_save_action_with_modified_content() {
             // Step 1: trigger update
             ContractProfile listP = listProfileWithItems(SINGLE_ITEM);
             agent.handlePrompt("update post 2 adding 'test'", listP, emptyTree);
@@ -172,12 +205,12 @@ class AgentServiceTests {
             AgentService.AgentResult result = agent.handlePrompt(
                 "", editP, emptyTree);  // empty prompt — agent continues from state
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("save", intent.action());
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("save", ar.action().action());
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> payload = (Map<String, Object>) intent.params().get("payload");
+            Map<String, Object> payload = (Map<String, Object>) ar.rawPayload();
             assertNotNull(payload);
             assertEquals("World test", payload.get("content"));
             assertEquals("Post Title 2", payload.get("title")); // unchanged
@@ -200,10 +233,9 @@ class AgentServiceTests {
             AgentService.AgentResult result = agent.handlePrompt(
                 "show Posts", profile, tree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("navigate", intent.action());
-            assertEquals(MockListContract.class, intent.targetContract());
+            assertInstanceOf(AgentService.AgentResult.NavigateResult.class, result);
+            assertEquals(MockListContract.class,
+                ((AgentService.AgentResult.NavigateResult) result).targetContract());
         }
 
         @Test
@@ -225,10 +257,10 @@ class AgentServiceTests {
             AgentService.AgentResult result = agent.handlePrompt(
                 "go to page 3", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("page", intent.action());
-            assertEquals(3, intent.params().get("payload"));
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("page", ar.action().action());
+            assertEquals(3, ar.rawPayload());
         }
 
         @Test
@@ -237,10 +269,10 @@ class AgentServiceTests {
             AgentService.AgentResult result = agent.handlePrompt(
                 "page 5", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("page", intent.action());
-            assertEquals(5, intent.params().get("payload"));
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("page", ar.action().action());
+            assertEquals(5, ar.rawPayload());
         }
     }
 
@@ -248,14 +280,14 @@ class AgentServiceTests {
     class SelectAll {
 
         @Test
-        void emits_select_all_intent() {
+        void emits_select_all_action() {
             ContractProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "select all", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("select_all", intent.action());
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("select_all", ar.action().action());
         }
     }
 
@@ -263,15 +295,15 @@ class AgentServiceTests {
     class EditSelected {
 
         @Test
-        void returns_edit_intent_without_payload() {
+        void returns_edit_action_without_payload() {
             ContractProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "edit selected", profile, emptyTree);
 
-            assertInstanceOf(AgentService.AgentResult.IntentResult.class, result);
-            AgentIntent intent = ((AgentService.AgentResult.IntentResult) result).intent();
-            assertEquals("edit", intent.action());
-            assertFalse(intent.params().containsKey("payload"));
+            assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
+            AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
+            assertEquals("edit", ar.action().action());
+            assertNull(ar.rawPayload());
         }
     }
 

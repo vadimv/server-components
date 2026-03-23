@@ -51,6 +51,21 @@ public abstract class ViewContract {
     }
 
     /**
+     * Enrich a raw payload before it is parsed and dispatched.
+     * <p>
+     * Called by {@code ActionDispatcher} to let the contract supply default values
+     * when the agent produces a null payload. For example, a list contract can
+     * fill in the current selection for edit/delete actions.
+     *
+     * @param action     the action being dispatched
+     * @param rawPayload the raw payload from the agent (may be null)
+     * @return the enriched payload (default: returns rawPayload unchanged)
+     */
+    public Object enrichPayload(AgentAction action, Object rawPayload) {
+        return rawPayload;
+    }
+
+    /**
      * Returns structured metadata about this contract's current state and capabilities.
      * <p>
      * Override to expose contract state for AI agents and other external consumers.

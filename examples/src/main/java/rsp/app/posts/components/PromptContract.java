@@ -4,9 +4,10 @@ import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
+import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.AgentActionFilter;
 import rsp.compositions.agent.AgentContext;
-import rsp.compositions.agent.AgentIntent;
+import rsp.compositions.agent.ActionGate;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.agent.AgentSession;
@@ -14,9 +15,8 @@ import rsp.compositions.agent.AgentSpawner;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.agent.ControlMode;
 import rsp.compositions.agent.DelegationApprovalContract;
-import rsp.compositions.agent.IntentGate;
-import rsp.compositions.agent.IntentDispatcher;
-import rsp.compositions.agent.IntentDispatcher.DispatchResult;
+import rsp.compositions.agent.ActionDispatcher;
+import rsp.compositions.agent.ActionDispatcher.DispatchResult;
 import rsp.compositions.agent.PolicyActionFilter;
 import rsp.compositions.agent.PolicyGate;
 import rsp.compositions.agent.SpawnRequest;
@@ -26,7 +26,6 @@ import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.Scene;
 import rsp.compositions.contract.ViewContract;
 import rsp.page.QualifiedSessionId;
@@ -48,17 +47,19 @@ public class PromptContract extends ViewContract {
     public static final EventKey.SimpleKey<Message> UPDATE_MESSAGE =
             new EventKey.SimpleKey<>("prompt.updateMessage", Message.class);
 
+    private record PendingAction(AgentAction action, Object rawPayload) {}
+
     private final List<Message> messages = new ArrayList<>();
     private Runnable serviceUnsubscribe;
     private final String scopeKey;
     private final PromptService promptService;
     private final AgentService agentService;
-    private final IntentDispatcher dispatcher;
+    private final ActionDispatcher dispatcher;
     private final AgentSpawner spawner;
     private final Authorization authorization;
     private final StructureNode structure;
 
-    private IntentGate gate;
+    private ActionGate gate;
     private AgentActionFilter actionFilter;
     private AgentSession agentSession;
     private SpawnRequest pendingSpawnRequest;
@@ -66,11 +67,10 @@ public class PromptContract extends ViewContract {
     private String queuedPrompt;
 
     private Scene currentScene;
-    private AgentIntent pendingConfirm;
-    private Set<String> lastKnownSelection = Set.of();
+    private PendingAction pendingConfirm;
 
     public PromptContract(Lookup lookup, PromptService promptService,
-                          AgentService agentService, IntentDispatcher dispatcher,
+                          AgentService agentService, ActionDispatcher dispatcher,
                           Authorization authorization, AgentSpawner spawner,
                           StructureNode structure) {
         super(lookup);
@@ -108,7 +108,7 @@ public class PromptContract extends ViewContract {
             this.gate = new PolicyGate(agentAuth);
             this.actionFilter = new PolicyActionFilter(agentAuth);
         } else {
-            this.gate = (intent, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
+            this.gate = (action, rawPayload, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
             this.actionFilter = (actions, ctx) -> List.of();
         }
 
@@ -116,17 +116,6 @@ public class PromptContract extends ViewContract {
         for (PromptService.Message msg : promptService.getMessageHistory(scopeKey)) {
             messages.add(new Message(msg.text(), msg.fromUser()));
         }
-
-        // Track selection changes from list views
-        subscribe(ListViewContract.SELECTION_CHANGED, (_, selectedItems) -> {
-            lastKnownSelection = selectedItems.ids();
-        });
-
-        // Reset agent state on navigation changes
-        subscribe(EventKeys.SET_PRIMARY, (_, contractClass) -> {
-            agentService.reset();
-            lastKnownSelection = Set.of();
-        });
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
             messages.add(new Message(text, true));
@@ -200,10 +189,11 @@ public class PromptContract extends ViewContract {
         // Handle pending confirmation
         if (pendingConfirm != null) {
             if (trimmed.equals("yes") || trimmed.equals("y")) {
-                AgentIntent confirmed = pendingConfirm;
+                PendingAction confirmed = pendingConfirm;
                 pendingConfirm = null;
                 ViewContract activeContract = activeContract();
-                DispatchResult result = dispatcher.dispatchDirect(confirmed, activeContract, lookup);
+                DispatchResult result = dispatcher.dispatchDirect(
+                    confirmed.action(), confirmed.rawPayload(), activeContract);
                 handleDispatchResult(result);
                 return;
             }
@@ -231,18 +221,15 @@ public class PromptContract extends ViewContract {
             switch (agentResult) {
                 case AgentResult.TextReply reply ->
                     promptService.sendReply(scopeKey, HtmlEscape.escape(reply.message()));
-                case AgentResult.IntentResult intentResult -> {
-                    AgentIntent intent = intentResult.intent();
-
-                    // Enrich "edit" intent with current selection if no explicit payload
-                    if ("edit".equals(intent.action()) && intent.params().get("payload") == null
-                            && !lastKnownSelection.isEmpty()) {
-                        String firstId = lastKnownSelection.iterator().next();
-                        intent = new AgentIntent("edit", Map.of("payload", firstId), intent.targetContract());
-                    }
-
+                case AgentResult.NavigateResult nav -> {
+                    dispatcher.dispatchNavigate(nav.targetContract(), lookup);
+                    promptService.sendReply(scopeKey, "Navigating...");
+                }
+                case AgentResult.ActionResult actionResult -> {
+                    AgentAction action = actionResult.action();
                     ViewContract activeContract = activeContract();
-                    DispatchResult result = dispatcher.dispatch(intent, activeContract, lookup, gate);
+                    DispatchResult result = dispatcher.dispatch(
+                        action, actionResult.rawPayload(), activeContract, lookup, gate);
                     handleDispatchResult(result);
                 }
             }
@@ -251,46 +238,28 @@ public class PromptContract extends ViewContract {
 
     private void handleDispatchResult(DispatchResult result) {
         switch (result) {
-            case DispatchResult.Dispatched d -> {
-                String reply = replyForIntent(d.intent());
-                promptService.sendReply(scopeKey, reply);
-            }
+            case DispatchResult.Dispatched d ->
+                promptService.sendReply(scopeKey, d.action().description());
             case DispatchResult.Blocked b ->
                 promptService.sendReply(scopeKey, b.reason());
             case DispatchResult.AwaitingConfirmation c -> {
                 promptService.sendReply(scopeKey, c.question());
-                pendingConfirm = c.intent();
+                pendingConfirm = new PendingAction(c.action(), c.rawPayload());
             }
-            case DispatchResult.UnknownAction u ->
-                promptService.sendReply(scopeKey, "Unknown action: " + HtmlEscape.escape(u.action()));
             case DispatchResult.PayloadError pe ->
                 promptService.sendReply(scopeKey, "Invalid payload for '" + HtmlEscape.escape(pe.action())
                     + "': " + HtmlEscape.escape(pe.message()));
         }
     }
 
-    private String replyForIntent(AgentIntent intent) {
-        return switch (intent.action()) {
-            case "navigate" -> "Navigating...";
-            case "page" -> "Going to page " + intent.params().get("payload") + ".";
-            case "select_all" -> "Selected all items.";
-            case "edit" -> "Opening editor...";
-            case "create" -> "Opening create form.";
-            case "delete" -> "Deleting...";
-            case "save" -> "Saving...";
-            default -> "Done.";
-        };
-    }
-
     private String buildHelpMessage(ContractProfile profile) {
         StringBuilder help = new StringBuilder("I don't understand..");
         help.append("<ul>");
         help.append("<li><b>show</b> &lt;section&gt; &mdash; navigate to a section</li>");
-        help.append("<li><b>page</b> &lt;n&gt; &mdash; go to page number</li>");
-        help.append("<li><b>select all</b> &mdash; select all items</li>");
-        help.append("<li><b>edit selected</b> &mdash; edit the selected item</li>");
-        help.append("<li><b>delete</b> &lt;name&gt; &mdash; delete an item by name</li>");
-        help.append("<li><b>create</b> &mdash; create a new item</li>");
+        for (AgentAction action : profile.actions()) {
+            help.append("<li><b>").append(action.action()).append("</b> &mdash; ")
+                .append(action.description()).append("</li>");
+        }
         help.append("</ul>");
         if (structure != null) {
             String sections = structure.agentDescription();

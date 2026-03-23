@@ -7,10 +7,10 @@ import java.util.List;
 /**
  * Controls which actions an agent can discover.
  * <p>
- * This is the discovery-time complement to {@link IntentGate} (execution-time):
+ * This is the discovery-time complement to {@link ActionGate} (execution-time):
  * <ul>
  *   <li>{@code AgentActionFilter} — "what actions does this agent see?" (before prompt parsing)</li>
- *   <li>{@code IntentGate} — "is this specific intent allowed?" (after prompt parsing)</li>
+ *   <li>{@code ActionGate} — "is this specific action allowed?" (after prompt parsing)</li>
  * </ul>
  * <p>
  * Applied inside {@link AgentContext} — the agent receives pre-filtered actions,

@@ -1,7 +1,6 @@
 package rsp.app.posts.services;
 
 import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.AgentIntent;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.composition.StructureNode;
@@ -32,9 +31,8 @@ import java.util.function.Consumer;
  * Local LLM-backed agent service using the Ollama Chat API.
  *
  * <p>Responses are expected as strict JSON and validated against the current
- * contract profile before being translated into {@link AgentIntent}.
- * If parsing/validation/network fails, it falls back to the regex-based
- * behavior from {@link AgentService}.
+ * contract profile before being translated into {@link AgentResult}.
+ * If parsing/validation/network fails, it returns a text reply with the error.
  */
 public final class OllamaAgentService extends AgentService {
     private static final System.Logger LOGGER =
@@ -77,11 +75,6 @@ public final class OllamaAgentService extends AgentService {
             return new AgentResult.TextReply("LLM request failed: " + e.getClass().getSimpleName());
         }
         return new AgentResult.TextReply("LLM response could not be parsed as an intent.");
-    }
-
-    @Override
-    public void reset() {
-        // stateless
     }
 
     /**
@@ -218,22 +211,25 @@ public final class OllamaAgentService extends AgentService {
             return Optional.of(new AgentResult.TextReply("Action not allowed here: " + action));
         }
         Object payload = toJavaValue(output.value("payload"));
-        Class<? extends ViewContract> target = null;
         if ("navigate".equals(action)) {
             // Model sometimes puts contract name in payload instead of targetContract
             if (targetContract.isBlank() && payload instanceof String s && !s.isBlank()) {
                 targetContract = s;
-                payload = null;
             }
-            target = resolveTargetContract(targetContract, structureTree);
+            Class<? extends ViewContract> target = resolveTargetContract(targetContract, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
                     "I couldn't resolve navigation target: " + targetContract));
             }
+            return Optional.of(new AgentResult.NavigateResult(target));
         }
 
-        Map<String, Object> params = payload != null ? Map.of("payload", payload) : Map.of();
-        return Optional.of(new AgentResult.IntentResult(new AgentIntent(action, params, target)));
+        // Look up the matching AgentAction from the contract's declared actions
+        AgentAction matchedAction = findAction(action, profile);
+        if (matchedAction == null) {
+            return Optional.of(new AgentResult.TextReply("Action not declared: " + action));
+        }
+        return Optional.of(new AgentResult.ActionResult(matchedAction, payload));
     }
 
 
@@ -241,12 +237,16 @@ public final class OllamaAgentService extends AgentService {
         if ("navigate".equals(action)) {
             return true;
         }
+        return findAction(action, profile) != null;
+    }
+
+    private AgentAction findAction(String actionName, ContractProfile profile) {
         for (AgentAction candidate : profile.actions()) {
-            if (candidate.action().equals(action)) {
-                return true;
+            if (candidate.action().equals(actionName)) {
+                return candidate;
             }
         }
-        return false;
+        return null;
     }
 
     private Class<? extends ViewContract> resolveTargetContract(String targetName, StructureNode node) {

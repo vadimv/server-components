@@ -1,7 +1,6 @@
 package rsp.app.posts.services;
 
 import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.AgentIntent;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.composition.StructureNode;
@@ -32,8 +31,11 @@ import java.util.function.Consumer;
  * Claude API-backed agent service using the Anthropic Messages API.
  *
  * <p>Responses are expected as strict JSON and validated against the current
- * contract profile before being translated into {@link AgentIntent}.
+ * contract profile before being translated into {@link AgentResult}.
  * If parsing/validation/network fails, it returns a text reply with the error.
+ *
+ * <p>Returns {@link AgentResult.ActionResult} with the matching {@link AgentAction}
+ * from the contract's declared actions, or {@link AgentResult.NavigateResult} for navigation.
  */
 public final class ClaudeAgentService extends AgentService {
     private static final System.Logger LOGGER =
@@ -78,11 +80,6 @@ public final class ClaudeAgentService extends AgentService {
             return new AgentResult.TextReply("LLM request failed: " + e.getClass().getSimpleName());
         }
         return new AgentResult.TextReply("LLM response could not be parsed as an intent.");
-    }
-
-    @Override
-    public void reset() {
-        // stateless
     }
 
     /**
@@ -220,7 +217,8 @@ public final class ClaudeAgentService extends AgentService {
         return trimmed;
     }
 
-    private Optional<AgentResult> toAgentResult(JsonDataType.Object output, ContractProfile profile,
+    private Optional<AgentResult> toAgentResult(JsonDataType.Object output,
+                                                ContractProfile profile,
                                                 StructureNode structureTree,
                                                 String prompt) {
         String type = getString(output.value("type")).orElse("").toLowerCase(Locale.ROOT);
@@ -249,33 +247,40 @@ public final class ClaudeAgentService extends AgentService {
         if (payload instanceof List<?> list && list.size() == 1) {
             payload = list.get(0);
         }
-        Class<? extends ViewContract> target = null;
         if ("navigate".equals(action)) {
             if (targetContract.isBlank() && payload instanceof String s && !s.isBlank()) {
                 targetContract = s;
-                payload = null;
             }
-            target = resolveTargetContract(targetContract, structureTree);
+            Class<? extends ViewContract> target = resolveTargetContract(targetContract, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
                     "I couldn't resolve navigation target: " + targetContract));
             }
+            return Optional.of(new AgentResult.NavigateResult(target));
         }
 
-        Map<String, Object> params = payload != null ? Map.of("payload", payload) : Map.of();
-        return Optional.of(new AgentResult.IntentResult(new AgentIntent(action, params, target)));
+        // Look up the matching AgentAction from the contract's declared actions
+        AgentAction matchedAction = findAction(action, profile);
+        if (matchedAction == null) {
+            return Optional.of(new AgentResult.TextReply("Action not declared: " + action));
+        }
+        return Optional.of(new AgentResult.ActionResult(matchedAction, payload));
     }
 
     private boolean isAllowedAction(String action, ContractProfile profile) {
         if ("navigate".equals(action)) {
             return true;
         }
+        return findAction(action, profile) != null;
+    }
+
+    private AgentAction findAction(String actionName, ContractProfile profile) {
         for (AgentAction candidate : profile.actions()) {
-            if (candidate.action().equals(action)) {
-                return true;
+            if (candidate.action().equals(actionName)) {
+                return candidate;
             }
         }
-        return false;
+        return null;
     }
 
     private Class<? extends ViewContract> resolveTargetContract(String targetName, StructureNode node) {

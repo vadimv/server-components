@@ -21,8 +21,8 @@ import java.util.List;
  * @param contractClass the contract's class
  */
 public record ContractProfile(ContractMetadata metadata,
-                               List<AgentAction> actions,
-                               Class<?> contractClass) {
+                              List<AgentAction> actions,
+                              Class<?> contractClass) {
 
     /**
      * Build a profile from a contract instance.
