@@ -275,7 +275,7 @@ class DelegationApprovalTests {
     }
 
     @Test
-    void contract_emits_action_success_to_close_modal() {
+    void contract_emits_hide_to_close_overlay() {
         DelegationStore store = new InMemoryDelegationStore();
         TestLookup lookup = new TestLookup()
                 .withData(ContextKeys.SHOW_DATA,
@@ -288,7 +288,7 @@ class DelegationApprovalTests {
         lookup.publish(DelegationApprovalContract.USER_DECISION, false);
 
         assertTrue(lookup.wasPublished(
-                rsp.compositions.contract.EventKeys.ACTION_SUCCESS));
+                rsp.compositions.contract.EventKeys.HIDE));
     }
 
     @Test

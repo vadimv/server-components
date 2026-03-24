@@ -67,19 +67,18 @@ public class ActionDispatcher {
     private DispatchResult publishEvent(AgentAction action, Object rawPayload, ViewContract contract) {
         Lookup contractLookup = contract.lookup();
         EventKey<?> key = action.eventKey();
-        Object enrichedPayload = contract.enrichPayload(action, rawPayload);
 
         if (key instanceof EventKey.VoidKey vk) {
             contractLookup.publish(vk);
         } else if (key instanceof EventKey.SimpleKey<?> sk) {
             Object payload;
             try {
-                payload = action.parsePayload().apply(enrichedPayload);
+                payload = action.parsePayload().apply(rawPayload);
             } catch (IllegalArgumentException e) {
                 return new DispatchResult.PayloadError(action.action(), e.getMessage());
             }
             contractLookup.publish((EventKey.SimpleKey) sk, payload);
         }
-        return new DispatchResult.Dispatched(action, enrichedPayload);
+        return new DispatchResult.Dispatched(action, rawPayload);
     }
 }

@@ -48,9 +48,25 @@ public abstract class ListViewContract<T> extends ViewContract {
             new EventKey.VoidKey("list.select.all.requested");
 
     /**
+     * Edit the first selected row.
+     * Emitted by: agent (via ActionDispatcher) when user says "edit selected"
+     * Handled by: ListViewContract.registerHandlers()
+     */
+    public static final EventKey.VoidKey EDIT_SELECTED_REQUESTED =
+            new EventKey.VoidKey("list.edit.selected.requested");
+
+    /**
+     * Delete all selected rows.
+     * Emitted by: agent (via ActionDispatcher) when user says "delete selected"
+     * Handled by: ListViewContract.registerHandlers()
+     */
+    public static final EventKey.VoidKey DELETE_SELECTED_REQUESTED =
+            new EventKey.VoidKey("list.delete.selected.requested");
+
+    /**
      * Selection state changed.
      * Emitted by: DefaultListView when selection changes
-     * Consumed by: ListViewContract (to enrich edit actions with current selection)
+     * Consumed by: ListViewContract (to track current selection for selection-based actions)
      */
     public static final EventKey.SimpleKey<SelectedItems> SELECTION_CHANGED =
             new EventKey.SimpleKey<>("list.selection.changed", SelectedItems.class);
@@ -168,6 +184,21 @@ public abstract class ListViewContract<T> extends ViewContract {
                     Map.of("id", rowId)
             ));
         });
+
+        subscribe(EDIT_SELECTED_REQUESTED, () -> {
+            if (!selectedIds.isEmpty()) {
+                lookup.publish(SHOW, new ShowPayload(
+                        editElementContract(),
+                        Map.of("id", selectedIds.iterator().next())
+                ));
+            }
+        });
+
+        subscribe(DELETE_SELECTED_REQUESTED, () -> {
+            if (!selectedIds.isEmpty()) {
+                handleBulkDelete(selectedIds);
+            }
+        });
     }
 
     protected abstract Class<? extends ViewContract> createElementContract();
@@ -234,18 +265,6 @@ public abstract class ListViewContract<T> extends ViewContract {
     }
 
     @Override
-    public Object enrichPayload(AgentAction action, Object rawPayload) {
-        if (rawPayload != null || selectedIds.isEmpty()) {
-            return rawPayload;
-        }
-        return switch (action.action()) {
-            case "edit" -> selectedIds.iterator().next();
-            case "delete" -> selectedIds;
-            default -> rawPayload;
-        };
-    }
-
-    @Override
     public List<AgentAction> agentActions() {
         return List.of(
             new AgentAction("create", CREATE_ELEMENT_REQUESTED,
@@ -253,9 +272,13 @@ public abstract class ListViewContract<T> extends ViewContract {
             new AgentAction("edit", EDIT_ELEMENT_REQUESTED,
                 "Open edit form for an item", "String: row ID",
                 PayloadParsers.toStringPayload()),
+            new AgentAction("edit_selected", EDIT_SELECTED_REQUESTED,
+                "Open edit form for the first selected row", null),
             new AgentAction("delete", BULK_DELETE_REQUESTED,
                 "Delete items by their IDs", "Set<String>: row IDs",
                 PayloadParsers.toSetOfStrings()),
+            new AgentAction("delete_selected", DELETE_SELECTED_REQUESTED,
+                "Delete all currently selected rows", null),
             new AgentAction("page", PAGE_CHANGE_REQUESTED,
                 "Navigate to a page number", "Integer: page number (1-based)",
                 PayloadParsers.toInteger()),

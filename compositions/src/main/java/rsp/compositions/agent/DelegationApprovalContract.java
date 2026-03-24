@@ -65,8 +65,7 @@ public class DelegationApprovalContract extends ViewContract {
             store.recordDecision(sessionKey, approved);
 
             lookup.publish(APPROVAL_DECIDED, approved);
-            lookup.publish(EventKeys.ACTION_SUCCESS,
-                    new EventKeys.ActionResult(DelegationApprovalContract.class));
+            lookup.publish(EventKeys.HIDE, DelegationApprovalContract.class);
         });
     }
 

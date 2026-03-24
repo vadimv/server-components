@@ -208,6 +208,11 @@ public class PromptContract extends ViewContract {
         AgentContext agentContext = buildAgentContext();
         ContractProfile profile = agentContext.contractProfile();
 
+        // Capture mutable state before spawning the virtual thread
+        // to avoid races with scene rebuilds on the event loop
+        final ViewContract capturedContract = activeContract();
+        final ActionGate capturedGate = gate;
+
         final long startTime = System.currentTimeMillis();
         promptService.sendReply(scopeKey, "<em>Thinking...</em>");
         Thread.startVirtualThread(() -> {
@@ -217,7 +222,6 @@ public class PromptContract extends ViewContract {
                         promptService.updateLastReply(scopeKey,
                                 "<em>Thinking... (" + elapsed + "s)</em>");
                     });
-            // Dispatch result back on the event loop via publish
             switch (agentResult) {
                 case AgentResult.TextReply reply ->
                     promptService.sendReply(scopeKey, HtmlEscape.escape(reply.message()));
@@ -227,9 +231,8 @@ public class PromptContract extends ViewContract {
                 }
                 case AgentResult.ActionResult actionResult -> {
                     AgentAction action = actionResult.action();
-                    ViewContract activeContract = activeContract();
                     DispatchResult result = dispatcher.dispatch(
-                        action, actionResult.rawPayload(), activeContract, lookup, gate);
+                        action, actionResult.rawPayload(), capturedContract, lookup, capturedGate);
                     handleDispatchResult(result);
                 }
             }
