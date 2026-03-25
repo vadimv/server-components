@@ -33,6 +33,9 @@ import rsp.page.QualifiedSessionId;
 import rsp.util.html.HtmlEscape;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class PromptContract extends ViewContract {
     private final System.Logger logger = System.getLogger(getClass().getName());
@@ -69,6 +72,9 @@ public class PromptContract extends ViewContract {
 
     private Scene currentScene;
     private PendingAction pendingConfirm;
+
+    // Plan execution: completed by enrichContext() with the settled scene
+    private volatile CompletableFuture<Scene> sceneSettleFuture;
 
     public PromptContract(Lookup lookup, PromptService promptService,
                           AgentService agentService, ActionDispatcher dispatcher,
@@ -236,6 +242,12 @@ public class PromptContract extends ViewContract {
                         action, actionResult.payload(), capturedContract, lookup, capturedGate);
                     handleDispatchResult(result);
                 }
+                case AgentResult.PlanResult plan -> {
+                    if (!plan.summary().isBlank()) {
+                        promptService.sendReply(scopeKey, HtmlEscape.escape(plan.summary()));
+                    }
+                    executePlan(plan.steps());
+                }
             }
         });
     }
@@ -253,6 +265,98 @@ public class PromptContract extends ViewContract {
             case DispatchResult.PayloadError pe ->
                 promptService.sendReply(scopeKey, "Invalid payload for '" + HtmlEscape.escape(pe.action())
                     + "': " + HtmlEscape.escape(pe.message()));
+        }
+    }
+
+    private void executePlan(List<String> steps) {
+        int totalSteps = steps.size();
+        promptService.sendReply(scopeKey,
+                "<em>Plan: " + totalSteps + " steps</em>");
+
+        for (int i = 0; i < steps.size(); i++) {
+            String step = steps.get(i);
+            promptService.sendReply(scopeKey,
+                    "<em>Step " + (i + 1) + "/" + totalSteps + ": "
+                            + HtmlEscape.escape(step) + "</em>");
+
+            // Build fresh context from current scene state
+            AgentContext agentContext = buildAgentContext();
+            ContractProfile freshProfile = agentContext.contractProfile();
+            final ViewContract capturedContract = activeContract();
+            final ActionGate capturedGate = gate;
+
+            AgentResult stepResult = agentService.handlePrompt(step, freshProfile, structure);
+
+            switch (stepResult) {
+                case AgentResult.TextReply reply -> {
+                    promptService.sendReply(scopeKey, HtmlEscape.escape(reply.message()));
+                    return;
+                }
+                case AgentResult.NavigateResult nav -> {
+                    sceneSettleFuture = new CompletableFuture<>();
+                    dispatcher.dispatchNavigate(nav.targetContract(), lookup);
+                    promptService.sendReply(scopeKey, "Navigating...");
+
+                    Scene settled = awaitSceneSettle();
+                    if (settled == null) {
+                        return;
+                    }
+                    // Verify our navigation landed, not a concurrent user action
+                    if (settled.routedContract() == null
+                            || !nav.targetContract().isInstance(settled.routedContract())) {
+                        promptService.sendReply(scopeKey,
+                                "Plan interrupted: unexpected navigation.");
+                        return;
+                    }
+                }
+                case AgentResult.ActionResult actionResult -> {
+                    DispatchResult dispatchResult = dispatcher.dispatch(
+                            actionResult.action(), actionResult.payload(),
+                            capturedContract, lookup, capturedGate);
+                    switch (dispatchResult) {
+                        case DispatchResult.Dispatched d ->
+                            promptService.sendReply(scopeKey, d.action().description());
+                        case DispatchResult.Blocked b -> {
+                            promptService.sendReply(scopeKey, "Step blocked: " + b.reason());
+                            return;
+                        }
+                        case DispatchResult.AwaitingConfirmation c -> {
+                            promptService.sendReply(scopeKey,
+                                    "Plan paused: action requires confirmation. " + c.question());
+                            return;
+                        }
+                        case DispatchResult.PayloadError pe -> {
+                            promptService.sendReply(scopeKey,
+                                    "Step failed: " + HtmlEscape.escape(pe.message()));
+                            return;
+                        }
+                    }
+                }
+                case AgentResult.PlanResult _ -> {
+                    promptService.sendReply(scopeKey, "Nested plan detected; aborting.");
+                    return;
+                }
+            }
+        }
+
+        promptService.sendReply(scopeKey,
+                "<em>Plan complete (" + totalSteps + " steps executed)</em>");
+    }
+
+    private Scene awaitSceneSettle() {
+        CompletableFuture<Scene> future = sceneSettleFuture;
+        if (future == null) return currentScene;
+        try {
+            Scene settled = future.get(5, TimeUnit.SECONDS);
+            sceneSettleFuture = null;
+            return settled;
+        } catch (TimeoutException e) {
+            promptService.sendReply(scopeKey,
+                    "Plan interrupted: scene did not settle in time.");
+            return null;
+        } catch (Exception e) {
+            Thread.currentThread().interrupt();
+            return null;
         }
     }
 
@@ -290,8 +394,12 @@ public class PromptContract extends ViewContract {
 
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
-        // Capture Scene from enriched context (not available in lookup at construction time)
         this.currentScene = context.get(ContextKeys.SCENE);
+        // Signal waiting plan executor with the settled scene
+        CompletableFuture<Scene> future = this.sceneSettleFuture;
+        if (future != null && !future.isDone()) {
+            future.complete(currentScene);
+        }
         return context.with(PromptContextKeys.PROMPT_MESSAGES, List.copyOf(messages));
     }
 

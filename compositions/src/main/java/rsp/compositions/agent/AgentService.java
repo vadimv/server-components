@@ -3,6 +3,7 @@ package rsp.compositions.agent;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ViewContract;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -26,6 +27,8 @@ public class AgentService {
         record NavigateResult(Class<? extends ViewContract> targetContract) implements AgentResult {}
         /** A text reply to show the user (no framework event). */
         record TextReply(String message) implements AgentResult {}
+        /** A multi-step plan: each step is a natural-language intent to be executed sequentially. */
+        record PlanResult(List<String> steps, String summary) implements AgentResult {}
     }
 
     /**

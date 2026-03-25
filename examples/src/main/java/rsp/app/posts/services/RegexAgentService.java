@@ -53,6 +53,15 @@ public class RegexAgentService extends AgentService {
     public AgentResult handlePrompt(String prompt,
                                     ContractProfile profile,
                                     StructureNode structureTree) {
+        // Detect compound commands (e.g. "show comments and go to page 2")
+        List<String> parts = Arrays.stream(prompt.split("\\b(?:and then|then|and)\\b"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        if (parts.size() > 1) {
+            return new AgentResult.PlanResult(parts, "Executing " + parts.size() + " steps");
+        }
+
         // Step 2 of update flow: we're waiting for the edit contract to be active
         if (state instanceof AgentState.PendingSave pending) {
             state = new AgentState.Idle();

@@ -192,6 +192,23 @@ public final class OllamaAgentService extends AgentService {
         String action = getString(output.value("action")).orElse("");
         String message = getString(output.value("message")).orElse("");
 
+        // Multi-step plan
+        if ("plan".equals(type)) {
+            JsonDataType stepsNode = output.value("steps");
+            if (stepsNode instanceof JsonDataType.Array arr) {
+                List<String> steps = new ArrayList<>();
+                for (int i = 0; i < arr.size(); i++) {
+                    if (arr.get(i) instanceof JsonDataType.String s) {
+                        steps.add(s.value());
+                    }
+                }
+                if (!steps.isEmpty()) {
+                    return Optional.of(new AgentResult.PlanResult(steps, message));
+                }
+            }
+            return Optional.empty();
+        }
+
         // If the model set an action, treat as intent regardless of "type" field
         if ("text".equals(type) && action.isBlank()) {
             return Optional.of(new AgentResult.TextReply(
@@ -297,11 +314,12 @@ public final class OllamaAgentService extends AgentService {
             {
               "type":"object",
               "properties":{
-                "type":{"type":"string","enum":["intent","text"]},
+                "type":{"type":"string","enum":["intent","text","plan"]},
                 "action":{"type":"string"},
                 "payload":{"type":["string","integer","null"]},
                 "targetContract":{"type":"string"},
-                "message":{"type":"string"}
+                "message":{"type":"string"},
+                "steps":{"type":"array","items":{"type":"string"}}
               },
               "required":["type"]
             }
@@ -349,7 +367,12 @@ public final class OllamaAgentService extends AgentService {
             : "";
 
         return """
-            You are an intent parser. Return ONE JSON object with type, action, payload, targetContract, message.
+            You are an intent parser. Return ONE JSON object.
+
+            Response types:
+            - Single action: {"type": "intent", "action": "...", "payload": ..., "targetContract": "...", "message": "..."}
+            - Multi-step plan: {"type": "plan", "steps": ["step 1 intent", "step 2 intent"], "message": "summary"}
+            - Text reply: {"type": "text", "message": "..."}
 
             Allowed actions:
             %s- navigate: Go to a different page (set targetContract to the class name)
@@ -364,7 +387,7 @@ public final class OllamaAgentService extends AgentService {
             - "edit 5" -> action=edit, payload="5"
             - "delete" -> action=delete
             - "select all" -> action=select_all
-            - For greetings or general questions -> type=text, message=a friendly short reply (e.g. "Hello! I can help you manage posts and comments. Try 'show posts' or 'create'.")
+            - For greetings or general questions -> type=text, message=a friendly short reply
             """.formatted(
             actions.toString().strip(),
             contractDesc,
