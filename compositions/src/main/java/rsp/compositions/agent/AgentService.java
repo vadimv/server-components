@@ -21,7 +21,7 @@ public class AgentService {
      */
     public sealed interface AgentResult {
         /** A contract action to be dispatched via ActionDispatcher. */
-        record ActionResult(AgentAction action, Object rawPayload) implements AgentResult {}
+        record ActionResult(AgentAction action, AgentPayload payload) implements AgentResult {}
         /** A navigation request to switch the active contract. */
         record NavigateResult(Class<? extends ViewContract> targetContract) implements AgentResult {}
         /** A text reply to show the user (no framework event). */

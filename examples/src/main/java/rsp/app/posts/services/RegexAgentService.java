@@ -1,10 +1,12 @@
 package rsp.app.posts.services;
 
 import rsp.compositions.agent.AgentAction;
+import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ViewContract;
+import rsp.util.json.JsonDataType;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -68,7 +70,7 @@ public class RegexAgentService extends AgentService {
         // Select all rows
         m = SELECT_ALL_PATTERN.matcher(prompt);
         if (m.find()) {
-            return findActionResult("select_all", null, profile);
+            return findActionResult("select_all", AgentPayload.EMPTY, profile);
         }
 
         // Edit selected item
@@ -93,7 +95,7 @@ public class RegexAgentService extends AgentService {
         m = PAGE_PATTERN.matcher(prompt);
         if (m.find()) {
             int page = Integer.parseInt(m.group(1));
-            return findActionResult("page", page, profile);
+            return findActionResult("page", AgentPayload.of(page), profile);
         }
 
         // Navigation: show posts
@@ -120,10 +122,10 @@ public class RegexAgentService extends AgentService {
 
     // --- Action lookup helper ---
 
-    private AgentResult findActionResult(String actionName, Object rawPayload, ContractProfile profile) {
+    private AgentResult findActionResult(String actionName, AgentPayload payload, ContractProfile profile) {
         for (AgentAction action : profile.actions()) {
             if (action.action().equals(actionName)) {
-                return new AgentResult.ActionResult(action, rawPayload);
+                return new AgentResult.ActionResult(action, payload);
             }
         }
         return new AgentResult.TextReply("Action '" + actionName + "' not available.");
@@ -137,8 +139,9 @@ public class RegexAgentService extends AgentService {
             if (matchesName(item, name)) {
                 Object id = item.get("id");
                 if (id != null) {
-                    Set<String> ids = Set.of(String.valueOf(id));
-                    return findActionResult("delete", ids, profile);
+                    AgentPayload payload = new AgentPayload(
+                        new JsonDataType.Array(new JsonDataType.String(String.valueOf(id))));
+                    return findActionResult("delete", payload, profile);
                 }
             }
         }
@@ -161,7 +164,7 @@ public class RegexAgentService extends AgentService {
         if (!profile.isList()) {
             return new AgentResult.TextReply("No list contract active — nothing selected.");
         }
-        return findActionResult("edit", null, profile);
+        return findActionResult("edit", AgentPayload.EMPTY, profile);
     }
 
     // --- Search/filter ---
@@ -221,7 +224,7 @@ public class RegexAgentService extends AgentService {
 
     private AgentResult handleUpdate(String id, String modification, ContractProfile profile) {
         state = new AgentState.PendingSave(modification);
-        return findActionResult("edit", id, profile);
+        return findActionResult("edit", AgentPayload.of(id), profile);
     }
 
     private AgentResult handlePendingSave(String modification, ContractProfile profile) {
@@ -244,7 +247,7 @@ public class RegexAgentService extends AgentService {
                 "Cannot determine which field to modify. Fields: " + fieldValues.keySet());
         }
 
-        return findActionResult("save", fieldValues, profile);
+        return findActionResult("save", toAgentPayload(fieldValues), profile);
     }
 
     private String findTextFieldForModification(Map<String, Object> fields) {
@@ -311,5 +314,25 @@ public class RegexAgentService extends AgentService {
                        item.getOrDefault("label", "?"))));
         String id = String.valueOf(item.getOrDefault("id", "?"));
         return name + " (id: " + id + ")";
+    }
+
+    // --- Java value to AgentPayload conversion ---
+
+    private static AgentPayload toAgentPayload(Map<String, Object> map) {
+        Map<String, JsonDataType> entries = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> e : map.entrySet()) {
+            entries.put(e.getKey(), toJsonDataType(e.getValue()));
+        }
+        return new AgentPayload(new JsonDataType.Object(entries));
+    }
+
+    private static JsonDataType toJsonDataType(Object value) {
+        if (value == null) return JsonDataType.Null.INSTANCE;
+        if (value instanceof String s) return new JsonDataType.String(s);
+        if (value instanceof Integer i) return JsonDataType.Number.of(i);
+        if (value instanceof Long l) return JsonDataType.Number.of(l);
+        if (value instanceof Double d) return JsonDataType.Number.of(d);
+        if (value instanceof Boolean b) return new JsonDataType.Boolean(b);
+        return new JsonDataType.String(value.toString());
     }
 }

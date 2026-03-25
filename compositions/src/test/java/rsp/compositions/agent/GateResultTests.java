@@ -12,10 +12,11 @@ class GateResultTests {
 
     @Test
     void allow_carries_action_and_payload() {
-        GateResult result = new GateResult.Allow(TEST_ACTION, "payload-value");
+        AgentPayload payload = AgentPayload.of("payload-value");
+        GateResult result = new GateResult.Allow(TEST_ACTION, payload);
         assertInstanceOf(GateResult.Allow.class, result);
         assertEquals(TEST_ACTION, ((GateResult.Allow) result).action());
-        assertEquals("payload-value", ((GateResult.Allow) result).rawPayload());
+        assertEquals(payload, ((GateResult.Allow) result).payload());
     }
 
     @Test
@@ -27,16 +28,16 @@ class GateResultTests {
 
     @Test
     void confirm_carries_question_action_and_payload() {
-        GateResult result = new GateResult.Confirm("Are you sure?", TEST_ACTION, null);
+        GateResult result = new GateResult.Confirm("Are you sure?", TEST_ACTION, AgentPayload.EMPTY);
         assertInstanceOf(GateResult.Confirm.class, result);
         assertEquals("Are you sure?", ((GateResult.Confirm) result).question());
         assertEquals(TEST_ACTION, ((GateResult.Confirm) result).action());
-        assertNull(((GateResult.Confirm) result).rawPayload());
+        assertEquals(AgentPayload.EMPTY, ((GateResult.Confirm) result).payload());
     }
 
     @Test
     void exhaustive_switch() {
-        GateResult result = new GateResult.Allow(TEST_ACTION, null);
+        GateResult result = new GateResult.Allow(TEST_ACTION, AgentPayload.EMPTY);
         String outcome = switch (result) {
             case GateResult.Allow a -> "allow";
             case GateResult.Block b -> "block";

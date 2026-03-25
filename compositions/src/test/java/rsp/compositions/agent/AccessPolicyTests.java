@@ -310,7 +310,7 @@ class AccessPolicyTests {
         Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
         PolicyGate gate = new PolicyGate(auth);
         AgentAction action = new AgentAction("navigate", DUMMY_KEY, "Navigate", null);
-        GateResult result = gate.evaluate(action, null, null);
+        GateResult result = gate.evaluate(action, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Allow.class, result);
         assertEquals(action, ((GateResult.Allow) result).action());
     }
@@ -320,7 +320,7 @@ class AccessPolicyTests {
         Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
         PolicyGate gate = new PolicyGate(auth);
         AgentAction action = new AgentAction("delete", DUMMY_KEY, "Delete", null);
-        GateResult result = gate.evaluate(action, null, null);
+        GateResult result = gate.evaluate(action, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Denied by policy", ((GateResult.Block) result).reason());
     }
@@ -335,7 +335,7 @@ class AccessPolicyTests {
         Authorization agentAuth = auth.delegated(expiredGrant);
         PolicyGate gate = new PolicyGate(agentAuth);
         AgentAction navAction = new AgentAction("navigate", DUMMY_KEY, "Navigate", null);
-        GateResult result = gate.evaluate(navAction, null, null);
+        GateResult result = gate.evaluate(navAction, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Grant expired", ((GateResult.Block) result).reason());
     }
@@ -468,7 +468,7 @@ class AccessPolicyTests {
         Authorization agentAuth = auth.delegated(validGrant);
         PolicyGate gate = new PolicyGate(agentAuth);
         AgentAction deleteAction = new AgentAction("delete", DUMMY_KEY, "Delete", null);
-        GateResult gateResult = gate.evaluate(deleteAction, null, null);
+        GateResult gateResult = gate.evaluate(deleteAction, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, gateResult);
 
         // Filter with valid grant: deny all when not authenticated

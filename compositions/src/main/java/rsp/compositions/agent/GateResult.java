@@ -12,9 +12,9 @@ package rsp.compositions.agent;
  */
 public sealed interface GateResult {
 
-    record Allow(AgentAction action, Object rawPayload) implements GateResult {}
+    record Allow(AgentAction action, AgentPayload payload) implements GateResult {}
 
     record Block(String reason) implements GateResult {}
 
-    record Confirm(String question, AgentAction action, Object rawPayload) implements GateResult {}
+    record Confirm(String question, AgentAction action, AgentPayload payload) implements GateResult {}
 }

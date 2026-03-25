@@ -8,6 +8,7 @@ import rsp.compositions.agent.*;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.EditViewContract;
 import rsp.compositions.contract.ListViewContract;
+import rsp.util.json.JsonDataType;
 
 import java.util.List;
 import java.util.Map;
@@ -95,7 +96,8 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("delete", ar.action().action());
-            assertEquals(Set.of("1"), ar.rawPayload());
+            // Payload is Array(String("1")) — parse via toSetOfStrings to verify
+            assertEquals(Set.of("1"), PayloadParsers.toSetOfStrings().apply(ar.payload()));
         }
 
         @Test
@@ -106,7 +108,7 @@ class RegexAgentServiceTests {
 
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
-            assertEquals(Set.of("2"), ar.rawPayload());
+            assertEquals(Set.of("2"), PayloadParsers.toSetOfStrings().apply(ar.payload()));
         }
 
         @Test
@@ -118,7 +120,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("delete", ar.action().action());
-            assertEquals(Set.of("1"), ar.rawPayload());
+            assertEquals(Set.of("1"), PayloadParsers.toSetOfStrings().apply(ar.payload()));
         }
 
         @Test
@@ -191,7 +193,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("edit", ar.action().action());
-            assertEquals("2", ar.rawPayload());
+            assertEquals(AgentPayload.of("2"), ar.payload());
         }
 
         @Test
@@ -210,7 +212,7 @@ class RegexAgentServiceTests {
             assertEquals("save", ar.action().action());
 
             @SuppressWarnings("unchecked")
-            Map<String, Object> payload = (Map<String, Object>) ar.rawPayload();
+            Map<String, Object> payload = (Map<String, Object>) PayloadParsers.toMapOfStringObject().apply(ar.payload());
             assertNotNull(payload);
             assertEquals("World test", payload.get("content"));
             assertEquals("Post Title 2", payload.get("title")); // unchanged
@@ -260,7 +262,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("page", ar.action().action());
-            assertEquals(3, ar.rawPayload());
+            assertEquals(AgentPayload.of(3), ar.payload());
         }
 
         @Test
@@ -272,7 +274,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("page", ar.action().action());
-            assertEquals(5, ar.rawPayload());
+            assertEquals(AgentPayload.of(5), ar.payload());
         }
     }
 
@@ -295,7 +297,7 @@ class RegexAgentServiceTests {
     class EditSelected {
 
         @Test
-        void returns_edit_action_without_payload() {
+        void returns_edit_action_with_empty_payload() {
             ContractProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "edit selected", profile, emptyTree);
@@ -303,7 +305,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("edit", ar.action().action());
-            assertNull(ar.rawPayload());
+            assertEquals(AgentPayload.EMPTY, ar.payload());
         }
     }
 

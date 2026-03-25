@@ -16,10 +16,10 @@ public interface ActionGate {
     /**
      * Evaluate an action against rules.
      *
-     * @param action     the agent action to evaluate
-     * @param rawPayload the raw payload (nullable)
-     * @param lookup     the current context (for role checks, etc.)
+     * @param action  the agent action to evaluate
+     * @param payload the agent payload
+     * @param lookup  the current context (for role checks, etc.)
      * @return the gate decision
      */
-    GateResult evaluate(AgentAction action, Object rawPayload, Lookup lookup);
+    GateResult evaluate(AgentAction action, AgentPayload payload, Lookup lookup);
 }

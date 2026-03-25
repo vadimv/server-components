@@ -19,29 +19,29 @@ public class ActionDispatcher {
      * Result of a dispatch attempt.
      */
     public sealed interface DispatchResult {
-        record Dispatched(AgentAction action, Object payload) implements DispatchResult {}
+        record Dispatched(AgentAction action, AgentPayload payload) implements DispatchResult {}
         record Blocked(String reason) implements DispatchResult {}
-        record AwaitingConfirmation(String question, AgentAction action, Object rawPayload) implements DispatchResult {}
+        record AwaitingConfirmation(String question, AgentAction action, AgentPayload payload) implements DispatchResult {}
         record PayloadError(String action, String message) implements DispatchResult {}
     }
 
     /**
      * Evaluate action through the gate, then dispatch if allowed.
      *
-     * @param action     the agent action to dispatch
-     * @param rawPayload the raw payload (nullable)
-     * @param contract   the active contract
-     * @param lookup     the current context (for gate evaluation)
-     * @param gate       the rule engine
+     * @param action  the agent action to dispatch
+     * @param payload the agent payload
+     * @param contract the active contract
+     * @param lookup  the current context (for gate evaluation)
+     * @param gate    the rule engine
      * @return the dispatch result
      */
-    public DispatchResult dispatch(AgentAction action, Object rawPayload,
+    public DispatchResult dispatch(AgentAction action, AgentPayload payload,
                                    ViewContract contract, Lookup lookup, ActionGate gate) {
-        GateResult result = gate.evaluate(action, rawPayload, lookup);
+        GateResult result = gate.evaluate(action, payload, lookup);
         return switch (result) {
-            case GateResult.Allow a -> publishEvent(a.action(), a.rawPayload(), contract);
+            case GateResult.Allow a -> publishEvent(a.action(), a.payload(), contract);
             case GateResult.Block b -> new DispatchResult.Blocked(b.reason());
-            case GateResult.Confirm c -> new DispatchResult.AwaitingConfirmation(c.question(), c.action(), c.rawPayload());
+            case GateResult.Confirm c -> new DispatchResult.AwaitingConfirmation(c.question(), c.action(), c.payload());
         };
     }
 
@@ -49,8 +49,8 @@ public class ActionDispatcher {
      * Dispatch an action directly (no gate evaluation).
      * Used after confirmation has been received.
      */
-    public DispatchResult dispatchDirect(AgentAction action, Object rawPayload, ViewContract contract) {
-        return publishEvent(action, rawPayload, contract);
+    public DispatchResult dispatchDirect(AgentAction action, AgentPayload payload, ViewContract contract) {
+        return publishEvent(action, payload, contract);
     }
 
     /**
@@ -64,21 +64,21 @@ public class ActionDispatcher {
     }
 
     @SuppressWarnings("unchecked")
-    private DispatchResult publishEvent(AgentAction action, Object rawPayload, ViewContract contract) {
+    private DispatchResult publishEvent(AgentAction action, AgentPayload payload, ViewContract contract) {
         Lookup contractLookup = contract.lookup();
         EventKey<?> key = action.eventKey();
 
         if (key instanceof EventKey.VoidKey vk) {
             contractLookup.publish(vk);
         } else if (key instanceof EventKey.SimpleKey<?> sk) {
-            Object payload;
+            Object parsed;
             try {
-                payload = action.parsePayload().apply(rawPayload);
+                parsed = action.parsePayload().apply(payload);
             } catch (IllegalArgumentException e) {
                 return new DispatchResult.PayloadError(action.action(), e.getMessage());
             }
-            contractLookup.publish((EventKey.SimpleKey) sk, payload);
+            contractLookup.publish((EventKey.SimpleKey) sk, parsed);
         }
-        return new DispatchResult.Dispatched(action, rawPayload);
+        return new DispatchResult.Dispatched(action, payload);
     }
 }

@@ -1,6 +1,7 @@
 package rsp.app.posts.services;
 
 import rsp.compositions.agent.AgentAction;
+import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.composition.StructureNode;
@@ -210,11 +211,12 @@ public final class OllamaAgentService extends AgentService {
         if (!isAllowedAction(action, profile)) {
             return Optional.of(new AgentResult.TextReply("Action not allowed here: " + action));
         }
-        Object payload = toJavaValue(output.value("payload"));
+        AgentPayload payload = AgentPayload.ofNullable(output.value("payload"));
         if ("navigate".equals(action)) {
             // Model sometimes puts contract name in payload instead of targetContract
-            if (targetContract.isBlank() && payload instanceof String s && !s.isBlank()) {
-                targetContract = s;
+            if (targetContract.isBlank()
+                    && payload.value() instanceof JsonDataType.String s && !s.value().isBlank()) {
+                targetContract = s.value();
             }
             Class<? extends ViewContract> target = resolveTargetContract(targetContract, structureTree);
             if (target == null) {
@@ -289,39 +291,6 @@ public final class OllamaAgentService extends AgentService {
         return value instanceof JsonDataType.String s
             ? Optional.ofNullable(s.value())
             : Optional.empty();
-    }
-
-    private Object toJavaValue(JsonDataType value) {
-        if (value == null || value instanceof JsonDataType.Null) {
-            return null;
-        }
-        return switch (value) {
-            case JsonDataType.String s -> s.value();
-            case JsonDataType.Number n -> {
-                if (n.isFractional()) {
-                    yield n.value();
-                }
-                long l = n.asLong();
-                yield (l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE) ? (int) l : l;
-            }
-            case JsonDataType.Boolean b -> b.value();
-            case JsonDataType.Array array -> {
-                List<Object> result = new ArrayList<>(array.size());
-                for (int i = 0; i < array.size(); i++) {
-                    result.add(toJavaValue(array.get(i)));
-                }
-                yield List.copyOf(result.stream().filter(Objects::nonNull).toList());
-            }
-            case JsonDataType.Object object -> {
-                Map<String, Object> result = new LinkedHashMap<>();
-                for (String key : object.keys()) {
-                    result.put(key, toJavaValue(object.value(key)));
-                }
-                result.values().removeIf(Objects::isNull);
-                yield Map.copyOf(result);
-            }
-            case JsonDataType.Null ignored -> null;
-        };
     }
 
     private static final String JSON_SCHEMA = """

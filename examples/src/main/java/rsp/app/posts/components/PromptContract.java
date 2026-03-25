@@ -7,6 +7,7 @@ import rsp.component.Lookup;
 import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.AgentActionFilter;
 import rsp.compositions.agent.AgentContext;
+import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.ActionGate;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentService.AgentResult;
@@ -47,7 +48,7 @@ public class PromptContract extends ViewContract {
     public static final EventKey.SimpleKey<Message> UPDATE_MESSAGE =
             new EventKey.SimpleKey<>("prompt.updateMessage", Message.class);
 
-    private record PendingAction(AgentAction action, Object rawPayload) {}
+    private record PendingAction(AgentAction action, AgentPayload payload) {}
 
     private final List<Message> messages = new ArrayList<>();
     private Runnable serviceUnsubscribe;
@@ -108,7 +109,7 @@ public class PromptContract extends ViewContract {
             this.gate = new PolicyGate(agentAuth);
             this.actionFilter = new PolicyActionFilter(agentAuth);
         } else {
-            this.gate = (action, rawPayload, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
+            this.gate = (action, payload, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
             this.actionFilter = (actions, ctx) -> List.of();
         }
 
@@ -193,7 +194,7 @@ public class PromptContract extends ViewContract {
                 pendingConfirm = null;
                 ViewContract activeContract = activeContract();
                 DispatchResult result = dispatcher.dispatchDirect(
-                    confirmed.action(), confirmed.rawPayload(), activeContract);
+                    confirmed.action(), confirmed.payload(), activeContract);
                 handleDispatchResult(result);
                 return;
             }
@@ -232,7 +233,7 @@ public class PromptContract extends ViewContract {
                 case AgentResult.ActionResult actionResult -> {
                     AgentAction action = actionResult.action();
                     DispatchResult result = dispatcher.dispatch(
-                        action, actionResult.rawPayload(), capturedContract, lookup, capturedGate);
+                        action, actionResult.payload(), capturedContract, lookup, capturedGate);
                     handleDispatchResult(result);
                 }
             }
@@ -247,7 +248,7 @@ public class PromptContract extends ViewContract {
                 promptService.sendReply(scopeKey, b.reason());
             case DispatchResult.AwaitingConfirmation c -> {
                 promptService.sendReply(scopeKey, c.question());
-                pendingConfirm = new PendingAction(c.action(), c.rawPayload());
+                pendingConfirm = new PendingAction(c.action(), c.payload());
             }
             case DispatchResult.PayloadError pe ->
                 promptService.sendReply(scopeKey, "Invalid payload for '" + HtmlEscape.escape(pe.action())

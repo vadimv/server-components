@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -19,7 +18,7 @@ class ActionDispatcherTests {
     @BeforeEach
     void setUp() {
         dispatcher = new ActionDispatcher();
-        allowAllGate = (action, rawPayload, lookup) -> new GateResult.Allow(action, rawPayload);
+        allowAllGate = (action, payload, lookup) -> new GateResult.Allow(action, payload);
     }
 
     @Test
@@ -38,7 +37,7 @@ class ActionDispatcherTests {
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, null, contract, new StubLookup(), allowAllGate);
+            action, AgentPayload.EMPTY, contract, new StubLookup(), allowAllGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.Dispatched.class, result);
         assertEquals(List.of("test.void"), published);
@@ -60,7 +59,7 @@ class ActionDispatcherTests {
         AgentAction action = new AgentAction("edit", key, "Edit item", "String: id");
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        dispatcher.dispatch(action, "42", contract, new StubLookup(), allowAllGate);
+        dispatcher.dispatch(action, AgentPayload.of("42"), contract, new StubLookup(), allowAllGate);
 
         assertEquals(List.of("42"), published);
     }
@@ -74,7 +73,7 @@ class ActionDispatcherTests {
         StubContract contract = new StubContract(List.of(action));
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, null, contract, new StubLookup(), blockGate);
+            action, AgentPayload.EMPTY, contract, new StubLookup(), blockGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.Blocked.class, result);
         assertEquals("Not permitted",
@@ -91,7 +90,7 @@ class ActionDispatcherTests {
         StubContract contract = new StubContract(List.of(action));
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, null, contract, new StubLookup(), confirmGate);
+            action, AgentPayload.EMPTY, contract, new StubLookup(), confirmGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.AwaitingConfirmation.class, result);
         assertEquals("Are you sure?",
@@ -109,7 +108,7 @@ class ActionDispatcherTests {
         StubContract contract = new StubContract(List.of(action));
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, true, contract, new StubLookup(), allowAllGate);
+            action, AgentPayload.of(true), contract, new StubLookup(), allowAllGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.PayloadError.class, result);
         ActionDispatcher.DispatchResult.PayloadError pe =
@@ -138,7 +137,7 @@ class ActionDispatcherTests {
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, "1", contract, new StubLookup(), allowAllGate);
+            action, AgentPayload.of("1"), contract, new StubLookup(), allowAllGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.Dispatched.class, result);
         assertEquals(List.of(Set.of("1")), published);
@@ -159,7 +158,7 @@ class ActionDispatcherTests {
         AgentAction action = new AgentAction("act", key, "An action", null);
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        dispatcher.dispatchDirect(action, null, contract);
+        dispatcher.dispatchDirect(action, AgentPayload.EMPTY, contract);
 
         assertEquals(List.of("test.direct"), published);
     }

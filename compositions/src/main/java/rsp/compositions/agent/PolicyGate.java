@@ -26,7 +26,7 @@ public final class PolicyGate implements ActionGate {
     }
 
     @Override
-    public GateResult evaluate(AgentAction action, Object rawPayload, Lookup lookup) {
+    public GateResult evaluate(AgentAction action, AgentPayload payload, Lookup lookup) {
         Attributes.Builder b = Attributes.builder()
             .put(AttributeKeys.ACTION_NAME, action.action())
             .put(AttributeKeys.CONTROL_CHANNEL, "agent_intent")
@@ -34,7 +34,7 @@ public final class PolicyGate implements ActionGate {
 
         AccessDecision decision = authorization.evaluate(b.build());
         return switch (decision) {
-            case AccessDecision.Allow _ -> new GateResult.Allow(action, rawPayload);
+            case AccessDecision.Allow _ -> new GateResult.Allow(action, payload);
             case AccessDecision.Deny d -> new GateResult.Block(d.reason());
         };
     }

@@ -1,6 +1,7 @@
 package rsp.app.posts.services;
 
 import rsp.compositions.agent.AgentAction;
+import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.composition.StructureNode;
@@ -242,14 +243,16 @@ public final class ClaudeAgentService extends AgentService {
         if (!isAllowedAction(action, profile)) {
             return Optional.of(new AgentResult.TextReply("Action not allowed here: " + action));
         }
-        Object payload = toJavaValue(output.value("payload"));
-        // Unwrap single-element list — Claude sometimes returns ["12"] instead of "12"
-        if (payload instanceof List<?> list && list.size() == 1) {
-            payload = list.get(0);
+        JsonDataType rawJson = output.value("payload");
+        // Unwrap single-element array — Claude sometimes returns ["12"] instead of "12"
+        if (rawJson instanceof JsonDataType.Array arr && arr.size() == 1) {
+            rawJson = arr.get(0);
         }
+        AgentPayload payload = AgentPayload.ofNullable(rawJson);
         if ("navigate".equals(action)) {
-            if (targetContract.isBlank() && payload instanceof String s && !s.isBlank()) {
-                targetContract = s;
+            if (targetContract.isBlank()
+                    && payload.value() instanceof JsonDataType.String s && !s.value().isBlank()) {
+                targetContract = s.value();
             }
             Class<? extends ViewContract> target = resolveTargetContract(targetContract, structureTree);
             if (target == null) {
@@ -318,39 +321,6 @@ public final class ClaudeAgentService extends AgentService {
         return value instanceof JsonDataType.String s
             ? Optional.ofNullable(s.value())
             : Optional.empty();
-    }
-
-    private Object toJavaValue(JsonDataType value) {
-        if (value == null || value instanceof JsonDataType.Null) {
-            return null;
-        }
-        return switch (value) {
-            case JsonDataType.String s -> s.value();
-            case JsonDataType.Number n -> {
-                if (n.isFractional()) {
-                    yield n.value();
-                }
-                long l = n.asLong();
-                yield (l >= Integer.MIN_VALUE && l <= Integer.MAX_VALUE) ? (int) l : l;
-            }
-            case JsonDataType.Boolean b -> b.value();
-            case JsonDataType.Array array -> {
-                List<Object> result = new ArrayList<>(array.size());
-                for (int i = 0; i < array.size(); i++) {
-                    result.add(toJavaValue(array.get(i)));
-                }
-                yield List.copyOf(result.stream().filter(Objects::nonNull).toList());
-            }
-            case JsonDataType.Object object -> {
-                Map<String, Object> result = new LinkedHashMap<>();
-                for (String key : object.keys()) {
-                    result.put(key, toJavaValue(object.value(key)));
-                }
-                result.values().removeIf(Objects::isNull);
-                yield Map.copyOf(result);
-            }
-            case JsonDataType.Null ignored -> null;
-        };
     }
 
     private String buildStreamingRequest(String userPrompt, String systemPrompt) {

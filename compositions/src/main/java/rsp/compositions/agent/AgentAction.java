@@ -18,14 +18,14 @@ import java.util.function.Function;
  * @param eventKey            the framework event to publish when this action is dispatched
  * @param description         human-readable purpose (e.g. "Delete items by their IDs")
  * @param payloadDescription  payload schema hint (e.g. "Set&lt;String&gt;: row IDs"), null for VoidKey events
- * @param parsePayload        converts raw LLM payload to the type expected by the event key;
+ * @param parsePayload        converts an {@link AgentPayload} to the type expected by the event key;
  *                            throws {@link IllegalArgumentException} on unrecognized input
  */
 public record AgentAction(String action,
                           EventKey<?> eventKey,
                           String description,
                           String payloadDescription,
-                          Function<Object, Object> parsePayload) {
+                          Function<AgentPayload, Object> parsePayload) {
 
     /**
      * Compact constructor — validates required fields.
@@ -44,10 +44,10 @@ public record AgentAction(String action,
 
     /**
      * Convenience constructor for actions with no payload (VoidKey events)
-     * or when the raw payload can be used as-is (identity parsing).
+     * or when the payload value should be unwrapped to a plain Java object.
      */
     public AgentAction(String action, EventKey<?> eventKey,
                        String description, String payloadDescription) {
-        this(action, eventKey, description, payloadDescription, Function.identity());
+        this(action, eventKey, description, payloadDescription, p -> PayloadParsers.unwrap(p.value()));
     }
 }
