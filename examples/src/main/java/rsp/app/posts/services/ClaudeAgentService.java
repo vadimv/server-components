@@ -378,9 +378,12 @@ public final class ClaudeAgentService extends AgentService {
             ? profile.metadata().title() + " — " + profile.metadata().description()
             : "";
 
+        String stateDesc = describeState(profile);
+
         return """
             You are an intent parser. Return ONE JSON object. Do NOT wrap in markdown code fences. Output raw JSON only.
             payload MUST be a single string, integer, or null — NEVER an array or object.
+            IMPORTANT: When an action requires an item ID as payload, use the actual ID from the visible items below — NEVER use a name or description.
 
             Response types:
             - Single action: {"type": "intent", "action": "...", "payload": ..., "targetContract": "...", "message": "..."}
@@ -392,18 +395,53 @@ public final class ClaudeAgentService extends AgentService {
 
             Current page: %s
             App pages: %s
-
+            %s
             Rules:
             - "show posts" or "go to comments" -> action=navigate, targetContract=exact class name from App pages (e.g. PostsListContract, CommentsListContract)
             - "page 3" or "goto page 2" -> action=page, payload=the number
             - "create" or "new" -> action=create
-            - "edit 5" -> action=edit, payload="5"
-            - "delete" -> action=delete
+            - "edit 5" -> action=edit, payload=the item's ID (e.g. "5")
+            - "delete 'Some Title'" -> action=delete, payload=the item's ID resolved from visible items
             - "select all" -> action=select_all
             - For greetings or general questions -> type=text, message=a friendly short reply
             """.formatted(
             actions.toString().strip(),
             contractDesc,
-            structure);
+            structure,
+            stateDesc);
+    }
+
+    @SuppressWarnings("unchecked")
+    private String describeState(ContractProfile profile) {
+        if (profile.metadata() == null) return "";
+        Map<String, Object> state = profile.metadata().state();
+        if (state.isEmpty()) return "";
+
+        StringBuilder sb = new StringBuilder("\nVisible items:\n");
+        if (state.get("items") instanceof List<?> items) {
+            for (Object item : items) {
+                if (item instanceof Map<?, ?> map) {
+                    sb.append("- ");
+                    Map<String, Object> row = (Map<String, Object>) map;
+                    Object id = row.get("id");
+                    if (id != null) sb.append("id=").append(id);
+                    for (Map.Entry<String, Object> e : row.entrySet()) {
+                        if (!"id".equals(e.getKey())) {
+                            sb.append(", ").append(e.getKey()).append("=").append(e.getValue());
+                        }
+                    }
+                    sb.append("\n");
+                }
+            }
+        } else if (state.get("entity") instanceof Map<?, ?> entity) {
+            sb.append("Current entity: ");
+            for (Map.Entry<?, ?> e : entity.entrySet()) {
+                sb.append(e.getKey()).append("=").append(e.getValue()).append(", ");
+            }
+            sb.append("\n");
+        } else {
+            return "";
+        }
+        return sb.toString();
     }
 }

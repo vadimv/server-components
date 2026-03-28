@@ -70,7 +70,7 @@ public class PromptContract extends ViewContract {
     private String pendingTicketId;
     private String queuedPrompt;
 
-    private Scene currentScene;
+    private volatile Scene currentScene;
     private PendingAction pendingConfirm;
 
     // Plan execution: completed by enrichContext() with the settled scene
@@ -279,6 +279,9 @@ public class PromptContract extends ViewContract {
                     "<em>Step " + (i + 1) + "/" + totalSteps + ": "
                             + HtmlEscape.escape(step) + "</em>");
 
+            // Snapshot routed contract class before this step
+            final Class<?> preStepContract = routedContractClass();
+
             // Build fresh context from current scene state
             AgentContext agentContext = buildAgentContext();
             ContractProfile freshProfile = agentContext.contractProfile();
@@ -286,6 +289,13 @@ public class PromptContract extends ViewContract {
             final ActionGate capturedGate = gate;
 
             AgentResult stepResult = agentService.handlePrompt(step, freshProfile, structure);
+
+            // Check if scene changed during (potentially slow) LLM call
+            if (!Objects.equals(preStepContract, routedContractClass())) {
+                promptService.sendReply(scopeKey,
+                        "Plan interrupted: scene changed during step execution.");
+                return;
+            }
 
             switch (stepResult) {
                 case AgentResult.TextReply reply -> {
@@ -385,6 +395,12 @@ public class PromptContract extends ViewContract {
 
     private ViewContract activeContract() {
         return currentScene != null ? currentScene.routedContract() : null;
+    }
+
+    private Class<?> routedContractClass() {
+        Scene scene = currentScene;
+        return (scene != null && scene.routedContract() != null)
+                ? scene.routedContract().getClass() : null;
     }
 
     @Override
