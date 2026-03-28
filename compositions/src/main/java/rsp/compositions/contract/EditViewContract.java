@@ -203,8 +203,7 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
         List<AgentAction> actions = new ArrayList<>(super.agentActions());
         actions.add(new AgentAction("delete",
                                     DELETE_REQUESTED,
-                                   "Delete the current entity",
-                                   null));
+                                   "Delete the current entity"));
         return List.copyOf(actions);
     }
 

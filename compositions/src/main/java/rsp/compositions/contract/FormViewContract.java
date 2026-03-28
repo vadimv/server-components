@@ -4,13 +4,12 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.ContractMetadata;
-import rsp.compositions.agent.PayloadParsers;
+import rsp.compositions.agent.PayloadSchemas;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.ValidationResult;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static rsp.compositions.contract.EventKeys.ACTION_SUCCESS;
 
@@ -186,16 +185,12 @@ public abstract class FormViewContract<T> extends ViewContract {
 
     @Override
     public List<AgentAction> agentActions() {
-        String fieldNames = schema().fields().stream()
-            .map(f -> f.name() + ":" + f.fieldType())
-            .collect(Collectors.joining(", "));
         return List.of(
             new AgentAction("save", FORM_SUBMITTED,
                 "Submit form data",
-                "Map<String, Object>: {" + fieldNames + "}",
-                PayloadParsers.toMapOfStringObject()),
+                PayloadSchemas.fromDataSchema(schema())),
             new AgentAction("cancel", CANCEL_REQUESTED,
-                "Cancel and go back", null)
+                "Cancel and go back")
         );
     }
 

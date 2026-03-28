@@ -10,7 +10,7 @@ import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.ActionDispatcher;
 import rsp.compositions.agent.ActionDispatcher.DispatchResult;
 import rsp.compositions.agent.ActionGate;
-import rsp.compositions.agent.PayloadParsers;
+import rsp.compositions.agent.PayloadSchema;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ListViewContract;
 import rsp.compositions.contract.ViewContract;
@@ -28,18 +28,18 @@ class ActionDispatcherTests {
 
     // Declared actions for the stub contract
     private static final AgentAction CREATE_ACTION = new AgentAction("create",
-        ListViewContract.CREATE_ELEMENT_REQUESTED, "Open create form", null);
+        ListViewContract.CREATE_ELEMENT_REQUESTED, "Open create form");
     private static final AgentAction EDIT_ACTION = new AgentAction("edit",
-        ListViewContract.EDIT_ELEMENT_REQUESTED, "Open edit form", "String: row ID",
-        PayloadParsers.toStringPayload());
+        ListViewContract.EDIT_ELEMENT_REQUESTED, "Open edit form",
+        new PayloadSchema.StringValue("row ID"));
     private static final AgentAction DELETE_ACTION = new AgentAction("delete",
-        ListViewContract.BULK_DELETE_REQUESTED, "Delete items", "Set<String>: row IDs",
-        PayloadParsers.toSetOfStrings());
+        ListViewContract.BULK_DELETE_REQUESTED, "Delete items",
+        new PayloadSchema.StringSet("row IDs"));
     private static final AgentAction PAGE_ACTION = new AgentAction("page",
-        ListViewContract.PAGE_CHANGE_REQUESTED, "Navigate to page", "Integer: page number",
-        PayloadParsers.toInteger());
+        ListViewContract.PAGE_CHANGE_REQUESTED, "Navigate to page",
+        new PayloadSchema.IntegerValue("page number"));
     private static final AgentAction SELECT_ALL_ACTION = new AgentAction("select_all",
-        ListViewContract.SELECT_ALL_REQUESTED, "Select all rows", null);
+        ListViewContract.SELECT_ALL_REQUESTED, "Select all rows");
 
     /**
      * Stub contract that declares standard list actions for testing.

@@ -4,6 +4,7 @@ import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
+import rsp.compositions.agent.PayloadSchemas;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ViewContract;
 import rsp.util.json.JsonDataType;
@@ -352,8 +353,9 @@ public final class OllamaAgentService extends AgentService {
                 .append(action.action())
                 .append("\": ")
                 .append(action.description());
-            if (action.payloadDescription() != null) {
-                actions.append(" (payload: ").append(action.payloadDescription()).append(")");
+            String payloadDesc = PayloadSchemas.describe(action.schema());
+            if (payloadDesc != null) {
+                actions.append(" (payload: ").append(payloadDesc).append(")");
             }
             actions.append("\n");
         }

@@ -12,15 +12,18 @@ import static org.junit.jupiter.api.Assertions.*;
 class AgentActionFilterTests {
 
     private static final AgentAction CREATE = new AgentAction("create",
-        new EventKey.VoidKey("test.create"), "Create item", null);
+        new EventKey.VoidKey("test.create"), "Create item");
     private static final AgentAction EDIT = new AgentAction("edit",
-        new EventKey.SimpleKey<>("test.edit", String.class), "Edit item", "String: id");
+        new EventKey.SimpleKey<>("test.edit", String.class), "Edit item",
+        new PayloadSchema.StringValue("id"));
     private static final AgentAction DELETE = new AgentAction("delete",
-        new EventKey.SimpleKey<>("test.delete", Set.class), "Delete items", "Set<String>: ids");
+        new EventKey.SimpleKey<>("test.delete", Set.class), "Delete items",
+        new PayloadSchema.StringSet("ids"));
     private static final AgentAction PAGE = new AgentAction("page",
-        new EventKey.SimpleKey<>("test.page", Integer.class), "Navigate to page", "Integer: page");
+        new EventKey.SimpleKey<>("test.page", Integer.class), "Navigate to page",
+        new PayloadSchema.IntegerValue("page"));
     private static final AgentAction SELECT_ALL = new AgentAction("select_all",
-        new EventKey.VoidKey("test.selectAll"), "Select all", null);
+        new EventKey.VoidKey("test.selectAll"), "Select all");
 
     private static final List<AgentAction> ALL_ACTIONS = List.of(CREATE, EDIT, DELETE, PAGE, SELECT_ALL);
 

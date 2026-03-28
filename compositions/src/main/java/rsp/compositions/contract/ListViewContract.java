@@ -6,7 +6,7 @@ import rsp.component.Lookup;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.agent.AgentAction;
 import rsp.compositions.agent.ContractMetadata;
-import rsp.compositions.agent.PayloadParsers;
+import rsp.compositions.agent.PayloadSchema;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
@@ -268,22 +268,19 @@ public abstract class ListViewContract<T> extends ViewContract {
     public List<AgentAction> agentActions() {
         return List.of(
             new AgentAction("create", CREATE_ELEMENT_REQUESTED,
-                "Open create form for a new item", null),
+                "Open create form for a new item"),
             new AgentAction("edit", EDIT_ELEMENT_REQUESTED,
-                "Open edit form for an item", "String: row ID",
-                PayloadParsers.toStringPayload()),
+                "Open edit form for an item", new PayloadSchema.StringValue("row ID")),
             new AgentAction("edit_selected", EDIT_SELECTED_REQUESTED,
-                "Open edit form for the first selected row", null),
+                "Open edit form for the first selected row"),
             new AgentAction("delete", BULK_DELETE_REQUESTED,
-                "Delete items by their IDs", "Set<String>: row IDs",
-                PayloadParsers.toSetOfStrings()),
+                "Delete items by their IDs", new PayloadSchema.StringSet("row IDs to delete")),
             new AgentAction("delete_selected", DELETE_SELECTED_REQUESTED,
-                "Delete all currently selected rows", null),
+                "Delete all currently selected rows"),
             new AgentAction("page", PAGE_CHANGE_REQUESTED,
-                "Navigate to a page number", "Integer: page number (1-based)",
-                PayloadParsers.toInteger()),
+                "Navigate to a page number", new PayloadSchema.IntegerValue("page number (1-based)")),
             new AgentAction("select_all", SELECT_ALL_REQUESTED,
-                "Select all rows on the current page", null)
+                "Select all rows on the current page")
         );
     }
 

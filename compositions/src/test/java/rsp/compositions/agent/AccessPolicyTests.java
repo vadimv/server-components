@@ -278,8 +278,8 @@ class AccessPolicyTests {
         Authorization auth = new Authorization(readOnly, Attributes.empty());
         PolicyActionFilter filter = new PolicyActionFilter(auth);
 
-        AgentAction pageAction = new AgentAction("page", DUMMY_KEY, "Go to page", null);
-        AgentAction deleteAction = new AgentAction("delete", DUMMY_KEY, "Delete items", null);
+        AgentAction pageAction = new AgentAction("page", DUMMY_KEY, "Go to page");
+        AgentAction deleteAction = new AgentAction("delete", DUMMY_KEY, "Delete items");
 
         List<AgentAction> result = filter.filter(List.of(pageAction, deleteAction), null);
         assertEquals(1, result.size());
@@ -290,8 +290,8 @@ class AccessPolicyTests {
     void policyActionFilter_allow_all_passes_everything() {
         Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
         PolicyActionFilter filter = new PolicyActionFilter(auth);
-        AgentAction a1 = new AgentAction("page", DUMMY_KEY, "page", null);
-        AgentAction a2 = new AgentAction("delete", DUMMY_KEY, "delete", null);
+        AgentAction a1 = new AgentAction("page", DUMMY_KEY, "page");
+        AgentAction a2 = new AgentAction("delete", DUMMY_KEY, "delete");
         assertEquals(2, filter.filter(List.of(a1, a2), null).size());
     }
 
@@ -299,7 +299,7 @@ class AccessPolicyTests {
     void policyActionFilter_deny_all_filters_everything() {
         Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
         PolicyActionFilter filter = new PolicyActionFilter(auth);
-        AgentAction a1 = new AgentAction("page", DUMMY_KEY, "page", null);
+        AgentAction a1 = new AgentAction("page", DUMMY_KEY, "page");
         assertEquals(0, filter.filter(List.of(a1), null).size());
     }
 
@@ -309,7 +309,7 @@ class AccessPolicyTests {
     void policyGate_allow_maps_to_gateResult_allow() {
         Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
         PolicyGate gate = new PolicyGate(auth);
-        AgentAction action = new AgentAction("navigate", DUMMY_KEY, "Navigate", null);
+        AgentAction action = new AgentAction("navigate", DUMMY_KEY, "Navigate");
         GateResult result = gate.evaluate(action, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Allow.class, result);
         assertEquals(action, ((GateResult.Allow) result).action());
@@ -319,7 +319,7 @@ class AccessPolicyTests {
     void policyGate_deny_maps_to_gateResult_block() {
         Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
         PolicyGate gate = new PolicyGate(auth);
-        AgentAction action = new AgentAction("delete", DUMMY_KEY, "Delete", null);
+        AgentAction action = new AgentAction("delete", DUMMY_KEY, "Delete");
         GateResult result = gate.evaluate(action, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Denied by policy", ((GateResult.Block) result).reason());
@@ -334,7 +334,7 @@ class AccessPolicyTests {
             Instant.now().minusSeconds(7200), Instant.now().minusSeconds(3600));
         Authorization agentAuth = auth.delegated(expiredGrant);
         PolicyGate gate = new PolicyGate(agentAuth);
-        AgentAction navAction = new AgentAction("navigate", DUMMY_KEY, "Navigate", null);
+        AgentAction navAction = new AgentAction("navigate", DUMMY_KEY, "Navigate");
         GateResult result = gate.evaluate(navAction, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Grant expired", ((GateResult.Block) result).reason());
@@ -467,13 +467,13 @@ class AccessPolicyTests {
             "g1", Attributes.empty(), Instant.now(), null);
         Authorization agentAuth = auth.delegated(validGrant);
         PolicyGate gate = new PolicyGate(agentAuth);
-        AgentAction deleteAction = new AgentAction("delete", DUMMY_KEY, "Delete", null);
+        AgentAction deleteAction = new AgentAction("delete", DUMMY_KEY, "Delete");
         GateResult gateResult = gate.evaluate(deleteAction, AgentPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, gateResult);
 
         // Filter with valid grant: deny all when not authenticated
         PolicyActionFilter filter = new PolicyActionFilter(agentAuth);
-        AgentAction action = new AgentAction("page", DUMMY_KEY, "page", null);
+        AgentAction action = new AgentAction("page", DUMMY_KEY, "page");
         assertEquals(0, filter.filter(List.of(action), null).size());
     }
 

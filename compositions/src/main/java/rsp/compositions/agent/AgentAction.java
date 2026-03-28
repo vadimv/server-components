@@ -7,28 +7,29 @@ import java.util.function.Function;
 /**
  * Declares an action that an agent can invoke on a contract.
  * <p>
- * Binds a human-readable action name to an {@link EventKey}, with descriptions
- * for both the action's purpose and its expected payload. Contracts declare their
+ * Binds a human-readable action name to an {@link EventKey}, with a structured
+ * {@link PayloadSchema} describing the expected payload. Contracts declare their
  * available actions via {@code agentActions()}, making the contract the single
  * source of truth for what the agent can do.
  * <p>
+ * The payload parser is derived automatically from the schema unless explicitly overridden.
  * The {@link ActionDispatcher} publishes the associated framework event directly.
  *
- * @param action              action name (e.g. "delete", "save", "page")
- * @param eventKey            the framework event to publish when this action is dispatched
- * @param description         human-readable purpose (e.g. "Delete items by their IDs")
- * @param payloadDescription  payload schema hint (e.g. "Set&lt;String&gt;: row IDs"), null for VoidKey events
- * @param parsePayload        converts an {@link AgentPayload} to the type expected by the event key;
- *                            throws {@link IllegalArgumentException} on unrecognized input
+ * @param action       action name (e.g. "delete", "save", "page")
+ * @param eventKey     the framework event to publish when this action is dispatched
+ * @param description  human-readable purpose (e.g. "Delete items by their IDs")
+ * @param schema       structured payload type descriptor; null treated as {@link PayloadSchema.None}
+ * @param parsePayload converts an {@link AgentPayload} to the type expected by the event key;
+ *                     throws {@link IllegalArgumentException} on unrecognized input
  */
 public record AgentAction(String action,
                           EventKey<?> eventKey,
                           String description,
-                          String payloadDescription,
+                          PayloadSchema schema,
                           Function<AgentPayload, Object> parsePayload) {
 
     /**
-     * Compact constructor — validates required fields.
+     * Compact constructor — validates required fields, normalizes defaults.
      */
     public AgentAction {
         if (action == null || action.isBlank()) {
@@ -40,14 +41,26 @@ public record AgentAction(String action,
         if (description == null || description.isBlank()) {
             throw new IllegalArgumentException("description must not be null or blank");
         }
+        if (schema == null) {
+            schema = new PayloadSchema.None();
+        }
+        if (parsePayload == null) {
+            parsePayload = PayloadSchemas.toParser(schema);
+        }
     }
 
     /**
-     * Convenience constructor for actions with no payload (VoidKey events)
-     * or when the payload value should be unwrapped to a plain Java object.
+     * Convenience constructor with schema — parser derived automatically.
      */
     public AgentAction(String action, EventKey<?> eventKey,
-                       String description, String payloadDescription) {
-        this(action, eventKey, description, payloadDescription, p -> PayloadParsers.unwrap(p.value()));
+                       String description, PayloadSchema schema) {
+        this(action, eventKey, description, schema, null);
+    }
+
+    /**
+     * Convenience constructor for no-payload actions.
+     */
+    public AgentAction(String action, EventKey<?> eventKey, String description) {
+        this(action, eventKey, description, new PayloadSchema.None(), null);
     }
 }

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.agent.*;
+import rsp.compositions.agent.PayloadSchema;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.EditViewContract;
 import rsp.compositions.contract.ListViewContract;
@@ -36,18 +37,19 @@ class RegexAgentServiceTests {
         new EventKey.SimpleKey<>("test.save", (Class<Map<String, Object>>) (Class<?>) Map.class);
 
     private static final List<AgentAction> LIST_ACTIONS = List.of(
-        new AgentAction("create", CREATE_KEY, "Create item", null),
-        new AgentAction("delete", DELETE_KEY, "Delete items", "Set<String>: IDs",
-            PayloadParsers.toSetOfStrings()),
-        new AgentAction("edit", EDIT_KEY, "Edit item", "String: id"),
-        new AgentAction("page", PAGE_KEY, "Go to page", "Integer: page number",
-            PayloadParsers.toInteger()),
-        new AgentAction("select_all", SELECT_ALL_KEY, "Select all", null)
+        new AgentAction("create", CREATE_KEY, "Create item"),
+        new AgentAction("delete", DELETE_KEY, "Delete items",
+            new PayloadSchema.StringSet("IDs")),
+        new AgentAction("edit", EDIT_KEY, "Edit item",
+            new PayloadSchema.StringValue("id")),
+        new AgentAction("page", PAGE_KEY, "Go to page",
+            new PayloadSchema.IntegerValue("page number")),
+        new AgentAction("select_all", SELECT_ALL_KEY, "Select all")
     );
 
     private static final List<AgentAction> EDIT_ACTIONS = List.of(
-        new AgentAction("save", SAVE_KEY, "Save entity", "Map<String, Object>: fields",
-            PayloadParsers.toMapOfStringObject())
+        new AgentAction("save", SAVE_KEY, "Save entity",
+            new PayloadSchema.ObjectValue(List.of()))
     );
 
     @BeforeEach

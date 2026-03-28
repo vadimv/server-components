@@ -33,7 +33,7 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("do_thing", key, "Do a thing", null);
+        AgentAction action = new AgentAction("do_thing", key, "Do a thing");
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
@@ -56,7 +56,8 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("edit", key, "Edit item", "String: id");
+        AgentAction action = new AgentAction("edit", key, "Edit item",
+            new PayloadSchema.StringValue("id"));
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         dispatcher.dispatch(action, AgentPayload.of("42"), contract, new StubLookup(), allowAllGate);
@@ -67,7 +68,7 @@ class ActionDispatcherTests {
     @Test
     void returns_blocked_when_gate_blocks() {
         EventKey.VoidKey key = new EventKey.VoidKey("test.delete");
-        AgentAction action = new AgentAction("delete", key, "Delete items", null);
+        AgentAction action = new AgentAction("delete", key, "Delete items");
         ActionGate blockGate = (a, p, lookup) -> new GateResult.Block("Not permitted");
 
         StubContract contract = new StubContract(List.of(action));
@@ -83,7 +84,7 @@ class ActionDispatcherTests {
     @Test
     void returns_awaiting_confirmation_when_gate_confirms() {
         EventKey.VoidKey key = new EventKey.VoidKey("test.delete");
-        AgentAction action = new AgentAction("delete", key, "Delete items", null);
+        AgentAction action = new AgentAction("delete", key, "Delete items");
         ActionGate confirmGate = (a, p, lookup) ->
             new GateResult.Confirm("Are you sure?", a, p);
 
@@ -103,8 +104,8 @@ class ActionDispatcherTests {
         EventKey.SimpleKey<Set<String>> key = new EventKey.SimpleKey<>("test.delete",
                 (Class<Set<String>>) (Class<?>) Set.class);
 
-        AgentAction action = new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
-            PayloadParsers.toSetOfStrings());
+        AgentAction action = new AgentAction("delete", key, "Delete items",
+            new PayloadSchema.StringSet("IDs"));
         StubContract contract = new StubContract(List.of(action));
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
@@ -132,8 +133,8 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("delete", key, "Delete items", "Set<String>: IDs",
-            PayloadParsers.toSetOfStrings());
+        AgentAction action = new AgentAction("delete", key, "Delete items",
+            new PayloadSchema.StringSet("IDs"));
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
@@ -155,7 +156,7 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("act", key, "An action", null);
+        AgentAction action = new AgentAction("act", key, "An action");
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         dispatcher.dispatchDirect(action, AgentPayload.EMPTY, contract);

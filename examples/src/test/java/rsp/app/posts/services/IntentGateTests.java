@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class IntentGateTests {
 
     private static final AgentAction TEST_ACTION = new AgentAction("test",
-        new EventKey.VoidKey("test.action"), "Test action", null);
+        new EventKey.VoidKey("test.action"), "Test action");
 
     @Test
     void allowAllGate_always_allows() {

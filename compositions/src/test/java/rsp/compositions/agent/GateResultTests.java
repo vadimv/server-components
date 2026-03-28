@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class GateResultTests {
 
     private static final AgentAction TEST_ACTION =
-        new AgentAction("delete", new EventKey.VoidKey("test.delete"), "Delete items", null);
+        new AgentAction("delete", new EventKey.VoidKey("test.delete"), "Delete items");
 
     @Test
     void allow_carries_action_and_payload() {

@@ -120,6 +120,13 @@ public class TestLookup implements Lookup {
         dispatchVoidEvent(key.name());
     }
 
+    // ===== Task Enqueueing =====
+
+    @Override
+    public void enqueueTask(final Runnable task) {
+        task.run();
+    }
+
     // ===== Test Setup Utilities (Fluent API) =====
 
     /**

@@ -16,11 +16,12 @@ import static org.junit.jupiter.api.Assertions.*;
 class AgentContextTests {
 
     private static final AgentAction CREATE = new AgentAction("create",
-        new EventKey.VoidKey("test.create"), "Create item", null);
+        new EventKey.VoidKey("test.create"), "Create item");
     private static final AgentAction PAGE = new AgentAction("page",
-        new EventKey.SimpleKey<>("test.page", Integer.class), "Navigate to page", "Integer: page");
+        new EventKey.SimpleKey<>("test.page", Integer.class), "Navigate to page",
+        new PayloadSchema.IntegerValue("page"));
     private static final AgentAction SELECT_ALL = new AgentAction("select_all",
-        new EventKey.VoidKey("test.selectAll"), "Select all", null);
+        new EventKey.VoidKey("test.selectAll"), "Select all");
 
     private static final List<AgentAction> ACTIONS = List.of(CREATE, PAGE, SELECT_ALL);
 
