@@ -268,7 +268,10 @@ public class PromptContract extends ViewContract {
         }
     }
 
-    private void executePlan(List<String> steps) {
+    private static final int MAX_PLAN_STEPS = 20;
+
+    private void executePlan(List<String> originalSteps) {
+        List<String> steps = new ArrayList<>(originalSteps);
         int totalSteps = steps.size();
         promptService.sendReply(scopeKey,
                 "<em>Plan: " + totalSteps + " steps</em>");
@@ -342,9 +345,15 @@ public class PromptContract extends ViewContract {
                         }
                     }
                 }
-                case AgentResult.PlanResult _ -> {
-                    promptService.sendReply(scopeKey, "Nested plan detected; aborting.");
-                    return;
+                case AgentResult.PlanResult nested -> {
+                    // Splice nested steps into the plan after the current position
+                    steps.addAll(i + 1, nested.steps());
+                    totalSteps = steps.size();
+                    if (totalSteps > MAX_PLAN_STEPS) {
+                        promptService.sendReply(scopeKey,
+                                "Plan too large (" + totalSteps + " steps); aborting.");
+                        return;
+                    }
                 }
             }
         }
