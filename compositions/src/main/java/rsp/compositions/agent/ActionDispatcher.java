@@ -5,6 +5,8 @@ import rsp.component.Lookup;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ViewContract;
 
+import java.util.concurrent.CompletableFuture;
+
 /**
  * The only component with publish access — translates allowed actions into framework events.
  * <p>
@@ -19,7 +21,9 @@ public class ActionDispatcher {
      * Result of a dispatch attempt.
      */
     public sealed interface DispatchResult {
-        record Dispatched(AgentAction action, AgentPayload payload) implements DispatchResult {}
+        record Dispatched(AgentAction action,
+                          AgentPayload payload,
+                          CompletableFuture<Void> processed) implements DispatchResult {}
         record Blocked(String reason) implements DispatchResult {}
         record AwaitingConfirmation(String question, AgentAction action, AgentPayload payload) implements DispatchResult {}
         record PayloadError(String action, String message) implements DispatchResult {}
@@ -79,6 +83,10 @@ public class ActionDispatcher {
             }
             contractLookup.publish((EventKey.SimpleKey) sk, parsed);
         }
-        return new DispatchResult.Dispatched(action, payload);
+
+        // Enqueue a fence task after the action event — completes after the handler runs
+        CompletableFuture<Void> processed = new CompletableFuture<>();
+        contractLookup.enqueueTask(() -> processed.complete(null));
+        return new DispatchResult.Dispatched(action, payload, processed);
     }
 }

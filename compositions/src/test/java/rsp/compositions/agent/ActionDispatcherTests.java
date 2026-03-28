@@ -204,6 +204,7 @@ class ActionDispatcherTests {
         @Override public <T> Lookup with(Class<T> clazz, T instance) { return this; }
         @Override public <T> void publish(EventKey<T> key, T payload) {}
         @Override public void publish(EventKey.VoidKey key) {}
+        @Override public void enqueueTask(Runnable task) { task.run(); }
         @Override public <T> Registration subscribe(EventKey<T> key, java.util.function.BiConsumer<String, T> handler) {
             return () -> {};
         }

@@ -155,8 +155,11 @@ public final class ClaudeAgentService extends AgentService {
             return Optional.empty();
         }
 
-        // The model may wrap JSON in markdown code fences — strip them
-        String jsonContent = stripCodeFences(fullContent);
+        // The model may wrap JSON in markdown code fences or prefix with prose — extract JSON
+        String jsonContent = extractJson(fullContent);
+        if (jsonContent == null) {
+            return Optional.empty();
+        }
 
         JsonDataType modelOutput = JsonUtils.parse(jsonContent);
         if (!(modelOutput instanceof JsonDataType.Object outputObj)) {
@@ -201,10 +204,13 @@ public final class ClaudeAgentService extends AgentService {
     }
 
     /**
-     * Strip markdown code fences if the model wraps JSON in them.
+     * Extract JSON object from model output that may be wrapped in markdown
+     * code fences or prefixed with prose text.
+     * Returns null if no JSON object is found.
      */
-    private String stripCodeFences(String content) {
+    private String extractJson(String content) {
         String trimmed = content.strip();
+        // Strip markdown code fences
         if (trimmed.startsWith("```")) {
             int firstNewline = trimmed.indexOf('\n');
             if (firstNewline >= 0) {
@@ -213,9 +219,27 @@ public final class ClaudeAgentService extends AgentService {
             if (trimmed.endsWith("```")) {
                 trimmed = trimmed.substring(0, trimmed.length() - 3);
             }
-            return trimmed.strip();
+            trimmed = trimmed.strip();
         }
-        return trimmed;
+        // If it already starts with '{', return as-is
+        if (trimmed.startsWith("{")) {
+            return trimmed;
+        }
+        // Find the first '{' and extract the JSON object by matching braces
+        int start = trimmed.indexOf('{');
+        if (start < 0) {
+            return null;
+        }
+        int depth = 0;
+        for (int i = start; i < trimmed.length(); i++) {
+            char c = trimmed.charAt(i);
+            if (c == '{') depth++;
+            else if (c == '}') depth--;
+            if (depth == 0) {
+                return trimmed.substring(start, i + 1);
+            }
+        }
+        return null;
     }
 
     private Optional<AgentResult> toAgentResult(JsonDataType.Object output,
@@ -387,7 +411,8 @@ public final class ClaudeAgentService extends AgentService {
 
             Response types:
             - Single action: {"type": "intent", "action": "...", "payload": ..., "targetContract": "...", "message": "..."}
-            - Multi-step plan: {"type": "plan", "steps": ["step 1 intent", "step 2 intent"], "message": "summary"}
+            - Multi-step plan: {"type": "plan", "steps": ["go to page 1", "select all items", "delete selected items"], "message": "summary"}
+              Plan steps MUST be natural language phrases, NOT action specs like "action=page&payload=1".
             - Text reply: {"type": "text", "message": "..."}
 
             Allowed actions:

@@ -233,6 +233,23 @@ public interface Lookup {
      */
     Registration subscribe(EventKey.VoidKey key, Runnable handler);
 
+    // ===== Task Enqueueing =====
+
+    /**
+     * Enqueue a task to run on the event loop.
+     *
+     * <p>The task is queued via the Reactor and executes after any
+     * previously queued events have been processed. This provides
+     * a synchronization point: a task enqueued after an event publish
+     * is guaranteed to run after that event's handler completes.</p>
+     *
+     * @param task the task to execute on the event loop
+     * @throws UnsupportedOperationException if this Lookup does not support task enqueueing
+     */
+    default void enqueueTask(final Runnable task) {
+        throw new UnsupportedOperationException("Task enqueueing not available in this context");
+    }
+
     // ===== Event Publishing =====
 
     /**

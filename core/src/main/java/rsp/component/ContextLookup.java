@@ -1,5 +1,7 @@
 package rsp.component;
 
+import rsp.page.events.GenericTaskEvent;
+
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
@@ -119,5 +121,12 @@ public final class ContextLookup implements Lookup {
     @Override
     public void publish(final EventKey.VoidKey key) {
         commandsEnqueue.offer(key.notification());
+    }
+
+    // ===== Task Enqueueing - delegates to CommandsEnqueue (async via Reactor) =====
+
+    @Override
+    public void enqueueTask(final Runnable task) {
+        commandsEnqueue.offer(new GenericTaskEvent(task));
     }
 }

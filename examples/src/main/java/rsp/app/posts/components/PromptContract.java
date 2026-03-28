@@ -327,8 +327,10 @@ public class PromptContract extends ViewContract {
                             actionResult.action(), actionResult.payload(),
                             capturedContract, lookup, capturedGate);
                     switch (dispatchResult) {
-                        case DispatchResult.Dispatched d ->
+                        case DispatchResult.Dispatched d -> {
                             promptService.sendReply(scopeKey, d.action().description());
+                            d.processed().join();
+                        }
                         case DispatchResult.Blocked b -> {
                             promptService.sendReply(scopeKey, "Step blocked: " + b.reason());
                             return;
