@@ -13,11 +13,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jetty-web-server</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>io.github.vadimv</groupId>
             <artifactId>core</artifactId>
             <version>${project.version}</version>

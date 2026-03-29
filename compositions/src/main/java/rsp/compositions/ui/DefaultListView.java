@@ -1,7 +1,5 @@
 package rsp.compositions.ui;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentView;
 import rsp.component.StateUpdate;
@@ -30,7 +28,7 @@ import static rsp.dsl.Html.*;
  */
 public class DefaultListView extends ListView {
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultListView.class);
+    private final System.Logger logger = System.getLogger(getClass().getName());
 
     @Override
     public void onMounted(ComponentCompositeKey componentId, ListViewState state,
