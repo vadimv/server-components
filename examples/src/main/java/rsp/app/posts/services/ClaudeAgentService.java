@@ -1,12 +1,10 @@
 package rsp.app.posts.services;
 
-import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.AgentService;
+import rsp.compositions.agent.AgentServiceUtils;
 import rsp.compositions.agent.ContractProfile;
-import rsp.compositions.agent.PayloadSchemas;
+import rsp.compositions.agent.ToolDefinition;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonUtils;
 
@@ -20,24 +18,20 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * Claude API-backed agent service using the Anthropic Messages API.
+ * Claude API-backed agent service using the Anthropic Messages API with tool use.
  *
- * <p>Responses are expected as strict JSON and validated against the current
- * contract profile before being translated into {@link AgentResult}.
- * If parsing/validation/network fails, it returns a text reply with the error.
+ * <p>Sends structured {@link ToolDefinition}s so that Claude returns validated
+ * {@code tool_use} content blocks instead of free-text JSON. This eliminates
+ * parsing fragility (prose-prefixed JSON, markdown fences, schema mismatches).
  *
- * <p>Returns {@link AgentResult.ActionResult} with the matching {@link AgentAction}
- * from the contract's declared actions, or {@link AgentResult.NavigateResult} for navigation.
+ * <p>Shared logic (tool building, action lookup, contract resolution) is
+ * delegated to {@link AgentServiceUtils}.
  */
 public final class ClaudeAgentService extends AgentService {
     private static final System.Logger LOGGER =
@@ -62,17 +56,39 @@ public final class ClaudeAgentService extends AgentService {
             .build();
     }
 
+    /**
+     * Execution phase: full tool set for single-action step execution.
+     * Called by plan executor for each individual step.
+     */
     @Override
     public AgentResult handlePrompt(String prompt, ContractProfile profile, StructureNode structureTree) {
-        return handlePrompt(prompt, profile, structureTree, _ -> {});
+        return doHandlePrompt(prompt,
+            AgentServiceUtils.buildToolDefinitions(profile, structureTree),
+            AgentServiceUtils.buildExecutionPrompt(profile, structureTree),
+            profile, structureTree, _ -> {});
     }
 
+    /**
+     * Classification phase: only plan + text_reply tools.
+     * Called for the initial user prompt to classify as plan or greeting.
+     */
     @Override
     public AgentResult handlePrompt(String prompt, ContractProfile profile,
                                     StructureNode structureTree,
                                     Consumer<String> onPartialContent) {
+        return doHandlePrompt(prompt,
+            AgentServiceUtils.buildClassificationTools(),
+            AgentServiceUtils.buildClassificationPrompt(profile, structureTree),
+            profile, structureTree, onPartialContent);
+    }
+
+    private AgentResult doHandlePrompt(String prompt, List<ToolDefinition> tools,
+                                        String systemPrompt,
+                                        ContractProfile profile, StructureNode structureTree,
+                                        Consumer<String> onPartialContent) {
         try {
-            Optional<AgentResult> parsed = parseWithClaudeStreaming(prompt, profile, structureTree, onPartialContent);
+            Optional<AgentResult> parsed = streamRequest(prompt, tools, systemPrompt,
+                profile, structureTree, onPartialContent);
             if (parsed.isPresent()) {
                 return parsed.get();
             }
@@ -85,15 +101,17 @@ public final class ClaudeAgentService extends AgentService {
     }
 
     /**
-     * Stream tokens from Claude API, pushing partial content to the callback as they arrive.
-     * Debounces updates: pushes every {@code DEBOUNCE_MS} ms or every {@code DEBOUNCE_TOKENS} tokens.
+     * Stream tokens from Claude API with tool use, pushing partial text content
+     * to the callback as it arrives. Tool use blocks are accumulated silently
+     * and converted to an {@link AgentResult} after the stream completes.
      */
-    private Optional<AgentResult> parseWithClaudeStreaming(String prompt, ContractProfile profile,
-                                                           StructureNode structureTree,
-                                                           Consumer<String> onPartialContent)
+    private Optional<AgentResult> streamRequest(String prompt, List<ToolDefinition> tools,
+                                                 String systemPrompt,
+                                                 ContractProfile profile, StructureNode structureTree,
+                                                 Consumer<String> onPartialContent)
             throws IOException, InterruptedException {
-        String systemPrompt = buildSystemPrompt(profile, structureTree);
-        String requestBody = buildStreamingRequest(prompt, systemPrompt);
+        String requestBody = buildStreamingRequest(prompt, systemPrompt, tools);
+
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(API_ENDPOINT))
             .header("Content-Type", "application/json")
@@ -110,8 +128,11 @@ public final class ClaudeAgentService extends AgentService {
             return Optional.empty();
         }
 
-        // Read SSE stream, accumulate content tokens
-        StringBuilder accumulated = new StringBuilder();
+        // Track content blocks from SSE stream
+        StringBuilder textContent = new StringBuilder();
+        String[] toolNameHolder = {null};
+        StringBuilder toolInputJson = new StringBuilder();
+        boolean capturingToolInput = false;
         int tokensSinceLastPush = 0;
         long lastPushTime = System.currentTimeMillis();
 
@@ -123,255 +144,118 @@ public final class ClaudeAgentService extends AgentService {
                 String data = line.substring("data: ".length());
                 if ("[DONE]".equals(data)) break;
 
-                String token = extractToken(data);
-                if (token != null && !token.isEmpty()) {
-                    accumulated.append(token);
-                    tokensSinceLastPush++;
+                try {
+                    JsonDataType root = JsonUtils.parse(data);
+                    if (!(root instanceof JsonDataType.Object rootObj)) continue;
+                    String eventType = AgentServiceUtils.getString(rootObj.value("type")).orElse("");
 
-                    long now = System.currentTimeMillis();
-                    if (tokensSinceLastPush >= DEBOUNCE_TOKENS || (now - lastPushTime) >= DEBOUNCE_MS) {
-                        onPartialContent.accept(accumulated.toString());
-                        tokensSinceLastPush = 0;
-                        lastPushTime = now;
+                    switch (eventType) {
+                        case "content_block_start" -> {
+                            JsonDataType blockNode = rootObj.value("content_block");
+                            if (blockNode instanceof JsonDataType.Object block) {
+                                String blockType = AgentServiceUtils.getString(
+                                    block.value("type")).orElse("");
+                                if ("tool_use".equals(blockType) && toolNameHolder[0] == null) {
+                                    toolNameHolder[0] = AgentServiceUtils.getString(
+                                        block.value("name")).orElse("");
+                                    capturingToolInput = true;
+                                }
+                            }
+                        }
+                        case "content_block_delta" -> {
+                            JsonDataType deltaNode = rootObj.value("delta");
+                            if (deltaNode instanceof JsonDataType.Object delta) {
+                                String deltaType = AgentServiceUtils.getString(
+                                    delta.value("type")).orElse("");
+                                if ("text_delta".equals(deltaType)) {
+                                    String text = AgentServiceUtils.getString(
+                                        delta.value("text")).orElse("");
+                                    textContent.append(text);
+                                    tokensSinceLastPush++;
+                                    long now = System.currentTimeMillis();
+                                    if (tokensSinceLastPush >= DEBOUNCE_TOKENS
+                                            || (now - lastPushTime) >= DEBOUNCE_MS) {
+                                        onPartialContent.accept(textContent.toString());
+                                        tokensSinceLastPush = 0;
+                                        lastPushTime = now;
+                                    }
+                                } else if ("input_json_delta".equals(deltaType) && capturingToolInput) {
+                                    String partial = AgentServiceUtils.getString(
+                                        delta.value("partial_json")).orElse("");
+                                    toolInputJson.append(partial);
+                                }
+                            }
+                        }
+                        case "content_block_stop" -> {
+                            if (capturingToolInput) {
+                                capturingToolInput = false;
+                            }
+                        }
+                        case "message_stop" -> { /* stream is done */ }
+                        default -> { /* ignore other event types */ }
                     }
-                }
-
-                // Check for message_stop event
-                if (isStreamDone(data)) {
-                    break;
+                } catch (Exception e) {
+                    // Skip unparseable SSE events
                 }
             }
         }
 
-        // Final push with complete content
-        String fullContent = accumulated.toString();
-        if (!fullContent.isEmpty()) {
-            onPartialContent.accept(fullContent);
+        // Final push with complete text content
+        if (!textContent.isEmpty()) {
+            onPartialContent.accept(textContent.toString());
         }
 
+        String toolName = toolNameHolder[0];
         LOGGER.log(System.Logger.Level.INFO,
-            () -> "Claude [" + prompt + "] -> " + fullContent);
+            () -> "Claude [" + prompt + "] -> tool=" + toolNameHolder[0] + " input=" + toolInputJson);
 
-        if (fullContent.isBlank()) {
-            return Optional.empty();
+        // If we got a tool use, convert to AgentResult
+        if (toolName != null && !toolName.isEmpty()) {
+            return toolUseToAgentResult(toolName, toolInputJson.toString(), profile, structureTree);
         }
 
-        // The model may wrap JSON in markdown code fences or prefix with prose — extract JSON
-        String jsonContent = extractJson(fullContent);
-        if (jsonContent == null) {
+        // No tool use — treat accumulated text as a text reply
+        String text = textContent.toString().strip();
+        if (text.isBlank()) {
             return Optional.empty();
         }
-
-        JsonDataType modelOutput = JsonUtils.parse(jsonContent);
-        if (!(modelOutput instanceof JsonDataType.Object outputObj)) {
-            return Optional.empty();
-        }
-
-        return toAgentResult(outputObj, profile, structureTree, prompt);
+        return Optional.of(new AgentResult.TextReply(text));
     }
 
     /**
-     * Extract text delta from a Claude SSE event.
-     * Event format: {"type":"content_block_delta","delta":{"type":"text_delta","text":"TOKEN"}}
+     * Parses accumulated tool input JSON and delegates to the shared converter.
      */
-    private String extractToken(String jsonLine) {
+    private Optional<AgentResult> toolUseToAgentResult(String toolName, String inputJson,
+                                                        ContractProfile profile,
+                                                        StructureNode structureTree) {
         try {
-            JsonDataType root = JsonUtils.parse(jsonLine);
-            if (!(root instanceof JsonDataType.Object rootObj)) return null;
-            String type = getString(rootObj.value("type")).orElse("");
-            if (!"content_block_delta".equals(type)) return null;
-            JsonDataType deltaNode = rootObj.value("delta");
-            if (!(deltaNode instanceof JsonDataType.Object deltaObj)) return null;
-            JsonDataType textNode = deltaObj.value("text");
-            if (!(textNode instanceof JsonDataType.String textStr)) return null;
-            return textStr.value();
+            JsonDataType parsed = JsonUtils.parse(inputJson.isBlank() ? "{}" : inputJson);
+            if (parsed instanceof JsonDataType.Object input) {
+                return AgentServiceUtils.toolUseToAgentResult(toolName, input, profile, structureTree);
+            }
         } catch (Exception e) {
-            return null;
+            LOGGER.log(System.Logger.Level.WARNING, "Failed to parse tool input JSON", e);
         }
+        return Optional.empty();
     }
 
-    /**
-     * Check if the SSE event indicates the stream is complete.
-     */
-    private boolean isStreamDone(String jsonLine) {
-        try {
-            JsonDataType root = JsonUtils.parse(jsonLine);
-            if (!(root instanceof JsonDataType.Object rootObj)) return false;
-            String type = getString(rootObj.value("type")).orElse("");
-            return "message_stop".equals(type);
-        } catch (Exception e) {
-            return false;
+    private String buildStreamingRequest(String userPrompt, String systemPrompt,
+                                          List<ToolDefinition> tools) {
+        StringBuilder toolsJson = new StringBuilder("[");
+        for (int i = 0; i < tools.size(); i++) {
+            if (i > 0) toolsJson.append(",");
+            toolsJson.append(tools.get(i).toAnthropicJson());
         }
-    }
+        toolsJson.append("]");
 
-    /**
-     * Extract JSON object from model output that may be wrapped in markdown
-     * code fences or prefixed with prose text.
-     * Returns null if no JSON object is found.
-     */
-    private String extractJson(String content) {
-        String trimmed = content.strip();
-        // Strip markdown code fences
-        if (trimmed.startsWith("```")) {
-            int firstNewline = trimmed.indexOf('\n');
-            if (firstNewline >= 0) {
-                trimmed = trimmed.substring(firstNewline + 1);
-            }
-            if (trimmed.endsWith("```")) {
-                trimmed = trimmed.substring(0, trimmed.length() - 3);
-            }
-            trimmed = trimmed.strip();
-        }
-        // If it already starts with '{', return as-is
-        if (trimmed.startsWith("{")) {
-            return trimmed;
-        }
-        // Find the first '{' and extract the JSON object by matching braces
-        int start = trimmed.indexOf('{');
-        if (start < 0) {
-            return null;
-        }
-        int depth = 0;
-        for (int i = start; i < trimmed.length(); i++) {
-            char c = trimmed.charAt(i);
-            if (c == '{') depth++;
-            else if (c == '}') depth--;
-            if (depth == 0) {
-                return trimmed.substring(start, i + 1);
-            }
-        }
-        return null;
-    }
-
-    private Optional<AgentResult> toAgentResult(JsonDataType.Object output,
-                                                ContractProfile profile,
-                                                StructureNode structureTree,
-                                                String prompt) {
-        String type = getString(output.value("type")).orElse("").toLowerCase(Locale.ROOT);
-        String action = getString(output.value("action")).orElse("");
-        String message = getString(output.value("message")).orElse("");
-
-        // Multi-step plan
-        if ("plan".equals(type)) {
-            JsonDataType stepsNode = output.value("steps");
-            if (stepsNode instanceof JsonDataType.Array arr) {
-                List<String> steps = new ArrayList<>();
-                for (int i = 0; i < arr.size(); i++) {
-                    if (arr.get(i) instanceof JsonDataType.String s) {
-                        steps.add(s.value());
-                    }
-                }
-                if (!steps.isEmpty()) {
-                    return Optional.of(new AgentResult.PlanResult(steps, message));
-                }
-            }
-            return Optional.empty();
-        }
-
-        if ("text".equals(type) && action.isBlank()) {
-            return Optional.of(new AgentResult.TextReply(
-                message.isBlank() ? "I don't understand." : message));
-        }
-
-        String targetContract = getString(output.value("targetContract")).orElse("");
-        if (action.isBlank() && !targetContract.isBlank()) {
-            action = "navigate";
-        }
-
-        if (action.isBlank()) {
-            return Optional.empty();
-        }
-
-        if (!isAllowedAction(action, profile)) {
-            return Optional.of(new AgentResult.TextReply("Action not allowed here: " + action));
-        }
-        JsonDataType rawJson = output.value("payload");
-        // Unwrap single-element array — Claude sometimes returns ["12"] instead of "12"
-        if (rawJson instanceof JsonDataType.Array arr && arr.size() == 1) {
-            rawJson = arr.get(0);
-        }
-        AgentPayload payload = AgentPayload.ofNullable(rawJson);
-        if ("navigate".equals(action)) {
-            if (targetContract.isBlank()
-                    && payload.value() instanceof JsonDataType.String s && !s.value().isBlank()) {
-                targetContract = s.value();
-            }
-            Class<? extends ViewContract> target = resolveTargetContract(targetContract, structureTree);
-            if (target == null) {
-                return Optional.of(new AgentResult.TextReply(
-                    "I couldn't resolve navigation target: " + targetContract));
-            }
-            return Optional.of(new AgentResult.NavigateResult(target));
-        }
-
-        // Look up the matching AgentAction from the contract's declared actions
-        AgentAction matchedAction = findAction(action, profile);
-        if (matchedAction == null) {
-            return Optional.of(new AgentResult.TextReply("Action not declared: " + action));
-        }
-        return Optional.of(new AgentResult.ActionResult(matchedAction, payload));
-    }
-
-    private boolean isAllowedAction(String action, ContractProfile profile) {
-        if ("navigate".equals(action)) {
-            return true;
-        }
-        return findAction(action, profile) != null;
-    }
-
-    private AgentAction findAction(String actionName, ContractProfile profile) {
-        for (AgentAction candidate : profile.actions()) {
-            if (candidate.action().equals(actionName)) {
-                return candidate;
-            }
-        }
-        return null;
-    }
-
-    private Class<? extends ViewContract> resolveTargetContract(String targetName, StructureNode node) {
-        if (targetName == null || targetName.isBlank() || node == null) {
-            return null;
-        }
-        return findContractByName(targetName.trim(), node);
-    }
-
-    private Class<? extends ViewContract> findContractByName(String name, StructureNode node) {
-        for (Class<? extends ViewContract> contract : node.contracts()) {
-            if (contract.getSimpleName().equalsIgnoreCase(name)
-                || contract.getName().equalsIgnoreCase(name)) {
-                return contract;
-            }
-        }
-        for (Class<? extends ViewContract> contract : node.contracts()) {
-            if (contract.getSimpleName().toLowerCase(Locale.ROOT).contains(name.toLowerCase(Locale.ROOT))) {
-                return contract;
-            }
-        }
-        if (node.label() != null && node.label().equalsIgnoreCase(name) && !node.contracts().isEmpty()) {
-            return node.contracts().get(0);
-        }
-        for (StructureNode child : node.children()) {
-            Class<? extends ViewContract> found = findContractByName(name, child);
-            if (found != null) {
-                return found;
-            }
-        }
-        return null;
-    }
-
-    private Optional<String> getString(JsonDataType value) {
-        return value instanceof JsonDataType.String s
-            ? Optional.ofNullable(s.value())
-            : Optional.empty();
-    }
-
-    private String buildStreamingRequest(String userPrompt, String systemPrompt) {
         return """
             {
               "model":"%s",
-              "max_tokens":256,
+              "max_tokens":1024,
               "stream":true,
               "system":"%s",
+              "tools":%s,
+              "tool_choice":{"type":"any"},
               "messages":[
                 {"role":"user","content":"%s"}
               ]
@@ -379,96 +263,7 @@ public final class ClaudeAgentService extends AgentService {
             """.formatted(
                 JsonUtils.escape(model),
                 JsonUtils.escape(systemPrompt),
+                toolsJson.toString(),
                 JsonUtils.escape(userPrompt));
-    }
-
-    private String buildSystemPrompt(ContractProfile profile, StructureNode structureTree) {
-        StringBuilder actions = new StringBuilder();
-        for (AgentAction action : profile.actions()) {
-            actions.append("- action=\"")
-                .append(action.action())
-                .append("\": ")
-                .append(action.description());
-            String payloadDesc = PayloadSchemas.describe(action.schema());
-            if (payloadDesc != null) {
-                actions.append(" (payload: ").append(payloadDesc).append(")");
-            }
-            actions.append("\n");
-        }
-
-        String structure = structureTree != null
-            ? structureTree.agentDescription()
-            : "";
-
-        String contractDesc = profile.metadata() != null
-            ? profile.metadata().title() + " — " + profile.metadata().description()
-            : "";
-
-        String stateDesc = describeState(profile);
-
-        return """
-            You are an intent parser. Return ONE JSON object. Do NOT wrap in markdown code fences. Output raw JSON only.
-            payload MUST be a single string, integer, or null — NEVER an array or object.
-            IMPORTANT: When an action requires an item ID as payload, use the actual ID from the visible items below — NEVER use a name or description.
-
-            Response types:
-            - Single action: {"type": "intent", "action": "...", "payload": ..., "targetContract": "...", "message": "..."}
-            - Multi-step plan: {"type": "plan", "steps": ["go to page 1", "select all items", "delete selected items"], "message": "summary"}
-              Plan steps MUST be natural language phrases, NOT action specs like "action=page&payload=1".
-            - Text reply: {"type": "text", "message": "..."}
-
-            Allowed actions:
-            %s- navigate: Go to a different page (set targetContract to the class name)
-
-            Current page: %s
-            App pages: %s
-            %s
-            Rules:
-            - "show posts" or "go to comments" -> action=navigate, targetContract=exact class name from App pages (e.g. PostsListContract, CommentsListContract)
-            - "page 3" or "goto page 2" -> action=page, payload=the number
-            - "create" or "new" -> action=create
-            - "edit 5" -> action=edit, payload=the item's ID (e.g. "5")
-            - "delete 'Some Title'" -> action=delete, payload=the item's ID resolved from visible items
-            - "select all" -> action=select_all
-            - For greetings or general questions -> type=text, message=a friendly short reply
-            """.formatted(
-            actions.toString().strip(),
-            contractDesc,
-            structure,
-            stateDesc);
-    }
-
-    @SuppressWarnings("unchecked")
-    private String describeState(ContractProfile profile) {
-        if (profile.metadata() == null) return "";
-        Map<String, Object> state = profile.metadata().state();
-        if (state.isEmpty()) return "";
-
-        StringBuilder sb = new StringBuilder("\nVisible items:\n");
-        if (state.get("items") instanceof List<?> items) {
-            for (Object item : items) {
-                if (item instanceof Map<?, ?> map) {
-                    sb.append("- ");
-                    Map<String, Object> row = (Map<String, Object>) map;
-                    Object id = row.get("id");
-                    if (id != null) sb.append("id=").append(id);
-                    for (Map.Entry<String, Object> e : row.entrySet()) {
-                        if (!"id".equals(e.getKey())) {
-                            sb.append(", ").append(e.getKey()).append("=").append(e.getValue());
-                        }
-                    }
-                    sb.append("\n");
-                }
-            }
-        } else if (state.get("entity") instanceof Map<?, ?> entity) {
-            sb.append("Current entity: ");
-            for (Map.Entry<?, ?> e : entity.entrySet()) {
-                sb.append(e.getKey()).append("=").append(e.getValue()).append(", ");
-            }
-            sb.append("\n");
-        } else {
-            return "";
-        }
-        return sb.toString();
     }
 }
