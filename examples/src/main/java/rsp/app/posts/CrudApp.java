@@ -57,24 +57,22 @@ public class CrudApp {
         this.agentService = agentService;
     }
 
-    static void main(final String[] args) {
-   //     new CrudApp().run(true);
+    static void main() {
 
-/*        var agent = new OllamaAgentService(
+        /*  var agent = new OllamaAgentService(
                 "http://127.0.0.1:11434/api/chat",
                 "mistral",   // was "tinyllama"
                 java.time.Duration.ofSeconds(120)
         );
-        new CrudApp(agent).run(true);*/
+        new CrudApp(agent).run(true); */
 
         var agent = new ClaudeAgentService(
                 System.getenv("ANTHROPIC_API_KEY"),
                 "claude-haiku-4-5-20251001",
                 java.time.Duration.ofSeconds(30)
         );
+
         new CrudApp(agent).run(true);
-
-
     }
 
     public WebServer run(final boolean blockCurrentThread) {

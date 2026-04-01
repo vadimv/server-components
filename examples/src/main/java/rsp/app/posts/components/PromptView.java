@@ -13,6 +13,7 @@ import java.util.List;
 import static rsp.dsl.Html.*;
 
 public class PromptView extends Component<PromptView.PromptViewState> {
+    private final System.Logger logger = System.getLogger(getClass().getName());
 
     public record PromptViewState(List<PromptContract.Message> messages) {
         public PromptViewState withMessage(PromptContract.Message message) {
@@ -104,9 +105,11 @@ public class PromptView extends Component<PromptView.PromptViewState> {
     @Override
     public void onMounted(ComponentCompositeKey componentId, PromptViewState state, StateUpdate<PromptViewState> stateUpdate) {
         eventSubscription = lookup.subscribe(PromptContract.NEW_MESSAGE, (eventName, message) -> {
+            logger.log(System.Logger.Level.TRACE, () -> "New message notified: " + message);
             stateUpdate.applyStateTransformation(s -> s.withMessage(message));
         });
         updateSubscription = lookup.subscribe(PromptContract.UPDATE_MESSAGE, (eventName, message) -> {
+            logger.log(System.Logger.Level.TRACE, () -> "Update message notified: " + message);
             stateUpdate.applyStateTransformation(s -> s.withLastSystemMessageUpdated(message.text()));
         });
     }

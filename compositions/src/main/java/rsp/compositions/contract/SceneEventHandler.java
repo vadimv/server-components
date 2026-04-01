@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.function.Function;
 
 import static rsp.compositions.contract.EventKeys.*;
-import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.RE_RENDER_SUBTREE;
+import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.UPDATE_PATH_ONLY;
 
 /**
  * Registers and handles Scene lifecycle events for the base layer (routed + companions).
@@ -79,7 +79,7 @@ public final class SceneEventHandler {
             if (route != null) {
                 Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
                 lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                               new AutoAddressBarSyncComponent.PathUpdate(route, RE_RENDER_SUBTREE));
+                               new AutoAddressBarSyncComponent.PathUpdate(route, UPDATE_PATH_ONLY));
             }
         }
 

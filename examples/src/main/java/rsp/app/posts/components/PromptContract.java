@@ -306,20 +306,27 @@ public class PromptContract extends ViewContract {
                     return;
                 }
                 case AgentResult.NavigateResult nav -> {
-                    sceneSettleFuture = new CompletableFuture<>();
-                    dispatcher.dispatchNavigate(nav.targetContract(), lookup);
-                    promptService.sendReply(scopeKey, "Navigating...");
-
-                    Scene settled = awaitSceneSettle();
-                    if (settled == null) {
-                        return;
-                    }
-                    // Verify our navigation landed, not a concurrent user action
-                    if (settled.routedContract() == null
-                            || !nav.targetContract().isInstance(settled.routedContract())) {
+                    // Already on the target contract — no navigation needed
+                    if (currentScene != null && currentScene.routedContract() != null
+                            && nav.targetContract().isInstance(currentScene.routedContract())) {
                         promptService.sendReply(scopeKey,
-                                "Plan interrupted: unexpected navigation.");
-                        return;
+                                "Already on " + nav.targetContract().getSimpleName());
+                    } else {
+                        sceneSettleFuture = new CompletableFuture<>();
+                        dispatcher.dispatchNavigate(nav.targetContract(), lookup);
+                        promptService.sendReply(scopeKey, "Navigating...");
+
+                        Scene settled = awaitSceneSettle();
+                        if (settled == null) {
+                            return;
+                        }
+                        // Verify our navigation landed, not a concurrent user action
+                        if (settled.routedContract() == null
+                                || !nav.targetContract().isInstance(settled.routedContract())) {
+                            promptService.sendReply(scopeKey,
+                                    "Plan interrupted: unexpected navigation.");
+                            return;
+                        }
                     }
                 }
                 case AgentResult.ActionResult actionResult -> {
