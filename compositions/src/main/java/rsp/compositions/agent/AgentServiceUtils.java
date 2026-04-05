@@ -292,7 +292,9 @@ public final class AgentServiceUtils {
 
             Rules:
             - "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
-            - "page 3", "goto page 2" -> page tool with the number as payload
+            - "page 3", "goto page 2", "go to page N" -> page tool with the number as payload
+            - "select all", "select all items", "select all rows", "select everything", "select all items on page N" -> select_all tool (no payload) — NEVER use the page tool for these
+            - "delete selected", "delete all selected" -> delete_selected tool (no payload)
             - "create", "new" -> create tool
             - "edit 5" -> edit tool with the item's ID as payload
             - "delete 'Some Title'" -> resolve the item's ID from the visible items below, then use the delete tool with that ID
