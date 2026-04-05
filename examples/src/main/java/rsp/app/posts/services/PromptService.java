@@ -3,6 +3,7 @@ package rsp.app.posts.services;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class PromptService {
@@ -15,12 +16,13 @@ public class PromptService {
         SESSION_ID
     }
 
-    public record Message(String text, boolean fromUser, boolean update) {
-        public Message(String text, boolean fromUser) {
-            this(text, fromUser, false);
+    public record Message(long id, String text, boolean fromUser, boolean update) {
+        public Message(long id, String text, boolean fromUser) {
+            this(id, text, fromUser, false);
         }
     }
 
+    private final AtomicLong messageIdGenerator = new AtomicLong(0);
     private final AtomicInteger messageCount = new AtomicInteger(0);
     private final AtomicInteger tickCount = new AtomicInteger(0);
     private final ConcurrentMap<String, List<Consumer<Message>>> subscribersByScope = new ConcurrentHashMap<>();
@@ -49,9 +51,9 @@ public class PromptService {
      * @param text the prompt text
      */
     public void sendPrompt(String scopeKey, String text) {
-        history(scopeKey).add(new Message(text, true));
+        history(scopeKey).add(new Message(messageIdGenerator.incrementAndGet(), text, true));
         int count = messageCount.incrementAndGet();
-        Message reply = new Message("echo-" + count, false);
+        Message reply = new Message(messageIdGenerator.incrementAndGet(), "echo-" + count, false);
        // notifySubscribers(scopeKey, reply);
     }
 
@@ -76,7 +78,7 @@ public class PromptService {
         });
         scheduler.scheduleAtFixedRate(() -> {
             int count = tickCount.incrementAndGet();
-            Message tick = new Message("tick-" + count, false);
+            Message tick = new Message(messageIdGenerator.incrementAndGet(), "tick-" + count, false);
             // Broadcast tick to all active scopes
             for (String scopeKey : subscribersByScope.keySet()) {
               //  notifySubscribers(scopeKey, tick);
@@ -92,7 +94,7 @@ public class PromptService {
      * @param text     the reply text
      */
     public void sendReply(String scopeKey, String text) {
-        Message reply = new Message(text, false);
+        Message reply = new Message(messageIdGenerator.incrementAndGet(), text, false);
         notifySubscribers(scopeKey, reply);
     }
 
@@ -106,12 +108,13 @@ public class PromptService {
         // Replace last non-user message in history
         for (int i = hist.size() - 1; i >= 0; i--) {
             if (!hist.get(i).fromUser()) {
-                hist.set(i, new Message(text, false, true));
+                hist.set(i, new Message(hist.get(i).id(), text, false, true));
                 break;
             }
         }
-        // Notify with update flag
-        Message update = new Message(text, false, true);
+        // Notify with update flag — reuse the same id as the message being updated
+        long updateId = messageIdGenerator.incrementAndGet();
+        Message update = new Message(updateId, text, false, true);
         List<Consumer<Message>> subscribers = subscribersByScope.get(scopeKey);
         if (subscribers == null) {
             return;

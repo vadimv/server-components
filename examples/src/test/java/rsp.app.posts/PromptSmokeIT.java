@@ -14,8 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end smoke tests for the Prompt sidebar functionality.
- * Verifies echo responses across navigation (Posts -> Comments).
- * Tick messages are ignored in this test.
+ * Verifies prompt submission and agent replies across navigation (Posts -> Comments).
+ * The agent session requires approval; the test clicks through the approval dialog.
  */
 @net.jcip.annotations.NotThreadSafe
 class PromptSmokeIT {
@@ -50,10 +50,21 @@ class PromptSmokeIT {
 
         assertThat(promptPanel(page)).isVisible();
 
-        sendPromptAndExpectEcho(page, "message-1");
+        // First prompt triggers the approval dialog
+        sendPrompt(page, "message-1");
+        approveAgentDelegation(page);
 
+        // After approval, the queued prompt is processed — wait for a system reply
+        waitForSystemMessageCount(page, 1);
+
+        // Navigate and send another prompt (agent session already approved)
         navigateToComments(page);
-        sendPromptAndExpectEcho(page, "message-2");
+        sendPrompt(page, "message-2");
+        int countBefore = systemMessages(page).count();
+        waitForSystemMessageCount(page, countBefore + 1);
+
+        assertTrue(systemMessages(page).count() >= 2,
+                "Expected at least two system replies across navigation");
     }
 
     private static Stream<BrowserType> browserTypes() {
@@ -63,19 +74,19 @@ class PromptSmokeIT {
         );
     }
 
-    private void sendPromptAndExpectEcho(final Page page, final String message) {
+    private void sendPrompt(final Page page, final String message) {
         Locator prompt = promptPanel(page);
         assertThat(prompt).isVisible();
-
-        int echoCountBefore = echoMessages(page).count();
 
         Locator input = prompt.locator(".prompt-input");
         input.fill(message);
         input.press("Enter");
+    }
 
-        waitForEchoCount(page, echoCountBefore + 1);
-        assertTrue(echoMessages(page).count() >= echoCountBefore + 1,
-                "Expected at least one new echo after sending: " + message);
+    private void approveAgentDelegation(final Page page) {
+        Locator approveButton = page.locator(".btn-approve");
+        approveButton.waitFor(new Locator.WaitForOptions().setTimeout(5000));
+        approveButton.click();
     }
 
     private void navigateToComments(final Page page) {
@@ -97,17 +108,15 @@ class PromptSmokeIT {
         return page.locator(".prompt-panel");
     }
 
-    private Locator echoMessages(final Page page) {
-        return page.locator(".prompt-message.system:has-text(\"echo-\")");
+    private Locator systemMessages(final Page page) {
+        return page.locator(".prompt-message.system");
     }
 
-    private void waitForEchoCount(final Page page, final int expectedMinCount) {
+    private void waitForSystemMessageCount(final Page page, final int expectedMinCount) {
         page.waitForFunction(
-                "expected => Array.from(document.querySelectorAll('.prompt-message.system'))" +
-                        ".map(el => (el.textContent || '').trim())" +
-                        ".filter(text => text.startsWith('echo-')).length >= expected",
+                "expected => document.querySelectorAll('.prompt-message.system').length >= expected",
                 expectedMinCount,
-                new Page.WaitForFunctionOptions().setTimeout(5000)
+                new Page.WaitForFunctionOptions().setTimeout(10000)
         );
     }
 

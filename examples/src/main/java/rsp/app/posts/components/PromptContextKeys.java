@@ -1,13 +1,14 @@
 package rsp.app.posts.components;
 
+import rsp.app.posts.services.PromptService;
 import rsp.component.ContextKey;
 
-import java.util.List;
-
 public final class PromptContextKeys {
-    @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<List<PromptContract.Message>> PROMPT_MESSAGES =
-            new ContextKey.StringKey<>("prompt.messages", (Class<List<PromptContract.Message>>) (Class<?>) List.class);
+    public static final ContextKey.StringKey<PromptService> PROMPT_SERVICE =
+            new ContextKey.StringKey<>("prompt.service", PromptService.class);
+
+    public static final ContextKey.StringKey<String> SCOPE_KEY =
+            new ContextKey.StringKey<>("prompt.scopeKey", String.class);
 
     private PromptContextKeys() {}
 }

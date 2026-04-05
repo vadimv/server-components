@@ -1,5 +1,6 @@
 package rsp.app.posts.components;
 
+import rsp.app.posts.services.PromptService;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
@@ -17,6 +18,10 @@ public class PromptView extends Component<PromptView.PromptViewState> {
 
     public record PromptViewState(List<PromptContract.Message> messages) {
         public PromptViewState withMessage(PromptContract.Message message) {
+            // Idempotent: skip if message already present (by ID)
+            if (messages.stream().anyMatch(m -> m.id() == message.id())) {
+                return this;
+            }
             List<PromptContract.Message> updated = new ArrayList<>(messages);
             updated.add(message);
             return new PromptViewState(List.copyOf(updated));
@@ -26,7 +31,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             List<PromptContract.Message> updated = new ArrayList<>(messages);
             for (int i = updated.size() - 1; i >= 0; i--) {
                 if (!updated.get(i).fromUser()) {
-                    updated.set(i, new PromptContract.Message(text, false));
+                    updated.set(i, new PromptContract.Message(updated.get(i).id(), text, false));
                     break;
                 }
             }
@@ -41,8 +46,16 @@ public class PromptView extends Component<PromptView.PromptViewState> {
     @Override
     public ComponentStateSupplier<PromptViewState> initStateSupplier() {
         return (_, context) -> {
-            List<PromptContract.Message> messages = context.get(PromptContextKeys.PROMPT_MESSAGES);
-            return new PromptViewState(messages != null ? messages : List.of());
+            PromptService promptService = context.get(PromptContextKeys.PROMPT_SERVICE);
+            String scopeKey = context.get(PromptContextKeys.SCOPE_KEY);
+            if (promptService != null && scopeKey != null) {
+                List<PromptContract.Message> history = promptService.getMessageHistory(scopeKey)
+                    .stream()
+                    .map(m -> new PromptContract.Message(m.id(), m.text(), m.fromUser()))
+                    .toList();
+                return new PromptViewState(history);
+            }
+            return new PromptViewState(List.of());
         };
     }
 
@@ -91,7 +104,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                 if (!text.isEmpty()) {
                                     if (stateUpdate != null) {
                                         stateUpdate.applyStateTransformation(s ->
-                                                s.withMessage(new PromptContract.Message(text, true)));
+                                                s.withMessage(new PromptContract.Message(-1, text, true)));
                                     }
                                     lookup.publish(PromptContract.SEND_PROMPT, text);
                                 }
@@ -104,6 +117,8 @@ public class PromptView extends Component<PromptView.PromptViewState> {
 
     @Override
     public void onMounted(ComponentCompositeKey componentId, PromptViewState state, StateUpdate<PromptViewState> stateUpdate) {
+        // History already loaded synchronously in initStateSupplier.
+        // Subscribe for incremental updates only — ID dedup in withMessage prevents duplicates.
         eventSubscription = lookup.subscribe(PromptContract.NEW_MESSAGE, (eventName, message) -> {
             logger.log(System.Logger.Level.TRACE, () -> "New message notified: " + message);
             stateUpdate.applyStateTransformation(s -> s.withMessage(message));

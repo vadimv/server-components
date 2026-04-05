@@ -40,7 +40,7 @@ import java.util.concurrent.TimeoutException;
 public class PromptContract extends ViewContract {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    public record Message(String text, boolean fromUser) {}
+    public record Message(long id, String text, boolean fromUser) {}
 
     public static final EventKey.SimpleKey<String> SEND_PROMPT =
             new EventKey.SimpleKey<>("prompt.send", String.class);
@@ -53,7 +53,6 @@ public class PromptContract extends ViewContract {
 
     private record PendingAction(AgentAction action, AgentPayload payload) {}
 
-    private final List<Message> messages = new ArrayList<>();
     private Runnable serviceUnsubscribe;
     private final String scopeKey;
     private final PromptService promptService;
@@ -119,13 +118,7 @@ public class PromptContract extends ViewContract {
             this.actionFilter = (actions, ctx) -> List.of();
         }
 
-        // Initialize from service history (survives contract recreation)
-        for (PromptService.Message msg : promptService.getMessageHistory(scopeKey)) {
-            messages.add(new Message(msg.text(), msg.fromUser()));
-        }
-
         subscribe(SEND_PROMPT, (eventName, text) -> {
-            messages.add(new Message(text, true));
             promptService.sendPrompt(scopeKey, text);
             handleUserInput(text);
         });
@@ -156,18 +149,10 @@ public class PromptContract extends ViewContract {
         });
 
         serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
-            Message msg = new Message(message.text(), message.fromUser());
+            Message msg = new Message(message.id(), message.text(), message.fromUser());
             if (message.update()) {
-                // Replace last system message in local list
-                for (int i = messages.size() - 1; i >= 0; i--) {
-                    if (!messages.get(i).fromUser()) {
-                        messages.set(i, msg);
-                        break;
-                    }
-                }
                 lookup.publish(UPDATE_MESSAGE, msg);
             } else {
-                messages.add(msg);
                 lookup.publish(NEW_MESSAGE, msg);
             }
         });
@@ -434,7 +419,8 @@ public class PromptContract extends ViewContract {
         if (future != null && !future.isDone()) {
             future.complete(currentScene);
         }
-        return context.with(PromptContextKeys.PROMPT_MESSAGES, List.copyOf(messages));
+        return context.with(PromptContextKeys.PROMPT_SERVICE, promptService)
+                      .with(PromptContextKeys.SCOPE_KEY, scopeKey);
     }
 
     @Override

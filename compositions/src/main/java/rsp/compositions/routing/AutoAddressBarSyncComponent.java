@@ -74,6 +74,13 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
 public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponent {
 
     /**
+     * Tracks the path set by an UPDATE_PATH_ONLY event so the next query-param
+     * update uses the correct base path instead of the (possibly stale) state.
+     * Set and cleared on the event-loop thread only — no synchronization needed.
+     */
+    private String pendingPath = null;
+
+    /**
      * Payload for SET_PATH events.
      *
      * @param path the target URL path
@@ -196,14 +203,19 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                                               StateUpdate<RelativeUrl> stateUpdate) {
         subscriber.addEventHandler(SET_PATH, (eventName, pathUpdate) -> {
             if (pathUpdate.mode() == PathUpdateMode.RE_RENDER_SUBTREE) {
-                // Full navigation: update state (triggers subtree re-render) + push history
+                // Full navigation: update state (triggers subtree re-render) + push history.
+                // Clear pendingPath — state is being updated so it is no longer needed as a base.
+                pendingPath = null;
                 stateUpdate.applyStateTransformation(url -> {
                     RelativeUrl updatedUrl = new RelativeUrl(Path.of(pathUpdate.path()), Query.EMPTY, Fragment.EMPTY);
                     commandsEnqueue.offer(new RemoteCommand.PushHistory(pathUpdate.path()));
                     return updatedUrl;
                 });
             } else {
-                // URL-only update: push browser history without re-rendering
+                // URL-only update: push browser history without re-rendering.
+                // Track the new path so the next query-param update uses it as
+                // the base URL rather than the (now stale) internal state.
+                pendingPath = pathUpdate.path();
                 commandsEnqueue.offer(new RemoteCommand.PushHistory(pathUpdate.path()));
             }
         }, false);
@@ -246,8 +258,15 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
 
                 final Object valueObject = eventContext.eventObject();
                 if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
+                    // If a SET_PATH UPDATE_PATH_ONLY arrived since the last render,
+                    // use that path as the base so routing is not stale.
+                    final String basePath = pendingPath;
+                    pendingPath = null;
                     stateUpdate.applyStateTransformation(currentState -> {
-                        RelativeUrl updatedUrl = updateQueryParameter(currentState, paramName, stringValue.value());
+                        RelativeUrl base = (basePath != null)
+                                ? new RelativeUrl(Path.of(basePath), Query.EMPTY, Fragment.EMPTY)
+                                : currentState;
+                        RelativeUrl updatedUrl = updateQueryParameter(base, paramName, stringValue.value());
                         commandsEnqueue.offer(new RemoteCommand.PushHistory(updatedUrl.toString()));
                         return updatedUrl;
                     });
@@ -260,12 +279,12 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      * Subscribe to ALL path element change events.
      * Event names: "stateUpdated.url.path.{index}" (e.g., "stateUpdated.url.path.0")
      */
-    private void subscribeForPathElementUpdates(RelativeUrl currentUrl,
+    private void subscribeForPathElementUpdates(RelativeUrl initialUrl,
                                                 Subscriber subscriber,
                                                 CommandsEnqueue commandsEnqueue,
                                                 StateUpdate<RelativeUrl> stateUpdate) {
         // Subscribe for each path element position
-        for (int i = 0; i < currentUrl.path().elementsCount(); i++) {
+        for (int i = 0; i < initialUrl.path().elementsCount(); i++) {
             final int index = i;
             subscriber.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "url.path." + i,
                 eventContext -> {

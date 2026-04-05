@@ -1,7 +1,6 @@
 package rsp.component;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -203,6 +202,19 @@ public final class ComponentContext {
     public <T> ComponentContext with(final T instance) {
         final Class<Object> clazz = (Class<Object>) instance.getClass();
         return with(new ContextKey.ClassKey<>(clazz), instance);
+    }
+
+    /**
+     * Creates a new context with all string-keyed entries whose key starts with the given prefix removed.
+     *
+     * @param prefix the key prefix to remove (e.g. {@code "url.query."})
+     * @return a new ComponentContext instance without the matching entries
+     */
+    public ComponentContext withoutStringPrefix(final String prefix) {
+        Objects.requireNonNull(prefix, "prefix cannot be null");
+        final Map<String, Object> newStringBased = new HashMap<>(stringBased);
+        newStringBased.keySet().removeIf(k -> k.startsWith(prefix));
+        return new ComponentContext(classBased, newStringBased);
     }
 
     /**

@@ -106,8 +106,11 @@ public final class SceneEventHandler {
             return null;
         }
 
-        // Create lookup with context enrichment
+        // Create lookup with context enrichment.
+        // Strip stale query params so a new primary contract always starts at page 1
+        // (e.g. navigating from /posts?p=2 to Comments must not carry over p=2).
         ComponentContext showContext = savedContext
+            .withoutStringPrefix(ContextKeys.URL_QUERY.baseKey() + ".")
             .with(ContextKeys.CONTRACT_CLASS, contractClass)
             .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
             .with(ContextKeys.SCENE, state);
