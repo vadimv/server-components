@@ -1,141 +1,71 @@
 # Server Components
 
-A Java framework for building web UIs entirely on the server side, with real-time browser sync and native AI agent support.
+Build AI-controlled admin interfaces and internal tools in pure modern Java, without writing JavaScript.
 
-Components run in a Java process, responding to browser events over WebSocket. An 11KB JavaScript client mirrors server-side DOM changes in the browser automatically. No frontend build toolchain. No JavaScript to write.
+Server Components is a pure-Java toolkit for stateful, server-driven back-office apps. It removes REST glue, frontend build steps, and most UI boilerplate while allowing AI agents to understand your application's structure out of the box.
 
-## Requirements
+## Turn Workflows into Sentences
 
-- Java 25+
-- Maven 3.x
+(Insert GIF here showing the Comments Admin page)
+
+Prompt: "Open comments, go to page two, and select all items."
+
+The AI agent natively understands your application's structure, navigates the UI, and queues up the exact actions while keeping the human in the loop for final approval.
+
+## Why it feels different
+
+You build internal tools as typed Java compositions, not as a pile of controllers, DTOs, and frontend state management. Backend services bind directly to default CRUD views, and the same structure that defines navigation and screens can also be exposed to an AI agent as prompt context.
 
 ## Getting started
+
+1. Prerequisites
+   - Java 25+
+   - Maven 3.9+
+
+2. Clone the repository
 
 ```bash
 git clone https://github.com/vadimv/server-components.git
 cd server-components
+```
+
+3. Build the project
+
+```bash
 mvn install
 ```
 
-Run the hello world example:
+4. Run the included admin example
 
 ```bash
-mvn exec:java -pl examples -Dexec.mainClass="rsp.app.HelloWorld"
-# open http://localhost:8080
+mvn exec:java -pl examples -Dexec.mainClass="rsp.app.posts.CrudApp"
 ```
 
-## Example apps
+Open `http://localhost:8085`, click `Sign in`, and explore the Posts/Comments admin app.
 
-| App               | Main class                                                                           | Port | What it demonstrates                                 |
-|-------------------|--------------------------------------------------------------------------------------|------|------------------------------------------------------|
-| Hello world       | [`rsp.app.HelloWorld`](examples/src/main/java/rsp/app/HelloWorld.java)               | 8080 | Minimal component and server setup                   |
-| Plain form        | [`rsp.app.PlainForm`](examples/src/main/java/rsp/app/PlainForm.java)                 | 8080 | Form handling with the HTML DSL                      |
-| Counters          | [`rsp.app.counters.Counters`](examples/src/main/java/rsp/app/counters/Counters.java) | 8085 | Component composition, URL sync, state caching       |
-| Game of Life      | [`rsp.app.gameoflife.Life`](examples/src/main/java/rsp/app/gameoflife/Life.java)     | 8082 | Stateful updates and scheduled server-side rendering |
-| Todos             | [`rsp.app.todos.JettyTodos`](examples/src/main/java/rsp/app/todos/JettyTodos.java)   | 8080 | CRUD-style interactions with a single component      |
-| Posts / CRUD demo | [`rsp.app.posts.CrudApp`](examples/src/main/java/rsp/app/posts/CrudApp.java)         | 8085 | Compositions, auth, AI agents, approval workflows    |
+By default, `CrudApp` uses `RegexAgentService`, a deterministic regex-based agent stub included in the repository. It is meant for demos and local validation, so you can try the AI workflow without setting up Anthropic, Ollama, or any other LLM backend.
 
-## How it works
+5. Try a few prompts
+
+- `open comments`
+- `go to page 2`
+- `open comments and go to page 2 and select all`
+- `search all posts with id < 2`
+
+6. Generate your own admin app
+
+Once you've run the example, open your favorite AI coding assistant in the project root and paste a prompt like this:
 
 ```
-Browser (11KB JS) ── WebSocket ── Java process
-                                    ├── Component tree
-                                    ├── Event loop
-                                    └── DOM diffing
+Read examples/src/main/java/rsp/app/posts/CrudApp.java.
+Generate a similar real-time admin tool for managing Employees and Departments.
+Create mock services and a new EmployeeAdminApp.java using the same routing, composition, and AI-agent integration patterns.
 ```
 
-A component is a Java class with a state, a view function that maps state to HTML (expressed in a Java DSL), and event handlers that produce new state. The framework diffs the resulting DOM and pushes minimal changes to the browser.
+7. Upgrade to a full LLM agent
 
-```java
-// Java HTML DSL
-div(attr("class", "card"),
-    h1(post.title()),
-    p(post.body()),
-    button(on("click", ctx -> handleEdit(post)), "Edit"))
-```
-
-The DSL maps one-to-one to HTML — if you know HTML, you can read it. And you don't need to write it by hand: coding AI agents produce this DSL fluently, since it's a direct structural mirror of the markup they already know.
-
-State is immutable. Event handlers return new state, never mutate. The framework manages component lifecycle, context propagation between parent and child components, and cleanup.
-
-## Compositions framework
-
-For larger applications, the compositions module provides a higher-level structure:
-
-- **Contracts** — typed UI units (list, edit, create) with declared capabilities
-- **Groups** — hierarchical contract binding with navigation metadata
-- **Scenes** — immutable snapshots of what's on screen (routed contract + companions + lazy overlays)
-- **Layouts** — pluggable rendering strategies (sidebar, header, modal layers)
-- **Router** — URL-to-contract mapping with path parameters
-
-```java
-final Group posts = new Group("Posts").description("Blog posts")
-        .bind(PostsListContract.class,
-              ctx -> new PostsListContract(ctx, postService),
-              DefaultListView::new)
-        .bind(PostEditContract.class,
-              ctx -> new PostEditContract(ctx, postService),
-              DefaultEditView::new);
-
-final Router router = new Router()
-        .route("/posts", PostsListContract.class)
-        .route("/posts/:id", PostEditContract.class);
-
-final DefaultLayout layout = new DefaultLayout()
-        .leftSidebar(ExplorerContract.class)
-        .rightSidebar(PromptContract.class);
-
-final Composition app = new Composition(router, layout, posts);
-```
-
-## AI agent integration
-
-Contracts expose their actions and metadata to AI agents. An agent can discover available UI operations, plan multi-step sequences, and execute them — subject to authorization.
-
-- **Tool discovery** — agents enumerate contracts and their actions via the structure tree
-- **Multi-step planning** — agents plan and execute sequences of UI actions
-- **ABAC authorization** — attribute-based access control gates what agents can do
-- **Approval workflows** — human-in-the-loop confirmation before agent actions
-- **LLM backends** — Claude API, Ollama, or custom implementations
-
-## AI-native development model
-
-This project is intended to be used primarily from source.
-
-**Using it:** Clone the repo. Use your coding AI agent to extend and adapt it for your needs. The codebase is designed to be legible to both humans and LLMs — small files, clear conventions, comprehensive test suite.
-
-**Workflow:** The recommended path is to work directly from the repository rather than treat it as a black-box dependency.
-
-**Contributing:** File issues for bugs and missing functionality. Pull requests are not accepted. Changes are integrated by an LLM agent on the project side.
+When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama` and connect your preferred model backend.
 
 ## Auditable by design
 
 This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies outside the web-server layer.
-
-Current status:
-
-| Layer          | Dependencies                             | Notes                                                                                                           |
-|----------------|------------------------------------------|-----------------------------------------------------------------------------------------------------------------|
-| core           | json-simple                              | targeted for internalization                                                                                    |
-| js-client      | none                                     | ES6 source compiled to 11KB by Closure Compiler at build time                                                   |
-| compositions   | none (beyond core)                       |                                                                                                                 |
-| web server     | Jetty 12, Jakarta Servlet/WebSocket APIs | abstracted behind an API and is intended to be replaceable with other implementations, such as Tomcat or Netty. |
-| html-converter | jsoup                                    | utility module, not required at runtime                                                                         |
-
-## Project structure
-
-```
-server-components/
-├── core/               Component model, HTML DSL, page lifecycle, event loop
-├── js-client/          Browser-side ES6 (~32KB source → 11KB minified)
-├── servlet-api/        Jakarta Servlet/WebSocket abstraction
-├── jetty-web-server/   Embedded Jetty web server
-├── html-converter/     HTML → Java DSL conversion utility
-├── compositions/       Contracts, scenes, layouts, routing, AI agents, ABAC
-└── examples/           Demo apps
-    ├── HelloWorld       Minimal component
-    ├── Counters         Component composition, URL sync, state caching
-    ├── GameOfLife       State update loops, grid rendering
-    ├── Todos            CRUD operations
-    └── Posts (CrudApp)  Full CRUD + AI agents + authorization
-```

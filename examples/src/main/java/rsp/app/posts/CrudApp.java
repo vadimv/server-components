@@ -14,8 +14,10 @@ import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.ClaudeAgentService;
+import rsp.app.posts.services.OllamaAgentService;
 import rsp.app.posts.services.PostService;
 import rsp.app.posts.services.PromptService;
+import rsp.app.posts.services.RegexAgentService;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentSpawner;
 import rsp.compositions.agent.ApprovalSpawner;
@@ -44,7 +46,9 @@ import rsp.jetty.WebServer;
 import rsp.server.StaticResources;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 
 public class CrudApp {
     private final AgentService agentService;
@@ -57,22 +61,8 @@ public class CrudApp {
         this.agentService = agentService;
     }
 
-    static void main() {
-
-        /*  var agent = new OllamaAgentService(
-                "http://127.0.0.1:11434/api/chat",
-                "mistral",   // was "tinyllama"
-                java.time.Duration.ofSeconds(120)
-        );
-        new CrudApp(agent).run(true); */
-
-        var agent = new ClaudeAgentService(
-                System.getenv("ANTHROPIC_API_KEY"),
-                "claude-haiku-4-5-20251001",
-                java.time.Duration.ofSeconds(30)
-        );
-
-        new CrudApp(agent).run(true);
+    public static void main(String[] args) {
+        new CrudApp(resolveAgentService()).run(true);
     }
 
     public WebServer run(final boolean blockCurrentThread) {
@@ -138,12 +128,41 @@ public class CrudApp {
 
         final WebServer server = new WebServer(8085,
                                                app,
-                                               new StaticResources(new File("src/main/java/rsp/app/posts"),
+                                               new StaticResources(resolvePostsResourceDir(),
                                                                    "/res/"));
         server.start();
         if (blockCurrentThread) {
             server.join();
         }
         return server;
+    }
+
+    private static File resolvePostsResourceDir() {
+        for (String candidate : List.of("src/main/java/rsp/app/posts",
+                                        "examples/src/main/java/rsp/app/posts")) {
+            File dir = new File(candidate);
+            if (dir.isDirectory()) {
+                return dir;
+            }
+        }
+        throw new IllegalStateException("Could not locate posts static resources.");
+    }
+
+    private static AgentService resolveAgentService() {
+        String backend = System.getProperty("ai.agent", "regex").toLowerCase(Locale.ROOT);
+        return switch (backend) {
+            case "regex" -> new RegexAgentService();
+            case "claude" -> new ClaudeAgentService(
+                    System.getenv("ANTHROPIC_API_KEY"),
+                    System.getProperty("rsp.agent.model", "claude-haiku-4-5-20251001"),
+                    Duration.ofSeconds(Long.getLong("rsp.agent.timeoutSeconds", 30L))
+            );
+            case "ollama" -> new OllamaAgentService(
+                    System.getProperty("rsp.agent.url", "http://127.0.0.1:11434/api/chat"),
+                    System.getProperty("rsp.agent.model", "mistral"),
+                    Duration.ofSeconds(Long.getLong("rsp.agent.timeoutSeconds", 120L))
+            );
+            default -> throw new IllegalArgumentException("Unknown rsp.agent backend: " + backend);
+        };
     }
 }
