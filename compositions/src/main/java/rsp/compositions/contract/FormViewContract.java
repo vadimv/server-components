@@ -2,9 +2,6 @@ package rsp.compositions.contract;
 
 import rsp.component.EventKey;
 import rsp.component.Lookup;
-import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.ContractMetadata;
-import rsp.compositions.agent.PayloadSchemas;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.ValidationResult;
 
@@ -188,7 +185,7 @@ public abstract class FormViewContract<T> extends ViewContract {
         return List.of(
             new AgentAction("save", FORM_SUBMITTED,
                 "Submit form data",
-                PayloadSchemas.fromDataSchema(schema())),
+                PayloadSchema.fromDataSchema(schema())),
             new AgentAction("cancel", CANCEL_REQUESTED,
                 "Cancel and go back")
         );

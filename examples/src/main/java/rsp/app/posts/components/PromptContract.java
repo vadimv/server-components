@@ -4,7 +4,7 @@ import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
-import rsp.compositions.agent.AgentAction;
+import rsp.compositions.contract.AgentAction;
 import rsp.compositions.agent.AgentActionFilter;
 import rsp.compositions.agent.AgentContext;
 import rsp.compositions.agent.AgentPayload;

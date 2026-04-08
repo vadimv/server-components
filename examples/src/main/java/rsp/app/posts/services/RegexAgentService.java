@@ -1,6 +1,6 @@
 package rsp.app.posts.services;
 
-import rsp.compositions.agent.AgentAction;
+import rsp.compositions.contract.AgentAction;
 import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;

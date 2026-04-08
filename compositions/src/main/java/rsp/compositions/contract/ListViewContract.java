@@ -4,9 +4,6 @@ import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.component.definitions.ContextStateComponent;
-import rsp.compositions.agent.AgentAction;
-import rsp.compositions.agent.ContractMetadata;
-import rsp.compositions.agent.PayloadSchema;
 import rsp.compositions.schema.DataSchema;
 
 import java.util.List;

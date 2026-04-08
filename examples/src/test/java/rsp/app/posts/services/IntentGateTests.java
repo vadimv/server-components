@@ -3,7 +3,7 @@ package rsp.app.posts.services;
 import org.junit.jupiter.api.Test;
 import rsp.app.posts.components.TestLookup;
 import rsp.component.EventKey;
-import rsp.compositions.agent.AgentAction;
+import rsp.compositions.contract.AgentAction;
 import rsp.compositions.agent.AgentPayload;
 import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.ActionGate;
