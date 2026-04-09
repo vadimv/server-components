@@ -17,12 +17,12 @@
         <module>js-client</module>
         <module>servlet-api</module>
         <module>jetty-web-server</module>
-        <module>examples</module>
         <module>html-converter</module>
         <module>authorization</module>
         <module>schema</module>
         <module>compositions</module>
         <module>ai-agent</module>
+        <module>examples</module>
 
     </modules>
 

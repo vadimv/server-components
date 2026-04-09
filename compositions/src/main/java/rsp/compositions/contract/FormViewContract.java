@@ -185,7 +185,7 @@ public abstract class FormViewContract<T> extends ViewContract {
         return List.of(
             new AgentAction("save", FORM_SUBMITTED,
                 "Submit form data",
-                PayloadSchema.fromDataSchema(schema())),
+                PayloadSchemas.fromDataSchema(schema())),
             new AgentAction("cancel", CANCEL_REQUESTED,
                 "Cancel and go back")
         );

@@ -1,4 +1,4 @@
-package rsp.compositions.agent;
+package rsp.compositions.contract;
 
 import rsp.util.json.JsonDataType;
 

@@ -24,7 +24,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>agent</artifactId>
+            <artifactId>ai-agent</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

@@ -1,5 +1,9 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.PayloadSchemas;
+
+
 import rsp.compositions.contract.AgentAction;
 import rsp.compositions.contract.PayloadSchema;
 
@@ -41,23 +45,13 @@ class AgentActionTests {
     }
 
     @Test
-    void parser_null_when_not_provided() {
+    void parser_derived_from_schema() {
         EventKey.SimpleKey<Integer> key = new EventKey.SimpleKey<>("page", Integer.class);
         AgentAction action = new AgentAction("page", key, "Go to page",
             new PayloadSchema.IntegerValue("page number"));
 
-        // parsePayload is null — agent framework resolves via PayloadSchemas.toParser() at dispatch time
-        assertNull(action.parsePayload());
-    }
-
-    @Test
-    void parser_resolved_via_payload_schemas() {
-        EventKey.SimpleKey<Integer> key = new EventKey.SimpleKey<>("page", Integer.class);
-        AgentAction action = new AgentAction("page", key, "Go to page",
-            new PayloadSchema.IntegerValue("page number"));
-
-        var parser = PayloadSchemas.toParser(action.schema());
-        assertEquals(3, parser.apply(AgentPayload.of(3)));
+        assertNotNull(action.parsePayload());
+        assertEquals(3, action.parsePayload().apply(AgentPayload.of(3)));
     }
 
     @Test

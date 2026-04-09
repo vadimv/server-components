@@ -1,5 +1,8 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.contract.AgentPayload;
+
+
 import rsp.compositions.contract.AgentAction;
 
 import rsp.compositions.agent.AgentService.AgentResult;

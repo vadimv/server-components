@@ -1,5 +1,9 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.PayloadParsers;
+
+
 import org.junit.jupiter.api.Test;
 import rsp.util.json.JsonDataType;
 

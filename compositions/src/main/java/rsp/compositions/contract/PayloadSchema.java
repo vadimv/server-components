@@ -1,10 +1,5 @@
 package rsp.compositions.contract;
 
-import rsp.compositions.schema.DataSchema;
-import rsp.compositions.schema.FieldDef;
-import rsp.compositions.schema.FieldType;
-
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -61,33 +56,4 @@ public sealed interface PayloadSchema {
      * @param description what the field represents
      */
     record Property(String name, String type, boolean required, String description) {}
-
-    /**
-     * Converts a {@link DataSchema} to an {@link ObjectValue}
-     * by mapping visible, non-read-only fields.
-     */
-    static ObjectValue fromDataSchema(DataSchema dataSchema) {
-        List<Property> properties = new ArrayList<>();
-        for (FieldDef field : dataSchema.fields()) {
-            if (field.isHidden() || field.isReadOnly()) {
-                continue;
-            }
-            properties.add(new Property(
-                field.name(),
-                fieldTypeToJsonSchemaType(field.fieldType()),
-                field.isRequired(),
-                field.displayName()
-            ));
-        }
-        return new ObjectValue(properties);
-    }
-
-    private static String fieldTypeToJsonSchemaType(FieldType fieldType) {
-        return switch (fieldType) {
-            case ID, STRING, TEXT, ENUM, DATE, DATETIME -> "string";
-            case INTEGER -> "integer";
-            case DECIMAL -> "number";
-            case BOOLEAN -> "boolean";
-        };
-    }
 }

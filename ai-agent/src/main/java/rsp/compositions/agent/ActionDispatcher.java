@@ -1,5 +1,8 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.contract.AgentPayload;
+
+
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.contract.AgentAction;
@@ -78,11 +81,7 @@ public class ActionDispatcher {
         } else if (key instanceof EventKey.SimpleKey<?> sk) {
             Object parsed;
             try {
-                if (action.parsePayload() != null) {
-                    parsed = action.parsePayload().apply(payload);
-                } else {
-                    parsed = PayloadSchemas.toParser(action.schema()).apply(payload);
-                }
+                parsed = action.parsePayload().apply(payload);
             } catch (IllegalArgumentException e) {
                 return new DispatchResult.PayloadError(action.action(), e.getMessage());
             }

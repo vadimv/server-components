@@ -1,5 +1,9 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.PayloadSchemas;
+
+
 import rsp.compositions.contract.PayloadSchema;
 
 

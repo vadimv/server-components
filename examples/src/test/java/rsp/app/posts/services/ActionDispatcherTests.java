@@ -5,7 +5,7 @@ import rsp.app.posts.components.TestLookup;
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.compositions.contract.AgentAction;
-import rsp.compositions.agent.AgentPayload;
+import rsp.compositions.contract.AgentPayload;
 import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.ActionDispatcher;
 import rsp.compositions.agent.ActionDispatcher.DispatchResult;

@@ -7,7 +7,7 @@ import rsp.component.Lookup;
 import rsp.compositions.contract.AgentAction;
 import rsp.compositions.agent.AgentActionFilter;
 import rsp.compositions.agent.AgentContext;
-import rsp.compositions.agent.AgentPayload;
+import rsp.compositions.contract.AgentPayload;
 import rsp.compositions.agent.ActionGate;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentService.AgentResult;

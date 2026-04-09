@@ -12,21 +12,21 @@ import java.util.function.Function;
  * available actions via {@code agentActions()}, making the contract the single
  * source of truth for what the agent can do.
  * <p>
- * The payload parser may be supplied explicitly or left null for the agent framework
- * to derive automatically from the schema at dispatch time.
+ * The payload parser is derived automatically from the schema unless explicitly overridden.
+ * The {@link ActionDispatcher} publishes the associated framework event directly.
  *
  * @param action       action name (e.g. "delete", "save", "page")
  * @param eventKey     the framework event to publish when this action is dispatched
  * @param description  human-readable purpose (e.g. "Delete items by their IDs")
  * @param schema       structured payload type descriptor; null treated as {@link PayloadSchema.None}
- * @param parsePayload converts a payload object to the type expected by the event key;
- *                     null means the agent framework will derive a parser from the schema
+ * @param parsePayload converts an {@link AgentPayload} to the type expected by the event key;
+ *                     throws {@link IllegalArgumentException} on unrecognized input
  */
 public record AgentAction(String action,
                           EventKey<?> eventKey,
                           String description,
                           PayloadSchema schema,
-                          Function<Object, Object> parsePayload) {
+                          Function<AgentPayload, Object> parsePayload) {
 
     /**
      * Compact constructor — validates required fields, normalizes defaults.
@@ -44,11 +44,13 @@ public record AgentAction(String action,
         if (schema == null) {
             schema = new PayloadSchema.None();
         }
-        // parsePayload may be null — agent framework resolves at dispatch time
+        if (parsePayload == null) {
+            parsePayload = PayloadSchemas.toParser(schema);
+        }
     }
 
     /**
-     * Convenience constructor with schema — parser derived automatically by agent framework.
+     * Convenience constructor with schema — parser derived automatically.
      */
     public AgentAction(String action, EventKey<?> eventKey,
                        String description, PayloadSchema schema) {
