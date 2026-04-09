@@ -1,9 +1,9 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractActionPayload;
 
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.PayloadSchema;
 
 
@@ -40,11 +40,11 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("do_thing", key, "Do a thing");
+        ContractAction action = new ContractAction("do_thing", key, "Do a thing");
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, AgentPayload.EMPTY, contract, new StubLookup(), allowAllGate);
+            action, ContractActionPayload.EMPTY, contract, new StubLookup(), allowAllGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.Dispatched.class, result);
         assertEquals(List.of("test.void"), published);
@@ -63,11 +63,11 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("edit", key, "Edit item",
+        ContractAction action = new ContractAction("edit", key, "Edit item",
             new PayloadSchema.StringValue("id"));
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        dispatcher.dispatch(action, AgentPayload.of("42"), contract, new StubLookup(), allowAllGate);
+        dispatcher.dispatch(action, ContractActionPayload.of("42"), contract, new StubLookup(), allowAllGate);
 
         assertEquals(List.of("42"), published);
     }
@@ -75,13 +75,13 @@ class ActionDispatcherTests {
     @Test
     void returns_blocked_when_gate_blocks() {
         EventKey.VoidKey key = new EventKey.VoidKey("test.delete");
-        AgentAction action = new AgentAction("delete", key, "Delete items");
+        ContractAction action = new ContractAction("delete", key, "Delete items");
         ActionGate blockGate = (a, p, lookup) -> new GateResult.Block("Not permitted");
 
         StubContract contract = new StubContract(List.of(action));
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, AgentPayload.EMPTY, contract, new StubLookup(), blockGate);
+            action, ContractActionPayload.EMPTY, contract, new StubLookup(), blockGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.Blocked.class, result);
         assertEquals("Not permitted",
@@ -91,14 +91,14 @@ class ActionDispatcherTests {
     @Test
     void returns_awaiting_confirmation_when_gate_confirms() {
         EventKey.VoidKey key = new EventKey.VoidKey("test.delete");
-        AgentAction action = new AgentAction("delete", key, "Delete items");
+        ContractAction action = new ContractAction("delete", key, "Delete items");
         ActionGate confirmGate = (a, p, lookup) ->
             new GateResult.Confirm("Are you sure?", a, p);
 
         StubContract contract = new StubContract(List.of(action));
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, AgentPayload.EMPTY, contract, new StubLookup(), confirmGate);
+            action, ContractActionPayload.EMPTY, contract, new StubLookup(), confirmGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.AwaitingConfirmation.class, result);
         assertEquals("Are you sure?",
@@ -111,12 +111,12 @@ class ActionDispatcherTests {
         EventKey.SimpleKey<Set<String>> key = new EventKey.SimpleKey<>("test.delete",
                 (Class<Set<String>>) (Class<?>) Set.class);
 
-        AgentAction action = new AgentAction("delete", key, "Delete items",
+        ContractAction action = new ContractAction("delete", key, "Delete items",
             new PayloadSchema.StringSet("IDs"));
         StubContract contract = new StubContract(List.of(action));
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, AgentPayload.of(true), contract, new StubLookup(), allowAllGate);
+            action, ContractActionPayload.of(true), contract, new StubLookup(), allowAllGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.PayloadError.class, result);
         ActionDispatcher.DispatchResult.PayloadError pe =
@@ -140,12 +140,12 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("delete", key, "Delete items",
+        ContractAction action = new ContractAction("delete", key, "Delete items",
             new PayloadSchema.StringSet("IDs"));
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
         ActionDispatcher.DispatchResult result = dispatcher.dispatch(
-            action, AgentPayload.of("1"), contract, new StubLookup(), allowAllGate);
+            action, ContractActionPayload.of("1"), contract, new StubLookup(), allowAllGate);
 
         assertInstanceOf(ActionDispatcher.DispatchResult.Dispatched.class, result);
         assertEquals(List.of(Set.of("1")), published);
@@ -163,10 +163,10 @@ class ActionDispatcherTests {
             }
         };
 
-        AgentAction action = new AgentAction("act", key, "An action");
+        ContractAction action = new ContractAction("act", key, "An action");
         StubContract contract = new StubContract(List.of(action), contractLookup);
 
-        dispatcher.dispatchDirect(action, AgentPayload.EMPTY, contract);
+        dispatcher.dispatchDirect(action, ContractActionPayload.EMPTY, contract);
 
         assertEquals(List.of("test.direct"), published);
     }
@@ -175,19 +175,19 @@ class ActionDispatcherTests {
 
     /** Minimal ViewContract stub for testing. */
     private static class StubContract extends rsp.compositions.contract.ViewContract {
-        private final List<AgentAction> actions;
+        private final List<ContractAction> actions;
 
-        StubContract(List<AgentAction> actions) {
+        StubContract(List<ContractAction> actions) {
             this(actions, new StubLookup());
         }
 
-        StubContract(List<AgentAction> actions, Lookup lookup) {
+        StubContract(List<ContractAction> actions, Lookup lookup) {
             super(lookup);
             this.actions = actions;
         }
 
         @Override
-        public List<AgentAction> agentActions() {
+        public List<ContractAction> agentActions() {
             return actions;
         }
 

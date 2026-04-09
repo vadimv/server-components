@@ -5,15 +5,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.agent.*;
-import rsp.compositions.contract.AgentAction;
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractAction;
+import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.contract.ContractMetadata;
 import rsp.compositions.contract.PayloadParsers;
 import rsp.compositions.contract.PayloadSchema;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.EditViewContract;
 import rsp.compositions.contract.ListViewContract;
-import rsp.util.json.JsonDataType;
 
 import java.util.List;
 import java.util.Map;
@@ -40,19 +39,19 @@ class RegexAgentServiceTests {
     private static final EventKey.SimpleKey<Map<String, Object>> SAVE_KEY =
         new EventKey.SimpleKey<>("test.save", (Class<Map<String, Object>>) (Class<?>) Map.class);
 
-    private static final List<AgentAction> LIST_ACTIONS = List.of(
-        new AgentAction("create", CREATE_KEY, "Create item"),
-        new AgentAction("delete", DELETE_KEY, "Delete items",
+    private static final List<ContractAction> LIST_ACTIONS = List.of(
+        new ContractAction("create", CREATE_KEY, "Create item"),
+        new ContractAction("delete", DELETE_KEY, "Delete items",
             new PayloadSchema.StringSet("IDs")),
-        new AgentAction("edit", EDIT_KEY, "Edit item",
+        new ContractAction("edit", EDIT_KEY, "Edit item",
             new PayloadSchema.StringValue("id")),
-        new AgentAction("page", PAGE_KEY, "Go to page",
+        new ContractAction("page", PAGE_KEY, "Go to page",
             new PayloadSchema.IntegerValue("page number")),
-        new AgentAction("select_all", SELECT_ALL_KEY, "Select all")
+        new ContractAction("select_all", SELECT_ALL_KEY, "Select all")
     );
 
-    private static final List<AgentAction> EDIT_ACTIONS = List.of(
-        new AgentAction("save", SAVE_KEY, "Save entity",
+    private static final List<ContractAction> EDIT_ACTIONS = List.of(
+        new ContractAction("save", SAVE_KEY, "Save entity",
             new PayloadSchema.ObjectValue(List.of()))
     );
 
@@ -199,7 +198,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("edit", ar.action().action());
-            assertEquals(AgentPayload.of("2"), ar.payload());
+            assertEquals(ContractActionPayload.of("2"), ar.payload());
         }
 
         @Test
@@ -268,7 +267,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("page", ar.action().action());
-            assertEquals(AgentPayload.of(3), ar.payload());
+            assertEquals(ContractActionPayload.of(3), ar.payload());
         }
 
         @Test
@@ -280,7 +279,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("page", ar.action().action());
-            assertEquals(AgentPayload.of(5), ar.payload());
+            assertEquals(ContractActionPayload.of(5), ar.payload());
         }
     }
 
@@ -311,7 +310,7 @@ class RegexAgentServiceTests {
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("edit", ar.action().action());
-            assertEquals(AgentPayload.EMPTY, ar.payload());
+            assertEquals(ContractActionPayload.EMPTY, ar.payload());
         }
     }
 

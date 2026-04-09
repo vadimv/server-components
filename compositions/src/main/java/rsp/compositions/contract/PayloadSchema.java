@@ -3,7 +3,7 @@ package rsp.compositions.contract;
 import java.util.List;
 
 /**
- * Describes the payload type expected by an {@link AgentAction}.
+ * Describes the payload type expected by an {@link ContractAction}.
  * <p>
  * Used to generate JSON Schema for LLM tool use APIs and to derive
  * payload parsers automatically.

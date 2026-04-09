@@ -1,9 +1,9 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractActionPayload;
 
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
@@ -35,7 +35,7 @@ public final class AgentServiceUtils {
     public static List<ToolDefinition> buildToolDefinitions(ContractProfile profile,
                                                              StructureNode structureTree) {
         List<ToolDefinition> tools = new ArrayList<>();
-        for (AgentAction action : profile.actions()) {
+        for (ContractAction action : profile.actions()) {
             tools.add(ToolDefinition.fromAction(action));
         }
         if (structureTree != null) {
@@ -101,7 +101,7 @@ public final class AgentServiceUtils {
         if (rawJson instanceof JsonDataType.Array arr && arr.size() == 1) {
             rawJson = arr.get(0);
         }
-        AgentPayload payload = AgentPayload.ofNullable(rawJson);
+        ContractActionPayload payload = ContractActionPayload.ofNullable(rawJson);
 
         if ("navigate".equals(action)) {
             if (targetContract.isBlank()
@@ -116,8 +116,8 @@ public final class AgentServiceUtils {
             return Optional.of(new AgentResult.NavigateResult(target));
         }
 
-        // Look up the matching AgentAction from the contract's declared actions
-        AgentAction matchedAction = findAction(action, profile);
+        // Look up the matching ContractAction from the contract's declared actions
+        ContractAction matchedAction = findAction(action, profile);
         if (matchedAction == null) {
             return Optional.of(new AgentResult.TextReply("Action not declared: " + action));
         }
@@ -139,8 +139,8 @@ public final class AgentServiceUtils {
     /**
      * Finds an action by name in the profile's declared actions.
      */
-    public static AgentAction findAction(String actionName, ContractProfile profile) {
-        for (AgentAction candidate : profile.actions()) {
+    public static ContractAction findAction(String actionName, ContractProfile profile) {
+        for (ContractAction candidate : profile.actions()) {
             if (candidate.action().equals(actionName)) {
                 return candidate;
             }
@@ -354,12 +354,12 @@ public final class AgentServiceUtils {
         }
 
         // Action tools — look up by name
-        AgentAction matchedAction = findAction(toolName, profile);
+        ContractAction matchedAction = findAction(toolName, profile);
         if (matchedAction == null) {
             return Optional.of(new AgentResult.TextReply("Action not declared: " + toolName));
         }
 
-        AgentPayload payload = AgentPayload.ofNullable(input.value("payload"));
+        ContractActionPayload payload = ContractActionPayload.ofNullable(input.value("payload"));
         return Optional.of(new AgentResult.ActionResult(matchedAction, payload));
     }
 

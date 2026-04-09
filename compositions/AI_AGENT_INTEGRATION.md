@@ -104,7 +104,7 @@ Every contract exposes two methods for agent discovery:
 | Method              | Returns                        | Purpose                                        |
 |---------------------|--------------------------------|-------------------------------------------------|
 | `agentDescription()`| Natural-language string        | Live state — "what am I looking at right now?"  |
-| `agentActions()`    | `List<AgentAction>`            | Declared actions — "what can the agent do here?"|
+| `agentActions()`    | `List<ContractAction>`            | Declared actions — "what can the agent do here?"|
 
 The type hierarchy provides defaults; concrete contracts can override either method
 to add domain context, enrich state details, or restrict/extend the available actions.
@@ -188,7 +188,7 @@ the **single source of truth** for what the agent is allowed to do on a given co
 
 ```java
 // Action descriptor — pure data, declared by contracts
-record AgentAction(
+record ContractAction(
     String action,                 // action name used in AgentIntent
     EventKey<?> eventKey,          // the framework event to publish
     String description,            // human-readable purpose
@@ -203,17 +203,17 @@ or customize actions:
 // ListViewContract — standard list actions
 public abstract class ListViewContract<T> extends ViewContract {
     @Override
-    public List<AgentAction> agentActions() {
+    public List<ContractAction> agentActions() {
         return List.of(
-            new AgentAction("create", CREATE_ELEMENT_REQUESTED,
+            new ContractAction("create", CREATE_ELEMENT_REQUESTED,
                 "Open create form for a new item", null),
-            new AgentAction("edit", EDIT_ELEMENT_REQUESTED,
+            new ContractAction("edit", EDIT_ELEMENT_REQUESTED,
                 "Open edit form for an item", "String: row ID"),
-            new AgentAction("delete", BULK_DELETE_REQUESTED,
+            new ContractAction("delete", BULK_DELETE_REQUESTED,
                 "Delete items by their IDs", "Set<String>: row IDs"),
-            new AgentAction("page", PAGE_CHANGE_REQUESTED,
+            new ContractAction("page", PAGE_CHANGE_REQUESTED,
                 "Navigate to a page number", "Integer: page number (1-based)"),
-            new AgentAction("select_all", SELECT_ALL_REQUESTED,
+            new ContractAction("select_all", SELECT_ALL_REQUESTED,
                 "Select all rows on the current page", null)
         );
     }
@@ -222,15 +222,15 @@ public abstract class ListViewContract<T> extends ViewContract {
 // FormViewContract — form actions (inherited by Edit and Create)
 public abstract class FormViewContract<T> extends ViewContract {
     @Override
-    public List<AgentAction> agentActions() {
+    public List<ContractAction> agentActions() {
         String fieldNames = schema().fields().stream()
             .map(f -> f.name() + ":" + f.fieldType())
             .collect(Collectors.joining(", "));
         return List.of(
-            new AgentAction("save", FORM_SUBMITTED,
+            new ContractAction("save", FORM_SUBMITTED,
                 "Submit form data",
                 "Map<String, Object>: {" + fieldNames + "}"),
-            new AgentAction("cancel", CANCEL_REQUESTED,
+            new ContractAction("cancel", CANCEL_REQUESTED,
                 "Cancel and go back", null)
         );
     }
@@ -239,9 +239,9 @@ public abstract class FormViewContract<T> extends ViewContract {
 // EditViewContract — adds delete to form actions
 public abstract class EditViewContract<T> extends ViewContract {
     @Override
-    public List<AgentAction> agentActions() {
-        List<AgentAction> actions = new ArrayList<>(super.agentActions());
-        actions.add(new AgentAction("delete", DELETE_REQUESTED,
+    public List<ContractAction> agentActions() {
+        List<ContractAction> actions = new ArrayList<>(super.agentActions());
+        actions.add(new ContractAction("delete", DELETE_REQUESTED,
             "Delete the current entity", null));
         return List.copyOf(actions);
     }
@@ -250,7 +250,7 @@ public abstract class EditViewContract<T> extends ViewContract {
 // Read-only list — concrete contract removes mutating actions
 public class AuditLogListContract extends ListViewContract<AuditEntry> {
     @Override
-    public List<AgentAction> agentActions() {
+    public List<ContractAction> agentActions() {
         return super.agentActions().stream()
             .filter(a -> List.of("page", "select_all").contains(a.action()))
             .toList();
@@ -277,7 +277,7 @@ Actions:
 
 ```java
 record ContractProfile(String description,
-                        List<AgentAction> actions,
+                        List<ContractAction> actions,
                         Class<?> contractClass) {
 
     static ContractProfile of(ViewContract contract) {
@@ -289,7 +289,7 @@ record ContractProfile(String description,
                 ? info.agentDescription()
                 : null;
 
-        List<AgentAction> actions = contract.agentActions();
+        List<ContractAction> actions = contract.agentActions();
 
         return new ContractProfile(description, actions, contract.getClass());
     }
@@ -715,8 +715,8 @@ payload schema. The form's validation still runs — the agent doesn't bypass it
    `CreateViewContract` with live state
 2. **`agentActions()`** — default method on `ViewContract` (returns empty list),
    overridden in `ListViewContract`, `FormViewContract`, `EditViewContract` with
-   declared `AgentAction` entries. Concrete contracts can override to add/remove actions
-3. **`AgentAction` record** — `(String action, EventKey<?> eventKey, String description,
+   declared `ContractAction` entries. Concrete contracts can override to add/remove actions
+3. **`ContractAction` record** — `(String action, EventKey<?> eventKey, String description,
    String payloadDescription)` — the action descriptor
 4. **`SELECT_ALL_REQUESTED`** — new event in `ListViewContract`, handled by `DefaultListView`
 5. **`SELECTION_CHANGED`** — new event published by `DefaultListView` on selection changes,
@@ -840,14 +840,14 @@ not just blocked at execution time.
 ```java
 // Action filter — controls what the agent discovers
 interface AgentActionFilter {
-    List<AgentAction> filter(List<AgentAction> actions, Lookup context);
+    List<ContractAction> filter(List<ContractAction> actions, Lookup context);
 }
 
 // Read-only filter
 class ReadOnlyFilter implements AgentActionFilter {
     private static final Set<String> ALLOWED = Set.of("page", "select_all");
 
-    public List<AgentAction> filter(List<AgentAction> actions, Lookup context) {
+    public List<ContractAction> filter(List<ContractAction> actions, Lookup context) {
         return actions.stream()
             .filter(a -> ALLOWED.contains(a.action()))
             .toList();
@@ -856,7 +856,7 @@ class ReadOnlyFilter implements AgentActionFilter {
 
 // Role-based filter
 class RoleBasedFilter implements AgentActionFilter {
-    public List<AgentAction> filter(List<AgentAction> actions, Lookup context) {
+    public List<ContractAction> filter(List<ContractAction> actions, Lookup context) {
         String[] roles = context.get(ContextKeys.AUTH_ROLES);
         if (roles == null || !Arrays.asList(roles).contains("admin")) {
             return actions.stream()

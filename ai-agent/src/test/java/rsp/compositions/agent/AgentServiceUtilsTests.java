@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractMetadata;
 import rsp.compositions.contract.PayloadSchema;
 
@@ -24,9 +24,9 @@ class AgentServiceUtilsTests {
     private static final EventKey.SimpleKey<Integer> PAGE_KEY =
         new EventKey.SimpleKey<>("test.page", Integer.class);
 
-    private static final List<AgentAction> ACTIONS = List.of(
-        new AgentAction("create", CREATE_KEY, "Create item"),
-        new AgentAction("page", PAGE_KEY, "Go to page",
+    private static final List<ContractAction> ACTIONS = List.of(
+        new ContractAction("create", CREATE_KEY, "Create item"),
+        new ContractAction("page", PAGE_KEY, "Go to page",
             new PayloadSchema.IntegerValue("page number"))
     );
 
@@ -73,7 +73,7 @@ class AgentServiceUtilsTests {
     @Test
     void findAction_returns_matching_action() {
         ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
-        AgentAction found = AgentServiceUtils.findAction("page", profile);
+        ContractAction found = AgentServiceUtils.findAction("page", profile);
 
         assertNotNull(found);
         assertEquals("page", found.action());

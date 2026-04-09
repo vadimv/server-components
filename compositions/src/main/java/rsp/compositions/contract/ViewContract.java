@@ -43,7 +43,7 @@ public abstract class ViewContract {
         return lookup;
     }
 
-    public List<AgentAction> agentActions() {
+    public List<ContractAction> agentActions() {
         return List.of();
     }
 

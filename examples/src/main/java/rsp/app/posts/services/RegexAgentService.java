@@ -1,7 +1,7 @@
 package rsp.app.posts.services;
 
-import rsp.compositions.contract.AgentAction;
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractAction;
+import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.composition.StructureNode;
@@ -79,7 +79,7 @@ public class RegexAgentService extends AgentService {
         // Select all rows
         m = SELECT_ALL_PATTERN.matcher(prompt);
         if (m.find()) {
-            return findActionResult("select_all", AgentPayload.EMPTY, profile);
+            return findActionResult("select_all", ContractActionPayload.EMPTY, profile);
         }
 
         // Edit selected item
@@ -104,7 +104,7 @@ public class RegexAgentService extends AgentService {
         m = PAGE_PATTERN.matcher(prompt);
         if (m.find()) {
             int page = Integer.parseInt(m.group(1));
-            return findActionResult("page", AgentPayload.of(page), profile);
+            return findActionResult("page", ContractActionPayload.of(page), profile);
         }
 
         // Navigation: show posts
@@ -131,8 +131,8 @@ public class RegexAgentService extends AgentService {
 
     // --- Action lookup helper ---
 
-    private AgentResult findActionResult(String actionName, AgentPayload payload, ContractProfile profile) {
-        for (AgentAction action : profile.actions()) {
+    private AgentResult findActionResult(String actionName, ContractActionPayload payload, ContractProfile profile) {
+        for (ContractAction action : profile.actions()) {
             if (action.action().equals(actionName)) {
                 return new AgentResult.ActionResult(action, payload);
             }
@@ -148,7 +148,7 @@ public class RegexAgentService extends AgentService {
             if (matchesName(item, name)) {
                 Object id = item.get("id");
                 if (id != null) {
-                    AgentPayload payload = new AgentPayload(
+                    ContractActionPayload payload = new ContractActionPayload(
                         new JsonDataType.Array(new JsonDataType.String(String.valueOf(id))));
                     return findActionResult("delete", payload, profile);
                 }
@@ -173,7 +173,7 @@ public class RegexAgentService extends AgentService {
         if (!profile.isList()) {
             return new AgentResult.TextReply("No list contract active — nothing selected.");
         }
-        return findActionResult("edit", AgentPayload.EMPTY, profile);
+        return findActionResult("edit", ContractActionPayload.EMPTY, profile);
     }
 
     // --- Search/filter ---
@@ -233,7 +233,7 @@ public class RegexAgentService extends AgentService {
 
     private AgentResult handleUpdate(String id, String modification, ContractProfile profile) {
         state = new AgentState.PendingSave(modification);
-        return findActionResult("edit", AgentPayload.of(id), profile);
+        return findActionResult("edit", ContractActionPayload.of(id), profile);
     }
 
     private AgentResult handlePendingSave(String modification, ContractProfile profile) {
@@ -327,12 +327,12 @@ public class RegexAgentService extends AgentService {
 
     // --- Java value to AgentPayload conversion ---
 
-    private static AgentPayload toAgentPayload(Map<String, Object> map) {
+    private static ContractActionPayload toAgentPayload(Map<String, Object> map) {
         Map<String, JsonDataType> entries = new LinkedHashMap<>();
         for (Map.Entry<String, Object> e : map.entrySet()) {
             entries.put(e.getKey(), toJsonDataType(e.getValue()));
         }
-        return new AgentPayload(new JsonDataType.Object(entries));
+        return new ContractActionPayload(new JsonDataType.Object(entries));
     }
 
     private static JsonDataType toJsonDataType(Object value) {

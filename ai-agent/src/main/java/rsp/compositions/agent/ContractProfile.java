@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractMetadata;
 
 import rsp.compositions.contract.EditViewContract;
@@ -24,7 +24,7 @@ import java.util.List;
  * @param contractClass the contract's class
  */
 public record ContractProfile(ContractMetadata metadata,
-                              List<AgentAction> actions,
+                              List<ContractAction> actions,
                               Class<?> contractClass) {
 
     /**
@@ -39,7 +39,7 @@ public record ContractProfile(ContractMetadata metadata,
         }
 
         ContractMetadata metadata = contract.contractMetadata();
-        List<AgentAction> actions = contract.agentActions();
+        List<ContractAction> actions = contract.agentActions();
 
         return new ContractProfile(metadata, actions, contract.getClass());
     }

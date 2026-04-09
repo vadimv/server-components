@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.PayloadSchema;
 
 
@@ -17,7 +17,7 @@ class ToolDefinitionTests {
 
     @Test
     void fromAction_produces_valid_tool_definition() {
-        AgentAction action = new AgentAction("page",
+        ContractAction action = new ContractAction("page",
             new EventKey.SimpleKey<>("test.page", Integer.class),
             "Navigate to a page number",
             new PayloadSchema.IntegerValue("page number (1-based)"));
@@ -32,7 +32,7 @@ class ToolDefinitionTests {
 
     @Test
     void fromAction_void_action_has_empty_properties() {
-        AgentAction action = new AgentAction("select_all",
+        ContractAction action = new ContractAction("select_all",
             new EventKey.VoidKey("test.selectAll"),
             "Select all rows");
 
@@ -80,7 +80,7 @@ class ToolDefinitionTests {
 
     @Test
     void toAnthropicJson_uses_input_schema() {
-        AgentAction action = new AgentAction("create",
+        ContractAction action = new ContractAction("create",
             new EventKey.VoidKey("test.create"), "Create item");
 
         ToolDefinition tool = ToolDefinition.fromAction(action);
@@ -94,7 +94,7 @@ class ToolDefinitionTests {
 
     @Test
     void toOpenAiJson_uses_parameters() {
-        AgentAction action = new AgentAction("create",
+        ContractAction action = new ContractAction("create",
             new EventKey.VoidKey("test.create"), "Create item");
 
         ToolDefinition tool = ToolDefinition.fromAction(action);

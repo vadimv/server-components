@@ -1,8 +1,8 @@
 package rsp.app.posts.services;
 
 import rsp.component.Lookup;
-import rsp.compositions.contract.AgentAction;
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractAction;
+import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.ActionGate;
 
@@ -20,7 +20,7 @@ public class CompositeGate implements ActionGate {
     }
 
     @Override
-    public GateResult evaluate(AgentAction action, AgentPayload payload, Lookup lookup) {
+    public GateResult evaluate(ContractAction action, ContractActionPayload payload, Lookup lookup) {
         for (ActionGate rule : rules) {
             GateResult result = rule.evaluate(action, payload, lookup);
             if (result instanceof GateResult.Block || result instanceof GateResult.Confirm) {

@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 
 import rsp.component.Lookup;
 import rsp.compositions.authorization.AccessDecision;
@@ -26,7 +26,7 @@ public final class PolicyActionFilter implements AgentActionFilter {
     }
 
     @Override
-    public List<AgentAction> filter(List<AgentAction> actions, Lookup context) {
+    public List<ContractAction> filter(List<ContractAction> actions, Lookup context) {
         return actions.stream()
             .filter(action -> {
                 Attributes attrs = Attributes.builder()

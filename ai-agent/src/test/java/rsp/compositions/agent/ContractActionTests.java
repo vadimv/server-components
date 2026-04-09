@@ -1,10 +1,9 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentPayload;
-import rsp.compositions.contract.PayloadSchemas;
+import rsp.compositions.contract.ContractActionPayload;
 
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.PayloadSchema;
 
 
@@ -13,12 +12,12 @@ import rsp.component.EventKey;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class AgentActionTests {
+class ContractActionTests {
 
     @Test
     void creates_action_with_all_fields() {
         EventKey.VoidKey key = new EventKey.VoidKey("test.event");
-        AgentAction action = new AgentAction("test", key, "A test action");
+        ContractAction action = new ContractAction("test", key, "A test action");
 
         assertEquals("test", action.action());
         assertSame(key, action.eventKey());
@@ -29,7 +28,7 @@ class AgentActionTests {
     @Test
     void creates_action_with_schema() {
         EventKey.SimpleKey<String> key = new EventKey.SimpleKey<>("edit", String.class);
-        AgentAction action = new AgentAction("edit", key, "Edit item",
+        ContractAction action = new ContractAction("edit", key, "Edit item",
             new PayloadSchema.StringValue("row ID"));
 
         assertInstanceOf(PayloadSchema.StringValue.class, action.schema());
@@ -39,7 +38,7 @@ class AgentActionTests {
     @Test
     void null_schema_defaults_to_none() {
         EventKey.VoidKey key = new EventKey.VoidKey("test");
-        AgentAction action = new AgentAction("test", key, "desc", null);
+        ContractAction action = new ContractAction("test", key, "desc", null);
 
         assertInstanceOf(PayloadSchema.None.class, action.schema());
     }
@@ -47,37 +46,37 @@ class AgentActionTests {
     @Test
     void parser_derived_from_schema() {
         EventKey.SimpleKey<Integer> key = new EventKey.SimpleKey<>("page", Integer.class);
-        AgentAction action = new AgentAction("page", key, "Go to page",
+        ContractAction action = new ContractAction("page", key, "Go to page",
             new PayloadSchema.IntegerValue("page number"));
 
         assertNotNull(action.parsePayload());
-        assertEquals(3, action.parsePayload().apply(AgentPayload.of(3)));
+        assertEquals(3, action.parsePayload().apply(ContractActionPayload.of(3)));
     }
 
     @Test
     void null_action_throws() {
         EventKey.VoidKey key = new EventKey.VoidKey("test");
         assertThrows(IllegalArgumentException.class,
-            () -> new AgentAction(null, key, "desc"));
+            () -> new ContractAction(null, key, "desc"));
     }
 
     @Test
     void blank_action_throws() {
         EventKey.VoidKey key = new EventKey.VoidKey("test");
         assertThrows(IllegalArgumentException.class,
-            () -> new AgentAction("  ", key, "desc"));
+            () -> new ContractAction("  ", key, "desc"));
     }
 
     @Test
     void null_eventKey_throws() {
         assertThrows(IllegalArgumentException.class,
-            () -> new AgentAction("test", null, "desc"));
+            () -> new ContractAction("test", null, "desc"));
     }
 
     @Test
     void null_description_throws() {
         EventKey.VoidKey key = new EventKey.VoidKey("test");
         assertThrows(IllegalArgumentException.class,
-            () -> new AgentAction("test", key, null));
+            () -> new ContractAction("test", key, null));
     }
 }

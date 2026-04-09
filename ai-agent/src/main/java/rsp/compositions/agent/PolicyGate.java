@@ -1,9 +1,9 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractActionPayload;
 
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 
 import rsp.component.Lookup;
 import rsp.compositions.authorization.AccessDecision;
@@ -31,7 +31,7 @@ public final class PolicyGate implements ActionGate {
     }
 
     @Override
-    public GateResult evaluate(AgentAction action, AgentPayload payload, Lookup lookup) {
+    public GateResult evaluate(ContractAction action, ContractActionPayload payload, Lookup lookup) {
         Attributes.Builder b = Attributes.builder()
             .put(AttributeKeys.ACTION_NAME, action.action())
             .put(AttributeKeys.CONTROL_CHANNEL, "agent_intent")

@@ -196,9 +196,9 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     }
 
     @Override
-    public List<AgentAction> agentActions() {
-        List<AgentAction> actions = new ArrayList<>(super.agentActions());
-        actions.add(new AgentAction("delete",
+    public List<ContractAction> agentActions() {
+        List<ContractAction> actions = new ArrayList<>(super.agentActions());
+        actions.add(new ContractAction("delete",
                                     DELETE_REQUESTED,
                                    "Delete the current entity"));
         return List.copyOf(actions);

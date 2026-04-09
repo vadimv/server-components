@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractMetadata;
 import rsp.compositions.contract.PayloadSchema;
 
@@ -19,15 +19,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AgentContextTests {
 
-    private static final AgentAction CREATE = new AgentAction("create",
+    private static final ContractAction CREATE = new ContractAction("create",
         new EventKey.VoidKey("test.create"), "Create item");
-    private static final AgentAction PAGE = new AgentAction("page",
+    private static final ContractAction PAGE = new ContractAction("page",
         new EventKey.SimpleKey<>("test.page", Integer.class), "Navigate to page",
         new PayloadSchema.IntegerValue("page"));
-    private static final AgentAction SELECT_ALL = new AgentAction("select_all",
+    private static final ContractAction SELECT_ALL = new ContractAction("select_all",
         new EventKey.VoidKey("test.selectAll"), "Select all");
 
-    private static final List<AgentAction> ACTIONS = List.of(CREATE, PAGE, SELECT_ALL);
+    private static final List<ContractAction> ACTIONS = List.of(CREATE, PAGE, SELECT_ALL);
 
     private static final StructureNode STRUCTURE = new StructureNode("Admin", "Administration panel",
         List.of(new StructureNode("Posts", "Blog posts", List.of(), List.of())),
@@ -43,7 +43,7 @@ class AgentContextTests {
         }
 
         @Override
-        public List<AgentAction> agentActions() { return ACTIONS; }
+        public List<ContractAction> agentActions() { return ACTIONS; }
 
         @Override
         public ComponentContext enrichContext(ComponentContext ctx) { return ctx; }
@@ -163,7 +163,7 @@ class AgentContextTests {
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
             contract, STRUCTURE, filter, lookup);
 
-        List<AgentAction> actions = ctx.contractActions();
+        List<ContractAction> actions = ctx.contractActions();
         assertEquals(2, actions.size());
         assertTrue(actions.stream().anyMatch(a -> "page".equals(a.action())));
         assertTrue(actions.stream().anyMatch(a -> "select_all".equals(a.action())));

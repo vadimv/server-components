@@ -4,10 +4,10 @@ import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.agent.AgentActionFilter;
 import rsp.compositions.agent.AgentContext;
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.agent.ActionGate;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentService.AgentResult;
@@ -51,7 +51,7 @@ public class PromptContract extends ViewContract {
     public static final EventKey.SimpleKey<Message> UPDATE_MESSAGE =
             new EventKey.SimpleKey<>("prompt.updateMessage", Message.class);
 
-    private record PendingAction(AgentAction action, AgentPayload payload) {}
+    private record PendingAction(ContractAction action, ContractActionPayload payload) {}
 
     private Runnable serviceUnsubscribe;
     private final String scopeKey;
@@ -222,7 +222,7 @@ public class PromptContract extends ViewContract {
                     promptService.sendReply(scopeKey, "Navigating...");
                 }
                 case AgentResult.ActionResult actionResult -> {
-                    AgentAction action = actionResult.action();
+                    ContractAction action = actionResult.action();
                     DispatchResult result = dispatcher.dispatch(
                         action, actionResult.payload(), capturedContract, lookup, capturedGate);
                     handleDispatchResult(result);
@@ -377,7 +377,7 @@ public class PromptContract extends ViewContract {
         StringBuilder help = new StringBuilder("I don't understand..");
         help.append("<ul>");
         help.append("<li><b>show</b> &lt;section&gt; &mdash; navigate to a section</li>");
-        for (AgentAction action : profile.actions()) {
+        for (ContractAction action : profile.actions()) {
             help.append("<li><b>").append(action.action()).append("</b> &mdash; ")
                 .append(action.description()).append("</li>");
         }

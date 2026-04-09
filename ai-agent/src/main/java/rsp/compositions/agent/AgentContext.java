@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractMetadata;
 
 import rsp.component.Lookup;
@@ -80,7 +80,7 @@ public class AgentContext {
     /**
      * Actions available on the active contract, with filter applied.
      */
-    public List<AgentAction> contractActions() {
+    public List<ContractAction> contractActions() {
         if (activeContract == null) return List.of();
         return applyFilter(activeContract.agentActions());
     }
@@ -120,7 +120,7 @@ public class AgentContext {
             return ContractProfile.of(null);
         }
         ContractMetadata metadata = contractMetadata();
-        List<AgentAction> filteredActions = contractActions();
+        List<ContractAction> filteredActions = contractActions();
         return new ContractProfile(metadata, filteredActions, activeContract.getClass());
     }
 
@@ -128,7 +128,7 @@ public class AgentContext {
     public ViewContract activeContract() { return activeContract; }
     public StructureNode structureTree() { return structureTree; }
 
-    private List<AgentAction> applyFilter(List<AgentAction> actions) {
+    private List<ContractAction> applyFilter(List<ContractAction> actions) {
         if (filter == null) return actions;
         return filter.filter(actions, lookup);
     }

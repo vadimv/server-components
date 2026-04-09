@@ -181,12 +181,12 @@ public abstract class FormViewContract<T> extends ViewContract {
     }
 
     @Override
-    public List<AgentAction> agentActions() {
+    public List<ContractAction> agentActions() {
         return List.of(
-            new AgentAction("save", FORM_SUBMITTED,
+            new ContractAction("save", FORM_SUBMITTED,
                 "Submit form data",
                 PayloadSchemas.fromDataSchema(schema())),
-            new AgentAction("cancel", CANCEL_REQUESTED,
+            new ContractAction("cancel", CANCEL_REQUESTED,
                 "Cancel and go back")
         );
     }

@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 
 import rsp.component.Lookup;
 
@@ -26,5 +26,5 @@ public interface AgentActionFilter {
      * @param context the current context (for role checks, user attributes, etc.)
      * @return the filtered list of actions the agent should see
      */
-    List<AgentAction> filter(List<AgentAction> actions, Lookup context);
+    List<ContractAction> filter(List<ContractAction> actions, Lookup context);
 }

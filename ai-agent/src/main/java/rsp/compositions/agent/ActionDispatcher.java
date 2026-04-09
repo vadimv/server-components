@@ -1,11 +1,11 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractActionPayload;
 
 
 import rsp.component.EventKey;
 import rsp.component.Lookup;
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ViewContract;
 
@@ -14,7 +14,7 @@ import java.util.concurrent.CompletableFuture;
 /**
  * The only component with publish access — translates allowed actions into framework events.
  * <p>
- * The dispatcher receives an {@link AgentAction} directly (no lookup by name needed)
+ * The dispatcher receives an {@link ContractAction} directly (no lookup by name needed)
  * and publishes the associated {@link EventKey} on the contract's lookup.
  * <p>
  * Navigation is handled separately via {@link #dispatchNavigate}.
@@ -25,11 +25,11 @@ public class ActionDispatcher {
      * Result of a dispatch attempt.
      */
     public sealed interface DispatchResult {
-        record Dispatched(AgentAction action,
-                          AgentPayload payload,
+        record Dispatched(ContractAction action,
+                          ContractActionPayload payload,
                           CompletableFuture<Void> processed) implements DispatchResult {}
         record Blocked(String reason) implements DispatchResult {}
-        record AwaitingConfirmation(String question, AgentAction action, AgentPayload payload) implements DispatchResult {}
+        record AwaitingConfirmation(String question, ContractAction action, ContractActionPayload payload) implements DispatchResult {}
         record PayloadError(String action, String message) implements DispatchResult {}
     }
 
@@ -43,7 +43,7 @@ public class ActionDispatcher {
      * @param gate    the rule engine
      * @return the dispatch result
      */
-    public DispatchResult dispatch(AgentAction action, AgentPayload payload,
+    public DispatchResult dispatch(ContractAction action, ContractActionPayload payload,
                                    ViewContract contract, Lookup lookup, ActionGate gate) {
         GateResult result = gate.evaluate(action, payload, lookup);
         return switch (result) {
@@ -57,7 +57,7 @@ public class ActionDispatcher {
      * Dispatch an action directly (no gate evaluation).
      * Used after confirmation has been received.
      */
-    public DispatchResult dispatchDirect(AgentAction action, AgentPayload payload, ViewContract contract) {
+    public DispatchResult dispatchDirect(ContractAction action, ContractActionPayload payload, ViewContract contract) {
         return publishEvent(action, payload, contract);
     }
 
@@ -72,7 +72,7 @@ public class ActionDispatcher {
     }
 
     @SuppressWarnings("unchecked")
-    private DispatchResult publishEvent(AgentAction action, AgentPayload payload, ViewContract contract) {
+    private DispatchResult publishEvent(ContractAction action, ContractActionPayload payload, ViewContract contract) {
         Lookup contractLookup = contract.lookup();
         EventKey<?> key = action.eventKey();
 

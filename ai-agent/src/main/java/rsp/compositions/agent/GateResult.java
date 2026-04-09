@@ -1,12 +1,12 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.AgentPayload;
+import rsp.compositions.contract.ContractActionPayload;
 
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 
 /**
- * The decision from an {@link ActionGate} after evaluating an {@link AgentAction}.
+ * The decision from an {@link ActionGate} after evaluating an {@link ContractAction}.
  * <p>
  * Sealed to ensure exhaustive handling:
  * <ul>
@@ -17,9 +17,9 @@ import rsp.compositions.contract.AgentAction;
  */
 public sealed interface GateResult {
 
-    record Allow(AgentAction action, AgentPayload payload) implements GateResult {}
+    record Allow(ContractAction action, ContractActionPayload payload) implements GateResult {}
 
     record Block(String reason) implements GateResult {}
 
-    record Confirm(String question, AgentAction action, AgentPayload payload) implements GateResult {}
+    record Confirm(String question, ContractAction action, ContractActionPayload payload) implements GateResult {}
 }

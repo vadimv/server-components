@@ -3,7 +3,7 @@ package rsp.compositions.agent;
 import rsp.compositions.contract.PayloadSchemas;
 
 
-import rsp.compositions.contract.AgentAction;
+import rsp.compositions.contract.ContractAction;
 
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ViewContract;
@@ -28,7 +28,7 @@ public record ToolDefinition(String name, String description, String inputSchema
     /**
      * Creates a tool definition from a contract's declared action.
      */
-    public static ToolDefinition fromAction(AgentAction action) {
+    public static ToolDefinition fromAction(ContractAction action) {
         return new ToolDefinition(
             action.action(),
             action.description(),

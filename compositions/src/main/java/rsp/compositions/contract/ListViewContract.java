@@ -262,21 +262,21 @@ public abstract class ListViewContract<T> extends ViewContract {
     }
 
     @Override
-    public List<AgentAction> agentActions() {
+    public List<ContractAction> agentActions() {
         return List.of(
-            new AgentAction("create", CREATE_ELEMENT_REQUESTED,
+            new ContractAction("create", CREATE_ELEMENT_REQUESTED,
                 "Open create form for a new item"),
-            new AgentAction("edit", EDIT_ELEMENT_REQUESTED,
+            new ContractAction("edit", EDIT_ELEMENT_REQUESTED,
                 "Open edit form for an item", new PayloadSchema.StringValue("row ID")),
-            new AgentAction("edit_selected", EDIT_SELECTED_REQUESTED,
+            new ContractAction("edit_selected", EDIT_SELECTED_REQUESTED,
                 "Open edit form for the first selected row"),
-            new AgentAction("delete", BULK_DELETE_REQUESTED,
+            new ContractAction("delete", BULK_DELETE_REQUESTED,
                 "Delete items by their IDs", new PayloadSchema.StringSet("row IDs to delete")),
-            new AgentAction("delete_selected", DELETE_SELECTED_REQUESTED,
+            new ContractAction("delete_selected", DELETE_SELECTED_REQUESTED,
                 "Delete all currently selected rows"),
-            new AgentAction("page", PAGE_CHANGE_REQUESTED,
+            new ContractAction("page", PAGE_CHANGE_REQUESTED,
                 "Navigate to a page number", new PayloadSchema.IntegerValue("page number (1-based)")),
-            new AgentAction("select_all", SELECT_ALL_REQUESTED,
+            new ContractAction("select_all", SELECT_ALL_REQUESTED,
                 "Select all rows on the current page")
         );
     }
