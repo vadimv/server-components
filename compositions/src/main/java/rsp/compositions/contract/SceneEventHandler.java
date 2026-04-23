@@ -63,8 +63,10 @@ public final class SceneEventHandler {
             state.routedContract().onDestroy();
         }
 
-        // Resolve and instantiate the new contract
-        ViewContract newContract = resolveAndInstantiate(state, contractClass, commandsEnqueue);
+        // Resolve and instantiate the new contract.
+        // stripQueryParams=true: SET_PRIMARY navigates to a different contract class,
+        // stale query state (e.g. ?p=2 from Posts) must not carry over to the new contract.
+        ViewContract newContract = resolveAndInstantiate(state, contractClass, commandsEnqueue, true);
         if (newContract == null) {
             return;
         }
@@ -91,7 +93,8 @@ public final class SceneEventHandler {
      */
     @SuppressWarnings("unchecked")
     private ViewContract resolveAndInstantiate(Scene state, Class contractClass,
-                                               CommandsEnqueue commandsEnqueue) {
+                                               CommandsEnqueue commandsEnqueue,
+                                               boolean stripQueryParams) {
         // Get factory from scene lazy factories
         Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
         if (factory == null) {
@@ -107,10 +110,15 @@ public final class SceneEventHandler {
         }
 
         // Create lookup with context enrichment.
-        // Strip stale query params so a new primary contract always starts at page 1
-        // (e.g. navigating from /posts?p=2 to Comments must not carry over p=2).
-        ComponentContext showContext = savedContext
-            .withoutStringPrefix(ContextKeys.URL_QUERY.baseKey() + ".")
+        // When stripQueryParams=true (SET_PRIMARY path): strip stale query params so a
+        // newly-routed contract starts clean (e.g. navigating from /posts?p=2 to Comments
+        // must not carry over p=2).
+        // When stripQueryParams=false (ACTION_SUCCESS refresh path): preserve query params
+        // so pagination/sort/filter state survives an in-place refresh of the same contract.
+        ComponentContext base = stripQueryParams
+            ? savedContext.withoutStringPrefix(ContextKeys.URL_QUERY.baseKey() + ".")
+            : savedContext;
+        ComponentContext showContext = base
             .with(ContextKeys.CONTRACT_CLASS, contractClass)
             .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
             .with(ContextKeys.SCENE, state);
@@ -134,7 +142,6 @@ public final class SceneEventHandler {
      * may have modified data visible in the routed view. LayerComponent handles
      * closing the overlay; this handler ensures the routed list reflects current data.
      */
-    @SuppressWarnings("unchecked")
     private void handleActionSuccess(Scene state,
                                      ActionResult result,
                                      CommandsEnqueue commandsEnqueue,
@@ -144,10 +151,12 @@ public final class SceneEventHandler {
             return;
         }
 
-        // Always refresh routed contract — the action may have modified visible data
+        // Always refresh routed contract — the action may have modified visible data.
+        // stripQueryParams=false: same contract class, preserve pagination/sort/filter
+        // query state across the refresh (e.g. stay on ?p=2 after Save/Cancel).
         state.routedContract().onDestroy();
         Class routedClass = state.routedContract().getClass();
-        ViewContract refreshed = resolveAndInstantiate(state, routedClass, commandsEnqueue);
+        ViewContract refreshed = resolveAndInstantiate(state, routedClass, commandsEnqueue, false);
         if (refreshed != null) {
             stateUpdate.applyStateTransformation(s -> s.withRoutedContract(refreshed));
         }

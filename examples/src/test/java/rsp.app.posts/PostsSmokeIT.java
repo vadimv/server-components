@@ -49,6 +49,7 @@ class PostsSmokeIT {
         login(page);
         validateListView(page);
         validatePagination(page);
+        validateEditPreservesPagination(page);
         validateCreatePost(page);
         validateEditPost(page);
         validateCancel(page);
@@ -131,6 +132,44 @@ class PostsSmokeIT {
         }
 
         System.out.println("✓ Pagination validated successfully");
+    }
+
+    private void validateEditPreservesPagination(final Page page) throws InterruptedException {
+        System.out.println("Testing: Edit preserves pagination (Cancel + Save on ?p=2)");
+
+        // Land directly on page 2 via URL, matching the original bug repro.
+        page.navigate(BASE_URL + "/posts?p=2");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        assertTrue(page.url().contains("p=2"),
+                  "Precondition: URL should be on p=2, got: " + page.url());
+        assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
+
+        // --- Cancel path ---
+        clickEditButton(page, 1);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        assertFormVisible(page, "Edit Post");
+        cancelForm(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+
+        assertTrue(page.url().contains("p=2"),
+                  "URL should still be on p=2 after Cancel, got: " + page.url());
+        assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
+
+        // --- Save path ---
+        clickEditButton(page, 1);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        assertFormVisible(page, "Edit Post");
+        fillPostForm(page,
+                     "P2-Edited-" + System.currentTimeMillis(),
+                     "edited while on page 2");
+        saveForm(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+
+        assertTrue(page.url().contains("p=2"),
+                  "URL should still be on p=2 after Save, got: " + page.url());
+        assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
+
+        System.out.println("✓ Edit preserves pagination validated successfully");
     }
 
     private void validateCreatePost(final Page page) throws InterruptedException {

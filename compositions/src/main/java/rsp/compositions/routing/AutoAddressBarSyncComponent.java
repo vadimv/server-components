@@ -206,9 +206,15 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                 // Full navigation: update state (triggers subtree re-render) + push history.
                 // Clear pendingPath — state is being updated so it is no longer needed as a base.
                 pendingPath = null;
+                // Split the target string into path + query so server-side context
+                // (url.query.*) stays in sync with what is pushed to the browser.
+                final String target = pathUpdate.path();
+                final int qIdx = target.indexOf('?');
+                final String pathPart = qIdx >= 0 ? target.substring(0, qIdx) : target;
+                final Query queryPart = qIdx >= 0 ? Query.of(target.substring(qIdx + 1)) : Query.EMPTY;
                 stateUpdate.applyStateTransformation(url -> {
-                    RelativeUrl updatedUrl = new RelativeUrl(Path.of(pathUpdate.path()), Query.EMPTY, Fragment.EMPTY);
-                    commandsEnqueue.offer(new RemoteCommand.PushHistory(pathUpdate.path()));
+                    RelativeUrl updatedUrl = new RelativeUrl(Path.of(pathPart), queryPart, Fragment.EMPTY);
+                    commandsEnqueue.offer(new RemoteCommand.PushHistory(target));
                     return updatedUrl;
                 });
             } else {
