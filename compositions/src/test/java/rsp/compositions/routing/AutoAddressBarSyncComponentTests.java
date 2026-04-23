@@ -34,13 +34,14 @@ class AutoAddressBarSyncComponentTests {
 
         component.onAfterRendered(initialUrl, subscriber, commandsEnqueue, stateUpdate);
 
+        RelativeUrl commentsUrl = new RelativeUrl(Path.of("/comments"), Query.EMPTY, Fragment.EMPTY);
         subscriber.emitComponentEvent(
             AutoAddressBarSyncComponent.SET_PATH.name(),
-            new AutoAddressBarSyncComponent.PathUpdate("/comments", UPDATE_PATH_ONLY)
+            new AutoAddressBarSyncComponent.PathUpdate(commentsUrl, UPDATE_PATH_ONLY)
         );
 
         // UPDATE_PATH_ONLY intentionally avoids a re-render, so state stays stale until
-        // the next URL mutation consumes pendingPath.
+        // the next URL mutation consumes pendingUrl.
         assertEquals("/posts?p=2", stateUpdate.state().toString());
 
         subscriber.emitComponentEvent(

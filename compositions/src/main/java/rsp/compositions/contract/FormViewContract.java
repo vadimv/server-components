@@ -114,7 +114,7 @@ public abstract class FormViewContract<T> extends ViewContract {
         if (routePattern == null) {
             throw new IllegalStateException("route.pattern not found in context");
         }
-        return RouteUtils.buildParentRoute(routePattern, lookup);
+        return RouteUtils.buildParentRoute(routePattern, lookup).toString();
     }
 
     // ========================================================================

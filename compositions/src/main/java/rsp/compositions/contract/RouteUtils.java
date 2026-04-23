@@ -1,6 +1,10 @@
 package rsp.compositions.contract;
 
 import rsp.component.Lookup;
+import rsp.server.Path;
+import rsp.server.http.Fragment;
+import rsp.server.http.Query;
+import rsp.server.http.RelativeUrl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,14 +32,12 @@ public class RouteUtils {
      *
      * @param routePattern The route pattern (e.g., "/posts/:id")
      * @param lookup Lookup for reading query parameters
-     * @return The parent route with restored query parameters
+     * @return The parent route URL (path + restored query + empty fragment)
      */
-    public static String buildParentRoute(String routePattern, Lookup lookup) {
-        // Convention: remove last segment if it's a parameter or token
-        String basePath = stripLastSegment(routePattern);
-        String queryString = buildRestoredQueryString(lookup);
-
-        return queryString.isEmpty() ? basePath : basePath + "?" + queryString;
+    public static RelativeUrl buildParentRoute(String routePattern, Lookup lookup) {
+        Path basePath = Path.of(stripLastSegment(routePattern));
+        Query restoredQuery = buildRestoredQuery(lookup);
+        return new RelativeUrl(basePath, restoredQuery, Fragment.EMPTY);
     }
 
     /**
@@ -70,28 +72,26 @@ public class RouteUtils {
     }
 
     /**
-     * Build query string by restoring from* parameters to original names.
+     * Build query by restoring from* parameters to original names.
      * <p>
      * Convention: fromP → p, fromSort → sort
      *
      * @param lookup Lookup for reading query parameters
-     * @return Query string (e.g., "p=3&sort=desc"), or empty string
+     * @return Query with restored parameters (may be empty)
      */
-    private static String buildRestoredQueryString(Lookup lookup) {
-        List<String> params = new ArrayList<>();
+    private static Query buildRestoredQuery(Lookup lookup) {
+        List<Query.Parameter> params = new ArrayList<>();
 
-        // Restore page parameter (fromP → p)
         String fromP = lookup.get(ContextKeys.URL_QUERY.with("fromP"));
         if (fromP != null && !fromP.isEmpty()) {
-            params.add("p=" + fromP);
+            params.add(new Query.Parameter("p", fromP));
         }
 
-        // Restore sort parameter (fromSort → sort)
         String fromSort = lookup.get(ContextKeys.URL_QUERY.with("fromSort"));
         if (fromSort != null && !fromSort.isEmpty()) {
-            params.add("sort=" + fromSort);
+            params.add(new Query.Parameter("sort", fromSort));
         }
 
-        return params.isEmpty() ? "" : String.join("&", params);
+        return params.isEmpty() ? Query.EMPTY : new Query(params);
     }
 }

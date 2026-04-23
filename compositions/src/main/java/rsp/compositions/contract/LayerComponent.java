@@ -5,6 +5,7 @@ import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.LayerLayout;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
+import rsp.server.http.RelativeUrl;
 
 import java.util.Map;
 import java.util.Objects;
@@ -218,9 +219,9 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
         if (scene != null && scene.autoOpen() != null
                 && scene.autoOpen().contractClass().equals(contractClass)) {
             Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
-            String parentRoute = RouteUtils.buildParentRoute(scene.autoOpen().routePattern(), lookup);
+            RelativeUrl parentUrl = RouteUtils.buildParentRoute(scene.autoOpen().routePattern(), lookup);
             lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                    new AutoAddressBarSyncComponent.PathUpdate(parentRoute, RE_RENDER_SUBTREE));
+                    new AutoAddressBarSyncComponent.PathUpdate(parentUrl, RE_RENDER_SUBTREE));
             return;
         }
 

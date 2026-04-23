@@ -3,6 +3,10 @@ package rsp.compositions.contract;
 import rsp.component.*;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
+import rsp.server.Path;
+import rsp.server.http.Fragment;
+import rsp.server.http.Query;
+import rsp.server.http.RelativeUrl;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -80,8 +84,11 @@ public final class SceneEventHandler {
                 .orElse(null);
             if (route != null) {
                 Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
+                // Explicit Query.EMPTY: SET_PRIMARY navigates to a different contract,
+                // so any stale query state must not carry over to the new route.
+                RelativeUrl targetUrl = new RelativeUrl(Path.of(route), Query.EMPTY, Fragment.EMPTY);
                 lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                               new AutoAddressBarSyncComponent.PathUpdate(route, UPDATE_PATH_ONLY));
+                               new AutoAddressBarSyncComponent.PathUpdate(targetUrl, UPDATE_PATH_ONLY));
             }
         }
 

@@ -5,7 +5,6 @@ import rsp.component.definitions.AddressBarSyncComponent;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
-import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 
@@ -74,20 +73,21 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
 public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponent {
 
     /**
-     * Tracks the path set by an UPDATE_PATH_ONLY event so the next query-param
-     * update uses the correct base path instead of the (possibly stale) state.
+     * Tracks the URL set by an UPDATE_PATH_ONLY event so the next query-param
+     * update uses the correct base URL instead of the (possibly stale) state.
      * Set and cleared on the event-loop thread only — no synchronization needed.
      */
-    private String pendingPath = null;
+    private RelativeUrl pendingUrl = null;
 
     /**
      * Payload for SET_PATH events.
      *
-     * @param path the target URL path
+     * @param url the target URL (path + query + fragment — callers must decide all three)
      * @param mode whether to update component state (re-render subtree) or update URL only
      */
-    public record PathUpdate(String path, PathUpdateMode mode) {
+    public record PathUpdate(RelativeUrl url, PathUpdateMode mode) {
         public PathUpdate {
+            Objects.requireNonNull(url, "url");
             Objects.requireNonNull(mode, "mode");
         }
     }
@@ -202,27 +202,21 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                                               CommandsEnqueue commandsEnqueue,
                                               StateUpdate<RelativeUrl> stateUpdate) {
         subscriber.addEventHandler(SET_PATH, (eventName, pathUpdate) -> {
+            final RelativeUrl target = pathUpdate.url();
             if (pathUpdate.mode() == PathUpdateMode.RE_RENDER_SUBTREE) {
                 // Full navigation: update state (triggers subtree re-render) + push history.
-                // Clear pendingPath — state is being updated so it is no longer needed as a base.
-                pendingPath = null;
-                // Split the target string into path + query so server-side context
-                // (url.query.*) stays in sync with what is pushed to the browser.
-                final String target = pathUpdate.path();
-                final int qIdx = target.indexOf('?');
-                final String pathPart = qIdx >= 0 ? target.substring(0, qIdx) : target;
-                final Query queryPart = qIdx >= 0 ? Query.of(target.substring(qIdx + 1)) : Query.EMPTY;
+                // Clear pendingUrl — state is being updated so it is no longer needed as a base.
+                pendingUrl = null;
                 stateUpdate.applyStateTransformation(url -> {
-                    RelativeUrl updatedUrl = new RelativeUrl(Path.of(pathPart), queryPart, Fragment.EMPTY);
-                    commandsEnqueue.offer(new RemoteCommand.PushHistory(target));
-                    return updatedUrl;
+                    commandsEnqueue.offer(new RemoteCommand.PushHistory(target.toString()));
+                    return target;
                 });
             } else {
                 // URL-only update: push browser history without re-rendering.
-                // Track the new path so the next query-param update uses it as
-                // the base URL rather than the (now stale) internal state.
-                pendingPath = pathUpdate.path();
-                commandsEnqueue.offer(new RemoteCommand.PushHistory(pathUpdate.path()));
+                // Track the new URL so the next query-param update uses it as
+                // the base rather than the (now stale) internal state.
+                pendingUrl = target;
+                commandsEnqueue.offer(new RemoteCommand.PushHistory(target.toString()));
             }
         }, false);
     }
@@ -265,13 +259,11 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                 final Object valueObject = eventContext.eventObject();
                 if (valueObject instanceof ContextStateComponent.ContextValue.StringValue stringValue) {
                     // If a SET_PATH UPDATE_PATH_ONLY arrived since the last render,
-                    // use that path as the base so routing is not stale.
-                    final String basePath = pendingPath;
-                    pendingPath = null;
+                    // use that URL as the base so routing is not stale.
+                    final RelativeUrl pending = pendingUrl;
+                    pendingUrl = null;
                     stateUpdate.applyStateTransformation(currentState -> {
-                        RelativeUrl base = (basePath != null)
-                                ? new RelativeUrl(Path.of(basePath), Query.EMPTY, Fragment.EMPTY)
-                                : currentState;
+                        RelativeUrl base = pending != null ? pending : currentState;
                         RelativeUrl updatedUrl = updateQueryParameter(base, paramName, stringValue.value());
                         commandsEnqueue.offer(new RemoteCommand.PushHistory(updatedUrl.toString()));
                         return updatedUrl;
