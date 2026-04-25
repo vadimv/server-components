@@ -21,7 +21,7 @@ public class HeaderView extends Component<HeaderView.HeaderViewState> {
     private CommandsEnqueue commandsEnqueue;
     private AuthComponent.AuthProvider authProvider;
 
-    public record HeaderViewState(String activeCategory, boolean authenticated, String username) {}
+    public record HeaderViewState(boolean authenticated, String username) {}
 
     @Override
     public ComponentSegment<HeaderViewState> createComponentSegment(QualifiedSessionId sessionId,
@@ -36,12 +36,10 @@ public class HeaderView extends Component<HeaderView.HeaderViewState> {
     @Override
     public ComponentStateSupplier<HeaderViewState> initStateSupplier() {
         return (_, context) -> {
-            String category = context.get(HeaderContract.HEADER_CATEGORY);
             Boolean auth = context.get(HeaderContract.HEADER_AUTHENTICATED);
             String username = context.get(HeaderContract.HEADER_USERNAME);
             this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
             return new HeaderViewState(
-                    category != null ? category : "",
                     Boolean.TRUE.equals(auth),
                     username != null ? username : "");
         };
@@ -50,7 +48,6 @@ public class HeaderView extends Component<HeaderView.HeaderViewState> {
     @Override
     public ComponentView<HeaderViewState> componentView() {
         return _ -> state -> div(attr("class", "layout-header"),
-                span(attr("class", "header-category"), text(state.activeCategory())),
                 authSection(state)
         );
     }

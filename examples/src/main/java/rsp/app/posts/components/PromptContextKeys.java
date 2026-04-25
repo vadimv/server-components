@@ -10,5 +10,8 @@ public final class PromptContextKeys {
     public static final ContextKey.StringKey<String> SCOPE_KEY =
             new ContextKey.StringKey<>("prompt.scopeKey", String.class);
 
+    public static final ContextKey.StringKey<String> ACTIVE_CATEGORY =
+            new ContextKey.StringKey<>("prompt.activeCategory", String.class);
+
     private PromptContextKeys() {}
 }

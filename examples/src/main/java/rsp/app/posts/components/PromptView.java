@@ -16,7 +16,11 @@ import static rsp.dsl.Html.*;
 public class PromptView extends Component<PromptView.PromptViewState> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    public record PromptViewState(List<PromptContract.Message> messages) {
+    public record PromptViewState(List<PromptContract.Message> messages, String activeCategory) {
+        public PromptViewState(List<PromptContract.Message> messages) {
+            this(messages, "");
+        }
+
         public PromptViewState withMessage(PromptContract.Message message) {
             // Idempotent: skip if message already present (by ID)
             if (messages.stream().anyMatch(m -> m.id() == message.id())) {
@@ -24,7 +28,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             }
             List<PromptContract.Message> updated = new ArrayList<>(messages);
             updated.add(message);
-            return new PromptViewState(List.copyOf(updated));
+            return new PromptViewState(List.copyOf(updated), activeCategory);
         }
 
         public PromptViewState withLastSystemMessageUpdated(String text) {
@@ -35,7 +39,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                     break;
                 }
             }
-            return new PromptViewState(List.copyOf(updated));
+            return new PromptViewState(List.copyOf(updated), activeCategory);
         }
     }
 
@@ -48,14 +52,16 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         return (_, context) -> {
             PromptService promptService = context.get(PromptContextKeys.PROMPT_SERVICE);
             String scopeKey = context.get(PromptContextKeys.SCOPE_KEY);
+            String category = context.get(PromptContextKeys.ACTIVE_CATEGORY);
+            String activeCategory = category != null ? category : "";
             if (promptService != null && scopeKey != null) {
                 List<PromptContract.Message> history = promptService.getMessageHistory(scopeKey)
                     .stream()
                     .map(m -> new PromptContract.Message(m.id(), m.text(), m.fromUser()))
                     .toList();
-                return new PromptViewState(history);
+                return new PromptViewState(history, activeCategory);
             }
-            return new PromptViewState(List.of());
+            return new PromptViewState(List.of(), activeCategory);
         };
     }
 
@@ -99,10 +105,12 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                 attr("onkeydown",
                                      "if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.requestSubmit();}",
                                      false)),
-                        button(attr("type", "submit"),
-                                attr("class", "prompt-send"),
-                                attr("aria-label", "Send"),
-                                text("\u2191")),
+                        div(attr("class", "prompt-footer"),
+                                span(attr("class", "prompt-category"), text(state.activeCategory())),
+                                button(attr("type", "submit"),
+                                        attr("class", "prompt-send"),
+                                        attr("aria-label", "Send"),
+                                        text("\u2191"))),
                         on("submit", true, ctx -> {
                             JsonDataType.Object eventObj = ctx.eventObject();
                             JsonDataType promptValue = eventObj.value("prompt");
