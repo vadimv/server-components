@@ -10,6 +10,7 @@ import rsp.util.json.JsonDataType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static rsp.dsl.Html.*;
 
@@ -46,6 +47,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
     private Lookup lookup;
     private Lookup.Registration eventSubscription;
     private Lookup.Registration updateSubscription;
+    private final AtomicLong optimisticIdCounter = new AtomicLong(0);
 
     @Override
     public ComponentStateSupplier<PromptViewState> initStateSupplier() {
@@ -89,7 +91,8 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                 div(attr("class", "prompt-header"), text("Prompt")),
                 div(attr("class", "prompt-messages"),
                         of(state.messages().reversed().stream().map(msg ->
-                                div(attr("class", msg.fromUser() ? "prompt-message user" : "prompt-message system"),
+                                div(attr("id", "prompt-msg-" + msg.id()),
+                                        attr("class", msg.fromUser() ? "prompt-message user" : "prompt-message system"),
                                         attr("innerHTML",
                                              msg.fromUser() ? HtmlEscape.escape(msg.text())
                                                             : msg.text(),
@@ -118,8 +121,9 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                 String text = promptValue.toString().replace("\"", "");
                                 if (!text.isEmpty()) {
                                     if (stateUpdate != null) {
+                                        long optimisticId = optimisticIdCounter.decrementAndGet();
                                         stateUpdate.applyStateTransformation(s ->
-                                                s.withMessage(new PromptContract.Message(-1, text, true)));
+                                                s.withMessage(new PromptContract.Message(optimisticId, text, true)));
                                     }
                                     lookup.publish(PromptContract.SEND_PROMPT, text);
                                 }
