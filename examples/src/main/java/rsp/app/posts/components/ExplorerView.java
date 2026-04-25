@@ -6,6 +6,7 @@ import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.NavigationEntry;
+import rsp.compositions.contract.NavigationNode;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
@@ -16,10 +17,10 @@ import java.util.Objects;
 import static rsp.dsl.Html.*;
 
 /**
- * ExplorerView - Renders the Explorer navigation menu.
+ * ExplorerView - Renders the Explorer navigation menu as a tree.
  * <p>
- * Reads {@link NavigationEntry} list and active category key from context
- * and renders a navigation menu with SPA-style navigation.
+ * Reads a {@link NavigationNode} tree and the active category key from context
+ * and renders nested groups with SPA-style navigation on routable leaves.
  * <p>
  * Register in Contracts:
  * <pre>{@code
@@ -32,19 +33,16 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
     private Lookup lookup;
 
     public record ExplorerViewState(
-            List<NavigationEntry> entries,
+            NavigationNode tree,
             String activeCategoryKey
     ) {}
 
     @Override
     public ComponentStateSupplier<ExplorerViewState> initStateSupplier() {
         return (_, context) -> {
-            List<NavigationEntry> entries = context.get(ContextKeys.NAVIGATION_ENTRIES);
+            NavigationNode tree = context.get(ContextKeys.NAVIGATION_TREE);
             String activeCategory = context.get(ContextKeys.PRIMARY_CATEGORY_KEY);
-            return new ExplorerViewState(
-                    entries != null ? entries : List.of(),
-                    activeCategory
-            );
+            return new ExplorerViewState(tree, activeCategory);
         };
     }
 
@@ -68,29 +66,46 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
 
     @Override
     public ComponentView<ExplorerViewState> componentView() {
-        return _ -> state -> div(attr("class", "explorer-panel"),
-                div(attr("class", "explorer-header"), text("Explorer")),
-                ul(attr("class", "explorer-menu"),
-                        of(state.entries().stream().map(entry ->
-                                renderMenuItem(entry, state.activeCategoryKey())
-                        ))
-                )
-        );
+        return _ -> state -> {
+            NavigationNode root = state.tree();
+            List<NavigationNode> topLevel = root == null
+                    ? List.of()
+                    : (root.label() == null ? root.children() : List.of(root));
+            return div(attr("class", "explorer-panel"),
+                    div(attr("class", "explorer-header"), text("Explorer")),
+                    ul(attr("class", "explorer-menu"),
+                            of(topLevel.stream().map(node ->
+                                    renderNode(node, state.activeCategoryKey())
+                            ))
+                    )
+            );
+        };
     }
 
-    private Definition renderMenuItem(NavigationEntry entry, String activeCategoryKey) {
-        boolean isActive = Objects.equals(entry.categoryKey(), activeCategoryKey);
-        String cssClass = isActive ? "explorer-item active" : "explorer-item";
+    private Definition renderNode(NavigationNode node, String activeCategoryKey) {
+        NavigationEntry entry = node.entry();
+        boolean isActive = entry != null && Objects.equals(entry.categoryKey(), activeCategoryKey);
+        boolean hasChildren = !node.children().isEmpty();
 
-        return li(attr("class", cssClass),
-                a(
+        String cssClass = "explorer-item"
+                + (entry == null ? " explorer-group" : "")
+                + (isActive ? " active" : "");
+
+        Definition labelPart = entry != null
+                ? a(
                         attr("href", entry.route()),
-                        on("click", true, ctx -> {
-                            lookup.publish(ExplorerContract.REQUEST_OPEN_CONTRACT, entry);
-                        }),
-                        text(entry.label())
-                )
-        );
+                        on("click", true, ctx -> lookup.publish(ExplorerContract.REQUEST_OPEN_CONTRACT, entry)),
+                        text(node.label())
+                  )
+                : div(attr("class", "explorer-group-label"), text(node.label()));
+
+        Definition childrenPart = hasChildren
+                ? ul(attr("class", "explorer-submenu"),
+                        of(node.children().stream().map(c -> renderNode(c, activeCategoryKey)))
+                  )
+                : of();
+
+        return li(attr("class", cssClass), labelPart, childrenPart);
     }
 
     /**

@@ -291,16 +291,15 @@ public final class ContextKeys {
                     (Class<List<Composition>>) (Class<?>) List.class);
 
     /**
-     * Pre-computed navigation entries for PRIMARY contracts.
-     * Type: {@code List<NavigationEntry>}
+     * Pre-computed navigation tree for PRIMARY contracts.
+     * Type: {@link NavigationNode}
      * <p>
-     * Computed from composition registrations and explicit categories at app startup.
-     * Used by navigation/explorer components to render menus without instantiating contracts.
+     * Built from the application's group structure and routers. The root node is
+     * anonymous (no label/entry) and its children carry the labelled groups and
+     * routable leaves.
      */
-    @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<List<NavigationEntry>> NAVIGATION_ENTRIES =
-            new ContextKey.StringKey<>("app.navigationEntries",
-                    (Class<List<NavigationEntry>>) (Class<?>) List.class);
+    public static final ContextKey.StringKey<NavigationNode> NAVIGATION_TREE =
+            new ContextKey.StringKey<>("app.navigationTree", NavigationNode.class);
 
     // ===== URL KEYS =====
 

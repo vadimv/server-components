@@ -7,17 +7,21 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.NavigationEntry;
+import rsp.compositions.contract.NavigationNode;
 import rsp.compositions.contract.Scene;
 import rsp.compositions.contract.ViewContract;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 import static rsp.compositions.contract.EventKeys.SET_PRIMARY;
 
 /**
  * ExplorerContract - Navigation sidebar contract.
  * <p>
- * Builds navigation entries from compositions and a {@link StructureNode} tree,
+ * Builds a {@link NavigationNode} tree from compositions and a {@link StructureNode} tree,
  * and relays menu selection events as {@code SET_PRIMARY} commands.
  * <p>
  * Register in composition and configure as left sidebar in Layout:
@@ -32,14 +36,14 @@ public class ExplorerContract extends ViewContract {
             new EventKey.SimpleKey<>("explorer.open.contract", NavigationEntry.class);
 
     private final StructureNode structure;
-    private final List<NavigationEntry> entries;
+    private final NavigationNode tree;
 
     public ExplorerContract(Lookup lookup, StructureNode structure) {
         super(lookup);
         this.structure = Objects.requireNonNull(structure);
 
         List<Composition> compositions = lookup.get(ContextKeys.APP_COMPOSITIONS);
-        this.entries = buildNavigationEntries(compositions, structure);
+        this.tree = buildNavigationTree(compositions, structure);
 
         subscribe(REQUEST_OPEN_CONTRACT, (eventName, entry) -> {
             lookup.publish(SET_PRIMARY, entry.contractClass());
@@ -53,7 +57,7 @@ public class ExplorerContract extends ViewContract {
 
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
-        context = context.with(ContextKeys.NAVIGATION_ENTRIES, entries);
+        context = context.with(ContextKeys.NAVIGATION_TREE, tree);
 
         Scene scene = context.get(ContextKeys.SCENE);
         if (scene != null && scene.routedContract() != null) {
@@ -66,27 +70,42 @@ public class ExplorerContract extends ViewContract {
         return context;
     }
 
-    private static List<NavigationEntry> buildNavigationEntries(List<Composition> compositions,
-                                                                StructureNode structure) {
-        if (compositions == null) {
-            return List.of();
+    private static NavigationNode buildNavigationTree(List<Composition> compositions,
+                                                      StructureNode node) {
+        List<NavigationNode> childNodes = new ArrayList<>();
+        for (StructureNode child : node.children()) {
+            NavigationNode childNode = buildNavigationTree(compositions, child);
+            if (childNode != null) {
+                childNodes.add(childNode);
+            }
         }
 
-        final Map<String, NavigationEntry> uniqueByCategory = new LinkedHashMap<>();
-
-        for (Composition comp : compositions) {
-            for (Class<? extends ViewContract> contractClass : comp.contracts().contractClasses()) {
-                Optional<String> routeOpt = comp.router().findRoutePattern(contractClass);
-                if (routeOpt.isPresent() && !routeOpt.get().contains(":") && structure.contains(contractClass)) {
-                    String label = structure.labelFor(contractClass);
-                    if (label != null && !uniqueByCategory.containsKey(label)) {
-                        uniqueByCategory.put(label,
-                                new NavigationEntry(label, label, contractClass, routeOpt.get()));
-                    }
+        NavigationEntry entry = null;
+        if (node.label() != null && compositions != null) {
+            for (Class<? extends ViewContract> contractClass : node.contracts()) {
+                Optional<String> routeOpt = findRoute(compositions, contractClass);
+                if (routeOpt.isPresent() && !routeOpt.get().contains(":")) {
+                    entry = new NavigationEntry(node.label(), node.label(), contractClass, routeOpt.get());
+                    break;
                 }
             }
         }
 
-        return List.copyOf(uniqueByCategory.values());
+        if (node.label() == null && entry == null && childNodes.isEmpty()) {
+            return null;
+        }
+
+        return new NavigationNode(node.label(), entry, List.copyOf(childNodes));
+    }
+
+    private static Optional<String> findRoute(List<Composition> compositions,
+                                              Class<? extends ViewContract> contractClass) {
+        for (Composition comp : compositions) {
+            Optional<String> route = comp.router().findRoutePattern(contractClass);
+            if (route.isPresent()) {
+                return route;
+            }
+        }
+        return Optional.empty();
     }
 }

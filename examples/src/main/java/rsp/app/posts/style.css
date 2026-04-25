@@ -253,7 +253,8 @@ h1 {
     border-bottom: 1px solid #dee2e6;
 }
 
-.explorer-menu {
+.explorer-menu,
+.explorer-submenu {
     list-style: none;
     margin: 0;
     padding: 0;
@@ -263,7 +264,8 @@ h1 {
     border-bottom: 1px solid #e9ecef;
 }
 
-.explorer-item a {
+.explorer-item a,
+.explorer-group-label {
     display: block;
     padding: 0.75rem 1rem;
     color: #212529;
@@ -274,10 +276,36 @@ h1 {
     background-color: #e9ecef;
 }
 
-.explorer-item.active a {
+.explorer-item.active > a {
     background-color: #007bff;
     color: white;
     font-weight: 500;
+}
+
+.explorer-group > .explorer-group-label {
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    color: #6c757d;
+    letter-spacing: 0.02em;
+}
+
+.explorer-submenu {
+    border-top: 1px solid #e9ecef;
+}
+
+.explorer-submenu .explorer-item:last-child {
+    border-bottom: none;
+}
+
+.explorer-submenu .explorer-item a,
+.explorer-submenu .explorer-group-label {
+    padding-left: 2rem;
+}
+
+.explorer-submenu .explorer-submenu .explorer-item a,
+.explorer-submenu .explorer-submenu .explorer-group-label {
+    padding-left: 3rem;
 }
 
 /* ========== Header Styles ========== */
