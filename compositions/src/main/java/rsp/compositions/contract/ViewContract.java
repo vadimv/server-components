@@ -82,6 +82,7 @@ public abstract class ViewContract {
         if (bus != null) {
             bus.publish(key, value);
         }
+        lookup.publish(key, value);
     }
 
     protected <T> void onCapability(EventKey<T> key, Consumer<T> handler) {
@@ -89,6 +90,7 @@ public abstract class ViewContract {
         if (bus != null) {
             bus.subscribe(key, handler);
         }
+        handlerRegistrations.add(lookup.subscribe(key, (name, value) -> handler.accept(value)));
     }
 
     /**

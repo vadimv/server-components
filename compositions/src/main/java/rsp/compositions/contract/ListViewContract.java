@@ -150,7 +150,6 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     @Override
     protected void registerHandlers() {
-        // Publish active category capability for sibling contracts (e.g., header)
         publishCapability(Capabilities.ACTIVE_CATEGORY, title());
 
         // Track selection changes from the list view component
