@@ -219,7 +219,7 @@ h1 {
 
 /* Left sidebar */
 .layout-sidebar {
-    width: 200px;
+    width: 280px;
     flex-shrink: 0;
     background-color: #f8f9fa;
     border-right: 1px solid #dee2e6;
@@ -364,7 +364,7 @@ h1 {
 
 /* ========== Right Sidebar ========== */
 .layout-right-sidebar {
-    width: 300px;
+    width: 340px;
     flex-shrink: 0;
     margin-left: auto;
     background-color: #f8f9fa;
@@ -435,21 +435,51 @@ h1 {
     padding: 0.75rem;
     border-top: 1px solid #dee2e6;
     flex-shrink: 0;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
 }
 
 .prompt-input {
-    width: 100%;
+    flex: 1;
     padding: 0.5rem;
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 0.875rem;
     box-sizing: border-box;
+    font-family: inherit;
+    resize: none;
+    overflow-y: auto;
+    min-height: 2.25rem;
+    max-height: 10rem;
+    line-height: 1.4;
+    field-sizing: content;
 }
 
 .prompt-input:focus {
     outline: none;
     border-color: #80bdff;
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.prompt-send {
+    flex-shrink: 0;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: none;
+    border-radius: 4px;
+    background-color: #007bff;
+    color: white;
+    font-size: 1rem;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.prompt-send:hover {
+    background-color: #0056b3;
 }
 
 /* ========== Delegation Approval Dialog ========== */

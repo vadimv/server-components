@@ -91,11 +91,18 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                         ))
                 ),
                 form(attr("class", "prompt-input-form"),
-                        input(attr("type", "text"),
-                                attr("name", "prompt"),
+                        textarea(attr("name", "prompt"),
                                 attr("class", "prompt-input"),
                                 attr("placeholder", "Type a command..."),
-                                attr("autocomplete", "off")),
+                                attr("autocomplete", "off"),
+                                attr("rows", "1"),
+                                attr("onkeydown",
+                                     "if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();this.form.requestSubmit();}",
+                                     false)),
+                        button(attr("type", "submit"),
+                                attr("class", "prompt-send"),
+                                attr("aria-label", "Send"),
+                                text("\u2191")),
                         on("submit", true, ctx -> {
                             JsonDataType.Object eventObj = ctx.eventObject();
                             JsonDataType promptValue = eventObj.value("prompt");
