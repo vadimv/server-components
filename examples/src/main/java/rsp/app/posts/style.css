@@ -386,6 +386,33 @@ h1 {
     overflow-y: auto;
 }
 
+.modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: transparent;
+    border: 0;
+    padding: 0.25rem;
+    cursor: pointer;
+    color: #6c757d;
+    line-height: 0;
+    border-radius: 4px;
+}
+
+.modal-close:hover {
+    color: #212529;
+    background: #f1f3f5;
+}
+
+.modal-close:focus-visible {
+    outline: 2px solid #007bff;
+    outline-offset: 1px;
+}
+
+.modal-close-icon {
+    display: block;
+}
+
 /* ========== Right Sidebar ========== */
 .layout-right-sidebar {
     width: 340px;

@@ -45,7 +45,7 @@ class RemotePageMessageEncoderTests {
         assertEquals("[4,0,\"1\",\"1_1\",0,\"div\"]", c.result); // TODO should a unified way to be used to encode XmlNs.html and others? e.g. an enum integer values
 
         create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(TreePositionPath.of("100_1"), XmlNs.svg, "a")));
-        assertEquals("[4,0,\"100\",\"100_1\",\"svg\",\"a\"]", c.result);
+        assertEquals("[4,0,\"100\",\"100_1\",\"http://www.w3.org/2000/svg\",\"a\"]", c.result);
     }
 
     @Test

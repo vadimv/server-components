@@ -154,7 +154,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     }
 
     private String xmlNsString(final XmlNs xmlNs) {
-        return xmlNs.uri().equals(XmlNs.html.uri()) ? "0" : quote(xmlNs.toString());
+        return xmlNs.uri().equals(XmlNs.html.uri()) ? "0" : quote(xmlNs.uri());
     }
 
     @Override
