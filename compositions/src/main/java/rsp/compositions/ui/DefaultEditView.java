@@ -69,6 +69,7 @@ public class DefaultEditView extends EditView {
                     div(attr("class", "form-actions"),
                         button(
                             attr("type", "button"),
+                            attr("class", "save-button"),
                             text("Save"),
                             on("click", ctx -> {
                                 // Collect field values from input elements asynchronously
@@ -181,7 +182,7 @@ public class DefaultEditView extends EditView {
         // Emit ACTION_SUCCESS(CANCEL) - framework derives behavior from composition
         return button(
             attr("type", "button"),
-            attr("class", "button cancel-button"),
+            attr("class", "cancel-button"),
             text("Cancel"),
             on("click", ctx -> {
                 if (contractClass != null) {

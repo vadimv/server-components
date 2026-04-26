@@ -167,26 +167,18 @@ th input[type="checkbox"] {
     gap: 0.5rem;
 }
 
-.form-actions button[type="button"] {
-    background-color: #6c757d;
-}
-
-.form-actions button[type="button"]:hover {
-    background-color: #545b62;
-}
-
-/* Cancel link styling */
+/* Form action link styling */
 .form-actions a {
     display: inline-block;
     padding: 0.5rem 1rem;
-    background-color: #6c757d;
+    background-color: #007bff;
     color: white;
     border-radius: 4px;
     text-decoration: none;
 }
 
 .form-actions a:hover {
-    background-color: #545b62;
+    background-color: #0056b3;
 }
 
 /* ========== Layout ========== */
