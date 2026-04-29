@@ -258,12 +258,12 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
         }
 
-        // Notify unmounted child components
-        final Set<ComponentSegment<?>> mountedComponents = new HashSet<>(children);
+        // Unmount every old child. A freshly-created segment with the same ComponentCompositeKey
+        // as an old one is a *replacement*, not a continuation, and the old one must be torn down
+        // or its retained subscriptions and DOM-write capability race with the new segment
+        // ("ghost component" bug). No path today re-adds an old segment by reference.
         for (final ComponentSegment<?> child : oldChildren) {
-            if (!mountedComponents.contains(child)) {
-                child.unmount();
-            }
+            child.unmount();
         }
 
         callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
@@ -274,6 +274,9 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     public void unmount() {
+        if (isUnmounted) {
+            return;
+        }
         isUnmounted = true;
         recursiveChildren().forEach(c -> c.unmount());
         callbacks.onUnmounted(componentId, state);

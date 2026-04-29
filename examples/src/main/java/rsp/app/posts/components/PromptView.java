@@ -85,25 +85,18 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         return new ContextLookup(context, commandsEnqueue, subscriber);
     }
 
-    private static String buildMessagesHtml(List<PromptContract.Message> messages) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = messages.size() - 1; i >= 0; i--) {
-            PromptContract.Message msg = messages.get(i);
-            sb.append("<div class=\"prompt-message ")
-              .append(msg.fromUser() ? "user" : "system")
-              .append("\">")
-              .append(msg.fromUser() ? HtmlEscape.escape(msg.text()) : msg.text())
-              .append("</div>");
-        }
-        return sb.toString();
-    }
-
     @Override
     public ComponentView<PromptViewState> componentView() {
         return stateUpdate -> state -> div(attr("class", "prompt-panel"),
                 div(attr("class", "prompt-header"), text("Prompt")),
                 div(attr("class", "prompt-messages"),
-                        attr("innerHTML", buildMessagesHtml(state.messages()), true)
+                        of(state.messages().reversed().stream().map(msg ->
+                                div(attr("class", msg.fromUser() ? "prompt-message user" : "prompt-message system"),
+                                        attr("innerHTML",
+                                             msg.fromUser() ? HtmlEscape.escape(msg.text())
+                                                            : msg.text(),
+                                             true))
+                        ))
                 ),
                 form(attr("class", "prompt-input-form"),
                         textarea(attr("name", "prompt"),

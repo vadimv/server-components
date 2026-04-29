@@ -506,4 +506,168 @@ public class ComponentSegmentTests {
                     "Handler registered via context subscriber should survive sibling re-render");
         }
     }
+
+    /**
+     * Regression guard for the "ghost component" invariant:
+     * for every ComponentCompositeKey, at most one ComponentSegment with isUnmounted=false
+     * should exist; that segment must be the one currently linked into the parent's
+     * children list.
+     * <p>
+     * The invariant was violated by an earlier equals-by-componentId check in
+     * {@link ComponentSegment#applyStateTransformation} that treated a freshly-created
+     * replacement segment as "still mounted" and left the old segment alive with active
+     * subscriptions and DOM-write capability — see git history. The check is now identity-based,
+     * so any old segment not literally carried over by reference is unmounted.
+     */
+    @Nested
+    public class GhostComponentInvariantTests {
+
+        private boolean isUnmounted(ComponentSegment<?> segment) throws Exception {
+            Field field = ComponentSegment.class.getDeclaredField("isUnmounted");
+            field.setAccessible(true);
+            return (boolean) field.get(segment);
+        }
+
+        @Test
+        void parent_rerender_orphans_child_segment_with_same_componentId() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+
+            final List<ComponentSegment<String>> createdChildSegments = new ArrayList<>();
+            final List<TestCallbacks> childCallbacksByRender = new ArrayList<>();
+
+            // Factory mirrors Group.resolveView() pattern: each call returns a fresh
+            // Component definition but with a stable componentId (same path under same parent).
+            final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) -> {
+                final TestCallbacks cb = new TestCallbacks();
+                childCallbacksByRender.add(cb);
+                final ComponentSegment<String> seg = new ComponentSegment<>(
+                        new ComponentCompositeKey(sid, "childType", path),
+                        (key, c) -> "initial-child-state",
+                        (c, s) -> c,
+                        stateUpdate -> state -> renderContext -> {
+                            renderContext.openNode(XmlNs.html, "span", false);
+                            renderContext.closeNode("span", false);
+                        },
+                        cb,
+                        tbf,
+                        ctx,
+                        cmd
+                );
+                createdChildSegments.add(seg);
+                return seg;
+            };
+
+            // Parent's view re-creates the child Definition every render, like a real Layout does.
+            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+                renderContext.openNode(XmlNs.html, "div", false);
+                final ComponentSegment<String> child = renderContext.openComponent(childFactory);
+                child.render(renderContext);
+                renderContext.closeComponent();
+                renderContext.closeNode("div", false);
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx,
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+            assertEquals(1, createdChildSegments.size(), "First render creates one child segment");
+            final ComponentSegment<String> oldChild = createdChildSegments.get(0);
+
+            // Trigger a parent re-render — the equivalent of SET_PRIMARY rebuilding Scene.
+            parent.applyStateTransformation(s -> NEW_STATE);
+
+            assertEquals(2, createdChildSegments.size(),
+                    "Parent re-render created a second child segment with the same componentId");
+            final ComponentSegment<String> newChild = createdChildSegments.get(1);
+
+            assertEquals(oldChild, newChild,
+                    "Old and new child share the same ComponentCompositeKey (ComponentSegment.equals compares componentId)");
+            assertNotSame(oldChild, newChild,
+                    "But they are distinct ComponentSegment instances");
+
+            // Invariant: at most one ComponentSegment per ComponentCompositeKey may be
+            // live (isUnmounted == false). When a parent re-renders and produces a new
+            // segment with a matching componentId, the old segment must be unmounted —
+            // either reused-in-place or shut down — so its subscriptions, event handlers,
+            // and DOM-write capability are released.
+            assertTrue(isUnmounted(oldChild),
+                    "Old child segment must be unmounted when replaced by a fresh segment with the same componentId. " +
+                    "Otherwise its subscriptions and DOM-write capability remain active and race with the new segment.");
+            assertTrue(childCallbacksByRender.get(0).callOrder.contains("onUnmounted:initial-child-state"),
+                    "Old child's onUnmounted must fire when it is replaced.");
+        }
+
+        @Test
+        void orphaned_child_can_still_apply_state_updates_after_parent_rerender() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+
+            final List<ComponentSegment<String>> createdChildSegments = new ArrayList<>();
+            final List<TestCallbacks> childCallbacksByRender = new ArrayList<>();
+
+            final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) -> {
+                final TestCallbacks cb = new TestCallbacks();
+                childCallbacksByRender.add(cb);
+                final ComponentSegment<String> seg = new ComponentSegment<>(
+                        new ComponentCompositeKey(sid, "childType", path),
+                        (key, c) -> "initial-child-state",
+                        (c, s) -> c,
+                        stateUpdate -> state -> renderContext -> {
+                            renderContext.openNode(XmlNs.html, "span", false);
+                            renderContext.closeNode("span", false);
+                        },
+                        cb,
+                        tbf,
+                        ctx,
+                        cmd
+                );
+                createdChildSegments.add(seg);
+                return seg;
+            };
+
+            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+                renderContext.openNode(XmlNs.html, "div", false);
+                final ComponentSegment<String> child = renderContext.openComponent(childFactory);
+                child.render(renderContext);
+                renderContext.closeComponent();
+                renderContext.closeNode("div", false);
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx,
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+            final ComponentSegment<String> oldChild = createdChildSegments.get(0);
+            final TestCallbacks oldChildCallbacks = childCallbacksByRender.get(0);
+
+            // Parent re-render: orphans oldChild, creates newChild at same componentId.
+            parent.applyStateTransformation(s -> NEW_STATE);
+            oldChildCallbacks.clear();
+
+            // After replacement, applyStateTransformation on the old segment must be inert.
+            // Today the unmount sets isUnmounted=true and the update is dropped at the guard
+            // in applyStateTransformation. If a future change ever re-introduces the leak,
+            // the orphan will emit onUpdated and race with the new segment for DOM writes.
+            oldChild.applyStateTransformation(s -> "ghost-update");
+
+            assertFalse(oldChildCallbacks.callOrder.stream().anyMatch(s -> s.startsWith("onUpdated:")),
+                    "Replaced segment must not process state updates. " +
+                    "Otherwise two segments race for the same DOM region.");
+        }
+    }
 }
