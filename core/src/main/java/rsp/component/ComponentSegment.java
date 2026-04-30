@@ -3,10 +3,11 @@ package rsp.component;
 import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.dsl.Definition;
+import rsp.metrics.MetricNames;
+import rsp.metrics.Metrics;
 import rsp.page.EventContext;
 import rsp.page.events.GenericTaskEvent;
 import rsp.page.events.RemoteCommand;
-import rsp.page.events.Command;
 import rsp.ref.Ref;
 
 import java.util.*;
@@ -38,6 +39,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final ComponentView<S> componentView;
     private final ComponentCallbacks<S> callbacks;
     private final TreeBuilderFactory treeBuilderFactory;
+    private final Metrics metrics;
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
     private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>(); // should it be a dictionary?
@@ -84,7 +86,9 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
         this.componentContext = Objects.requireNonNull(componentContext);
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
+        this.metrics = Metrics.from(componentContext);
 
+        this.metrics.incrementCounter(MetricNames.SEGMENT_CREATED);
         logger.log(TRACE, () -> "New component is created: " + this);
     }
 
@@ -176,6 +180,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
         if (isUnmounted) {
             logger.log(WARNING, () -> "Ignored state update on unmounted component: " + componentId);
+            metrics.incrementCounter(MetricNames.SEGMENT_UPDATE_DROPPED_UNMOUNTED);
             return;
         }
         stateTransformer.apply(state).ifPresent(this::setState);
@@ -191,6 +196,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
         if (isUnmounted) {
             logger.log(WARNING, () -> "Ignored state update on unmounted component: " + componentId);
+            metrics.incrementCounter(MetricNames.SEGMENT_UPDATE_DROPPED_UNMOUNTED);
             return;
         }
 
@@ -280,6 +286,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         isUnmounted = true;
         recursiveChildren().forEach(c -> c.unmount());
         callbacks.onUnmounted(componentId, state);
+        metrics.incrementCounter(MetricNames.SEGMENT_UNMOUNTED);
     }
 
     private List<Node> rootNodes() {
