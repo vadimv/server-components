@@ -25,7 +25,6 @@ import rsp.compositions.agent.SpawnResult;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ActionBindings;
-import rsp.compositions.contract.Capabilities;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.Scene;
@@ -71,7 +70,6 @@ public class PromptContract extends ViewContract {
     private String queuedPrompt;
 
     private volatile Scene currentScene;
-    private String activeCategory = "";
     private PendingAction pendingConfirm;
 
     // Plan execution: completed by enrichContext() with the settled scene
@@ -119,10 +117,6 @@ public class PromptContract extends ViewContract {
             this.gate = (action, payload, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
             this.actionFilter = (actions, ctx) -> List.of();
         }
-
-        onCapability(Capabilities.ACTIVE_CATEGORY, category -> {
-            this.activeCategory = category;
-        });
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
             promptService.sendPrompt(scopeKey, text);
@@ -427,7 +421,20 @@ public class PromptContract extends ViewContract {
         }
         return context.with(PromptContextKeys.PROMPT_SERVICE, promptService)
                       .with(PromptContextKeys.SCOPE_KEY, scopeKey)
-                      .with(PromptContextKeys.ACTIVE_CATEGORY, activeCategory);
+                      .with(PromptContextKeys.ACTIVE_CATEGORY, activeCategory());
+    }
+
+    private String activeCategory() {
+        if (currentScene == null || currentScene.routedContract() == null) {
+            return "";
+        }
+        final Class<? extends ViewContract> contractClass = currentScene.routedContract().getClass();
+        final String structureLabel = structure != null ? structure.labelFor(contractClass) : null;
+        if (structureLabel != null) {
+            return structureLabel;
+        }
+        final String title = currentScene.routedContract().title();
+        return title != null ? title : "";
     }
 
     @Override

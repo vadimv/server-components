@@ -38,6 +38,7 @@ import java.util.function.Supplier;
 public final class ContextLookup implements Lookup {
 
     private final Supplier<ComponentContext> contextSupplier;
+    private final ContextScope contextScope;
     private final CommandsEnqueue commandsEnqueue;
     private final Subscriber subscriber;
 
@@ -54,14 +55,33 @@ public final class ContextLookup implements Lookup {
                          final CommandsEnqueue commandsEnqueue,
                          final Subscriber subscriber) {
         this.contextSupplier = Objects.requireNonNull(contextSupplier, "contextSupplier");
+        this.contextScope = null;
+        this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue, "commandsEnqueue");
+        this.subscriber = Objects.requireNonNull(subscriber, "subscriber");
+    }
+
+    /**
+     * Creates a lookup backed by a live context scope owned by a segment.
+     * Reads follow the scope's current context and {@link #watch(ContextKey, java.util.function.BiConsumer)}
+     * observes future scope replacements.
+     *
+     * @param contextScope live context scope for a component segment
+     * @param commandsEnqueue for publishing events (async via Reactor)
+     * @param subscriber for subscribing to events (component-scoped)
+     */
+    public ContextLookup(final ContextScope contextScope,
+                         final CommandsEnqueue commandsEnqueue,
+                         final Subscriber subscriber) {
+        this.contextScope = Objects.requireNonNull(contextScope, "contextScope");
+        this.contextSupplier = contextScope::current;
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue, "commandsEnqueue");
         this.subscriber = Objects.requireNonNull(subscriber, "subscriber");
     }
 
     /**
      * Creates a new ContextLookup facade with a fixed context (snapshot behavior).
-     * Equivalent to {@link #ContextLookup(Supplier, CommandsEnqueue, Subscriber)}
-     * with {@code () -> context}.
+     * The lookup is backed by a private {@link ContextScope}; reads are fixed unless
+     * that private scope is replaced internally, which normal callers cannot do.
      *
      * @param context the component context for data access
      * @param commandsEnqueue for publishing events (async via Reactor)
@@ -70,13 +90,9 @@ public final class ContextLookup implements Lookup {
     public ContextLookup(final ComponentContext context,
                          final CommandsEnqueue commandsEnqueue,
                          final Subscriber subscriber) {
-        this(constantSupplier(Objects.requireNonNull(context, "context")),
+        this(new ContextScope(Objects.requireNonNull(context, "context")),
              commandsEnqueue,
              subscriber);
-    }
-
-    private static Supplier<ComponentContext> constantSupplier(final ComponentContext c) {
-        return () -> c;
     }
 
     // ===== Data Access - delegates to ComponentContext =====
@@ -122,6 +138,17 @@ public final class ContextLookup implements Lookup {
             commandsEnqueue,
             subscriber
         );
+    }
+
+    // ===== Context Observation - delegates to ContextScope when available =====
+
+    @Override
+    public <T> Registration watch(final ContextKey<T> key,
+                                  final java.util.function.BiConsumer<T, T> handler) {
+        if (contextScope == null) {
+            throw new UnsupportedOperationException("Context watching requires a ContextScope-backed lookup");
+        }
+        return contextScope.watch(key, handler);
     }
 
     // ===== Event Subscription - delegates to Subscriber (component-scoped) =====

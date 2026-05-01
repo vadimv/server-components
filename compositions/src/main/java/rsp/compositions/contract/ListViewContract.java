@@ -150,8 +150,6 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     @Override
     protected void registerHandlers() {
-        publishCapability(Capabilities.ACTIVE_CATEGORY, title());
-
         // Track selection changes from the list view component
         subscribe(SELECTION_CHANGED, (_, selectionEvent) -> {
             selectedIds = selectionEvent.ids();

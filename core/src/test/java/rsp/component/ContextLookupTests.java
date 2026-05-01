@@ -207,6 +207,52 @@ public class ContextLookupTests {
     }
 
     @Nested
+    class ContextObservationTests {
+
+        private final ContextKey.StringKey<String> KEY = new ContextKey.StringKey<>("observed.key", String.class);
+
+        @Test
+        void watch_delegates_to_context_scope() {
+            final ContextScope scope = new ContextScope(new ComponentContext().with(KEY, "old"));
+            final Lookup scopeLookup = new ContextLookup(scope, commandsEnqueue, subscriber);
+            final AtomicReference<String> oldValue = new AtomicReference<>();
+            final AtomicReference<String> newValue = new AtomicReference<>();
+
+            scopeLookup.watch(KEY, (oldV, newV) -> {
+                oldValue.set(oldV);
+                newValue.set(newV);
+            });
+
+            scope.replace(new ComponentContext().with(KEY, "new"));
+
+            assertEquals("old", oldValue.get());
+            assertEquals("new", newValue.get());
+        }
+
+        @Test
+        void watch_consumer_receives_new_value() {
+            final ContextScope scope = new ContextScope(new ComponentContext().with(KEY, "old"));
+            final Lookup scopeLookup = new ContextLookup(scope, commandsEnqueue, subscriber);
+            final AtomicReference<String> observed = new AtomicReference<>();
+
+            scopeLookup.watch(KEY, observed::set);
+            scope.replace(new ComponentContext().with(KEY, "new"));
+
+            assertEquals("new", observed.get());
+        }
+
+        @Test
+        void supplier_backed_lookup_cannot_watch_context_changes() {
+            final AtomicReference<ComponentContext> ref = new AtomicReference<>(
+                    new ComponentContext().with(KEY, "old"));
+            final Lookup supplierLookup = new ContextLookup(ref::get, commandsEnqueue, subscriber);
+
+            assertThrows(UnsupportedOperationException.class,
+                    () -> supplierLookup.watch(KEY, (_, _) -> {}));
+        }
+    }
+
+    @Nested
     class ConstructorValidationTests {
 
         @Test

@@ -9,6 +9,7 @@ import rsp.page.events.Command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -91,6 +92,21 @@ class ComponentSegmentContextTests {
         segment.setComponentContext(new ComponentContext().with(KEY, "v2"));
         assertEquals("v2", lazy.get(KEY),
                 "a lazy lookup whose supplier is segment::componentContext must follow updates");
+    }
+
+    @Test
+    void setComponentContext_notifies_context_scope_watchers() {
+        final ComponentSegment<String> segment = createSegment(initialContext);
+        final Lookup scoped = new ContextLookup(
+                segment.contextScope(),
+                commandsEnqueue,
+                new NoOpSubscriber());
+        final AtomicReference<String> observed = new AtomicReference<>();
+
+        scoped.watch(KEY, observed::set);
+        segment.setComponentContext(new ComponentContext().with(KEY, "v2"));
+
+        assertEquals("v2", observed.get());
     }
 
     @Test

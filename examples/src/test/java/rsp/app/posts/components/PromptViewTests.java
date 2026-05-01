@@ -130,4 +130,28 @@ class PromptViewTests {
             assertEquals("new-reply", updated.messages().get(1).text());
         }
     }
+
+    @Nested
+    class ActiveCategory {
+
+        @Test
+        void withActiveCategory_updates_category_without_losing_messages() {
+            var message = new PromptContract.Message(1, "reply", false);
+            var state = new PromptView.PromptViewState(List.of(message), "Posts");
+
+            var updated = state.withActiveCategory("Comments");
+
+            assertEquals("Comments", updated.activeCategory());
+            assertEquals(List.of(message), updated.messages());
+        }
+
+        @Test
+        void withActiveCategory_normalizes_null_to_empty() {
+            var state = new PromptView.PromptViewState(List.of(), "Posts");
+
+            var updated = state.withActiveCategory(null);
+
+            assertEquals("", updated.activeCategory());
+        }
+    }
 }

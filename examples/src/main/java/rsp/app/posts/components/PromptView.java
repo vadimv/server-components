@@ -10,6 +10,7 @@ import rsp.util.json.JsonDataType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static rsp.dsl.Html.*;
@@ -42,11 +43,20 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             }
             return new PromptViewState(List.copyOf(updated), activeCategory);
         }
+
+        public PromptViewState withActiveCategory(String activeCategory) {
+            final String nextCategory = activeCategory != null ? activeCategory : "";
+            if (Objects.equals(this.activeCategory, nextCategory)) {
+                return this;
+            }
+            return new PromptViewState(messages, nextCategory);
+        }
     }
 
     private Lookup lookup;
     private Lookup.Registration eventSubscription;
     private Lookup.Registration updateSubscription;
+    private Lookup.Registration categorySubscription;
     private final AtomicLong optimisticIdCounter = new AtomicLong(0);
 
     @Override
@@ -85,10 +95,9 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         if (subscriber == null) {
             subscriber = NoOpSubscriber.INSTANCE;
         }
-        // Lazy context: lookups read the segment's *current* componentContext, so updates
-        // applied via the framework's reconciliation path are observable here without
-        // rebuilding the lookup or the segment.
-        return new ContextLookup(segment::componentContext, commandsEnqueue, subscriber);
+        // Scope-backed lookup: reads follow the segment's current context and
+        // watch() is notified when reconciliation replaces that context.
+        return new ContextLookup(segment.contextScope(), commandsEnqueue, subscriber);
     }
 
     @Override
@@ -151,10 +160,16 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             logger.log(System.Logger.Level.TRACE, () -> "Update message notified: " + message);
             stateUpdate.applyStateTransformation(s -> s.withLastSystemMessageUpdated(message.text()));
         });
+        categorySubscription = lookup.watch(PromptContextKeys.ACTIVE_CATEGORY, category ->
+                stateUpdate.applyStateTransformation(s -> s.withActiveCategory(category)));
     }
 
     @Override
     public void onUnmounted(ComponentCompositeKey componentId, PromptViewState state) {
+        if (categorySubscription != null) {
+            categorySubscription.unsubscribe();
+            categorySubscription = null;
+        }
         if (eventSubscription != null) {
             eventSubscription.unsubscribe();
             eventSubscription = null;

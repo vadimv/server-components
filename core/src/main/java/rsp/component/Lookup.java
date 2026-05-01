@@ -1,6 +1,7 @@
 package rsp.component;
 
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Unified lookup interface for context data and events.
@@ -205,6 +206,38 @@ public interface Lookup {
      * @return a new Lookup instance with the service added
      */
     <T> Lookup with(Class<T> clazz, T instance);
+
+    // ===== Context Observation =====
+
+    /**
+     * Watch a context key for changes on this lookup's owning segment.
+     * <p>
+     * The handler is invoked when the segment is reused with a new
+     * {@link ComponentContext} and the watched value changes according to
+     * {@link java.util.Objects#equals(Object, Object)}.
+     *
+     * @param key the context key to observe
+     * @param handler receives the old and new values
+     * @param <T> the value type
+     * @return registration handle for explicit unsubscribe
+     * @throws UnsupportedOperationException if this lookup is not backed by a live context scope
+     */
+    default <T> Registration watch(final ContextKey<T> key, final BiConsumer<T, T> handler) {
+        throw new UnsupportedOperationException("Context watching not available in this lookup");
+    }
+
+    /**
+     * Watch a context key for changes and receive the new value only.
+     *
+     * @param key the context key to observe
+     * @param handler receives the new value
+     * @param <T> the value type
+     * @return registration handle for explicit unsubscribe
+     * @throws UnsupportedOperationException if this lookup is not backed by a live context scope
+     */
+    default <T> Registration watch(final ContextKey<T> key, final Consumer<T> handler) {
+        return watch(key, (_, newValue) -> handler.accept(newValue));
+    }
 
     // ===== Event Subscription =====
 

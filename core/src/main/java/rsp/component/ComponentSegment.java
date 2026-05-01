@@ -52,7 +52,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * may update this via {@link #setComponentContext(ComponentContext)} when a segment is
      * reused across a parent re-render. User code must not modify this directly.
      */
-    private ComponentContext componentContext;
+    private final ContextScope contextScope;
     private TreePositionPath startNodeDomPath;
     private TagNode parentTag;
     private boolean isUnmounted;
@@ -89,7 +89,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         this.componentView = Objects.requireNonNull(componentView);
         this.callbacks = Objects.requireNonNull(callbacks);
         this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
-        this.componentContext = Objects.requireNonNull(componentContext);
+        this.contextScope = new ContextScope(Objects.requireNonNull(componentContext));
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
         this.metrics = Metrics.from(componentContext);
 
@@ -110,13 +110,25 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * <p>
      * Used as the source for lazy lookups that follow the segment's current context
      * (including any update from {@link #setComponentContext(ComponentContext)}):
-     * pass {@code segment::componentContext} as the supplier of a {@link ContextLookup}.
+     * pass {@link #contextScope()} to {@link ContextLookup} when a component also
+     * needs to observe future context changes.
      * <p>
      * Read-only. The setter is package-private and reserved for the framework's
      * reconciliation path.
      */
     public ComponentContext componentContext() {
-        return componentContext;
+        return contextScope.current();
+    }
+
+    /**
+     * @return this segment's live context scope.
+     * <p>
+     * Used by framework-created {@link ContextLookup} instances so components can
+     * observe context changes when a segment is reused. The scope can be watched by
+     * user code, but its current context can only be replaced inside this package.
+     */
+    public ContextScope contextScope() {
+        return contextScope;
     }
 
     /**
@@ -127,7 +139,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * User code must not call this directly.
      */
     void setComponentContext(final ComponentContext componentContext) {
-        this.componentContext = Objects.requireNonNull(componentContext, "componentContext");
+        this.contextScope.replace(Objects.requireNonNull(componentContext, "componentContext"));
     }
 
     /**
@@ -174,9 +186,9 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     public void render(final TreeBuilder renderContext) {
         try {
-            state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext),
+            state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext()),
                                            "Initial state cannot be null for component " + componentId);
-            renderContext.setComponentContext(descendantContextResolver().apply(componentContext, state));
+            renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
 
             final View<S> view = componentView.use(this);
             final Definition uiDefinition = view.apply(state);
@@ -268,7 +280,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
 
-        renderContext.setComponentContext(descendantContextResolver().apply(componentContext, state));
+        renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
         renderContext.openComponent(this);
         final Definition view = componentView.use(this).apply(state);
         view.render(renderContext);
@@ -319,6 +331,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         isUnmounted = true;
         recursiveChildren().forEach(c -> c.unmount());
         callbacks.onUnmounted(componentId, state);
+        contextScope.clear();
         metrics.incrementCounter(MetricNames.SEGMENT_UNMOUNTED);
     }
 
