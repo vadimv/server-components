@@ -10,7 +10,9 @@ import rsp.compositions.composition.Group;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.routing.Router;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -110,7 +112,7 @@ public final class SceneBuilder {
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories =
                 collectLazyFactories(this.contractClass, companionContracts);
 
-        return Scene.of(routedContract, Map.copyOf(companionContracts), Map.copyOf(lazyFactories), composition);
+        return Scene.of(routedContract, orderedUnmodifiableCopy(companionContracts), Map.copyOf(lazyFactories), composition);
     }
 
     /**
@@ -166,7 +168,7 @@ public final class SceneBuilder {
             }
         }
 
-        return Scene.withAutoOpen(parentContract, Map.copyOf(companionContracts), Map.copyOf(lazyFactories),
+        return Scene.withAutoOpen(parentContract, orderedUnmodifiableCopy(companionContracts), Map.copyOf(lazyFactories),
                 Map.copyOf(preActivated), composition,
                 new Scene.AutoOpen(this.contractClass, routePattern));
     }
@@ -177,7 +179,7 @@ public final class SceneBuilder {
     private Map<Class<? extends ViewContract>, ViewContract> instantiateCompanions(ComponentContext context) {
         Set<Class<? extends ViewContract>> requiredByLayout = layout.requiredContracts();
         Group contracts = composition.contracts();
-        Map<Class<? extends ViewContract>, ViewContract> companions = new HashMap<>();
+        Map<Class<? extends ViewContract>, ViewContract> companions = new LinkedHashMap<>();
 
         for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
             if (requiredByLayout.contains(cls)) {
@@ -190,6 +192,10 @@ public final class SceneBuilder {
         }
 
         return companions;
+    }
+
+    private static <K, V> Map<K, V> orderedUnmodifiableCopy(Map<K, V> map) {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(map));
     }
 
     /**

@@ -419,22 +419,11 @@ public class PromptContract extends ViewContract {
         if (future != null && !future.isDone()) {
             future.complete(currentScene);
         }
+        final String activeCategory = context.get(ContextKeys.PRIMARY_CATEGORY_KEY);
         return context.with(PromptContextKeys.PROMPT_SERVICE, promptService)
                       .with(PromptContextKeys.SCOPE_KEY, scopeKey)
-                      .with(PromptContextKeys.ACTIVE_CATEGORY, activeCategory());
-    }
-
-    private String activeCategory() {
-        if (currentScene == null || currentScene.routedContract() == null) {
-            return "";
-        }
-        final Class<? extends ViewContract> contractClass = currentScene.routedContract().getClass();
-        final String structureLabel = structure != null ? structure.labelFor(contractClass) : null;
-        if (structureLabel != null) {
-            return structureLabel;
-        }
-        final String title = currentScene.routedContract().title();
-        return title != null ? title : "";
+                      .with(PromptContextKeys.ACTIVE_CATEGORY,
+                            activeCategory != null ? activeCategory : "");
     }
 
     @Override
