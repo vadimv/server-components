@@ -84,7 +84,8 @@ public class CrudApp {
 
         // Agent services — unified ABAC authorization for spawn, discovery, and execution
         final ActionDispatcher actionDispatcher = new ActionDispatcher();
-        final AccessPolicy policy = new CompositePolicy(ExamplePolicies.grantConstraints());
+        final AccessPolicy policy = new CompositePolicy(ExamplePolicies.requireGrantForExecution(),
+                                                        ExamplePolicies.grantConstraints());
         final Authorization authorization = new Authorization(policy, Attributes.empty());
         final DelegationStore delegationStore = new InMemoryDelegationStore();
         final AgentSpawner spawner = new ApprovalSpawner(new PolicySpawner(authorization), delegationStore);
