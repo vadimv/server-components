@@ -73,16 +73,22 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                                                     final TreeBuilderFactory treeBuilderFactory,
                                                                     final ComponentContext componentContext,
                                                                     final CommandsEnqueue commandsEnqueue) {
-        this.lookup = createLookup(componentContext, commandsEnqueue);
-        return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+        final ComponentSegment<PromptViewState> segment = super.createComponentSegment(
+                sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+        this.lookup = createLookup(segment, commandsEnqueue);
+        return segment;
     }
 
-    private Lookup createLookup(ComponentContext context, CommandsEnqueue commandsEnqueue) {
-        Subscriber subscriber = context.get(Subscriber.class);
+    private Lookup createLookup(ComponentSegment<?> segment, CommandsEnqueue commandsEnqueue) {
+        // Subscriber identity is stable across re-renders; capture once.
+        Subscriber subscriber = segment.componentContext().get(Subscriber.class);
         if (subscriber == null) {
             subscriber = NoOpSubscriber.INSTANCE;
         }
-        return new ContextLookup(context, commandsEnqueue, subscriber);
+        // Lazy context: lookups read the segment's *current* componentContext, so updates
+        // applied via the framework's reconciliation path are observable here without
+        // rebuilding the lookup or the segment.
+        return new ContextLookup(segment::componentContext, commandsEnqueue, subscriber);
     }
 
     @Override

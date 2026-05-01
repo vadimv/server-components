@@ -212,7 +212,13 @@ public class ContextLookupTests {
         @Test
         void constructor_rejects_null_context() {
             assertThrows(NullPointerException.class,
-                () -> new ContextLookup(null, commandsEnqueue, subscriber));
+                () -> new ContextLookup((ComponentContext) null, commandsEnqueue, subscriber));
+        }
+
+        @Test
+        void constructor_rejects_null_supplier() {
+            assertThrows(NullPointerException.class,
+                () -> new ContextLookup((java.util.function.Supplier<ComponentContext>) null, commandsEnqueue, subscriber));
         }
 
         @Test
@@ -225,6 +231,117 @@ public class ContextLookupTests {
         void constructor_rejects_null_subscriber() {
             assertThrows(NullPointerException.class,
                 () -> new ContextLookup(context, commandsEnqueue, null));
+        }
+    }
+
+    @Nested
+    class LazyContextTests {
+
+        private final ContextKey.StringKey<String> KEY = new ContextKey.StringKey<>("lazy.key", String.class);
+        private final ContextKey.StringKey<String> KEY2 = new ContextKey.StringKey<>("lazy.key2", String.class);
+
+        @Test
+        void supplier_backed_lookup_reads_current_value_each_call() {
+            final AtomicReference<ComponentContext> ref = new AtomicReference<>(
+                    new ComponentContext().with(KEY, "v1"));
+            final Lookup l = new ContextLookup(ref::get, commandsEnqueue, subscriber);
+
+            assertEquals("v1", l.get(KEY));
+
+            ref.set(new ComponentContext().with(KEY, "v2"));
+            assertEquals("v2", l.get(KEY),
+                    "lazy lookup must re-read the supplier on each get()");
+        }
+
+        @Test
+        void supplier_backed_lookup_reads_current_class_value_each_call() {
+            final AtomicReference<ComponentContext> ref = new AtomicReference<>(
+                    new ComponentContext().with(String.class, "first"));
+            final Lookup l = new ContextLookup(ref::get, commandsEnqueue, subscriber);
+
+            assertEquals("first", l.get(String.class));
+
+            ref.set(new ComponentContext().with(String.class, "second"));
+            assertEquals("second", l.get(String.class));
+        }
+
+        @Test
+        void getRequired_reads_live_through_supplier() {
+            final AtomicReference<ComponentContext> ref = new AtomicReference<>(new ComponentContext());
+            final Lookup l = new ContextLookup(ref::get, commandsEnqueue, subscriber);
+
+            assertThrows(IllegalStateException.class, () -> l.getRequired(KEY));
+
+            ref.set(new ComponentContext().with(KEY, "now-present"));
+            assertEquals("now-present", l.getRequired(KEY));
+        }
+
+        @Test
+        void with_snapshots_at_call_time_and_freezes_derived_lookup() {
+            final AtomicReference<ComponentContext> ref = new AtomicReference<>(
+                    new ComponentContext().with(KEY, "v1"));
+            final Lookup live = new ContextLookup(ref::get, commandsEnqueue, subscriber);
+
+            final Lookup derived = live.with(KEY2, "added");
+
+            // Mutate the underlying context source after with() was called.
+            ref.set(new ComponentContext().with(KEY, "v2").with(KEY2, "external"));
+
+            // live tracks the new context.
+            assertEquals("v2", live.get(KEY), "original lookup stays live");
+
+            // derived is frozen to the snapshot taken at .with() time.
+            assertEquals("v1", derived.get(KEY),
+                    "derived lookup must NOT see post-with() mutations of the supplier");
+            assertEquals("added", derived.get(KEY2),
+                    "derived lookup must return the value that was added by .with()");
+        }
+
+        @Test
+        void with_class_snapshots_at_call_time() {
+            final AtomicReference<ComponentContext> ref = new AtomicReference<>(
+                    new ComponentContext().with(String.class, "before"));
+            final Lookup live = new ContextLookup(ref::get, commandsEnqueue, subscriber);
+
+            final Lookup derived = live.with(Integer.class, 42);
+
+            ref.set(new ComponentContext().with(String.class, "after"));
+
+            assertEquals("after", live.get(String.class));
+            assertEquals("before", derived.get(String.class),
+                    "derived lookup is frozen to the snapshot");
+            assertEquals(42, derived.get(Integer.class));
+        }
+
+        @Test
+        void chained_with_calls_each_freeze_to_their_call_site() {
+            final AtomicReference<ComponentContext> ref = new AtomicReference<>(
+                    new ComponentContext().with(KEY, "v1"));
+            final Lookup live = new ContextLookup(ref::get, commandsEnqueue, subscriber);
+
+            final Lookup chain = live.with(KEY2, "x");
+            ref.set(new ComponentContext().with(KEY, "v2"));
+            // chain was snapshotted at v1; its sub-derivation also stays in that frame.
+            final Lookup deeper = chain.with(KEY2, "y");
+
+            assertEquals("v1", chain.get(KEY));
+            assertEquals("x", chain.get(KEY2));
+            assertEquals("v1", deeper.get(KEY), "snapshot propagates through chained with()");
+            assertEquals("y", deeper.get(KEY2));
+            assertEquals("v2", live.get(KEY));
+        }
+
+        @Test
+        void fixed_context_constructor_preserves_legacy_snapshot_behavior() {
+            final ComponentContext fixed = new ComponentContext().with(KEY, "fixed");
+            final Lookup l = new ContextLookup(fixed, commandsEnqueue, subscriber);
+
+            assertEquals("fixed", l.get(KEY));
+            // ComponentContext is immutable; the legacy constructor is observably equivalent
+            // to a constant supplier — derived lookups still freeze.
+            final Lookup d = l.with(KEY2, "added");
+            assertEquals("fixed", d.get(KEY));
+            assertEquals("added", d.get(KEY2));
         }
     }
 

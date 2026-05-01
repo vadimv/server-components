@@ -670,4 +670,104 @@ public class ComponentSegmentTests {
                     "Otherwise two segments race for the same DOM region.");
         }
     }
+
+    /**
+     * Regression guard for the subscription-handover bug.
+     * <p>
+     * A child segment receives a {@code Subscriber} via context — that subscriber is
+     * its parent's. The child registers a handler in {@code onMounted} via
+     * {@code subscriber.addComponentEventHandler(name, …)}. The child's
+     * {@code onUnmounted} unsubscribes via {@code subscriber.removeComponentEventHandler(name)},
+     * which removes the <em>first</em> entry by name.
+     * <p>
+     * On a parent re-render, the parent clears its tables and re-renders, creating a fresh
+     * child segment that registers a NEW handler under the same name. Then the OLD child
+     * is unmounted; if the unmount runs <em>after</em> the new handler is registered, the
+     * name-based remove deletes the new handler, leaving the post-render UI dead.
+     * <p>
+     * The fix in {@code ComponentSegment.applyStateTransformation} is to unmount old children
+     * <em>before</em> clearing the parent's tables and re-rendering. This test asserts that
+     * a child-registered handler is exactly preserved after a parent re-render that recreates
+     * the child.
+     */
+    @Nested
+    public class ChildSubscriptionSurvivesParentRerenderTests {
+
+        @Test
+        void child_registered_handler_survives_parent_rerender() {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final String CHILD_EVENT = "child.event";
+
+            final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) -> {
+                // Capture the context subscriber (this is the PARENT's subscriber).
+                final Subscriber parentSubscriber = ctx.get(Subscriber.class);
+                final TestCallbacks cb = new TestCallbacks() {
+                    @Override
+                    public void onMounted(ComponentCompositeKey id, String state, StateUpdate<String> upd) {
+                        super.onMounted(id, state, upd);
+                        // Mirror PromptView's pattern: register on parent's subscriber.
+                        parentSubscriber.addComponentEventHandler(CHILD_EVENT, c -> {}, false);
+                    }
+
+                    @Override
+                    public void onUnmounted(ComponentCompositeKey id, String state) {
+                        super.onUnmounted(id, state);
+                        // Mirror PromptView's onUnmounted: unsubscribe by name.
+                        parentSubscriber.removeComponentEventHandler(CHILD_EVENT);
+                    }
+                };
+                return new ComponentSegment<>(
+                        new ComponentCompositeKey(sid, "childType", path),
+                        (key, c) -> "child-state",
+                        (c, s) -> c,
+                        stateUpdate -> state -> rc -> {
+                            rc.openNode(XmlNs.html, "span", false);
+                            rc.closeNode("span", false);
+                        },
+                        cb,
+                        tbf,
+                        ctx,
+                        cmd
+                );
+            };
+
+            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+                renderContext.openNode(XmlNs.html, "div", false);
+                final ComponentSegment<String> child = renderContext.openComponent(childFactory);
+                child.render(renderContext);
+                renderContext.closeComponent();
+                renderContext.closeNode("div", false);
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx,
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+
+            // After the initial render, exactly one handler exists for CHILD_EVENT.
+            assertEquals(1L,
+                    parent.recursiveComponentEvents().stream().filter(e -> e.matches(CHILD_EVENT)).count(),
+                    "child registered exactly one handler on initial mount");
+
+            // Trigger a parent re-render. This unmounts the old child, re-creates a fresh child,
+            // which re-registers its handler. With the fix in place, the old child's onUnmounted
+            // runs BEFORE the new child registers, so the name-based remove deletes the OLD entry,
+            // and the new registration adds the only remaining entry.
+            parent.applyStateTransformation(s -> NEW_STATE);
+
+            assertEquals(1L,
+                    parent.recursiveComponentEvents().stream().filter(e -> e.matches(CHILD_EVENT)).count(),
+                    "After parent re-render, exactly one CHILD_EVENT handler must remain — " +
+                    "the freshly-registered one from the new child. If this is 0, the old child's " +
+                    "onUnmounted ran AFTER the new child registered and removed the new entry by name.");
+        }
+    }
 }

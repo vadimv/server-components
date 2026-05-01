@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests navigation between Posts and Comments views via the Explorer sidebar.
  */
 @net.jcip.annotations.NotThreadSafe
-class ExplorerIT {
+    class ExplorerIT {
 
     private static final int PORT = 8085;
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
@@ -182,18 +182,21 @@ class ExplorerIT {
         page.navigate(BASE_URL + "/posts");
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
-        // Verify Posts menu item is active
-        Locator postsMenuItem = page.locator(".explorer-item:has(a:has-text(\"Posts\"))");
+        // Verify Posts menu item is active.
+        // The Explorer renders nodes recursively; group <li>s contain leaf <li>s in nested <ul>s.
+        // ":has(> a:...)" with the direct-child combinator restricts the match to leaf items
+        // (their <a> is a direct child) and excludes groups (their <a> is only transitively reachable).
+        Locator postsMenuItem = page.locator(".explorer-item:has(> a:has-text(\"Posts\"))");
         String postsClass = postsMenuItem.getAttribute("class");
         assertTrue(postsClass != null && postsClass.contains("active"),
                   "Posts menu item should have 'active' class when on Posts page. Class: " + postsClass);
 
         // Navigate to Comments
-        page.locator(".explorer-item a:has-text(\"Comments\")").click();
+        page.locator(".explorer-item > a:has-text(\"Comments\")").click();
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Verify Comments menu item is now active and Posts is not
-        Locator commentsMenuItem = page.locator(".explorer-item:has(a:has-text(\"Comments\"))");
+        Locator commentsMenuItem = page.locator(".explorer-item:has(> a:has-text(\"Comments\"))");
         String commentsClass = commentsMenuItem.getAttribute("class");
         assertTrue(commentsClass != null && commentsClass.contains("active"),
                   "Comments menu item should have 'active' class when on Comments page. Class: " + commentsClass);

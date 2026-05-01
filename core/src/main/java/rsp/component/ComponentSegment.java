@@ -33,7 +33,6 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     private final ComponentCompositeKey componentId;
     private final CommandsEnqueue commandsEnqueue;
-    private final ComponentContext componentContext;
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
     private final ComponentView<S> componentView;
@@ -48,6 +47,12 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final List<ComponentSegment<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
 
+    /**
+     * The context propagated from ancestors. Mutable: the framework's reconciliation path
+     * may update this via {@link #setComponentContext(ComponentContext)} when a segment is
+     * reused across a parent re-render. User code must not modify this directly.
+     */
+    private ComponentContext componentContext;
     private TreePositionPath startNodeDomPath;
     private TagNode parentTag;
     private boolean isUnmounted;
@@ -101,6 +106,31 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     /**
+     * @return the context currently associated with this segment.
+     * <p>
+     * Used as the source for lazy lookups that follow the segment's current context
+     * (including any update from {@link #setComponentContext(ComponentContext)}):
+     * pass {@code segment::componentContext} as the supplier of a {@link ContextLookup}.
+     * <p>
+     * Read-only. The setter is package-private and reserved for the framework's
+     * reconciliation path.
+     */
+    public ComponentContext componentContext() {
+        return componentContext;
+    }
+
+    /**
+     * Update the context associated with this segment.
+     * <p>
+     * Package-private. Called only by the framework's reconciliation path when a segment
+     * is reused across a parent re-render and its parent's enriched context has changed.
+     * User code must not call this directly.
+     */
+    void setComponentContext(final ComponentContext componentContext) {
+        this.componentContext = Objects.requireNonNull(componentContext, "componentContext");
+    }
+
+    /**
      * This method is invoked by a TreeBuilder during rendering and adds a component to the next position on the included component segments.
      * @param component a ComponentSegment to add
      */
@@ -146,7 +176,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         try {
             state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext),
                                            "Initial state cannot be null for component " + componentId);
-            renderContext.setComponentContext(componentContext().apply(componentContext, state));
+            renderContext.setComponentContext(descendantContextResolver().apply(componentContext, state));
 
             final View<S> view = componentView.use(this);
             final Definition uiDefinition = view.apply(state);
@@ -160,7 +190,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         }
     }
 
-    private BiFunction<ComponentContext, S, ComponentContext> componentContext() {
+    private BiFunction<ComponentContext, S, ComponentContext> descendantContextResolver() {
         return (ctx, s) -> contextResolver.apply(ctx, s).with(Subscriber.class, subscriber);
     }
 
@@ -210,24 +240,35 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final S oldState = state;
         state = newState;
 
-        componentEventEntries.clear();
-
-        refs.clear();
-
+        // Snapshot everything BEFORE starting tearing down or clearing.
         final List<Node> oldRootNodes = new ArrayList<>(rootNodes());
-        rootNodes.clear();
-
         final Set<DomEventEntry> oldEvents = new HashSet<>(recursiveDomEvents());
-        domEventEntries.clear();
-
         final Set<ComponentSegment<?>> oldChildren = new HashSet<>(recursiveChildren());
+
+        // Unmount old children FIRST, while the parent (this segment) still has its
+        // componentEventEntries intact. Each child's onUnmounted typically calls
+        // Registration.unsubscribe() → Subscriber.removeComponentEventHandler(name).
+        // That removal walks this segment's componentEventEntries by name and removes
+        // the first match. If we cleared componentEventEntries first and re-rendered
+        // (registering NEW handlers under the same names), the old child's unsubscribe
+        // would then remove the NEW handler instead of the entry it actually owned.
+        // Unmounting first ensures each old child finds and removes its own entry.
+        for (final ComponentSegment<?> child : oldChildren) {
+            child.unmount();
+        }
+
+        // Now clear our local state for the re-render.
+        componentEventEntries.clear();
+        refs.clear();
+        rootNodes.clear();
+        domEventEntries.clear();
         children.clear();
 
         logger.log(TRACE, () -> "Component state updated, previous: " + oldState + " new: " + state + " for " + componentId);
 
         final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
 
-        renderContext.setComponentContext(componentContext().apply(componentContext, state));
+        renderContext.setComponentContext(descendantContextResolver().apply(componentContext, state));
         renderContext.openComponent(this);
         final Definition view = componentView.use(this).apply(state);
         view.render(renderContext);
@@ -262,14 +303,6 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         }
         if (!eventsToAdd.isEmpty()) {
             commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
-        }
-
-        // Unmount every old child. A freshly-created segment with the same ComponentCompositeKey
-        // as an old one is a *replacement*, not a continuation, and the old one must be torn down
-        // or its retained subscriptions and DOM-write capability race with the new segment
-        // ("ghost component" bug). No path today re-adds an old segment by reference.
-        for (final ComponentSegment<?> child : oldChildren) {
-            child.unmount();
         }
 
         callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
