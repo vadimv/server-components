@@ -1,8 +1,9 @@
 package rsp.compositions.ui;
 
-import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentView;
+import rsp.component.CommandsEnqueue;
 import rsp.component.StateUpdate;
+import rsp.component.Subscriber;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.ListViewContract;
@@ -31,16 +32,18 @@ public class DefaultListView extends ListView {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     @Override
-    public void onMounted(ComponentCompositeKey componentId, ListViewState state,
-                          StateUpdate<ListViewState> stateUpdate) {
-        lookup.subscribe(ListViewContract.SELECT_ALL_REQUESTED, () -> {
+    public void onAfterRendered(ListViewState state,
+                                Subscriber subscriber,
+                                CommandsEnqueue commandsEnqueue,
+                                StateUpdate<ListViewState> stateUpdate) {
+        subscriber.addEventHandler(ListViewContract.SELECT_ALL_REQUESTED, () -> {
             stateUpdate.applyStateTransformation(s -> {
                 ListViewState newState = s.selectAll();
                 lookup.publish(ListViewContract.SELECTION_CHANGED,
                         new ListViewContract.SelectedItems(newState.selectedIds()));
                 return newState;
             });
-        });
+        }, false);
     }
 
     @Override

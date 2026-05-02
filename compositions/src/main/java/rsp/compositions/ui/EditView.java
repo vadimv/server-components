@@ -24,6 +24,11 @@ public abstract class EditView extends Component<EditView.EditViewState> {
 
     protected Lookup lookup;
 
+    @Override
+    public boolean isReusable() {
+        return false;
+    }
+
     /**
      * State containing the entity data being edited and schema metadata.
      *

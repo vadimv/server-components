@@ -23,6 +23,11 @@ public abstract class ListView extends Component<ListView.ListViewState> {
 
     protected Lookup lookup;
 
+    @Override
+    public boolean isReusable() {
+        return false;
+    }
+
     /**
      * State containing both data, schema, and pagination/sorting info for adaptive rendering.
      *

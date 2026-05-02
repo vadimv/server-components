@@ -82,7 +82,10 @@ public class SceneComponent extends Component<Scene> {
 
     @Override
     public BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
-        return contextEnricher::enrich;
+        return (context, scene) -> {
+            this.savedContext = context;
+            return contextEnricher.enrich(context, scene);
+        };
     }
 
     @Override

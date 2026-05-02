@@ -64,8 +64,11 @@ public class TreeBuilder implements TreeBuilderFactory {
                                                                                                 this,
                                                                                                 componentContext,
                                                                                                 remotePageMessagesOut);
-        openComponent(newComponent);
-        return newComponent;
+        final ComponentSegment<S> component = parent != null
+                ? Optional.ofNullable(parent.reconcileChild(newComponent)).orElse(newComponent)
+                : newComponent;
+        openComponent(component);
+        return component;
     }
 
     public <S> void openComponent(final ComponentSegment<S> component) {
@@ -267,5 +270,4 @@ public class TreeBuilder implements TreeBuilderFactory {
         }
     }
 }
-
 

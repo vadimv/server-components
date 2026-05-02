@@ -31,6 +31,7 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
 
     private static final Logger log = LoggerFactory.getLogger(ExplorerView.class);
     private Lookup lookup;
+    private Lookup.Registration activeCategorySubscription;
 
     public record ExplorerViewState(
             NavigationNode tree,
@@ -52,16 +53,35 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
                                                                        final TreeBuilderFactory treeBuilderFactory,
                                                                        final ComponentContext componentContext,
                                                                        final CommandsEnqueue commandsEnqueue) {
-        this.lookup = createLookup(componentContext, commandsEnqueue);
-        return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+        final ComponentSegment<ExplorerViewState> segment = super.createComponentSegment(
+                sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+        this.lookup = createLookup(segment, commandsEnqueue);
+        return segment;
     }
 
-    private Lookup createLookup(ComponentContext context, CommandsEnqueue commandsEnqueue) {
-        Subscriber subscriber = context.get(Subscriber.class);
+    private Lookup createLookup(ComponentSegment<?> segment, CommandsEnqueue commandsEnqueue) {
+        Subscriber subscriber = segment.componentContext().get(Subscriber.class);
         if (subscriber == null) {
             subscriber = NoOpSubscriber.INSTANCE;
         }
-        return new ContextLookup(context, commandsEnqueue, subscriber);
+        return new ContextLookup(segment.contextScope(), commandsEnqueue, subscriber);
+    }
+
+    @Override
+    public void onMounted(ComponentCompositeKey componentId,
+                          ExplorerViewState state,
+                          StateUpdate<ExplorerViewState> stateUpdate) {
+        activeCategorySubscription = lookup.watch(ContextKeys.PRIMARY_CATEGORY_KEY, category ->
+                stateUpdate.applyStateTransformation(current ->
+                        new ExplorerViewState(current.tree(), category)));
+    }
+
+    @Override
+    public void onUnmounted(ComponentCompositeKey componentId, ExplorerViewState state) {
+        if (activeCategorySubscription != null) {
+            activeCategorySubscription.unsubscribe();
+            activeCategorySubscription = null;
+        }
     }
 
     @Override

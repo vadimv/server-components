@@ -84,6 +84,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
     @Override
     public BiFunction<ComponentContext, LayerState, ComponentContext> subComponentsContext() {
         return (context, state) -> {
+            this.savedContext = context;
             if (state.isActive()) {
                 // Preserve primary title before layer contract enrichment
                 String primaryTitle = context.get(ContextKeys.CONTRACT_TITLE);
@@ -96,6 +97,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
                 }
 
                 // Let the contract enrich context for its UI component
+                state.runtime().replaceContext(activeContext);
                 ComponentContext enriched = state.runtime().contract().enrichContext(activeContext);
 
                 // Store overlay title separately

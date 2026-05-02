@@ -27,6 +27,19 @@ public interface Subscriber { // TODO as it also unsubscribes, should this class
                                   final boolean preventDefault);
 
     /**
+     * Register a component event handler and return an exact registration handle.
+     * <p>
+     * Implementations that can remove the exact entry should override this method.
+     * The default preserves the legacy name-based behaviour.
+     */
+    default Lookup.Registration registerComponentEventHandler(final String eventType,
+                                                             final Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                             final boolean preventDefault) {
+        addComponentEventHandler(eventType, eventHandler, preventDefault);
+        return () -> removeComponentEventHandler(eventType);
+    }
+
+    /**
      * Unregisters a component's handler by name
      * @param eventType the full event name
      */
@@ -80,6 +93,20 @@ public interface Subscriber { // TODO as it also unsubscribes, should this class
                                  final Runnable handler,
                                  final boolean preventDefault) {
         addComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
+    }
+
+    default <T> Lookup.Registration registerEventHandler(final EventKey<T> key,
+                                                         final BiConsumer<String, T> handler,
+                                                         final boolean preventDefault) {
+        addEventHandler(key, handler, preventDefault);
+        return () -> removeComponentEventHandler(key.name());
+    }
+
+    default Lookup.Registration registerEventHandler(final EventKey.VoidKey key,
+                                                    final Runnable handler,
+                                                    final boolean preventDefault) {
+        addEventHandler(key, handler, preventDefault);
+        return () -> removeComponentEventHandler(key.name());
     }
 
     /**

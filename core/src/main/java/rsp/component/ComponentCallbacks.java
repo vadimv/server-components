@@ -87,4 +87,16 @@ public interface ComponentCallbacks<S> {
     default boolean providesSubscriberBoundary() {
         return true;
     }
+
+    /**
+     * Whether this component segment can be reused when its parent re-renders
+     * and produces a component with the same positional identity.
+     * <p>
+     * Components that depend on mount-time side effects, imperative resources, or
+     * constructor/init context snapshots can return {@code false} to keep the
+     * previous recreate-on-parent-render behavior.
+     */
+    default boolean isReusable() {
+        return true;
+    }
 }

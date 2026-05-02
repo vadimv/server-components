@@ -25,7 +25,7 @@ public final class ContractBoundaryComponent extends Component<ContractRuntime> 
 
     public ContractBoundaryComponent(final ContractRuntime runtime,
                                      final Component<?> content) {
-        super(new ComponentType(Objects.requireNonNull(runtime, "runtime").contractClass()));
+        super(new ComponentType(Objects.requireNonNull(runtime, "runtime").contractClass(), runtime));
         this.runtime = runtime;
         this.content = Objects.requireNonNull(content, "content");
     }
@@ -60,5 +60,6 @@ public final class ContractBoundaryComponent extends Component<ContractRuntime> 
         return false;
     }
 
-    private record ComponentType(Class<? extends ViewContract> contractClass) {}
+    private record ComponentType(Class<? extends ViewContract> contractClass,
+                                 ContractRuntime runtime) {}
 }

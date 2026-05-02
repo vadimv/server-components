@@ -12,6 +12,9 @@ import rsp.page.events.Command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.lang.reflect.Field;
 
@@ -529,7 +532,7 @@ public class ComponentSegmentTests {
         }
 
         @Test
-        void parent_rerender_orphans_child_segment_with_same_componentId() throws Exception {
+        void parent_rerender_reuses_child_segment_with_same_componentId() throws Exception {
             final TreeBuilder treeBuilder = createTreeBuilder();
 
             final List<ComponentSegment<String>> createdChildSegments = new ArrayList<>();
@@ -594,19 +597,20 @@ public class ComponentSegmentTests {
                     "But they are distinct ComponentSegment instances");
 
             // Invariant: at most one ComponentSegment per ComponentCompositeKey may be
-            // live (isUnmounted == false). When a parent re-renders and produces a new
-            // segment with a matching componentId, the old segment must be unmounted —
-            // either reused-in-place or shut down — so its subscriptions, event handlers,
-            // and DOM-write capability are released.
-            assertTrue(isUnmounted(oldChild),
-                    "Old child segment must be unmounted when replaced by a fresh segment with the same componentId. " +
-                    "Otherwise its subscriptions and DOM-write capability remain active and race with the new segment.");
-            assertTrue(childCallbacksByRender.get(0).callOrder.contains("onUnmounted:initial-child-state"),
-                    "Old child's onUnmounted must fire when it is replaced.");
+            // live (isUnmounted == false). With reconciliation, the old segment is reused
+            // in place and the fresh candidate is discarded before it can become live.
+            assertFalse(isUnmounted(oldChild),
+                    "Old child segment should remain live because it was reused in place.");
+            assertTrue(isUnmounted(newChild),
+                    "Fresh candidate with the same ComponentCompositeKey must be discarded, " +
+                    "otherwise it would become a ghost segment racing the reused one.");
+            assertSame(oldChild, parent.directChildren().get(0));
+            assertFalse(childCallbacksByRender.get(0).callOrder.contains("onUnmounted:initial-child-state"),
+                    "Reused child must not fire onUnmounted.");
         }
 
         @Test
-        void orphaned_child_can_still_apply_state_updates_after_parent_rerender() throws Exception {
+        void discarded_candidate_cannot_apply_state_updates_after_parent_rerender() throws Exception {
             final TreeBuilder treeBuilder = createTreeBuilder();
 
             final List<ComponentSegment<String>> createdChildSegments = new ArrayList<>();
@@ -655,19 +659,18 @@ public class ComponentSegmentTests {
             final ComponentSegment<String> oldChild = createdChildSegments.get(0);
             final TestCallbacks oldChildCallbacks = childCallbacksByRender.get(0);
 
-            // Parent re-render: orphans oldChild, creates newChild at same componentId.
+            // Parent re-render: reuses oldChild, creates then discards a candidate at the same componentId.
             parent.applyStateTransformation(s -> NEW_STATE);
-            oldChildCallbacks.clear();
+            final ComponentSegment<String> discardedCandidate = createdChildSegments.get(1);
+            final TestCallbacks discardedCallbacks = childCallbacksByRender.get(1);
+            discardedCallbacks.clear();
 
-            // After replacement, applyStateTransformation on the old segment must be inert.
-            // Today the unmount sets isUnmounted=true and the update is dropped at the guard
-            // in applyStateTransformation. If a future change ever re-introduces the leak,
-            // the orphan will emit onUpdated and race with the new segment for DOM writes.
-            oldChild.applyStateTransformation(s -> "ghost-update");
+            discardedCandidate.applyStateTransformation(s -> "ghost-update");
 
-            assertFalse(oldChildCallbacks.callOrder.stream().anyMatch(s -> s.startsWith("onUpdated:")),
-                    "Replaced segment must not process state updates. " +
+            assertFalse(discardedCallbacks.callOrder.stream().anyMatch(s -> s.startsWith("onUpdated:")),
+                    "Discarded candidate must not process state updates. " +
                     "Otherwise two segments race for the same DOM region.");
+            assertFalse(isUnmounted(oldChild), "The reused original child should remain live.");
         }
     }
 
@@ -769,5 +772,312 @@ public class ComponentSegmentTests {
                     "the freshly-registered one from the new child. If this is 0, the old child's " +
                     "onUnmounted ran AFTER the new child registered and removed the new entry by name.");
         }
+    }
+
+    @Nested
+    public class ExactEventRegistrationTests {
+
+        @Test
+        void registration_unsubscribe_removes_exact_same_name_handler() {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final Subscriber[] capturedSubscriber = new Subscriber[1];
+            final ComponentCallbacks<String> capturingCallbacks = new TestCallbacks() {
+                @Override
+                public void onAfterRendered(String state,
+                                            Subscriber subscriber,
+                                            CommandsEnqueue commandsEnqueue,
+                                            StateUpdate<String> stateUpdate) {
+                    super.onAfterRendered(state, subscriber, commandsEnqueue, stateUpdate);
+                    capturedSubscriber[0] = subscriber;
+                }
+            };
+            final ComponentSegment<String> segment = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx,
+                    stateUpdate -> state -> rc -> {
+                        rc.openNode(XmlNs.html, "div", false);
+                        rc.closeNode("div", false);
+                    },
+                    capturingCallbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, segment);
+            final AtomicInteger firstCalls = new AtomicInteger();
+            final AtomicInteger secondCalls = new AtomicInteger();
+
+            final Lookup.Registration first = capturedSubscriber[0].registerComponentEventHandler(
+                    "same.event", _ -> firstCalls.incrementAndGet(), false);
+            capturedSubscriber[0].registerComponentEventHandler(
+                    "same.event", _ -> secondCalls.incrementAndGet(), false);
+
+            first.unsubscribe();
+            segment.recursiveComponentEvents().stream()
+                    .filter(entry -> entry.matches("same.event"))
+                    .forEach(entry -> entry.eventHandler().accept(
+                            new ComponentEventEntry.EventContext("same.event", Map.of())));
+
+            assertEquals(0, firstCalls.get());
+            assertEquals(1, secondCalls.get());
+        }
+    }
+
+    @Nested
+    public class ReconciliationTests {
+
+        private boolean isUnmounted(ComponentSegment<?> segment) throws Exception {
+            Field field = ComponentSegment.class.getDeclaredField("isUnmounted");
+            field.setAccessible(true);
+            return (boolean) field.get(segment);
+        }
+
+        @Test
+        void parent_rerender_reuses_same_type_child_by_position() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final List<ComponentSegment<String>> createdChildSegments = new ArrayList<>();
+            final List<TestCallbacks> childCallbacks = new ArrayList<>();
+
+            final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) -> {
+                final TestCallbacks cb = new TestCallbacks();
+                childCallbacks.add(cb);
+                final ComponentSegment<String> child = new ComponentSegment<>(
+                        new ComponentCompositeKey(sid, "reusedChild", path),
+                        (key, c) -> "child-initial",
+                        (c, s) -> c,
+                        stateUpdate -> state -> rc -> {
+                            rc.openNode(XmlNs.html, "span", false);
+                            rc.addTextNode(state);
+                            rc.closeNode("span", false);
+                        },
+                        cb,
+                        tbf,
+                        ctx,
+                        cmd
+                );
+                createdChildSegments.add(child);
+                return child;
+            };
+
+            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+                rc.openNode(XmlNs.html, "div", false);
+                final ComponentSegment<String> child = rc.openComponent(childFactory);
+                child.render(rc);
+                rc.closeComponent();
+                rc.closeNode("div", false);
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx.with(new ContextKey.StringKey<>("reconcile.state", String.class), s),
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+            final ComponentSegment<String> reused = createdChildSegments.get(0);
+            reused.setState("child-state-survives");
+            capturedCommands.clear();
+
+            parent.applyStateTransformation(s -> NEW_STATE);
+
+            assertEquals(2, createdChildSegments.size(),
+                    "A candidate segment is still built from the new component definition");
+            assertSame(reused, parent.directChildren().get(0),
+                    "The old child segment should be kept as the live child");
+            assertFalse(isUnmounted(reused), "The reused child must remain mounted");
+            assertFalse(childCallbacks.get(0).callOrder.stream().anyMatch(s -> s.startsWith("onUnmounted")),
+                    "Reusing a child must not fire onUnmounted");
+
+            reused.applyStateTransformation(s -> s + "-updated");
+            assertFalse(childCallbacks.get(0).callOrder.stream().anyMatch("onMounted:child-state-survives-updated"::equals),
+                    "A reused child update must not remount the segment");
+        }
+
+        @Test
+        void reused_child_runs_after_rendered_again_without_remounting() {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final AtomicInteger afterRenderedCalls = new AtomicInteger();
+            final AtomicInteger mountedCalls = new AtomicInteger();
+
+            final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) ->
+                    new ComponentSegment<>(
+                            new ComponentCompositeKey(sid, "reusedLifecycleChild", path),
+                            (key, c) -> "child",
+                            (c, s) -> c,
+                            stateUpdate -> state -> rc -> {
+                                rc.openNode(XmlNs.html, "span", false);
+                                rc.closeNode("span", false);
+                            },
+                            new TestCallbacks() {
+                                @Override
+                                public void onAfterRendered(String state,
+                                                            Subscriber subscriber,
+                                                            CommandsEnqueue commandsEnqueue,
+                                                            StateUpdate<String> stateUpdate) {
+                                    afterRenderedCalls.incrementAndGet();
+                                }
+
+                                @Override
+                                public void onMounted(ComponentCompositeKey componentId,
+                                                      String state,
+                                                      StateUpdate<String> stateUpdate) {
+                                    mountedCalls.incrementAndGet();
+                                }
+                            },
+                            tbf,
+                            ctx,
+                            cmd
+                    );
+
+            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+                final ComponentSegment<String> child = rc.openComponent(childFactory);
+                child.render(rc);
+                rc.closeComponent();
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx,
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+            parent.applyStateTransformation(s -> NEW_STATE);
+
+            assertEquals(2, afterRenderedCalls.get(),
+                    "A reused child still rendered twice and must refresh after-render subscriptions");
+            assertEquals(1, mountedCalls.get(),
+                    "Reconciliation must not remount the reused child");
+        }
+
+        @Test
+        void non_reusable_child_is_recreated_on_parent_rerender() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final List<ComponentSegment<String>> createdChildSegments = new ArrayList<>();
+            final List<TestCallbacks> childCallbacks = new ArrayList<>();
+
+            final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) -> {
+                final TestCallbacks cb = new TestCallbacks() {
+                    @Override
+                    public boolean isReusable() {
+                        return false;
+                    }
+                };
+                childCallbacks.add(cb);
+                final ComponentSegment<String> child = new ComponentSegment<>(
+                        new ComponentCompositeKey(sid, "nonReusableChild", path),
+                        (key, c) -> "child-initial",
+                        (c, s) -> c,
+                        stateUpdate -> state -> rc -> {
+                            rc.openNode(XmlNs.html, "span", false);
+                            rc.closeNode("span", false);
+                        },
+                        cb,
+                        tbf,
+                        ctx,
+                        cmd
+                );
+                createdChildSegments.add(child);
+                return child;
+            };
+
+            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+                final ComponentSegment<String> child = rc.openComponent(childFactory);
+                child.render(rc);
+                rc.closeComponent();
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (key, ctx) -> INITIAL_STATE,
+                    (ctx, s) -> ctx,
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+            final ComponentSegment<String> oldChild = createdChildSegments.get(0);
+
+            parent.applyStateTransformation(s -> NEW_STATE);
+
+            assertEquals(2, createdChildSegments.size());
+            assertSame(createdChildSegments.get(1), parent.directChildren().get(0));
+            assertTrue(isUnmounted(oldChild), "Opting out of reuse should keep recreate semantics");
+            assertTrue(childCallbacks.get(0).callOrder.contains("onUnmounted:child-initial"));
+        }
+
+        @Test
+        void reused_child_scope_observes_context_replacement_from_parent_rerender() {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ContextKey.StringKey<String> key =
+                    new ContextKey.StringKey<>("reconcile.context.value", String.class);
+            final AtomicReference<String> observed = new AtomicReference<>();
+
+            final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) -> {
+                final ComponentSegment<String> child = new ComponentSegment<>(
+                        new ComponentCompositeKey(sid, "contextChild", path),
+                        (componentKey, c) -> "child",
+                        (c, s) -> c,
+                        stateUpdate -> state -> rc -> {
+                            rc.openNode(XmlNs.html, "span", false);
+                            rc.closeNode("span", false);
+                        },
+                        new TestCallbacks(),
+                        tbf,
+                        ctx,
+                        cmd
+                );
+                new ContextLookup(child.contextScope(), cmd, new NoOpSubscriber())
+                        .watch(key, observed::set);
+                return child;
+            };
+
+            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+                final ComponentSegment<String> child = rc.openComponent(childFactory);
+                child.render(rc);
+                rc.closeComponent();
+            };
+
+            final ComponentSegment<String> parent = new ComponentSegment<>(
+                    componentId,
+                    (componentKey, ctx) -> "one",
+                    (ctx, state) -> ctx.with(key, state),
+                    parentView,
+                    callbacks,
+                    treeBuilder,
+                    componentContext,
+                    commandsEnqueue
+            );
+
+            renderSegment(treeBuilder, parent);
+            parent.applyStateTransformation(_ -> "two");
+
+            assertEquals("two", observed.get());
+            assertEquals("two", parent.directChildren().get(0).componentContext().get(key));
+        }
+    }
+
+    private static final class NoOpSubscriber implements Subscriber {
+        @Override public void addWindowEventHandler(String type, java.util.function.Consumer<rsp.page.EventContext> h,
+                                                    boolean preventDefault, rsp.dom.DomEventEntry.Modifier mod) {}
+        @Override public void addComponentEventHandler(String type,
+                                                       java.util.function.Consumer<ComponentEventEntry.EventContext> h,
+                                                       boolean preventDefault) {}
+        @Override public void removeComponentEventHandler(String type) {}
     }
 }

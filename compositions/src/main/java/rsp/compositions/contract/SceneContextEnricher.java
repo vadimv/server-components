@@ -30,20 +30,21 @@ public final class SceneContextEnricher {
             return context;
         }
 
-        ViewContract routedContract = scene.routedContract();
         Composition composition = scene.composition();
 
         // Add Scene to context
         ComponentContext enrichedContext = context.with(ContextKeys.SCENE, scene);
 
         // Let the routed contract enrich context with its data (items, schema, etc.)
-        if (routedContract != null) {
-            enrichedContext = routedContract.enrichContext(enrichedContext);
+        if (scene.routedRuntime() != null) {
+            scene.routedRuntime().replaceContext(enrichedContext);
+            enrichedContext = scene.routedRuntime().contract().enrichContext(enrichedContext);
         }
 
         // Let all companion contracts enrich context with their data
-        for (ViewContract companion : scene.companionContracts().values()) {
-            enrichedContext = companion.enrichContext(enrichedContext);
+        for (ContractRuntime companion : scene.companionRuntimes().values()) {
+            companion.replaceContext(enrichedContext);
+            enrichedContext = companion.contract().enrichContext(enrichedContext);
         }
 
         // Add edit route info to context for DefaultListView

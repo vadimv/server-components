@@ -11,6 +11,7 @@ import rsp.page.events.RemoteCommand;
 import rsp.ref.Ref;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.*;
 
 import static java.lang.System.Logger.Level.*;
@@ -42,6 +43,8 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     private final List<DomEventEntry> domEventEntries = new ArrayList<>();
     private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>(); // should it be a dictionary?
+    private final Map<ComponentEventEntry, ComponentSegment<?>> componentEventOwners =
+            new IdentityHashMap<>();
     private final Subscriber subscriber = new DefaultSubscriber();
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<ComponentSegment<?>> children = new ArrayList<>();
@@ -57,12 +60,18 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private TreePositionPath startNodeDomPath;
     private TagNode parentTag;
     private boolean isUnmounted;
+    private boolean stateInitialized;
+    private List<ComponentSegment<?>> previousChildrenForReconciliation = List.of();
+    private Set<ComponentSegment<?>> claimedChildrenForReconciliation = Set.of();
 
     /**
      * This component's current state. It is expected that the state's type is immutable.
      *
      */
     private S state;
+
+    private static final ThreadLocal<ComponentSegment<?>> CALLBACK_OWNER = new ThreadLocal<>();
+    private static final Set<String> AMBIGUOUS_RECONCILIATION_WARNINGS = ConcurrentHashMap.newKeySet();
 
     /**
      * Creates a new instance of a component segment.
@@ -209,20 +218,45 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     public void render(final TreeBuilder renderContext) {
+        if (stateInitialized) {
+            renderReused(renderContext);
+            return;
+        }
         try {
             state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext()),
                                            "Initial state cannot be null for component " + componentId);
+            stateInitialized = true;
             renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
 
             final View<S> view = componentView.use(this);
             final Definition uiDefinition = view.apply(state);
 
             uiDefinition.render(renderContext);
-            callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
-            callbacks.onMounted(componentId, state, this.new EnqueueTaskStateUpdate());
+            withCallbackOwner(this, () ->
+                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
+            withCallbackOwner(this, () ->
+                    callbacks.onMounted(componentId, state, this.new EnqueueTaskStateUpdate()));
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
+        }
+    }
+
+    private void renderReused(final TreeBuilder renderContext) {
+        final List<ComponentSegment<?>> oldChildren = new ArrayList<>(children);
+        prepareForRender(true, oldChildren, true);
+        try {
+            renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
+            final View<S> view = componentView.use(this);
+            final Definition uiDefinition = view.apply(state);
+            uiDefinition.render(renderContext);
+            withCallbackOwner(this, () ->
+                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
+        } catch (Throwable renderEx) {
+            renderContext.addException(renderEx);
+            logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
+        } finally {
+            finishChildReconciliation();
         }
     }
 
@@ -233,6 +267,125 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
                     ? resolved.with(Subscriber.class, subscriber)
                     : resolved;
         };
+    }
+
+    private void prepareForRender(final boolean refreshOwnComponentHandlers,
+                                  final List<ComponentSegment<?>> oldChildren,
+                                  final boolean resetParentTag) {
+        if (refreshOwnComponentHandlers) {
+            removeComponentEventHandlersOwnedBy(this);
+        }
+        if (resetParentTag) {
+            parentTag = null;
+        }
+        refs.clear();
+        rootNodes.clear();
+        domEventEntries.clear();
+        children.clear();
+        beginChildReconciliation(oldChildren);
+    }
+
+    private void beginChildReconciliation(final List<ComponentSegment<?>> oldChildren) {
+        previousChildrenForReconciliation = oldChildren;
+        claimedChildrenForReconciliation = Collections.newSetFromMap(new IdentityHashMap<>());
+    }
+
+    private void finishChildReconciliation() {
+        try {
+            for (final ComponentSegment<?> oldChild : previousChildrenForReconciliation) {
+                if (!claimedChildrenForReconciliation.contains(oldChild)) {
+                    oldChild.unmount();
+                    removeComponentEventHandlersOwnedBy(oldChild);
+                }
+            }
+            warnIfAmbiguousReconciliation();
+        } finally {
+            previousChildrenForReconciliation = List.of();
+            claimedChildrenForReconciliation = Set.of();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    <T> ComponentSegment<T> reconcileChild(final ComponentSegment<T> candidate) {
+        Objects.requireNonNull(candidate, "candidate");
+        if (previousChildrenForReconciliation.isEmpty()) {
+            return null;
+        }
+
+        final int childIndex = children.size();
+        if (childIndex >= previousChildrenForReconciliation.size()) {
+            return null;
+        }
+
+        final ComponentSegment<?> previous = previousChildrenForReconciliation.get(childIndex);
+        claimedChildrenForReconciliation.add(previous);
+
+        if (previous.canReuse(candidate)) {
+            final ComponentSegment<T> reusable = (ComponentSegment<T>) previous;
+            reusable.rebindFrom(candidate);
+            candidate.discardUnrendered();
+            return reusable;
+        }
+
+        previous.unmount();
+        removeComponentEventHandlersOwnedBy(previous);
+        return null;
+    }
+
+    private boolean canReuse(final ComponentSegment<?> candidate) {
+        return !isUnmounted
+                && Objects.equals(componentId.componentType(), candidate.componentId.componentType())
+                && callbacks.isReusable()
+                && candidate.callbacks.isReusable();
+    }
+
+    private void rebindFrom(final ComponentSegment<S> candidate) {
+        setComponentContext(candidate.componentContext());
+    }
+
+    private void discardUnrendered() {
+        isUnmounted = true;
+        contextScope.clear();
+        contextMirrors.clear();
+    }
+
+    private void warnIfAmbiguousReconciliation() {
+        final Map<Object, Integer> reusableCountsByType = new HashMap<>();
+        for (final ComponentSegment<?> child : children) {
+            if (child.callbacks.isReusable()) {
+                reusableCountsByType.merge(child.componentId.componentType(), 1, Integer::sum);
+            }
+        }
+
+        for (final var entry : reusableCountsByType.entrySet()) {
+            if (entry.getValue() <= 1) {
+                continue;
+            }
+            final String warningKey = componentId.componentType() + "|" + entry.getKey();
+            if (AMBIGUOUS_RECONCILIATION_WARNINGS.add(warningKey)) {
+                logger.log(WARNING, () ->
+                        "Ambiguous component reconciliation under " + componentId
+                                + ": " + entry.getValue()
+                                + " reusable unkeyed children of type " + entry.getKey()
+                                + ". Reuse is positional; state may attach to the wrong item after "
+                                + "insert/remove/reorder. Use explicit keys when available or override "
+                                + "isReusable() to false.");
+            }
+        }
+    }
+
+    private static void withCallbackOwner(final ComponentSegment<?> owner, final Runnable callback) {
+        final ComponentSegment<?> previous = CALLBACK_OWNER.get();
+        CALLBACK_OWNER.set(owner);
+        try {
+            callback.run();
+        } finally {
+            if (previous == null) {
+                CALLBACK_OWNER.remove();
+            } else {
+                CALLBACK_OWNER.set(previous);
+            }
+        }
     }
 
     /**
@@ -284,37 +437,25 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         // Snapshot everything BEFORE starting tearing down or clearing.
         final List<Node> oldRootNodes = new ArrayList<>(rootNodes());
         final Set<DomEventEntry> oldEvents = new HashSet<>(recursiveDomEvents());
-        final Set<ComponentSegment<?>> oldChildren = new HashSet<>(recursiveChildren());
+        final List<ComponentSegment<?>> oldChildren = new ArrayList<>(directChildren());
 
-        // Unmount old children FIRST, while the parent (this segment) still has its
-        // componentEventEntries intact. Each child's onUnmounted typically calls
-        // Registration.unsubscribe() → Subscriber.removeComponentEventHandler(name).
-        // That removal walks this segment's componentEventEntries by name and removes
-        // the first match. If we cleared componentEventEntries first and re-rendered
-        // (registering NEW handlers under the same names), the old child's unsubscribe
-        // would then remove the NEW handler instead of the entry it actually owned.
-        // Unmounting first ensures each old child finds and removes its own entry.
-        for (final ComponentSegment<?> child : oldChildren) {
-            child.unmount();
-        }
-
-        // Now clear our local state for the re-render.
-        componentEventEntries.clear();
-        refs.clear();
-        rootNodes.clear();
-        domEventEntries.clear();
-        children.clear();
+        prepareForRender(true, oldChildren, false);
 
         logger.log(TRACE, () -> "Component state updated, previous: " + oldState + " new: " + state + " for " + componentId);
 
         final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
 
-        renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
-        renderContext.openComponent(this);
-        final Definition view = componentView.use(this).apply(state);
-        view.render(renderContext);
-        renderContext.closeComponent();
-        callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate());
+        try {
+            renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
+            renderContext.openComponent(this);
+            final Definition view = componentView.use(this).apply(state);
+            view.render(renderContext);
+            renderContext.closeComponent();
+            withCallbackOwner(this, () ->
+                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
+        } finally {
+            finishChildReconciliation();
+        }
 
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -346,7 +487,8 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
         }
 
-        callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate());
+        withCallbackOwner(this, () ->
+                callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate()));
     }
 
     public List<ComponentSegment<?>> directChildren() {
@@ -359,7 +501,9 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         }
         isUnmounted = true;
         recursiveChildren().forEach(c -> c.unmount());
-        callbacks.onUnmounted(componentId, state);
+        withCallbackOwner(this, () -> callbacks.onUnmounted(componentId, state));
+        componentEventOwners.clear();
+        componentEventEntries.clear();
         contextScope.clear();
         contextMirrors.clear();
         metrics.incrementCounter(MetricNames.SEGMENT_UNMOUNTED);
@@ -453,7 +597,38 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     public void addComponentEventHandler(final String eventType,
                                          final Consumer<ComponentEventEntry.EventContext> eventHandler,
                                          final boolean preventDefault) {
-        componentEventEntries.add(new ComponentEventEntry(eventType, eventHandler, preventDefault));
+        addComponentEventHandlerEntry(eventType, eventHandler, preventDefault);
+    }
+
+    private ComponentEventEntry addComponentEventHandlerEntry(final String eventType,
+                                                             final Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                             final boolean preventDefault) {
+        final ComponentEventEntry entry = new ComponentEventEntry(eventType, eventHandler, preventDefault);
+        componentEventEntries.add(entry);
+        final ComponentSegment<?> owner = CALLBACK_OWNER.get();
+        if (owner != null) {
+            componentEventOwners.put(entry, owner);
+        }
+        return entry;
+    }
+
+    private void removeComponentEventHandler(final ComponentEventEntry entry) {
+        componentEventEntries.remove(entry);
+        componentEventOwners.remove(entry);
+    }
+
+    private void removeComponentEventHandlersOwnedBy(final ComponentSegment<?> owner) {
+        if (componentEventOwners.isEmpty()) {
+            return;
+        }
+        final Iterator<ComponentEventEntry> iterator = componentEventEntries.iterator();
+        while (iterator.hasNext()) {
+            final ComponentEventEntry entry = iterator.next();
+            if (componentEventOwners.get(entry) == owner) {
+                iterator.remove();
+                componentEventOwners.remove(entry);
+            }
+        }
     }
 
     /**
@@ -511,11 +686,21 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     public void removeComponentEventHandler(final String eventType) {
-        final Optional<ComponentEventEntry> eventEntry = componentEventEntries.stream()
-                .filter(entry -> entry.eventName().equals(eventType))
-                .findFirst();
+        final ComponentSegment<?> owner = CALLBACK_OWNER.get();
+        Optional<ComponentEventEntry> eventEntry = Optional.empty();
+        if (owner != null) {
+            eventEntry = componentEventEntries.stream()
+                    .filter(entry -> entry.eventName().equals(eventType))
+                    .filter(entry -> componentEventOwners.get(entry) == owner)
+                    .findFirst();
+        }
+        if (eventEntry.isEmpty()) {
+            eventEntry = componentEventEntries.stream()
+                    .filter(entry -> entry.eventName().equals(eventType))
+                    .findFirst();
+        }
         if (eventEntry.isPresent()) {
-            componentEventEntries.remove(eventEntry.get());
+            removeComponentEventHandler(eventEntry.get());
         }
     }
 
@@ -585,6 +770,33 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         @Override
         public void addComponentEventHandler(String eventType, Consumer<ComponentEventEntry.EventContext> eventHandler, boolean preventDefault) {
             ComponentSegment.this.addComponentEventHandler(eventType, eventHandler, preventDefault);
+        }
+
+        @Override
+        public Lookup.Registration registerComponentEventHandler(String eventType,
+                                                                 Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                                 boolean preventDefault) {
+            final ComponentEventEntry entry = ComponentSegment.this.addComponentEventHandlerEntry(
+                    eventType, eventHandler, preventDefault);
+            return () -> ComponentSegment.this.removeComponentEventHandler(entry);
+        }
+
+        @Override
+        public <T> Lookup.Registration registerEventHandler(EventKey<T> key,
+                                                            java.util.function.BiConsumer<String, T> handler,
+                                                            boolean preventDefault) {
+            return registerComponentEventHandler(key.name(), ctx -> {
+                @SuppressWarnings("unchecked")
+                T payload = (T) ctx.eventObject();
+                handler.accept(ctx.eventName(), payload);
+            }, preventDefault);
+        }
+
+        @Override
+        public Lookup.Registration registerEventHandler(EventKey.VoidKey key,
+                                                        Runnable handler,
+                                                        boolean preventDefault) {
+            return registerComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
         }
 
         @Override
