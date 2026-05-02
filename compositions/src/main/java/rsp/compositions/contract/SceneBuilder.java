@@ -67,24 +67,17 @@ public final class SceneBuilder {
             throw new IllegalStateException("Contract not found in composition: " + this.contractClass.getName());
         }
 
-        // Create a capability bus for synchronous capability negotiation between contracts
-        CapabilityBus capabilityBus = new CapabilityBus();
-        ComponentContext enrichedContext = context.with(CapabilityBus.class, capabilityBus);
-
         // Check if this contract has a parent route → overlay-like (auto-open case)
         Optional<Router.RouteMatch> parentRoute = composition.router().findParentRoute(routePattern);
 
         Scene scene;
         if (parentRoute.isPresent()) {
-            scene = buildAutoOpenScene(enrichedContext, parentRoute.get());
+            scene = buildAutoOpenScene(context, parentRoute.get());
         } else {
-            scene = buildStandardScene(enrichedContext);
+            scene = buildStandardScene(context);
         }
 
-        // Resolve capabilities synchronously — all subscribers receive published values before rendering
-        capabilityBus.resolve();
-
-        startServicesLifecycleHandlers(enrichedContext);
+        startServicesLifecycleHandlers(context);
 
         return scene;
     }

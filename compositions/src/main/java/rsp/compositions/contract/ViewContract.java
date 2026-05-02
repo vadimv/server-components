@@ -86,22 +86,6 @@ public abstract class ViewContract {
         handlerRegistrations.add(lookup.watch(key, handler));
     }
 
-    protected <T> void publishCapability(EventKey<T> key, T value) {
-        final CapabilityBus bus = lookup.get(CapabilityBus.class);
-        if (bus != null) {
-            bus.publish(key, value);
-        }
-        lookup.publish(key, value);
-    }
-
-    protected <T> void onCapability(EventKey<T> key, Consumer<T> handler) {
-        final CapabilityBus bus = lookup.get(CapabilityBus.class);
-        if (bus != null) {
-            bus.subscribe(key, handler);
-        }
-        handlerRegistrations.add(lookup.subscribe(key, (name, value) -> handler.accept(value)));
-    }
-
     /**
      * Cleanup hook called when contract is hidden via HIDE event.
      * <p>
