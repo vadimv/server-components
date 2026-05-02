@@ -2,6 +2,8 @@ package rsp.compositions.layout;
 
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
+import rsp.compositions.contract.ContractBoundaryComponent;
+import rsp.compositions.contract.ContractRuntime;
 import rsp.compositions.contract.Scene;
 import rsp.compositions.contract.ViewContract;
 import rsp.dsl.Definition;
@@ -76,8 +78,8 @@ public final class DefaultLayout implements Layout {
 
         // Resolve routed contract to UI component
         Component<?> primary = null;
-        if (scene.routedContract() != null) {
-            primary = scene.contracts().resolveView(scene.routedContract().getClass());
+        if (scene.routedRuntime() != null) {
+            primary = resolveRuntime(scene, scene.routedRuntime());
         }
 
         // Resolve companion contracts to UI components
@@ -112,8 +114,13 @@ public final class DefaultLayout implements Layout {
 
     private Component<?> resolveCompanion(Scene scene, Class<? extends ViewContract> contractClass) {
         if (contractClass == null) return null;
-        ViewContract companion = scene.companionContract(contractClass);
-        if (companion == null) return null;
-        return scene.contracts().resolveView(companion.getClass());
+        ContractRuntime runtime = scene.companionRuntime(contractClass);
+        if (runtime == null) return null;
+        return resolveRuntime(scene, runtime);
+    }
+
+    private Component<?> resolveRuntime(Scene scene, ContractRuntime runtime) {
+        Component<?> content = scene.contracts().resolveView(runtime.contractClass());
+        return new ContractBoundaryComponent(runtime, content);
     }
 }

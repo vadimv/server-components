@@ -37,17 +37,17 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
     /**
      * State for a layer.
      *
-     * @param contract Active contract (null if layer is empty)
+     * @param runtime Active contract runtime (null if layer is empty)
      * @param contractClass The contract class (for HIDE matching)
      * @param showData Data passed with the SHOW event
      */
-    record LayerState(ViewContract contract,
+    record LayerState(ContractRuntime runtime,
                       Class<? extends ViewContract> contractClass,
                       Map<String, Object> showData) {
         static final LayerState EMPTY = new LayerState(null, null, Map.of());
 
         boolean isActive() {
-            return contract != null;
+            return runtime != null;
         }
     }
 
@@ -73,7 +73,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
             if (level == 1) {
                 Scene scene = context.get(ContextKeys.SCENE);
                 if (scene != null && scene.hasPreActivatedContracts()) {
-                    var entry = scene.preActivatedContracts().entrySet().iterator().next();
+                    var entry = scene.preActivatedRuntimes().entrySet().iterator().next();
                     return new LayerState(entry.getValue(), entry.getKey(), Map.of());
                 }
             }
@@ -88,8 +88,15 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
                 // Preserve primary title before layer contract enrichment
                 String primaryTitle = context.get(ContextKeys.CONTRACT_TITLE);
 
+                ComponentContext activeContext = context
+                        .with(ContextKeys.CONTRACT_CLASS, state.contractClass())
+                        .with(ContextKeys.IS_ACTIVE_CONTRACT, true);
+                if (state.showData() != null && !state.showData().isEmpty()) {
+                    activeContext = activeContext.with(ContextKeys.SHOW_DATA, state.showData());
+                }
+
                 // Let the contract enrich context for its UI component
-                ComponentContext enriched = state.contract().enrichContext(context);
+                ComponentContext enriched = state.runtime().contract().enrichContext(activeContext);
 
                 // Store overlay title separately
                 String layerTitle = enriched.get(ContextKeys.CONTRACT_TITLE);
@@ -118,9 +125,10 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
                 return div();
             }
             Component<?> uiComponent = scene.contracts().resolveView(state.contractClass());
+            Component<?> bounded = new ContractBoundaryComponent(state.runtime(), uiComponent);
             Lookup lookup = LookupFactory.create(savedContext);
             return div(
-                    layout.resolve(uiComponent, state.contractClass(), lookup),
+                    layout.resolve(bounded, state.contractClass(), lookup),
                     new LayerComponent(layout, level + 1));
         };
     }
@@ -146,7 +154,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
     @Override
     public void onUnmounted(ComponentCompositeKey componentId, LayerState state) {
         if (state != null && state.isActive()) {
-            state.contract().onDestroy();
+            state.runtime().destroy();
         }
     }
 
@@ -184,15 +192,11 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
             showContext = showContext.with(ContextKeys.SHOW_DATA, data);
         }
 
-        Lookup lookup = LookupFactory.create(showContext, commandsEnqueue);
-
-        // Instantiate contract
-        ViewContract contract = factory.apply(lookup);
-        if (contract == null) return;
-        contract.registerHandlers();
+        ContractRuntime runtime = ContractRuntime.instantiate(contractClass, factory, showContext, commandsEnqueue);
+        if (runtime == null) return;
 
         stateUpdate.applyStateTransformation(s ->
-                new LayerState(contract, contractClass, data != null ? data : Map.of()));
+                new LayerState(runtime, contractClass, data != null ? data : Map.of()));
     }
 
     private void handleHide(LayerState state,
@@ -201,7 +205,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
         if (!state.isActive() || !state.contractClass().equals(contractClass)) {
             return;
         }
-        state.contract().onDestroy();
+        state.runtime().destroy();
         stateUpdate.applyStateTransformation(s -> LayerState.EMPTY);
     }
 

@@ -25,27 +25,27 @@ import java.util.function.Function;
  *   <li>Page title for HTML title tag</li>
  * </ul>
  *
- * @param routedContract The contract matched by the Router (nullable for IDE-style UIs)
- * @param companionContracts Eagerly instantiated contracts requested by the Layout
+ * @param routedRuntime The contract runtime matched by the Router (nullable for IDE-style UIs)
+ * @param companionRuntimes Eagerly instantiated contract runtimes requested by the Layout
  * @param lazyFactories Factories for on-demand instantiation via SHOW events
- * @param preActivatedContracts Pre-instantiated contracts for LayerComponent auto-open (URL-routed overlays)
+ * @param preActivatedRuntimes Pre-instantiated runtimes for LayerComponent auto-open (URL-routed overlays)
  * @param composition The Composition containing the contract (Contracts is derived from here)
  * @param timestamp When the scene was built (for debugging/caching)
  * @param autoOpen Auto-open info for URL-routed overlay contracts (nullable)
  * @param pageTitle The page title for the HTML title tag
  */
-public record Scene(ViewContract routedContract,
-                    Map<Class<? extends ViewContract>, ViewContract> companionContracts,
+public record Scene(ContractRuntime routedRuntime,
+                    Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes,
                     Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories,
-                    Map<Class<? extends ViewContract>, ViewContract> preActivatedContracts,
+                    Map<Class<? extends ViewContract>, ContractRuntime> preActivatedRuntimes,
                     Composition composition,
                     long timestamp,
                     AutoOpen autoOpen,
                     String pageTitle) {
     public Scene {
-        Objects.requireNonNull(companionContracts, "companionContracts");
+        Objects.requireNonNull(companionRuntimes, "companionRuntimes");
         Objects.requireNonNull(lazyFactories, "lazyFactories");
-        Objects.requireNonNull(preActivatedContracts, "preActivatedContracts");
+        Objects.requireNonNull(preActivatedRuntimes, "preActivatedRuntimes");
         Objects.requireNonNull(composition, "composition");
         Objects.requireNonNull(pageTitle, "pageTitle");
     }
@@ -71,20 +71,46 @@ public record Scene(ViewContract routedContract,
     }
 
     /**
+     * The contract matched by the Router, preserving the pre-runtime Scene API.
+     */
+    public ViewContract routedContract() {
+        return routedRuntime != null ? routedRuntime.contract() : null;
+    }
+
+    /**
      * Get a companion contract by its class.
      *
      * @param contractClass The contract class
      * @return The companion contract, or null if not present
      */
     public ViewContract companionContract(Class<? extends ViewContract> contractClass) {
-        return companionContracts.get(contractClass);
+        final ContractRuntime runtime = companionRuntime(contractClass);
+        return runtime != null ? runtime.contract() : null;
+    }
+
+    public ContractRuntime companionRuntime(Class<? extends ViewContract> contractClass) {
+        return companionRuntimes.get(contractClass);
+    }
+
+    /**
+     * Companion contracts, preserving the pre-runtime Scene API.
+     */
+    public Map<Class<? extends ViewContract>, ViewContract> companionContracts() {
+        return contractMap(companionRuntimes);
+    }
+
+    /**
+     * Pre-activated contracts, preserving the pre-runtime Scene API.
+     */
+    public Map<Class<? extends ViewContract>, ViewContract> preActivatedContracts() {
+        return contractMap(preActivatedRuntimes);
     }
 
     /**
      * Check if this scene has pre-activated contracts for LayerComponent auto-open.
      */
     public boolean hasPreActivatedContracts() {
-        return !preActivatedContracts.isEmpty();
+        return !preActivatedRuntimes.isEmpty();
     }
 
     /**
@@ -104,68 +130,85 @@ public record Scene(ViewContract routedContract,
      * @return The contract, or null if not active
      */
     public ViewContract findContract(Class<? extends ViewContract> contractClass) {
-        if (routedContract != null && routedContract.getClass().equals(contractClass)) {
-            return routedContract;
+        final ViewContract routed = routedContract();
+        if (routed != null && routed.getClass().equals(contractClass)) {
+            return routed;
         }
-        return companionContracts.get(contractClass);
+        return companionContract(contractClass);
+    }
+
+    public ContractRuntime findRuntime(Class<? extends ViewContract> contractClass) {
+        if (routedRuntime != null && routedRuntime.contractClass().equals(contractClass)) {
+            return routedRuntime;
+        }
+        return companionRuntimes.get(contractClass);
     }
 
     /**
      * Create a new Scene with a different routed contract.
      *
-     * @param contract The new routed contract
+     * @param runtime The new routed contract runtime
      * @return New Scene with the routed contract replaced
      */
-    public Scene withRoutedContract(ViewContract contract) {
-        return new Scene(contract, companionContracts, lazyFactories, preActivatedContracts,
-                composition, timestamp, autoOpen, titleOf(contract));
+    public Scene withRoutedRuntime(ContractRuntime runtime) {
+        return new Scene(runtime, companionRuntimes, lazyFactories, preActivatedRuntimes,
+                composition, timestamp, autoOpen, titleOf(runtime));
     }
 
     /**
      * Create a scene with routed contract, companions, and lazy factories.
      */
-    public static Scene of(ViewContract routedContract,
-                           Map<Class<? extends ViewContract>, ViewContract> companionContracts,
+    public static Scene of(ContractRuntime routedRuntime,
+                           Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes,
                            Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories,
                            Composition composition) {
-        return new Scene(routedContract, companionContracts, lazyFactories, Map.of(),
-                composition, System.currentTimeMillis(), null, titleOf(routedContract));
+        return new Scene(routedRuntime, companionRuntimes, lazyFactories, Map.of(),
+                composition, System.currentTimeMillis(), null, titleOf(routedRuntime));
     }
 
     /**
      * Create a scene with auto-open info (for overlay-like contracts routed via URL).
      *
-     * @param routedContract The parent routed contract
-     * @param companionContracts Companion contracts
+     * @param routedRuntime The parent routed contract runtime
+     * @param companionRuntimes Companion contract runtimes
      * @param lazyFactories Lazy factories
-     * @param preActivatedContracts Pre-instantiated overlay contracts for LayerComponent
+     * @param preActivatedRuntimes Pre-instantiated overlay runtimes for LayerComponent
      * @param composition The composition
      * @param autoOpen Auto-open metadata
      */
-    public static Scene withAutoOpen(ViewContract routedContract,
-                                     Map<Class<? extends ViewContract>, ViewContract> companionContracts,
+    public static Scene withAutoOpen(ContractRuntime routedRuntime,
+                                     Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes,
                                      Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories,
-                                     Map<Class<? extends ViewContract>, ViewContract> preActivatedContracts,
+                                     Map<Class<? extends ViewContract>, ContractRuntime> preActivatedRuntimes,
                                      Composition composition,
                                      AutoOpen autoOpen) {
         // Use auto-opened contract's title if available
-        String title = titleOf(routedContract);
-        if (autoOpen != null && preActivatedContracts.containsKey(autoOpen.contractClass())) {
-            ViewContract autoOpenContract = preActivatedContracts.get(autoOpen.contractClass());
-            String autoOpenTitle = titleOf(autoOpenContract);
+        String title = titleOf(routedRuntime);
+        if (autoOpen != null && preActivatedRuntimes.containsKey(autoOpen.contractClass())) {
+            ContractRuntime autoOpenRuntime = preActivatedRuntimes.get(autoOpen.contractClass());
+            String autoOpenTitle = titleOf(autoOpenRuntime);
             if (!"App".equals(autoOpenTitle)) {
                 title = autoOpenTitle;
             }
         }
-        return new Scene(routedContract, companionContracts, lazyFactories, preActivatedContracts,
+        return new Scene(routedRuntime, companionRuntimes, lazyFactories, preActivatedRuntimes,
                 composition, System.currentTimeMillis(), autoOpen, title);
     }
 
-    private static String titleOf(ViewContract contract) {
-        if (contract == null) {
+    private static Map<Class<? extends ViewContract>, ViewContract> contractMap(
+            Map<Class<? extends ViewContract>, ContractRuntime> runtimes) {
+        Map<Class<? extends ViewContract>, ViewContract> contracts = new LinkedHashMap<>();
+        for (var entry : runtimes.entrySet()) {
+            contracts.put(entry.getKey(), entry.getValue().contract());
+        }
+        return Collections.unmodifiableMap(contracts);
+    }
+
+    private static String titleOf(ContractRuntime runtime) {
+        if (runtime == null) {
             return "App";
         }
-        String title = contract.title();
+        String title = runtime.contract().title();
         return title != null ? title : "App";
     }
 }

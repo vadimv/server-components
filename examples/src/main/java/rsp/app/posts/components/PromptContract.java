@@ -68,6 +68,7 @@ public class PromptContract extends ViewContract {
     private SpawnRequest pendingSpawnRequest;
     private String pendingTicketId;
     private String queuedPrompt;
+    private volatile String activeCategory = "";
 
     private volatile Scene currentScene;
     private PendingAction pendingConfirm;
@@ -89,6 +90,9 @@ public class PromptContract extends ViewContract {
 
         QualifiedSessionId sessionId = lookup.get(QualifiedSessionId.class);
         this.scopeKey = sessionId != null ? sessionId.sessionId() : "unknown-session";
+        this.activeCategory = normalizeCategory(lookup.get(ContextKeys.PRIMARY_CATEGORY_KEY));
+        watch(ContextKeys.PRIMARY_CATEGORY_KEY, category ->
+                this.activeCategory = normalizeCategory(category));
 
         // Spawn agent session via centralized spawner
         this.pendingSpawnRequest = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
@@ -419,11 +423,15 @@ public class PromptContract extends ViewContract {
         if (future != null && !future.isDone()) {
             future.complete(currentScene);
         }
-        final String activeCategory = context.get(ContextKeys.PRIMARY_CATEGORY_KEY);
+        this.activeCategory = normalizeCategory(context.get(ContextKeys.PRIMARY_CATEGORY_KEY));
         return context.with(PromptContextKeys.PROMPT_SERVICE, promptService)
                       .with(PromptContextKeys.SCOPE_KEY, scopeKey)
                       .with(PromptContextKeys.ACTIVE_CATEGORY,
-                            activeCategory != null ? activeCategory : "");
+                            activeCategory);
+    }
+
+    private static String normalizeCategory(String category) {
+        return category != null ? category : "";
     }
 
     @Override

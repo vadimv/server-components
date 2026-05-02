@@ -76,4 +76,15 @@ public interface ComponentCallbacks<S> {
      * @param state the current state
      */
     void onUnmounted(ComponentCompositeKey componentId, S state);
+
+    /**
+     * Whether descendants should receive this component's subscriber in context.
+     * <p>
+     * Most components form an event boundary and use their own subscriber. Transparent
+     * framework components can return {@code false} to preserve the upstream
+     * subscriber for their children.
+     */
+    default boolean providesSubscriberBoundary() {
+        return true;
+    }
 }

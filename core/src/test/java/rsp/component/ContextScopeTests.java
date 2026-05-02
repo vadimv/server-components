@@ -87,4 +87,22 @@ class ContextScopeTests {
 
         assertEquals(0, calls.get());
     }
+
+    @Test
+    void controller_replaces_and_clears_owned_scope() {
+        final ContextScope.Controller controller =
+                ContextScope.controller(new ComponentContext().with(KEY, "old"));
+        final AtomicReference<String> observed = new AtomicReference<>();
+
+        controller.scope().watch(KEY, (_, newValue) -> observed.set(newValue));
+        controller.replace(new ComponentContext().with(KEY, "new"));
+
+        assertEquals("new", controller.scope().current().get(KEY));
+        assertEquals("new", observed.get());
+
+        controller.clear();
+        controller.replace(new ComponentContext().with(KEY, "later"));
+
+        assertEquals("new", observed.get());
+    }
 }

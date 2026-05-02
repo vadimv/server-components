@@ -21,11 +21,30 @@ public final class LookupFactory {
     }
 
     /**
+     * Create a scope-backed Lookup for a long-lived contract runtime.
+     * Infrastructure objects still come from the current framework context.
+     */
+    public static Lookup create(ContextScope contextScope, ComponentContext context) {
+        CommandsEnqueue commandsEnqueue = context.getRequired(CommandsEnqueue.class);
+        return create(contextScope, context, commandsEnqueue);
+    }
+
+    /**
      * Create a Lookup with explicit CommandsEnqueue (for event handlers
      * where the framework provides a specific CommandsEnqueue instance).
      */
     public static Lookup create(ComponentContext context, CommandsEnqueue commandsEnqueue) {
         Subscriber subscriber = context.getRequired(Subscriber.class);
         return new ContextLookup(context, commandsEnqueue, subscriber);
+    }
+
+    /**
+     * Create a scope-backed Lookup with explicit CommandsEnqueue.
+     */
+    public static Lookup create(ContextScope contextScope,
+                                ComponentContext context,
+                                CommandsEnqueue commandsEnqueue) {
+        Subscriber subscriber = context.getRequired(Subscriber.class);
+        return new ContextLookup(contextScope, commandsEnqueue, subscriber);
     }
 }

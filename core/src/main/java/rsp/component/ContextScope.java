@@ -17,6 +17,10 @@ public final class ContextScope {
     private ComponentContext current;
     private final Map<ContextKey<?>, List<Watcher<?>>> watchers = new HashMap<>();
 
+    public static Controller controller(final ComponentContext initialContext) {
+        return new Controller(new ContextScope(initialContext));
+    }
+
     public ContextScope(final ComponentContext initialContext) {
         this.current = Objects.requireNonNull(initialContext, "initialContext");
     }
@@ -90,6 +94,33 @@ public final class ContextScope {
         @SuppressWarnings("unchecked")
         void notifyUnchecked(final Object oldValue, final Object newValue) {
             handler.accept((T) oldValue, (T) newValue);
+        }
+    }
+
+    /**
+     * Owner-side handle for replacing or clearing a scope.
+     * <p>
+     * User code can observe a {@link ContextScope}, while framework/runtime code
+     * keeps the controller when it is responsible for feeding fresh context into
+     * that scope.
+     */
+    public static final class Controller {
+        private final ContextScope scope;
+
+        private Controller(final ContextScope scope) {
+            this.scope = Objects.requireNonNull(scope, "scope");
+        }
+
+        public ContextScope scope() {
+            return scope;
+        }
+
+        public void replace(final ComponentContext next) {
+            scope.replace(next);
+        }
+
+        public void clear() {
+            scope.clear();
         }
     }
 }

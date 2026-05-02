@@ -63,15 +63,15 @@ public final class SceneEventHandler {
         }
 
         // Destroy old routed contract
-        if (state.routedContract() != null) {
-            state.routedContract().onDestroy();
+        if (state.routedRuntime() != null) {
+            state.routedRuntime().destroy();
         }
 
         // Resolve and instantiate the new contract.
         // stripQueryParams=true: SET_PRIMARY navigates to a different contract class,
         // stale query state (e.g. ?p=2 from Posts) must not carry over to the new contract.
-        ViewContract newContract = resolveAndInstantiate(state, contractClass, commandsEnqueue, true);
-        if (newContract == null) {
+        ContractRuntime newRuntime = resolveAndInstantiate(state, contractClass, commandsEnqueue, true);
+        if (newRuntime == null) {
             return;
         }
 
@@ -92,16 +92,16 @@ public final class SceneEventHandler {
             }
         }
 
-        stateUpdate.applyStateTransformation(s -> s.withRoutedContract(newContract));
+        stateUpdate.applyStateTransformation(s -> s.withRoutedRuntime(newRuntime));
     }
 
     /**
      * Resolve factory, create lookup, instantiate contract, register handlers.
      */
     @SuppressWarnings("unchecked")
-    private ViewContract resolveAndInstantiate(Scene state, Class contractClass,
-                                               CommandsEnqueue commandsEnqueue,
-                                               boolean stripQueryParams) {
+    private ContractRuntime resolveAndInstantiate(Scene state, Class contractClass,
+                                                  CommandsEnqueue commandsEnqueue,
+                                                  boolean stripQueryParams) {
         // Get factory from scene lazy factories
         Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
         if (factory == null) {
@@ -130,16 +130,7 @@ public final class SceneEventHandler {
             .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
             .with(ContextKeys.SCENE, state);
 
-        Lookup lookup = LookupFactory.create(showContext, commandsEnqueue);
-
-        // Instantiate contract
-        ViewContract contract = factory.apply(lookup);
-        if (contract == null) {
-            return null;
-        }
-        contract.registerHandlers();
-
-        return contract;
+        return ContractRuntime.instantiate(contractClass, factory, showContext, commandsEnqueue);
     }
 
     /**
@@ -161,11 +152,14 @@ public final class SceneEventHandler {
         // Always refresh routed contract — the action may have modified visible data.
         // stripQueryParams=false: same contract class, preserve pagination/sort/filter
         // query state across the refresh (e.g. stay on ?p=2 after Save/Cancel).
-        state.routedContract().onDestroy();
-        Class routedClass = state.routedContract().getClass();
-        ViewContract refreshed = resolveAndInstantiate(state, routedClass, commandsEnqueue, false);
+        if (state.routedRuntime() == null) {
+            return;
+        }
+        Class routedClass = state.routedRuntime().contractClass();
+        state.routedRuntime().destroy();
+        ContractRuntime refreshed = resolveAndInstantiate(state, routedClass, commandsEnqueue, false);
         if (refreshed != null) {
-            stateUpdate.applyStateTransformation(s -> s.withRoutedContract(refreshed));
+            stateUpdate.applyStateTransformation(s -> s.withRoutedRuntime(refreshed));
         }
     }
 }

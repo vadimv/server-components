@@ -96,23 +96,23 @@ public final class SceneBuilder {
         Group contracts = composition.contracts();
         Function<Lookup, ViewContract> routedFactory = contracts.contractFactory(this.contractClass);
 
-        ViewContract routedContract = instantiateContract(this.contractClass, routedFactory, context);
-        if (routedContract == null) {
+        ContractRuntime routedRuntime = instantiateContract(this.contractClass, routedFactory, context);
+        if (routedRuntime == null) {
             throw new IllegalStateException("Failed to instantiate contract: " + this.contractClass.getName());
         }
 
-        if (!routedContract.isAuthorized()) {
+        if (!routedRuntime.contract().isAuthorized()) {
             throw new AuthorizationException("Access denied: insufficient permissions for " + this.contractClass.getName());
         }
 
         // Instantiate companion contracts (requested by Layout)
-        Map<Class<? extends ViewContract>, ViewContract> companionContracts = instantiateCompanions(context);
+        Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes = instantiateCompanions(context);
 
         // Store remaining contract classes as lazy factories
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories =
-                collectLazyFactories(this.contractClass, companionContracts);
+                collectLazyFactories(this.contractClass, companionRuntimes);
 
-        return Scene.of(routedContract, orderedUnmodifiableCopy(companionContracts), Map.copyOf(lazyFactories), composition);
+        return Scene.of(routedRuntime, orderedUnmodifiableCopy(companionRuntimes), Map.copyOf(lazyFactories), composition);
     }
 
     /**
@@ -136,39 +136,39 @@ public final class SceneBuilder {
                     "Parent contract not found in composition: " + parentClass.getName());
         }
 
-        ViewContract parentContract = instantiateContract(parentClass, parentFactory, context);
-        if (parentContract == null) {
+        ContractRuntime parentRuntime = instantiateContract(parentClass, parentFactory, context);
+        if (parentRuntime == null) {
             throw new IllegalStateException(
                     "Failed to instantiate parent contract: " + parentClass.getName());
         }
 
-        if (!parentContract.isAuthorized()) {
+        if (!parentRuntime.contract().isAuthorized()) {
             throw new AuthorizationException(
                     "Access denied: insufficient permissions for " + parentClass.getName());
         }
 
         // Instantiate companion contracts (requested by Layout)
-        Map<Class<? extends ViewContract>, ViewContract> companionContracts = instantiateCompanions(context);
+        Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes = instantiateCompanions(context);
 
         // Pre-instantiate the overlay contract for LayerComponent auto-open
         ComponentContext overlayContext = context.with(ContextKeys.CONTRACT_CLASS, this.contractClass);
-        ViewContract overlayContract = instantiateContract(this.contractClass, overlayFactory, overlayContext);
-        Map<Class<? extends ViewContract>, ViewContract> preActivated = new HashMap<>();
-        if (overlayContract != null) {
-            preActivated.put(this.contractClass, overlayContract);
+        ContractRuntime overlayRuntime = instantiateContract(this.contractClass, overlayFactory, overlayContext);
+        Map<Class<? extends ViewContract>, ContractRuntime> preActivated = new HashMap<>();
+        if (overlayRuntime != null) {
+            preActivated.put(this.contractClass, overlayRuntime);
         }
 
         // Store remaining contract classes as lazy factories (excludes parent, companions, pre-activated)
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
         for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
             if (!cls.equals(parentClass)
-                    && !companionContracts.containsKey(cls)
+                    && !companionRuntimes.containsKey(cls)
                     && !preActivated.containsKey(cls)) {
                 lazyFactories.put(cls, contracts.contractFactory(cls));
             }
         }
 
-        return Scene.withAutoOpen(parentContract, orderedUnmodifiableCopy(companionContracts), Map.copyOf(lazyFactories),
+        return Scene.withAutoOpen(parentRuntime, orderedUnmodifiableCopy(companionRuntimes), Map.copyOf(lazyFactories),
                 Map.copyOf(preActivated), composition,
                 new Scene.AutoOpen(this.contractClass, routePattern));
     }
@@ -176,15 +176,15 @@ public final class SceneBuilder {
     /**
      * Instantiate companion contracts declared by the Layout.
      */
-    private Map<Class<? extends ViewContract>, ViewContract> instantiateCompanions(ComponentContext context) {
+    private Map<Class<? extends ViewContract>, ContractRuntime> instantiateCompanions(ComponentContext context) {
         Set<Class<? extends ViewContract>> requiredByLayout = layout.requiredContracts();
         Group contracts = composition.contracts();
-        Map<Class<? extends ViewContract>, ViewContract> companions = new LinkedHashMap<>();
+        Map<Class<? extends ViewContract>, ContractRuntime> companions = new LinkedHashMap<>();
 
         for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
             if (requiredByLayout.contains(cls)) {
                 Function<Lookup, ViewContract> factory = contracts.contractFactory(cls);
-                ViewContract companion = instantiateContract(cls, factory, context);
+                ContractRuntime companion = instantiateContract(cls, factory, context);
                 if (companion != null) {
                     companions.put(cls, companion);
                 }
@@ -203,11 +203,11 @@ public final class SceneBuilder {
      */
     private Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> collectLazyFactories(
             Class<? extends ViewContract> routedClass,
-            Map<Class<? extends ViewContract>, ViewContract> companionContracts) {
+            Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes) {
         Group contracts = composition.contracts();
         Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
         for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
-            if (!cls.equals(routedClass) && !companionContracts.containsKey(cls)) {
+            if (!cls.equals(routedClass) && !companionRuntimes.containsKey(cls)) {
                 lazyFactories.put(cls, contracts.contractFactory(cls));
             }
         }
@@ -217,15 +217,10 @@ public final class SceneBuilder {
     /**
      * Instantiate a contract from its factory.
      */
-    ViewContract instantiateContract(Class<? extends ViewContract> contractClass,
-                                     Function<Lookup, ViewContract> factory,
-                                     ComponentContext context) {
-        Lookup lookup = LookupFactory.create(context);
-        ViewContract contract = factory.apply(lookup);
-        if (contract != null) {
-            contract.registerHandlers();
-        }
-        return contract;
+    ContractRuntime instantiateContract(Class<? extends ViewContract> contractClass,
+                                        Function<Lookup, ViewContract> factory,
+                                        ComponentContext context) {
+        return ContractRuntime.instantiate(contractClass, factory, context);
     }
 
     private void startServicesLifecycleHandlers(ComponentContext context) {

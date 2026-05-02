@@ -1,6 +1,7 @@
 package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
+import rsp.component.ContextKey;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 
@@ -13,7 +14,7 @@ import java.util.function.Consumer;
 
 public abstract class ViewContract {
 
-    private Set<Lookup.Registration> handlerRegistrations = new HashSet<>();
+    private final Set<Lookup.Registration> handlerRegistrations = new HashSet<>();
     protected final Lookup lookup;
 
     protected ViewContract(Lookup lookup) {
@@ -77,6 +78,14 @@ public abstract class ViewContract {
         handlerRegistrations.add(lookup.subscribe(key, handler));
     }
 
+    protected <T> void watch(ContextKey<T> key, BiConsumer<T, T> handler) {
+        handlerRegistrations.add(lookup.watch(key, handler));
+    }
+
+    protected <T> void watch(ContextKey<T> key, Consumer<T> handler) {
+        handlerRegistrations.add(lookup.watch(key, handler));
+    }
+
     protected <T> void publishCapability(EventKey<T> key, T value) {
         final CapabilityBus bus = lookup.get(CapabilityBus.class);
         if (bus != null) {
@@ -108,6 +117,7 @@ public abstract class ViewContract {
      */
     protected void onDestroy() {
         handlerRegistrations.forEach(registration -> registration.unsubscribe());
+        handlerRegistrations.clear();
     }
 
     /**

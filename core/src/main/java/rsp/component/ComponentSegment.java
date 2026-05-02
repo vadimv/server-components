@@ -46,6 +46,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<ComponentSegment<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
+    private final Set<ContextScope.Controller> contextMirrors = Collections.newSetFromMap(new IdentityHashMap<>());
 
     /**
      * The context propagated from ancestors. Mutable: the framework's reconciliation path
@@ -132,6 +133,21 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     /**
+     * Mirrors this segment's current context into an external scope owned by a
+     * higher-level runtime object.
+     * <p>
+     * The mirror is updated immediately and on future {@link #setComponentContext}
+     * calls. Unmounting this segment drops the mirror reference but does not clear
+     * the external scope; the owner is responsible for its lifecycle.
+     */
+    public void mirrorContextTo(final ContextScope.Controller controller) {
+        Objects.requireNonNull(controller, "controller");
+        if (contextMirrors.add(controller)) {
+            controller.replace(componentContext());
+        }
+    }
+
+    /**
      * Update the context associated with this segment.
      * <p>
      * Package-private. Called only by the framework's reconciliation path when a segment
@@ -139,7 +155,15 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * User code must not call this directly.
      */
     void setComponentContext(final ComponentContext componentContext) {
-        this.contextScope.replace(Objects.requireNonNull(componentContext, "componentContext"));
+        final ComponentContext next = Objects.requireNonNull(componentContext, "componentContext");
+        this.contextScope.replace(next);
+        replaceContextMirrors(next);
+    }
+
+    private void replaceContextMirrors(final ComponentContext componentContext) {
+        for (final ContextScope.Controller mirror : contextMirrors) {
+            mirror.replace(componentContext);
+        }
     }
 
     /**
@@ -203,7 +227,12 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     private BiFunction<ComponentContext, S, ComponentContext> descendantContextResolver() {
-        return (ctx, s) -> contextResolver.apply(ctx, s).with(Subscriber.class, subscriber);
+        return (ctx, s) -> {
+            final ComponentContext resolved = contextResolver.apply(ctx, s);
+            return callbacks.providesSubscriberBoundary()
+                    ? resolved.with(Subscriber.class, subscriber)
+                    : resolved;
+        };
     }
 
     /**
@@ -332,6 +361,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         recursiveChildren().forEach(c -> c.unmount());
         callbacks.onUnmounted(componentId, state);
         contextScope.clear();
+        contextMirrors.clear();
         metrics.incrementCounter(MetricNames.SEGMENT_UNMOUNTED);
     }
 

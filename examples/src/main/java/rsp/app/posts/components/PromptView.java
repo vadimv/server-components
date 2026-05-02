@@ -3,7 +3,6 @@ package rsp.app.posts.components;
 import rsp.app.posts.services.PromptService;
 import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ContextKeys;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.util.html.HtmlEscape;
@@ -65,7 +64,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         return (_, context) -> {
             PromptService promptService = context.get(PromptContextKeys.PROMPT_SERVICE);
             String scopeKey = context.get(PromptContextKeys.SCOPE_KEY);
-            String category = context.get(ContextKeys.PRIMARY_CATEGORY_KEY);
+            String category = context.get(PromptContextKeys.ACTIVE_CATEGORY);
             String activeCategory = category != null ? category : "";
             if (promptService != null && scopeKey != null) {
                 List<PromptContract.Message> history = promptService.getMessageHistory(scopeKey)
@@ -161,7 +160,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             logger.log(System.Logger.Level.TRACE, () -> "Update message notified: " + message);
             stateUpdate.applyStateTransformation(s -> s.withLastSystemMessageUpdated(message.text()));
         });
-        categorySubscription = lookup.watch(ContextKeys.PRIMARY_CATEGORY_KEY, category ->
+        categorySubscription = lookup.watch(PromptContextKeys.ACTIVE_CATEGORY, category ->
                 stateUpdate.applyStateTransformation(s -> s.withActiveCategory(category)));
     }
 

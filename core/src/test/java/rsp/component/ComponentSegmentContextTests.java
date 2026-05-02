@@ -9,6 +9,7 @@ import rsp.page.events.Command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 
@@ -107,6 +108,41 @@ class ComponentSegmentContextTests {
         segment.setComponentContext(new ComponentContext().with(KEY, "v2"));
 
         assertEquals("v2", observed.get());
+    }
+
+    @Test
+    void mirrorContextTo_updates_external_scope_initially_and_on_context_replacement() {
+        final ComponentSegment<String> segment = createSegment(initialContext);
+        final ContextScope.Controller mirror =
+                ContextScope.controller(new ComponentContext().with(KEY, "mirror-old"));
+        final AtomicReference<String> observed = new AtomicReference<>();
+
+        mirror.scope().watch(KEY, (_, newValue) -> observed.set(newValue));
+        segment.mirrorContextTo(mirror);
+
+        assertEquals("v1", mirror.scope().current().get(KEY));
+        assertEquals("v1", observed.get());
+
+        segment.setComponentContext(new ComponentContext().with(KEY, "v2"));
+
+        assertEquals("v2", mirror.scope().current().get(KEY));
+        assertEquals("v2", observed.get());
+    }
+
+    @Test
+    void unmount_does_not_clear_mirrored_external_scope() {
+        final ComponentSegment<String> segment = createSegment(initialContext);
+        final ContextScope.Controller mirror =
+                ContextScope.controller(new ComponentContext().with(KEY, "mirror-old"));
+        final AtomicInteger calls = new AtomicInteger();
+
+        mirror.scope().watch(KEY, (_, _) -> calls.incrementAndGet());
+        segment.mirrorContextTo(mirror);
+        segment.unmount();
+        mirror.replace(new ComponentContext().with(KEY, "after-unmount"));
+
+        assertEquals("after-unmount", mirror.scope().current().get(KEY));
+        assertEquals(2, calls.get());
     }
 
     @Test

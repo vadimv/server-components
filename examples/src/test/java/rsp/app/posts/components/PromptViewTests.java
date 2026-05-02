@@ -65,6 +65,18 @@ class PromptViewTests {
         }
 
         @Test
+        void reads_active_category_from_prompt_context() {
+            PromptView view = new PromptView();
+            ComponentStateSupplier<PromptView.PromptViewState> supplier = view.initStateSupplier();
+
+            PromptView.PromptViewState state = supplier.getState(
+                    null,
+                    contextWithService().with(PromptContextKeys.ACTIVE_CATEGORY, "Posts"));
+
+            assertEquals("Posts", state.activeCategory());
+        }
+
+        @Test
         void preserves_message_ids_from_service() {
             promptService.sendReply(SCOPE, "msg1");
             promptService.sendReply(SCOPE, "msg2");

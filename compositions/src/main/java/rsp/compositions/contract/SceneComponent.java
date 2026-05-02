@@ -100,12 +100,12 @@ public class SceneComponent extends Component<Scene> {
             return;
         }
         // Destroy routed contract
-        if (scene.routedContract() != null) {
-            scene.routedContract().onDestroy();
+        if (scene.routedRuntime() != null) {
+            scene.routedRuntime().destroy();
         }
         // Destroy all companion contracts
-        for (var companion : scene.companionContracts().values()) {
-            companion.onDestroy();
+        for (var companion : scene.companionRuntimes().values()) {
+            companion.destroy();
         }
         stopServicesLifecycleHandlers(scene);
     }
