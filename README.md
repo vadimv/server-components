@@ -74,4 +74,5 @@ This project aims to provide strong runtime supply-chain guarantees. The target 
 
 The goal is a vertically integrated, sovereign UI engine designed for full-stack ownership.
 The small, auditable Java core empowers humans to oversee what AI builds, with the option for engineers to write highly composable code themselves when they prefer to.
+
 Essentially, the program and the way it manipulates data stay under the engineer's control, eliminating the complexity and security risks of the modern web stack.
