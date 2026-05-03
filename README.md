@@ -6,7 +6,7 @@ This is a pure-Java toolkit for stateful, server-driven back-office apps. It rem
 
 ## Turn workflows into sentences
 
-<img width="1636" height="1029" alt="CrudApp-Screenshot" src="https://github.com/user-attachments/assets/aaa65173-4eb9-46cb-a470-abf6057c90e8" />
+<img width="1636" height="1029" alt="CrudApp-Screenshot-2" src="https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f" />
 
 Prompt: "Open comments, go to page two, and select all items."
 
