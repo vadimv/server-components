@@ -1,6 +1,6 @@
 # UI Toolkit for Admin Panels and Enterprise Tools
 
-Build AI-controlled admin interfaces and internal tools in pure modern Java, without writing JavaScript.
+Build AI-controlled admin interfaces and internal tools in modern Java, without writing JavaScript.
 
 This is a pure-Java toolkit for stateful, server-driven back-office apps. It removes REST glue, frontend build steps, and most UI boilerplate while allowing AI agents to understand your application's structure out of the box.
 
@@ -12,11 +12,10 @@ Prompt: "Open comments, go to page two, and select all items."
 
 The AI agent natively understands your application's structure, navigates the UI, and queues up the exact actions while keeping the human in the loop for final approval.
 
-## Why it is different
+## Why it's different
 
-- Security & Supply Chain: Eliminate thousands of transitive npm dependencies. Self-contained, distributed as source.
-- Developer Productivity: Java developers build interactive UIs as typed Java compositions, without React or its ecosystem.
-  Internal tools come out as plain Java code — not a pile of controllers, DTOs, and frontend state management.
+- Security & Supply Chain: Eliminate thousands of transitive npm dependencies. The toolkit is self-contained and distributed as source.
+- Developer Productivity: Java developers build internal tools in plain Java — without writing web-service controllers, managing frontend state, or depending on JavaScript frameworks like React.
 - AI: The Java HTML DSL is linear, component-based, and composable, with no annotations or implicit control flow. That makes it easy for LLMs (like Claude or GPT) to generate valid UI code without "hallucinating" state-management bugs, and lets AI agents navigate the running app from the same structure.
 
 ## Getting started
@@ -74,5 +73,5 @@ When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama`
 This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies outside the web-server layer.
 
 The goal is a vertically integrated, sovereign UI engine designed for full-stack ownership.
-The small, auditable Java core empowers humans to oversee what AI builds, or write highly composable code themselves if required or wanted.
-Essentially, the program and how it manipulates data stay under the engineer's control, eliminating the complexity and security risks of the modern web stack.
+The small, auditable Java core empowers humans to oversee what AI builds, with the option for engineers to write highly composable code themselves when they prefer to.
+Essentially, the program and the way it manipulates data stay under the engineer's control, eliminating the complexity and security risks of the modern web stack.
