@@ -101,10 +101,16 @@ public class PromptContract extends ViewContract {
         this.actionFilter = new PolicyActionFilter(authorization);
 
         onCapability(Capabilities.ACTIVE_CATEGORY, category -> {
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptContract@%x ACTIVE_CATEGORY = '%s' [scope=%s]",
+                                    System.identityHashCode(this), category, scopeKey));
             this.activeCategory = category;
         });
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptContract@%x SEND_PROMPT received text='%s' [scope=%s]",
+                                    System.identityHashCode(this), abbreviate(text), scopeKey));
             promptService.sendPrompt(scopeKey, text);
             handleUserInput(text);
         });
@@ -145,16 +151,27 @@ public class PromptContract extends ViewContract {
 
         serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
             Message msg = new Message(message.id(), message.text(), message.fromUser());
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptContract@%x bridge: PromptService -> lookup@%x [%s id=%d fromUser=%s text='%s' scope=%s]",
+                                    System.identityHashCode(this), System.identityHashCode(lookup),
+                                    message.update() ? "UPDATE" : "NEW",
+                                    msg.id(), msg.fromUser(), abbreviate(msg.text()), scopeKey));
             if (message.update()) {
                 lookup.publish(UPDATE_MESSAGE, msg);
             } else {
                 lookup.publish(NEW_MESSAGE, msg);
             }
         });
-        logger.log(System.Logger.Level.TRACE, () -> "PromptContract created");
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x created [scope=%s, lookup@%x]",
+                                System.identityHashCode(this), scopeKey, System.identityHashCode(lookup)));
     }
 
     private void handleUserInput(String text) {
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x handleUserInput text='%s' [queuedResult=%s, pendingConfirm=%s]",
+                                System.identityHashCode(this), abbreviate(text),
+                                queuedResult != null, pendingConfirm != null));
         if (queuedResult != null) {
             promptService.sendReply(scopeKey, "Still awaiting your approval for the previous request...");
             return;
@@ -190,6 +207,9 @@ public class PromptContract extends ViewContract {
         final long startTime = System.currentTimeMillis();
         promptService.sendReply(scopeKey, "<em>Thinking...</em>");
         Thread.startVirtualThread(() -> {
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptContract@%x LLM virtual thread START [scope=%s]",
+                                    System.identityHashCode(this), scopeKey));
             try {
                 AgentResult agentResult = agentService.handlePrompt(text, profile, structure,
                         partial -> {
@@ -197,12 +217,21 @@ public class PromptContract extends ViewContract {
                             promptService.updateLastReply(scopeKey,
                                     "<em>Thinking... (" + elapsed + "s)</em>");
                         });
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptContract@%x LLM result received: %s [scope=%s, elapsedMs=%d]",
+                                        System.identityHashCode(this),
+                                        agentResult.getClass().getSimpleName(), scopeKey,
+                                        System.currentTimeMillis() - startTime));
                 evaluateAndExecute(agentResult, capturedContract);
             } catch (Throwable t) {
                 logger.log(System.Logger.Level.ERROR, "Prompt processing failed", t);
                 promptService.sendReply(scopeKey,
                         "Internal error: " + t.getClass().getSimpleName()
                                 + (t.getMessage() != null ? " - " + t.getMessage() : ""));
+            } finally {
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptContract@%x LLM virtual thread END [scope=%s]",
+                                        System.identityHashCode(this), scopeKey));
             }
         });
     }
@@ -217,6 +246,11 @@ public class PromptContract extends ViewContract {
                 ? authorization.delegated(agentSession.grant())
                 : authorization;
         AccessDecision decision = current.evaluate(attrsFor(result));
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x evaluateAndExecute: %s -> %s [scope=%s, hasSession=%s]",
+                                System.identityHashCode(this), result.getClass().getSimpleName(),
+                                decision.getClass().getSimpleName(), scopeKey,
+                                agentSession != null && agentSession.isValid()));
 
         if (decision instanceof AccessDecision.Allow) {
             executeResult(result, capturedContract);
@@ -252,6 +286,10 @@ public class PromptContract extends ViewContract {
     }
 
     private void executeResult(AgentResult result, ViewContract capturedContract) {
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x executeResult: %s [scope=%s]",
+                                System.identityHashCode(this),
+                                result.getClass().getSimpleName(), scopeKey));
         final ActionGate capturedGate = gate;
         switch (result) {
             case AgentResult.TextReply reply ->
@@ -491,6 +529,13 @@ public class PromptContract extends ViewContract {
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
         this.currentScene = context.get(ContextKeys.SCENE);
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x enrichContext [scope=%s, sceneRouted=%s, activeCategory='%s']",
+                                System.identityHashCode(this), scopeKey,
+                                currentScene == null || currentScene.routedContract() == null
+                                    ? "null"
+                                    : currentScene.routedContract().getClass().getSimpleName(),
+                                activeCategory));
         // Signal waiting plan executor with the settled scene
         CompletableFuture<Scene> future = this.sceneSettleFuture;
         if (future != null && !future.isDone()) {
@@ -504,10 +549,19 @@ public class PromptContract extends ViewContract {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        boolean hadBridge = serviceUnsubscribe != null;
         if (serviceUnsubscribe != null) {
             serviceUnsubscribe.run();
             serviceUnsubscribe = null;
         }
-        logger.log(System.Logger.Level.TRACE, () -> "PromptContract destroyed");
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x destroyed [scope=%s, bridgeUnsubscribed=%s]",
+                                System.identityHashCode(this), scopeKey, hadBridge));
+    }
+
+    private static String abbreviate(String s) {
+        if (s == null) return "null";
+        String oneLine = s.replace('\n', ' ').replace('\r', ' ');
+        return oneLine.length() <= 60 ? oneLine : oneLine.substring(0, 57) + "...";
     }
 }
