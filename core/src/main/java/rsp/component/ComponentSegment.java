@@ -26,6 +26,40 @@ import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
  * A change of a component's state results in re-rendering of that component DOM subtree and the subcomponents.
  * A key-value context is propagated to its child components. This context object can be used to pass information from parent components to its children.
  * All methods of this class must be called from its page's event loop thread.
+ * <h2>Component Reconciliation</h2>
+ * When a component re-renders, its direct child component definitions are matched
+ * against the previously rendered direct child segments by position and component
+ * type. If the previous and candidate segments have the same component type and
+ * both runtime policies return {@link ComponentRuntimePolicy#isReusable()}, the
+ * previous segment is reused:
+ * <ul>
+ *     <li>its local state is preserved,</li>
+ *     <li>its current upstream {@link ComponentContext} is replaced,</li>
+ *     <li>its {@link #contextScope()} notifies watched keys whose values changed,</li>
+ *     <li>its view is rendered again, and {@link ComponentCallbacks#onAfterRendered}
+ *         is invoked again,</li>
+ *     <li>{@link ComponentCallbacks#onMounted} is not invoked again.</li>
+ * </ul>
+ * If the child cannot be reused, the old segment is unmounted and the candidate
+ * segment is mounted normally.
+ * <p>
+ * Reconciliation is positional. Multiple reusable direct children of the same
+ * component type under the same parent are ambiguous when a list, conditional,
+ * or tab-like structure can insert, remove, or reorder children. The framework
+ * logs a warning for this shape because preserved state can attach to the wrong
+ * logical item. Components in such dynamic collections should opt out via
+ * {@link ComponentRuntimePolicy#isReusable()} until explicit component keys are
+ * available.
+ * <h2>Guidance for Component Authors</h2>
+ * Reuse is opt-in. A reusable component should treat the upstream context as
+ * live, not as a constructor-time snapshot. Prefer creating a
+ * {@link ContextLookup} from this segment's {@link #contextScope()} and using
+ * {@link ContextLookup#watch} for context values that must refresh while the
+ * segment is reused. Components that derive essential state from
+ * {@link ComponentStateSupplier} using a one-time context snapshot, keep
+ * imperative resources tied to mount, or store a fixed {@link ContextLookup}
+ * should keep the default non-reusable policy until they are converted to live
+ * context handling.
  *
  * @param <S> a type for this component's state snapshot
  */
@@ -38,6 +72,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
     private final ComponentView<S> componentView;
     private final ComponentCallbacks<S> callbacks;
+    private final ComponentRuntimePolicy runtimePolicy;
     private final TreeBuilderFactory treeBuilderFactory;
     private final Metrics metrics;
 
@@ -81,6 +116,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * @param contextResolver a function that builds a context object propagated to descendant components
      * @param componentView contains DOM subtree definition
      * @param callbacks the callbacks invoked during component lifecycle
+     * @param runtimePolicy declarative runtime decisions for this component
      * @param treeBuilderFactory a factory for a render context for children components
      * @param componentContext a context object from ascendant components
      * @param commandsEnqueue a consumer for the page's control loop commands
@@ -90,6 +126,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
                             final ComponentView<S> componentView,
                             final ComponentCallbacks<S> callbacks,
+                            final ComponentRuntimePolicy runtimePolicy,
                             final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
                             final CommandsEnqueue commandsEnqueue) {
@@ -98,6 +135,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         this.contextResolver = Objects.requireNonNull(contextResolver);
         this.componentView = Objects.requireNonNull(componentView);
         this.callbacks = Objects.requireNonNull(callbacks);
+        this.runtimePolicy = Objects.requireNonNull(runtimePolicy);
         this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
         this.contextScope = new ContextScope(Objects.requireNonNull(componentContext));
         this.commandsEnqueue = Objects.requireNonNull(commandsEnqueue);
@@ -105,6 +143,32 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
         this.metrics.incrementCounter(MetricNames.SEGMENT_CREATED);
         logger.log(TRACE, () -> "New component is created: " + this);
+    }
+
+    /**
+     * Creates a segment with the default runtime policy.
+     * <p>
+     * This constructor is primarily used by low-level tests and custom segment
+     * factories that do not need to customize reconciliation or subscriber
+     * boundary behavior.
+     */
+    public ComponentSegment(final ComponentCompositeKey componentId,
+                            final ComponentStateSupplier<S> stateResolver,
+                            final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
+                            final ComponentView<S> componentView,
+                            final ComponentCallbacks<S> callbacks,
+                            final TreeBuilderFactory treeBuilderFactory,
+                            final ComponentContext componentContext,
+                            final CommandsEnqueue commandsEnqueue) {
+        this(componentId,
+             stateResolver,
+             contextResolver,
+             componentView,
+             callbacks,
+             ComponentRuntimePolicy.DEFAULT,
+             treeBuilderFactory,
+             componentContext,
+             commandsEnqueue);
     }
 
     /**
@@ -263,7 +327,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private BiFunction<ComponentContext, S, ComponentContext> descendantContextResolver() {
         return (ctx, s) -> {
             final ComponentContext resolved = contextResolver.apply(ctx, s);
-            return callbacks.providesSubscriberBoundary()
+            return runtimePolicy.providesSubscriberBoundary()
                     ? resolved.with(Subscriber.class, subscriber)
                     : resolved;
         };
@@ -335,8 +399,8 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private boolean canReuse(final ComponentSegment<?> candidate) {
         return !isUnmounted
                 && Objects.equals(componentId.componentType(), candidate.componentId.componentType())
-                && callbacks.isReusable()
-                && candidate.callbacks.isReusable();
+                && runtimePolicy.isReusable()
+                && candidate.runtimePolicy.isReusable();
     }
 
     private void rebindFrom(final ComponentSegment<S> candidate) {
@@ -352,7 +416,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private void warnIfAmbiguousReconciliation() {
         final Map<Object, Integer> reusableCountsByType = new HashMap<>();
         for (final ComponentSegment<?> child : children) {
-            if (child.callbacks.isReusable()) {
+            if (child.runtimePolicy.isReusable()) {
                 reusableCountsByType.merge(child.componentId.componentType(), 1, Integer::sum);
             }
         }

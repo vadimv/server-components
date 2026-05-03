@@ -1,9 +1,5 @@
 package rsp.component;
 
-import rsp.page.events.Command;
-
-import java.util.function.Consumer;
-
 /**
  * Defines callbacks that {@link ComponentSegment} invokes at various points during
  * a component's lifecycle and rendering process.
@@ -76,27 +72,4 @@ public interface ComponentCallbacks<S> {
      * @param state the current state
      */
     void onUnmounted(ComponentCompositeKey componentId, S state);
-
-    /**
-     * Whether descendants should receive this component's subscriber in context.
-     * <p>
-     * Most components form an event boundary and use their own subscriber. Transparent
-     * framework components can return {@code false} to preserve the upstream
-     * subscriber for their children.
-     */
-    default boolean providesSubscriberBoundary() {
-        return true;
-    }
-
-    /**
-     * Whether this component segment can be reused when its parent re-renders
-     * and produces a component with the same positional identity.
-     * <p>
-     * Components that depend on mount-time side effects, imperative resources, or
-     * constructor/init context snapshots can return {@code false} to keep the
-     * previous recreate-on-parent-render behavior.
-     */
-    default boolean isReusable() {
-        return true;
-    }
 }

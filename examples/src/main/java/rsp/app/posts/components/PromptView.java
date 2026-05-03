@@ -101,6 +101,11 @@ public class PromptView extends Component<PromptView.PromptViewState> {
     }
 
     @Override
+    public boolean isReusable() {
+        return true;
+    }
+
+    @Override
     public ComponentView<PromptViewState> componentView() {
         return stateUpdate -> state -> div(attr("class", "prompt-panel"),
                 div(attr("class", "prompt-header"), text("Prompt")),

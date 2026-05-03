@@ -5,11 +5,9 @@ import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
 import rsp.page.QualifiedSessionId;
 import rsp.component.TreeBuilderFactory;
-import rsp.page.events.Command;
 
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 /**
  * The base class for components definitions.
@@ -19,10 +17,23 @@ import java.util.function.Consumer;
  * Subclasses of this class provide an implementation an initial state supplier and a function defining of its UI subtree.
  * Optionally they provide a way to pass information to the component's downstream component which these components can use to set up states.
  * There are a number of methods available for overriding representing callbacks for various phases of the defined component's lifecycle.
+ * <p>
+ * Components also declare runtime policy through {@link ComponentRuntimePolicy}.
+ * In particular, {@link #isReusable()} controls whether an existing segment may
+ * be reconciled and reused when the parent re-renders another component of the
+ * same type at the same position. Reuse is opt-in: components that override
+ * {@link #isReusable()} to return {@code true} should use a
+ * {@link ContextScope}-backed {@link ContextLookup} and {@code watch(...)} for
+ * context values that must stay fresh across parent re-renders. Components that
+ * derive essential state from a one-time context snapshot should keep the
+ * default non-reusable policy.
  *
  * @param <S> this component's state type
  */
-public abstract class Component<S> implements Definition, ComponentSegmentFactory<S>, ComponentCallbacks<S> {
+public abstract class Component<S> implements Definition,
+                                              ComponentSegmentFactory<S>,
+                                              ComponentCallbacks<S>,
+                                              ComponentRuntimePolicy {
 
     protected final Object componentType;
 
@@ -105,6 +116,7 @@ public abstract class Component<S> implements Definition, ComponentSegmentFactor
                                       initStateSupplier(),
                                       subComponentsContext(),
                                       componentView(),
+                                      this,
                                       this,
                                       treeBuilderFactory,
                                       componentContext,

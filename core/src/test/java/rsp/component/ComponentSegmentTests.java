@@ -25,6 +25,12 @@ public class ComponentSegmentTests {
     private static final String INITIAL_STATE = "initial";
     private static final String NEW_STATE = "updated";
     private static final TreePositionPath START_DOM_PATH = TreePositionPath.of("1");
+    private static final ComponentRuntimePolicy REUSABLE_POLICY = new ComponentRuntimePolicy() {
+        @Override
+        public boolean isReusable() {
+            return true;
+        }
+    };
 
     private QualifiedSessionId sessionId;
     private ComponentCompositeKey componentId;
@@ -552,6 +558,7 @@ public class ComponentSegmentTests {
                             renderContext.closeNode("span", false);
                         },
                         cb,
+                        REUSABLE_POLICY,
                         tbf,
                         ctx,
                         cmd
@@ -628,6 +635,7 @@ public class ComponentSegmentTests {
                             renderContext.closeNode("span", false);
                         },
                         cb,
+                        REUSABLE_POLICY,
                         tbf,
                         ctx,
                         cmd
@@ -853,6 +861,7 @@ public class ComponentSegmentTests {
                             rc.closeNode("span", false);
                         },
                         cb,
+                        REUSABLE_POLICY,
                         tbf,
                         ctx,
                         cmd
@@ -931,6 +940,7 @@ public class ComponentSegmentTests {
                                     mountedCalls.incrementAndGet();
                                 }
                             },
+                            REUSABLE_POLICY,
                             tbf,
                             ctx,
                             cmd
@@ -969,12 +979,7 @@ public class ComponentSegmentTests {
             final List<TestCallbacks> childCallbacks = new ArrayList<>();
 
             final ComponentSegmentFactory<String> childFactory = (sid, path, tbf, ctx, cmd) -> {
-                final TestCallbacks cb = new TestCallbacks() {
-                    @Override
-                    public boolean isReusable() {
-                        return false;
-                    }
-                };
+                final TestCallbacks cb = new TestCallbacks();
                 childCallbacks.add(cb);
                 final ComponentSegment<String> child = new ComponentSegment<>(
                         new ComponentCompositeKey(sid, "nonReusableChild", path),
@@ -985,6 +990,12 @@ public class ComponentSegmentTests {
                             rc.closeNode("span", false);
                         },
                         cb,
+                        new ComponentRuntimePolicy() {
+                            @Override
+                            public boolean isReusable() {
+                                return false;
+                            }
+                        },
                         tbf,
                         ctx,
                         cmd
@@ -1038,6 +1049,7 @@ public class ComponentSegmentTests {
                             rc.closeNode("span", false);
                         },
                         new TestCallbacks(),
+                        REUSABLE_POLICY,
                         tbf,
                         ctx,
                         cmd

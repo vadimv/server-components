@@ -85,6 +85,11 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
     }
 
     @Override
+    public boolean isReusable() {
+        return true;
+    }
+
+    @Override
     public ComponentView<ExplorerViewState> componentView() {
         return _ -> state -> {
             NavigationNode root = state.tree();

@@ -160,6 +160,11 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
         }
     }
 
+    @Override
+    public boolean isReusable() {
+        return true;
+    }
+
     private void handleShow(LayerState state, ShowPayload payload,
                             StateUpdate<LayerState> stateUpdate,
                             CommandsEnqueue commandsEnqueue) {
