@@ -36,13 +36,22 @@ public final class DefaultConnectionLostWidget {
     }
 
     private static View<String> widget() {
-        return _ -> div(attr("style", "position: fixed;"
-                                                + "top: 0;"
-                                                + "left: 0;"
-                                                + "right: 0;"
-                                                + "background-color: lightyellow;"
-                                                + "border-bottom: 1px solid black;"
-                                                + "padding: 10px;"),
+        return _ -> div(attr("class", "rsp-connection-lost"),
+                   attr("style", "position: fixed;"
+                                                + "top: 12px;"
+                                                + "left: 50%;"
+                                                + "transform: translateX(-50%);"
+                                                + "z-index: 2147483647;"
+                                                + "max-width: calc(100vw - 32px);"
+                                                + "box-sizing: border-box;"
+                                                + "background-color: #18191b;"
+                                                + "color: #f5f5f6;"
+                                                + "border: 1px solid #4b4e54;"
+                                                + "border-left: 3px solid #d97706;"
+                                                + "border-radius: 8px;"
+                                                + "box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);"
+                                                + "padding: 10px 14px;"
+                                                + "font: 500 14px/1.4 system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif;"),
                    text("Connection lost. Waiting to resume."));
     }
 

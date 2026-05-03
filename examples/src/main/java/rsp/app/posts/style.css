@@ -7,22 +7,27 @@
     color-scheme: dark;
 
     /* Surfaces */
-    --bg:             light-dark(#fafafa, #111113);
-    --surface:        light-dark(#ffffff, #18181b);
-    --surface-muted:  light-dark(#f4f4f5, #27272a);
-    --border:         light-dark(#e4e4e7, #3f3f46);
-    --border-strong:  light-dark(#d4d4d8, #52525b);
+    --bg:             light-dark(#f7f7f8, #101112);
+    --surface:        light-dark(#ffffff, #18191b);
+    --surface-muted:  light-dark(#f1f2f3, #242528);
+    --surface-raised: light-dark(#f8f8f9, #202124);
+    --border:         light-dark(#dedfe3, #34363a);
+    --border-strong:  light-dark(#c8cbd1, #4b4e54);
 
     /* Text */
-    --text:           light-dark(#18181b, #fafafa);
-    --text-muted:     light-dark(#71717a, #a1a1aa);
-    --text-subtle:    light-dark(#a1a1aa, #71717a);
+    --text:           light-dark(#18191b, #f5f5f6);
+    --text-muted:     light-dark(#63666d, #a8abb2);
+    --text-subtle:    light-dark(#8b8f97, #747880);
 
-    /* Accent (indigo) */
-    --accent:         light-dark(#6366f1, #818cf8);
-    --accent-hover:   light-dark(#4f46e5, #a5b4fc);
-    --accent-soft:    light-dark(#eef2ff, rgba(129, 140, 248, 0.15));
-    --accent-ring:    light-dark(rgba(99, 102, 241, 0.2), rgba(129, 140, 248, 0.3));
+    /* Accent (neutral graphite) */
+    --accent:         light-dark(#303136, #d8dadd);
+    --accent-hover:   light-dark(#18191b, #f0f1f3);
+    --accent-soft:    light-dark(#eeeeef, rgba(255, 255, 255, 0.08));
+    --accent-ring:    light-dark(rgba(48, 49, 54, 0.18), rgba(216, 218, 221, 0.24));
+    --on-accent:      light-dark(#ffffff, #101112);
+    --message-user:   light-dark(#f3f4f5, #222326);
+    --message-system: light-dark(#ffffff, #28292c);
+    --message-border: light-dark(#dedfe3, #35383d);
 
     /* Status */
     --danger:         light-dark(#ef4444, #f87171);
@@ -139,7 +144,7 @@ th {
     color: var(--text-muted);
     font-size: 0.8125rem;
     text-transform: uppercase;
-    letter-spacing: 0.025em;
+    letter-spacing: 0;
     position: sticky;
     top: 0;
 }
@@ -182,7 +187,7 @@ button,
     display: inline-block;
     padding: 0.5rem 1rem;
     background-color: var(--accent);
-    color: white;
+    color: var(--on-accent);
     border: 1px solid var(--accent);
     border-radius: var(--radius);
     font-size: 0.9375rem;
@@ -190,7 +195,7 @@ button,
     font-weight: 500;
     cursor: pointer;
     text-decoration: none;
-    transition: background-color 0.15s, border-color 0.15s;
+    transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
 button:hover,
@@ -207,17 +212,44 @@ button:disabled {
 }
 
 /* Ghost variant for in-row table buttons (de-load the Edit column) */
-td button {
+td button,
+td .edit-button {
+    display: inline-block;
     background-color: transparent;
-    color: var(--accent);
+    color: var(--text);
     border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
+    text-decoration: none;
 }
 
-td button:hover {
-    background-color: var(--accent-soft);
-    border-color: var(--accent);
+td button:hover,
+td .edit-button:hover {
+    background-color: var(--surface-raised);
+    border-color: var(--border-strong);
+}
+
+.pagination-top button,
+.pagination-bottom button {
+    background-color: var(--surface-muted);
+    border-color: var(--border);
+    color: var(--text);
+}
+
+.pagination-top button:hover,
+.pagination-bottom button:hover {
+    background-color: var(--surface-raised);
+    border-color: var(--border-strong);
+}
+
+.pagination-top button:disabled,
+.pagination-bottom button:disabled,
+.pagination-top button:disabled:hover,
+.pagination-bottom button:disabled:hover {
+    background-color: var(--surface-muted);
+    border-color: var(--border);
+    color: var(--text-subtle);
 }
 
 /* ========== List Actions ========== */
@@ -233,6 +265,7 @@ td button:hover {
 .btn-danger {
     background-color: var(--danger);
     border-color: var(--danger);
+    color: white;
 }
 
 .btn-delete:hover,
@@ -279,7 +312,7 @@ th input[type="checkbox"] {
     display: inline-block;
     padding: 0.5rem 1rem;
     background-color: var(--accent);
-    color: white;
+    color: var(--on-accent);
     border-radius: var(--radius);
     font-weight: 500;
     text-decoration: none;
@@ -302,9 +335,11 @@ body {
 }
 
 h1 {
-    margin-bottom: 1rem;
+    margin: 0 0 0.875rem;
     color: var(--text);
-    letter-spacing: -0.02em;
+    font-size: 1.75rem;
+    line-height: 1.2;
+    letter-spacing: 0;
 }
 
 /* Outer wrapper: full viewport, vertical flex for header + body */
@@ -333,7 +368,7 @@ h1 {
 /* Primary content area */
 .layout-primary {
     flex: 1;
-    padding: 1.5rem;
+    padding: 1rem 1.5rem 1.5rem;
     overflow-y: auto;
     display: flex;
     justify-content: center;
@@ -354,7 +389,7 @@ h1 {
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     color: var(--text-muted);
     border-bottom: 1px solid var(--border);
 }
@@ -376,13 +411,18 @@ h1 {
     font-size: 0.9375rem;
 }
 
+.explorer-item a {
+    border-left: 2px solid transparent;
+}
+
 .explorer-item a:hover {
     background-color: var(--surface-muted);
 }
 
 .explorer-item.active > a {
-    background-color: var(--accent-soft);
-    color: var(--accent);
+    background-color: var(--surface-raised);
+    border-left-color: var(--text-muted);
+    color: var(--text);
     font-weight: 500;
 }
 
@@ -391,7 +431,7 @@ h1 {
     font-size: 0.75rem;
     text-transform: uppercase;
     color: var(--text-muted);
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     padding: 0.75rem 0.75rem 0.25rem;
 }
 
@@ -432,14 +472,14 @@ h1 {
 }
 
 .header-signout {
-    color: var(--accent);
+    color: var(--text-muted);
     text-decoration: none;
     font-size: 0.875rem;
     font-weight: 500;
 }
 
 .header-signout:hover {
-    color: var(--accent-hover);
+    color: var(--text);
     text-decoration: underline;
 }
 
@@ -541,7 +581,7 @@ h1 {
     font-weight: 600;
     font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0;
     color: var(--text-muted);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
@@ -559,6 +599,7 @@ h1 {
 .prompt-message {
     padding: 0.5rem 0.75rem;
     border-radius: var(--radius);
+    border: 1px solid var(--message-border);
     font-size: 0.875rem;
     word-wrap: break-word;
     max-width: 90%;
@@ -566,13 +607,14 @@ h1 {
 }
 
 .prompt-message.user {
-    background-color: var(--accent);
-    color: white;
+    background-color: var(--message-user);
+    color: var(--text);
+    border-color: var(--border-strong);
     align-self: flex-end;
 }
 
 .prompt-message.system {
-    background-color: var(--surface-muted);
+    background-color: var(--message-system);
     color: var(--text);
     align-self: flex-start;
 }
@@ -640,7 +682,7 @@ h1 {
     border: none;
     border-radius: var(--radius);
     background-color: var(--accent);
-    color: white;
+    color: var(--on-accent);
     font-size: 0.9375rem;
     line-height: 1;
     cursor: pointer;
