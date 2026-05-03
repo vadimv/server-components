@@ -28,6 +28,7 @@
     --danger:         light-dark(#ef4444, #f87171);
     --danger-hover:   light-dark(#dc2626, #ef4444);
     --danger-soft:    light-dark(#fef2f2, rgba(239, 68, 68, 0.15));
+    --danger-ring:    light-dark(rgba(239, 68, 68, 0.2), rgba(248, 113, 113, 0.3));
     --success:        light-dark(#22c55e, #4ade80);
     --success-hover:  light-dark(#16a34a, #22c55e);
 
@@ -97,7 +98,7 @@
 .form-field.has-error input:focus,
 .form-field.has-error textarea:focus,
 .form-field.has-error select:focus {
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 0 0 3px var(--danger-ring);
 }
 
 .field-errors {
