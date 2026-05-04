@@ -182,8 +182,10 @@ class ExplorerIT {
         page.navigate(BASE_URL + "/posts");
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
-        // Verify Posts menu item is active
-        Locator postsMenuItem = page.locator(".explorer-item:has(a:has-text(\"Posts\"))");
+        // Verify Posts menu item is active. Exclude .explorer-group so the
+        // selector matches only the leaf <li>, not its ancestor group <li>
+        // (which also "has" a descendant link with the same text).
+        Locator postsMenuItem = page.locator(".explorer-item:not(.explorer-group):has(a:has-text(\"Posts\"))");
         String postsClass = postsMenuItem.getAttribute("class");
         assertTrue(postsClass != null && postsClass.contains("active"),
                   "Posts menu item should have 'active' class when on Posts page. Class: " + postsClass);
@@ -193,7 +195,7 @@ class ExplorerIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Verify Comments menu item is now active and Posts is not
-        Locator commentsMenuItem = page.locator(".explorer-item:has(a:has-text(\"Comments\"))");
+        Locator commentsMenuItem = page.locator(".explorer-item:not(.explorer-group):has(a:has-text(\"Comments\"))");
         String commentsClass = commentsMenuItem.getAttribute("class");
         assertTrue(commentsClass != null && commentsClass.contains("active"),
                   "Comments menu item should have 'active' class when on Comments page. Class: " + commentsClass);

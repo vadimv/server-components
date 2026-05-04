@@ -88,18 +88,17 @@ public final class ContextLookup implements Lookup {
 
     @Override
     public <T> Registration subscribe(final EventKey<T> key, final BiConsumer<String, T> handler) {
-        subscriber.addEventHandler(key, handler);
-        return () -> {
-            subscriber.removeComponentEventHandler(key.name());
-        };
+        // Reference-based registration: unsubscribing through this Registration
+        // removes only this exact handler. A previous implementation removed by
+        // event-name string via Subscriber.removeComponentEventHandler(String),
+        // which silently dropped sibling registrations of the same event name —
+        // see the regression tests in ContextLookupTests for the scenario.
+        return subscriber.addEventHandler(key, handler);
     }
 
     @Override
     public Registration subscribe(final EventKey.VoidKey key, final Runnable handler) {
-        subscriber.addEventHandler(key, handler);
-        return () -> {
-            subscriber.removeComponentEventHandler(key.name());
-        };
+        return subscriber.addEventHandler(key, handler);
     }
 
     // ===== Event Publishing - delegates to CommandsEnqueue (async via Reactor) =====

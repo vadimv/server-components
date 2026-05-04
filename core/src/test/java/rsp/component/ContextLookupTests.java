@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -206,6 +205,109 @@ public class ContextLookupTests {
         }
     }
 
+    /**
+     * Regression tests for the "lost handler on parent re-render" bug.
+     *
+     * <p>The previous {@code ContextLookup.subscribe} implementation
+     * unsubscribed by calling {@code subscriber.removeComponentEventHandler(key.name())},
+     * which removes <em>any</em> handler registered for that event name —
+     * including handlers belonging to other (newer) subscribers. When a parent
+     * re-rendered, the framework first cleared the parent's
+     * {@code componentEventEntries}, then the new child mounted and
+     * subscribed (handler-B), then the old child unmounted and unsubscribed
+     * by name — wiping handler-B and silently breaking event delivery for
+     * the rest of the new child's lifetime.</p>
+     *
+     * <p>The fix is to return a reference-based {@link Lookup.Registration}
+     * from {@code subscribe}, so unsubscribe removes only the specific
+     * handler it was paired with.</p>
+     */
+    @Nested
+    class RegistrationTests {
+
+        @Test
+        void unsubscribe_removes_only_its_own_handler() {
+            final EventKey.VoidKey key = new EventKey.VoidKey("prompt.newMessage");
+
+            final AtomicBoolean firstCalled = new AtomicBoolean(false);
+            final AtomicBoolean secondCalled = new AtomicBoolean(false);
+
+            final Lookup.Registration first = lookup.subscribe(key, () -> firstCalled.set(true));
+            lookup.subscribe(key, () -> secondCalled.set(true));
+
+            assertEquals(2, subscriber.handlerCountFor(key.name()),
+                "Both handlers should be registered");
+
+            first.unsubscribe();
+
+            assertEquals(1, subscriber.handlerCountFor(key.name()),
+                "Only the first handler should be removed");
+
+            subscriber.fire(key.name(), java.util.Map.of());
+
+            assertFalse(firstCalled.get(), "First handler must NOT be called after its unsubscribe");
+            assertTrue(secondCalled.get(), "Second handler MUST still be called");
+        }
+
+        @Test
+        void typed_subscribe_unsubscribe_targets_specific_handler() {
+            final EventKey.SimpleKey<String> key =
+                new EventKey.SimpleKey<>("form.submitted", String.class);
+
+            final List<String> firstReceived = new ArrayList<>();
+            final List<String> secondReceived = new ArrayList<>();
+
+            final Lookup.Registration first =
+                lookup.subscribe(key, (name, payload) -> firstReceived.add(payload));
+            lookup.subscribe(key, (name, payload) -> secondReceived.add(payload));
+
+            first.unsubscribe();
+            subscriber.fire(key.name(), "hello");
+
+            assertTrue(firstReceived.isEmpty(), "first handler unsubscribed, must not receive");
+            assertEquals(List.of("hello"), secondReceived,
+                "second handler must still receive");
+        }
+
+        @Test
+        void parent_rerender_simulation_does_not_drop_new_handler() {
+            // Simulates: parent.componentEventEntries.clear() + new mount subscribes
+            // (handler-B) + old unmount unsubscribes (which used to wipe handler-B).
+            final EventKey.VoidKey key = new EventKey.VoidKey("prompt.newMessage");
+
+            // Step 1: old PromptView subscribes (handler-A).
+            final AtomicBoolean handlerACalled = new AtomicBoolean(false);
+            final Lookup.Registration regA = lookup.subscribe(key, () -> handlerACalled.set(true));
+
+            // Step 2: parent re-renders -> componentEventEntries cleared (the entry
+            // for handler-A is gone from the subscriber's storage).
+            // Simulate by clearing the recording subscriber's storage directly:
+            subscriber.handlersByName.clear();
+
+            // Step 3: new PromptView mounts and subscribes (handler-B).
+            final AtomicBoolean handlerBCalled = new AtomicBoolean(false);
+            lookup.subscribe(key, () -> handlerBCalled.set(true));
+            assertEquals(1, subscriber.handlerCountFor(key.name()),
+                "After re-render and new mount, handler-B should be the sole entry");
+
+            // Step 4: old PromptView unmounts and calls regA.unsubscribe().
+            // With the OLD remove-by-name behaviour this would remove handler-B and
+            // leave the subscriber with zero handlers -> persistent silent loss.
+            // With the FIX (reference-based removal) it must be a no-op since
+            // handler-A's entry was already cleared in step 2.
+            regA.unsubscribe();
+
+            assertEquals(1, subscriber.handlerCountFor(key.name()),
+                "After old unsubscribe, handler-B must still be present "
+                + "(this is the regression assertion)");
+
+            subscriber.fire(key.name(), java.util.Map.of());
+            assertFalse(handlerACalled.get(), "handler-A must not be called");
+            assertTrue(handlerBCalled.get(),
+                "handler-B must still receive events after old PromptView unmounts");
+        }
+    }
+
     @Nested
     class ConstructorValidationTests {
 
@@ -248,10 +350,16 @@ public class ContextLookupTests {
 
     /**
      * Recording implementation of Subscriber for test verification.
+     *
+     * <p>Stores added handlers in insertion order keyed by event name and
+     * returns reference-based Registrations so removal removes only the
+     * specific handler that was added (matching production
+     * ComponentSegment behaviour). This is the model the regression
+     * tests in {@code RegistrationTests} below depend on.</p>
      */
     private static class RecordingSubscriber implements Subscriber {
-        private int typedHandlerCount = 0;
-        private int voidHandlerCount = 0;
+        private final java.util.Map<String, List<Consumer<ComponentEventEntry.EventContext>>> handlersByName =
+                new java.util.LinkedHashMap<>();
 
         @Override
         public void addWindowEventHandler(String eventType, Consumer<EventContext> eventHandler,
@@ -260,33 +368,45 @@ public class ContextLookupTests {
         }
 
         @Override
-        public void addComponentEventHandler(String eventType, Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {
-            // Track as typed handler
-            typedHandlerCount++;
-        }
-
-        @Override
-        public <T> void addEventHandler(EventKey<T> key, BiConsumer<String, T> handler, boolean preventDefault) {
-            typedHandlerCount++;
-        }
-
-        @Override
-        public void addEventHandler(EventKey.VoidKey key, Runnable handler, boolean preventDefault) {
-            voidHandlerCount++;
-        }
-
-        @Override
-        public void removeComponentEventHandler(String eventType) {
-            // No-op for test
+        public Lookup.Registration addComponentEventHandler(String eventType,
+                                                            Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                            boolean preventDefault) {
+            handlersByName.computeIfAbsent(eventType, _ -> new ArrayList<>()).add(eventHandler);
+            return () -> {
+                List<Consumer<ComponentEventEntry.EventContext>> handlers = handlersByName.get(eventType);
+                if (handlers != null) {
+                    handlers.remove(eventHandler);
+                }
+            };
         }
 
         public int getTypedHandlerCount() {
-            return typedHandlerCount;
+            return handlersByName.values().stream().mapToInt(List::size).sum();
         }
 
         public int getVoidHandlerCount() {
-            return voidHandlerCount;
+            return getTypedHandlerCount();
+        }
+
+        public int handlerCountFor(String eventType) {
+            List<Consumer<ComponentEventEntry.EventContext>> handlers = handlersByName.get(eventType);
+            return handlers == null ? 0 : handlers.size();
+        }
+
+        /**
+         * Fire all handlers registered for the given event type with the given payload.
+         * Returns the number of handlers that received the event.
+         */
+        public int fire(String eventType, Object payload) {
+            List<Consumer<ComponentEventEntry.EventContext>> handlers = handlersByName.get(eventType);
+            if (handlers == null) return 0;
+            int delivered = 0;
+            // Snapshot so handlers can mutate the list during dispatch.
+            for (Consumer<ComponentEventEntry.EventContext> h : new ArrayList<>(handlers)) {
+                h.accept(new ComponentEventEntry.EventContext(eventType, payload));
+                delivered++;
+            }
+            return delivered;
         }
     }
 }

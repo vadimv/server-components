@@ -367,10 +367,15 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         domEventEntries.add(new DomEventEntry(eventType, eventTarget, eventHandler, preventDefault, modifier));
     }
 
-    public void addComponentEventHandler(final String eventType,
-                                         final Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                         final boolean preventDefault) {
-        componentEventEntries.add(new ComponentEventEntry(eventType, eventHandler, preventDefault));
+    public Lookup.Registration addComponentEventHandler(final String eventType,
+                                                        final Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                        final boolean preventDefault) {
+        final ComponentEventEntry entry = new ComponentEventEntry(eventType, eventHandler, preventDefault);
+        componentEventEntries.add(entry);
+        // Identity-based removal: ComponentEventEntry.equals() deliberately ignores
+        // eventHandler (only compares eventName + preventDefault), so List.remove(entry)
+        // would match the WRONG sibling registration. We must compare references.
+        return () -> componentEventEntries.removeIf(e -> e == entry);
     }
 
     /**
@@ -380,11 +385,12 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * @param key the typed event key
      * @param handler receives the event name and typed payload
      * @param preventDefault (currently unused for component events)
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    public <T> void addEventHandler(final EventKey<T> key,
-                                    final java.util.function.BiConsumer<String, T> handler,
-                                    final boolean preventDefault) {
-        addComponentEventHandler(key.name(), ctx -> {
+    public <T> Lookup.Registration addEventHandler(final EventKey<T> key,
+                                                   final java.util.function.BiConsumer<String, T> handler,
+                                                   final boolean preventDefault) {
+        return addComponentEventHandler(key.name(), ctx -> {
             @SuppressWarnings("unchecked")
             T payload = (T) ctx.eventObject();
             handler.accept(ctx.eventName(), payload);
@@ -397,11 +403,12 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * @param key the void event key
      * @param handler the handler to invoke
      * @param preventDefault (currently unused for component events)
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    public void addEventHandler(final EventKey.VoidKey key,
-                                final Runnable handler,
-                                final boolean preventDefault) {
-        addComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
+    public Lookup.Registration addEventHandler(final EventKey.VoidKey key,
+                                               final Runnable handler,
+                                               final boolean preventDefault) {
+        return addComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
     }
 
     /**
@@ -410,10 +417,11 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * @param <T> the payload type
      * @param key the typed event key
      * @param handler receives the event name and typed payload
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    public <T> void addEventHandler(final EventKey<T> key,
-                                    final java.util.function.BiConsumer<String, T> handler) {
-        addEventHandler(key, handler, false);
+    public <T> Lookup.Registration addEventHandler(final EventKey<T> key,
+                                                   final java.util.function.BiConsumer<String, T> handler) {
+        return addEventHandler(key, handler, false);
     }
 
     /**
@@ -421,19 +429,11 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      *
      * @param key the void event key
      * @param handler the handler to invoke
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    public void addEventHandler(final EventKey.VoidKey key,
-                                final Runnable handler) {
-        addEventHandler(key, handler, false);
-    }
-
-    public void removeComponentEventHandler(final String eventType) {
-        final Optional<ComponentEventEntry> eventEntry = componentEventEntries.stream()
-                .filter(entry -> entry.eventName().equals(eventType))
-                .findFirst();
-        if (eventEntry.isPresent()) {
-            componentEventEntries.remove(eventEntry.get());
-        }
+    public Lookup.Registration addEventHandler(final EventKey.VoidKey key,
+                                               final Runnable handler) {
+        return addEventHandler(key, handler, false);
     }
 
     public void addRef(final Ref ref, final TreePositionPath path) {
@@ -500,13 +500,8 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         }
 
         @Override
-        public void addComponentEventHandler(String eventType, Consumer<ComponentEventEntry.EventContext> eventHandler, boolean preventDefault) {
-            ComponentSegment.this.addComponentEventHandler(eventType, eventHandler, preventDefault);
-        }
-
-        @Override
-        public void removeComponentEventHandler(String eventType) {
-            ComponentSegment.this.removeComponentEventHandler(eventType);
+        public Lookup.Registration addComponentEventHandler(String eventType, Consumer<ComponentEventEntry.EventContext> eventHandler, boolean preventDefault) {
+            return ComponentSegment.this.addComponentEventHandler(eventType, eventHandler, preventDefault);
         }
     }
 
