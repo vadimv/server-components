@@ -34,6 +34,21 @@ public interface Layout {
     }
 
     /**
+     * Resolve the effective placement for a contract shown on demand.
+     * <p>
+     * The default preserves the historical behavior: {@code SHOW} opens a
+     * modal/layer unless a concrete layout overrides this method.
+     *
+     * @param contractClass the contract class being shown
+     * @param scene the active scene
+     * @return the effective placement decision
+     */
+    default PlacementDecision resolvePlacement(Class<? extends ViewContract> contractClass,
+                                               Scene scene) {
+        return PlacementDecision.frameworkDefault();
+    }
+
+    /**
      * Resolve and render the scene content.
      *
      * @param scene  the scene containing contracts, Contracts, and layout data

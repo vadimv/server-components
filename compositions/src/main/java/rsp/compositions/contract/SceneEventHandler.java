@@ -2,6 +2,7 @@ package rsp.compositions.contract;
 
 import rsp.component.*;
 import rsp.compositions.composition.Composition;
+import rsp.compositions.layout.PlacementDecision;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
 import rsp.server.Path;
 import rsp.server.http.Fragment;
@@ -9,8 +10,10 @@ import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 
 import java.util.Objects;
+import java.util.Map;
 import java.util.function.Function;
 
+import static rsp.compositions.contract.ActionBindings.ShowPayload;
 import static rsp.compositions.contract.EventKeys.*;
 import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.UPDATE_PATH_ONLY;
 
@@ -19,11 +22,13 @@ import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMod
  * <p>
  * Events handled:
  * <ul>
+ *   <li>SHOW - Resolve placement for on-demand contracts</li>
  *   <li>SET_PRIMARY - Replace the routed contract</li>
  *   <li>ACTION_SUCCESS - Refresh routed contract in place (data may have changed)</li>
  * </ul>
  * <p>
- * Overlay events (SHOW, HIDE, overlay ACTION_SUCCESS) are handled by LayerComponent.
+ * Layer-specific events (SHOW_LAYER, HIDE, overlay ACTION_SUCCESS) are handled
+ * by LayerComponent.
  */
 public final class SceneEventHandler {
 
@@ -40,6 +45,10 @@ public final class SceneEventHandler {
                                  Subscriber subscriber,
                                  CommandsEnqueue commandsEnqueue,
                                  StateUpdate<Scene> stateUpdate) {
+        subscriber.addEventHandler(SHOW, (eventName, payload) -> {
+            handleShow(state, payload, stateUpdate, commandsEnqueue);
+        }, false);
+
         subscriber.addEventHandler(SET_PRIMARY, (eventName, contractClass) -> {
             handleSetPrimary(state, contractClass, stateUpdate, commandsEnqueue);
         }, false);
@@ -48,6 +57,46 @@ public final class SceneEventHandler {
         subscriber.addEventHandler(ACTION_SUCCESS, (eventName, result) -> {
             handleActionSuccess(state, result, commandsEnqueue, stateUpdate);
         }, false);
+    }
+
+    private void handleShow(Scene state,
+                            ShowPayload payload,
+                            StateUpdate<Scene> stateUpdate,
+                            CommandsEnqueue commandsEnqueue) {
+        Class<? extends ViewContract> contractClass = payload.contractClass();
+        PlacementDecision decision = state.composition().layout().resolvePlacement(contractClass, state);
+
+        if (decision.placement().isInline()) {
+            handleShowInline(state, payload, stateUpdate, commandsEnqueue);
+            return;
+        }
+
+        Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
+        lookup.publish(SHOW_LAYER, payload);
+    }
+
+    private void handleShowInline(Scene state,
+                                  ShowPayload payload,
+                                  StateUpdate<Scene> stateUpdate,
+                                  CommandsEnqueue commandsEnqueue) {
+        Class<? extends ViewContract> contractClass = payload.contractClass();
+
+        if (state.routedRuntime() != null
+                && state.routedRuntime().contractClass().equals(contractClass)) {
+            return;
+        }
+
+        ContractRuntime newRuntime = resolveAndInstantiate(state, contractClass, commandsEnqueue,
+                true, payload.data());
+        if (newRuntime == null) {
+            return;
+        }
+
+        if (state.routedRuntime() != null) {
+            state.routedRuntime().destroy();
+        }
+
+        stateUpdate.applyStateTransformation(s -> s.withRoutedRuntime(newRuntime));
     }
 
     /**
@@ -102,6 +151,17 @@ public final class SceneEventHandler {
     private ContractRuntime resolveAndInstantiate(Scene state, Class contractClass,
                                                   CommandsEnqueue commandsEnqueue,
                                                   boolean stripQueryParams) {
+        return resolveAndInstantiate(state, contractClass, commandsEnqueue, stripQueryParams, Map.of());
+    }
+
+    /**
+     * Resolve factory, create lookup, instantiate contract, register handlers.
+     */
+    @SuppressWarnings("unchecked")
+    private ContractRuntime resolveAndInstantiate(Scene state, Class contractClass,
+                                                  CommandsEnqueue commandsEnqueue,
+                                                  boolean stripQueryParams,
+                                                  Map<String, Object> showData) {
         // Get factory from scene lazy factories
         Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
         if (factory == null) {
@@ -129,6 +189,10 @@ public final class SceneEventHandler {
             .with(ContextKeys.CONTRACT_CLASS, contractClass)
             .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
             .with(ContextKeys.SCENE, state);
+
+        if (showData != null && !showData.isEmpty()) {
+            showContext = showContext.with(ContextKeys.SHOW_DATA, showData);
+        }
 
         return ContractRuntime.instantiate(contractClass, factory, showContext, commandsEnqueue);
     }

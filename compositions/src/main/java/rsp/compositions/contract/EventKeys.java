@@ -24,6 +24,16 @@ public final class EventKeys {
     public static final EventKey.SimpleKey<ShowPayload> SHOW =
             new EventKey.SimpleKey<>("show", ShowPayload.class);
 
+    /**
+     * Internal layer show event emitted after placement resolution.
+     * <p>
+     * Application contracts should continue to publish {@link #SHOW}. The scene
+     * layer decides whether the target should replace inline content or open a
+     * layer, then forwards layer-bound targets with this event.
+     */
+    public static final EventKey.SimpleKey<ShowPayload> SHOW_LAYER =
+            new EventKey.SimpleKey<>("show.layer", ShowPayload.class);
+
     public static final EventKey.SimpleKey<Class> SET_PRIMARY =
             new EventKey.SimpleKey<>("setPrimary", Class.class);
 

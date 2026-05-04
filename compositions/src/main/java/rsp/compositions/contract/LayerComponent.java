@@ -20,11 +20,11 @@ import static rsp.dsl.Html.*;
 /**
  * LayerComponent — a scene layer that manages a single active contract independently.
  * <p>
- * By handling SHOW/HIDE events in its own component, the base layer
+ * By handling SHOW_LAYER/HIDE events in its own component, the base layer
  * (routed + companions) is never re-rendered when layers open/close.
  * <p>
  * Layers stack recursively: when this layer is active, it renders a child
- * LayerComponent for the next level. A new SHOW event while this layer is
+ * LayerComponent for the next level. A new SHOW_LAYER event while this layer is
  * already active is ignored here and handled by the child layer.
  * <p>
  * The visual rendering is delegated to a {@link LayerLayout} strategy
@@ -140,7 +140,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
                                 StateUpdate<LayerState> stateUpdate) {
-        subscriber.addEventHandler(SHOW, (eventName, payload) -> {
+        subscriber.addEventHandler(SHOW_LAYER, (eventName, payload) -> {
             handleShow(state, payload, stateUpdate, commandsEnqueue);
         }, false);
 
@@ -171,7 +171,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState> {
         Class<? extends ViewContract> contractClass = payload.contractClass();
         Map<String, Object> data = payload.data();
 
-        // Already active? Let the child layer handle the new SHOW.
+        // Already active? Let the child layer handle the new SHOW_LAYER.
         if (state.isActive()) {
             return;
         }

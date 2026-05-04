@@ -9,8 +9,11 @@ import rsp.compositions.contract.ViewContract;
 import rsp.dsl.Definition;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 import static java.lang.System.Logger.Level.TRACE;
@@ -38,29 +41,66 @@ public final class DefaultLayout implements Layout {
     private final Class<? extends ViewContract> leftSidebarClass;
     private final Class<? extends ViewContract> rightSidebarClass;
     private final Class<? extends ViewContract> headerClass;
+    private final Map<Class<? extends ViewContract>, Placement> placements;
+    private final GroupPlacementPolicy groupPlacementPolicy;
 
     public DefaultLayout() {
-        this(null, null, null);
+        this(null, null, null, Map.of(), GroupPlacementPolicy.ALL_MODAL);
     }
 
     private DefaultLayout(Class<? extends ViewContract> leftSidebarClass,
                           Class<? extends ViewContract> rightSidebarClass,
-                          Class<? extends ViewContract> headerClass) {
+                          Class<? extends ViewContract> headerClass,
+                          Map<Class<? extends ViewContract>, Placement> placements,
+                          GroupPlacementPolicy groupPlacementPolicy) {
         this.leftSidebarClass = leftSidebarClass;
         this.rightSidebarClass = rightSidebarClass;
         this.headerClass = headerClass;
+        this.placements = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(placements));
+        this.groupPlacementPolicy = Objects.requireNonNull(groupPlacementPolicy, "groupPlacementPolicy");
     }
 
     public DefaultLayout leftSidebar(Class<? extends ViewContract> contractClass) {
-        return new DefaultLayout(contractClass, rightSidebarClass, headerClass);
+        return new DefaultLayout(contractClass, rightSidebarClass, headerClass,
+                placements, groupPlacementPolicy);
     }
 
     public DefaultLayout rightSidebar(Class<? extends ViewContract> contractClass) {
-        return new DefaultLayout(leftSidebarClass, contractClass, headerClass);
+        return new DefaultLayout(leftSidebarClass, contractClass, headerClass,
+                placements, groupPlacementPolicy);
     }
 
     public DefaultLayout header(Class<? extends ViewContract> contractClass) {
-        return new DefaultLayout(leftSidebarClass, rightSidebarClass, contractClass);
+        return new DefaultLayout(leftSidebarClass, rightSidebarClass, contractClass,
+                placements, groupPlacementPolicy);
+    }
+
+    /**
+     * Declares the preferred placement for contracts assignable to
+     * {@code contractType}.
+     * <p>
+     * This is a layout hint: future user preferences or fixed framework rules
+     * may override it. More specific contract types win over broader base types.
+     */
+    public DefaultLayout placement(Class<? extends ViewContract> contractType,
+                                   Placement placement) {
+        Objects.requireNonNull(contractType, "contractType");
+        Objects.requireNonNull(placement, "placement");
+        Map<Class<? extends ViewContract>, Placement> updated = new LinkedHashMap<>(placements);
+        updated.put(contractType, placement);
+        return new DefaultLayout(leftSidebarClass, rightSidebarClass, headerClass,
+                updated, groupPlacementPolicy);
+    }
+
+    public DefaultLayout groupPlacementPolicy(GroupPlacementPolicy policy) {
+        return new DefaultLayout(leftSidebarClass, rightSidebarClass, headerClass,
+                placements, Objects.requireNonNull(policy, "policy"));
+    }
+
+    @Override
+    public PlacementDecision resolvePlacement(Class<? extends ViewContract> contractClass,
+                                              Scene scene) {
+        return PlacementResolver.resolve(contractClass, scene, placements, groupPlacementPolicy);
     }
 
     @Override
