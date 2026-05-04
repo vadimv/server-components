@@ -122,15 +122,12 @@ class AutoAddressBarSyncComponentTests {
         }
 
         @Override
-        public void addComponentEventHandler(String eventType,
-                                             Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {
-            componentHandlers.add(new ComponentEventEntry(eventType, eventHandler, preventDefault));
-        }
-
-        @Override
-        public void removeComponentEventHandler(String eventType) {
-            // Not needed for this test.
+        public Lookup.Registration addComponentEventHandler(String eventType,
+                                                            Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                            boolean preventDefault) {
+            final ComponentEventEntry entry = new ComponentEventEntry(eventType, eventHandler, preventDefault);
+            componentHandlers.add(entry);
+            return () -> componentHandlers.removeIf(e -> e == entry);
         }
 
         private void emitComponentEvent(String eventType, Object payload) {

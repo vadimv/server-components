@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import rsp.app.posts.services.RegexAgentService;
 import rsp.jetty.WebServer;
 
 import java.util.stream.Stream;
@@ -29,7 +30,9 @@ class PromptSmokeIT {
 
     @BeforeAll
     public static void init() {
-        server = new CrudApp().run(false);
+        // Use the regex agent so prompts like "show comments" produce NavigateResult,
+        // which (per the new policy) triggers the approval modal.
+        server = new CrudApp(new RegexAgentService()).run(false);
     }
 
     @AfterAll
@@ -50,21 +53,25 @@ class PromptSmokeIT {
 
         assertThat(promptPanel(page)).isVisible();
 
-        // First prompt triggers the approval dialog
-        sendPrompt(page, "message-1");
+        // Action-bearing prompt (navigation) triggers the approval dialog
+        sendPrompt(page, "show comments");
         approveAgentDelegation(page);
 
-        // After approval, the queued prompt is processed — wait for a system reply
-        waitForSystemMessageCount(page, 1);
+        // After approval, the spawn must succeed and the queued navigation must execute.
+        page.waitForFunction(
+                "() => Array.from(document.querySelectorAll('.prompt-message.system'))"
+                        + ".some(el => el.textContent.includes('Agent access approved'))",
+                null,
+                new Page.WaitForFunctionOptions().setTimeout(10000));
+        page.waitForURL(url -> url.contains("/comments"),
+                new Page.WaitForURLOptions().setTimeout(5000));
 
-        // Navigate and send another prompt (agent session already approved)
-        navigateToComments(page);
-        sendPrompt(page, "message-2");
-        int countBefore = systemMessages(page).count();
-        waitForSystemMessageCount(page, countBefore + 1);
-
-        assertTrue(systemMessages(page).count() >= 2,
-                "Expected at least two system replies across navigation");
+        // Subsequent action prompt — already approved, should execute without modal.
+        sendPrompt(page, "show posts");
+        page.waitForURL(url -> url.contains("/posts"),
+                new Page.WaitForURLOptions().setTimeout(5000));
+        assertTrue(page.locator(".btn-approve").count() == 0,
+                "Modal should not re-appear after approval");
     }
 
     private static Stream<BrowserType> browserTypes() {

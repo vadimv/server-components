@@ -687,14 +687,13 @@ public class ComponentSegmentTests {
      * <p>
      * A child segment receives a {@code Subscriber} via context — that subscriber is
      * its parent's. The child registers a handler in {@code onMounted} via
-     * {@code subscriber.addComponentEventHandler(name, …)}. The child's
-     * {@code onUnmounted} unsubscribes via {@code subscriber.removeComponentEventHandler(name)},
-     * which removes the <em>first</em> entry by name.
+     * {@code subscriber.addComponentEventHandler(name, ...)} and stores the returned
+     * registration. The child's {@code onUnmounted} unsubscribes through that exact
+     * registration.
      * <p>
      * On a parent re-render, the parent clears its tables and re-renders, creating a fresh
      * child segment that registers a NEW handler under the same name. Then the OLD child
-     * is unmounted; if the unmount runs <em>after</em> the new handler is registered, the
-     * name-based remove deletes the new handler, leaving the post-render UI dead.
+     * is unmounted; the old registration must not remove the new handler.
      * <p>
      * The fix in {@code ComponentSegment.applyStateTransformation} is to unmount old children
      * <em>before</em> clearing the parent's tables and re-rendering. This test asserts that
@@ -713,18 +712,19 @@ public class ComponentSegmentTests {
                 // Capture the context subscriber (this is the PARENT's subscriber).
                 final Subscriber parentSubscriber = ctx.get(Subscriber.class);
                 final TestCallbacks cb = new TestCallbacks() {
+                    private Lookup.Registration registration;
+
                     @Override
                     public void onMounted(ComponentCompositeKey id, String state, StateUpdate<String> upd) {
                         super.onMounted(id, state, upd);
                         // Mirror PromptView's pattern: register on parent's subscriber.
-                        parentSubscriber.addComponentEventHandler(CHILD_EVENT, c -> {}, false);
+                        registration = parentSubscriber.addComponentEventHandler(CHILD_EVENT, c -> {}, false);
                     }
 
                     @Override
                     public void onUnmounted(ComponentCompositeKey id, String state) {
                         super.onUnmounted(id, state);
-                        // Mirror PromptView's onUnmounted: unsubscribe by name.
-                        parentSubscriber.removeComponentEventHandler(CHILD_EVENT);
+                        registration.unsubscribe();
                     }
                 };
                 return new ComponentSegment<>(
@@ -769,16 +769,15 @@ public class ComponentSegmentTests {
                     "child registered exactly one handler on initial mount");
 
             // Trigger a parent re-render. This unmounts the old child, re-creates a fresh child,
-            // which re-registers its handler. With the fix in place, the old child's onUnmounted
-            // runs BEFORE the new child registers, so the name-based remove deletes the OLD entry,
-            // and the new registration adds the only remaining entry.
+            // which re-registers its handler. With the fix in place, the old registration
+            // removes only the old entry, and the new registration remains.
             parent.applyStateTransformation(s -> NEW_STATE);
 
             assertEquals(1L,
                     parent.recursiveComponentEvents().stream().filter(e -> e.matches(CHILD_EVENT)).count(),
-                    "After parent re-render, exactly one CHILD_EVENT handler must remain — " +
+                    "After parent re-render, exactly one CHILD_EVENT handler must remain - " +
                     "the freshly-registered one from the new child. If this is 0, the old child's " +
-                    "onUnmounted ran AFTER the new child registered and removed the new entry by name.");
+                    "onUnmounted removed the new entry.");
         }
     }
 
@@ -817,9 +816,9 @@ public class ComponentSegmentTests {
             final AtomicInteger firstCalls = new AtomicInteger();
             final AtomicInteger secondCalls = new AtomicInteger();
 
-            final Lookup.Registration first = capturedSubscriber[0].registerComponentEventHandler(
+            final Lookup.Registration first = capturedSubscriber[0].addComponentEventHandler(
                     "same.event", _ -> firstCalls.incrementAndGet(), false);
-            capturedSubscriber[0].registerComponentEventHandler(
+            capturedSubscriber[0].addComponentEventHandler(
                     "same.event", _ -> secondCalls.incrementAndGet(), false);
 
             first.unsubscribe();
@@ -1084,12 +1083,106 @@ public class ComponentSegmentTests {
         }
     }
 
+    /**
+     * Regression tests for the lost-handler-on-parent-re-render bug.
+     *
+     * <p>Post-fix, {@code addComponentEventHandler} returns a reference-based
+     * {@link Lookup.Registration} that removes only the specific entry it created.</p>
+     */
+    @Nested
+    public class EventHandlerRegistrationTests {
+
+        private List<ComponentEventEntry> entries(final ComponentSegment<?> segment) throws Exception {
+            final Field f = ComponentSegment.class.getDeclaredField("componentEventEntries");
+            f.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final List<ComponentEventEntry> list = (List<ComponentEventEntry>) f.get(segment);
+            return list;
+        }
+
+        @Test
+        void registration_unsubscribe_removes_only_its_own_entry() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegment(treeBuilder);
+
+            final Lookup.Registration reg1 = segment.addComponentEventHandler(
+                    "foo.event", ctx -> {}, false);
+            segment.addComponentEventHandler("foo.event", ctx -> {}, false);
+
+            assertEquals(2, entries(segment).size(),
+                    "Both handlers should be registered for the same event name");
+
+            reg1.unsubscribe();
+
+            assertEquals(1, entries(segment).size(),
+                    "Only the registration's own entry must be removed");
+        }
+
+        @Test
+        void registration_unsubscribe_after_event_table_refresh_is_safe_noop() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegment(treeBuilder);
+
+            final Lookup.Registration regA = segment.addComponentEventHandler(
+                    "prompt.newMessage", ctx -> {}, false);
+
+            final Field f = ComponentSegment.class.getDeclaredField("componentEventEntries");
+            f.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            final List<ComponentEventEntry> list = (List<ComponentEventEntry>) f.get(segment);
+            list.clear();
+
+            segment.addComponentEventHandler("prompt.newMessage", ctx -> {}, false);
+            assertEquals(1, entries(segment).size(), "entry-B is the sole entry");
+
+            regA.unsubscribe();
+
+            assertEquals(1, entries(segment).size(),
+                    "regA.unsubscribe() must not remove a later sibling registration");
+        }
+
+        @Test
+        void typed_addEventHandler_returns_registration_and_removes_only_its_entry() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegment(treeBuilder);
+
+            final EventKey.SimpleKey<String> key =
+                    new EventKey.SimpleKey<>("typed.event", String.class);
+
+            final Lookup.Registration reg1 = segment.addEventHandler(
+                    key, (name, payload) -> {});
+            segment.addEventHandler(key, (name, payload) -> {});
+
+            assertEquals(2, entries(segment).size());
+            reg1.unsubscribe();
+            assertEquals(1, entries(segment).size(),
+                    "Typed addEventHandler must also expose reference-based removal");
+        }
+
+        @Test
+        void void_addEventHandler_returns_registration_and_removes_only_its_entry() throws Exception {
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegment(treeBuilder);
+
+            final EventKey.VoidKey key = new EventKey.VoidKey("void.event");
+
+            final Lookup.Registration reg1 = segment.addEventHandler(key, () -> {});
+            segment.addEventHandler(key, () -> {});
+
+            assertEquals(2, entries(segment).size());
+            reg1.unsubscribe();
+            assertEquals(1, entries(segment).size(),
+                    "Void-key addEventHandler must also expose reference-based removal");
+        }
+    }
+
     private static final class NoOpSubscriber implements Subscriber {
         @Override public void addWindowEventHandler(String type, java.util.function.Consumer<rsp.page.EventContext> h,
                                                     boolean preventDefault, rsp.dom.DomEventEntry.Modifier mod) {}
-        @Override public void addComponentEventHandler(String type,
-                                                       java.util.function.Consumer<ComponentEventEntry.EventContext> h,
-                                                       boolean preventDefault) {}
-        @Override public void removeComponentEventHandler(String type) {}
+        @Override public Lookup.Registration addComponentEventHandler(String type,
+                                                                      java.util.function.Consumer<ComponentEventEntry.EventContext> h,
+                                                                      boolean preventDefault) {
+            return () -> {};
+        }
     }
 }

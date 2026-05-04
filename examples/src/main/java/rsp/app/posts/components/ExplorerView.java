@@ -144,10 +144,9 @@ public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
                                           boolean preventDefault, rsp.dom.DomEventEntry.Modifier modifier) {}
 
         @Override
-        public void addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {}
-
-        @Override
-        public void removeComponentEventHandler(String eventType) {}
+        public Lookup.Registration addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                            boolean preventDefault) {
+            return () -> {};
+        }
     }
 }

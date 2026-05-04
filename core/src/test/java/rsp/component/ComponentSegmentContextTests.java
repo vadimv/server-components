@@ -175,9 +175,10 @@ class ComponentSegmentContextTests {
     private static final class NoOpSubscriber implements Subscriber {
         @Override public void addWindowEventHandler(String type, java.util.function.Consumer<rsp.page.EventContext> h,
                                                     boolean preventDefault, rsp.dom.DomEventEntry.Modifier mod) {}
-        @Override public void addComponentEventHandler(String type,
-                                                       java.util.function.Consumer<ComponentEventEntry.EventContext> h,
-                                                       boolean preventDefault) {}
-        @Override public void removeComponentEventHandler(String type) {}
+        @Override public Lookup.Registration addComponentEventHandler(String type,
+                                                                      java.util.function.Consumer<ComponentEventEntry.EventContext> h,
+                                                                      boolean preventDefault) {
+            return () -> {};
+        }
     }
 }

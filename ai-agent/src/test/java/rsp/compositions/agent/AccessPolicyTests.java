@@ -484,6 +484,92 @@ class AccessPolicyTests {
     }
 
     @Test
+    void requireGrantForExecution_allows_chat_without_grant() {
+        AccessPolicy policy = ExamplePolicies.requireGrantForExecution();
+        Attributes attrs = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "chat:reply")
+            .put(AttributeKeys.ACTION_TYPE, "chat")
+            .build();
+        assertInstanceOf(AccessDecision.Allow.class, policy.evaluate(attrs));
+    }
+
+    @Test
+    void requireGrantForExecution_allows_discover_without_grant() {
+        AccessPolicy policy = ExamplePolicies.requireGrantForExecution();
+        Attributes attrs = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "page")
+            .put(AttributeKeys.ACTION_TYPE, "discover")
+            .build();
+        assertInstanceOf(AccessDecision.Allow.class, policy.evaluate(attrs));
+    }
+
+    @Test
+    void requireGrantForExecution_allows_agent_spawn_without_grant() {
+        // The spawn handshake itself can't require a pre-existing grant —
+        // it's the means of minting one.
+        AccessPolicy policy = ExamplePolicies.requireGrantForExecution();
+        Attributes attrs = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "agent:spawn")
+            .put(AttributeKeys.ACTION_TYPE, "execute")
+            .build();
+        assertInstanceOf(AccessDecision.Allow.class, policy.evaluate(attrs));
+    }
+
+    @Test
+    void requireGrantForExecution_denies_navigate_without_grant() {
+        AccessPolicy policy = ExamplePolicies.requireGrantForExecution();
+        Attributes attrs = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "navigate")
+            .put(AttributeKeys.ACTION_TYPE, "navigate")
+            .build();
+        assertInstanceOf(AccessDecision.Deny.class, policy.evaluate(attrs));
+    }
+
+    @Test
+    void requireGrantForExecution_allows_action_when_grant_present() {
+        // After spawn, the delegated authorization carries grant.* attributes.
+        // Even an action without ACTION_TYPE=chat should be allowed when a grant exists.
+        AccessPolicy policy = ExamplePolicies.requireGrantForExecution();
+        Attributes attrs = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "delete")
+            .put(AttributeKeys.GRANT_REVOKED, false)
+            .build();
+        assertInstanceOf(AccessDecision.Allow.class, policy.evaluate(attrs));
+    }
+
+    @Test
+    void integration_post_approval_spawn_succeeds() {
+        // End-to-end: the composite policy used by CrudApp must allow agent:spawn
+        // (so post-approval re-spawn succeeds) and allow runtime actions when the
+        // delegated authorization carries grant attributes.
+        AccessPolicy policy = new CompositePolicy(
+            ExamplePolicies.requireGrantForExecution(),
+            ExamplePolicies.grantConstraints());
+
+        // 1. Initial chat — no grant, no modal expected.
+        assertInstanceOf(AccessDecision.Allow.class, policy.evaluate(Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "chat:reply")
+            .put(AttributeKeys.ACTION_TYPE, "chat").build()));
+
+        // 2. Action without grant — denied (triggers approval flow).
+        assertInstanceOf(AccessDecision.Deny.class, policy.evaluate(Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "navigate")
+            .put(AttributeKeys.ACTION_TYPE, "navigate").build()));
+
+        // 3. Spawn the grant — must succeed (no grant yet, but spawn is exempt).
+        assertInstanceOf(AccessDecision.Allow.class, policy.evaluate(Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "agent:spawn")
+            .put(AttributeKeys.ACTION_TYPE, "execute").build()));
+
+        // 4. Subsequent action under the minted grant — allowed.
+        Attributes withGrant = Attributes.builder()
+            .put(AttributeKeys.ACTION_NAME, "navigate")
+            .put(AttributeKeys.GRANT_REVOKED, false)
+            .build();
+        assertInstanceOf(AccessDecision.Allow.class, policy.evaluate(withGrant));
+    }
+
+    @Test
     void integration_grant_scope_restricts_actions() {
         // Policy: grant constraints only
         AccessPolicy policy = ExamplePolicies.grantConstraints();

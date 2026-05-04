@@ -5,6 +5,7 @@ import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentEventEntry;
 import rsp.component.ContextKey;
+import rsp.component.Lookup;
 import rsp.component.Subscriber;
 import rsp.component.TreeBuilder;
 import rsp.component.View;
@@ -179,11 +180,10 @@ class ContractRuntimeTests {
                                           boolean preventDefault, rsp.dom.DomEventEntry.Modifier modifier) {}
 
         @Override
-        public void addComponentEventHandler(String eventType,
-                                             java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {}
-
-        @Override
-        public void removeComponentEventHandler(String eventType) {}
+        public Lookup.Registration addComponentEventHandler(String eventType,
+                                                            java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                            boolean preventDefault) {
+            return () -> {};
+        }
     }
 }

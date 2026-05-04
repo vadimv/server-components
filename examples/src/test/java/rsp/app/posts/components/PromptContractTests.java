@@ -7,6 +7,7 @@ import rsp.component.ComponentContext;
 import rsp.component.ComponentEventEntry;
 import rsp.component.ContextLookup;
 import rsp.component.ContextScope;
+import rsp.component.Lookup;
 import rsp.compositions.agent.ActionDispatcher;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AllowAllSpawner;
@@ -63,11 +64,10 @@ class PromptContractTests {
                                           boolean preventDefault, rsp.dom.DomEventEntry.Modifier modifier) {}
 
         @Override
-        public void addComponentEventHandler(String eventType,
-                                             java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {}
-
-        @Override
-        public void removeComponentEventHandler(String eventType) {}
+        public Lookup.Registration addComponentEventHandler(String eventType,
+                                                            java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                            boolean preventDefault) {
+            return () -> {};
+        }
     }
 }

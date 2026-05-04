@@ -7,9 +7,19 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Interface for subscribing and unsubscribing for component events.
+ * Interface for subscribing to component events.
+ *
+ * <p>All handler-registration methods return a {@link Lookup.Registration}.
+ * Calling {@link Lookup.Registration#unsubscribe()} removes <em>only</em> that
+ * specific registration — never another handler that happens to share the
+ * same event name. There is no remove-by-name primitive: a previous
+ * {@code removeComponentEventHandler(String)} (remove-first-by-name) was
+ * removed because it could silently drop sibling registrations after a
+ * parent re-render — see the regression tests in
+ * {@code ContextLookupTests.RegistrationTests} and
+ * {@code ComponentSegmentTests.EventHandlerRegistrationTests}.</p>
  */
-public interface Subscriber { // TODO as it also unsubscribes, should this class has a different name?
+public interface Subscriber {
     void addWindowEventHandler(final String eventType,
                                final Consumer<EventContext> eventHandler,
                                final boolean preventDefault,
@@ -21,29 +31,11 @@ public interface Subscriber { // TODO as it also unsubscribes, should this class
      * @param eventType the event name or pattern (supports ".*" wildcard suffix)
      * @param eventHandler the handler to invoke
      * @param preventDefault (currently unused for component events)
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    void addComponentEventHandler(final String eventType,
-                                  final Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                  final boolean preventDefault);
-
-    /**
-     * Register a component event handler and return an exact registration handle.
-     * <p>
-     * Implementations that can remove the exact entry should override this method.
-     * The default preserves the legacy name-based behaviour.
-     */
-    default Lookup.Registration registerComponentEventHandler(final String eventType,
-                                                             final Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                                             final boolean preventDefault) {
-        addComponentEventHandler(eventType, eventHandler, preventDefault);
-        return () -> removeComponentEventHandler(eventType);
-    }
-
-    /**
-     * Unregisters a component's handler by name
-     * @param eventType the full event name
-     */
-    void removeComponentEventHandler(final String eventType);
+    Lookup.Registration addComponentEventHandler(final String eventType,
+                                                 final Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                 final boolean preventDefault);
 
     // ========================================================================
     // Type-safe event handlers using EventKey
@@ -64,11 +56,12 @@ public interface Subscriber { // TODO as it also unsubscribes, should this class
      * @param key the typed event key
      * @param handler receives the event name and typed payload
      * @param preventDefault (currently unused for component events)
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    default <T> void addEventHandler(final EventKey<T> key,
-                                     final BiConsumer<String, T> handler,
-                                     final boolean preventDefault) {
-        addComponentEventHandler(key.name(), ctx -> {
+    default <T> Lookup.Registration addEventHandler(final EventKey<T> key,
+                                                    final BiConsumer<String, T> handler,
+                                                    final boolean preventDefault) {
+        return addComponentEventHandler(key.name(), ctx -> {
             @SuppressWarnings("unchecked")
             T payload = (T) ctx.eventObject();
             handler.accept(ctx.eventName(), payload);
@@ -88,25 +81,12 @@ public interface Subscriber { // TODO as it also unsubscribes, should this class
      * @param key the void event key
      * @param handler the handler to invoke (receives no arguments)
      * @param preventDefault (currently unused for component events)
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    default void addEventHandler(final EventKey.VoidKey key,
-                                 final Runnable handler,
-                                 final boolean preventDefault) {
-        addComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
-    }
-
-    default <T> Lookup.Registration registerEventHandler(final EventKey<T> key,
-                                                         final BiConsumer<String, T> handler,
-                                                         final boolean preventDefault) {
-        addEventHandler(key, handler, preventDefault);
-        return () -> removeComponentEventHandler(key.name());
-    }
-
-    default Lookup.Registration registerEventHandler(final EventKey.VoidKey key,
-                                                    final Runnable handler,
-                                                    final boolean preventDefault) {
-        addEventHandler(key, handler, preventDefault);
-        return () -> removeComponentEventHandler(key.name());
+    default Lookup.Registration addEventHandler(final EventKey.VoidKey key,
+                                                final Runnable handler,
+                                                final boolean preventDefault) {
+        return addComponentEventHandler(key.name(), ctx -> handler.run(), preventDefault);
     }
 
     /**
@@ -115,10 +95,11 @@ public interface Subscriber { // TODO as it also unsubscribes, should this class
      * @param <T> the payload type
      * @param key the typed event key
      * @param handler receives the event name and typed payload
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    default <T> void addEventHandler(final EventKey<T> key,
-                                     final BiConsumer<String, T> handler) {
-        addEventHandler(key, handler, false);
+    default <T> Lookup.Registration addEventHandler(final EventKey<T> key,
+                                                    final BiConsumer<String, T> handler) {
+        return addEventHandler(key, handler, false);
     }
 
     /**
@@ -126,9 +107,10 @@ public interface Subscriber { // TODO as it also unsubscribes, should this class
      *
      * @param key the void event key
      * @param handler the handler to invoke
+     * @return a {@link Lookup.Registration} that removes this specific handler when invoked
      */
-    default void addEventHandler(final EventKey.VoidKey key,
-                                 final Runnable handler) {
-        addEventHandler(key, handler, false);
+    default Lookup.Registration addEventHandler(final EventKey.VoidKey key,
+                                                final Runnable handler) {
+        return addEventHandler(key, handler, false);
     }
 }

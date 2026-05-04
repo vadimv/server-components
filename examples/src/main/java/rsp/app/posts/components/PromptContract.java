@@ -22,6 +22,9 @@ import rsp.compositions.agent.PolicyActionFilter;
 import rsp.compositions.agent.PolicyGate;
 import rsp.compositions.agent.SpawnRequest;
 import rsp.compositions.agent.SpawnResult;
+import rsp.compositions.authorization.AccessDecision;
+import rsp.compositions.authorization.AttributeKeys;
+import rsp.compositions.authorization.Attributes;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ActionBindings;
@@ -65,9 +68,7 @@ public class PromptContract extends ViewContract {
     private ActionGate gate;
     private AgentActionFilter actionFilter;
     private AgentSession agentSession;
-    private SpawnRequest pendingSpawnRequest;
-    private String pendingTicketId;
-    private String queuedPrompt;
+    private AgentResult queuedResult;
     private volatile String activeCategory = "";
 
     private volatile Scene currentScene;
@@ -94,95 +95,86 @@ public class PromptContract extends ViewContract {
         watch(ContextKeys.PRIMARY_CATEGORY_KEY, category ->
                 this.activeCategory = normalizeCategory(category));
 
-        // Spawn agent session via centralized spawner
-        this.pendingSpawnRequest = new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null);
-        SpawnResult spawnResult = spawner.spawn(pendingSpawnRequest, lookup);
-        this.agentSession = switch (spawnResult) {
-            case SpawnResult.Approved approved -> approved.session();
-            case SpawnResult.Denied denied -> {
-                logger.log(System.Logger.Level.WARNING,
-                    () -> "Agent session denied: " + denied.reason());
-                yield null;
-            }
-            case SpawnResult.RequiresApproval pending -> {
-                logger.log(System.Logger.Level.INFO,
-                    () -> "Agent session pending approval: " + pending.reason());
-                this.pendingTicketId = pending.ticketId();
-                yield null;
-            }
-        };
-
-        // Derive gate and filter from the session's grant via unified authorization
-        if (agentSession != null) {
-            Authorization agentAuth = authorization.delegated(agentSession.grant());
-            this.gate = new PolicyGate(agentAuth);
-            this.actionFilter = new PolicyActionFilter(agentAuth);
-        } else {
-            this.gate = (action, payload, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
-            this.actionFilter = (actions, ctx) -> List.of();
-        }
+        // Defer spawn until the policy denies an action-bearing result.
+        // Pre-spawn: chat/discover are auto-allowed by the policy; everything
+        // else escalates to spawner.spawn(...) lazily in evaluateAndExecute.
+        this.agentSession = null;
+        this.gate = (action, payload, lkp) -> new rsp.compositions.agent.GateResult.Block("No active session");
+        this.actionFilter = new PolicyActionFilter(authorization);
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptContract@%x SEND_PROMPT received text='%s' [scope=%s]",
+                                    System.identityHashCode(this), abbreviate(text), scopeKey));
             promptService.sendPrompt(scopeKey, text);
             handleUserInput(text);
         });
 
         // Listen for approval decisions from delegation dialog
         subscribe(DelegationApprovalContract.APPROVAL_DECIDED, (eventName, approved) -> {
-            if (approved) {
-                SpawnResult retryResult = this.spawner.spawn(pendingSpawnRequest, lookup);
-                if (retryResult instanceof SpawnResult.Approved a) {
-                    this.agentSession = a.session();
-                    Authorization agentAuth = this.authorization.delegated(agentSession.grant());
-                    this.gate = new PolicyGate(agentAuth);
-                    this.actionFilter = new PolicyActionFilter(agentAuth);
-                    this.pendingTicketId = null;
-                    promptService.sendReply(scopeKey, "Agent access approved.");
-                    if (queuedPrompt != null) {
-                        String prompt = queuedPrompt;
-                        queuedPrompt = null;
-                        handleUserInput(prompt);
-                    }
-                } else {
-                    promptService.sendReply(scopeKey, "Agent session could not be established.");
+            AgentResult queued = this.queuedResult;
+            this.queuedResult = null;
+            if (!approved) {
+                promptService.sendReply(scopeKey, "Agent delegation denied.");
+                return;
+            }
+            SpawnResult retry = this.spawner.spawn(
+                    new SpawnRequest(AgentContext.Scope.APP, ControlMode.ASSIST, null), lookup);
+            if (retry instanceof SpawnResult.Approved a) {
+                installSession(a.session());
+                promptService.sendReply(scopeKey, "Agent access approved.");
+                if (queued != null) {
+                    // Run on a virtual thread — executePlan/awaitSceneSettle would
+                    // otherwise block the event loop and starve the very enrichContext
+                    // that signals scene settlement.
+                    final ViewContract capturedContract = activeContract();
+                    Thread.startVirtualThread(() -> {
+                        try {
+                            executeResult(queued, capturedContract);
+                        } catch (Throwable t) {
+                            logger.log(System.Logger.Level.ERROR,
+                                    "Post-approval execution failed", t);
+                            promptService.sendReply(scopeKey,
+                                    "Internal error: " + t.getClass().getSimpleName());
+                        }
+                    });
                 }
             } else {
-                this.pendingTicketId = null;
-                promptService.sendReply(scopeKey, "Agent delegation denied.");
+                promptService.sendReply(scopeKey, "Agent session could not be established.");
             }
         });
 
         serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
             Message msg = new Message(message.id(), message.text(), message.fromUser());
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptContract@%x bridge: PromptService -> lookup@%x [%s id=%d fromUser=%s text='%s' scope=%s]",
+                                    System.identityHashCode(this), System.identityHashCode(lookup),
+                                    message.update() ? "UPDATE" : "NEW",
+                                    msg.id(), msg.fromUser(), abbreviate(msg.text()), scopeKey));
             if (message.update()) {
                 lookup.publish(UPDATE_MESSAGE, msg);
             } else {
                 lookup.publish(NEW_MESSAGE, msg);
             }
         });
-        logger.log(System.Logger.Level.TRACE, () -> "PromptContract created");
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x created [scope=%s, lookup@%x]",
+                                System.identityHashCode(this), scopeKey, System.identityHashCode(lookup)));
     }
 
     private void handleUserInput(String text) {
-        if (agentSession == null || !agentSession.isValid()) {
-            if (pendingTicketId != null) {
-                this.queuedPrompt = text;
-                lookup.publish(EventKeys.SHOW, new ActionBindings.ShowPayload(
-                        DelegationApprovalContract.class,
-                        Map.of("scope", pendingSpawnRequest.scope().name(),
-                               "controlMode", pendingSpawnRequest.controlMode().name(),
-                               "reason", pendingSpawnRequest.purpose() != null
-                                       ? pendingSpawnRequest.purpose() : "")));
-                promptService.sendReply(scopeKey, "Awaiting your approval for agent access...");
-                return;
-            }
-            promptService.sendReply(scopeKey, "Agent session is not active.");
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x handleUserInput text='%s' [queuedResult=%s, pendingConfirm=%s]",
+                                System.identityHashCode(this), abbreviate(text),
+                                queuedResult != null, pendingConfirm != null));
+        if (queuedResult != null) {
+            promptService.sendReply(scopeKey, "Still awaiting your approval for the previous request...");
             return;
         }
 
         String trimmed = text.trim().toLowerCase();
 
-        // Handle pending confirmation
+        // Handle pending confirmation (yes/no after AwaitingConfirmation)
         if (pendingConfirm != null) {
             if (trimmed.equals("yes") || trimmed.equals("y")) {
                 PendingAction confirmed = pendingConfirm;
@@ -200,45 +192,159 @@ public class PromptContract extends ViewContract {
             }
         }
 
-        // Parse user prompt via AgentService off the event loop
+        // Run the LLM under whatever authorization currently applies.
+        // Classification (chat vs action) is the LLM's response type, then
+        // the policy decides whether it's auto-allowed or needs approval.
         AgentContext agentContext = buildAgentContext();
         ContractProfile profile = agentContext.contractProfile();
-
-        // Capture mutable state before spawning the virtual thread
-        // to avoid races with scene rebuilds on the event loop
         final ViewContract capturedContract = activeContract();
-        final ActionGate capturedGate = gate;
 
         final long startTime = System.currentTimeMillis();
         promptService.sendReply(scopeKey, "<em>Thinking...</em>");
         Thread.startVirtualThread(() -> {
-            AgentResult agentResult = agentService.handlePrompt(text, profile, structure,
-                    partial -> {
-                        long elapsed = (System.currentTimeMillis() - startTime) / 1000;
-                        promptService.updateLastReply(scopeKey,
-                                "<em>Thinking... (" + elapsed + "s)</em>");
-                    });
-            switch (agentResult) {
-                case AgentResult.TextReply reply ->
-                    promptService.sendReply(scopeKey, HtmlEscape.escape(reply.message()));
-                case AgentResult.NavigateResult nav -> {
-                    dispatcher.dispatchNavigate(nav.targetContract(), lookup);
-                    promptService.sendReply(scopeKey, "Navigating...");
-                }
-                case AgentResult.ActionResult actionResult -> {
-                    ContractAction action = actionResult.action();
-                    DispatchResult result = dispatcher.dispatch(
-                        action, actionResult.payload(), capturedContract, lookup, capturedGate);
-                    handleDispatchResult(result);
-                }
-                case AgentResult.PlanResult plan -> {
-                    if (!plan.summary().isBlank()) {
-                        promptService.sendReply(scopeKey, HtmlEscape.escape(plan.summary()));
-                    }
-                    executePlan(plan.steps());
-                }
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptContract@%x LLM virtual thread START [scope=%s]",
+                                    System.identityHashCode(this), scopeKey));
+            try {
+                AgentResult agentResult = agentService.handlePrompt(text, profile, structure,
+                        partial -> {
+                            long elapsed = (System.currentTimeMillis() - startTime) / 1000;
+                            promptService.updateLastReply(scopeKey,
+                                    "<em>Thinking... (" + elapsed + "s)</em>");
+                        });
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptContract@%x LLM result received: %s [scope=%s, elapsedMs=%d]",
+                                        System.identityHashCode(this),
+                                        agentResult.getClass().getSimpleName(), scopeKey,
+                                        System.currentTimeMillis() - startTime));
+                evaluateAndExecute(agentResult, capturedContract);
+            } catch (Throwable t) {
+                logger.log(System.Logger.Level.ERROR, "Prompt processing failed", t);
+                promptService.sendReply(scopeKey,
+                        "Internal error: " + t.getClass().getSimpleName()
+                                + (t.getMessage() != null ? " - " + t.getMessage() : ""));
+            } finally {
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptContract@%x LLM virtual thread END [scope=%s]",
+                                        System.identityHashCode(this), scopeKey));
             }
         });
+    }
+
+    /**
+     * Evaluate the LLM's result against the active authorization. If allowed,
+     * execute. If denied because no grant is present yet, escalate to the
+     * spawner — which surfaces the delegation approval modal.
+     */
+    private void evaluateAndExecute(AgentResult result, ViewContract capturedContract) {
+        Authorization current = (agentSession != null && agentSession.isValid())
+                ? authorization.delegated(agentSession.grant())
+                : authorization;
+        AccessDecision decision = current.evaluate(attrsFor(result));
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x evaluateAndExecute: %s -> %s [scope=%s, hasSession=%s]",
+                                System.identityHashCode(this), result.getClass().getSimpleName(),
+                                decision.getClass().getSimpleName(), scopeKey,
+                                agentSession != null && agentSession.isValid()));
+
+        if (decision instanceof AccessDecision.Allow) {
+            executeResult(result, capturedContract);
+            return;
+        }
+        if (agentSession != null && agentSession.isValid()) {
+            // Grant is present and policy still denies — real refusal.
+            String reason = (decision instanceof AccessDecision.Deny d) ? d.reason() : "denied";
+            promptService.sendReply(scopeKey, "Action not permitted: " + reason);
+            return;
+        }
+        // No grant yet — request one via the spawner.
+        SpawnRequest request = new SpawnRequest(
+                AgentContext.Scope.APP, ControlMode.ASSIST, describe(result));
+        SpawnResult spawn = spawner.spawn(request, lookup);
+        switch (spawn) {
+            case SpawnResult.Approved a -> {
+                installSession(a.session());
+                executeResult(result, capturedContract);
+            }
+            case SpawnResult.RequiresApproval _ -> {
+                this.queuedResult = result;
+                lookup.publish(EventKeys.SHOW, new ActionBindings.ShowPayload(
+                        DelegationApprovalContract.class,
+                        Map.of("scope", request.scope().name(),
+                               "controlMode", request.controlMode().name(),
+                               "reason", describe(result))));
+                promptService.sendReply(scopeKey, "This requires your approval...");
+            }
+            case SpawnResult.Denied d ->
+                promptService.sendReply(scopeKey, "Agent session denied: " + d.reason());
+        }
+    }
+
+    private void executeResult(AgentResult result, ViewContract capturedContract) {
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x executeResult: %s [scope=%s]",
+                                System.identityHashCode(this),
+                                result.getClass().getSimpleName(), scopeKey));
+        final ActionGate capturedGate = gate;
+        switch (result) {
+            case AgentResult.TextReply reply ->
+                promptService.sendReply(scopeKey, HtmlEscape.escape(reply.message()));
+            case AgentResult.NavigateResult nav -> {
+                dispatcher.dispatchNavigate(nav.targetContract(), lookup);
+                promptService.sendReply(scopeKey, "Navigating...");
+            }
+            case AgentResult.ActionResult actionResult -> {
+                ContractAction action = actionResult.action();
+                DispatchResult dr = dispatcher.dispatch(
+                    action, actionResult.payload(), capturedContract, lookup, capturedGate);
+                handleDispatchResult(dr);
+            }
+            case AgentResult.PlanResult plan -> {
+                if (!plan.summary().isBlank()) {
+                    promptService.sendReply(scopeKey, HtmlEscape.escape(plan.summary()));
+                }
+                executePlan(plan.steps());
+            }
+        }
+    }
+
+    private Attributes attrsFor(AgentResult result) {
+        Attributes.Builder b = Attributes.builder()
+                .put(AttributeKeys.CONTROL_CHANNEL, "agent_intent");
+        return switch (result) {
+            case AgentResult.TextReply _ -> b
+                .put(AttributeKeys.ACTION_NAME, "chat:reply")
+                .put(AttributeKeys.ACTION_TYPE, "chat").build();
+            case AgentResult.NavigateResult nav -> b
+                .put(AttributeKeys.ACTION_NAME, "navigate")
+                .put(AttributeKeys.ACTION_TYPE, "navigate")
+                .put(AttributeKeys.RESOURCE_CONTRACT_CLASS, nav.targetContract().getName()).build();
+            case AgentResult.ActionResult ar -> b
+                .put(AttributeKeys.ACTION_NAME, ar.action().action())
+                .put(AttributeKeys.ACTION_TYPE, "execute").build();
+            case AgentResult.PlanResult _ -> b
+                .put(AttributeKeys.ACTION_NAME, "execute_plan")
+                .put(AttributeKeys.ACTION_TYPE, "execute").build();
+        };
+    }
+
+    private String describe(AgentResult result) {
+        return switch (result) {
+            case AgentResult.TextReply _ -> "Reply to user";
+            case AgentResult.NavigateResult nav ->
+                    "Navigate to " + nav.targetContract().getSimpleName();
+            case AgentResult.ActionResult ar ->
+                    "Execute action: " + ar.action().action();
+            case AgentResult.PlanResult plan ->
+                    plan.summary().isBlank() ? "Execute plan" : "Execute plan: " + plan.summary();
+        };
+    }
+
+    private void installSession(AgentSession session) {
+        this.agentSession = session;
+        Authorization agentAuth = authorization.delegated(session.grant());
+        this.gate = new PolicyGate(agentAuth);
+        this.actionFilter = new PolicyActionFilter(agentAuth);
     }
 
     private void handleDispatchResult(DispatchResult result) {
@@ -418,6 +524,13 @@ public class PromptContract extends ViewContract {
     @Override
     public ComponentContext enrichContext(ComponentContext context) {
         this.currentScene = context.get(ContextKeys.SCENE);
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x enrichContext [scope=%s, sceneRouted=%s, activeCategory='%s']",
+                                System.identityHashCode(this), scopeKey,
+                                currentScene == null || currentScene.routedContract() == null
+                                    ? "null"
+                                    : currentScene.routedContract().getClass().getSimpleName(),
+                                activeCategory));
         // Signal waiting plan executor with the settled scene
         CompletableFuture<Scene> future = this.sceneSettleFuture;
         if (future != null && !future.isDone()) {
@@ -437,10 +550,19 @@ public class PromptContract extends ViewContract {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        boolean hadBridge = serviceUnsubscribe != null;
         if (serviceUnsubscribe != null) {
             serviceUnsubscribe.run();
             serviceUnsubscribe = null;
         }
-        logger.log(System.Logger.Level.TRACE, () -> "PromptContract destroyed");
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptContract@%x destroyed [scope=%s, bridgeUnsubscribed=%s]",
+                                System.identityHashCode(this), scopeKey, hadBridge));
+    }
+
+    private static String abbreviate(String s) {
+        if (s == null) return "null";
+        String oneLine = s.replace('\n', ' ').replace('\r', ' ');
+        return oneLine.length() <= 60 ? oneLine : oneLine.substring(0, 57) + "...";
     }
 }

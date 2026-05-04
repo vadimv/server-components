@@ -54,6 +54,38 @@ public final class ExamplePolicies {
     }
 
     /**
+     * Requires a delegation grant for action-bearing requests, but auto-allows
+     * conversational/metadata requests and the spawn handshake itself.
+     * <p>
+     * Allow without grant when any of:
+     * <ul>
+     *   <li>{@code action.type} is {@code "chat"}, {@code "read"}, or {@code "discover"}</li>
+     *   <li>{@code action.name} is {@code "agent:spawn"} — the means of minting a grant</li>
+     * </ul>
+     * Otherwise, allow only if a delegation grant is present (any
+     * {@code grant.*} attribute). Compose with {@link #grantConstraints()}
+     * after this policy to validate the grant's expiry/revocation/scope.
+     */
+    public static AccessPolicy requireGrantForExecution() {
+        return attrs -> {
+            String actionType = attrs.getString(AttributeKeys.ACTION_TYPE);
+            String actionName = attrs.getString(AttributeKeys.ACTION_NAME);
+            if ("chat".equals(actionType)
+                    || "read".equals(actionType)
+                    || "discover".equals(actionType)
+                    || "agent:spawn".equals(actionName)) {
+                return new AccessDecision.Allow();
+            }
+            boolean grantPresent = attrs.hasKey(AttributeKeys.GRANT_SCOPE_ACTIONS)
+                    || attrs.hasKey(AttributeKeys.GRANT_REVOKED)
+                    || attrs.hasKey(AttributeKeys.GRANT_EXPIRES_AT);
+            return grantPresent
+                ? new AccessDecision.Allow()
+                : new AccessDecision.Deny("Requires delegation grant");
+        };
+    }
+
+    /**
      * Validates delegation grant constraints (revocation, expiry, scope).
      * <p>
      * Passes through if no grant attributes are present (human user).

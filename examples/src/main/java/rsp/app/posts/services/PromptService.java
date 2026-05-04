@@ -8,6 +8,8 @@ import java.util.function.Consumer;
 
 public class PromptService {
 
+    private static final System.Logger logger = System.getLogger(PromptService.class.getName());
+
     /**
      * Scope for message history and subscriptions.
      * Defaults to per-session id, but can be extended to user/device/etc.
@@ -36,11 +38,23 @@ public class PromptService {
      * @return a Runnable to unsubscribe
      */
     public Runnable subscribe(String scopeKey, Consumer<Message> listener) {
-        subscribersByScope.computeIfAbsent(scopeKey, _ -> new CopyOnWriteArrayList<>()).add(listener);
+        List<Consumer<Message>> listeners = subscribersByScope.computeIfAbsent(scopeKey, _ -> new CopyOnWriteArrayList<>());
+        listeners.add(listener);
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptService.subscribe listener@%x [scope=%s, totalListeners=%d]",
+                                System.identityHashCode(listener), scopeKey, listeners.size()));
         return () -> {
-            List<Consumer<Message>> listeners = subscribersByScope.get(scopeKey);
-            if (listeners != null) {
-                listeners.remove(listener);
+            List<Consumer<Message>> current = subscribersByScope.get(scopeKey);
+            if (current != null) {
+                boolean removed = current.remove(listener);
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptService.unsubscribe listener@%x removed=%s [scope=%s, remainingListeners=%d]",
+                                        System.identityHashCode(listener), removed,
+                                        scopeKey, current.size()));
+            } else {
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptService.unsubscribe listener@%x: no listeners list for scope=%s",
+                                        System.identityHashCode(listener), scopeKey));
             }
         };
     }
@@ -51,9 +65,14 @@ public class PromptService {
      * @param text the prompt text
      */
     public void sendPrompt(String scopeKey, String text) {
-        history(scopeKey).add(new Message(messageIdGenerator.incrementAndGet(), text, true));
+        Message userMsg = new Message(messageIdGenerator.incrementAndGet(), text, true);
+        history(scopeKey).add(userMsg);
         int count = messageCount.incrementAndGet();
         Message reply = new Message(messageIdGenerator.incrementAndGet(), "echo-" + count, false);
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptService.sendPrompt persisted user msg id=%d text='%s' [scope=%s, listeners=%d, NOT notifying]",
+                                userMsg.id(), abbreviate(text), scopeKey,
+                                listenerCount(scopeKey)));
        // notifySubscribers(scopeKey, reply);
     }
 
@@ -95,6 +114,9 @@ public class PromptService {
      */
     public void sendReply(String scopeKey, String text) {
         Message reply = new Message(messageIdGenerator.incrementAndGet(), text, false);
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptService.sendReply id=%d text='%s' [scope=%s, listeners=%d]",
+                                reply.id(), abbreviate(text), scopeKey, listenerCount(scopeKey)));
         notifySubscribers(scopeKey, reply);
     }
 
@@ -116,6 +138,10 @@ public class PromptService {
         long updateId = messageIdGenerator.incrementAndGet();
         Message update = new Message(updateId, text, false, true);
         List<Consumer<Message>> subscribers = subscribersByScope.get(scopeKey);
+        int subCount = subscribers == null ? 0 : subscribers.size();
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptService.updateLastReply id=%d text='%s' [scope=%s, listeners=%d]",
+                                updateId, abbreviate(text), scopeKey, subCount));
         if (subscribers == null) {
             return;
         }
@@ -123,7 +149,10 @@ public class PromptService {
             try {
                 subscriber.accept(update);
             } catch (Exception e) {
-                // Ignore individual subscriber failures
+                logger.log(System.Logger.Level.WARNING,
+                    () -> String.format("PromptService.updateLastReply: subscriber@%x threw %s",
+                                        System.identityHashCode(subscriber),
+                                        e.getClass().getSimpleName()), e);
             }
         }
     }
@@ -141,16 +170,40 @@ public class PromptService {
     private void notifySubscribers(String scopeKey, Message message) {
         history(scopeKey).add(message);
         List<Consumer<Message>> subscribers = subscribersByScope.get(scopeKey);
+        int subCount = subscribers == null ? 0 : subscribers.size();
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptService.notifySubscribers id=%d fromUser=%s [scope=%s, persistedFirst=true, listeners=%d]",
+                                message.id(), message.fromUser(), scopeKey, subCount));
         if (subscribers == null) {
             return;
         }
+        int idx = 0;
         for (Consumer<Message> subscriber : subscribers) {
+            final int currentIdx = idx++;
             try {
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptService.notifySubscribers -> subscriber@%x [idx=%d, scope=%s, msgId=%d]",
+                                        System.identityHashCode(subscriber), currentIdx,
+                                        scopeKey, message.id()));
                 subscriber.accept(message);
             } catch (Exception e) {
-                // Ignore individual subscriber failures
+                logger.log(System.Logger.Level.WARNING,
+                    () -> String.format("PromptService.notifySubscribers: subscriber@%x threw %s",
+                                        System.identityHashCode(subscriber),
+                                        e.getClass().getSimpleName()), e);
             }
         }
+    }
+
+    private int listenerCount(String scopeKey) {
+        List<Consumer<Message>> subs = subscribersByScope.get(scopeKey);
+        return subs == null ? 0 : subs.size();
+    }
+
+    private static String abbreviate(String s) {
+        if (s == null) return "null";
+        String oneLine = s.replace('\n', ' ').replace('\r', ' ');
+        return oneLine.length() <= 60 ? oneLine : oneLine.substring(0, 57) + "...";
     }
 
     private List<Message> history(String scopeKey) {

@@ -71,8 +71,15 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                     .stream()
                     .map(m -> new PromptContract.Message(m.id(), m.text(), m.fromUser()))
                     .toList();
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("PromptView@%x initStateSupplier loaded %d messages from history [scope=%s, activeCategory='%s']",
+                                        System.identityHashCode(this), history.size(),
+                                        scopeKey, activeCategory));
                 return new PromptViewState(history, activeCategory);
             }
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptView@%x initStateSupplier: no PromptService/scope in context [activeCategory='%s']",
+                                    System.identityHashCode(this), activeCategory));
             return new PromptViewState(List.of(), activeCategory);
         };
     }
@@ -86,15 +93,26 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         final ComponentSegment<PromptViewState> segment = super.createComponentSegment(
                 sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
         this.lookup = createLookup(segment, commandsEnqueue);
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptView@%x createComponentSegment [path=%s, sessionId=%s, lookup@%x, commandsEnqueue@%x]",
+                                System.identityHashCode(this), componentPath, sessionId,
+                                System.identityHashCode(this.lookup),
+                                System.identityHashCode(commandsEnqueue)));
         return segment;
     }
 
     private Lookup createLookup(ComponentSegment<?> segment, CommandsEnqueue commandsEnqueue) {
         // Subscriber identity is stable across re-renders; capture once.
         Subscriber subscriber = segment.componentContext().get(Subscriber.class);
+        boolean fromContext = subscriber != null;
         if (subscriber == null) {
             subscriber = NoOpSubscriber.INSTANCE;
         }
+        final Subscriber capturedSubscriber = subscriber;
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptView@%x createLookup [subscriber@%x fromContext=%s]",
+                                System.identityHashCode(this),
+                                System.identityHashCode(capturedSubscriber), fromContext));
         // Scope-backed lookup: reads follow the segment's current context and
         // watch() is notified when reconciliation replaces that context.
         return new ContextLookup(segment.contextScope(), commandsEnqueue, subscriber);
@@ -141,9 +159,22 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                 if (!text.isEmpty()) {
                                     if (stateUpdate != null) {
                                         long optimisticId = optimisticIdCounter.decrementAndGet();
+                                        logger.log(System.Logger.Level.DEBUG,
+                                            () -> String.format("PromptView@%x submit: optimistic add id=%d text='%s' [stateUpdate@%x]",
+                                                                System.identityHashCode(this),
+                                                                optimisticId, abbreviate(text),
+                                                                System.identityHashCode(stateUpdate)));
                                         stateUpdate.applyStateTransformation(s ->
                                                 s.withMessage(new PromptContract.Message(optimisticId, text, true)));
+                                    } else {
+                                        logger.log(System.Logger.Level.WARNING,
+                                            () -> String.format("PromptView@%x submit: stateUpdate is null, skipping optimistic add [text='%s']",
+                                                                System.identityHashCode(this), abbreviate(text)));
                                     }
+                                    logger.log(System.Logger.Level.DEBUG,
+                                        () -> String.format("PromptView@%x submit: publish SEND_PROMPT [lookup@%x text='%s']",
+                                                            System.identityHashCode(this),
+                                                            System.identityHashCode(lookup), abbreviate(text)));
                                     lookup.publish(PromptContract.SEND_PROMPT, text);
                                 }
                             }
@@ -155,22 +186,44 @@ public class PromptView extends Component<PromptView.PromptViewState> {
 
     @Override
     public void onMounted(ComponentCompositeKey componentId, PromptViewState state, StateUpdate<PromptViewState> stateUpdate) {
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptView@%x onMounted [componentId=%s, lookup@%x, stateUpdate@%x, messages=%d]",
+                                System.identityHashCode(this), componentId,
+                                System.identityHashCode(lookup),
+                                System.identityHashCode(stateUpdate),
+                                state.messages().size()));
         // History already loaded synchronously in initStateSupplier.
         // Subscribe for incremental updates only — ID dedup in withMessage prevents duplicates.
         eventSubscription = lookup.subscribe(PromptContract.NEW_MESSAGE, (eventName, message) -> {
-            logger.log(System.Logger.Level.TRACE, () -> "New message notified: " + message);
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptView@%x NEW_MESSAGE handler fire id=%d fromUser=%s text='%s' [componentId=%s, stateUpdate@%x]",
+                                    System.identityHashCode(this), message.id(), message.fromUser(),
+                                    abbreviate(message.text()), componentId,
+                                    System.identityHashCode(stateUpdate)));
             stateUpdate.applyStateTransformation(s -> s.withMessage(message));
         });
         updateSubscription = lookup.subscribe(PromptContract.UPDATE_MESSAGE, (eventName, message) -> {
-            logger.log(System.Logger.Level.TRACE, () -> "Update message notified: " + message);
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("PromptView@%x UPDATE_MESSAGE handler fire id=%d text='%s' [componentId=%s, stateUpdate@%x]",
+                                    System.identityHashCode(this), message.id(),
+                                    abbreviate(message.text()), componentId,
+                                    System.identityHashCode(stateUpdate)));
             stateUpdate.applyStateTransformation(s -> s.withLastSystemMessageUpdated(message.text()));
         });
         categorySubscription = lookup.watch(PromptContextKeys.ACTIVE_CATEGORY, category ->
                 stateUpdate.applyStateTransformation(s -> s.withActiveCategory(category)));
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptView@%x subscribed NEW_MESSAGE + UPDATE_MESSAGE + ACTIVE_CATEGORY [componentId=%s]",
+                                System.identityHashCode(this), componentId));
     }
 
     @Override
     public void onUnmounted(ComponentCompositeKey componentId, PromptViewState state) {
+        logger.log(System.Logger.Level.DEBUG,
+            () -> String.format("PromptView@%x onUnmounted [componentId=%s, hadEventSub=%s, hadUpdateSub=%s, hadCategorySub=%s, messages=%d]",
+                                System.identityHashCode(this), componentId,
+                                eventSubscription != null, updateSubscription != null,
+                                categorySubscription != null, state.messages().size()));
         if (categorySubscription != null) {
             categorySubscription.unsubscribe();
             categorySubscription = null;
@@ -185,6 +238,12 @@ public class PromptView extends Component<PromptView.PromptViewState> {
         }
     }
 
+    private static String abbreviate(String s) {
+        if (s == null) return "null";
+        String oneLine = s.replace('\n', ' ').replace('\r', ' ');
+        return oneLine.length() <= 60 ? oneLine : oneLine.substring(0, 57) + "...";
+    }
+
     private static final class NoOpSubscriber implements Subscriber {
         static final NoOpSubscriber INSTANCE = new NoOpSubscriber();
 
@@ -193,10 +252,9 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                           boolean preventDefault, rsp.dom.DomEventEntry.Modifier modifier) {}
 
         @Override
-        public void addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                             boolean preventDefault) {}
-
-        @Override
-        public void removeComponentEventHandler(String eventType) {}
+        public Lookup.Registration addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                            boolean preventDefault) {
+            return () -> {};
+        }
     }
 }
