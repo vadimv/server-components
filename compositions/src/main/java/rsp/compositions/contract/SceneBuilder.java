@@ -8,6 +8,7 @@ import rsp.compositions.application.Services;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.Layout;
+import rsp.compositions.layout.PlacementDecision;
 import rsp.compositions.routing.Router;
 
 import java.util.Collections;
@@ -67,11 +68,13 @@ public final class SceneBuilder {
             throw new IllegalStateException("Contract not found in composition: " + this.contractClass.getName());
         }
 
-        // Check if this contract has a parent route → overlay-like (auto-open case)
+        // Check if this contract has a parent route → potentially overlay-like.
+        // The layout's placement decision determines whether we auto-open over the parent
+        // (modal) or route directly to the child as the primary (inline).
         Optional<Router.RouteMatch> parentRoute = composition.router().findParentRoute(routePattern);
 
         Scene scene;
-        if (parentRoute.isPresent()) {
+        if (parentRoute.isPresent() && resolvesToModal(this.contractClass)) {
             scene = buildAutoOpenScene(context, parentRoute.get());
         } else {
             scene = buildStandardScene(context);
@@ -214,6 +217,18 @@ public final class SceneBuilder {
                                         Function<Lookup, ViewContract> factory,
                                         ComponentContext context) {
         return ContractRuntime.instantiate(contractClass, factory, context);
+    }
+
+    /**
+     * Whether the layout would render this contract as a modal layer.
+     * <p>
+     * The Scene argument is null because no Scene exists at build time — the
+     * resolver tolerates null and treats this as a "no routed runtime yet" hint
+     * (the first-in-* policies return INLINE in that case).
+     */
+    private boolean resolvesToModal(Class<? extends ViewContract> contractClass) {
+        PlacementDecision decision = layout.resolvePlacement(contractClass, null);
+        return decision.placement().isModal();
     }
 
     private void startServicesLifecycleHandlers(ComponentContext context) {
