@@ -215,6 +215,85 @@ public class CompositionTests {
         }
 
         @Test
+        void groupPathFor_returns_path_for_directly_bound_contract() {
+            final Group group = new Group("Posts")
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
+
+            assertEquals(List.of("Posts"),
+                    group.groupPathFor(TestListContract.class).orElseThrow());
+        }
+
+        @Test
+        void groupPathFor_returns_path_for_nested_child_group_binding() {
+            final Group group = new Group("Root")
+                    .add(new Group("Posts")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            assertEquals(List.of("Root", "Posts"),
+                    group.groupPathFor(TestListContract.class).orElseThrow());
+        }
+
+        @Test
+        void groupPathFor_returns_empty_for_unknown_contract() {
+            final Group group = new Group("Posts")
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
+
+            assertTrue(group.groupPathFor(TestEditContract.class).isEmpty());
+        }
+
+        @Test
+        void groupPathFor_skips_unlabeled_root() {
+            final Group group = new Group()
+                    .add(new Group("Posts")
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            assertEquals(List.of("Posts"),
+                    group.groupPathFor(TestListContract.class).orElseThrow());
+        }
+
+        @Test
+        void groupPathFor_skips_unlabeled_intermediate_group() {
+            final Group group = new Group("Admin")
+                    .add(new Group()
+                            .bind(TestListContract.class, TestListContract::new, () -> null));
+
+            assertEquals(List.of("Admin"),
+                    group.groupPathFor(TestListContract.class).orElseThrow());
+        }
+
+        @Test
+        void groupPathFor_returns_deep_path_for_nested_binding() {
+            final Group group = new Group("Admin")
+                    .add(new Group("Content")
+                            .add(new Group("Posts")
+                                    .bind(TestListContract.class, TestListContract::new, () -> null)));
+
+            assertEquals(List.of("Admin", "Content", "Posts"),
+                    group.groupPathFor(TestListContract.class).orElseThrow());
+        }
+
+        @Test
+        void groupPathFor_picks_owning_group_when_multiple_groups() {
+            final Group group = new Group("Root")
+                    .add(new Group("Posts")
+                            .bind(TestListContract.class, TestListContract::new, () -> null))
+                    .add(new Group("Comments")
+                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
+
+            assertEquals(List.of("Root", "Posts"),
+                    group.groupPathFor(TestListContract.class).orElseThrow());
+            assertEquals(List.of("Root", "Comments"),
+                    group.groupPathFor(TestCreateContract.class).orElseThrow());
+        }
+
+        @Test
+        void groupPathFor_rejects_null_input() {
+            final Group group = new Group("Posts");
+
+            assertThrows(NullPointerException.class, () -> group.groupPathFor(null));
+        }
+
+        @Test
         void composition_merges_multiple_groups() {
             final Router router = new Router().route("/items", TestListContract.class);
             final Group main = new Group("Main")

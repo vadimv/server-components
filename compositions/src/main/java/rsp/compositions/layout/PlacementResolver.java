@@ -1,12 +1,15 @@
 package rsp.compositions.layout;
 
+import rsp.compositions.composition.Group;
 import rsp.compositions.contract.Scene;
 import rsp.compositions.contract.ViewContract;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Queue;
 import java.util.Set;
 
@@ -20,7 +23,8 @@ public final class PlacementResolver {
             Class<? extends ViewContract> contractClass,
             Scene scene,
             Map<Class<? extends ViewContract>, Placement> placements,
-            GroupPlacementPolicy groupPlacementPolicy) {
+            GroupPlacementPolicy groupPlacementPolicy,
+            Group contracts) {
         Objects.requireNonNull(contractClass, "contractClass");
         Objects.requireNonNull(placements, "placements");
         Objects.requireNonNull(groupPlacementPolicy, "groupPlacementPolicy");
@@ -32,16 +36,35 @@ public final class PlacementResolver {
 
         return switch (groupPlacementPolicy) {
             case ALL_INLINE -> PlacementDecision.groupPolicy(Placement.INLINE.primary());
-            case FIRST_INLINE_OTHER_MODAL -> firstInlineOtherModal(scene);
+            case FIRST_IN_SCENE_INLINE_OTHERS_MODAL -> firstInScene(scene);
+            case FIRST_IN_GROUP_INLINE_OTHERS_MODAL -> firstInGroup(contractClass, scene, contracts);
             case ALL_MODAL -> PlacementDecision.groupPolicy(Placement.MODAL);
         };
     }
 
-    private static PlacementDecision firstInlineOtherModal(Scene scene) {
+    private static PlacementDecision firstInScene(Scene scene) {
         if (scene == null || scene.routedRuntime() == null) {
             return PlacementDecision.groupPolicy(Placement.INLINE.primary());
         }
         return PlacementDecision.groupPolicy(Placement.MODAL);
+    }
+
+    private static PlacementDecision firstInGroup(Class<? extends ViewContract> targetClass,
+                                                  Scene scene,
+                                                  Group contracts) {
+        if (scene == null || scene.routedRuntime() == null) {
+            return PlacementDecision.groupPolicy(Placement.INLINE.primary());
+        }
+        if (contracts == null) {
+            return PlacementDecision.groupPolicy(Placement.MODAL);
+        }
+        Class<? extends ViewContract> routedClass = scene.routedRuntime().contractClass();
+        Optional<List<String>> targetPath = contracts.groupPathFor(targetClass);
+        Optional<List<String>> routedPath = contracts.groupPathFor(routedClass);
+        if (targetPath.isPresent() && targetPath.equals(routedPath)) {
+            return PlacementDecision.groupPolicy(Placement.MODAL);
+        }
+        return PlacementDecision.groupPolicy(Placement.INLINE.primary());
     }
 
     private static RuleMatch findBestRule(

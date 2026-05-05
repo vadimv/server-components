@@ -139,6 +139,21 @@ public class Group {
     }
 
     /**
+     * Returns the labeled group path that owns the given contract class.
+     * <p>
+     * The path is built from this group to the group where the contract was
+     * directly bound. Unlabeled groups are skipped, which keeps merged/root
+     * infrastructure groups out of placement decisions.
+     *
+     * @param contractClass The contract class to locate
+     * @return the owning labeled path, or empty if the contract is not bound
+     */
+    public Optional<List<String>> groupPathFor(Class<? extends ViewContract> contractClass) {
+        Objects.requireNonNull(contractClass, "contractClass");
+        return groupPathFor(contractClass, List.of());
+    }
+
+    /**
      * Extract a lightweight metadata tree from this group.
      * Contains only labels and contract classes — no factories or views.
      *
@@ -153,6 +168,25 @@ public class Group {
                 description,
                 List.copyOf(childNodes),
                 List.copyOf(contractFactories.keySet()));
+    }
+
+    private Optional<List<String>> groupPathFor(Class<? extends ViewContract> contractClass,
+                                                List<String> parentPath) {
+        List<String> currentPath = parentPath;
+        if (label != null) {
+            currentPath = new ArrayList<>(parentPath);
+            currentPath.add(label);
+        }
+        if (contractFactories.containsKey(contractClass)) {
+            return Optional.of(List.copyOf(currentPath));
+        }
+        for (Group child : children) {
+            Optional<List<String>> childPath = child.groupPathFor(contractClass, currentPath);
+            if (childPath.isPresent()) {
+                return childPath;
+            }
+        }
+        return Optional.empty();
     }
 
     private Supplier<? extends Component<?>> findView(Class<? extends ViewContract> contractClass) {

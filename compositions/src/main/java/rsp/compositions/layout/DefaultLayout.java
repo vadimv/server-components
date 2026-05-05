@@ -100,7 +100,8 @@ public final class DefaultLayout implements Layout {
     @Override
     public PlacementDecision resolvePlacement(Class<? extends ViewContract> contractClass,
                                               Scene scene) {
-        return PlacementResolver.resolve(contractClass, scene, placements, groupPlacementPolicy);
+        return PlacementResolver.resolve(contractClass, scene, placements, groupPlacementPolicy,
+                scene != null ? scene.contracts() : null);
     }
 
     @Override
