@@ -10,10 +10,14 @@ import rsp.compositions.composition.Group;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.layout.PlacementDecision;
 import rsp.compositions.routing.Router;
+import rsp.server.http.Fragment;
+import rsp.server.http.Query;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -78,11 +82,45 @@ public final class SceneBuilder {
             scene = buildAutoOpenScene(context, parentRoute.get());
         } else {
             scene = buildStandardScene(context);
+            // Inline placement reached via direct URL hit on a child route
+            // (e.g., refresh of /comments/3, or shared link): seed a return target
+            // so save/cancel navigates back to the parent list, mirroring the
+            // SHOW-driven inline flow. Without this, ACTION_SUCCESS would refresh
+            // the form in place and Save/Cancel would appear to do nothing.
+            if (parentRoute.isPresent()) {
+                Scene.InlineReturnTarget rt = new Scene.InlineReturnTarget(
+                        parentRoute.get().contractClass(),
+                        parentRoute.get().pattern(),
+                        captureQuery(context),
+                        captureFragment(context));
+                scene = scene.withInlineReturnTarget(rt);
+            }
         }
 
         startServicesLifecycleHandlers(context);
 
         return scene;
+    }
+
+    private Query captureQuery(ComponentContext context) {
+        String prefix = ContextKeys.URL_QUERY.baseKey() + ".";
+        Map<String, Object> entries = context.stringEntriesWithPrefix(prefix);
+        if (entries.isEmpty()) {
+            return Query.EMPTY;
+        }
+        List<Query.Parameter> params = new ArrayList<>(entries.size());
+        for (Map.Entry<String, Object> e : entries.entrySet()) {
+            String name = e.getKey().substring(prefix.length());
+            if (e.getValue() instanceof String value) {
+                params.add(new Query.Parameter(name, value));
+            }
+        }
+        return params.isEmpty() ? Query.EMPTY : new Query(params);
+    }
+
+    private Fragment captureFragment(ComponentContext context) {
+        String value = context.get(ContextKeys.URL_FRAGMENT);
+        return (value == null || value.isEmpty()) ? Fragment.EMPTY : new Fragment(value);
     }
 
     /**

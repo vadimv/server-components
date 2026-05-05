@@ -103,10 +103,50 @@ public final class SceneEventHandler {
             state.routedRuntime().destroy();
         }
 
+        // Update the URL bar to reflect the now-routed inline contract (e.g. /comments/3).
+        // The Router's pattern is the source of truth for URL shape; we substitute path
+        // parameters from the SHOW payload data and preserve the current query state.
+        publishInlineUrlUpdate(state, contractClass, payload.data(), commandsEnqueue);
+
         stateUpdate.applyStateTransformation(s -> {
             Scene next = s.withRoutedRuntime(newRuntime);
             return returnTarget != null ? next.withInlineReturnTarget(returnTarget) : next;
         });
+    }
+
+    private void publishInlineUrlUpdate(Scene state,
+                                        Class<? extends ViewContract> contractClass,
+                                        Map<String, Object> showData,
+                                        CommandsEnqueue commandsEnqueue) {
+        Composition composition = state.composition();
+        if (composition == null || composition.router() == null) {
+            return;
+        }
+        String pattern = composition.router().findRoutePattern(contractClass).orElse(null);
+        if (pattern == null) {
+            return;
+        }
+        String resolvedPath = substitutePathParams(pattern, showData);
+        Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
+        RelativeUrl url = new RelativeUrl(Path.of(resolvedPath), captureQuery(), captureFragment());
+        lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
+                       new AutoAddressBarSyncComponent.PathUpdate(url, UPDATE_PATH_ONLY));
+    }
+
+    /**
+     * Substitute {@code :name} placeholders in a route pattern with values from
+     * SHOW data. Unknown parameters are left as-is.
+     */
+    private static String substitutePathParams(String pattern, Map<String, Object> data) {
+        if (data == null || data.isEmpty() || !pattern.contains(":")) {
+            return pattern;
+        }
+        String result = pattern;
+        for (Map.Entry<String, Object> entry : data.entrySet()) {
+            if (entry.getValue() == null) continue;
+            result = result.replace(":" + entry.getKey(), String.valueOf(entry.getValue()));
+        }
+        return result;
     }
 
     /**

@@ -334,7 +334,7 @@ class PostsSmokeIT {
         String titleToDelete = lastRow.locator("td").nth(2).textContent().trim();
 
         // Click Edit on last post
-        lastRow.locator("button.edit-button").click();
+        lastRow.locator(".edit-button").click();
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Setup dialog handler before clicking delete
@@ -424,7 +424,7 @@ class PostsSmokeIT {
     }
 
     private void clickEditButton(final Page page, final int rowIndex) {
-        primaryScope(page).locator("tbody tr").nth(rowIndex - 1).locator("button.edit-button").click();
+        primaryScope(page).locator("tbody tr").nth(rowIndex - 1).locator(".edit-button").click();
     }
 
     private void fillPostForm(final Page page, final String title, final String content) {
