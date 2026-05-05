@@ -218,6 +218,24 @@ public final class ComponentContext {
     }
 
     /**
+     * Returns an immutable snapshot of all string-keyed entries whose key starts
+     * with the given prefix.
+     *
+     * @param prefix the key prefix to filter on (e.g. {@code "url.query."})
+     * @return an unmodifiable map of matching key→value entries
+     */
+    public Map<String, Object> stringEntriesWithPrefix(final String prefix) {
+        Objects.requireNonNull(prefix, "prefix cannot be null");
+        final Map<String, Object> matches = new HashMap<>();
+        for (Map.Entry<String, Object> entry : stringBased.entrySet()) {
+            if (entry.getKey().startsWith(prefix)) {
+                matches.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return Map.copyOf(matches);
+    }
+
+    /**
      * Creates a new context with a service/component instance added.
      * Convenience method that wraps the class with a class as a key.
      * @param instances the instances map to store

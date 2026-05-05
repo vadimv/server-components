@@ -313,6 +313,14 @@ public final class ContextKeys {
     public static final ContextKey.StringKey<Path> URL_PATH_FULL =
             new ContextKey.StringKey<>("url.path", Path.class);
 
+    /**
+     * Current URL fragment (the part after {@code #}).
+     * Populated by AutoAddressBarSyncComponent when the URL has a non-empty fragment.
+     * Type: String
+     */
+    public static final ContextKey.StringKey<String> URL_FRAGMENT =
+            new ContextKey.StringKey<>("url.fragment", String.class);
+
     // ===== DYNAMIC KEYS (Builder pattern for parameterized keys) =====
 
     /**

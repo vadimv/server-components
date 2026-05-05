@@ -9,8 +9,10 @@ import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 
 import static rsp.compositions.contract.ActionBindings.ShowPayload;
@@ -86,6 +88,11 @@ public final class SceneEventHandler {
             return;
         }
 
+        // Capture the current routed contract as a return target before destroying it,
+        // so a later ACTION_SUCCESS from the inline form can restore the previous view
+        // (e.g., Save/Cancel on an inline edit form returns to the list).
+        final Scene.InlineReturnTarget returnTarget = captureInlineReturnTarget(state);
+
         ContractRuntime newRuntime = resolveAndInstantiate(state, contractClass, commandsEnqueue,
                 true, payload.data());
         if (newRuntime == null) {
@@ -96,7 +103,57 @@ public final class SceneEventHandler {
             state.routedRuntime().destroy();
         }
 
-        stateUpdate.applyStateTransformation(s -> s.withRoutedRuntime(newRuntime));
+        stateUpdate.applyStateTransformation(s -> {
+            Scene next = s.withRoutedRuntime(newRuntime);
+            return returnTarget != null ? next.withInlineReturnTarget(returnTarget) : next;
+        });
+    }
+
+    /**
+     * Capture the URL state of the currently routed contract for later restoration
+     * after an inline placement.
+     * <p>
+     * Returns {@code null} when there is no routed contract or the routed contract
+     * has no registered route (e.g., IDE-style UIs without a router).
+     */
+    private Scene.InlineReturnTarget captureInlineReturnTarget(Scene state) {
+        if (state.routedRuntime() == null) {
+            return null;
+        }
+        Composition composition = state.composition();
+        if (composition == null || composition.router() == null) {
+            return null;
+        }
+        Class<? extends ViewContract> prevClass = state.routedRuntime().contractClass();
+        String prevRoute = composition.router().findRoutePattern(prevClass).orElse(null);
+        if (prevRoute == null) {
+            return null;
+        }
+        return new Scene.InlineReturnTarget(prevClass, prevRoute, captureQuery(), captureFragment());
+    }
+
+    private Query captureQuery() {
+        String prefix = ContextKeys.URL_QUERY.baseKey() + ".";
+        Map<String, Object> entries = savedContext.stringEntriesWithPrefix(prefix);
+        if (entries.isEmpty()) {
+            return Query.EMPTY;
+        }
+        List<Query.Parameter> params = new ArrayList<>(entries.size());
+        for (Map.Entry<String, Object> e : entries.entrySet()) {
+            String name = e.getKey().substring(prefix.length());
+            if (e.getValue() instanceof String value) {
+                params.add(new Query.Parameter(name, value));
+            }
+        }
+        return params.isEmpty() ? Query.EMPTY : new Query(params);
+    }
+
+    private Fragment captureFragment() {
+        String value = savedContext.get(ContextKeys.URL_FRAGMENT);
+        if (value == null || value.isEmpty()) {
+            return Fragment.EMPTY;
+        }
+        return new Fragment(value);
     }
 
     /**
@@ -141,7 +198,10 @@ public final class SceneEventHandler {
             }
         }
 
-        stateUpdate.applyStateTransformation(s -> s.withRoutedRuntime(newRuntime));
+        // SET_PRIMARY is a fresh navigation — clear any pending inline return target
+        // so a subsequent ACTION_SUCCESS does not bounce the user back to a stale view.
+        stateUpdate.applyStateTransformation(s ->
+                s.withRoutedRuntime(newRuntime).clearInlineReturnTarget());
     }
 
     /**
@@ -198,11 +258,16 @@ public final class SceneEventHandler {
     }
 
     /**
-     * Handle ACTION_SUCCESS: always refresh the routed contract.
+     * Handle ACTION_SUCCESS: refresh the routed contract, or restore the previous
+     * routed contract if the current routed runtime is an inline replacement.
      * <p>
-     * Any successful action (whether from the routed contract itself or from a layer)
-     * may have modified data visible in the routed view. LayerComponent handles
-     * closing the overlay; this handler ensures the routed list reflects current data.
+     * Restore path: when an inline form (e.g., create/edit replacing a list inline)
+     * completes its action, navigate back to the captured previous routed contract,
+     * preserving the query state and fragment that were active at SHOW time.
+     * <p>
+     * Refresh path (existing behaviour): any successful action — from the routed
+     * contract or from a layer — may have modified data visible in the routed view.
+     * Re-instantiate the routed contract, preserving its query state.
      */
     private void handleActionSuccess(Scene state,
                                      ActionResult result,
@@ -212,18 +277,45 @@ public final class SceneEventHandler {
         if (contractClass == null) {
             return;
         }
-
-        // Always refresh routed contract — the action may have modified visible data.
-        // stripQueryParams=false: same contract class, preserve pagination/sort/filter
-        // query state across the refresh (e.g. stay on ?p=2 after Save/Cancel).
         if (state.routedRuntime() == null) {
             return;
         }
+
+        Scene.InlineReturnTarget returnTarget = state.inlineReturnTarget();
+        if (returnTarget != null
+                && state.routedRuntime().contractClass().equals(contractClass)) {
+            restoreInlineReturn(state, returnTarget, commandsEnqueue, stateUpdate);
+            return;
+        }
+
+        // In-place refresh — same contract class, preserve query state.
         Class routedClass = state.routedRuntime().contractClass();
         state.routedRuntime().destroy();
         ContractRuntime refreshed = resolveAndInstantiate(state, routedClass, commandsEnqueue, false);
         if (refreshed != null) {
             stateUpdate.applyStateTransformation(s -> s.withRoutedRuntime(refreshed));
         }
+    }
+
+    private void restoreInlineReturn(Scene state,
+                                     Scene.InlineReturnTarget target,
+                                     CommandsEnqueue commandsEnqueue,
+                                     StateUpdate<Scene> stateUpdate) {
+        state.routedRuntime().destroy();
+        // stripQueryParams=true: we'll set the canonical URL state from the captured
+        // return target rather than relying on whatever savedContext currently holds.
+        ContractRuntime restored = resolveAndInstantiate(state, target.contractClass(),
+                commandsEnqueue, true);
+        if (restored == null) {
+            return;
+        }
+
+        Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
+        RelativeUrl url = new RelativeUrl(Path.of(target.route()), target.query(), target.fragment());
+        lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
+                       new AutoAddressBarSyncComponent.PathUpdate(url, UPDATE_PATH_ONLY));
+
+        stateUpdate.applyStateTransformation(s ->
+                s.withRoutedRuntime(restored).clearInlineReturnTarget());
     }
 }
