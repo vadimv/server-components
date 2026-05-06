@@ -24,6 +24,6 @@ public class UrlSyncComponent extends AutoAddressBarSyncComponent {
     @Override
     public ComponentView<RelativeUrl> componentView() {
         // RoutingComponent reads url.path from context (populated by parent's subComponentsContext)
-        return _ -> _ -> new RoutingComponent();
+        return _ -> state -> new RoutingComponent(state.path());
     }
 }

@@ -29,11 +29,33 @@ import java.util.function.BiFunction;
  * <p>
  * Note: This component does NOT depend on HttpRequest - it reads the path from context,
  * allowing for better separation of concerns and testability.
+ * <p>
+ * Runtime identity is keyed by URL path, not by the full URL. The path answers
+ * "which route/contract/composition is active?" and therefore changing it must
+ * force a fresh route match. Query parameters and fragments answer "what state
+ * does the current route have?" (pagination, sorting, filters, anchors), so
+ * changing them should flow through context without recreating the route shell
+ * or stable layout companions such as prompt/sidebar contracts.
  */
 public class RoutingComponent extends Component<RoutingComponent.RoutingComponentState> {
 
     public RoutingComponent() {
-        super();
+        this(null);
+    }
+
+    /**
+     * Create a routing shell keyed by route path.
+     * <p>
+     * Component reconciliation uses {@code componentType} as identity. Including
+     * the path means {@code /posts?p=1 -> /posts?p=2} reuses this component and
+     * refreshes downstream context, while {@code /posts -> /comments} creates a
+     * new routing component and recomputes route state.
+     *
+     * @param routePath the URL path used as route identity; query and fragment
+     *                  are intentionally excluded
+     */
+    public RoutingComponent(Path routePath) {
+        super(new RoutingComponentType(routePath != null ? routePath.toString() : ""));
     }
 
     /**
@@ -84,6 +106,11 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
         return _ -> _ -> new AuthComponent();
     }
 
+    @Override
+    public boolean isReusable() {
+        return true;
+    }
+
     public record RoutingComponentState(
             Composition composition,
             Class<? extends ViewContract> contractClass,
@@ -97,4 +124,6 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
             Objects.requireNonNull(pattern, "pattern");
         }
     }
+
+    private record RoutingComponentType(String routePath) {}
 }

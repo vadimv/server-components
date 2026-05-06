@@ -113,6 +113,11 @@ public class SceneComponent extends Component<Scene> {
         stopServicesLifecycleHandlers(scene);
     }
 
+    @Override
+    public boolean isReusable() {
+        return true;
+    }
+
     private void stopServicesLifecycleHandlers(Scene scene) {
         Composition composition = scene.composition();
         if (composition == null) return;

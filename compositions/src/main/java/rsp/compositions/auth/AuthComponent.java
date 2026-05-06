@@ -63,10 +63,14 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
     @Override
     public BiFunction<ComponentContext, AuthComponentState, ComponentContext> subComponentsContext() {
-        return (context, state) -> context
-                .with(ContextKeys.AUTH_USER, state.user())
-                .with(ContextKeys.AUTH_AUTHENTICATED, state.authenticated())
-                .with(ContextKeys.AUTH_ROLES, state.roles());
+        return (context, state) -> {
+            this.savedContext = context;
+            this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
+            return context
+                    .with(ContextKeys.AUTH_USER, state.user())
+                    .with(ContextKeys.AUTH_AUTHENTICATED, state.authenticated())
+                    .with(ContextKeys.AUTH_ROLES, state.roles());
+        };
     }
 
     @Override
@@ -91,6 +95,11 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
                                       pattern,
                                       composition.layout());
         };
+    }
+
+    @Override
+    public boolean isReusable() {
+        return true;
     }
 
     public record AuthComponentState(Object user, boolean authenticated, String[] roles) {
