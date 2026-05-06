@@ -110,18 +110,23 @@ public abstract class ListViewContract<T> extends ViewContract {
 
     /**
      * Get schema - auto-extracted from items + customization.
-     * Schema is cached after first access to avoid repeated extraction.
-     * 
+     * <p>
+     * Cached after the first <em>non-empty</em> {@link #items()} call to avoid
+     * repeated extraction. When items is empty, a (non-cached) empty schema is
+     * returned so that a later call with items present can compute and cache
+     * the real schema.
+     *
      * @return DataSchema for rendering list columns
      */
     public DataSchema schema() {
-        if (cachedSchema == null) {
-            List<T> items = items();
-            DataSchema baseSchema = items.isEmpty()
-                ? new DataSchema(List.of())
-                : DataSchema.fromFirstItem(items.get(0));
-            cachedSchema = customizeSchema(baseSchema);
+        if (cachedSchema != null) {
+            return cachedSchema;
         }
+        List<T> items = items();
+        if (items.isEmpty()) {
+            return customizeSchema(new DataSchema(List.of()));
+        }
+        cachedSchema = customizeSchema(DataSchema.fromFirstItem(items.get(0)));
         return cachedSchema;
     }
 
