@@ -12,6 +12,7 @@ import rsp.compositions.contract.ViewContract;
 
 import rsp.dsl.Definition;
 
+import java.util.Objects;
 import java.util.function.BiFunction;
 
 /**
@@ -30,9 +31,6 @@ import java.util.function.BiFunction;
  */
 public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
 
-    private ComponentContext savedContext;
-    private AuthProvider authProvider;
-
     public AuthComponent() {
         super();
     }
@@ -40,60 +38,41 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
     @Override
     public ComponentStateSupplier<AuthComponentState> initStateSupplier() {
         return (_, context) -> {
-            this.savedContext = context;
-
-            // Read auth provider from context
-            this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
-
+            final AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
             if (authProvider == null) {
                 // No auth provider configured - anonymous access
-                return new AuthComponentState(null, false, new String[0]);
+                return stateFrom(context, authProvider, AuthResult.anonymous());
             }
 
             // Authenticate user
-            AuthResult authResult = authProvider.authenticate(context);
-
-            return new AuthComponentState(
-                authResult.user(),
-                authResult.authenticated(),
-                authResult.roles()
-            );
+            return stateFrom(context, authProvider, authProvider.authenticate(context));
         };
     }
 
     @Override
     public BiFunction<ComponentContext, AuthComponentState, ComponentContext> subComponentsContext() {
-        return (context, state) -> {
-            this.savedContext = context;
-            this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
-            return context
-                    .with(ContextKeys.AUTH_USER, state.user())
-                    .with(ContextKeys.AUTH_AUTHENTICATED, state.authenticated())
-                    .with(ContextKeys.AUTH_ROLES, state.roles());
-        };
+        return (context, state) -> context
+                .with(ContextKeys.AUTH_USER, state.user())
+                .with(ContextKeys.AUTH_AUTHENTICATED, state.authenticated())
+                .with(ContextKeys.AUTH_ROLES, state.roles());
     }
 
     @Override
     public ComponentView<AuthComponentState> componentView() {
         return _ -> state -> {
-            if (authProvider != null && !state.authenticated()) {
-                String currentPath = savedContext.get(ContextKeys.ROUTE_PATH);
-                Definition gate = authProvider.gateResponse(currentPath);
+            if (state.authProvider() != null && !state.authenticated()) {
+                Definition gate = state.authProvider().gateResponse(state.path());
                 if (gate != null) {
                     return gate;
                 }
             }
 
             // Pass through — create SceneComponent from routing context
-            Composition composition = savedContext.get(ContextKeys.ROUTE_COMPOSITION);
-            Class<? extends ViewContract> contractClass = savedContext.get(ContextKeys.ROUTE_CONTRACT_CLASS);
-            String path = savedContext.get(ContextKeys.ROUTE_PATH);
-            String pattern = savedContext.get(ContextKeys.ROUTE_PATTERN);
-            return new SceneComponent(path,
-                                      composition,
-                                      contractClass,
-                                      pattern,
-                                      composition.layout());
+            return new SceneComponent(state.path(),
+                                      state.composition(),
+                                      state.contractClass(),
+                                      state.pattern(),
+                                      state.composition().layout());
         };
     }
 
@@ -102,7 +81,41 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
         return true;
     }
 
-    public record AuthComponentState(Object user, boolean authenticated, String[] roles) {
+    private static AuthComponentState stateFrom(ComponentContext context,
+                                                AuthProvider authProvider,
+                                                AuthResult authResult) {
+        Objects.requireNonNull(authResult, "authResult");
+        return new AuthComponentState(
+                authResult.user(),
+                authResult.authenticated(),
+                authResult.roles(),
+                authProvider,
+                context.getRequired(ContextKeys.ROUTE_COMPOSITION),
+                context.getRequired(ContextKeys.ROUTE_CONTRACT_CLASS),
+                context.getRequired(ContextKeys.ROUTE_PATH),
+                context.getRequired(ContextKeys.ROUTE_PATTERN));
+    }
+
+    public record AuthComponentState(Object user,
+                                     boolean authenticated,
+                                     String[] roles,
+                                     AuthProvider authProvider,
+                                     Composition composition,
+                                     Class<? extends ViewContract> contractClass,
+                                     String path,
+                                     String pattern) {
+        public AuthComponentState {
+            roles = roles != null ? roles.clone() : new String[0];
+            Objects.requireNonNull(composition, "composition");
+            Objects.requireNonNull(contractClass, "contractClass");
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(pattern, "pattern");
+        }
+
+        @Override
+        public String[] roles() {
+            return roles.clone();
+        }
     }
 
     /**
