@@ -76,7 +76,8 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      * Payload for SET_PATH events.
      *
      * @param url the target URL (path + query + fragment — callers must decide all three)
-     * @param mode whether to update component state (re-render subtree) or update URL only
+     * @param mode how the target URL should be reflected in browser history and
+     *             component state
      */
     public record PathUpdate(RelativeUrl url, PathUpdateMode mode) {
         public PathUpdate {
@@ -86,14 +87,20 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     }
 
     /**
-     * Both modes update the component's {@link RelativeUrl} state — the URL bar
-     * and the state must agree at every render (Invariant 1: URL state in
-     * context reflects the URL shown to the user). The mode distinction is
-     * preserved for callers that want to express intent.
+     * State-updating modes update the component's {@link RelativeUrl} state and
+     * push browser history, keeping URL-derived context aligned with the address
+     * bar at the next render.
+     * <p>
+     * {@link #PUSH_URL_ONLY} is intentionally narrower: it pushes browser
+     * history without changing this component's state. Use it only when another
+     * component has already applied the navigation locally and the URL change is
+     * a decoration of that local transition, not a request for the router to
+     * rebuild the subtree.
      */
     public enum PathUpdateMode {
         RE_RENDER_SUBTREE,
-        UPDATE_PATH_ONLY
+        UPDATE_PATH_ONLY,
+        PUSH_URL_ONLY
     }
 
     public static final EventKey.SimpleKey<PathUpdate> SET_PATH =
@@ -201,11 +208,12 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
                                               CommandsEnqueue commandsEnqueue,
                                               StateUpdate<RelativeUrl> stateUpdate) {
         subscriber.addEventHandler(SET_PATH, (eventName, pathUpdate) -> {
-            // Both modes update state and push history. The mode tag is preserved for
-            // caller intent but does not change behaviour: the URL bar and the
-            // RelativeUrl state must always agree (Invariant 1). Without state update
-            // here, downstream renders observe a stale URL via subComponentsContext.
             final RelativeUrl target = pathUpdate.url();
+            if (pathUpdate.mode() == PathUpdateMode.PUSH_URL_ONLY) {
+                commandsEnqueue.offer(new RemoteCommand.PushHistory(target.toString()));
+                return;
+            }
+
             stateUpdate.applyStateTransformation(url -> {
                 commandsEnqueue.offer(new RemoteCommand.PushHistory(target.toString()));
                 return target;

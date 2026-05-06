@@ -17,6 +17,7 @@ import java.util.function.Function;
 
 import static rsp.compositions.contract.ActionBindings.ShowPayload;
 import static rsp.compositions.contract.EventKeys.*;
+import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.PUSH_URL_ONLY;
 import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.UPDATE_PATH_ONLY;
 
 /**
@@ -130,7 +131,7 @@ public final class SceneEventHandler {
         Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
         RelativeUrl url = new RelativeUrl(Path.of(resolvedPath), captureQuery(), captureFragment());
         lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                       new AutoAddressBarSyncComponent.PathUpdate(url, UPDATE_PATH_ONLY));
+                       new AutoAddressBarSyncComponent.PathUpdate(url, PUSH_URL_ONLY));
     }
 
     /**

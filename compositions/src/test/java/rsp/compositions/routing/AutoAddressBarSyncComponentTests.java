@@ -21,6 +21,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.PUSH_URL_ONLY;
 import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.RE_RENDER_SUBTREE;
 import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.UPDATE_PATH_ONLY;
 
@@ -28,10 +29,13 @@ import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMod
  * Tests for {@link AutoAddressBarSyncComponent} encoding the URL-state
  * invariants described in the architecture analysis:
  * <ul>
- *   <li><b>Invariant 1</b>: every {@code SET_PATH} event updates the
+ *   <li><b>Invariant 1</b>: every state-updating {@code SET_PATH} event updates the
  *       component's {@link RelativeUrl} state — the URL bar shown to the user
  *       and the state populated into context must always agree. This holds
- *       regardless of the {@code PathUpdateMode}.</li>
+ *       for the route-navigation modes.</li>
+ *   <li>{@code PUSH_URL_ONLY} is the explicit escape hatch for scene-local
+ *       transitions that already updated their own runtime and only need to
+ *       decorate browser history.</li>
  *   <li>Browser history is pushed on every URL change.</li>
  *   <li>Subsequent query-parameter updates use the latest state as their
  *       base, so chained navigations compose correctly.</li>
@@ -84,6 +88,21 @@ class AutoAddressBarSyncComponentTests {
                 new AutoAddressBarSyncComponent.PathUpdate(target, UPDATE_PATH_ONLY));
 
             assertEquals("/comments?p=5#anchor", h.stateUpdate.state().toString());
+        }
+
+        @Test
+        void push_url_only_pushes_history_without_updating_state() {
+            Harness h = harnessOn("/posts?p=2");
+            RelativeUrl target = url("/posts/7");
+
+            h.subscriber.emitComponentEvent(
+                AutoAddressBarSyncComponent.SET_PATH.name(),
+                new AutoAddressBarSyncComponent.PathUpdate(target, PUSH_URL_ONLY));
+
+            assertEquals("/posts?p=2", h.stateUpdate.state().toString(),
+                    "scene-local URL decoration must not re-render the route subtree");
+            assertEquals(List.of(new RemoteCommand.PushHistory("/posts/7")),
+                         h.commandsEnqueue.commands());
         }
     }
 
