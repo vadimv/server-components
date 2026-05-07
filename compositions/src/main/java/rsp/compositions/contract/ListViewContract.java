@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static rsp.compositions.contract.ActionBindings.*;
+import static rsp.compositions.contract.EventKeys.SCENE_QUERY_UPDATED;
 import static rsp.compositions.contract.EventKeys.SHOW;
 import static rsp.compositions.contract.EventKeys.STATE_UPDATED;
 
@@ -166,8 +167,7 @@ public abstract class ListViewContract<T> extends ViewContract {
         });
 
         subscribe(PAGE_CHANGE_REQUESTED, (name, newPage) -> {
-            lookup.publish(STATE_UPDATED.with(pageQueryParam().name),
-                    new ContextStateComponent.ContextValue.StringValue(String.valueOf(newPage)));
+            publishQueryUpdate(pageQueryParam().name, String.valueOf(newPage));
         });
 
         subscribe(CREATE_ELEMENT_REQUESTED, () -> {
@@ -198,6 +198,17 @@ public abstract class ListViewContract<T> extends ViewContract {
                 handleBulkDelete(selectedIds);
             }
         });
+    }
+
+    private void publishQueryUpdate(String name, String value) {
+        Scene scene = lookup.get(ContextKeys.SCENE);
+        if (scene != null && scene.effectiveUrl() != null) {
+            lookup.publish(SCENE_QUERY_UPDATED, new EventKeys.SceneQueryUpdate(name, value));
+            return;
+        }
+
+        lookup.publish(STATE_UPDATED.with(name),
+                new ContextStateComponent.ContextValue.StringValue(value));
     }
 
     protected abstract Class<? extends ViewContract> createElementContract();

@@ -3,6 +3,8 @@ package rsp.compositions.contract;
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.routing.Router;
+import rsp.server.http.Query;
+import rsp.server.http.RelativeUrl;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -31,6 +33,7 @@ public final class SceneContextEnricher {
         }
 
         Composition composition = scene.composition();
+        context = applyEffectiveUrl(context, scene, composition);
 
         // Add Scene to context
         ComponentContext enrichedContext = context.with(ContextKeys.SCENE, scene);
@@ -51,6 +54,58 @@ public final class SceneContextEnricher {
         enrichedContext = enrichEditInfo(enrichedContext, composition, composition.router());
 
         return enrichedContext;
+    }
+
+    /**
+     * Apply scene-local URL state before downstream contracts read context.
+     * <p>
+     * PUSH_URL_ONLY transitions update browser history without changing the
+     * root URL component state. The Scene records that effective URL so
+     * contracts observe the same path/query/fragment the browser displays.
+     */
+    private ComponentContext applyEffectiveUrl(ComponentContext context,
+                                               Scene scene,
+                                               Composition composition) {
+        RelativeUrl effectiveUrl = scene.effectiveUrl();
+        if (effectiveUrl == null) {
+            return context;
+        }
+
+        ComponentContext next = context
+                .withoutStringPrefix(ContextKeys.URL_QUERY.baseKey() + ".")
+                .withoutStringPrefix(ContextKeys.URL_PATH.baseKey() + ".");
+
+        next = next
+                .with(ContextKeys.URL_PATH_FULL, effectiveUrl.path())
+                .with(ContextKeys.URL_FRAGMENT,
+                        effectiveUrl.fragment() == null ? "" : effectiveUrl.fragment().fragmentString());
+
+        for (int i = 0; i < effectiveUrl.path().elementsCount(); i++) {
+            next = next.with(ContextKeys.URL_PATH.with(String.valueOf(i)), effectiveUrl.path().get(i));
+        }
+
+        for (Query.Parameter param : effectiveUrl.query().parameters()) {
+            next = next.with(ContextKeys.URL_QUERY.with(param.name()), param.value());
+        }
+
+        if (scene.routedRuntime() == null) {
+            return next;
+        }
+
+        Class<? extends ViewContract> contractClass = scene.routedRuntime().contractClass();
+        next = next
+                .with(ContextKeys.ROUTE_COMPOSITION, composition)
+                .with(ContextKeys.ROUTE_CONTRACT_CLASS, contractClass)
+                .with(ContextKeys.ROUTE_PATH, effectiveUrl.path().toString());
+
+        if (composition.router() != null) {
+            Optional<String> routePattern = composition.router().findRoutePattern(contractClass);
+            if (routePattern.isPresent()) {
+                next = next.with(ContextKeys.ROUTE_PATTERN, routePattern.get());
+            }
+        }
+
+        return next;
     }
 
     /**

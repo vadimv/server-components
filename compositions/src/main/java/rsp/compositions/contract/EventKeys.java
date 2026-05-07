@@ -3,6 +3,8 @@ package rsp.compositions.contract;
 import rsp.component.EventKey;
 import rsp.component.definitions.ContextStateComponent;
 
+import java.util.Objects;
+
 import static rsp.compositions.contract.ActionBindings.*;
 
 public final class EventKeys {
@@ -62,6 +64,30 @@ public final class EventKeys {
      */
     public static final EventKey.DynamicKey<ContextStateComponent.ContextValue> STATE_UPDATED =
             new EventKey.DynamicKey<>("stateUpdated", ContextStateComponent.ContextValue.class);
+
+    /**
+     * Scene-local query update for transitions that pushed browser history
+     * without rebuilding the root route shell.
+     * <p>
+     * Emitted by contracts when {@link ContextKeys#SCENE} carries an effective
+     * URL. Handled by {@link SceneEventHandler}, which updates that effective
+     * URL and pushes browser history while preserving companion runtimes.
+     */
+    public static final EventKey.SimpleKey<SceneQueryUpdate> SCENE_QUERY_UPDATED =
+            new EventKey.SimpleKey<>("scene.query.updated", SceneQueryUpdate.class);
+
+    /**
+     * Query parameter update payload for scene-local URL state.
+     *
+     * @param name query parameter name
+     * @param value query parameter value
+     */
+    public record SceneQueryUpdate(String name, String value) {
+        public SceneQueryUpdate {
+            Objects.requireNonNull(name, "name");
+            Objects.requireNonNull(value, "value");
+        }
+    }
 
 
     /**

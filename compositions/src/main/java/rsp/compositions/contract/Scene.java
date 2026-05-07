@@ -5,6 +5,7 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
+import rsp.server.http.RelativeUrl;
 
 import java.util.*;
 import java.util.function.Function;
@@ -39,6 +40,9 @@ import java.util.function.Function;
  *                           used by {@link SceneEventHandler} to restore the previous routed
  *                           contract on ACTION_SUCCESS (e.g., save/cancel of an inline form).
  *                           Null when no inline replacement is active.
+ * @param effectiveUrl Scene-local URL state for primary/inline transitions that
+ *                     update browser history without rebuilding the route shell.
+ *                     Null means the inherited URL context is authoritative.
  */
 public record Scene(ContractRuntime routedRuntime,
                     Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes,
@@ -48,7 +52,8 @@ public record Scene(ContractRuntime routedRuntime,
                     long timestamp,
                     AutoOpen autoOpen,
                     String pageTitle,
-                    InlineReturnTarget inlineReturnTarget) {
+                    InlineReturnTarget inlineReturnTarget,
+                    RelativeUrl effectiveUrl) {
     public Scene {
         Objects.requireNonNull(companionRuntimes, "companionRuntimes");
         Objects.requireNonNull(lazyFactories, "lazyFactories");
@@ -192,7 +197,7 @@ public record Scene(ContractRuntime routedRuntime,
      */
     public Scene withRoutedRuntime(ContractRuntime runtime) {
         return new Scene(runtime, companionRuntimes, lazyFactories, preActivatedRuntimes,
-                composition, timestamp, autoOpen, titleOf(runtime), inlineReturnTarget);
+                composition, timestamp, autoOpen, titleOf(runtime), inlineReturnTarget, effectiveUrl);
     }
 
     /**
@@ -200,7 +205,7 @@ public record Scene(ContractRuntime routedRuntime,
      */
     public Scene withInlineReturnTarget(InlineReturnTarget target) {
         return new Scene(routedRuntime, companionRuntimes, lazyFactories, preActivatedRuntimes,
-                composition, timestamp, autoOpen, pageTitle, target);
+                composition, timestamp, autoOpen, pageTitle, target, effectiveUrl);
     }
 
     /**
@@ -208,7 +213,19 @@ public record Scene(ContractRuntime routedRuntime,
      */
     public Scene clearInlineReturnTarget() {
         return new Scene(routedRuntime, companionRuntimes, lazyFactories, preActivatedRuntimes,
-                composition, timestamp, autoOpen, pageTitle, null);
+                composition, timestamp, autoOpen, pageTitle, null, effectiveUrl);
+    }
+
+    /**
+     * Create a new Scene with scene-local URL state.
+     * <p>
+     * This is used for transitions that intentionally push browser history
+     * without asking the root router to rebuild. Downstream contracts should
+     * still observe the same path/query/fragment that the browser displays.
+     */
+    public Scene withEffectiveUrl(RelativeUrl url) {
+        return new Scene(routedRuntime, companionRuntimes, lazyFactories, preActivatedRuntimes,
+                composition, timestamp, autoOpen, pageTitle, inlineReturnTarget, url);
     }
 
     /**
@@ -219,7 +236,7 @@ public record Scene(ContractRuntime routedRuntime,
                            Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories,
                            Composition composition) {
         return new Scene(routedRuntime, companionRuntimes, lazyFactories, Map.of(),
-                composition, System.currentTimeMillis(), null, titleOf(routedRuntime), null);
+                composition, System.currentTimeMillis(), null, titleOf(routedRuntime), null, null);
     }
 
     /**
@@ -248,7 +265,7 @@ public record Scene(ContractRuntime routedRuntime,
             }
         }
         return new Scene(routedRuntime, companionRuntimes, lazyFactories, preActivatedRuntimes,
-                composition, System.currentTimeMillis(), autoOpen, title, null);
+                composition, System.currentTimeMillis(), autoOpen, title, null, null);
     }
 
     private static Map<Class<? extends ViewContract>, ViewContract> contractMap(

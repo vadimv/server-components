@@ -52,6 +52,7 @@ class SceneComponentReuseTests {
     void resetCounters() {
         ListContract.reset();
         EditContract.reset();
+        CommentsContract.reset();
         PromptContract.reset();
     }
 
@@ -133,6 +134,66 @@ class SceneComponentReuseTests {
                 "inline SHOW and inline return are scene-local transitions, not route rebuild requests");
     }
 
+    @Test
+    void set_primary_switches_primary_without_recreating_prompt_or_new_runtime() {
+        final ComponentSegment<RelativeUrl> root = renderAppOn("/items?p=1");
+
+        emit(root, EventKeys.SET_PRIMARY.name(), CommentsContract.class);
+        commands.drain(root);
+
+        assertEquals(1, ListContract.created,
+                "SET_PRIMARY starts from the existing routed list runtime");
+        assertEquals(1, ListContract.destroyed,
+                "SET_PRIMARY destroys the previous routed runtime once");
+        assertEquals(1, CommentsContract.created,
+                "SET_PRIMARY should create the new primary once, not recreate it through routing");
+        assertEquals(0, CommentsContract.destroyed,
+                "the selected primary should remain mounted after SET_PRIMARY");
+        assertEquals(1, PromptContract.created,
+                "SET_PRIMARY must preserve stable companion contracts");
+        assertEquals(0, PromptContract.destroyed,
+                "SET_PRIMARY must not destroy the prompt/right-sidebar runtime");
+        assertEquals(List.of("/comments"), commands.pushHistoryTargets(),
+                "SET_PRIMARY should still reflect the selected route in browser history");
+        assertEquals(List.of(AutoAddressBarSyncComponent.PathUpdateMode.PUSH_URL_ONLY),
+                commands.pathUpdateModes(),
+                "SET_PRIMARY is a scene-local transition, not a route rebuild request");
+    }
+
+    @Test
+    void set_primary_clears_stale_query_context_from_previous_primary() {
+        final ComponentSegment<RelativeUrl> root = renderAppOn("/items?p=3");
+
+        emit(root, EventKeys.SET_PRIMARY.name(), CommentsContract.class);
+        commands.drain(root);
+
+        assertEquals(1, CommentsContract.lastPage,
+                "SET_PRIMARY to a different primary contract must not inherit the previous contract's page query");
+        assertEquals("/comments", CommentsContract.lastRoutePath,
+                "scene-local primary navigation must expose the selected route to downstream contracts");
+        assertEquals(List.of("/comments"), commands.pushHistoryTargets(),
+                "browser history should still reflect the selected primary route");
+    }
+
+    @Test
+    void page_change_after_scene_local_set_primary_updates_selected_primary_url() {
+        final ComponentSegment<RelativeUrl> root = renderAppOn("/items?p=3");
+
+        emit(root, EventKeys.SET_PRIMARY.name(), CommentsContract.class);
+        commands.drain(root);
+        emit(root, ListViewContract.PAGE_CHANGE_REQUESTED.name(), 2);
+        commands.drain(root);
+
+        assertEquals(2, CommentsContract.lastPage,
+                "page changes after SET_PRIMARY should update the selected primary's scene-local query state");
+        assertEquals(List.of("/comments", "/comments?p=2"), commands.pushHistoryTargets(),
+                "page changes after SET_PRIMARY must build on the selected primary URL, not the previous route");
+        assertEquals(1, CommentsContract.created,
+                "scene-local query updates should reuse the selected primary runtime");
+        assertEquals(1, PromptContract.created,
+                "scene-local query updates should preserve stable companion runtimes");
+    }
+
     private ComponentSegment<RelativeUrl> renderAppOn(String url) {
         final UrlSyncComponent component = new UrlSyncComponent(parse(url));
         final ComponentContext context = new ComponentContext()
@@ -154,10 +215,12 @@ class SceneComponentReuseTests {
         final Group group = new Group("Items")
                 .bind(ListContract.class, ListContract::new, SceneComponentReuseTests::emptyView)
                 .bind(EditContract.class, EditContract::new, SceneComponentReuseTests::emptyView)
+                .bind(CommentsContract.class, CommentsContract::new, SceneComponentReuseTests::emptyView)
                 .bind(PromptContract.class, PromptContract::new, SceneComponentReuseTests::emptyView);
         final Router router = new Router()
                 .route("/items", ListContract.class)
-                .route("/items/:id", EditContract.class);
+                .route("/items/:id", EditContract.class)
+                .route("/comments", CommentsContract.class);
         final DefaultLayout layout = new DefaultLayout()
                 .placement(EditContract.class, Placement.INLINE.primary())
                 .rightSidebar(PromptContract.class);
@@ -246,6 +309,70 @@ class SceneComponentReuseTests {
         @Override
         public String title() {
             return "Edit";
+        }
+
+        @Override
+        protected void onDestroy() {
+            destroyed++;
+            super.onDestroy();
+        }
+    }
+
+    static final class CommentsContract extends ListViewContract<Object> {
+        private static final QueryParam<Integer> PAGE =
+                new QueryParam<>("p", Integer.class, 1);
+        static int created;
+        static int destroyed;
+        static int lastPage;
+        static String lastRoutePath;
+
+        CommentsContract(Lookup lookup) {
+            super(lookup);
+            created++;
+        }
+
+        static void reset() {
+            created = 0;
+            destroyed = 0;
+            lastPage = 0;
+            lastRoutePath = null;
+        }
+
+        @Override
+        public ComponentContext enrichContext(ComponentContext context) {
+            lastPage = page();
+            lastRoutePath = lookup.get(ContextKeys.ROUTE_PATH);
+            return super.enrichContext(context);
+        }
+
+        @Override
+        public String title() {
+            return "Comments";
+        }
+
+        @Override
+        protected QueryParam<Integer> pageQueryParam() {
+            return PAGE;
+        }
+
+        @Override
+        public String sort() {
+            return "";
+        }
+
+        @Override
+        public List<Object> items() {
+            return List.of();
+        }
+
+        @Override
+        protected Class<? extends ViewContract> createElementContract() {
+            return EditContract.class;
+        }
+
+        @Override
+        protected Class<? extends ViewContract> editElementContract() {
+            return EditContract.class;
         }
 
         @Override

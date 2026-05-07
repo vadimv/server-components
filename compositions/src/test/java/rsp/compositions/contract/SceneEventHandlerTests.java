@@ -278,6 +278,26 @@ class SceneEventHandlerTests {
             assertNull(stateUpdate.current().inlineReturnTarget(),
                     "SET_PRIMARY is a fresh navigation — return target must be cleared");
         }
+
+        @Test
+        void publishes_primary_url_as_scene_local_decoration() {
+            final Composition composition = composition();
+            final Scene initial = sceneWith(composition, ListContract.class);
+            final RecordingSubscriber subscriber = new RecordingSubscriber();
+            final RecordingStateUpdate<Scene> stateUpdate = new RecordingStateUpdate<>(initial);
+            final RecordingCommands commands = new RecordingCommands();
+
+            new SceneEventHandler(savedContextWithUrl(Query.of("p=2"), "section"))
+                    .registerHandlers(initial, subscriber, commands, stateUpdate);
+
+            subscriber.fire(EventKeys.SET_PRIMARY.name(), CommentsContract.class);
+
+            final AutoAddressBarSyncComponent.PathUpdate update = commands.onlyPathUpdate();
+            assertEquals("/comments", update.url().toString(),
+                    "SET_PRIMARY clears stale query and fragment state for the new primary route");
+            assertEquals(PUSH_URL_ONLY, update.mode(),
+                    "the scene already selected the primary; the URL update must not ask routing to do it again");
+        }
     }
 
     // --- Fixtures ----------------------------------------------------------
