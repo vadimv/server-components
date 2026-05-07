@@ -50,6 +50,7 @@ class PostsSmokeIT {
         validateListView(page);
         validatePagination(page);
         validateEditPreservesPagination(page);
+        validateDirectCreateRoute(page);
         validateCreatePost(page);
         validateEditPost(page);
         validateCancel(page);
@@ -170,6 +171,26 @@ class PostsSmokeIT {
         assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
 
         System.out.println("✓ Edit preserves pagination validated successfully");
+    }
+
+    private void validateDirectCreateRoute(final Page page) throws InterruptedException {
+        System.out.println("Testing: Direct Create Route");
+
+        Response response = page.navigate(BASE_URL + "/posts/new");
+        assertEquals(200, response.status(), "Should get 200 OK when navigating to /posts/new");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+
+        assertTrue(page.url().contains("/posts/new"),
+                  "Should stay on /posts/new route, but URL is: " + page.url());
+        assertFormVisible(page, "Create Post");
+
+        cancelForm(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+
+        assertOnPostsList(page);
+        assertThat(primaryScope(page).locator("table")).isVisible();
+
+        System.out.println("✓ Direct create route validated successfully");
     }
 
     private void validateCreatePost(final Page page) throws InterruptedException {
@@ -456,9 +477,18 @@ class PostsSmokeIT {
     }
 
     private void assertFormVisible(final Page page, final String expectedTitle) {
-        Locator scope = formScope(page);
+        assertNoModalVisible(page);
+        Locator scope = primaryScope(page);
         assertThat(scope.locator("h1:has-text(\"" + expectedTitle + "\")")).isVisible();
         assertThat(scope.locator("form")).isVisible();
+    }
+
+    private void assertNoModalVisible(final Page page) {
+        Locator modal = page.locator(".modal-content");
+        if (modal.count() > 0) {
+            assertFalse(modal.first().isVisible(),
+                    "Posts forms should render inline in .layout-primary, not in a modal");
+        }
     }
 
     private void selectRowCheckbox(final Page page, final int rowIndex) {
@@ -470,10 +500,6 @@ class PostsSmokeIT {
     }
 
     private Locator formScope(final Page page) {
-        Locator modal = page.locator(".modal-content");
-        if (modal.count() > 0 && modal.first().isVisible()) {
-            return modal.first();
-        }
         return primaryScope(page);
     }
 

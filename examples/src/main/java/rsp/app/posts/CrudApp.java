@@ -38,7 +38,9 @@ import rsp.compositions.application.Services;
 import rsp.compositions.auth.*;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
+import rsp.compositions.contract.FormViewContract;
 import rsp.compositions.layout.DefaultLayout;
+import rsp.compositions.layout.GroupPlacementPolicy;
 import rsp.compositions.layout.Placement;
 import rsp.compositions.routing.Router;
 import rsp.compositions.ui.DefaultEditView;
@@ -71,11 +73,11 @@ public class CrudApp {
                 .with(System.getProperties());
 
         // Router defines URL routes for this composition.
-        // Note: /comments/new must precede /comments/:id so the literal "new" segment
-        // is not captured by the :id parameter.
+        // Literal "new" routes must precede :id routes so they are not captured as ids.
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
                 .route("/", PostsListContract.class)
+                .route("/posts/new", PostCreateContract.class)
                 .route("/posts/:id", PostEditContract.class)
                 .route("/comments", CommentsListContract.class)
                 .route("/comments/new", CommentCreateContract.class)
@@ -110,14 +112,13 @@ public class CrudApp {
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new)
                 .bind(DelegationApprovalContract.class, ctx -> new DelegationApprovalContract(ctx, delegationStore), DelegationApprovalView::new);
 
-        // Compatibility-phase placement: Comments forms render inline (replacing the list),
-        // Posts forms keep the historical modal overlay until the inline migration is verified.
+        // CRUD forms render inline (replacing the list). Delegation approval remains modal.
         final DefaultLayout layout = new DefaultLayout()
                 .leftSidebar(ExplorerContract.class)
                 .rightSidebar(PromptContract.class)
                 .header(HeaderContract.class)
-                .placement(CommentCreateContract.class, Placement.INLINE.primary())
-                .placement(CommentEditContract.class, Placement.INLINE.primary())
+                .groupPlacementPolicy(GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL)
+                .placement(FormViewContract.class, Placement.INLINE.primary())
                 .placement(DelegationApprovalContract.class, Placement.MODAL);
 
         final Composition postsComposition = new Composition(router, layout, mainContracts, systemContracts);
