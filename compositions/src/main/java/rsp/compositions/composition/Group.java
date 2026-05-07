@@ -154,6 +154,25 @@ public class Group {
     }
 
     /**
+     * Returns the labeled group that owns the given contract for placement
+     * policy decisions.
+     * <p>
+     * Unlike {@link #groupPathFor(Class)}, this returns group identity rather
+     * than display labels. That keeps sibling groups with the same label
+     * distinct for placement. Contracts bound directly to unlabeled groups are
+     * treated as having no placement group, so system/infrastructure contracts
+     * stay modal unless the layout declares an explicit placement rule.
+     *
+     * @param contractClass The contract class to locate
+     * @return the labeled owning group, or empty if the contract is unknown or
+     *         owned by an unlabeled group
+     */
+    public Optional<Group> placementGroupFor(Class<? extends ViewContract> contractClass) {
+        Objects.requireNonNull(contractClass, "contractClass");
+        return placementGroupForInternal(contractClass);
+    }
+
+    /**
      * Extract a lightweight metadata tree from this group.
      * Contains only labels and contract classes — no factories or views.
      *
@@ -184,6 +203,19 @@ public class Group {
             Optional<List<String>> childPath = child.groupPathFor(contractClass, currentPath);
             if (childPath.isPresent()) {
                 return childPath;
+            }
+        }
+        return Optional.empty();
+    }
+
+    private Optional<Group> placementGroupForInternal(Class<? extends ViewContract> contractClass) {
+        if (contractFactories.containsKey(contractClass)) {
+            return label != null ? Optional.of(this) : Optional.empty();
+        }
+        for (Group child : children) {
+            Optional<Group> childGroup = child.placementGroupForInternal(contractClass);
+            if (childGroup.isPresent()) {
+                return childGroup;
             }
         }
         return Optional.empty();

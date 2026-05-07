@@ -32,9 +32,17 @@ public enum GroupPlacementPolicy {
      * The first SHOW within a contract group opens inline; subsequent SHOWs
      * targeting the same group open modal.
      * <p>
-     * Specifically: opens inline when there is no routed runtime, or when the
-     * routed runtime belongs to a group different from the target. Opens modal
-     * when the routed runtime is in the same group path as the target.
+     * Specifically: opens inline when the target is bound in a labeled
+     * composition group and there is no routed runtime, or when the routed
+     * runtime belongs to a different labeled group from the target. Opens
+     * modal when the routed runtime is in the same owning group as the target.
+     * <p>
+     * Targets or routed runtimes that are not bound in the group tree are
+     * treated as modal by default, as are contracts owned directly by
+     * unlabeled groups. Placement compares group identity, not display labels,
+     * so duplicate labels do not collapse separate groups. Use an explicit
+     * layout placement rule when an unbound/system contract is intentionally
+     * allowed to replace primary content.
      * <p>
      * This is the typical CRUD-app policy: the list view is replaced by an
      * inline form, but a second form opened from inside that form goes modal.

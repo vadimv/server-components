@@ -11,14 +11,17 @@ import rsp.component.Subscriber;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.contract.ContractRuntime;
+import rsp.compositions.contract.FormViewContract;
 import rsp.compositions.contract.LookupFactory;
 import rsp.compositions.contract.Scene;
 import rsp.compositions.contract.ViewContract;
 import rsp.compositions.routing.Router;
+import rsp.compositions.schema.DataSchema;
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -189,6 +192,31 @@ public class PlacementResolverTests {
         }
 
         @Test
+        void unbound_target_without_routed_context_returns_modal() {
+            final Group contracts = singleGroupComposition().contracts();
+
+            final PlacementDecision decision = PlacementResolver.resolve(
+                    UnrelatedContract.class, null, Map.of(),
+                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, contracts);
+
+            assertTrue(decision.placement().isModal(),
+                    "unbound/system contracts should not become primary content by group policy");
+        }
+
+        @Test
+        void unlabeled_owning_group_returns_modal() {
+            final Group contracts = new Group()
+                    .bind(UnrelatedContract.class, UnrelatedContract::new, () -> null);
+
+            final PlacementDecision decision = PlacementResolver.resolve(
+                    UnrelatedContract.class, null, Map.of(),
+                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, contracts);
+
+            assertTrue(decision.placement().isModal(),
+                    "unlabeled/system groups should not become primary content by group policy");
+        }
+
+        @Test
         void target_in_same_group_as_routed_returns_modal() {
             final Composition composition = twoGroupComposition();
             final Scene scene = Scene.of(
@@ -219,9 +247,31 @@ public class PlacementResolverTests {
         }
 
         @Test
-        void unbound_target_with_bound_routed_returns_inline() {
+        void duplicate_display_labels_do_not_collapse_placement_groups() {
+            final Group contracts = new Group()
+                    .add(new Group("Posts")
+                            .bind(BaseTestContract.class, BaseTestContract::new, () -> null))
+                    .add(new Group("Posts")
+                            .bind(UnrelatedContract.class, UnrelatedContract::new, () -> null));
+            final Composition composition = new Composition(
+                    new Router().route("/base", BaseTestContract.class),
+                    new DefaultLayout(),
+                    contracts);
+            final Scene scene = Scene.of(
+                    newRuntime(BaseTestContract.class, BaseTestContract::new),
+                    Map.of(), Map.of(), composition);
+
+            final PlacementDecision decision = PlacementResolver.resolve(
+                    UnrelatedContract.class, scene, Map.of(),
+                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, contracts);
+
+            assertTrue(decision.placement().isInline());
+        }
+
+        @Test
+        void unbound_target_with_bound_routed_returns_modal() {
             // Composition only binds Posts contracts; UnrelatedContract is not in the group tree.
-            // Treated as a different group from the routed contract — INLINE.
+            // Unknown group identity is not enough evidence to replace the routed primary.
             final Composition composition = singleGroupComposition();
             final Scene scene = Scene.of(
                     newRuntime(BaseTestContract.class, BaseTestContract::new),
@@ -231,7 +281,8 @@ public class PlacementResolverTests {
                     UnrelatedContract.class, scene, Map.of(),
                     GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, composition.contracts());
 
-            assertTrue(decision.placement().isInline());
+            assertTrue(decision.placement().isModal(),
+                    "unbound/system contracts should not become primary content by group policy");
         }
 
         @Test
@@ -273,6 +324,53 @@ public class PlacementResolverTests {
 
             assertTrue(decision.placement().isInline());
             assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
+        }
+
+        @Test
+        void explicit_inline_beats_group_policy_for_unbound_contract() {
+            final Composition composition = singleGroupComposition();
+            final Scene scene = Scene.of(
+                    newRuntime(BaseTestContract.class, BaseTestContract::new),
+                    Map.of(), Map.of(), composition);
+            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
+                    UnrelatedContract.class, Placement.INLINE.primary());
+
+            final PlacementDecision decision = PlacementResolver.resolve(
+                    UnrelatedContract.class, scene, placements,
+                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, composition.contracts());
+
+            assertTrue(decision.placement().isInline());
+            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
+            assertEquals(UnrelatedContract.class, decision.matchedContractType());
+        }
+
+        @Test
+        void base_form_inline_rule_applies_to_assignable_form_contract() {
+            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
+                    FormBaseTestContract.class, Placement.INLINE.primary());
+
+            final PlacementDecision decision = PlacementResolver.resolve(
+                    CreateFormTestContract.class, null, placements,
+                    GroupPlacementPolicy.ALL_MODAL, null);
+
+            assertTrue(decision.placement().isInline());
+            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
+            assertEquals(FormBaseTestContract.class, decision.matchedContractType());
+        }
+
+        @Test
+        void concrete_modal_rule_beats_base_form_inline_rule() {
+            final Map<Class<? extends ViewContract>, Placement> placements = new LinkedHashMap<>();
+            placements.put(FormBaseTestContract.class, Placement.INLINE.primary());
+            placements.put(ApprovalFormTestContract.class, Placement.MODAL);
+
+            final PlacementDecision decision = PlacementResolver.resolve(
+                    ApprovalFormTestContract.class, null, placements,
+                    GroupPlacementPolicy.ALL_INLINE, null);
+
+            assertTrue(decision.placement().isModal());
+            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
+            assertEquals(ApprovalFormTestContract.class, decision.matchedContractType());
         }
 
         @Test
@@ -391,6 +489,22 @@ public class PlacementResolverTests {
         UnrelatedContract(Lookup lookup) { super(lookup); }
         @Override public ComponentContext enrichContext(ComponentContext context) { return context; }
         @Override public String title() { return "Unrelated"; }
+    }
+
+    static class FormBaseTestContract extends FormViewContract<Object> {
+        FormBaseTestContract(Lookup lookup) { super(lookup); }
+        @Override public ComponentContext enrichContext(ComponentContext context) { return context; }
+        @Override public String title() { return "Form"; }
+        @Override public DataSchema schema() { return new DataSchema(List.of()); }
+        @Override public boolean save(Map<String, Object> fieldValues) { return true; }
+    }
+
+    static class CreateFormTestContract extends FormBaseTestContract {
+        CreateFormTestContract(Lookup lookup) { super(lookup); }
+    }
+
+    static class ApprovalFormTestContract extends FormBaseTestContract {
+        ApprovalFormTestContract(Lookup lookup) { super(lookup); }
     }
 
     private static final class NoOpSubscriber implements Subscriber {

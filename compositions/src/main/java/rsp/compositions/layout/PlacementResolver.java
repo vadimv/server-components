@@ -6,7 +6,6 @@ import rsp.compositions.contract.ViewContract;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -49,19 +48,32 @@ public final class PlacementResolver {
         return PlacementDecision.groupPolicy(Placement.MODAL);
     }
 
+    /**
+     * Group-aware inline policy is intentionally conservative for unknown
+     * contracts. Only targets that can be found in a labeled composition group
+     * are eligible for inferred inline placement; system overlays and other
+     * unbound or unlabeled targets stay modal unless an explicit layout rule
+     * matched first.
+     */
     private static PlacementDecision firstInGroup(Class<? extends ViewContract> targetClass,
                                                   Scene scene,
                                                   Group contracts) {
-        if (scene == null || scene.routedRuntime() == null) {
-            return PlacementDecision.groupPolicy(Placement.INLINE.primary());
-        }
         if (contracts == null) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
+        Optional<Group> targetGroup = contracts.placementGroupFor(targetClass);
+        if (targetGroup.isEmpty()) {
+            return PlacementDecision.groupPolicy(Placement.MODAL);
+        }
+        if (scene == null || scene.routedRuntime() == null) {
+            return PlacementDecision.groupPolicy(Placement.INLINE.primary());
+        }
         Class<? extends ViewContract> routedClass = scene.routedRuntime().contractClass();
-        Optional<List<String>> targetPath = contracts.groupPathFor(targetClass);
-        Optional<List<String>> routedPath = contracts.groupPathFor(routedClass);
-        if (targetPath.isPresent() && targetPath.equals(routedPath)) {
+        Optional<Group> routedGroup = contracts.placementGroupFor(routedClass);
+        if (routedGroup.isEmpty()) {
+            return PlacementDecision.groupPolicy(Placement.MODAL);
+        }
+        if (targetGroup.orElseThrow() == routedGroup.orElseThrow()) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
         return PlacementDecision.groupPolicy(Placement.INLINE.primary());

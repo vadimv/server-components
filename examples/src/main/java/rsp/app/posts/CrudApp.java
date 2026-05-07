@@ -117,7 +117,8 @@ public class CrudApp {
                 .rightSidebar(PromptContract.class)
                 .header(HeaderContract.class)
                 .placement(CommentCreateContract.class, Placement.INLINE.primary())
-                .placement(CommentEditContract.class, Placement.INLINE.primary());
+                .placement(CommentEditContract.class, Placement.INLINE.primary())
+                .placement(DelegationApprovalContract.class, Placement.MODAL);
 
         final Composition postsComposition = new Composition(router, layout, mainContracts, systemContracts);
 

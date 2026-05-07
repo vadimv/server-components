@@ -294,6 +294,40 @@ public class CompositionTests {
         }
 
         @Test
+        void placementGroupFor_returns_labeled_owning_group() {
+            final Group posts = new Group("Posts")
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
+            final Group group = new Group()
+                    .add(posts);
+
+            assertSame(posts, group.placementGroupFor(TestListContract.class).orElseThrow());
+        }
+
+        @Test
+        void placementGroupFor_returns_empty_for_unlabeled_owning_group() {
+            final Group group = new Group()
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
+
+            assertTrue(group.placementGroupFor(TestListContract.class).isEmpty());
+        }
+
+        @Test
+        void placementGroupFor_distinguishes_duplicate_display_labels() {
+            final Group postsA = new Group("Posts")
+                    .bind(TestListContract.class, TestListContract::new, () -> null);
+            final Group postsB = new Group("Posts")
+                    .bind(TestCreateContract.class, TestCreateContract::new, () -> null);
+            final Group group = new Group()
+                    .add(postsA)
+                    .add(postsB);
+
+            assertSame(postsA, group.placementGroupFor(TestListContract.class).orElseThrow());
+            assertSame(postsB, group.placementGroupFor(TestCreateContract.class).orElseThrow());
+            assertNotSame(group.placementGroupFor(TestListContract.class).orElseThrow(),
+                    group.placementGroupFor(TestCreateContract.class).orElseThrow());
+        }
+
+        @Test
         void composition_merges_multiple_groups() {
             final Router router = new Router().route("/items", TestListContract.class);
             final Group main = new Group("Main")
