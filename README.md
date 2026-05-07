@@ -1,4 +1,4 @@
-# UI Toolkit for Admin Panels and Enterprise Tools
+# UI Toolkit for Admin Panels
 
 Build AI-controlled admin interfaces and internal tools in modern Java, without writing JavaScript.
 
