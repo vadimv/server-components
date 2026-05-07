@@ -20,8 +20,10 @@ import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 import rsp.page.events.Command;
 import rsp.page.events.ComponentEventNotification;
+import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
+import rsp.server.http.RelativeUrl;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -297,6 +299,35 @@ class SceneEventHandlerTests {
                     "SET_PRIMARY clears stale query and fragment state for the new primary route");
             assertEquals(PUSH_URL_ONLY, update.mode(),
                     "the scene already selected the primary; the URL update must not ask routing to do it again");
+        }
+    }
+
+    @Nested
+    class HandleSceneQueryUpdated {
+
+        @Test
+        void updates_effective_url_and_publishes_scene_local_decoration() {
+            final Composition composition = composition();
+            final Scene initial = sceneWith(composition, CommentsContract.class)
+                    .withEffectiveUrl(new RelativeUrl(Path.of("/comments"),
+                            Query.of("p=1&sort=asc"), new Fragment("table")));
+            final RecordingSubscriber subscriber = new RecordingSubscriber();
+            final RecordingStateUpdate<Scene> stateUpdate = new RecordingStateUpdate<>(initial);
+            final RecordingCommands commands = new RecordingCommands();
+
+            new SceneEventHandler(savedContextWithUrl(Query.of("p=9"), "stale"))
+                    .registerHandlers(initial, subscriber, commands, stateUpdate);
+
+            subscriber.fire(EventKeys.SCENE_QUERY_UPDATED.name(),
+                    new EventKeys.SceneQueryUpdate("p", "2"));
+
+            assertEquals("/comments?p=2&sort=asc#table",
+                    stateUpdate.current().effectiveUrl().toString(),
+                    "scene-local query updates must build on Scene.effectiveUrl, not stale root URL context");
+            final AutoAddressBarSyncComponent.PathUpdate update = commands.onlyPathUpdate();
+            assertEquals("/comments?p=2&sort=asc#table", update.url().toString());
+            assertEquals(PUSH_URL_ONLY, update.mode(),
+                    "scene-local query updates should not ask routing to rebuild the shell");
         }
     }
 

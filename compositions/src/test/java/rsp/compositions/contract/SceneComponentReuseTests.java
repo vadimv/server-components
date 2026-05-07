@@ -135,6 +135,30 @@ class SceneComponentReuseTests {
     }
 
     @Test
+    void page_change_after_inline_return_updates_restored_primary_url() {
+        final ComponentSegment<RelativeUrl> root = renderAppOn("/items?p=1");
+
+        emit(root, EventKeys.SHOW.name(),
+                new ActionBindings.ShowPayload(EditContract.class, Map.of("id", "7")));
+        commands.drain(root);
+        emit(root, EventKeys.ACTION_SUCCESS.name(),
+                new EventKeys.ActionResult(EditContract.class));
+        commands.drain(root);
+        emit(root, ListViewContract.PAGE_CHANGE_REQUESTED.name(), 2);
+        commands.drain(root);
+
+        assertEquals(2, ListContract.lastPage,
+                "page changes after inline return should update the restored primary's scene-local query state");
+        assertEquals(List.of("/items/7?p=1", "/items?p=1", "/items?p=2"),
+                commands.pushHistoryTargets(),
+                "page changes after inline return must build on the restored list URL");
+        assertEquals(2, ListContract.created,
+                "scene-local page changes after inline return should reuse the restored primary runtime");
+        assertEquals(1, PromptContract.created,
+                "scene-local page changes after inline return should preserve stable companion runtimes");
+    }
+
+    @Test
     void set_primary_switches_primary_without_recreating_prompt_or_new_runtime() {
         final ComponentSegment<RelativeUrl> root = renderAppOn("/items?p=1");
 
@@ -256,9 +280,12 @@ class SceneComponentReuseTests {
         }
     }
 
-    static final class ListContract extends ViewContract {
+    static final class ListContract extends ListViewContract<Object> {
+        private static final QueryParam<Integer> PAGE =
+                new QueryParam<>("p", Integer.class, 1);
         static int created;
         static int destroyed;
+        static int lastPage;
 
         ListContract(Lookup lookup) {
             super(lookup);
@@ -268,16 +295,43 @@ class SceneComponentReuseTests {
         static void reset() {
             created = 0;
             destroyed = 0;
+            lastPage = 0;
         }
 
         @Override
         public ComponentContext enrichContext(ComponentContext context) {
-            return context;
+            lastPage = page();
+            return super.enrichContext(context);
         }
 
         @Override
         public String title() {
             return "Items";
+        }
+
+        @Override
+        protected QueryParam<Integer> pageQueryParam() {
+            return PAGE;
+        }
+
+        @Override
+        public String sort() {
+            return "";
+        }
+
+        @Override
+        public List<Object> items() {
+            return List.of();
+        }
+
+        @Override
+        protected Class<? extends ViewContract> createElementContract() {
+            return EditContract.class;
+        }
+
+        @Override
+        protected Class<? extends ViewContract> editElementContract() {
+            return EditContract.class;
         }
 
         @Override

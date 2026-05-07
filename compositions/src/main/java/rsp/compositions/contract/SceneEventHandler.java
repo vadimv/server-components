@@ -3,21 +3,14 @@ package rsp.compositions.contract;
 import rsp.component.*;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.PlacementDecision;
-import rsp.compositions.routing.AutoAddressBarSyncComponent;
-import rsp.server.Path;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 
 import static rsp.compositions.contract.ActionBindings.ShowPayload;
 import static rsp.compositions.contract.EventKeys.*;
-import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.PUSH_URL_ONLY;
 
 /**
  * Registers and handles Scene lifecycle events for the base layer (routed + companions).
@@ -95,7 +88,8 @@ public final class SceneEventHandler {
         // Capture the current routed contract as a return target before destroying it,
         // so a later ACTION_SUCCESS from the inline form can restore the previous view
         // (e.g., Save/Cancel on an inline edit form returns to the list).
-        final Scene.InlineReturnTarget returnTarget = captureInlineReturnTarget(state);
+        final SceneNavigator navigator = new SceneNavigator(savedContext, commandsEnqueue);
+        final Scene.InlineReturnTarget returnTarget = navigator.captureInlineReturnTarget(state);
 
         ContractRuntime newRuntime = resolveAndInstantiate(state, contractClass, commandsEnqueue,
                 true, payload.data());
@@ -110,7 +104,7 @@ public final class SceneEventHandler {
         // Update the URL bar to reflect the now-routed inline contract (e.g. /comments/3).
         // The Router's pattern is the source of truth for URL shape; we substitute path
         // parameters from the SHOW payload data and preserve the current query state.
-        RelativeUrl targetUrl = publishInlineUrlUpdate(state, contractClass, payload.data(), commandsEnqueue);
+        RelativeUrl targetUrl = navigator.pushInlineUrl(state, contractClass, payload.data());
 
         stateUpdate.applyStateTransformation(s -> {
             Scene next = s.withRoutedRuntime(newRuntime);
@@ -121,126 +115,16 @@ public final class SceneEventHandler {
         });
     }
 
-    private RelativeUrl publishInlineUrlUpdate(Scene state,
-                                               Class<? extends ViewContract> contractClass,
-                                               Map<String, Object> showData,
-                                               CommandsEnqueue commandsEnqueue) {
-        Composition composition = state.composition();
-        if (composition == null || composition.router() == null) {
-            return null;
-        }
-        String pattern = composition.router().findRoutePattern(contractClass).orElse(null);
-        if (pattern == null) {
-            return null;
-        }
-        String resolvedPath = substitutePathParams(pattern, showData);
-        Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
-        RelativeUrl url = new RelativeUrl(Path.of(resolvedPath), captureQuery(state), captureFragment(state));
-        lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                       new AutoAddressBarSyncComponent.PathUpdate(url, PUSH_URL_ONLY));
-        return url;
-    }
-
-    /**
-     * Substitute {@code :name} placeholders in a route pattern with values from
-     * SHOW data. Unknown parameters are left as-is.
-     */
-    private static String substitutePathParams(String pattern, Map<String, Object> data) {
-        if (data == null || data.isEmpty() || !pattern.contains(":")) {
-            return pattern;
-        }
-        String result = pattern;
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            if (entry.getValue() == null) continue;
-            result = result.replace(":" + entry.getKey(), String.valueOf(entry.getValue()));
-        }
-        return result;
-    }
-
-    /**
-     * Capture the URL state of the currently routed contract for later restoration
-     * after an inline placement.
-     * <p>
-     * Returns {@code null} when there is no routed contract or the routed contract
-     * has no registered route (e.g., IDE-style UIs without a router).
-     */
-    private Scene.InlineReturnTarget captureInlineReturnTarget(Scene state) {
-        if (state.routedRuntime() == null) {
-            return null;
-        }
-        Composition composition = state.composition();
-        if (composition == null || composition.router() == null) {
-            return null;
-        }
-        Class<? extends ViewContract> prevClass = state.routedRuntime().contractClass();
-        String prevRoute = composition.router().findRoutePattern(prevClass).orElse(null);
-        if (prevRoute == null) {
-            return null;
-        }
-        return new Scene.InlineReturnTarget(prevClass, prevRoute, captureQuery(state), captureFragment(state));
-    }
-
-    private Query captureQuery(Scene state) {
-        if (state.effectiveUrl() != null) {
-            return state.effectiveUrl().query();
-        }
-        String prefix = ContextKeys.URL_QUERY.baseKey() + ".";
-        Map<String, Object> entries = savedContext.stringEntriesWithPrefix(prefix);
-        if (entries.isEmpty()) {
-            return Query.EMPTY;
-        }
-        List<Query.Parameter> params = new ArrayList<>(entries.size());
-        for (Map.Entry<String, Object> e : entries.entrySet()) {
-            String name = e.getKey().substring(prefix.length());
-            if (e.getValue() instanceof String value) {
-                params.add(new Query.Parameter(name, value));
-            }
-        }
-        return params.isEmpty() ? Query.EMPTY : new Query(params);
-    }
-
-    private Fragment captureFragment(Scene state) {
-        if (state.effectiveUrl() != null) {
-            return state.effectiveUrl().fragment();
-        }
-        String value = savedContext.get(ContextKeys.URL_FRAGMENT);
-        if (value == null || value.isEmpty()) {
-            return Fragment.EMPTY;
-        }
-        return new Fragment(value);
-    }
-
     private void handleSceneQueryUpdated(Scene state,
                                          EventKeys.SceneQueryUpdate update,
                                          CommandsEnqueue commandsEnqueue,
                                          StateUpdate<Scene> stateUpdate) {
-        RelativeUrl currentUrl = state.effectiveUrl();
-        if (currentUrl == null) {
+        RelativeUrl updatedUrl = new SceneNavigator(savedContext, commandsEnqueue)
+                .pushSceneQueryUpdate(state.effectiveUrl(), update);
+        if (updatedUrl == null) {
             return;
         }
-
-        RelativeUrl updatedUrl = withQueryParameter(currentUrl, update.name(), update.value());
-        Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
-        lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                new AutoAddressBarSyncComponent.PathUpdate(updatedUrl, PUSH_URL_ONLY));
         stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(updatedUrl));
-    }
-
-    private static RelativeUrl withQueryParameter(RelativeUrl url, String name, String value) {
-        List<Query.Parameter> parameters = new ArrayList<>(url.query().parameters().size() + 1);
-        boolean replaced = false;
-        for (Query.Parameter parameter : url.query().parameters()) {
-            if (parameter.name().equals(name)) {
-                parameters.add(new Query.Parameter(name, value));
-                replaced = true;
-            } else {
-                parameters.add(parameter);
-            }
-        }
-        if (!replaced) {
-            parameters.add(new Query.Parameter(name, value));
-        }
-        return new RelativeUrl(url.path(), new Query(parameters), url.fragment());
     }
 
     /**
@@ -268,23 +152,12 @@ public final class SceneEventHandler {
             return;
         }
 
-        // Update URL to reflect the new routed contract's route
-        Composition composition = state.composition();
-        RelativeUrl targetUrl = null;
-        if (composition != null && composition.router() != null) {
-            Class<? extends ViewContract> typedContractClass = (Class<? extends ViewContract>) contractClass;
-            String route = composition.router()
-                .findRoutePattern(typedContractClass)
-                .orElse(null);
-            if (route != null) {
-                Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
-                // Explicit Query.EMPTY: SET_PRIMARY navigates to a different contract,
-                // so any stale query state must not carry over to the new route.
-                targetUrl = new RelativeUrl(Path.of(route), Query.EMPTY, Fragment.EMPTY);
-                lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                               new AutoAddressBarSyncComponent.PathUpdate(targetUrl, PUSH_URL_ONLY));
-            }
-        }
+        // Update URL to reflect the new routed contract's route.
+        // SET_PRIMARY is a fresh primary-contract selection, so the navigator
+        // uses an empty query and fragment for the target URL.
+        Class<? extends ViewContract> typedContractClass = (Class<? extends ViewContract>) contractClass;
+        RelativeUrl targetUrl = new SceneNavigator(savedContext, commandsEnqueue)
+                .pushPrimaryUrl(state, typedContractClass);
 
         // SET_PRIMARY is a fresh navigation — clear any pending inline return target
         // so a subsequent ACTION_SUCCESS does not bounce the user back to a stale view.
@@ -401,10 +274,8 @@ public final class SceneEventHandler {
             return;
         }
 
-        Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
-        RelativeUrl url = new RelativeUrl(Path.of(target.route()), target.query(), target.fragment());
-        lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                       new AutoAddressBarSyncComponent.PathUpdate(url, PUSH_URL_ONLY));
+        RelativeUrl url = new SceneNavigator(savedContext, commandsEnqueue)
+                .pushReturnUrl(target);
 
         stateUpdate.applyStateTransformation(s ->
                 s.withRoutedRuntime(restored).clearInlineReturnTarget().withEffectiveUrl(url));
