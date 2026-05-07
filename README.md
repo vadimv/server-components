@@ -18,6 +18,33 @@ The AI agent natively understands your application's structure, navigates the UI
 - Developer Productivity: Java developers build internal tools in plain Java — without writing web-service controllers, managing frontend state, or depending on JavaScript frameworks like React.
 - AI: The Java HTML DSL is linear, component-based, and composable, with no annotations or implicit control flow. That makes it easy for LLMs (like Claude or GPT) to generate valid UI code without "hallucinating" state-management bugs, and lets AI agents navigate the running app from the same structure.
 
+## What does the code look like?
+
+```java
+import rsp.component.View;
+import rsp.component.definitions.InitialStateComponent;
+import rsp.jetty.WebServer;
+
+import static rsp.dsl.Html.*;
+
+public final class HelloWorld {
+   static void main(final String[] args) {
+      final ComponentView<Integer> view = newState -> state ->
+              html(
+                      body(
+                              h1("Current count: " + state),
+                              button(on("click", _ -> newState.setState(state + 1)),
+                                     text("Increment"))
+                      )
+              );
+
+      final var server = new WebServer(8080, _ -> new InitialStateComponent<>(0, view));
+      server.start();
+      server.join();
+   }
+}
+```
+
 ## Getting started
 
 1. Prerequisites
@@ -71,8 +98,3 @@ When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama`
 ## Auditable by design
 
 This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies outside the web-server layer.
-
-The goal is a vertically integrated, sovereign UI engine designed for full-stack ownership.
-The small, auditable Java core empowers humans to oversee what AI builds, with the option for engineers to write highly composable code themselves when they prefer to.
-
-Essentially, the program and the way it manipulates data stay under the engineer's control, eliminating the complexity and security risks of the modern web stack.
