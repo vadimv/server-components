@@ -14,14 +14,19 @@ import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.GroupPlacementPolicy;
 import rsp.compositions.layout.Placement;
+import rsp.compositions.routing.AutoAddressBarSyncComponent;
 import rsp.compositions.routing.Router;
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
+import rsp.page.events.Command;
+import rsp.page.events.ComponentEventNotification;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -32,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static rsp.compositions.routing.AutoAddressBarSyncComponent.PathUpdateMode.PUSH_URL_ONLY;
 
 /**
  * Tests for {@link SceneEventHandler} — particularly the inline return target
@@ -185,6 +191,28 @@ class SceneEventHandlerTests {
         }
 
         @Test
+        void with_return_target_publishes_return_url_as_scene_local_decoration() {
+            final Composition composition = composition();
+            final Scene afterShow = sceneWith(composition, EditContract.class)
+                    .withInlineReturnTarget(new Scene.InlineReturnTarget(
+                            ListContract.class, "/posts", Query.of("p=2"), Fragment.EMPTY));
+            final RecordingSubscriber subscriber = new RecordingSubscriber();
+            final RecordingStateUpdate<Scene> stateUpdate = new RecordingStateUpdate<>(afterShow);
+            final RecordingCommands commands = new RecordingCommands();
+
+            new SceneEventHandler(savedContextWithUrl(Query.EMPTY, ""))
+                    .registerHandlers(afterShow, subscriber, commands, stateUpdate);
+
+            subscriber.fire(EventKeys.ACTION_SUCCESS.name(),
+                    new EventKeys.ActionResult(EditContract.class));
+
+            final AutoAddressBarSyncComponent.PathUpdate update = commands.onlyPathUpdate();
+            assertEquals("/posts?p=2", update.url().toString());
+            assertEquals(PUSH_URL_ONLY, update.mode(),
+                    "the scene already restored the runtime; the URL update must not ask routing to do it again");
+        }
+
+        @Test
         void without_return_target_falls_back_to_in_place_refresh() {
             // Existing behaviour: when no inline return target, refresh the routed in place.
             final Composition composition = composition();
@@ -330,6 +358,29 @@ class SceneEventHandlerTests {
     }
 
     private static final CommandsEnqueue NO_OP_COMMANDS = _ -> {};
+
+    private static final class RecordingCommands implements CommandsEnqueue {
+        private final List<Command> commands = new ArrayList<>();
+
+        @Override
+        public void offer(Command command) {
+            commands.add(command);
+        }
+
+        private AutoAddressBarSyncComponent.PathUpdate onlyPathUpdate() {
+            final List<AutoAddressBarSyncComponent.PathUpdate> updates = commands.stream()
+                    .filter(ComponentEventNotification.class::isInstance)
+                    .map(ComponentEventNotification.class::cast)
+                    .filter(notification -> AutoAddressBarSyncComponent.SET_PATH.name()
+                            .equals(notification.eventType()))
+                    .map(ComponentEventNotification::eventObject)
+                    .filter(AutoAddressBarSyncComponent.PathUpdate.class::isInstance)
+                    .map(AutoAddressBarSyncComponent.PathUpdate.class::cast)
+                    .toList();
+            assertEquals(1, updates.size(), "expected exactly one SET_PATH update");
+            return updates.getFirst();
+        }
+    }
 
     // --- Test contracts ----------------------------------------------------
 

@@ -354,7 +354,7 @@ public final class SceneEventHandler {
         Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
         RelativeUrl url = new RelativeUrl(Path.of(target.route()), target.query(), target.fragment());
         lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
-                       new AutoAddressBarSyncComponent.PathUpdate(url, UPDATE_PATH_ONLY));
+                       new AutoAddressBarSyncComponent.PathUpdate(url, PUSH_URL_ONLY));
 
         stateUpdate.applyStateTransformation(s ->
                 s.withRoutedRuntime(restored).clearInlineReturnTarget());

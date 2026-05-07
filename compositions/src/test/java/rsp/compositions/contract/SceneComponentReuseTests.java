@@ -15,6 +15,7 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Placement;
+import rsp.compositions.routing.AutoAddressBarSyncComponent;
 import rsp.compositions.routing.Router;
 import rsp.compositions.routing.UrlSyncComponent;
 import rsp.dom.DomEventEntry;
@@ -97,6 +98,39 @@ class SceneComponentReuseTests {
                 "inline SHOW must not destroy the prompt/right-sidebar runtime");
         assertEquals(List.of("/items/7?p=1"), commands.pushHistoryTargets(),
                 "inline SHOW should still reflect the form route in browser history");
+    }
+
+    @Test
+    void inline_action_success_returns_without_recreating_prompt_or_restored_runtime() {
+        final ComponentSegment<RelativeUrl> root = renderAppOn("/items?p=1");
+
+        emit(root, EventKeys.SHOW.name(),
+                new ActionBindings.ShowPayload(EditContract.class, Map.of("id", "7")));
+        commands.drain(root);
+
+        emit(root, EventKeys.ACTION_SUCCESS.name(),
+                new EventKeys.ActionResult(EditContract.class));
+        commands.drain(root);
+
+        assertEquals(2, ListContract.created,
+                "inline return should restore the list once, not rebuild it through routing");
+        assertEquals(1, ListContract.destroyed,
+                "the original list is destroyed only when the inline form replaces it");
+        assertEquals(1, EditContract.created,
+                "the inline edit runtime should be created once");
+        assertEquals(1, EditContract.destroyed,
+                "the inline edit runtime should be destroyed when returning to the list");
+        assertEquals(1, PromptContract.created,
+                "inline return must preserve stable companion contracts");
+        assertEquals(0, PromptContract.destroyed,
+                "inline return must not destroy the prompt/right-sidebar runtime");
+        assertEquals(List.of("/items/7?p=1", "/items?p=1"), commands.pushHistoryTargets(),
+                "inline SHOW and return should both be reflected in browser history");
+        assertEquals(List.of(
+                        AutoAddressBarSyncComponent.PathUpdateMode.PUSH_URL_ONLY,
+                        AutoAddressBarSyncComponent.PathUpdateMode.PUSH_URL_ONLY),
+                commands.pathUpdateModes(),
+                "inline SHOW and inline return are scene-local transitions, not route rebuild requests");
     }
 
     private ComponentSegment<RelativeUrl> renderAppOn(String url) {
@@ -279,6 +313,19 @@ class SceneComponentReuseTests {
                     .filter(RemoteCommand.PushHistory.class::isInstance)
                     .map(RemoteCommand.PushHistory.class::cast)
                     .map(RemoteCommand.PushHistory::path)
+                    .toList();
+        }
+
+        private List<AutoAddressBarSyncComponent.PathUpdateMode> pathUpdateModes() {
+            return commands.stream()
+                    .filter(ComponentEventNotification.class::isInstance)
+                    .map(ComponentEventNotification.class::cast)
+                    .filter(notification -> AutoAddressBarSyncComponent.SET_PATH.name()
+                            .equals(notification.eventType()))
+                    .map(ComponentEventNotification::eventObject)
+                    .filter(AutoAddressBarSyncComponent.PathUpdate.class::isInstance)
+                    .map(AutoAddressBarSyncComponent.PathUpdate.class::cast)
+                    .map(AutoAddressBarSyncComponent.PathUpdate::mode)
                     .toList();
         }
     }
