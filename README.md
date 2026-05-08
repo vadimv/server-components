@@ -79,17 +79,14 @@ By default, `CrudApp` uses `RegexAgentService`, a deterministic regex-based agen
 - `open comments`
 - `go to page 2`
 - `open comments and go to page 2 and select all`
-- `search all posts with id < 2`
 
 6. Generate your own admin app
 
 Once you've run the example, open your favorite AI coding assistant in the project root and paste a prompt like this:
 
-```
-Read examples/src/main/java/rsp/app/posts/CrudApp.java.
+*Read examples/src/main/java/rsp/app/posts/CrudApp.java.
 Generate a similar real-time admin tool for managing Employees and Departments.
-Create mock services and a new EmployeeAdminApp.java using the same routing, composition, and AI-agent integration patterns.
-```
+Create mock services and a new EmployeeAdminApp.java using the same routing, composition, and AI-agent integration patterns.*
 
 7. Upgrade to a full LLM agent
 
