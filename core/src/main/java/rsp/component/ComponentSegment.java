@@ -51,6 +51,21 @@ import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
  * {@link ComponentRuntimePolicy#isReusable()} until explicit component keys are
  * available.
  * <h2>Guidance for Component Authors</h2>
+ * Treat component instances as definitions/controllers. Durable UI data should
+ * live in immutable state snapshots, not in mutable fields on the component
+ * instance. Fields should normally be final immutable collaborators. Non-final
+ * fields are reserved for lifecycle-owned handles such as registrations or
+ * external resources that are created on mount and cleared on unmount.
+ * <p>
+ * Candidate construction happens before reconciliation. A subclass override of
+ * {@link rsp.component.definitions.Component#createComponentSegment} may run for
+ * a segment that is immediately discarded. Do not store candidate-derived
+ * values, fixed context snapshots, or candidate-backed {@link ContextLookup}
+ * instances in reusable component fields. If a mount-owned resource needs this
+ * live segment's {@link #contextScope()}, override the segment-aware
+ * {@link ComponentCallbacks#onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdate)}
+ * callback.
+ * <p>
  * Reuse is opt-in. A reusable component should treat the upstream context as
  * live, not as a constructor-time snapshot. Prefer creating a
  * {@link ContextLookup} from this segment's {@link #contextScope()} and using
@@ -299,7 +314,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             withCallbackOwner(this, () ->
                     callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
             withCallbackOwner(this, () ->
-                    callbacks.onMounted(componentId, state, this.new EnqueueTaskStateUpdate()));
+                    callbacks.onMounted(this, componentId, state, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
@@ -585,6 +600,16 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         }
     }
 
+    @Override
+    public <T> void publish(final EventKey.SimpleKey<T> key, final T payload) {
+        commandsEnqueue.offer(key.notification(payload));
+    }
+
+    @Override
+    public void publish(final EventKey.VoidKey key) {
+        commandsEnqueue.offer(key.notification());
+    }
+
     /**
      * After this component re-renders, replace its old root nodes in the parent tag's children list
      * with the new ones. This keeps the parent component's tag tree in sync with the client DOM,
@@ -800,6 +825,16 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             commandsEnqueue.offer(new GenericTaskEvent(() -> {
                 ComponentSegment.this.applyStateTransformationIfPresent(stateTransformer);
             }));
+        }
+
+        @Override
+        public <T> void publish(final EventKey.SimpleKey<T> key, final T payload) {
+            commandsEnqueue.offer(key.notification(payload));
+        }
+
+        @Override
+        public void publish(final EventKey.VoidKey key) {
+            commandsEnqueue.offer(key.notification());
         }
     }
 

@@ -47,12 +47,39 @@ public interface ComponentCallbacks<S> {
     /**
      * Called after the component is initially mounted to the segments tree.
      * It is thread-safe to call the state update's methods in this callback.
+     * <p>
+     * Components that need access to the live mounted segment should override
+     * {@link #onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdate)}
+     * instead. This callback is retained as the simple lifecycle hook.
      *
      * @param componentId component's composite key
      * @param state current state
      * @param stateUpdate for updating state asynchronously
      */
     void onMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate);
+
+    /**
+     * Called after the component is initially mounted to the segments tree, with
+     * access to the live segment that actually won reconciliation.
+     * <p>
+     * Override this method for mount-owned resources that need the segment's live
+     * {@link ContextScope}, such as context watchers or event subscriptions that
+     * must not be rebound from reconciliation candidates. The default delegates
+     * to {@link #onMounted(ComponentCompositeKey, Object, StateUpdate)}.
+     *
+     * @param segment live mounted segment
+     * @param componentId component's composite key
+     * @param state current state
+     * @param commandsEnqueue for sending commands
+     * @param stateUpdate for updating state asynchronously
+     */
+    default void onMounted(ComponentSegment<S> segment,
+                           ComponentCompositeKey componentId,
+                           S state,
+                           CommandsEnqueue commandsEnqueue,
+                           StateUpdate<S> stateUpdate) {
+        onMounted(componentId, state, stateUpdate);
+    }
 
     /**
      * Called after the component's state is updated.

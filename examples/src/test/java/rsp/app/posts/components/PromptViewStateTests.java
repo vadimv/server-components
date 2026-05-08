@@ -64,6 +64,35 @@ class PromptViewStateTests {
     }
 
     @Nested
+    class OptimisticMessages {
+
+        @Test
+        void withOptimisticMessage_adds_negative_ids_from_state_snapshot() {
+            var state = new PromptView.PromptViewState(List.of());
+
+            var first = state.withOptimisticMessage("first");
+            var second = first.withOptimisticMessage("second");
+
+            assertEquals(-1, first.messages().get(0).id());
+            assertEquals(-2, second.messages().get(1).id());
+            assertEquals(-2, second.nextOptimisticId());
+        }
+
+        @Test
+        void message_updates_preserve_next_optimistic_id() {
+            var state = new PromptView.PromptViewState(List.of())
+                    .withOptimisticMessage("cmd")
+                    .withActiveCategory("Posts");
+
+            var updated = state.withMessage(new PromptContract.Message(10, "reply", false))
+                    .withLastSystemMessageUpdated("done");
+
+            assertEquals(-1, updated.nextOptimisticId());
+            assertEquals("Posts", updated.activeCategory());
+        }
+    }
+
+    @Nested
     class UpdateLastSystemMessage {
 
         @Test

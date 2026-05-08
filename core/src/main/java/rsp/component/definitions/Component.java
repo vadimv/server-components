@@ -17,6 +17,26 @@ import java.util.function.BiFunction;
  * Subclasses of this class provide an implementation an initial state supplier and a function defining of its UI subtree.
  * Optionally they provide a way to pass information to the component's downstream component which these components can use to set up states.
  * There are a number of methods available for overriding representing callbacks for various phases of the defined component's lifecycle.
+ * <h2>State Management Idiom</h2>
+ * A {@code Component} instance is a reusable definition/controller object. The
+ * framework-owned {@link ComponentSegment} is the mounted runtime object, and
+ * the component's durable UI state belongs in immutable state snapshots of type
+ * {@code S}. Prefer records or other immutable values for that state.
+ * <p>
+ * Component fields should normally be {@code final} immutable collaborators
+ * such as configuration, services, formatters, or loggers. Non-final fields
+ * should be rare and limited to lifecycle-owned handles that cannot sensibly
+ * live in state, for example registrations or external resources created on
+ * mount and cleared on unmount. Do not store user-visible state, route/query
+ * values, render-pass data, or context-derived values in component fields.
+ * <p>
+ * In particular, {@link #createComponentSegment} may be invoked to construct a
+ * reconciliation candidate that is discarded before it ever mounts. Reusable
+ * components must not mutate long-lived instance fields from that method based
+ * on the candidate segment. Use {@link ComponentCallbacks#onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdate)}
+ * for mount-owned handles that need the live segment, and use
+ * {@link StateUpdate#publish(EventKey.SimpleKey, Object)} from render-created
+ * event handlers that need to publish component events.
  * <p>
  * Components also declare runtime policy through {@link ComponentRuntimePolicy}.
  * In particular, {@link #isReusable()} controls whether an existing segment may
