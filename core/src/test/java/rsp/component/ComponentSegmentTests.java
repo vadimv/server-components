@@ -9,6 +9,7 @@ import rsp.dom.Node;
 import rsp.dom.XmlNs;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
+import rsp.page.events.ComponentEventNotification;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,6 +165,31 @@ public class ComponentSegmentTests {
             renderSegment(treeBuilder, segment);
 
             assertEquals(List.of("onAfterRendered:" + INITIAL_STATE, "onMounted:" + INITIAL_STATE), callbacks.callOrder);
+        }
+
+        @Test
+        void segment_aware_on_mounted_receives_live_segment_and_publishes_through_state_update() {
+            final EventKey.SimpleKey<String> key = new EventKey.SimpleKey<>("mounted.event", String.class);
+            final AtomicReference<ComponentSegment<String>> mountedSegment = new AtomicReference<>();
+            callbacks = new TestCallbacks() {
+                @Override
+                public void onMounted(ComponentSegment<String> segment,
+                                      ComponentCompositeKey componentId,
+                                      String state,
+                                      CommandsEnqueue commandsEnqueue,
+                                      StateUpdate<String> stateUpdate) {
+                    mountedSegment.set(segment);
+                    stateUpdate.publish(key, "payload");
+                }
+            };
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegmentWithEmptyView(INITIAL_STATE, treeBuilder);
+
+            renderSegment(treeBuilder, segment);
+
+            assertSame(segment, mountedSegment.get());
+            assertEquals(1, capturedCommands.size());
+            assertEquals(new ComponentEventNotification(key.name(), "payload"), capturedCommands.getFirst());
         }
 
         @Test

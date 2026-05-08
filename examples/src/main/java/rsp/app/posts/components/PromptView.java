@@ -3,24 +3,32 @@ package rsp.app.posts.components;
 import rsp.app.posts.services.PromptService;
 import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.dom.TreePositionPath;
-import rsp.page.QualifiedSessionId;
 import rsp.util.html.HtmlEscape;
 import rsp.util.json.JsonDataType;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static rsp.dsl.Html.*;
 
 public class PromptView extends Component<PromptView.PromptViewState> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    public record PromptViewState(List<PromptContract.Message> messages, String activeCategory) {
+    public record PromptViewState(List<PromptContract.Message> messages,
+                                  String activeCategory,
+                                  long nextOptimisticId) {
+        public PromptViewState {
+            messages = messages == null ? List.of() : List.copyOf(messages);
+            activeCategory = activeCategory != null ? activeCategory : "";
+        }
+
         public PromptViewState(List<PromptContract.Message> messages) {
-            this(messages, "");
+            this(messages, "", 0);
+        }
+
+        public PromptViewState(List<PromptContract.Message> messages, String activeCategory) {
+            this(messages, activeCategory, 0);
         }
 
         public PromptViewState withMessage(PromptContract.Message message) {
@@ -30,7 +38,13 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             }
             List<PromptContract.Message> updated = new ArrayList<>(messages);
             updated.add(message);
-            return new PromptViewState(List.copyOf(updated), activeCategory);
+            return new PromptViewState(updated, activeCategory, nextOptimisticId);
+        }
+
+        public PromptViewState withOptimisticMessage(String text) {
+            final long optimisticId = nextOptimisticId - 1;
+            return withMessage(new PromptContract.Message(optimisticId, text, true))
+                    .withNextOptimisticId(optimisticId);
         }
 
         public PromptViewState withLastSystemMessageUpdated(String text) {
@@ -41,7 +55,7 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                     break;
                 }
             }
-            return new PromptViewState(List.copyOf(updated), activeCategory);
+            return new PromptViewState(updated, activeCategory, nextOptimisticId);
         }
 
         public PromptViewState withActiveCategory(String activeCategory) {
@@ -49,15 +63,20 @@ public class PromptView extends Component<PromptView.PromptViewState> {
             if (Objects.equals(this.activeCategory, nextCategory)) {
                 return this;
             }
-            return new PromptViewState(messages, nextCategory);
+            return new PromptViewState(messages, nextCategory, nextOptimisticId);
+        }
+
+        private PromptViewState withNextOptimisticId(long nextOptimisticId) {
+            if (this.nextOptimisticId == nextOptimisticId) {
+                return this;
+            }
+            return new PromptViewState(messages, activeCategory, nextOptimisticId);
         }
     }
 
-    private Lookup lookup;
     private Lookup.Registration eventSubscription;
     private Lookup.Registration updateSubscription;
     private Lookup.Registration categorySubscription;
-    private final AtomicLong optimisticIdCounter = new AtomicLong(0);
 
     @Override
     public ComponentStateSupplier<PromptViewState> initStateSupplier() {
@@ -82,23 +101,6 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                     System.identityHashCode(this), activeCategory));
             return new PromptViewState(List.of(), activeCategory);
         };
-    }
-
-    @Override
-    public ComponentSegment<PromptViewState> createComponentSegment(final QualifiedSessionId sessionId,
-                                                                    final TreePositionPath componentPath,
-                                                                    final TreeBuilderFactory treeBuilderFactory,
-                                                                    final ComponentContext componentContext,
-                                                                    final CommandsEnqueue commandsEnqueue) {
-        final ComponentSegment<PromptViewState> segment = super.createComponentSegment(
-                sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
-        this.lookup = createLookup(segment, commandsEnqueue);
-        logger.log(System.Logger.Level.DEBUG,
-            () -> String.format("PromptView@%x createComponentSegment [path=%s, sessionId=%s, lookup@%x, commandsEnqueue@%x]",
-                                System.identityHashCode(this), componentPath, sessionId,
-                                System.identityHashCode(this.lookup),
-                                System.identityHashCode(commandsEnqueue)));
-        return segment;
     }
 
     private Lookup createLookup(ComponentSegment<?> segment, CommandsEnqueue commandsEnqueue) {
@@ -158,24 +160,22 @@ public class PromptView extends Component<PromptView.PromptViewState> {
                                 String text = promptValue.toString().replace("\"", "");
                                 if (!text.isEmpty()) {
                                     if (stateUpdate != null) {
-                                        long optimisticId = optimisticIdCounter.decrementAndGet();
                                         logger.log(System.Logger.Level.DEBUG,
-                                            () -> String.format("PromptView@%x submit: optimistic add id=%d text='%s' [stateUpdate@%x]",
+                                            () -> String.format("PromptView@%x submit: optimistic add text='%s' [stateUpdate@%x]",
                                                                 System.identityHashCode(this),
-                                                                optimisticId, abbreviate(text),
+                                                                abbreviate(text),
                                                                 System.identityHashCode(stateUpdate)));
-                                        stateUpdate.applyStateTransformation(s ->
-                                                s.withMessage(new PromptContract.Message(optimisticId, text, true)));
+                                        stateUpdate.applyStateTransformation(s -> s.withOptimisticMessage(text));
+                                        logger.log(System.Logger.Level.DEBUG,
+                                            () -> String.format("PromptView@%x submit: publish SEND_PROMPT [text='%s']",
+                                                                System.identityHashCode(this),
+                                                                abbreviate(text)));
+                                        stateUpdate.publish(PromptContract.SEND_PROMPT, text);
                                     } else {
                                         logger.log(System.Logger.Level.WARNING,
                                             () -> String.format("PromptView@%x submit: stateUpdate is null, skipping optimistic add [text='%s']",
                                                                 System.identityHashCode(this), abbreviate(text)));
                                     }
-                                    logger.log(System.Logger.Level.DEBUG,
-                                        () -> String.format("PromptView@%x submit: publish SEND_PROMPT [lookup@%x text='%s']",
-                                                            System.identityHashCode(this),
-                                                            System.identityHashCode(lookup), abbreviate(text)));
-                                    lookup.publish(PromptContract.SEND_PROMPT, text);
                                 }
                             }
                             ctx.evalJs("document.querySelector('.prompt-input').value = ''");
@@ -185,7 +185,12 @@ public class PromptView extends Component<PromptView.PromptViewState> {
     }
 
     @Override
-    public void onMounted(ComponentCompositeKey componentId, PromptViewState state, StateUpdate<PromptViewState> stateUpdate) {
+    public void onMounted(ComponentSegment<PromptViewState> segment,
+                          ComponentCompositeKey componentId,
+                          PromptViewState state,
+                          CommandsEnqueue commandsEnqueue,
+                          StateUpdate<PromptViewState> stateUpdate) {
+        final Lookup lookup = createLookup(segment, commandsEnqueue);
         logger.log(System.Logger.Level.DEBUG,
             () -> String.format("PromptView@%x onMounted [componentId=%s, lookup@%x, stateUpdate@%x, messages=%d]",
                                 System.identityHashCode(this), componentId,

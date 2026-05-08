@@ -30,4 +30,30 @@ public interface StateUpdate<S> {
      * @param stateTransformer a function for the state transformation
      */
     void applyStateTransformationIfPresent(Function<S, Optional<S>> stateTransformer);
+
+    /**
+     * Publishes a component event through the live component segment's command queue.
+     * <p>
+     * This is useful from render-created DOM handlers that need to publish an
+     * application event but should not keep a mutable {@link Lookup} field on the
+     * component definition. The framework implementation preserves command order
+     * relative to state-update commands queued by the same handler.
+     *
+     * @param key event key with a fixed name
+     * @param payload event payload
+     * @param <T> payload type
+     */
+    default <T> void publish(EventKey.SimpleKey<T> key, T payload) {
+        throw new UnsupportedOperationException("This StateUpdate cannot publish component events");
+    }
+
+    /**
+     * Publishes a void component event through the live component segment's
+     * command queue.
+     *
+     * @param key void event key
+     */
+    default void publish(EventKey.VoidKey key) {
+        throw new UnsupportedOperationException("This StateUpdate cannot publish component events");
+    }
 }
