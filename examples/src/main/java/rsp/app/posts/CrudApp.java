@@ -53,6 +53,12 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Starts the Posts and Comments demo app.
+ *
+ * <p>This class keeps the app wiring in one place so the example shows how routes, pages, layout,
+ * login, and the prompt sidebar fit together.
+ */
 public class CrudApp {
     private final AgentService agentService;
 
@@ -68,12 +74,20 @@ public class CrudApp {
         new CrudApp(resolveAgentService()).run(true);
     }
 
+    /**
+     * Assembles the application and starts the web server. The body is structured as a sequence of small stages so
+     * the wiring can be read top-to-bottom: routes, services, agent permissions, contract groups,
+     * layout, then the login composition.
+     *
+     * @param blockCurrentThread when {@code true} the call blocks on {@code server.join()} so the
+     *                           {@code main} method does not exit; tests pass {@code false}.
+     */
     public WebServer run(final boolean blockCurrentThread) {
         final Config config = new Config()
                 .with(System.getProperties());
 
-        // Router defines URL routes for this composition.
-        // Literal "new" routes must precede :id routes so they are not captured as ids.
+        // URL to contract mapping. Literal segments ("/posts/new") must precede parameter
+        // routes ("/posts/:id") or "/posts/new" would be treated as id "new".
         final Router router = new Router()
                 .route("/posts", PostsListContract.class)
                 .route("/", PostsListContract.class)
@@ -83,12 +97,16 @@ public class CrudApp {
                 .route("/comments/new", CommentCreateContract.class)
                 .route("/comments/:id", CommentEditContract.class);
 
+        // Application services. They are passed into contract constructors below so contracts
+        // remain free of static singletons and easy to swap in tests.
         final PostService postService = new PostService();
         final CommentService commentService = new CommentService();
         final PromptService promptService = new PromptService();
         promptService.startTicking();
 
-        // Agent services — unified ABAC authorization for spawn, discovery, and execution
+        // Agent permissions. The policy says which agent actions are allowed. When an action needs
+        // user consent, the prompt asks this spawner for an agent session. Approval decisions are
+        // remembered for the browser session.
         final ActionDispatcher actionDispatcher = new ActionDispatcher();
         final AccessPolicy policy = new CompositePolicy(ExamplePolicies.requireGrantForExecution(),
                                                         ExamplePolicies.grantConstraints());
@@ -96,6 +114,9 @@ public class CrudApp {
         final DelegationStore delegationStore = new InMemoryDelegationStore();
         final AgentSpawner spawner = new ApprovalSpawner(new PolicySpawner(authorization), delegationStore);
 
+        // A contract is the logic behind a UI fragment: it owns state, actions, and the data schema.
+        // A view renders that contract.
+        // The nested group names become the sidebar menu.
         final Group mainContracts = new Group("Admin").description("Administration panel")
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
                         .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
@@ -106,13 +127,17 @@ public class CrudApp {
                         .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
                         .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new));
 
+        // These views support the page but are not menu items. Explorer builds the sidebar from
+        // mainContracts; Prompt lets the user talk to the agent; Header shows the session;
+        // DelegationApproval appears only when consent is needed.
         final Group systemContracts = new Group()
                 .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
                 .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, actionDispatcher, authorization, spawner, mainContracts.structureTree()), PromptView::new)
                 .bind(HeaderContract.class, HeaderContract::new, HeaderView::new)
                 .bind(DelegationApprovalContract.class, ctx -> new DelegationApprovalContract(ctx, delegationStore), DelegationApprovalView::new);
 
-        // CRUD forms render inline (replacing the list). Delegation approval remains modal.
+        // Layout chooses where each contract appears. The sidebars and header are always visible.
+        // Forms replace the main content; approval is always a modal.
         final DefaultLayout layout = new DefaultLayout()
                 .leftSidebar(ExplorerContract.class)
                 .rightSidebar(PromptContract.class)
@@ -121,20 +146,25 @@ public class CrudApp {
                 .placement(FormViewContract.class, Placement.INLINE.primary())
                 .placement(DelegationApprovalContract.class, Placement.MODAL);
 
+        // This is the posts feature package: routes decide which page is active, layout decides
+        // where it appears, and both user-facing and support contract groups are available to the scene.
         final Composition postsComposition = new Composition(router, layout, mainContracts, systemContracts);
 
-        // Auth provider with in-memory session store
+        // Login lives in its own composition. The auth provider redirects anonymous users to
+        // /auth/login, which keeps login code out of the posts composition.
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
-        // Auth composition: login page at /auth/login
         final Router authRouter = new Router()
                 .route("/auth/login", LoginContract.class);
         final Group authGroup = new Group()
                 .bind(LoginContract.class, LoginContract::new, () -> new SimpleLoginComponent(authProvider));
         final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
+
+        // App-wide services available to any contract. The auth provider is stored here so
+        // AuthComponent can find it on every request.
         final Services services = new Services()
                 .service(AuthComponent.AuthProvider.class, authProvider);
 
-        // Auth composition first — login page route matched before posts routes
+        // Compositions are tried in order; the login route is checked before the posts routes.
         final App app = new App(config, List.of(authComposition, postsComposition), services);
 
         final WebServer server = new WebServer(8085,
@@ -148,6 +178,11 @@ public class CrudApp {
         return server;
     }
 
+    /**
+     * Locates the directory served at {@code /res/} (CSS and other static assets). The example may
+     * be launched either from the repository root or from the {@code examples} module, so both
+     * candidate paths are tried.
+     */
     private static File resolvePostsResourceDir() {
         for (String candidate : List.of("src/main/java/rsp/app/posts",
                                         "examples/src/main/java/rsp/app/posts")) {
@@ -159,6 +194,12 @@ public class CrudApp {
         throw new IllegalStateException("Could not locate posts static resources.");
     }
 
+    /**
+     * Selects the AI backend used by the prompt sidebar based on the {@code -Dai.agent} system
+     * property. {@code regex} is a deterministic, dependency-free default useful for tests and
+     * demos; {@code claude} and {@code ollama} call out to real LLMs and require their respective
+     * environment configuration.
+     */
     private static AgentService resolveAgentService() {
         String backend = System.getProperty("ai.agent", "regex").toLowerCase(Locale.ROOT);
         return switch (backend) {
