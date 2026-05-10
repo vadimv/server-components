@@ -1,9 +1,5 @@
-package rsp.app.posts.services;
+package rsp.compositions.agent;
 
-import rsp.compositions.agent.AgentService;
-import rsp.compositions.agent.AgentServiceUtils;
-import rsp.compositions.agent.ContractProfile;
-import rsp.compositions.agent.ToolDefinition;
 import rsp.compositions.composition.StructureNode;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonUtils;
@@ -24,30 +20,31 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
- * Local LLM-backed agent service using the Ollama Chat API with tool calling.
+ * Claude API-backed agent service using the Anthropic Messages API with tool use.
  *
- * <p>Sends structured {@link ToolDefinition}s in OpenAI-compatible format so that
- * tool-capable models return validated {@code tool_calls} instead of free-text JSON.
- * This eliminates the need for a constrained JSON {@code format} schema and the
- * fragility of parsing unstructured text.
+ * <p>Sends structured {@link ToolDefinition}s so that Claude returns validated
+ * {@code tool_use} content blocks instead of free-text JSON. This eliminates
+ * parsing fragility (prose-prefixed JSON, markdown fences, schema mismatches).
  *
  * <p>Shared logic (tool building, action lookup, contract resolution) is
  * delegated to {@link AgentServiceUtils}.
  */
-public final class OllamaAgentService extends AgentService {
+public final class ClaudeAgentService extends AgentService {
     private static final System.Logger LOGGER =
-            System.getLogger(OllamaAgentService.class.getName());
+            System.getLogger(ClaudeAgentService.class.getName());
 
     private static final int DEBOUNCE_TOKENS = 5;
     private static final long DEBOUNCE_MS = 150;
+    private static final String API_ENDPOINT = "https://api.anthropic.com/v1/messages";
+    private static final String API_VERSION = "2023-06-01";
 
     private final HttpClient httpClient;
-    private final String endpoint;
+    private final String apiKey;
     private final String model;
     private final Duration timeout;
 
-    public OllamaAgentService(String endpoint, String model, Duration timeout) {
-        this.endpoint = Objects.requireNonNull(endpoint);
+    public ClaudeAgentService(String apiKey, String model, Duration timeout) {
+        this.apiKey = Objects.requireNonNull(apiKey);
         this.model = Objects.requireNonNull(model);
         this.timeout = Objects.requireNonNull(timeout);
         this.httpClient = HttpClient.newBuilder()
@@ -93,16 +90,16 @@ public final class OllamaAgentService extends AgentService {
             }
         } catch (Exception e) {
             LOGGER.log(System.Logger.Level.WARNING,
-                "Ollama intent parse failed.", e);
+                "Claude intent parse failed.", e);
             return new AgentResult.TextReply("LLM request failed: " + e.getClass().getSimpleName());
         }
         return new AgentResult.TextReply("LLM response could not be parsed as an intent.");
     }
 
     /**
-     * Stream tokens from Ollama with tool calling, pushing partial text content
-     * to the callback as it arrives. Tool calls are extracted from the NDJSON
-     * stream and converted to an {@link AgentResult} after completion.
+     * Stream tokens from Claude API with tool use, pushing partial text content
+     * to the callback as it arrives. Tool use blocks are accumulated silently
+     * and converted to an {@link AgentResult} after the stream completes.
      */
     private Optional<AgentResult> streamRequest(String prompt, List<ToolDefinition> tools,
                                                  String systemPrompt,
@@ -112,8 +109,10 @@ public final class OllamaAgentService extends AgentService {
         String requestBody = buildStreamingRequest(prompt, systemPrompt, tools);
 
         HttpRequest request = HttpRequest.newBuilder()
-            .uri(URI.create(endpoint))
+            .uri(URI.create(API_ENDPOINT))
             .header("Content-Type", "application/json")
+            .header("x-api-key", apiKey)
+            .header("anthropic-version", API_VERSION)
             .timeout(timeout)
             .POST(HttpRequest.BodyPublishers.ofString(requestBody))
             .build();
@@ -121,14 +120,15 @@ public final class OllamaAgentService extends AgentService {
         HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             LOGGER.log(System.Logger.Level.WARNING,
-                () -> "Ollama returned HTTP " + response.statusCode());
+                () -> "Claude API returned HTTP " + response.statusCode());
             return Optional.empty();
         }
 
-        // Track content from NDJSON stream
+        // Track content blocks from SSE stream
         StringBuilder textContent = new StringBuilder();
         String[] toolNameHolder = {null};
-        JsonDataType.Object[] toolArgsHolder = {null};
+        StringBuilder toolInputJson = new StringBuilder();
+        boolean capturingToolInput = false;
         int tokensSinceLastPush = 0;
         long lastPushTime = System.currentTimeMillis();
 
@@ -136,54 +136,62 @@ public final class OllamaAgentService extends AgentService {
                 new InputStreamReader(response.body(), StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                if (line.isBlank()) continue;
+                if (!line.startsWith("data: ")) continue;
+                String data = line.substring("data: ".length());
+                if ("[DONE]".equals(data)) break;
 
                 try {
-                    JsonDataType root = JsonUtils.parse(line);
+                    JsonDataType root = JsonUtils.parse(data);
                     if (!(root instanceof JsonDataType.Object rootObj)) continue;
+                    String eventType = AgentServiceUtils.getString(rootObj.value("type")).orElse("");
 
-                    JsonDataType messageNode = rootObj.value("message");
-                    if (messageNode instanceof JsonDataType.Object messageObj) {
-                        // Accumulate text content
-                        String content = AgentServiceUtils.getString(
-                            messageObj.value("content")).orElse("");
-                        if (!content.isEmpty()) {
-                            textContent.append(content);
-                            tokensSinceLastPush++;
-                            long now = System.currentTimeMillis();
-                            if (tokensSinceLastPush >= DEBOUNCE_TOKENS
-                                    || (now - lastPushTime) >= DEBOUNCE_MS) {
-                                onPartialContent.accept(textContent.toString());
-                                tokensSinceLastPush = 0;
-                                lastPushTime = now;
-                            }
-                        }
-
-                        // Check for tool calls (first one wins)
-                        if (toolNameHolder[0] == null) {
-                            JsonDataType toolCallsNode = messageObj.value("tool_calls");
-                            if (toolCallsNode instanceof JsonDataType.Array toolCalls
-                                    && toolCalls.size() > 0) {
-                                JsonDataType firstCall = toolCalls.get(0);
-                                if (firstCall instanceof JsonDataType.Object callObj) {
-                                    JsonDataType functionNode = callObj.value("function");
-                                    if (functionNode instanceof JsonDataType.Object funcObj) {
-                                        toolNameHolder[0] = AgentServiceUtils.getString(
-                                            funcObj.value("name")).orElse("");
-                                        toolArgsHolder[0] = parseToolArguments(funcObj.value("arguments"));
-                                    }
+                    switch (eventType) {
+                        case "content_block_start" -> {
+                            JsonDataType blockNode = rootObj.value("content_block");
+                            if (blockNode instanceof JsonDataType.Object block) {
+                                String blockType = AgentServiceUtils.getString(
+                                    block.value("type")).orElse("");
+                                if ("tool_use".equals(blockType) && toolNameHolder[0] == null) {
+                                    toolNameHolder[0] = AgentServiceUtils.getString(
+                                        block.value("name")).orElse("");
+                                    capturingToolInput = true;
                                 }
                             }
                         }
-                    }
-
-                    // Check for stream end
-                    JsonDataType doneNode = rootObj.value("done");
-                    if (doneNode instanceof JsonDataType.Boolean b && b.value()) {
-                        break;
+                        case "content_block_delta" -> {
+                            JsonDataType deltaNode = rootObj.value("delta");
+                            if (deltaNode instanceof JsonDataType.Object delta) {
+                                String deltaType = AgentServiceUtils.getString(
+                                    delta.value("type")).orElse("");
+                                if ("text_delta".equals(deltaType)) {
+                                    String text = AgentServiceUtils.getString(
+                                        delta.value("text")).orElse("");
+                                    textContent.append(text);
+                                    tokensSinceLastPush++;
+                                    long now = System.currentTimeMillis();
+                                    if (tokensSinceLastPush >= DEBOUNCE_TOKENS
+                                            || (now - lastPushTime) >= DEBOUNCE_MS) {
+                                        onPartialContent.accept(textContent.toString());
+                                        tokensSinceLastPush = 0;
+                                        lastPushTime = now;
+                                    }
+                                } else if ("input_json_delta".equals(deltaType) && capturingToolInput) {
+                                    String partial = AgentServiceUtils.getString(
+                                        delta.value("partial_json")).orElse("");
+                                    toolInputJson.append(partial);
+                                }
+                            }
+                        }
+                        case "content_block_stop" -> {
+                            if (capturingToolInput) {
+                                capturingToolInput = false;
+                            }
+                        }
+                        case "message_stop" -> { /* stream is done */ }
+                        default -> { /* ignore other event types */ }
                     }
                 } catch (Exception e) {
-                    // Skip unparseable NDJSON lines
+                    // Skip unparseable SSE events
                 }
             }
         }
@@ -194,16 +202,15 @@ public final class OllamaAgentService extends AgentService {
         }
 
         String toolName = toolNameHolder[0];
-        JsonDataType.Object toolArguments = toolArgsHolder[0];
         LOGGER.log(System.Logger.Level.INFO,
-            () -> "Ollama [" + prompt + "] -> tool=" + toolNameHolder[0] + " args=" + toolArgsHolder[0]);
+            () -> "Claude [" + prompt + "] -> tool=" + toolNameHolder[0] + " input=" + toolInputJson);
 
-        // If we got a tool call, convert to AgentResult
-        if (toolName != null && !toolName.isEmpty() && toolArguments != null) {
-            return AgentServiceUtils.toolUseToAgentResult(toolName, toolArguments, profile, structureTree);
+        // If we got a tool use, convert to AgentResult
+        if (toolName != null && !toolName.isEmpty()) {
+            return toolUseToAgentResult(toolName, toolInputJson.toString(), profile, structureTree);
         }
 
-        // No tool call — treat accumulated text as a text reply
+        // No tool use — treat accumulated text as a text reply
         String text = textContent.toString().strip();
         if (text.isBlank()) {
             return Optional.empty();
@@ -212,25 +219,20 @@ public final class OllamaAgentService extends AgentService {
     }
 
     /**
-     * Extracts tool call arguments from the "arguments" node.
-     * Ollama returns arguments as a JSON object; OpenAI-compatible APIs may
-     * return a JSON string that needs parsing.
+     * Parses accumulated tool input JSON and delegates to the shared converter.
      */
-    private JsonDataType.Object parseToolArguments(JsonDataType argsNode) {
-        if (argsNode instanceof JsonDataType.Object obj) {
-            return obj;
-        }
-        if (argsNode instanceof JsonDataType.String argsStr) {
-            try {
-                JsonDataType parsed = JsonUtils.parse(argsStr.value());
-                if (parsed instanceof JsonDataType.Object obj) {
-                    return obj;
-                }
-            } catch (Exception e) {
-                // Fall through
+    private Optional<AgentResult> toolUseToAgentResult(String toolName, String inputJson,
+                                                        ContractProfile profile,
+                                                        StructureNode structureTree) {
+        try {
+            JsonDataType parsed = JsonUtils.parse(inputJson.isBlank() ? "{}" : inputJson);
+            if (parsed instanceof JsonDataType.Object input) {
+                return AgentServiceUtils.toolUseToAgentResult(toolName, input, profile, structureTree);
             }
+        } catch (Exception e) {
+            LOGGER.log(System.Logger.Level.WARNING, "Failed to parse tool input JSON", e);
         }
-        return null;
+        return Optional.empty();
     }
 
     private String buildStreamingRequest(String userPrompt, String systemPrompt,
@@ -238,26 +240,26 @@ public final class OllamaAgentService extends AgentService {
         StringBuilder toolsJson = new StringBuilder("[");
         for (int i = 0; i < tools.size(); i++) {
             if (i > 0) toolsJson.append(",");
-            toolsJson.append(tools.get(i).toOpenAiJson());
+            toolsJson.append(tools.get(i).toAnthropicJson());
         }
         toolsJson.append("]");
 
         return """
             {
               "model":"%s",
+              "max_tokens":1024,
               "stream":true,
-              "options":{"temperature":0},
-              "messages":[
-                {"role":"system","content":"%s"},
-                {"role":"user","content":"%s"}
-              ],
+              "system":"%s",
               "tools":%s,
-              "tool_choice":"required"
+              "tool_choice":{"type":"any"},
+              "messages":[
+                {"role":"user","content":"%s"}
+              ]
             }
             """.formatted(
                 JsonUtils.escape(model),
                 JsonUtils.escape(systemPrompt),
-                JsonUtils.escape(userPrompt),
-                toolsJson.toString());
+                toolsJson.toString(),
+                JsonUtils.escape(userPrompt));
     }
 }
