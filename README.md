@@ -95,3 +95,7 @@ When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama`
 ## Auditable by design
 
 This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies outside the web-server layer.
+
+## Docs
+
+- [Core](core/README.md)
