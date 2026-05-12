@@ -23,25 +23,39 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Orchestrates LLM calls, authorization, action dispatch and plan execution
  * on behalf of a host contract (e.g. {@code PromptContract}).
  * <p>
- * The runtime is presentation-agnostic: status updates flow through {@link AgentFeedback}.
- * The host contract supplies the active {@link Scene} via {@link #onScene(Scene)} and
- * routes user input via {@link #submit(String)}.
+ * The runtime is presentation-agnostic: status updates flow through
+ * {@link AgentFeedback}. The host contract supplies the active {@link Scene}
+ * via {@link #onScene(Scene)} and routes user input via {@link #submit(String)}.
  * <p>
- * State held: agent session + gate + filter, queued result awaiting approval, pending
- * yes/no confirmation, last observed scene, and a one-shot future used to await scene
- * settlement during plan execution.
+ * <b>Multi-step loop (Phase 1B):</b> a {@code submit} iterates — for each
+ * dispatched {@code ActionResult} or {@code NavigateResult}, the runtime
+ * re-materialises {@link AgentContext} from the now-current scene and invokes
+ * the LLM again with the original prompt. The loop terminates on
+ * {@code TextReply}, {@code PlanResult}, dispatch failure, awaiting-confirm,
+ * approval-required, cancellation, or when {@link LoopPolicy#shouldContinue}
+ * returns {@code false}.
+ * <p>
+ * <b>Cancellation:</b> {@link #cancel()} flips the in-flight token; the
+ * loop checks it at iteration boundaries. The {@link AbortToken} is also
+ * passed to {@link AgentService#handlePrompt} so LLM clients can abort
+ * the underlying HTTP call.
+ * <p>
+ * <b>Concurrency:</b> {@code submit} rejects re-entry while the loop is
+ * running. State touched from both the event thread (submit, onScene,
+ * onApprovalDecided) and the loop's virtual thread is marked {@code volatile}.
  */
 public class AgentRuntime {
 
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private static final int MAX_PLAN_STEPS = 20;
     private static final long SCENE_SETTLE_TIMEOUT_SECONDS = 5;
+    private static final int MAX_PLAN_STEPS = 20;
 
     private final AgentService agentService;
     private final ActionDispatcher dispatcher;
@@ -50,16 +64,23 @@ public class AgentRuntime {
     private final StructureNode structure;
     private final Lookup lookup;
     private final AgentFeedback feedback;
+    private final LoopPolicy loopPolicy;
     private final String diagnosticLabel;
 
-    private ActionGate gate;
-    private AgentActionFilter actionFilter;
-    private AgentSession agentSession;
-    private AgentResult queuedResult;
-    private PendingAction pendingConfirm;
-
+    // Touched from both the event thread (submit, onApprovalDecided) and
+    // the loop's virtual thread. Volatile guarantees the cross-thread reads
+    // see the latest assignment without locking.
+    private volatile ActionGate gate;
+    private volatile AgentActionFilter actionFilter;
+    private volatile AgentSession agentSession;
+    private volatile AgentResult queuedResult;
+    private volatile PendingAction pendingConfirm;
     private volatile Scene currentScene;
     private volatile CompletableFuture<Scene> sceneSettleFuture;
+
+    // Loop lifecycle: at most one loop runs at a time.
+    private final AtomicBoolean running = new AtomicBoolean(false);
+    private volatile AbortToken currentToken;
 
     private record PendingAction(ContractAction action, ContractActionPayload payload) {}
 
@@ -70,6 +91,7 @@ public class AgentRuntime {
                         StructureNode structure,
                         Lookup lookup,
                         AgentFeedback feedback,
+                        LoopPolicy loopPolicy,
                         String diagnosticLabel) {
         this.agentService = Objects.requireNonNull(agentService);
         this.dispatcher = Objects.requireNonNull(dispatcher);
@@ -78,19 +100,23 @@ public class AgentRuntime {
         this.structure = structure;
         this.lookup = Objects.requireNonNull(lookup);
         this.feedback = Objects.requireNonNull(feedback);
+        this.loopPolicy = Objects.requireNonNull(loopPolicy);
         this.diagnosticLabel = diagnosticLabel != null ? diagnosticLabel : "unknown";
 
-        // Defer spawn until the policy denies an action-bearing result.
-        // Pre-spawn: chat/discover are auto-allowed by the policy; everything
-        // else escalates to spawner.spawn(...) lazily in evaluateAndExecute.
+        // Pre-spawn: deny-by-default gate; the loop's evaluateAndDispatch
+        // escalates to the spawner when a denial is encountered without a session.
         this.agentSession = null;
         this.gate = (action, payload, lkp) -> new GateResult.Block("No active session");
         this.actionFilter = new PolicyActionFilter(authorization);
     }
 
+    // ==================================================================
+    // Host hooks
+    // ==================================================================
+
     /**
      * Push the current scene from the host contract. Completes any pending
-     * scene-settle future used by plan navigation.
+     * scene-settle future used by plan/loop navigation.
      */
     public void onScene(Scene scene) {
         this.currentScene = scene;
@@ -101,15 +127,16 @@ public class AgentRuntime {
     }
 
     /**
-     * Process a user prompt. If a yes/no confirmation is pending, a matching
-     * answer dispatches the previously gated action; otherwise the prompt is
-     * sent to the LLM and the result is evaluated against authorization.
+     * Process a user prompt. Synchronously routes yes/no answers and pending-
+     * approval responses; otherwise kicks off the agent loop on a virtual thread.
      */
     public void submit(String text) {
         logger.log(System.Logger.Level.DEBUG,
-            () -> String.format("AgentRuntime@%x submit text='%s' [queuedResult=%s, pendingConfirm=%s, label=%s]",
+            () -> String.format("AgentRuntime@%x submit text='%s' [queuedResult=%s, pendingConfirm=%s, running=%s, label=%s]",
                                 System.identityHashCode(this), abbreviate(text),
-                                queuedResult != null, pendingConfirm != null, diagnosticLabel));
+                                queuedResult != null, pendingConfirm != null,
+                                running.get(), diagnosticLabel));
+
         if (queuedResult != null) {
             feedback.send("Still awaiting your approval for the previous request...");
             return;
@@ -117,14 +144,15 @@ public class AgentRuntime {
 
         String trimmed = text.trim().toLowerCase();
 
-        // Handle pending confirmation (yes/no after AwaitingConfirmation)
+        // Yes/No routing for a pending confirmation. Both branches return early
+        // and do NOT enter the loop. Any other input falls through to a new prompt
+        // (and the pending confirmation remains set — matches pre-loop semantics).
         if (pendingConfirm != null) {
             if (trimmed.equals("yes") || trimmed.equals("y")) {
                 PendingAction confirmed = pendingConfirm;
                 pendingConfirm = null;
-                ViewContract activeContract = activeContract();
                 DispatchResult result = dispatcher.dispatchDirect(
-                    confirmed.action(), confirmed.payload(), activeContract);
+                    confirmed.action(), confirmed.payload(), activeContract());
                 handleDispatchResult(result);
                 return;
             }
@@ -135,46 +163,56 @@ public class AgentRuntime {
             }
         }
 
-        // Run the LLM under whatever authorization currently applies.
-        // Classification (chat vs action) is the LLM's response type, then
-        // the policy decides whether it's auto-allowed or needs approval.
-        AgentContext agentContext = buildAgentContext();
-        ContractProfile profile = agentContext.contractProfile();
-        final ViewContract capturedContract = activeContract();
+        if (!running.compareAndSet(false, true)) {
+            feedback.send("Still processing previous prompt...");
+            return;
+        }
 
-        final long startTime = System.currentTimeMillis();
+        AbortToken token = new AbortToken();
+        this.currentToken = token;
+        final ViewContract initialContract = activeContract();
         feedback.send("<em>Thinking...</em>");
+        final long startTime = System.currentTimeMillis();
+
         Thread.startVirtualThread(() -> {
             logger.log(System.Logger.Level.DEBUG,
-                () -> String.format("AgentRuntime@%x LLM virtual thread START [label=%s]",
+                () -> String.format("AgentRuntime@%x loop START [label=%s]",
                                     System.identityHashCode(this), diagnosticLabel));
             try {
-                AgentResult agentResult = agentService.handlePrompt(text, profile, structure,
-                        partial -> {
-                            long elapsed = (System.currentTimeMillis() - startTime) / 1000;
-                            feedback.updateLast("<em>Thinking... (" + elapsed + "s)</em>");
-                        });
-                logger.log(System.Logger.Level.DEBUG,
-                    () -> String.format("AgentRuntime@%x LLM result received: %s [label=%s, elapsedMs=%d]",
-                                        System.identityHashCode(this),
-                                        agentResult.getClass().getSimpleName(), diagnosticLabel,
-                                        System.currentTimeMillis() - startTime));
-                evaluateAndExecute(agentResult, capturedContract);
+                runLoop(text, initialContract, token, startTime);
             } catch (Throwable t) {
-                logger.log(System.Logger.Level.ERROR, "Prompt processing failed", t);
+                logger.log(System.Logger.Level.ERROR, "Loop crashed", t);
                 feedback.send("Internal error: " + t.getClass().getSimpleName()
                                 + (t.getMessage() != null ? " - " + t.getMessage() : ""));
             } finally {
+                running.set(false);
+                if (this.currentToken == token) {
+                    this.currentToken = null;
+                }
                 logger.log(System.Logger.Level.DEBUG,
-                    () -> String.format("AgentRuntime@%x LLM virtual thread END [label=%s]",
+                    () -> String.format("AgentRuntime@%x loop END [label=%s]",
                                         System.identityHashCode(this), diagnosticLabel));
             }
         });
     }
 
     /**
+     * Cancel the currently running loop, if any. The next iteration boundary
+     * (and the {@link AgentService#handlePrompt} call, if it cooperates) will
+     * observe the cancellation and stop. Safe to call from any thread.
+     */
+    public void cancel() {
+        AbortToken token = this.currentToken;
+        if (token != null) {
+            token.cancel();
+        }
+    }
+
+    /**
      * Receive the user's decision on a delegation approval modal. On approval,
-     * a fresh spawn is requested and any queued result is executed.
+     * a fresh spawn is requested and any queued result is executed as a
+     * single step (not looped — the queued result is a snapshot of the
+     * original LLM intent).
      */
     public void onApprovalDecided(boolean approved) {
         AgentResult queued = this.queuedResult;
@@ -189,13 +227,12 @@ public class AgentRuntime {
             installSession(a.session());
             feedback.send("Agent access approved.");
             if (queued != null) {
-                // Run on a virtual thread — executePlan/awaitSceneSettle would
-                // otherwise block the event loop and starve the very onScene
-                // that signals scene settlement.
                 final ViewContract capturedContract = activeContract();
+                // Single-shot post-approval execution. The original goal that
+                // led to this approval is lost — re-prompt to resume agentic flow.
                 Thread.startVirtualThread(() -> {
                     try {
-                        executeResult(queued, capturedContract);
+                        executeStep(queued, capturedContract);
                     } catch (Throwable t) {
                         logger.log(System.Logger.Level.ERROR,
                                 "Post-approval execution failed", t);
@@ -208,40 +245,101 @@ public class AgentRuntime {
         }
     }
 
+    // ==================================================================
+    // Loop
+    // ==================================================================
+
     /**
-     * Evaluate the LLM's result against the active authorization. If allowed,
-     * execute. If denied because no grant is present yet, escalate to the
-     * spawner — which surfaces the delegation approval modal.
+     * Run the agent loop for a user prompt. Re-prompts the LLM with the same
+     * goal on each iteration, re-materialising context from the current scene.
+     * <p>
+     * Package-private to allow direct unit testing without spinning up
+     * the virtual thread machinery.
      */
-    private void evaluateAndExecute(AgentResult result, ViewContract capturedContract) {
+    void runLoop(String userText, ViewContract initialContract, AbortToken token, long startTime) {
+        int step = 0;
+        ViewContract capturedContract = initialContract;
+
+        while (true) {
+            if (token.isCancelled()) {
+                final int cancelledAt = step;
+                logger.log(System.Logger.Level.DEBUG,
+                    () -> String.format("AgentRuntime@%x loop cancelled at step %d", System.identityHashCode(this), cancelledAt));
+                return;
+            }
+
+            AgentContext agentContext = buildAgentContext();
+            ContractProfile profile = agentContext.contractProfile();
+            capturedContract = activeContract();
+
+            AgentResult result;
+            try {
+                result = agentService.handlePrompt(userText, profile, structure,
+                        partial -> {
+                            long elapsed = (System.currentTimeMillis() - startTime) / 1000;
+                            feedback.updateLast("<em>Thinking... (" + elapsed + "s)</em>");
+                        },
+                        token);
+            } catch (Throwable t) {
+                logger.log(System.Logger.Level.ERROR, "LLM call failed", t);
+                feedback.send("Internal error: " + t.getClass().getSimpleName()
+                                + (t.getMessage() != null ? " - " + t.getMessage() : ""));
+                return;
+            }
+
+            if (token.isCancelled()) {
+                return;
+            }
+
+            final int currentStep = step + 1;
+            final AgentResult dispatched = result;
+            logger.log(System.Logger.Level.DEBUG,
+                () -> String.format("AgentRuntime@%x step %d: %s",
+                                    System.identityHashCode(this), currentStep,
+                                    dispatched.getClass().getSimpleName()));
+
+            boolean continuable = evaluateAndDispatch(result, capturedContract);
+            if (!continuable) {
+                return;
+            }
+
+            step++;
+            if (!loopPolicy.shouldContinue(result, step)) {
+                feedback.send("<em>Reached step budget (" + step + "); stopping.</em>");
+                return;
+            }
+        }
+    }
+
+    /**
+     * Evaluate one LLM result against the active authorization, escalating to
+     * the spawner on a pre-session denial. Returns {@code true} if the loop
+     * should continue (a dispatchable action ran), {@code false} for any
+     * terminal state (text reply, plan, blocked, awaiting confirm, awaiting
+     * approval, denied).
+     */
+    private boolean evaluateAndDispatch(AgentResult result, ViewContract capturedContract) {
         Authorization current = (agentSession != null && agentSession.isValid())
                 ? authorization.delegated(agentSession.grant())
                 : authorization;
         AccessDecision decision = current.evaluate(attrsFor(result));
-        logger.log(System.Logger.Level.DEBUG,
-            () -> String.format("AgentRuntime@%x evaluateAndExecute: %s -> %s [label=%s, hasSession=%s]",
-                                System.identityHashCode(this), result.getClass().getSimpleName(),
-                                decision.getClass().getSimpleName(), diagnosticLabel,
-                                agentSession != null && agentSession.isValid()));
 
         if (decision instanceof AccessDecision.Allow) {
-            executeResult(result, capturedContract);
-            return;
+            return executeStep(result, capturedContract);
         }
         if (agentSession != null && agentSession.isValid()) {
-            // Grant is present and policy still denies — real refusal.
             String reason = (decision instanceof AccessDecision.Deny d) ? d.reason() : "denied";
             feedback.send("Action not permitted: " + reason);
-            return;
+            return false;
         }
         // No grant yet — request one via the spawner.
         SpawnRequest request = new SpawnRequest(
                 AgentContext.Scope.APP, ControlMode.ASSIST, describe(result));
         SpawnResult spawn = spawner.spawn(request, lookup);
-        switch (spawn) {
+        return switch (spawn) {
             case SpawnResult.Approved a -> {
                 installSession(a.session());
-                executeResult(result, capturedContract);
+                yield executeStep(result, capturedContract);
             }
             case SpawnResult.RequiresApproval _ -> {
                 this.queuedResult = result;
@@ -251,39 +349,122 @@ public class AgentRuntime {
                                "controlMode", request.controlMode().name(),
                                "reason", describe(result))));
                 feedback.send("This requires your approval...");
+                yield false;
             }
-            case SpawnResult.Denied d ->
+            case SpawnResult.Denied d -> {
                 feedback.send("Agent session denied: " + d.reason());
-        }
+                yield false;
+            }
+        };
     }
 
-    private void executeResult(AgentResult result, ViewContract capturedContract) {
-        logger.log(System.Logger.Level.DEBUG,
-            () -> String.format("AgentRuntime@%x executeResult: %s [label=%s]",
-                                System.identityHashCode(this),
-                                result.getClass().getSimpleName(), diagnosticLabel));
+    /**
+     * Dispatch one LLM result. Returns {@code true} if the loop may proceed
+     * to a next iteration, {@code false} otherwise.
+     */
+    private boolean executeStep(AgentResult result, ViewContract capturedContract) {
         final ActionGate capturedGate = gate;
         switch (result) {
-            case AgentResult.TextReply reply ->
+            case AgentResult.TextReply reply -> {
                 feedback.send(HtmlEscape.escape(reply.message()));
+                return false;
+            }
             case AgentResult.NavigateResult nav -> {
+                if (currentScene != null && currentScene.routedContract() != null
+                        && nav.targetContract().isInstance(currentScene.routedContract())) {
+                    feedback.send("Already on " + nav.targetContract().getSimpleName());
+                    return true;
+                }
+                sceneSettleFuture = new CompletableFuture<>();
                 dispatcher.dispatchNavigate(nav.targetContract(), lookup);
                 feedback.send("Navigating...");
+                Scene settled = awaitSceneSettle();
+                if (settled == null) {
+                    return false;
+                }
+                if (settled.routedContract() == null
+                        || !nav.targetContract().isInstance(settled.routedContract())) {
+                    feedback.send("Loop interrupted: unexpected navigation target.");
+                    return false;
+                }
+                return true;
             }
             case AgentResult.ActionResult actionResult -> {
-                ContractAction action = actionResult.action();
                 DispatchResult dr = dispatcher.dispatch(
-                    action, actionResult.payload(), capturedContract, lookup, capturedGate);
-                handleDispatchResult(dr);
+                    actionResult.action(), actionResult.payload(),
+                    capturedContract, lookup, capturedGate);
+                return handleDispatchResultForLoop(dr);
             }
             case AgentResult.PlanResult plan -> {
                 if (!plan.summary().isBlank()) {
                     feedback.send(HtmlEscape.escape(plan.summary()));
                 }
                 executePlan(plan.steps());
+                // Plan executor runs its own multi-step iteration internally;
+                // the outer loop does not continue once a plan completes.
+                return false;
             }
         }
     }
+
+    /**
+     * Loop-aware dispatch handling: returns whether iteration may continue
+     * after the dispatch outcome.
+     */
+    private boolean handleDispatchResultForLoop(DispatchResult result) {
+        return switch (result) {
+            case DispatchResult.Dispatched d -> {
+                feedback.send(d.action().description());
+                try {
+                    d.processed().join();
+                } catch (Throwable t) {
+                    feedback.send("Dispatch wait failed: " + t.getClass().getSimpleName());
+                    yield false;
+                }
+                yield true;
+            }
+            case DispatchResult.Blocked b -> {
+                feedback.send(b.reason());
+                yield false;
+            }
+            case DispatchResult.AwaitingConfirmation c -> {
+                // Assign state BEFORE emitting feedback so a caller awaiting the
+                // confirmation message observes a consistent (state, message) pair.
+                pendingConfirm = new PendingAction(c.action(), c.payload());
+                feedback.send(c.question());
+                yield false;
+            }
+            case DispatchResult.PayloadError pe -> {
+                feedback.send("Invalid payload for '" + HtmlEscape.escape(pe.action())
+                    + "': " + HtmlEscape.escape(pe.message()));
+                yield false;
+            }
+        };
+    }
+
+    /**
+     * Synchronous dispatch handler — for the yes-confirmation path
+     * (no loop accounting, no return value).
+     */
+    private void handleDispatchResult(DispatchResult result) {
+        switch (result) {
+            case DispatchResult.Dispatched d ->
+                feedback.send(d.action().description());
+            case DispatchResult.Blocked b ->
+                feedback.send(b.reason());
+            case DispatchResult.AwaitingConfirmation c -> {
+                pendingConfirm = new PendingAction(c.action(), c.payload());
+                feedback.send(c.question());
+            }
+            case DispatchResult.PayloadError pe ->
+                feedback.send("Invalid payload for '" + HtmlEscape.escape(pe.action())
+                    + "': " + HtmlEscape.escape(pe.message()));
+        }
+    }
+
+    // ==================================================================
+    // Helpers
+    // ==================================================================
 
     private Attributes attrsFor(AgentResult result) {
         Attributes.Builder b = Attributes.builder()
@@ -324,22 +505,6 @@ public class AgentRuntime {
         this.actionFilter = new PolicyActionFilter(agentAuth);
     }
 
-    private void handleDispatchResult(DispatchResult result) {
-        switch (result) {
-            case DispatchResult.Dispatched d ->
-                feedback.send(d.action().description());
-            case DispatchResult.Blocked b ->
-                feedback.send(b.reason());
-            case DispatchResult.AwaitingConfirmation c -> {
-                feedback.send(c.question());
-                pendingConfirm = new PendingAction(c.action(), c.payload());
-            }
-            case DispatchResult.PayloadError pe ->
-                feedback.send("Invalid payload for '" + HtmlEscape.escape(pe.action())
-                    + "': " + HtmlEscape.escape(pe.message()));
-        }
-    }
-
     private void executePlan(List<String> originalSteps) {
         List<String> steps = new ArrayList<>(originalSteps);
         int totalSteps = steps.size();
@@ -350,10 +515,8 @@ public class AgentRuntime {
             feedback.send("<em>Step " + (i + 1) + "/" + totalSteps + ": "
                             + HtmlEscape.escape(step) + "</em>");
 
-            // Snapshot routed contract class before this step
             final Class<?> preStepContract = routedContractClass();
 
-            // Build fresh context from current scene state
             AgentContext agentContext = buildAgentContext();
             ContractProfile freshProfile = agentContext.contractProfile();
             final ViewContract capturedContract = activeContract();
@@ -361,7 +524,6 @@ public class AgentRuntime {
 
             AgentResult stepResult = agentService.handlePrompt(step, freshProfile, structure);
 
-            // Check if scene changed during (potentially slow) LLM call
             if (!Objects.equals(preStepContract, routedContractClass())) {
                 feedback.send("Plan interrupted: scene changed during step execution.");
                 return;
@@ -373,7 +535,6 @@ public class AgentRuntime {
                     return;
                 }
                 case AgentResult.NavigateResult nav -> {
-                    // Already on the target contract — no navigation needed
                     if (currentScene != null && currentScene.routedContract() != null
                             && nav.targetContract().isInstance(currentScene.routedContract())) {
                         feedback.send("Already on " + nav.targetContract().getSimpleName());
@@ -386,7 +547,6 @@ public class AgentRuntime {
                         if (settled == null) {
                             return;
                         }
-                        // Verify our navigation landed, not a concurrent user action
                         if (settled.routedContract() == null
                                 || !nav.targetContract().isInstance(settled.routedContract())) {
                             feedback.send("Plan interrupted: unexpected navigation.");
@@ -418,7 +578,6 @@ public class AgentRuntime {
                     }
                 }
                 case AgentResult.PlanResult nested -> {
-                    // Splice nested steps into the plan after the current position
                     steps.addAll(i + 1, nested.steps());
                     totalSteps = steps.size();
                     if (totalSteps > MAX_PLAN_STEPS) {
@@ -440,7 +599,7 @@ public class AgentRuntime {
             sceneSettleFuture = null;
             return settled;
         } catch (TimeoutException e) {
-            feedback.send("Plan interrupted: scene did not settle in time.");
+            feedback.send("Loop interrupted: scene did not settle in time.");
             return null;
         } catch (Exception e) {
             Thread.currentThread().interrupt();

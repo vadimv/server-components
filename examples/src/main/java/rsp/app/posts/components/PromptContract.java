@@ -10,6 +10,7 @@ import rsp.compositions.agent.AgentRuntime;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentSpawner;
 import rsp.compositions.agent.DelegationApprovalContract;
+import rsp.compositions.agent.LoopPolicy;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.contract.ContextKeys;
@@ -76,7 +77,7 @@ public class PromptContract extends ViewContract {
         };
 
         this.runtime = new AgentRuntime(agentService, dispatcher, spawner,
-                authorization, structure, lookup, feedback, scopeKey);
+                authorization, structure, lookup, feedback, LoopPolicy.DEFAULT, scopeKey);
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
             logger.log(System.Logger.Level.DEBUG,

@@ -70,4 +70,26 @@ public class AgentService {
                                     Consumer<String> onPartialContent) {
         return handlePrompt(prompt, profile, structureTree);
     }
+
+    /**
+     * Process a user prompt with streaming and a cooperative cancellation token.
+     * Default implementation ignores the token and delegates to the 4-arg overload.
+     * Subclasses that talk to a real LLM should check {@code abortToken.isCancelled()}
+     * at streaming boundaries and abort the underlying HTTP call when cancelled.
+     *
+     * @param prompt           the user's natural-language input
+     * @param profile          the active contract's profile
+     * @param structureTree    the navigation structure
+     * @param onPartialContent called with accumulated content as tokens arrive
+     * @param abortToken       cancellation signal — implementations may poll
+     *                         and abort early when {@code isCancelled()} is true
+     * @return the result (action, navigation, or text reply)
+     */
+    public AgentResult handlePrompt(String prompt,
+                                    ContractProfile profile,
+                                    StructureNode structureTree,
+                                    Consumer<String> onPartialContent,
+                                    AbortToken abortToken) {
+        return handlePrompt(prompt, profile, structureTree, onPartialContent);
+    }
 }

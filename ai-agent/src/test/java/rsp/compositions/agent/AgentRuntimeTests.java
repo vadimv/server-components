@@ -25,8 +25,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -237,6 +239,158 @@ class AgentRuntimeTests {
         assertFalse(future.isCompletedExceptionally());
     }
 
+    // ------------------------------------------------------------------
+    // Multi-step loop (Phase 1B)
+    // ------------------------------------------------------------------
+
+    /** Loop invariant A: ActionResult → continue; TextReply terminates.
+     *  Script: Action, Action, TextReply → expect 3 LLM calls + 2 dispatches. */
+    @Test
+    void loop_continuesAfterActionDispatch_untilTextReply() throws InterruptedException {
+        EventKey.VoidKey key = new EventKey.VoidKey("test.act");
+        ContractAction action = new ContractAction("act", key, "Act");
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.TextReply("done"));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Dispatched(
+                        a, ContractActionPayload.EMPTY,
+                        CompletableFuture.completedFuture(null)));
+        RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("done"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("do it twice and report");
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
+                "expected final TextReply 'done' within timeout");
+        assertEquals(3, service.callCount.get(),
+                "LLM called once per iteration (3 results = 3 calls)");
+        assertEquals(List.of("act", "act"), dispatcher.dispatchCalls,
+                "two ActionResults must dispatch in order");
+    }
+
+    /** Loop invariant B: AwaitingConfirmation terminates the loop and sets pendingConfirm. */
+    @Test
+    void loop_terminates_onAwaitingConfirmation_andPreservesPending() throws InterruptedException {
+        EventKey.VoidKey key = new EventKey.VoidKey("test.confirm");
+        ContractAction action = new ContractAction("delete", key, "Delete");
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.AwaitingConfirmation(
+                        "Are you sure?", a, ContractActionPayload.EMPTY));
+        RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("Are you sure?"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("delete things");
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS));
+        assertEquals(1, service.callCount.get(),
+                "loop must not iterate past an AwaitingConfirmation");
+        assertNotNull(getField(runtime, "pendingConfirm"),
+                "pendingConfirm must be set so the next user input can answer yes/no");
+    }
+
+    /** Loop invariant C: Blocked dispatch terminates the loop. */
+    @Test
+    void loop_terminates_onBlockedDispatch() throws InterruptedException {
+        EventKey.VoidKey key = new EventKey.VoidKey("test.blocked");
+        ContractAction action = new ContractAction("blocked", key, "Blocked");
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Blocked("forbidden by gate"));
+        RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("forbidden by gate"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("attempt forbidden thing");
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS));
+        assertEquals(1, service.callCount.get(),
+                "loop must not iterate past a Blocked dispatch");
+    }
+
+    /** Loop invariant D: LoopPolicy budget caps iteration count.
+     *  With budget(2): 2 dispatches succeed, then the budget message terminates. */
+    @Test
+    void loop_terminates_atStepBudget() throws InterruptedException {
+        EventKey.VoidKey key = new EventKey.VoidKey("test.act");
+        ContractAction action = new ContractAction("act", key, "Act");
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Dispatched(
+                        a, ContractActionPayload.EMPTY,
+                        CompletableFuture.completedFuture(null)));
+        RecordingFeedback feedback = new RecordingFeedback(m -> m.contains("step budget"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup(),
+                LoopPolicy.budget(2));
+
+        runtime.submit("loop forever");
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
+                "expected budget message within timeout");
+        assertEquals(2, dispatcher.dispatchCalls.size(),
+                "budget(2) must allow exactly 2 dispatches before stopping");
+        assertEquals(2, service.callCount.get(),
+                "LLM called twice (once per dispatched step) before budget hit");
+    }
+
+    /** Loop invariant E: while a loop is running, new submits are rejected. */
+    @Test
+    void submit_whileLoopRunning_isRejected() {
+        RecordingFeedback feedback = new RecordingFeedback();
+        ScriptedAgentService service = new ScriptedAgentService();
+        AgentRuntime runtime = newRuntime(service, new ActionDispatcher(),
+                new FailingSpawner(), allowAuthorization(), feedback, new TestLookup());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+
+        runtime.submit("anything");
+
+        assertEquals(List.of("Still processing previous prompt..."), feedback.messages);
+        assertEquals(0, service.callCount.get(),
+                "LLM must not be invoked when a loop is in progress");
+    }
+
+    /** Loop invariant F: a pre-cancelled token short-circuits the loop —
+     *  no LLM call, no dispatch, no feedback. */
+    @Test
+    void runLoop_withPreCancelledToken_skipsLlmCall() {
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.TextReply("never seen"));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> { throw new AssertionError("dispatch should not run"); });
+        RecordingFeedback feedback = new RecordingFeedback();
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        AbortToken token = new AbortToken();
+        token.cancel();
+        runtime.runLoop("ignored", null, token, System.currentTimeMillis());
+
+        assertEquals(0, service.callCount.get(),
+                "cancelled token must short-circuit before the LLM call");
+        assertTrue(feedback.messages.isEmpty(),
+                "cancelled loop must emit no feedback (silence preserves caller control)");
+    }
+
     // ==================================================================
     // Test scaffolding
     // ==================================================================
@@ -247,8 +401,19 @@ class AgentRuntimeTests {
                                            Authorization authorization,
                                            AgentFeedback feedback,
                                            Lookup lookup) {
+        return newRuntime(service, dispatcher, spawner, authorization, feedback, lookup,
+                LoopPolicy.DEFAULT);
+    }
+
+    private static AgentRuntime newRuntime(AgentService service,
+                                           ActionDispatcher dispatcher,
+                                           AgentSpawner spawner,
+                                           Authorization authorization,
+                                           AgentFeedback feedback,
+                                           Lookup lookup,
+                                           LoopPolicy policy) {
         return new AgentRuntime(service, dispatcher, spawner,
-                authorization, null, lookup, feedback, "test-runtime");
+                authorization, null, lookup, feedback, policy, "test-runtime");
     }
 
     private static Authorization allowAuthorization() {
@@ -377,6 +542,25 @@ class AgentRuntimeTests {
         @Override
         public SpawnResult spawn(SpawnRequest request, Lookup lookup) {
             throw new AssertionError("spawn() should not be called in this test");
+        }
+    }
+
+    /** Dispatcher that produces a caller-supplied DispatchResult per call,
+     *  recording the action name. Used for tests that need to drive the loop
+     *  through specific dispatch outcomes without wiring a real contract. */
+    private static final class ScriptedDispatcher extends ActionDispatcher {
+        final List<String> dispatchCalls = new CopyOnWriteArrayList<>();
+        private final Function<ContractAction, DispatchResult> behavior;
+
+        ScriptedDispatcher(Function<ContractAction, DispatchResult> behavior) {
+            this.behavior = behavior;
+        }
+
+        @Override
+        public DispatchResult dispatch(ContractAction action, ContractActionPayload payload,
+                                       ViewContract contract, Lookup lookup, ActionGate gate) {
+            dispatchCalls.add(action.action());
+            return behavior.apply(action);
         }
     }
 
