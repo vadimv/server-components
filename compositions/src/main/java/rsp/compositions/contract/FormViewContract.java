@@ -46,6 +46,23 @@ public abstract class FormViewContract<T> extends ViewContract {
             new EventKey.SimpleKey<>("form.submitted",
                     (Class<Map<String, Object>>) (Class<?>) Map.class);
 
+    /**
+     * Set a single form field value without submitting. Used by the agent to
+     * pre-fill a form one field at a time so the user can review before saving.
+     * <p>
+     * Payload is a map with two entries: {@code "name"} (the field name) and
+     * {@code "value"} (the new value). The view receives this on its lookup
+     * and updates its draft state via {@code StateUpdate}.
+     * <p>
+     * Emitted by: {@link rsp.compositions.agent.ActionDispatcher} when the
+     *             agent dispatches a {@code set_field} action.
+     * Handled by: {@link rsp.compositions.ui.EditView} (in {@code onMounted}).
+     */
+    @SuppressWarnings("unchecked")
+    public static final EventKey.SimpleKey<Map<String, Object>> FORM_FIELD_SET =
+            new EventKey.SimpleKey<>("form.field.set",
+                    (Class<Map<String, Object>>) (Class<?>) Map.class);
+
     protected FormViewContract(final Lookup lookup) {
         super(lookup);
 
@@ -183,6 +200,14 @@ public abstract class FormViewContract<T> extends ViewContract {
     @Override
     public List<ContractAction> agentActions() {
         return List.of(
+            new ContractAction("set_field", FORM_FIELD_SET,
+                "Set a single form field value without submitting. Use this to "
+                    + "pre-fill the form one field at a time so the user can review.",
+                new PayloadSchema.ObjectValue(List.of(
+                    new PayloadSchema.Property("name", "string", true,
+                        "Name of the field to set (must match a field in this form's schema)"),
+                    new PayloadSchema.Property("value", "string", true,
+                        "New value for the field (will be coerced to the field's declared type at submit)")))),
             new ContractAction("save", FORM_SUBMITTED,
                 "Submit form data",
                 PayloadSchemas.fromDataSchema(schema())),

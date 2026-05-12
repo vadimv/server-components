@@ -147,4 +147,53 @@ public class CreateViewContractTests {
             assertEquals("name", schema.columns().get(1).name());
         }
     }
+
+    @Nested
+    class AgentActionsTests {
+
+        @Test
+        void agent_actions_include_set_field() {
+            final Lookup lookup = lookupWithRoutePattern("/posts/new");
+            final TestCreateContract contract = new TestCreateContract(lookup);
+
+            final java.util.List<ContractAction> actions = contract.agentActions();
+            final ContractAction setField = actions.stream()
+                    .filter(a -> a.action().equals("set_field"))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError(
+                            "set_field action must be declared on FormViewContract"));
+
+            assertEquals(FormViewContract.FORM_FIELD_SET, setField.eventKey());
+        }
+
+        @Test
+        void set_field_payload_schema_has_name_and_value_properties() {
+            final Lookup lookup = lookupWithRoutePattern("/posts/new");
+            final TestCreateContract contract = new TestCreateContract(lookup);
+
+            final ContractAction setField = contract.agentActions().stream()
+                    .filter(a -> a.action().equals("set_field"))
+                    .findFirst().orElseThrow();
+
+            assertInstanceOf(PayloadSchema.ObjectValue.class, setField.schema());
+            final PayloadSchema.ObjectValue obj = (PayloadSchema.ObjectValue) setField.schema();
+            assertEquals(2, obj.properties().size());
+            assertTrue(obj.properties().stream().anyMatch(p -> p.name().equals("name") && p.required()),
+                    "ObjectValue must declare required 'name' property");
+            assertTrue(obj.properties().stream().anyMatch(p -> p.name().equals("value") && p.required()),
+                    "ObjectValue must declare required 'value' property");
+        }
+
+        @Test
+        void save_action_still_available_for_human_dispatch() {
+            // The agent prompt instructs the model not to call save, but the
+            // action remains declared so human form submission still works.
+            final Lookup lookup = lookupWithRoutePattern("/posts/new");
+            final TestCreateContract contract = new TestCreateContract(lookup);
+
+            assertTrue(contract.agentActions().stream()
+                    .anyMatch(a -> a.action().equals("save")),
+                    "save action must remain declared for the form submit path");
+        }
+    }
 }

@@ -309,6 +309,10 @@ public final class AgentServiceUtils {
                 * "go to posts page 2" -> plan: ["show posts", "go to page 2"]
                 * "open comments and select all" -> plan: ["show comments", "select all"]
                 * "navigate between comments and posts" -> plan: ["show comments", "show posts"]
+                * "create a new post about .." ->
+                    plan: ["create", "set field title to 'A Brief Tour on ..'",
+                           "set field content to '.. is known for ..'"]
+                  (Do NOT include a save/submit step — the user reviews and submits the form themselves.)
             - For a single-aspect request, pick the matching action tool directly:
                 * "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
                 * "page 3", "goto page 2", "go to page N" -> page tool with the number as payload
@@ -317,8 +321,10 @@ public final class AgentServiceUtils {
                 * "create", "new" -> create tool
                 * "edit 5" -> edit tool with the item's ID as payload
                 * "delete 'Some Title'" -> resolve the item's ID from the visible items below, then use delete with that ID
+                * "set field title to X", "fill content with Y" -> set_field tool with payload {"name": <field name>, "value": <value>}
             - For greetings or general questions -> text_reply tool with a friendly short reply.
             - IMPORTANT: When a tool requires an item ID as payload, use the actual ID from the visible items below — NEVER use a name or description.
+            - IMPORTANT: When filling a form, do NOT call save — stop after the last set_field. The user reviews the pre-filled form and clicks Save manually.
 
             Current page: %s
             App pages: %s

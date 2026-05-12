@@ -4,10 +4,12 @@ import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.EditViewContract;
+import rsp.compositions.contract.FormViewContract;
 import rsp.compositions.schema.DataSchema;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -149,6 +151,52 @@ public abstract class EditView extends Component<EditView.EditViewState> {
 
         // Create the segment
         return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+    }
+
+    /**
+     * Subscribe to {@link FormViewContract#FORM_FIELD_SET} once per component
+     * mount. When the agent dispatches a {@code set_field} action, the runtime
+     * publishes this event on the contract lookup; we apply it as a state
+     * transformation so the rendered input picks up the new value.
+     * <p>
+     * The {@code value} entry is normalised to {@code String} (LLM tool payloads
+     * arrive as strings); the form view binds inputs to {@code value.toString()}
+     * for rendering, and {@link rsp.compositions.schema.DataSchema#validate}
+     * applies type coercion at submit time.
+     */
+    @Override
+    public void onMounted(ComponentCompositeKey componentId,
+                          EditViewState state,
+                          StateUpdate<EditViewState> stateUpdate) {
+        if (lookup == null) {
+            return;
+        }
+        lookup.subscribe(FormViewContract.FORM_FIELD_SET, (eventName, payload) -> {
+            if (payload == null) return;
+            Object nameRaw = payload.get("name");
+            Object valueRaw = payload.get("value");
+            if (!(nameRaw instanceof String fieldName) || fieldName.isEmpty()) {
+                return;
+            }
+            String value = valueRaw != null ? valueRaw.toString() : "";
+            stateUpdate.applyStateTransformation(s -> {
+                if (s.schema() == null || s.schema().field(fieldName) == null) {
+                    // Unknown field — ignore rather than mutate state.
+                    return s;
+                }
+                Map<String, Object> updated = new LinkedHashMap<>(s.fieldValues());
+                updated.put(fieldName, value);
+                return new EditViewState(
+                    updated,
+                    s.schema(),
+                    true,
+                    s.listRoute(),
+                    s.isCreateMode(),
+                    s.validationErrors(),
+                    s.title()
+                );
+            });
+        });
     }
 
     /**
