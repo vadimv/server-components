@@ -243,33 +243,35 @@ class AgentRuntimeTests {
     // Multi-step loop (Phase 1B)
     // ------------------------------------------------------------------
 
-    /** Loop invariant A: ActionResult → continue; TextReply terminates.
-     *  Script: Action, Action, TextReply → expect 3 LLM calls + 2 dispatches. */
+    /** Loop invariant A: a non-plan dispatch is single-shot — the loop
+     *  dispatches once and stops. (Multi-step intent must travel through a
+     *  PlanResult; see the plan-enqueue test below.) */
     @Test
-    void loop_continuesAfterActionDispatch_untilTextReply() throws InterruptedException {
+    void loop_singleAction_dispatchesOnceAndStops() throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.act");
         ContractAction action = new ContractAction("act", key, "Act");
         ScriptedAgentService service = new ScriptedAgentService(
                 new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.TextReply("done"));
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
                         a, ContractActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
-        RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("done"));
+        RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("Act"));
 
         AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
                 allowAuthorization(), feedback, new TestLookup());
 
-        runtime.submit("do it twice and report");
+        runtime.submit("do it");
 
         assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
-                "expected final TextReply 'done' within timeout");
-        assertEquals(3, service.callCount.get(),
-                "LLM called once per iteration (3 results = 3 calls)");
-        assertEquals(List.of("act", "act"), dispatcher.dispatchCalls,
-                "two ActionResults must dispatch in order");
+                "expected single dispatch within timeout");
+        // Brief grace for the runtime to finish post-dispatch bookkeeping
+        // before we assert no further LLM calls happened.
+        Thread.sleep(50);
+        assertEquals(1, service.callCount.get(),
+                "non-plan dispatch is single-shot — no re-prompt");
+        assertEquals(List.of("act"), dispatcher.dispatchCalls);
     }
 
     /** Loop invariant B: AwaitingConfirmation terminates the loop and sets pendingConfirm. */
@@ -319,13 +321,16 @@ class AgentRuntimeTests {
                 "loop must not iterate past a Blocked dispatch");
     }
 
-    /** Loop invariant D: LoopPolicy budget caps iteration count.
-     *  With budget(2): 2 dispatches succeed, then the budget message terminates. */
+    /** Loop invariant D: LoopPolicy budget caps plan-step iteration count.
+     *  A 4-step plan with budget(2) dispatches 2 steps, then the budget
+     *  message terminates before consuming the rest. */
     @Test
-    void loop_terminates_atStepBudget() throws InterruptedException {
+    void loop_terminates_atStepBudget_whileDispatchingPlanSteps()
+            throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.act");
         ContractAction action = new ContractAction("act", key, "Act");
         ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.PlanResult(List.of("s1", "s2", "s3", "s4"), ""),
                 new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
                 new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
                 new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
@@ -340,14 +345,12 @@ class AgentRuntimeTests {
                 allowAuthorization(), feedback, new TestLookup(),
                 LoopPolicy.budget(2));
 
-        runtime.submit("loop forever");
+        runtime.submit("plan four things");
 
         assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
                 "expected budget message within timeout");
         assertEquals(2, dispatcher.dispatchCalls.size(),
-                "budget(2) must allow exactly 2 dispatches before stopping");
-        assertEquals(2, service.callCount.get(),
-                "LLM called twice (once per dispatched step) before budget hit");
+                "budget(2) must allow exactly 2 dispatched steps before stopping");
     }
 
     /** Loop invariant E: while a loop is running, new submits are rejected. */
@@ -366,6 +369,88 @@ class AgentRuntimeTests {
         assertEquals(List.of("Still processing previous prompt..."), feedback.messages);
         assertEquals(0, service.callCount.get(),
                 "LLM must not be invoked when a loop is in progress");
+    }
+
+    /** Unified plan handling: a {@code PlanResult} enqueues its steps; the
+     *  loop iterates through them as ordinary dispatches, each counted by
+     *  the budget. When the queue empties the loop returns — no closing
+     *  re-prompt (which could cascade if the LLM re-issues the same plan).
+     */
+    @Test
+    void loop_enqueuesPlanSteps_andDispatchesEachThenStops()
+            throws InterruptedException {
+        EventKey.VoidKey key = new EventKey.VoidKey("test.act");
+        ContractAction action = new ContractAction("act", key, "Act");
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.PlanResult(List.of("first step", "second step"), ""),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Dispatched(
+                        a, ContractActionPayload.EMPTY,
+                        CompletableFuture.completedFuture(null)));
+        RecordingFeedback feedback = new RecordingFeedback(
+                m -> m.contains("Step 2/2"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("do two things");
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS));
+        // Brief grace for the runtime to finish post-dispatch bookkeeping
+        // before we assert the LLM was not called again.
+        Thread.sleep(50);
+        assertEquals(2, dispatcher.dispatchCalls.size(),
+                "both plan steps must dispatch as ordinary actions");
+        assertEquals(3, service.callCount.get(),
+                "LLM called: 1 plan classification + 2 per-step calls; no closing re-prompt");
+        assertTrue(feedback.messages.stream().anyMatch(m -> m.contains("Plan: 2 steps")),
+                "plan size announcement must appear once");
+        assertTrue(feedback.messages.stream().anyMatch(m -> m.contains("Step 1/2: first step")),
+                "first plan step must be labeled");
+        assertTrue(feedback.messages.stream().anyMatch(m -> m.contains("Step 2/2: second step")),
+                "second plan step must be labeled");
+    }
+
+    /** Post-approval: a queued PlanResult must iterate to completion, not
+     *  just enqueue and exit. Reproduces the user-visible "halted after
+     *  Plan: N steps" regression. */
+    @Test
+    void onApprovalDecided_true_runsPlanQueuedResultToCompletion()
+            throws InterruptedException {
+        EventKey.VoidKey key = new EventKey.VoidKey("test.act");
+        ContractAction action = new ContractAction("act", key, "Act");
+        // Service is consulted for each enqueued plan step (not for the
+        // queued PlanResult itself, which is used as the kickstart).
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Dispatched(
+                        a, ContractActionPayload.EMPTY,
+                        CompletableFuture.completedFuture(null)));
+        ScriptedSpawner spawner = new ScriptedSpawner(
+                new SpawnResult.Approved(validSession()));
+        RecordingFeedback feedback = new RecordingFeedback(
+                m -> m.contains("Step 2/2"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, spawner,
+                allowAuthorization(), feedback, new TestLookup());
+
+        setField(runtime, "queuedResult",
+                new AgentResult.PlanResult(List.of("first", "second"), ""));
+
+        runtime.onApprovalDecided(true);
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
+                "expected both plan steps to dispatch after approval");
+        Thread.sleep(50);
+        assertEquals(2, dispatcher.dispatchCalls.size(),
+                "queued PlanResult must iterate to completion, not stop after enqueue");
+        assertTrue(feedback.messages.stream().anyMatch(m -> m.contains("Plan: 2 steps")));
+        assertTrue(feedback.messages.stream().anyMatch(m -> m.contains("Step 1/2: first")));
+        assertTrue(feedback.messages.stream().anyMatch(m -> m.contains("Step 2/2: second")));
     }
 
     /** Loop invariant F: a pre-cancelled token short-circuits the loop —

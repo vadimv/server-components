@@ -53,8 +53,11 @@ public final class ClaudeAgentService extends AgentService {
     }
 
     /**
-     * Execution phase: full tool set for single-action step execution.
-     * Called by plan executor for each individual step.
+     * Execution phase: full tool set. Both runtime overloads route here so
+     * the agent loop can receive {@code ActionResult} / {@code NavigateResult} /
+     * {@code PlanResult} / {@code TextReply} on every iteration. Plans are
+     * still possible; the runtime's loop folds their steps back into
+     * subsequent iterations.
      */
     @Override
     public AgentResult handlePrompt(String prompt, ContractProfile profile, StructureNode structureTree) {
@@ -65,23 +68,25 @@ public final class ClaudeAgentService extends AgentService {
     }
 
     /**
-     * Classification phase: only plan + text_reply tools.
-     * Called for the initial user prompt to classify as plan or greeting.
+     * Streaming variant of {@link #handlePrompt(String, ContractProfile, StructureNode)}.
+     * Same full tool set; the {@code onPartialContent} consumer receives
+     * accumulated text for "Thinking…" progress feedback.
      */
     @Override
-    public AgentResult handlePrompt(String prompt, ContractProfile profile,
+    public AgentResult handlePrompt(String prompt,
+                                    ContractProfile profile,
                                     StructureNode structureTree,
                                     Consumer<String> onPartialContent) {
         return doHandlePrompt(prompt,
-            AgentServiceUtils.buildClassificationTools(),
-            AgentServiceUtils.buildClassificationPrompt(profile, structureTree),
+            AgentServiceUtils.buildToolDefinitions(profile, structureTree),
+            AgentServiceUtils.buildExecutionPrompt(profile, structureTree),
             profile, structureTree, onPartialContent);
     }
 
     private AgentResult doHandlePrompt(String prompt, List<ToolDefinition> tools,
-                                        String systemPrompt,
-                                        ContractProfile profile, StructureNode structureTree,
-                                        Consumer<String> onPartialContent) {
+                                       String systemPrompt,
+                                       ContractProfile profile, StructureNode structureTree,
+                                       Consumer<String> onPartialContent) {
         try {
             Optional<AgentResult> parsed = streamRequest(prompt, tools, systemPrompt,
                 profile, structureTree, onPartialContent);

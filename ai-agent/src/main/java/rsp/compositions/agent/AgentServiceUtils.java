@@ -278,8 +278,14 @@ public final class AgentServiceUtils {
     }
 
     /**
-     * Builds a system prompt for the execution phase (step-by-step).
-     * The model sees the full tool set and executes a single action per call.
+     * Builds the system prompt for the unified agent loop.
+     * <p>
+     * The model sees the full tool set on every call. For multi-aspect
+     * requests (navigate then act, multiple actions, etc.) it must use the
+     * {@code plan} tool so the runtime can iterate through the steps;
+     * otherwise it picks one action per call. Single-aspect plan steps
+     * popped from the queue also land here, so the same prompt must work
+     * for both initial requests and per-step execution.
      */
     public static String buildExecutionPrompt(ContractProfile profile, StructureNode structureTree) {
         String contractDesc = profile.metadata() != null
@@ -295,16 +301,24 @@ public final class AgentServiceUtils {
         return """
             You are an assistant for a web application. Use the provided tools to fulfill user requests.
 
-            Rules:
-            - "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
-            - "page 3", "goto page 2", "go to page N" -> page tool with the number as payload
-            - "select all", "select all items", "select all rows", "select everything", "select all items on page N" -> select_all tool (no payload) — NEVER use the page tool for these
-            - "delete selected", "delete all selected" -> delete_selected tool (no payload)
-            - "create", "new" -> create tool
-            - "edit 5" -> edit tool with the item's ID as payload
-            - "delete 'Some Title'" -> resolve the item's ID from the visible items below, then use the delete tool with that ID
-            - For greetings or general questions -> text_reply tool with a friendly short reply
-            - IMPORTANT: When a tool requires an item ID as payload, use the actual ID from the visible items below — NEVER use a name or description
+            CHOOSING A TOOL:
+            - If the user's request requires more than one action (e.g. navigating to a page AND acting on it,
+              or acting on multiple targets, or a phrase with "and"/"then" linking actions), use the plan tool
+              with one natural-language step per action. The runtime will execute each step in order.
+              Examples:
+                * "go to posts page 2" -> plan: ["show posts", "go to page 2"]
+                * "open comments and select all" -> plan: ["show comments", "select all"]
+                * "navigate between comments and posts" -> plan: ["show comments", "show posts"]
+            - For a single-aspect request, pick the matching action tool directly:
+                * "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
+                * "page 3", "goto page 2", "go to page N" -> page tool with the number as payload
+                * "select all", "select all items", "select everything" -> select_all tool (no payload) — NEVER use page for these
+                * "delete selected", "delete all selected" -> delete_selected tool (no payload)
+                * "create", "new" -> create tool
+                * "edit 5" -> edit tool with the item's ID as payload
+                * "delete 'Some Title'" -> resolve the item's ID from the visible items below, then use delete with that ID
+            - For greetings or general questions -> text_reply tool with a friendly short reply.
+            - IMPORTANT: When a tool requires an item ID as payload, use the actual ID from the visible items below — NEVER use a name or description.
 
             Current page: %s
             App pages: %s

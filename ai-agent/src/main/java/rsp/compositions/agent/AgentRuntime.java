@@ -16,7 +16,8 @@ import rsp.compositions.contract.Scene;
 import rsp.compositions.contract.ViewContract;
 import rsp.util.html.HtmlEscape;
 
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,7 +56,6 @@ public class AgentRuntime {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private static final long SCENE_SETTLE_TIMEOUT_SECONDS = 5;
-    private static final int MAX_PLAN_STEPS = 20;
 
     private final AgentService agentService;
     private final ActionDispatcher dispatcher;
@@ -81,6 +81,13 @@ public class AgentRuntime {
     // Loop lifecycle: at most one loop runs at a time.
     private final AtomicBoolean running = new AtomicBoolean(false);
     private volatile AbortToken currentToken;
+
+    // Plan-step queue. Initialised at the start of {@link #runLoop} and only
+    // touched on the loop's virtual thread thereafter (and the loop synchronises
+    // implicitly with itself), so no volatility is required.
+    private Deque<String> planQueue;
+    private int planStepsConsumed;
+    private int planStepsEnqueuedTotal;
 
     private record PendingAction(ContractAction action, ContractActionPayload payload) {}
 
@@ -210,9 +217,9 @@ public class AgentRuntime {
 
     /**
      * Receive the user's decision on a delegation approval modal. On approval,
-     * a fresh spawn is requested and any queued result is executed as a
-     * single step (not looped — the queued result is a snapshot of the
-     * original LLM intent).
+     * a fresh spawn is requested and any queued result is fed into a kickstart
+     * loop — bootstrapping {@link #runLoop} with the result so any enqueued
+     * plan steps actually iterate to completion.
      */
     public void onApprovalDecided(boolean approved) {
         AgentResult queued = this.queuedResult;
@@ -227,22 +234,36 @@ public class AgentRuntime {
             installSession(a.session());
             feedback.send("Agent access approved.");
             if (queued != null) {
-                final ViewContract capturedContract = activeContract();
-                // Single-shot post-approval execution. The original goal that
-                // led to this approval is lost — re-prompt to resume agentic flow.
-                Thread.startVirtualThread(() -> {
-                    try {
-                        executeStep(queued, capturedContract);
-                    } catch (Throwable t) {
-                        logger.log(System.Logger.Level.ERROR,
-                                "Post-approval execution failed", t);
-                        feedback.send("Internal error: " + t.getClass().getSimpleName());
-                    }
-                });
+                startLoopFromApproval(queued, activeContract());
             }
         } else {
             feedback.send("Agent session could not be established.");
         }
+    }
+
+    private void startLoopFromApproval(AgentResult queued, ViewContract capturedContract) {
+        // The original submit's loop has already returned (after queueing),
+        // so {@code running} should be false. Defensive guard for unexpected state.
+        if (!running.compareAndSet(false, true)) {
+            feedback.send("Internal error: agent runtime busy after approval.");
+            return;
+        }
+        AbortToken token = new AbortToken();
+        this.currentToken = token;
+        final long startTime = System.currentTimeMillis();
+        Thread.startVirtualThread(() -> {
+            try {
+                runLoop(null, capturedContract, token, startTime, queued);
+            } catch (Throwable t) {
+                logger.log(System.Logger.Level.ERROR, "Post-approval loop failed", t);
+                feedback.send("Internal error: " + t.getClass().getSimpleName());
+            } finally {
+                running.set(false);
+                if (this.currentToken == token) {
+                    this.currentToken = null;
+                }
+            }
+        });
     }
 
     // ==================================================================
@@ -250,15 +271,42 @@ public class AgentRuntime {
     // ==================================================================
 
     /**
-     * Run the agent loop for a user prompt. Re-prompts the LLM with the same
-     * goal on each iteration, re-materialising context from the current scene.
+     * Run the agent loop for a user prompt.
      * <p>
-     * Package-private to allow direct unit testing without spinning up
-     * the virtual thread machinery.
+     * Iteration model — strictly queue-driven:
+     * <ol>
+     *   <li>If the LLM returns a {@code PlanResult}, its steps are enqueued
+     *       and the loop iterates through them, dispatching each as an
+     *       ordinary step. Plan-step dispatches count toward the budget.</li>
+     *   <li>If the LLM returns any other dispatchable result while the queue
+     *       is <em>empty</em> (i.e. not driven by a plan), the loop dispatches
+     *       once and stops. Without progress context, re-prompting with the
+     *       same user text would loop on the same intent — a real "reactive"
+     *       loop requires step-history plumbing into the prompt and is
+     *       deferred to a future phase.</li>
+     * </ol>
+     * The queue and counters are reset on each invocation so the runtime is
+     * reusable across submits. Package-private to allow direct unit testing.
      */
     void runLoop(String userText, ViewContract initialContract, AbortToken token, long startTime) {
+        runLoop(userText, initialContract, token, startTime, null);
+    }
+
+    /**
+     * Run the loop, optionally bootstrapped with a {@code kickstart} result.
+     * When non-null, the first iteration uses {@code kickstart} instead of
+     * calling the LLM — used by the post-approval path so a queued
+     * {@code PlanResult} actually iterates to completion.
+     */
+    void runLoop(String userText, ViewContract initialContract, AbortToken token,
+                 long startTime, AgentResult kickstart) {
         int step = 0;
+        boolean hasRun = false;
         ViewContract capturedContract = initialContract;
+        this.planQueue = new ArrayDeque<>();
+        this.planStepsConsumed = 0;
+        this.planStepsEnqueuedTotal = 0;
+        AgentResult pendingKickstart = kickstart;
 
         while (true) {
             if (token.isCancelled()) {
@@ -268,28 +316,56 @@ public class AgentRuntime {
                 return;
             }
 
-            AgentContext agentContext = buildAgentContext();
-            ContractProfile profile = agentContext.contractProfile();
-            capturedContract = activeContract();
-
+            // Iteration source: kickstart (bootstrap), queued plan step, or
+            // the original user text (first iteration only). Once at least one
+            // iteration has run and the queue is empty, return — no closing
+            // re-prompt (which could cascade if the LLM re-issues the plan).
+            boolean fromQueue;
             AgentResult result;
-            try {
-                result = agentService.handlePrompt(userText, profile, structure,
-                        partial -> {
-                            long elapsed = (System.currentTimeMillis() - startTime) / 1000;
-                            feedback.updateLast("<em>Thinking... (" + elapsed + "s)</em>");
-                        },
-                        token);
-            } catch (Throwable t) {
-                logger.log(System.Logger.Level.ERROR, "LLM call failed", t);
-                feedback.send("Internal error: " + t.getClass().getSimpleName()
-                                + (t.getMessage() != null ? " - " + t.getMessage() : ""));
-                return;
-            }
+            if (pendingKickstart != null) {
+                result = pendingKickstart;
+                pendingKickstart = null;
+                fromQueue = false;
+                capturedContract = activeContract();
+            } else {
+                String prompt;
+                if (!planQueue.isEmpty()) {
+                    prompt = planQueue.pollFirst();
+                    planStepsConsumed++;
+                    feedback.send("<em>Step " + planStepsConsumed + "/" + planStepsEnqueuedTotal
+                            + ": " + HtmlEscape.escape(prompt) + "</em>");
+                    fromQueue = true;
+                } else if (!hasRun) {
+                    prompt = userText;
+                    fromQueue = false;
+                } else {
+                    return;
+                }
 
-            if (token.isCancelled()) {
-                return;
+                AgentContext agentContext = buildAgentContext();
+                ContractProfile profile = agentContext.contractProfile();
+                capturedContract = activeContract();
+
+                final String promptForLambda = prompt;
+                try {
+                    result = agentService.handlePrompt(promptForLambda, profile, structure,
+                            partial -> {
+                                long elapsed = (System.currentTimeMillis() - startTime) / 1000;
+                                feedback.updateLast("<em>Thinking... (" + elapsed + "s)</em>");
+                            },
+                            token);
+                } catch (Throwable t) {
+                    logger.log(System.Logger.Level.ERROR, "LLM call failed", t);
+                    feedback.send("Internal error: " + t.getClass().getSimpleName()
+                                    + (t.getMessage() != null ? " - " + t.getMessage() : ""));
+                    return;
+                }
+
+                if (token.isCancelled()) {
+                    return;
+                }
             }
+            hasRun = true;
 
             final int currentStep = step + 1;
             final AgentResult dispatched = result;
@@ -300,6 +376,19 @@ public class AgentRuntime {
 
             boolean continuable = evaluateAndDispatch(result, capturedContract);
             if (!continuable) {
+                return;
+            }
+
+            // PlanResult only enqueues; loop body runs again to pop the first
+            // step. Plan classification does not count toward budget.
+            if (result instanceof AgentResult.PlanResult) {
+                continue;
+            }
+
+            // Non-plan dispatch from outside the queue: single-shot, stop here.
+            // Continuing would re-prompt with identical user text and loop on
+            // the same intent (no progress context to break the cycle).
+            if (!fromQueue) {
                 return;
             }
 
@@ -399,10 +488,16 @@ public class AgentRuntime {
                 if (!plan.summary().isBlank()) {
                     feedback.send(HtmlEscape.escape(plan.summary()));
                 }
-                executePlan(plan.steps());
-                // Plan executor runs its own multi-step iteration internally;
-                // the outer loop does not continue once a plan completes.
-                return false;
+                List<String> newSteps = plan.steps();
+                // Prepend in reverse so the plan's first step ends up at the
+                // head of the queue. For a nested plan, this places sub-steps
+                // immediately ahead of the remainder of the parent plan.
+                for (int i = newSteps.size() - 1; i >= 0; i--) {
+                    planQueue.addFirst(newSteps.get(i));
+                }
+                planStepsEnqueuedTotal += newSteps.size();
+                feedback.send("<em>Plan: " + planStepsEnqueuedTotal + " steps</em>");
+                return true;
             }
         }
     }
@@ -505,92 +600,6 @@ public class AgentRuntime {
         this.actionFilter = new PolicyActionFilter(agentAuth);
     }
 
-    private void executePlan(List<String> originalSteps) {
-        List<String> steps = new ArrayList<>(originalSteps);
-        int totalSteps = steps.size();
-        feedback.send("<em>Plan: " + totalSteps + " steps</em>");
-
-        for (int i = 0; i < steps.size(); i++) {
-            String step = steps.get(i);
-            feedback.send("<em>Step " + (i + 1) + "/" + totalSteps + ": "
-                            + HtmlEscape.escape(step) + "</em>");
-
-            final Class<?> preStepContract = routedContractClass();
-
-            AgentContext agentContext = buildAgentContext();
-            ContractProfile freshProfile = agentContext.contractProfile();
-            final ViewContract capturedContract = activeContract();
-            final ActionGate capturedGate = gate;
-
-            AgentResult stepResult = agentService.handlePrompt(step, freshProfile, structure);
-
-            if (!Objects.equals(preStepContract, routedContractClass())) {
-                feedback.send("Plan interrupted: scene changed during step execution.");
-                return;
-            }
-
-            switch (stepResult) {
-                case AgentResult.TextReply reply -> {
-                    feedback.send(HtmlEscape.escape(reply.message()));
-                    return;
-                }
-                case AgentResult.NavigateResult nav -> {
-                    if (currentScene != null && currentScene.routedContract() != null
-                            && nav.targetContract().isInstance(currentScene.routedContract())) {
-                        feedback.send("Already on " + nav.targetContract().getSimpleName());
-                    } else {
-                        sceneSettleFuture = new CompletableFuture<>();
-                        dispatcher.dispatchNavigate(nav.targetContract(), lookup);
-                        feedback.send("Navigating...");
-
-                        Scene settled = awaitSceneSettle();
-                        if (settled == null) {
-                            return;
-                        }
-                        if (settled.routedContract() == null
-                                || !nav.targetContract().isInstance(settled.routedContract())) {
-                            feedback.send("Plan interrupted: unexpected navigation.");
-                            return;
-                        }
-                    }
-                }
-                case AgentResult.ActionResult actionResult -> {
-                    DispatchResult dispatchResult = dispatcher.dispatch(
-                            actionResult.action(), actionResult.payload(),
-                            capturedContract, lookup, capturedGate);
-                    switch (dispatchResult) {
-                        case DispatchResult.Dispatched d -> {
-                            feedback.send(d.action().description());
-                            d.processed().join();
-                        }
-                        case DispatchResult.Blocked b -> {
-                            feedback.send("Step blocked: " + b.reason());
-                            return;
-                        }
-                        case DispatchResult.AwaitingConfirmation c -> {
-                            feedback.send("Plan paused: action requires confirmation. " + c.question());
-                            return;
-                        }
-                        case DispatchResult.PayloadError pe -> {
-                            feedback.send("Step failed: " + HtmlEscape.escape(pe.message()));
-                            return;
-                        }
-                    }
-                }
-                case AgentResult.PlanResult nested -> {
-                    steps.addAll(i + 1, nested.steps());
-                    totalSteps = steps.size();
-                    if (totalSteps > MAX_PLAN_STEPS) {
-                        feedback.send("Plan too large (" + totalSteps + " steps); aborting.");
-                        return;
-                    }
-                }
-            }
-        }
-
-        feedback.send("<em>Plan complete (" + totalSteps + " steps executed)</em>");
-    }
-
     private Scene awaitSceneSettle() {
         CompletableFuture<Scene> future = sceneSettleFuture;
         if (future == null) return currentScene;
@@ -614,12 +623,6 @@ public class AgentRuntime {
 
     private ViewContract activeContract() {
         return currentScene != null ? currentScene.routedContract() : null;
-    }
-
-    private Class<?> routedContractClass() {
-        Scene scene = currentScene;
-        return (scene != null && scene.routedContract() != null)
-                ? scene.routedContract().getClass() : null;
     }
 
     private static String abbreviate(String s) {
