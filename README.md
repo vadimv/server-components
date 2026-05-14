@@ -1,22 +1,26 @@
-# UI Toolkit for Admin Panels
+# Java UI for Admin Panels and realtime web apps
 
-Build AI-controlled admin interfaces and internal tools in modern Java, without writing JavaScript.
+Build web admin interfaces and internal tools in modern Java -- modern Java is very nice! Without writing JavaScript.
 
-This is a pure-Java toolkit for stateful, server-driven back-office apps. It removes REST glue, frontend build steps, and most UI boilerplate while allowing AI agents to understand your application's structure out of the box.
+This is a pure-Java toolkit for stateful, server-rendered live applications.
+No need for REST endpoints, dependencies on JavaScript frameworks like React, frontend build steps, managing frontend state, and most UI boilerplate.
 
-## Turn workflows into sentences
+Enable AI agents to understand your UI structure from within, out of the box.
+
+## Workflows == sentences
 
 <img width="1636" height="1029" alt="CrudApp-Screenshot-2" src="https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f" />
 
 Prompt: "Open comments, go to page two, and select all items."
 
-The AI agent natively understands your application's structure, navigates the UI, and queues up the exact actions while keeping the human in the loop for final approval.
+The AI agent natively understands your application's structure, navigates the UI, and queues up the actions.
+Keep the human in the loop for approval.
 
 ## Why it's different
 
-- Security & Supply Chain: Eliminate thousands of transitive npm dependencies. The toolkit is self-contained and distributed as source.
-- Developer Productivity: Java developers build internal tools in plain Java — without writing web-service controllers, managing frontend state, or depending on JavaScript frameworks like React.
-- AI: The Java HTML DSL is linear, component-based, and composable, with no annotations or implicit control flow. That makes it easy for LLMs (like Claude or GPT) to generate valid UI code without "hallucinating" state-management bugs, and lets AI agents navigate the running app from the same structure.
+- Developer Productivity: Java developers build internal tools in plain Java -- no annotations and implicit control flows; components can be tested in isolation.
+- Security & Supply Chain: Eliminate thousands of transitive npm dependencies. The toolkit aspires to be self-contained and distributed as source.
+- AI: The Java HTML DSL is linear, component-based, and composable. That makes it easy for LLMs (like Claude or GPT) to generate valid DSL HTML and a component tree. At runtime, AI agents read and interact with the app using the defined metadata structure.
 
 ## What does the code look like?
 
@@ -48,7 +52,7 @@ public final class HelloWorld {
 ## Getting started
 
 1. Prerequisites
-   - Java 25+
+   - Java 25+ -- built with virtual threads, sealed interfaces and pattern matching
    - Maven 3.9+
 
 2. Clone the repository
@@ -85,7 +89,7 @@ By default, `CrudApp` uses `RegexAgentService`, a deterministic regex-based agen
 Once you've run the example, open your favorite AI coding assistant in the project root and paste a prompt like this:
 
 *Read examples/src/main/java/rsp/app/posts/CrudApp.java.
-Generate a similar real-time admin tool for managing Employees and Departments.
+Generate a similar realtime admin tool for managing Employees and Departments.
 Create mock services and a new EmployeeAdminApp.java using the same routing, composition, and AI-agent integration patterns.*
 
 7. Upgrade to a full LLM agent
@@ -94,7 +98,7 @@ When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama`
 
 ## Auditable by design
 
-This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies outside the web-server layer.
+This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies.
 
 ## Docs
 
