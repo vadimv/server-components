@@ -210,9 +210,11 @@ public abstract class FormViewContract<T> extends ViewContract {
                         "New value for the field (will be coerced to the field's declared type at submit)")))),
             new ContractAction("save", FORM_SUBMITTED,
                 "Submit form data",
-                PayloadSchemas.fromDataSchema(schema())),
+                PayloadSchemas.fromDataSchema(schema()),
+                DispatchEffect.SCENE_CHANGE),
             new ContractAction("cancel", CANCEL_REQUESTED,
-                "Cancel and go back")
+                "Cancel and go back",
+                DispatchEffect.SCENE_CHANGE)
         );
     }
 

@@ -198,9 +198,11 @@ public abstract class EditViewContract<T> extends FormViewContract<T> {
     @Override
     public List<ContractAction> agentActions() {
         List<ContractAction> actions = new ArrayList<>(super.agentActions());
+        // Deleting from the edit view closes the form overlay — scene-changing.
         actions.add(new ContractAction("delete",
                                     DELETE_REQUESTED,
-                                   "Delete the current entity"));
+                                   "Delete the current entity",
+                                    DispatchEffect.SCENE_CHANGE));
         return List.copyOf(actions);
     }
 

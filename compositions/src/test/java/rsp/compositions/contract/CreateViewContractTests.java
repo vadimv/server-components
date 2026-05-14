@@ -185,6 +185,24 @@ public class CreateViewContractTests {
         }
 
         @Test
+        void save_and_cancel_declared_as_scene_change() {
+            final Lookup lookup = lookupWithRoutePattern("/posts/new");
+            final TestCreateContract contract = new TestCreateContract(lookup);
+
+            final java.util.Map<String, DispatchEffect> effects = contract.agentActions().stream()
+                    .collect(java.util.stream.Collectors.toMap(
+                            ContractAction::action,
+                            ContractAction::effect));
+
+            assertEquals(DispatchEffect.SCENE_CHANGE, effects.get("save"),
+                    "save closes the form overlay — must be declared SCENE_CHANGE");
+            assertEquals(DispatchEffect.SCENE_CHANGE, effects.get("cancel"),
+                    "cancel closes the form overlay — must be declared SCENE_CHANGE");
+            assertEquals(DispatchEffect.NONE, effects.get("set_field"),
+                    "set_field only updates form state — must be declared NONE");
+        }
+
+        @Test
         void save_action_still_available_for_human_dispatch() {
             // The agent prompt instructs the model not to call save, but the
             // action remains declared so human form submission still works.

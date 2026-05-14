@@ -4,6 +4,7 @@ import rsp.compositions.contract.ContractActionPayload;
 
 
 import rsp.compositions.contract.ContractAction;
+import rsp.compositions.contract.PayloadSchema;
 
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
@@ -199,34 +200,55 @@ public final class AgentServiceUtils {
     @SuppressWarnings("unchecked")
     public static String describeState(ContractProfile profile) {
         if (profile.metadata() == null) return "";
-        Map<String, Object> state = profile.metadata().state();
-        if (state.isEmpty()) return "";
 
-        StringBuilder sb = new StringBuilder("\nVisible items:\n");
-        if (state.get("items") instanceof List<?> items) {
-            for (Object item : items) {
-                if (item instanceof Map<?, ?> map) {
-                    sb.append("- ");
-                    Map<String, Object> row = (Map<String, Object>) map;
-                    Object id = row.get("id");
-                    if (id != null) sb.append("id=").append(id);
-                    for (Map.Entry<String, Object> e : row.entrySet()) {
-                        if (!"id".equals(e.getKey())) {
-                            sb.append(", ").append(e.getKey()).append("=").append(e.getValue());
-                        }
-                    }
-                    sb.append("\n");
+        StringBuilder sb = new StringBuilder();
+
+        // Form schema — surfaces the exact field names so set_field uses them
+        // verbatim. Without this, the LLM has to guess from training data
+        // (e.g. "content" for a comment whose actual field is "text"), and
+        // any mismatch silently no-ops in the form's onMounted handler.
+        if (profile.metadata().schema() != null) {
+            var fields = profile.metadata().schema().fields().stream()
+                    .filter(f -> !f.isHidden() && !f.isReadOnly())
+                    .toList();
+            if (!fields.isEmpty()) {
+                sb.append("\nForm fields (use these exact names for the set_field tool):\n");
+                for (var f : fields) {
+                    sb.append("- ").append(f.name())
+                      .append(" (").append(f.fieldType().name().toLowerCase(Locale.ROOT));
+                    if (f.isRequired()) sb.append(", required");
+                    sb.append(") — \"").append(f.displayName()).append("\"\n");
                 }
             }
-        } else if (state.get("entity") instanceof Map<?, ?> entity) {
-            sb.append("Current entity: ");
-            for (Map.Entry<?, ?> e : entity.entrySet()) {
-                sb.append(e.getKey()).append("=").append(e.getValue()).append(", ");
-            }
-            sb.append("\n");
-        } else {
-            return "";
         }
+
+        Map<String, Object> state = profile.metadata().state();
+        if (!state.isEmpty()) {
+            sb.append("\nVisible items:\n");
+            if (state.get("items") instanceof List<?> items) {
+                for (Object item : items) {
+                    if (item instanceof Map<?, ?> map) {
+                        sb.append("- ");
+                        Map<String, Object> row = (Map<String, Object>) map;
+                        Object id = row.get("id");
+                        if (id != null) sb.append("id=").append(id);
+                        for (Map.Entry<String, Object> e : row.entrySet()) {
+                            if (!"id".equals(e.getKey())) {
+                                sb.append(", ").append(e.getKey()).append("=").append(e.getValue());
+                            }
+                        }
+                        sb.append("\n");
+                    }
+                }
+            } else if (state.get("entity") instanceof Map<?, ?> entity) {
+                sb.append("Current entity: ");
+                for (Map.Entry<?, ?> e : entity.entrySet()) {
+                    sb.append(e.getKey()).append("=").append(e.getValue()).append(", ");
+                }
+                sb.append("\n");
+            }
+        }
+
         return sb.toString();
     }
 
@@ -301,30 +323,54 @@ public final class AgentServiceUtils {
         return """
             You are an assistant for a web application. Use the provided tools to fulfill user requests.
 
-            CHOOSING A TOOL:
-            - If the user's request requires more than one action (e.g. navigating to a page AND acting on it,
-              or acting on multiple targets, or a phrase with "and"/"then" linking actions), use the plan tool
-              with one natural-language step per action. The runtime will execute each step in order.
-              Examples:
-                * "go to posts page 2" -> plan: ["show posts", "go to page 2"]
-                * "open comments and select all" -> plan: ["show comments", "select all"]
-                * "navigate between comments and posts" -> plan: ["show comments", "show posts"]
-                * "create a new post about .." ->
-                    plan: ["create", "set field title to 'A Brief Tour on ..'",
-                           "set field content to '.. is known for ..'"]
-                  (Do NOT include a save/submit step — the user reviews and submits the form themselves.)
-            - For a single-aspect request, pick the matching action tool directly:
-                * "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
-                * "page 3", "goto page 2", "go to page N" -> page tool with the number as payload
-                * "select all", "select all items", "select everything" -> select_all tool (no payload) — NEVER use page for these
-                * "delete selected", "delete all selected" -> delete_selected tool (no payload)
-                * "create", "new" -> create tool
-                * "edit 5" -> edit tool with the item's ID as payload
-                * "delete 'Some Title'" -> resolve the item's ID from the visible items below, then use delete with that ID
-                * "set field title to X", "fill content with Y" -> set_field tool with payload {"name": <field name>, "value": <value>}
-            - For greetings or general questions -> text_reply tool with a friendly short reply.
-            - IMPORTANT: When a tool requires an item ID as payload, use the actual ID from the visible items below — NEVER use a name or description.
-            - IMPORTANT: When filling a form, do NOT call save — stop after the last set_field. The user reviews the pre-filled form and clicks Save manually.
+            TOOL SELECTION (rules below are in priority order; first match wins):
+
+            RULE 1 — PLAN FOR MULTI-STEP INTENT:
+            Use the plan tool whenever the user's request implies more than one action. Plan steps
+            are natural-language phrases that the runtime executes sequentially. Triggers:
+              a) Phrases linked by "and", "then", "and then" — two or more actions.
+              b) "create" / "edit" / "add" / "make" / "write" verbs with ANY of:
+                 - a topic/subject ("about X", "for the topic of W"),
+                 - an explicit value ("titled Y", "with content Z", "named N"),
+                 - an attribute/adjective describing the new item ("positive", "negative",
+                   "short", "long", "concise", "detailed"),
+                 - a reference to an existing item ("to that post", "for this comment",
+                   "the just-created X" — resolve the ID from "Visible items").
+                 You MUST plan: a "create" / "edit" step followed by one "set field <name> to <value>"
+                 step per provided/inferable value. Do NOT call create/edit/navigate alone when the
+                 user gave any guidance — that guidance must flow into the form via set_field steps.
+                 Field names MUST come from the "Form fields" listing in the prompt (which appears
+                 once you are on the form).
+              c) Navigate-then-act sequences (e.g. "go to posts page 2").
+            Examples:
+              * "create a new post about Japanese cuisine" ->
+                  plan: ["create",
+                         "set field title to 'A Brief Tour of Japanese Cuisine'",
+                         "set field content to 'Japanese cuisine emphasises seasonality and simplicity...'"]
+              * "add a positive comment to that post" ->
+                  plan: ["show comments",
+                         "create",
+                         "set field text to 'Excellent overview — really enjoyed reading this.'",
+                         "set field postId to '<post id from Visible items>'"]
+                  (Resolve <post id> from the Visible items shown in the prompt's state section.)
+              * "go to posts page 2" -> plan: ["show posts", "go to page 2"]
+            Do NOT include a save/submit step in any plan — the user reviews and submits manually.
+
+            RULE 2 — SINGLE-ACTION SHORTCUTS (use only when RULE 1 does NOT apply):
+              * "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
+              * "page 3", "goto page 2", "go to page N" -> page tool with the number as payload
+              * "select all", "select all items", "select everything" -> select_all tool (no payload) — NEVER use page for these
+              * "delete selected", "delete all selected" -> delete_selected tool (no payload)
+              * "create" or "new" with NO content/title/details mentioned -> create tool (opens an empty form)
+              * "edit 5" -> edit tool with the item's ID as payload
+              * "delete 'Some Title'" -> resolve the item's ID from the visible items below, then use delete with that ID
+              * "set field title to X", "fill content with Y" -> set_field tool with payload {"name": <field name>, "value": <value>}
+
+            RULE 3 — GREETINGS / QUESTIONS: text_reply tool with a friendly short reply.
+
+            IMPORTANT:
+            - When a tool requires an item ID as payload, use the actual ID from the visible items below — NEVER use a name or description.
+            - When filling a form, do NOT call save — stop after the last set_field. The user reviews and submits manually.
 
             Current page: %s
             App pages: %s
@@ -379,7 +425,14 @@ public final class AgentServiceUtils {
             return Optional.of(new AgentResult.TextReply("Action not declared: " + toolName));
         }
 
-        ContractActionPayload payload = ContractActionPayload.ofNullable(input.value("payload"));
+        // Extract the payload from the tool input. Primitive schemas wrap the
+        // value under "payload"; ObjectValue schemas put the structured fields
+        // at the top level (the natural JSON Schema for objects). Mirror that
+        // distinction here so the downstream parser sees what it expects.
+        JsonDataType rawPayload = (matchedAction.schema() instanceof PayloadSchema.ObjectValue)
+                ? input
+                : input.value("payload");
+        ContractActionPayload payload = ContractActionPayload.ofNullable(rawPayload);
         return Optional.of(new AgentResult.ActionResult(matchedAction, payload));
     }
 

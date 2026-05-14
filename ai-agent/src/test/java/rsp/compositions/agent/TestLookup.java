@@ -120,6 +120,14 @@ public class TestLookup implements Lookup {
         dispatchVoidEvent(key.name());
     }
 
+    /** Synchronous task execution — keeps test behaviour deterministic and
+     *  satisfies callers like {@code ActionDispatcher} that enqueue a
+     *  processed-fence task immediately after publish. */
+    @Override
+    public void enqueueTask(final Runnable task) {
+        task.run();
+    }
+
     // ===== Test Setup Utilities (Fluent API) =====
 
     /**

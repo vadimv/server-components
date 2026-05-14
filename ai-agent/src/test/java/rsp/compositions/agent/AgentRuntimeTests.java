@@ -12,6 +12,7 @@ import rsp.compositions.authorization.DelegationGrant;
 import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.contract.DispatchEffect;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ViewContract;
 
@@ -353,13 +354,16 @@ class AgentRuntimeTests {
                 "budget(2) must allow exactly 2 dispatched steps before stopping");
     }
 
-    /** Loop invariant E: while a loop is running, new submits are rejected. */
+    /** Loop invariant E (never-stop policy): while a loop is running, a new
+     *  submit is rejected with "Still processing previous prompt...". This
+     *  was the default before Phase 3; now requires explicit never-stop policy. */
     @Test
-    void submit_whileLoopRunning_isRejected() {
+    void submit_whileLoopRunning_withNeverPolicy_isRejected() {
         RecordingFeedback feedback = new RecordingFeedback();
         ScriptedAgentService service = new ScriptedAgentService();
         AgentRuntime runtime = newRuntime(service, new ActionDispatcher(),
-                new FailingSpawner(), allowAuthorization(), feedback, new TestLookup());
+                new FailingSpawner(), allowAuthorization(), feedback, new TestLookup(),
+                InterruptionPolicy.never());
 
         AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
         running.set(true);
@@ -368,7 +372,265 @@ class AgentRuntimeTests {
 
         assertEquals(List.of("Still processing previous prompt..."), feedback.messages);
         assertEquals(0, service.callCount.get(),
-                "LLM must not be invoked when a loop is in progress");
+                "LLM must not be invoked when a loop is in progress (never policy)");
+    }
+
+    // ------------------------------------------------------------------
+    // Interruption framework (Phase 3)
+    // ------------------------------------------------------------------
+
+    /** notifyEvent with USER origin under strictStop cancels the current token
+     *  so the running loop exits at its next iteration boundary. */
+    @Test
+    void notifyEvent_user_withStrictStop_cancelsCurrentToken() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        runtime.notifyEvent(EventOrigin.USER, null);
+
+        assertTrue(token.isCancelled(),
+                "strictStop policy must cancel the current token on USER events");
+    }
+
+    /** notifyEvent with AGENT origin does NOT cancel — the agent's own
+     *  dispatches must not interrupt its own loop. */
+    @Test
+    void notifyEvent_agent_doesNotCancelEvenUnderStrictStop() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        runtime.notifyEvent(EventOrigin.AGENT, null);
+
+        assertFalse(token.isCancelled(),
+                "AGENT-origin events must never cancel the loop");
+    }
+
+    /** notifyEvent under never policy ignores all events regardless of origin. */
+    @Test
+    void notifyEvent_user_withNeverPolicy_doesNotCancel() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup(),
+                InterruptionPolicy.never());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        runtime.notifyEvent(EventOrigin.USER, null);
+
+        assertFalse(token.isCancelled(),
+                "never policy must allow USER events without cancelling");
+    }
+
+    /** notifyEvent when no loop is running is a no-op (no NPE, no errors). */
+    @Test
+    void notifyEvent_whenNotRunning_isNoOp() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        // running flag is false by default; currentToken is null.
+        // Must not NPE on currentToken nor send any feedback.
+        runtime.notifyEvent(EventOrigin.USER, null);
+        runtime.notifyEvent(EventOrigin.AGENT, null);
+    }
+
+    /** ActionDispatcher sets {@code AGENT_DISPATCH} thread-local around its
+     *  publishes so subscribers can tell agent dispatches from user events. */
+    @Test
+    void actionDispatcher_setsAndClears_agentDispatchFlag() {
+        ActionDispatcher dispatcher = new ActionDispatcher();
+        EventKey.VoidKey key = new EventKey.VoidKey("test.flag");
+        ContractAction action = new ContractAction("flag", key, "Test flag");
+
+        boolean[] observedInsidePublish = {false};
+        TestLookup contractLookup = new TestLookup();
+        contractLookup.subscribe(key, () -> observedInsidePublish[0] = ActionDispatcher.isAgentDispatch());
+        StubLookupContract contract = new StubLookupContract(contractLookup);
+
+        assertFalse(ActionDispatcher.isAgentDispatch(),
+                "flag must be false outside any dispatch");
+
+        dispatcher.dispatch(action, ContractActionPayload.EMPTY, contract, new TestLookup(),
+                (a, p, l) -> new GateResult.Allow(a, p));
+
+        assertTrue(observedInsidePublish[0],
+                "AGENT_DISPATCH must be true during the agent's publish");
+        assertFalse(ActionDispatcher.isAgentDispatch(),
+                "AGENT_DISPATCH must be cleared in the dispatcher's finally block");
+    }
+
+    /** User-driven publish (no AGENT_DISPATCH set) on the active contract
+     *  fires the monitor and cancels the running loop under strictStop. */
+    @Test
+    void userEventMonitor_userPublish_cancelsLoop() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        TestLookup activeContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+
+        // User-driven publish: SET_PRIMARY without AGENT_DISPATCH set.
+        activeContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+
+        assertTrue(token.isCancelled(),
+                "user-driven SET_PRIMARY must cancel the running loop");
+    }
+
+    /** Agent dispatch on the same active contract does NOT trigger the monitor. */
+    @Test
+    void userEventMonitor_agentDispatch_doesNotCancelLoop() {
+        ActionDispatcher dispatcher = new ActionDispatcher();
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                dispatcher, new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        TestLookup activeContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+
+        // Simulate an agent dispatch: publish via the dispatcher's navigate path.
+        dispatcher.dispatchNavigate(StubLookupContract.class, activeContractLookup);
+
+        assertFalse(token.isCancelled(),
+                "agent's own navigate must NOT cancel the loop");
+    }
+
+    /** Aftermath suppression: an event firing while the runtime is in its
+     *  dispatch+settle window must not cancel — it's a delayed effect of the
+     *  agent's own action (URL routing's SET_PRIMARY, etc.) and arrived on
+     *  a thread without the dispatcher's thread-local. */
+    @Test
+    void userEventMonitor_eventDuringDispatchActive_doesNotCancel() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        TestLookup activeContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+
+        // Simulate "we are inside dispatch + settle" by forcing the flag.
+        setField(runtime, "agentDispatchActive", true);
+
+        // Publish without AGENT_DISPATCH set (simulates an async re-render
+        // event arriving on the framework's command thread).
+        activeContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+
+        assertFalse(token.isCancelled(),
+                "events during agent dispatch+settle must be treated as aftermath");
+    }
+
+    /** Aftermath suppression: time-based grace covers late events arriving
+     *  within {@code POST_DISPATCH_GRACE_MILLIS} of dispatch end. */
+    @Test
+    void userEventMonitor_eventWithinGraceWindow_doesNotCancel() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        TestLookup activeContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+
+        // Simulate "we JUST finished a dispatch."
+        setField(runtime, "lastDispatchEndMillis", System.currentTimeMillis());
+
+        activeContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+
+        assertFalse(token.isCancelled(),
+                "events within the post-dispatch grace window must not cancel");
+    }
+
+    /** Monitor rebinds when the active contract changes — events on the old
+     *  contract no longer trigger interruption. */
+    @Test
+    void userEventMonitor_rebindsOnSceneChange() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        TestLookup firstContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupContract.class, firstContractLookup);
+
+        TestLookup secondContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(AlternateStubContract.class, secondContractLookup);
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        // Publish on the OLD lookup — must not cancel (monitor moved).
+        firstContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        assertFalse(token.isCancelled(),
+                "publish on stale lookup must not affect the runtime");
+
+        // Publish on the NEW lookup — must cancel.
+        secondContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        assertTrue(token.isCancelled(),
+                "publish on the new active contract's lookup must cancel");
+    }
+
+    /** Custom InterruptionPolicy is consulted with the origin and key. */
+    @Test
+    void notifyEvent_invokesCustomPolicy_withOriginAndKey() {
+        EventKey.VoidKey key = new EventKey.VoidKey("test.user-action");
+        boolean[] called = {false};
+        EventOrigin[] capturedOrigin = {null};
+        EventKey<?>[] capturedKey = {null};
+        InterruptionPolicy policy = (origin, k) -> {
+            called[0] = true;
+            capturedOrigin[0] = origin;
+            capturedKey[0] = k;
+            return false;
+        };
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup(),
+                policy);
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        setField(runtime, "currentToken", new AbortToken());
+
+        runtime.notifyEvent(EventOrigin.USER, key);
+
+        assertTrue(called[0], "policy must be invoked when running");
+        assertEquals(EventOrigin.USER, capturedOrigin[0]);
+        assertEquals(key, capturedKey[0]);
     }
 
     /** Unified plan handling: a {@code PlanResult} enqueues its steps; the
@@ -411,6 +673,128 @@ class AgentRuntimeTests {
                 "first plan step must be labeled");
         assertTrue(feedback.messages.stream().anyMatch(m -> m.contains("Step 2/2: second step")),
                 "second plan step must be labeled");
+    }
+
+    /** Bounded follow-up: a scene-changing dispatch in non-queue mode allows
+     *  ONE re-prompt so the LLM can react to the new scene (e.g. plan a fill).
+     *  Past that, no further non-queue iterations. */
+    @Test
+    void loop_sceneChangeThenFollowupPlan_dispatchesPlanSteps()
+            throws InterruptedException {
+        ContractAction openForm = new ContractAction("open_form",
+                new EventKey.VoidKey("test.open_form"),
+                "Open a form", DispatchEffect.SCENE_CHANGE);
+        ContractAction noop = new ContractAction("noop",
+                new EventKey.VoidKey("test.noop"), "Noop");
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.ActionResult(openForm, ContractActionPayload.EMPTY),
+                new AgentResult.PlanResult(List.of("a", "b"), ""),
+                new AgentResult.ActionResult(noop, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(noop, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Dispatched(
+                        a, ContractActionPayload.EMPTY,
+                        CompletableFuture.completedFuture(null)));
+        RecordingFeedback feedback = new RecordingFeedback(m -> m.contains("Step 2/2"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("open form and then fill");
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
+                "follow-up iteration must produce a plan whose steps then dispatch");
+        Thread.sleep(50);
+        assertEquals(3, dispatcher.dispatchCalls.size(),
+                "open_form + 2 plan steps must all dispatch");
+        assertEquals(4, service.callCount.get(),
+                "LLM called: initial (1) + follow-up plan (2) + 2 step prompts (3, 4)");
+    }
+
+    /** Cascade prevention: after a non-queue scene-change, a non-plan
+     *  follow-up that's ALSO scene-changing must NOT trigger another
+     *  follow-up. The loop stops after the second non-queue iteration. */
+    @Test
+    void loop_sceneChangeThenSceneChange_stopsAfterTwo()
+            throws InterruptedException {
+        ContractAction sceneAction = new ContractAction("scene_act",
+                new EventKey.VoidKey("test.scene_act"),
+                "Scene action", DispatchEffect.SCENE_CHANGE);
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.ActionResult(sceneAction, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(sceneAction, ContractActionPayload.EMPTY),
+                // A 3rd call would indicate the cascade is unbounded.
+                new AgentResult.ActionResult(sceneAction, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Dispatched(
+                        a, ContractActionPayload.EMPTY,
+                        CompletableFuture.completedFuture(null)));
+        RecordingFeedback feedback = new RecordingFeedback();
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("two scene changes");
+
+        // Wait long enough that any cascading 3rd LLM call would have happened.
+        Thread.sleep(500);
+        assertEquals(2, service.callCount.get(),
+                "loop must bound non-queue iterations at 2 even when each is scene-changing");
+    }
+
+    /** Effect gating: a {@code SCENE_CHANGE}-effect action in an intermediate
+     *  plan step must block the loop on {@code sceneSettleFuture} until
+     *  {@link AgentRuntime#onScene} fires. Without the gate the next step would
+     *  see stale context and the LLM would refuse the dependent action (e.g.
+     *  "set_field" called before the form is open). */
+    @Test
+    void loop_sceneChangeAction_blocksUntilOnScene_thenProceeds()
+            throws InterruptedException {
+        ContractAction sceneChange = new ContractAction("scene_act",
+                new EventKey.VoidKey("test.scene_act"),
+                "Scene-changing action",
+                DispatchEffect.SCENE_CHANGE);
+        ContractAction followUp = new ContractAction("follow",
+                new EventKey.VoidKey("test.follow"),
+                "Follow-up action");
+
+        ScriptedAgentService service = new ScriptedAgentService(
+                new AgentResult.PlanResult(List.of("open", "follow"), ""),
+                new AgentResult.ActionResult(sceneChange, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(followUp, ContractActionPayload.EMPTY));
+        ScriptedDispatcher dispatcher = new ScriptedDispatcher(
+                a -> new ActionDispatcher.DispatchResult.Dispatched(
+                        a, ContractActionPayload.EMPTY,
+                        CompletableFuture.completedFuture(null)));
+        RecordingFeedback feedback = new RecordingFeedback(
+                m -> m.equals("Follow-up action"));
+
+        AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
+                allowAuthorization(), feedback, new TestLookup());
+
+        // Watchdog: once the runtime arms sceneSettleFuture after the first
+        // (SCENE_CHANGE) dispatch, simulate the scene rebuild by calling onScene.
+        Thread watcher = new Thread(() -> {
+            long deadline = System.currentTimeMillis() + 3_000;
+            while (System.currentTimeMillis() < deadline) {
+                CompletableFuture<?> f = (CompletableFuture<?>) getField(runtime, "sceneSettleFuture");
+                if (f != null && !f.isDone()) {
+                    runtime.onScene(null);
+                    return;
+                }
+                try { Thread.sleep(5); } catch (InterruptedException e) { return; }
+            }
+        }, "settle-watcher");
+        watcher.setDaemon(true);
+        watcher.start();
+
+        runtime.submit("plan with scene change");
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
+                "follow-up dispatch must run after onScene completes the gate");
+        Thread.sleep(50);
+        assertEquals(List.of("scene_act", "follow"), dispatcher.dispatchCalls,
+                "scene-change dispatch must precede the follow-up; both must occur");
     }
 
     /** Post-approval: a queued PlanResult must iterate to completion, not
@@ -499,6 +883,18 @@ class AgentRuntimeTests {
                                            LoopPolicy policy) {
         return new AgentRuntime(service, dispatcher, spawner,
                 authorization, null, lookup, feedback, policy, "test-runtime");
+    }
+
+    private static AgentRuntime newRuntime(AgentService service,
+                                           ActionDispatcher dispatcher,
+                                           AgentSpawner spawner,
+                                           Authorization authorization,
+                                           AgentFeedback feedback,
+                                           Lookup lookup,
+                                           InterruptionPolicy interruptionPolicy) {
+        return new AgentRuntime(service, dispatcher, spawner,
+                authorization, null, lookup, feedback, LoopPolicy.DEFAULT,
+                interruptionPolicy, "test-runtime");
     }
 
     private static Authorization allowAuthorization() {
@@ -628,6 +1024,30 @@ class AgentRuntimeTests {
         public SpawnResult spawn(SpawnRequest request, Lookup lookup) {
             throw new AssertionError("spawn() should not be called in this test");
         }
+    }
+
+    /** Minimal concrete {@link ViewContract} used as a navigation target in
+     *  tests that need a {@link AgentResult.NavigateResult} carrying a real class. */
+    private static final class StubContract extends ViewContract {
+        StubContract(Lookup lookup) { super(lookup); }
+        @Override public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext ctx) { return ctx; }
+        @Override public String title() { return "Stub"; }
+    }
+
+    /** Concrete contract whose lookup is the one supplied at construction —
+     *  used so {@link ActionDispatcher#dispatch} (which publishes on
+     *  {@code contract.lookup()}) targets a test-controlled lookup. */
+    private static final class StubLookupContract extends ViewContract {
+        StubLookupContract(Lookup lookup) { super(lookup); }
+        @Override public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext ctx) { return ctx; }
+        @Override public String title() { return "StubLookup"; }
+    }
+
+    /** Second stub used to simulate a scene change in monitor-rebind tests. */
+    private static final class AlternateStubContract extends ViewContract {
+        AlternateStubContract(Lookup lookup) { super(lookup); }
+        @Override public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext ctx) { return ctx; }
+        @Override public String title() { return "Alternate"; }
     }
 
     /** Dispatcher that produces a caller-supplied DispatchResult per call,

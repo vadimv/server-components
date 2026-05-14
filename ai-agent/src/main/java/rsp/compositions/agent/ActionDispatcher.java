@@ -22,6 +22,29 @@ import java.util.concurrent.CompletableFuture;
 public class ActionDispatcher {
 
     /**
+     * Thread-local marker set while this dispatcher is publishing an
+     * agent-originated event. Subscribers that want to distinguish
+     * agent dispatches from user-driven events (e.g. the runtime's
+     * user-interaction monitor) can consult {@link #isAgentDispatch()}.
+     * <p>
+     * The flag is set/cleared synchronously around each publish so a
+     * handler running on the same thread observes {@code true}; once the
+     * publish returns the flag is cleared, so subsequent thread reuse
+     * does not see a stale value.
+     */
+    private static final ThreadLocal<Boolean> AGENT_DISPATCH =
+            ThreadLocal.withInitial(() -> Boolean.FALSE);
+
+    /**
+     * @return {@code true} if the current thread is inside an agent
+     *         dispatch (i.e. {@code dispatch}/{@code dispatchDirect}/
+     *         {@code dispatchNavigate} has set the marker and not yet cleared it)
+     */
+    public static boolean isAgentDispatch() {
+        return AGENT_DISPATCH.get();
+    }
+
+    /**
      * Result of a dispatch attempt.
      */
     public sealed interface DispatchResult {
@@ -45,12 +68,17 @@ public class ActionDispatcher {
      */
     public DispatchResult dispatch(ContractAction action, ContractActionPayload payload,
                                    ViewContract contract, Lookup lookup, ActionGate gate) {
-        GateResult result = gate.evaluate(action, payload, lookup);
-        return switch (result) {
-            case GateResult.Allow a -> publishEvent(a.action(), a.payload(), contract);
-            case GateResult.Block b -> new DispatchResult.Blocked(b.reason());
-            case GateResult.Confirm c -> new DispatchResult.AwaitingConfirmation(c.question(), c.action(), c.payload());
-        };
+        AGENT_DISPATCH.set(Boolean.TRUE);
+        try {
+            GateResult result = gate.evaluate(action, payload, lookup);
+            return switch (result) {
+                case GateResult.Allow a -> publishEvent(a.action(), a.payload(), contract);
+                case GateResult.Block b -> new DispatchResult.Blocked(b.reason());
+                case GateResult.Confirm c -> new DispatchResult.AwaitingConfirmation(c.question(), c.action(), c.payload());
+            };
+        } finally {
+            AGENT_DISPATCH.set(Boolean.FALSE);
+        }
     }
 
     /**
@@ -58,7 +86,12 @@ public class ActionDispatcher {
      * Used after confirmation has been received.
      */
     public DispatchResult dispatchDirect(ContractAction action, ContractActionPayload payload, ViewContract contract) {
-        return publishEvent(action, payload, contract);
+        AGENT_DISPATCH.set(Boolean.TRUE);
+        try {
+            return publishEvent(action, payload, contract);
+        } finally {
+            AGENT_DISPATCH.set(Boolean.FALSE);
+        }
     }
 
     /**
@@ -68,7 +101,12 @@ public class ActionDispatcher {
      * @param lookup         the current context (for event publishing)
      */
     public void dispatchNavigate(Class<? extends ViewContract> targetContract, Lookup lookup) {
-        lookup.publish(EventKeys.SET_PRIMARY, targetContract);
+        AGENT_DISPATCH.set(Boolean.TRUE);
+        try {
+            lookup.publish(EventKeys.SET_PRIMARY, targetContract);
+        } finally {
+            AGENT_DISPATCH.set(Boolean.FALSE);
+        }
     }
 
     @SuppressWarnings("unchecked")

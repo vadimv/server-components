@@ -38,7 +38,8 @@ class ContractActionTests {
     @Test
     void null_schema_defaults_to_none() {
         EventKey.VoidKey key = new EventKey.VoidKey("test");
-        ContractAction action = new ContractAction("test", key, "desc", null);
+        // Cast disambiguates against the (String, EventKey, String, DispatchEffect) overload.
+        ContractAction action = new ContractAction("test", key, "desc", (PayloadSchema) null);
 
         assertInstanceOf(PayloadSchema.None.class, action.schema());
     }

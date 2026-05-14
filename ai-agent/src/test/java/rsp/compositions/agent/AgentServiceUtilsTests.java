@@ -240,6 +240,45 @@ class AgentServiceUtilsTests {
         assertEquals("page", ((AgentResult.ActionResult) result.get()).action().action());
     }
 
+    /** Regression: when an action declares an ObjectValue schema, the tool
+     *  input puts the structured properties at the top level (correct JSON
+     *  Schema for objects), NOT nested under a "payload" key. The conversion
+     *  must use the whole input object, otherwise the downstream parser
+     *  receives null and errors with "Expected Map<String, Object>, got null". */
+    @Test
+    void toolUseToAgentResult_action_tool_with_object_value_schema() {
+        EventKey.SimpleKey<Map<String, Object>> setFieldKey =
+            new EventKey.SimpleKey<>("test.set_field",
+                (Class<Map<String, Object>>) (Class<?>) Map.class);
+        ContractAction setField = new ContractAction("set_field", setFieldKey,
+            "Set a single form field value",
+            new PayloadSchema.ObjectValue(List.of(
+                new PayloadSchema.Property("name", "string", true, "field name"),
+                new PayloadSchema.Property("value", "string", true, "field value"))));
+        ContractProfile profile = new ContractProfile(null, List.of(setField), StubContract.class);
+
+        // LLM emits the structured fields at the TOP LEVEL of the tool input.
+        JsonDataType.Object input = jsonObject(Map.of(
+            "name", new JsonDataType.String("title"),
+            "value", new JsonDataType.String("Hello")));
+
+        Optional<AgentResult> result = AgentServiceUtils.toolUseToAgentResult(
+            "set_field", input, profile, TREE);
+
+        assertTrue(result.isPresent());
+        assertInstanceOf(AgentResult.ActionResult.class, result.get());
+        AgentResult.ActionResult ar = (AgentResult.ActionResult) result.get();
+        assertEquals("set_field", ar.action().action());
+
+        // The parser must produce a non-null payload that yields a usable Map.
+        Object parsed = ar.action().parsePayload().apply(ar.payload());
+        assertInstanceOf(Map.class, parsed);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> map = (Map<String, Object>) parsed;
+        assertEquals("title", map.get("name"));
+        assertEquals("Hello", map.get("value"));
+    }
+
     @Test
     void toolUseToAgentResult_unknown_tool_returns_text_reply() {
         JsonDataType.Object input = jsonObject(Map.of());

@@ -24,6 +24,8 @@ import java.util.Map;
  */
 public abstract class EditView extends Component<EditView.EditViewState> {
 
+    private static final System.Logger LOGGER = System.getLogger(EditView.class.getName());
+
     protected Lookup lookup;
 
     @Override
@@ -181,7 +183,17 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             String value = valueRaw != null ? valueRaw.toString() : "";
             stateUpdate.applyStateTransformation(s -> {
                 if (s.schema() == null || s.schema().field(fieldName) == null) {
-                    // Unknown field — ignore rather than mutate state.
+                    // Unknown field — log and ignore rather than mutate state.
+                    // The agent-side fix is to inspect the per-form "Form fields"
+                    // listing in describeState() and use the exact names there.
+                    LOGGER.log(System.Logger.Level.WARNING,
+                        () -> "FORM_FIELD_SET ignored: '" + fieldName
+                              + "' is not a field in the active form's schema. "
+                              + "Known fields: "
+                              + (s.schema() == null ? "<no schema>"
+                                  : s.schema().fields().stream()
+                                        .map(rsp.compositions.schema.FieldDef::name)
+                                        .toList()));
                     return s;
                 }
                 Map<String, Object> updated = new LinkedHashMap<>(s.fieldValues());

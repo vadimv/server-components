@@ -278,11 +278,15 @@ public abstract class ListViewContract<T> extends ViewContract {
     public List<ContractAction> agentActions() {
         return List.of(
             new ContractAction("create", CREATE_ELEMENT_REQUESTED,
-                "Open create form for a new item"),
+                "Open create form for a new item",
+                DispatchEffect.SCENE_CHANGE),
             new ContractAction("edit", EDIT_ELEMENT_REQUESTED,
-                "Open edit form for an item", new PayloadSchema.StringValue("row ID")),
+                "Open edit form for an item",
+                new PayloadSchema.StringValue("row ID"),
+                DispatchEffect.SCENE_CHANGE),
             new ContractAction("edit_selected", EDIT_SELECTED_REQUESTED,
-                "Open edit form for the first selected row"),
+                "Open edit form for the first selected row",
+                DispatchEffect.SCENE_CHANGE),
             new ContractAction("delete", BULK_DELETE_REQUESTED,
                 "Delete items by their IDs", new PayloadSchema.StringSet("row IDs to delete")),
             new ContractAction("delete_selected", DELETE_SELECTED_REQUESTED,
