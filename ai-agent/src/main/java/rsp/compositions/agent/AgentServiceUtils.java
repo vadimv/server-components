@@ -356,6 +356,17 @@ public final class AgentServiceUtils {
               * "go to posts page 2" -> plan: ["show posts", "go to page 2"]
             Do NOT include a save/submit step in any plan — the user reviews and submits manually.
 
+            PLAN STEP CONSTRAINTS:
+              * Each plan step MUST be a single, complete, concrete instruction. Avoid abstract
+                directives like "make it more critical" or "the comment should express concerns" —
+                instead emit "set field text to '<full concrete text>'" with the final value baked in.
+              * For each form field, at most ONE "set field <name> to <value>" step per plan. Bake
+                revisions/refinements into the single step's value before emitting it; do not write
+                a draft and then overwrite it in a later step.
+              * Resolve all references ("that post", "the latest item", "<id from visible items>")
+                BEFORE writing the plan. Steps should not contain placeholders the runtime has to
+                interpret.
+
             RULE 2 — SINGLE-ACTION SHORTCUTS (use only when RULE 1 does NOT apply):
               * "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
               * "page 3", "goto page 2", "go to page N" -> page tool with the number as payload

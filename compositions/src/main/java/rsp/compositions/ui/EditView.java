@@ -28,6 +28,13 @@ public abstract class EditView extends Component<EditView.EditViewState> {
 
     protected Lookup lookup;
 
+    /** Registration for the FORM_FIELD_SET subscription installed in
+     *  {@link #onMounted}. Held so it can be released in {@link #onUnmounted},
+     *  preventing a subscription leak that left old EditView instances
+     *  receiving events and produced "Ignored state update on unmounted
+     *  component" warnings on every subsequent agent action. */
+    private Lookup.Registration formFieldSetRegistration;
+
     @Override
     public boolean isReusable() {
         return false;
@@ -173,7 +180,13 @@ public abstract class EditView extends Component<EditView.EditViewState> {
         if (lookup == null) {
             return;
         }
-        lookup.subscribe(FormViewContract.FORM_FIELD_SET, (eventName, payload) -> {
+        // Defensive: if a previous registration somehow survived (shouldn't,
+        // given onUnmounted releases it), clear it before re-subscribing.
+        if (formFieldSetRegistration != null) {
+            formFieldSetRegistration.unsubscribe();
+            formFieldSetRegistration = null;
+        }
+        formFieldSetRegistration = lookup.subscribe(FormViewContract.FORM_FIELD_SET, (eventName, payload) -> {
             if (payload == null) return;
             Object nameRaw = payload.get("name");
             Object valueRaw = payload.get("value");
@@ -209,6 +222,19 @@ public abstract class EditView extends Component<EditView.EditViewState> {
                 );
             });
         });
+    }
+
+    @Override
+    public void onUnmounted(ComponentCompositeKey componentId, EditViewState state) {
+        // Release the FORM_FIELD_SET subscription so events fired on the
+        // contract lookup after this view is gone don't try to update a
+        // destroyed component. Without this, every new mount accumulates a
+        // dangling subscriber and the framework logs "Ignored state update
+        // on unmounted component" on each subsequent agent dispatch.
+        if (formFieldSetRegistration != null) {
+            formFieldSetRegistration.unsubscribe();
+            formFieldSetRegistration = null;
+        }
     }
 
     /**
