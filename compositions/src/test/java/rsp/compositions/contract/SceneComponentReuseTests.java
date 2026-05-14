@@ -30,6 +30,7 @@ import rsp.server.Path;
 import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
+import rsp.util.json.JsonDataType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -218,6 +219,32 @@ class SceneComponentReuseTests {
                 "scene-local query updates should preserve stable companion runtimes");
     }
 
+    @Test
+    void browser_back_after_scene_local_set_primary_restores_previous_primary_on_first_popstate() {
+        final ComponentSegment<RelativeUrl> root = renderAppOn("/items?p=1");
+
+        emit(root, EventKeys.SET_PRIMARY.name(), CommentsContract.class);
+        commands.drain(root);
+
+        firePopstate(root, "/items?p=1");
+        commands.drain(root);
+
+        assertEquals(2, ListContract.created,
+                "first Back should restore the previous primary immediately, not wait for a second history event");
+        assertEquals(1, ListContract.destroyed,
+                "the original list is destroyed only when SET_PRIMARY replaces it");
+        assertEquals(1, CommentsContract.created,
+                "SET_PRIMARY should still create comments only once");
+        assertEquals(1, CommentsContract.destroyed,
+                "first Back should unmount the scene-local comments runtime");
+        assertEquals(1, PromptContract.created,
+                "first Back should preserve stable companion contracts");
+        assertEquals(0, PromptContract.destroyed,
+                "first Back should not rebuild the prompt/right-sidebar runtime");
+        assertEquals(1, ListContract.lastPage);
+        assertEquals("/items", ListContract.lastRoutePath);
+    }
+
     private ComponentSegment<RelativeUrl> renderAppOn(String url) {
         final UrlSyncComponent component = new UrlSyncComponent(parse(url));
         final ComponentContext context = new ComponentContext()
@@ -280,12 +307,35 @@ class SceneComponentReuseTests {
         }
     }
 
+    private static void firePopstate(ComponentSegment<?> root, String url) {
+        RelativeUrl relativeUrl = parse(url);
+        JsonDataType.Object eventObject = new JsonDataType.Object()
+                .put("path", new JsonDataType.String(relativeUrl.path().toString()))
+                .put("query", new JsonDataType.String(relativeUrl.query().toString()))
+                .put("fragment", new JsonDataType.String(relativeUrl.fragment().toString()));
+        EventContext context = new EventContext(
+                TreePositionPath.of(""),
+                _ -> { throw new UnsupportedOperationException(); },
+                _ -> { throw new UnsupportedOperationException(); },
+                eventObject,
+                (_, _) -> { },
+                _ -> { });
+
+        for (DomEventEntry entry : root.recursiveDomEvents()) {
+            if ("popstate".equals(entry.eventName)
+                    && TreePositionPath.of("").equals(entry.eventTarget.elementPath())) {
+                entry.eventHandler.accept(context);
+            }
+        }
+    }
+
     static final class ListContract extends ListViewContract<Object> {
         private static final QueryParam<Integer> PAGE =
                 new QueryParam<>("p", Integer.class, 1);
         static int created;
         static int destroyed;
         static int lastPage;
+        static String lastRoutePath;
 
         ListContract(Lookup lookup) {
             super(lookup);
@@ -296,11 +346,13 @@ class SceneComponentReuseTests {
             created = 0;
             destroyed = 0;
             lastPage = 0;
+            lastRoutePath = null;
         }
 
         @Override
         public ComponentContext enrichContext(ComponentContext context) {
             lastPage = page();
+            lastRoutePath = lookup.get(ContextKeys.ROUTE_PATH);
             return super.enrichContext(context);
         }
 
