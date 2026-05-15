@@ -1,11 +1,9 @@
 # Java UI for Admin Panels and realtime web apps
 
-Build web admin interfaces and internal tools in modern Java -- modern Java is very nice! Without writing JavaScript.
+This is a pure-Java toolkit for stateful, server-rendered live applications like admin interfaces and internal tools.
 
-This is a pure-Java toolkit for stateful, server-rendered live applications.
-No need for REST endpoints, dependencies on JavaScript frameworks like React, frontend build steps, managing frontend state, and most UI boilerplate.
-
-Enable AI agents to understand your UI structure from within, out of the box.
+No need for writing JavaScript and rely on thousands of transitive npm dependencies.
+No need for REST endpoints, frameworks like React, frontend build steps and managing frontend state.
 
 ## Workflows == sentences
 
@@ -13,14 +11,16 @@ Enable AI agents to understand your UI structure from within, out of the box.
 
 Prompt: "Open comments, go to page two, and select all items."
 
-The AI agent natively understands your application's structure, navigates the UI, and queues up the actions.
-Keep the human in the loop for approval.
+The AI agent natively understands the application's structure, navigates the UI, and queues up the actions.
 
-## Why it's different
+## Why?
 
-- Developer Productivity: Java developers build internal tools in plain Java -- no annotations and implicit control flows; components can be tested in isolation.
-- Security & Supply Chain: Eliminate thousands of transitive npm dependencies. The toolkit aspires to be self-contained and distributed as source.
-- AI: The Java HTML DSL is linear, component-based, and composable. That makes it easy for LLMs (like Claude or GPT) to generate valid DSL HTML and a component tree. At runtime, AI agents read and interact with the app using the defined metadata structure.
+- Server-Side-Rendering (SSR) architecture like in Elixir Phoenix LiveView, Blazor Server but for Java.
+- Developers: build internal tools in plain modern Java with no annotations and implicit control flows; components can be tested in isolation.
+- The Java HTML DSL is linear and composable. That makes it easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and a component tree.
+  At runtime, AI agents can interact with the UI elements.
+- This project aims to provide strong runtime supply-chain guarantees, to be self-contained and distributed as source.
+  The target architecture is zero third-party runtime dependencies -- auditable by design.
 
 ## What does the code look like?
 
@@ -95,10 +95,6 @@ Create mock services and a new EmployeeAdminApp.java using the same routing, com
 7. Upgrade to a full LLM agent
 
 When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama` and connect your preferred model backend.
-
-## Auditable by design
-
-This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies.
 
 ## Docs
 
