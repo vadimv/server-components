@@ -1,12 +1,16 @@
 package rsp.compositions.contract;
 
 import rsp.component.*;
+import rsp.component.definitions.AddressBarSyncComponent;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.PlacementDecision;
+import rsp.compositions.routing.Router;
+import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 
 import static rsp.compositions.contract.ActionBindings.ShowPayload;
@@ -56,6 +60,9 @@ public final class SceneEventHandler {
         subscriber.addEventHandler(SCENE_QUERY_UPDATED, (eventName, update) -> {
             handleSceneQueryUpdated(state, update, commandsEnqueue, stateUpdate);
         }, false);
+
+        subscriber.addEventHandler(AddressBarSyncComponent.HISTORY_ENTRY_CHANGED, (eventName, url) ->
+                handleBrowserHistory(state, url, commandsEnqueue, stateUpdate), false);
     }
 
     private void handleShow(Scene state,
@@ -125,6 +132,54 @@ public final class SceneEventHandler {
             return;
         }
         stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(updatedUrl));
+    }
+
+    private void handleBrowserHistory(Scene state,
+                                      RelativeUrl targetUrl,
+                                      CommandsEnqueue commandsEnqueue,
+                                      StateUpdate<Scene> stateUpdate) {
+        if (state.effectiveUrl() == null) {
+            return;
+        }
+
+        if (state.effectiveUrl().equals(targetUrl)) {
+            return;
+        }
+
+        Composition composition = state.composition();
+        if (composition == null || composition.router() == null) {
+            return;
+        }
+
+        Optional<Router.RouteMatch> match = composition.router().match(targetUrl.path());
+        if (match.isEmpty()) {
+            return;
+        }
+
+        Class<? extends ViewContract> targetClass = match.get().contractClass();
+        if (state.routedRuntime() != null
+                && state.routedRuntime().contractClass().equals(targetClass)) {
+            stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(targetUrl));
+            return;
+        }
+
+        ContractRuntime newRuntime = resolveAndInstantiateForUrl(state,
+                                                                 targetClass,
+                                                                 match.get().pattern(),
+                                                                 targetUrl,
+                                                                 commandsEnqueue);
+        if (newRuntime == null) {
+            return;
+        }
+
+        if (state.routedRuntime() != null) {
+            state.routedRuntime().destroy();
+        }
+
+        stateUpdate.applyStateTransformation(s ->
+                s.withRoutedRuntime(newRuntime)
+                        .clearInlineReturnTarget()
+                        .withEffectiveUrl(targetUrl));
     }
 
     /**
@@ -219,6 +274,53 @@ public final class SceneEventHandler {
         }
 
         return ContractRuntime.instantiate(contractClass, factory, showContext, commandsEnqueue);
+    }
+
+    private ContractRuntime resolveAndInstantiateForUrl(Scene state,
+                                                        Class<? extends ViewContract> contractClass,
+                                                        String routePattern,
+                                                        RelativeUrl url,
+                                                        CommandsEnqueue commandsEnqueue) {
+        Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
+        if (factory == null && state.composition() != null) {
+            factory = state.composition().contracts().contractFactory(contractClass);
+        }
+        if (factory == null) {
+            return null;
+        }
+
+        ComponentContext context = contextForUrl(savedContext, state, contractClass, routePattern, url);
+        return ContractRuntime.instantiate(contractClass, factory, context, commandsEnqueue);
+    }
+
+    private static ComponentContext contextForUrl(ComponentContext context,
+                                                  Scene state,
+                                                  Class<? extends ViewContract> contractClass,
+                                                  String routePattern,
+                                                  RelativeUrl url) {
+        ComponentContext next = context
+                .withoutStringPrefix(ContextKeys.URL_QUERY.baseKey() + ".")
+                .withoutStringPrefix(ContextKeys.URL_PATH.baseKey() + ".")
+                .with(ContextKeys.URL_PATH_FULL, url.path())
+                .with(ContextKeys.URL_FRAGMENT,
+                        url.fragment() == null ? "" : url.fragment().fragmentString())
+                .with(ContextKeys.ROUTE_COMPOSITION, state.composition())
+                .with(ContextKeys.ROUTE_CONTRACT_CLASS, contractClass)
+                .with(ContextKeys.ROUTE_PATH, url.path().toString())
+                .with(ContextKeys.ROUTE_PATTERN, routePattern)
+                .with(ContextKeys.CONTRACT_CLASS, contractClass)
+                .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
+                .with(ContextKeys.SCENE, state);
+
+        for (int i = 0; i < url.path().elementsCount(); i++) {
+            next = next.with(ContextKeys.URL_PATH.with(String.valueOf(i)), url.path().get(i));
+        }
+
+        for (Query.Parameter param : url.query().parameters()) {
+            next = next.with(ContextKeys.URL_QUERY.with(param.name()), param.value());
+        }
+
+        return next;
     }
 
     /**
