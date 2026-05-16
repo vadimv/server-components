@@ -3,7 +3,7 @@
 This is a pure-Java toolkit for stateful, server-rendered live applications like admin interfaces and internal tools.
 
 No need for writing JavaScript and rely on thousands of transitive npm dependencies.
-No need for REST endpoints, frameworks like React, frontend build steps and managing frontend state.
+No need for REST endpoints, frameworks like React, frontend build steps and managing client-side state.
 
 ## Workflows == sentences
 
@@ -16,11 +16,11 @@ The AI agent natively understands the application's structure, navigates the UI,
 ## Why?
 
 - Server-Side-Rendering (SSR) architecture like in Elixir Phoenix LiveView, Blazor Server but for Java.
-- Developers: build internal tools in plain modern Java with no annotations and implicit control flows; components can be tested in isolation.
-- The Java HTML DSL is linear and composable. That makes it easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and a component tree.
-  At runtime, AI agents can interact with the UI elements.
+- Software Engineers: build UIs in plain modern Java with no annotations and implicit control flows; components can be tested in isolation.
+  The Java HTML DSL is linear and composable. That makes it easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and a component tree.
+- At runtime, AI agents can interact with the UI elements with Human-in-the-loop for approvals.
 - This project aims to provide strong runtime supply-chain guarantees, to be self-contained and distributed as source.
-  The target architecture is zero third-party runtime dependencies -- auditable by design.
+  The goal is zero third-party runtime dependencies -- the UI stack auditable by design.
 
 ## What does the code look like?
 
