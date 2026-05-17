@@ -327,11 +327,13 @@ subscriptions work, so the same registration discipline applies.
 There are two ways a contract receives its dependencies, and the choice
 depends on *who instantiates it*.
 
-### Constructor injection via the `bind(...)` factory
+### Constructor injection
 
-For contracts your application instantiates itself, pass the dependency as a
-constructor argument. The `bind(...)` factory is a `Function<Lookup, ViewContract>`,
-so closing over a local service variable is the natural pattern:
+For ordinary application collaborators, pass dependencies as constructor
+arguments. This keeps domain services explicit, isolated from framework context,
+and easy to replace in tests. The `bind(...)` call is only the wiring site: it
+registers a `Function<Lookup, ViewContract>`, so the factory can close over
+local services and pass them to the constructor.
 
 ```java
 PostService postService = new PostService();
@@ -353,9 +355,9 @@ public class PostsListContract extends ListViewContract<Post> {
 }
 ```
 
-This keeps dependencies explicit at the call site, makes the contract trivial
-to construct in tests, and avoids any registry indirection. Use it for
-ordinary application services — repositories, domain services, formatters.
+Use this for repositories, domain services, formatters, and other collaborators
+that only your application contracts need. They do not have to be placed in
+`ComponentContext` just because a contract depends on them.
 
 ### The `Services` registry
 
