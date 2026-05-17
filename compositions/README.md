@@ -1,9 +1,9 @@
 # Compositions Module
 
 The `compositions` module turns the [core](../core/README.md) component runtime into
-an admin-application framework. Where core gives you a single component tree
-with state and events, `compositions` adds the structure that real applications
-need:
+an admin-style application framework. Where core gives you a single component
+tree with state and events, `compositions` adds the structure that real
+applications need:
 
 - routing URLs to views,
 - grouping related views into menus,
@@ -13,8 +13,8 @@ need:
 - adapting forms and lists to schema-driven metadata.
 
 It depends on [core](../core/README.md), [authorization](../authorization), and
-[schema](../schema). The agent runtime, login providers, and example app live
-in sibling modules.
+[schema](../schema). The AI agent runtime and runnable examples live in sibling
+modules.
 
 ## Layered Component Chain
 
@@ -26,13 +26,16 @@ runtime treats them uniformly.
 HTTP request
    │
    ▼
-AuthComponent          authenticate, gate protected routes
+AppComponent           add config, services, request, compositions
    │
    ▼
 UrlSyncComponent       keep state in sync with the address bar
    │
    ▼
 RoutingComponent       match path → ViewContract class
+   │
+   ▼
+AuthComponent          authenticate, gate the matched route
    │
    ▼
 SceneComponent         instantiate contracts, render Layer 0
@@ -79,7 +82,7 @@ Composition posts = new Composition(router, layout, mainGroup, systemGroup);
 wins. Two natural uses:
 
 - **One feature per composition** — e.g. a separate `Composition` for
-  `/auth/login` so the login UI never depends on application services.
+  `/auth/login` so the login UI stays separate from application domain services.
 - **One composition for the whole app** — small apps register all routes in a
   single composition.
 
@@ -98,21 +101,33 @@ Router router = new Router()
         .route("/posts/:id", PostEditContract.class);
 ```
 
-The framework drives navigation from contract intent: when a contract publishes
-`ACTION_SUCCESS`, the framework looks up the contract's route via
-`Router.findRoutePattern(...)` and updates the URL. Contracts do not call
-`setHref` directly.
+Route patterns are also the source of truth when the framework materializes
+navigation. `SET_PRIMARY` uses `Router.findRoutePattern(...)` to select the new
+primary URL; inline `SHOW` transitions use the same route patterns to reflect a
+form or detail view in the address bar; child routes such as `/posts/:id` can
+derive their parent route for returns. Contracts normally publish semantic
+events (`SHOW`, `SET_PRIMARY`, `ACTION_SUCCESS`) rather than calling `setHref`
+directly.
 
 ## Contracts and Views
 
-A *contract* owns the behaviour and data schema of a UI fragment. A *view*
+A *contract* owns the behavior and data schema of a UI fragment. A *view*
 renders it. Splitting the two lets the same form or list view serve many
 contracts, and lets agents and tests drive a contract without rendering.
 
 ```java
+import rsp.component.Lookup;
 import rsp.compositions.contract.EditViewContract;
+import rsp.compositions.contract.PathParam;
+import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldType;
+
+import java.util.Map;
 
 public class PostEditContract extends EditViewContract<Post> {
+    private static final PathParam<String> POST_ID =
+            new PathParam<>(1, String.class, null);
+
     private final PostService service;
 
     public PostEditContract(Lookup lookup, PostService service) {
@@ -120,9 +135,26 @@ public class PostEditContract extends EditViewContract<Post> {
         this.service = service;
     }
 
-    @Override public Post item()      { return service.find(resolveId()).orElse(null); }
-    @Override public DataSchema schema() { return Post.SCHEMA; }
-    @Override public boolean save(Map<String, Object> fields) { return service.update(resolveId(), Post.of(fields)); }
+    @Override public String title() { return "Edit Post"; }
+
+    @Override protected String resolveIdFromPath() { return resolve(POST_ID); }
+
+    @Override public Post item() { return service.find(resolveId()).orElse(null); }
+
+    @Override public DataSchema schema() {
+        return DataSchema.builder()
+                .field("id", FieldType.ID).hidden()
+                .field("title", FieldType.STRING).required()
+                .field("content", FieldType.TEXT)
+                .build();
+    }
+
+    @Override public boolean save(Map<String, Object> fields) {
+        String id = resolveId();
+        return service.update(id, new Post(id,
+                (String) fields.get("title"),
+                (String) fields.get("content")));
+    }
 }
 ```
 
@@ -153,7 +185,9 @@ Group main = new Group("Admin").description("Administration panel")
                 .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
                 .bind(PostEditContract.class,   ctx -> new PostEditContract(ctx, postService),   DefaultEditView::new))
         .add(new Group("Comments").description("User comments")
-                .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new));
+                .bind(CommentsListContract.class,
+                      ctx -> new CommentsListContract(ctx, commentService),
+                      DefaultListView::new));
 ```
 
 Each `bind(...)` is a 1-1-1: contract class, contract factory taking a
@@ -181,6 +215,10 @@ Lifecycle is derived, not declared:
 `Scene` carries enough state for back/forward navigation and inline form
 returns (`InlineReturnTarget`, `effectiveUrl`), so a contract switching
 between primary and inline placements does not have to track URL state itself.
+Scene-local transitions push browser history without asking the root router to
+rebuild the whole route shell. That keeps stable companions such as sidebars,
+headers, and prompts alive while inline forms open, return, or change query
+state.
 
 ## Layout
 
@@ -218,13 +256,17 @@ Contracts and views communicate through framework events. The important ones:
 
 - `SHOW(class, data)` — open a contract on demand. The scene decides whether
   to replace inline content or stack a layer (`SHOW_LAYER`).
-- `HIDE(class)` — close a specific contract, calling its `onDestroy`.
+- `HIDE(class)` — close an active layer contract, calling its `onDestroy`.
 - `SET_PRIMARY(class)` — make a contract the routed primary.
-- `ACTION_SUCCESS(result)` — a contract finished a save/delete; the framework
-  navigates back to the list route. The framework imposes no auto-close
-  policy — contracts that want to close themselves publish `HIDE`.
+- `ACTION_SUCCESS(result)` — a contract finished a save/delete/cancel. In the
+  base scene this refreshes the routed contract or restores an inline return
+  target; in a layer it closes the successful layer, or returns a URL-routed
+  auto-opened layer to its parent route.
 - `STATE_UPDATED(*)` — context parameters changed (e.g. page or sort); the URL
-  is updated.
+  is updated by the root URL sync component.
+- `SCENE_QUERY_UPDATED(name, value)` — scene-local query state changed while
+  `Scene.effectiveUrl` is active; the visible URL and scene context are updated
+  without rebuilding the route shell.
 
 Contracts declare what an external caller (typically an agent) can dispatch
 via `agentActions()` returning a list of `ContractAction`. Each action binds a
@@ -244,10 +286,11 @@ overrides in the chain components above. The framework-defined keys live in
 
 ### Watching Context
 
-`lookup.get(KEY)` returns a snapshot — the value at the moment the contract
-was constructed. When the watched value can change while the contract is
-mounted (e.g. a sibling contract publishes a new selected category through
-context), a contract calls `watch(...)` to be notified.
+The `Lookup` handed to a `ViewContract` is scope-backed: `lookup.get(KEY)`
+reads the contract runtime's current context. If a contract copies a context
+value into a field, and that value can change while the contract stays mounted
+(e.g. a sibling contract publishes a new selected category through context),
+the contract calls `watch(...)` to keep that field synchronized.
 
 ```java
 public class HeaderContract extends ViewContract {
@@ -264,19 +307,18 @@ public class HeaderContract extends ViewContract {
 }
 ```
 
-The handler fires when the contract's component segment is reused with a new
-`ComponentContext` and the value at that key changes by `Objects.equals`.
+The handler fires when the contract runtime receives a new `ComponentContext`
+and the value at that key changes by `Objects.equals`.
 Registration cleanup is automatic: `ViewContract.watch(...)` adds the
 `Registration` to the contract's handler set and unsubscribes it in
 `onDestroy()`.
 
-`watch(...)` is what makes contract reuse useful. Reading context once at
-construction is sufficient when a contract is recreated every time its inputs
-change — but recreating it on every parent re-render is wasteful for
-companions like a header, sidebar, or prompt that should keep their own
-state across navigations. Contracts and views that opt into reuse
-(`isReusable() == true`) keep their segment across re-renders and use
-`watch(...)` to stay in sync with the new context. The two-overload shape
+`watch(...)` is what makes long-lived contract runtimes useful. Reading context
+once at construction is sufficient when a contract is recreated every time its
+inputs change, but companions like a header, sidebar, or prompt should keep
+their own state across navigations. Their contracts use `watch(...)` to stay in
+sync with fresh context, while reusable view components (`isReusable() == true`)
+keep their component segment across re-renders. The two-overload shape
 (`BiConsumer<T,T>` for old+new, `Consumer<T>` for new only) mirrors how event
 subscriptions work, so the same registration discipline applies.
 
@@ -317,16 +359,18 @@ ordinary application services — repositories, domain services, formatters.
 
 ### The `Services` registry
 
-`Services` is a typed singleton registry — one instance per `Class<?>` key —
-that the framework merges into the root `ComponentContext`. Use it when the
-service must be reachable from code you do **not** construct directly:
+`Services` is a typed singleton registry — one instance per `Class<?>` key.
+App-level services are merged into the root `ComponentContext`, which makes
+them available through `lookup.get(SomeService.class)`. Use it when the service
+must be reachable from code you do **not** want to wire through every
+`bind(...)` factory:
 
 - A framework component reads it from context (e.g. `AuthComponent` looks up
   the `AuthProvider`).
-- A contract instantiated lazily by the framework from a `SHOW` event factory
-  needs to reach a session-scoped collaborator.
 - Cross-cutting infrastructure that many contracts pull on demand and you
-  don't want to thread through every `bind(...)` lambda.
+  don't want to thread through every constructor.
+- A view or lazily shown contract needs a framework integration point that is
+  naturally discovered from context.
 
 ```java
 SimpleAuthProvider authProvider = new SimpleAuthProvider();
@@ -337,12 +381,13 @@ Services services = new Services()
 App app = new App(new Config(), List.of(authComposition, postsComposition), services);
 ```
 
-`Services` has two scopes: registered on `App` it is shared by every
-composition; registered on a `Composition` it shadows app-level entries with
-the same key for contracts inside that composition.
+`Services` has two registration sites. Services registered on `App` are merged
+into the root context and are shared by every composition. Services registered
+on a `Composition` participate in that composition's lifecycle hooks; they are
+not currently merged into contract lookup context, so pass composition-local
+collaborators through `bind(...)` factories when contracts need them.
 
-Reach a registered service through `lookup.get(SomeService.class)`. The two
-mechanisms compose freely — most apps inject domain services through
+The two mechanisms compose freely — most apps inject domain services through
 constructors and reserve the registry for framework integration points and
 genuinely cross-cutting collaborators.
 
@@ -359,16 +404,18 @@ public class PromptService implements ServicesLifecycleHandler {
 ```
 
 Hooks fire at the matching scope boundary — app services receive `onStart`
-when the session is created and `onStop` when it ends; composition services
-receive them when their composition's scene activates and deactivates. Only
-services registered through `Services` participate in lifecycle hooks;
-services injected by closure capture in `bind(...)` factories do not.
+when a live page session starts and `onStop` when it ends; composition services
+receive them when their composition's scene is built and when that scene
+unmounts. Only services registered through `Services` participate in lifecycle
+hooks; services injected by closure capture in `bind(...)` factories do not.
 
 ## Auth
 
-`AuthComponent` sits at the top of the chain. It reads an `AuthProvider` from
-context, authenticates the request, enriches the context with
-`AUTH_USER` / `AUTH_AUTHENTICATED` / `AUTH_ROLES`, and gates protected routes.
+`AuthComponent` runs after routing has matched a composition and contract. It
+reads an `AuthProvider` from context, authenticates the request, enriches the
+context with `AUTH_USER` / `AUTH_AUTHENTICATED` / `AUTH_ROLES`, and lets the
+provider decide whether an anonymous request should pass through, redirect, or
+return a challenge.
 
 The login UI is just another composition with its own router and group:
 
