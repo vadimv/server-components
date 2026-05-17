@@ -114,6 +114,7 @@ public class AgentRuntime {
     private volatile AgentActionFilter actionFilter;
     private volatile AgentSession agentSession;
     private volatile AgentResult queuedResult;
+    private volatile String queuedUserText;
     private volatile PendingAction pendingConfirm;
     private volatile Scene currentScene;
     private volatile CompletableFuture<Scene> sceneSettleFuture;
@@ -422,7 +423,9 @@ public class AgentRuntime {
      */
     public void onApprovalDecided(boolean approved) {
         AgentResult queued = this.queuedResult;
+        String queuedText = this.queuedUserText;
         this.queuedResult = null;
+        this.queuedUserText = null;
         if (!approved) {
             feedback.send("Agent delegation denied.");
             return;
@@ -433,14 +436,14 @@ public class AgentRuntime {
             installSession(a.session());
             feedback.send("Agent access approved.");
             if (queued != null) {
-                startLoopFromApproval(queued, activeContract());
+                startLoopFromApproval(queued, queuedText, activeContract());
             }
         } else {
             feedback.send("Agent session could not be established.");
         }
     }
 
-    private void startLoopFromApproval(AgentResult queued, ViewContract capturedContract) {
+    private void startLoopFromApproval(AgentResult queued, String userText, ViewContract capturedContract) {
         // The original submit's loop has already returned (after queueing),
         // so {@code running} should be false. Defensive guard for unexpected state.
         if (!running.compareAndSet(false, true)) {
@@ -452,7 +455,7 @@ public class AgentRuntime {
         final long startTime = System.currentTimeMillis();
         Thread.startVirtualThread(() -> {
             try {
-                runLoop(null, capturedContract, token, startTime, queued);
+                runLoop(userText, capturedContract, token, startTime, queued);
             } catch (Throwable t) {
                 logger.log(System.Logger.Level.ERROR, "Post-approval loop failed", t);
                 feedback.send("Internal error: " + t.getClass().getSimpleName());
@@ -585,7 +588,7 @@ public class AgentRuntime {
             agentDispatchActive = true;
             boolean continuable;
             try {
-                continuable = evaluateAndDispatch(result, capturedContract);
+                continuable = evaluateAndDispatch(result, capturedContract, userText);
             } finally {
                 lastDispatchEndMillis = System.currentTimeMillis();
                 agentDispatchActive = false;
@@ -642,7 +645,7 @@ public class AgentRuntime {
      * terminal state (text reply, plan, blocked, awaiting confirm, awaiting
      * approval, denied).
      */
-    private boolean evaluateAndDispatch(AgentResult result, ViewContract capturedContract) {
+    private boolean evaluateAndDispatch(AgentResult result, ViewContract capturedContract, String userText) {
         Authorization current = (agentSession != null && agentSession.isValid())
                 ? authorization.delegated(agentSession.grant())
                 : authorization;
@@ -667,6 +670,7 @@ public class AgentRuntime {
             }
             case SpawnResult.RequiresApproval _ -> {
                 this.queuedResult = result;
+                this.queuedUserText = userText;
                 lookup.publish(EventKeys.SHOW, new ActionBindings.ShowPayload(
                         DelegationApprovalContract.class,
                         Map.of("scope", request.scope().name(),

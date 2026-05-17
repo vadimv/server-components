@@ -210,7 +210,7 @@ public interface Lookup {
     // ===== Context Observation =====
 
     /**
-     * Watch a context key for changes on this lookup's owning segment.
+     * Watch a context key for changes on this lookup's owning component segment.
      * <p>
      * The handler is invoked when the segment is reused with a new
      * {@link ComponentContext} and the watched value changes according to

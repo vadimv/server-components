@@ -54,9 +54,6 @@ public abstract class FormViewContract<T> extends ViewContract {
      * {@code "value"} (the new value). The view receives this on its lookup
      * and updates its draft state via {@code StateUpdate}.
      * <p>
-     * Emitted by: {@link rsp.compositions.agent.ActionDispatcher} when the
-     *             agent dispatches a {@code set_field} action.
-     * Handled by: {@link rsp.compositions.ui.EditView} (in {@code onMounted}).
      */
     @SuppressWarnings("unchecked")
     public static final EventKey.SimpleKey<Map<String, Object>> FORM_FIELD_SET =
