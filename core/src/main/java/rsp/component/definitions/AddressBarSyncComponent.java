@@ -45,6 +45,9 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
      */
     private static final String HISTORY_ENTRY_CHANGE_EVENT_NAME = "popstate";
 
+    public static final EventKey.SimpleKey<RelativeUrl> HISTORY_ENTRY_CHANGED =
+            new EventKey.SimpleKey<>("historyEntryChanged", RelativeUrl.class);
+
     private final RelativeUrl initialRelativeUrl;
 
     public AddressBarSyncComponent(final RelativeUrl initialRelativeUrl) {
@@ -97,16 +100,18 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
                                 StateUpdate<RelativeUrl> stateUpdate) {
-        subscribeForBrowserHistoryEvents(subscriber, stateUpdate);
+        subscribeForBrowserHistoryEvents(subscriber, commandsEnqueue, stateUpdate);
         subscribeForSessionObjectsUpdates(subscriber, commandsEnqueue, stateUpdate);
     }
 
     private void subscribeForBrowserHistoryEvents(Subscriber subscriber,
+                                                  CommandsEnqueue commandsEnqueue,
                                                   StateUpdate<RelativeUrl> stateUpdate) {
         subscriber.addWindowEventHandler(HISTORY_ENTRY_CHANGE_EVENT_NAME,
             eventContext -> {
                 final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
                 stateUpdate.setState(newRelativeUrl);
+                commandsEnqueue.offer(HISTORY_ENTRY_CHANGED.notification(newRelativeUrl));
             },
             true,
             DomEventEntry.NO_MODIFIER);

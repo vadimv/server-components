@@ -1,22 +1,17 @@
-# UI Toolkit for Admin Panels
+# Java UI for Admin Panels and realtime web apps
 
-Build AI-controlled admin interfaces and internal tools in modern Java, without writing JavaScript.
+This is a pure-Java toolkit for stateful, server-rendered live applications like admin interfaces and internal tools.
 
-This is a pure-Java toolkit for stateful, server-driven back-office apps. It removes REST glue, frontend build steps, and most UI boilerplate while allowing AI agents to understand your application's structure out of the box.
+No need for writing JavaScript and rely on thousands of transitive npm dependencies.
+No need for REST endpoints, frameworks like React, frontend build steps and managing client-side state.
 
-## Turn workflows into sentences
+<img width="1636" height="1029" alt="Admin-UI-demo" src="https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f" />
 
-<img width="1636" height="1029" alt="CrudApp-Screenshot-2" src="https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f" />
-
-Prompt: "Open comments, go to page two, and select all items."
-
-The AI agent natively understands your application's structure, navigates the UI, and queues up the exact actions while keeping the human in the loop for final approval.
-
-## Why it's different
-
-- Security & Supply Chain: Eliminate thousands of transitive npm dependencies. The toolkit is self-contained and distributed as source.
-- Developer Productivity: Java developers build internal tools in plain Java — without writing web-service controllers, managing frontend state, or depending on JavaScript frameworks like React.
-- AI: The Java HTML DSL is linear, component-based, and composable, with no annotations or implicit control flow. That makes it easy for LLMs (like Claude or GPT) to generate valid UI code without "hallucinating" state-management bugs, and lets AI agents navigate the running app from the same structure.
+- Server-Side-Rendering (SSR) architecture like in Elixir Phoenix LiveView, Blazor Server but for Java.
+- Software Engineers: build UIs in plain modern Java with no annotations and implicit control flows; components can be tested in isolation.
+  The Java HTML DSL is linear and composable. That makes it easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and a component tree.
+- At runtime, the AI agent natively understands the application's structure, navigates the UI, and queues up the actions with Human-in-the-loop for approvals.
+- This project aims for zero third-party runtime dependencies.
 
 ## What does the code look like?
 
@@ -27,7 +22,7 @@ import rsp.jetty.WebServer;
 
 import static rsp.dsl.Html.*;
 
-public final class HelloWorld {
+public final class Counter {
    static void main(final String[] args) {
       final ComponentView<Integer> view = newState -> state ->
               html(
@@ -48,8 +43,8 @@ public final class HelloWorld {
 ## Getting started
 
 1. Prerequisites
-   - Java 25+
-   - Maven 3.9+
+   - Java 25 -- virtual threads, sealed interfaces and pattern matching
+   - Maven 3.9
 
 2. Clone the repository
 
@@ -85,16 +80,12 @@ By default, `CrudApp` uses `RegexAgentService`, a deterministic regex-based agen
 Once you've run the example, open your favorite AI coding assistant in the project root and paste a prompt like this:
 
 *Read examples/src/main/java/rsp/app/posts/CrudApp.java.
-Generate a similar real-time admin tool for managing Employees and Departments.
+Generate a similar realtime admin tool for managing Employees and Departments.
 Create mock services and a new EmployeeAdminApp.java using the same routing, composition, and AI-agent integration patterns.*
 
 7. Upgrade to a full LLM agent
 
 When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama` and connect your preferred model backend.
-
-## Auditable by design
-
-This project aims to provide strong runtime supply-chain guarantees. The target architecture is zero third-party runtime dependencies outside the web-server layer.
 
 ## Docs
 
