@@ -39,6 +39,7 @@ public final class Counter {
    }
 }
 ```
+This is a complete runnable interactive web application. For more examples check the [examples/README.md](examples/README.md).
 
 ## Getting started
 
@@ -90,3 +91,4 @@ When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama`
 ## Docs
 
 - [Core](core/README.md)
+- [Examples](examples/README.md).

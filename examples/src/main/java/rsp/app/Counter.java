@@ -6,7 +6,7 @@ import rsp.jetty.WebServer;
 
 import static rsp.dsl.Html.*;
 
-public final class HelloWorld {
+public final class Counter {
     static void main(final String[] args) {
 
         final ComponentView<Integer> view = newState -> state ->
