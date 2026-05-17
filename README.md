@@ -91,4 +91,5 @@ When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama`
 ## Docs
 
 - [Core](core/README.md)
-- [Examples](examples/README.md).
+- [Compositions](compositions/README.md)
+- [Examples](examples/README.md)
