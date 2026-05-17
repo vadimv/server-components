@@ -5,22 +5,13 @@ This is a pure-Java toolkit for stateful, server-rendered live applications like
 No need for writing JavaScript and rely on thousands of transitive npm dependencies.
 No need for REST endpoints, frameworks like React, frontend build steps and managing client-side state.
 
-## Workflows == sentences
-
-<img width="1636" height="1029" alt="CrudApp-Screenshot-2" src="https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f" />
-
-Prompt: "Open comments, go to page two, and select all items."
-
-The AI agent natively understands the application's structure, navigates the UI, and queues up the actions.
-
-## Why?
+<img width="1636" height="1029" alt="Admin-UI-demo" src="https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f" />
 
 - Server-Side-Rendering (SSR) architecture like in Elixir Phoenix LiveView, Blazor Server but for Java.
 - Software Engineers: build UIs in plain modern Java with no annotations and implicit control flows; components can be tested in isolation.
   The Java HTML DSL is linear and composable. That makes it easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and a component tree.
-- At runtime, AI agents can interact with the UI elements with Human-in-the-loop for approvals.
-- This project aims to provide strong runtime supply-chain guarantees, to be self-contained and distributed as source.
-  The goal is zero third-party runtime dependencies -- the UI stack auditable by design.
+- At runtime, the AI agent natively understands the application's structure, navigates the UI, and queues up the actions with Human-in-the-loop for approvals.
+- This project aims for zero third-party runtime dependencies.
 
 ## What does the code look like?
 
@@ -31,7 +22,7 @@ import rsp.jetty.WebServer;
 
 import static rsp.dsl.Html.*;
 
-public final class HelloWorld {
+public final class Counter {
    static void main(final String[] args) {
       final ComponentView<Integer> view = newState -> state ->
               html(
@@ -52,8 +43,8 @@ public final class HelloWorld {
 ## Getting started
 
 1. Prerequisites
-   - Java 25+ -- built with virtual threads, sealed interfaces and pattern matching
-   - Maven 3.9+
+   - Java 25 -- virtual threads, sealed interfaces and pattern matching
+   - Maven 3.9
 
 2. Clone the repository
 
