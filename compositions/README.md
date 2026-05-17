@@ -231,33 +231,6 @@ via `agentActions()` returning a list of `ContractAction`. Each action binds a
 human-readable name + payload schema + `DispatchEffect` to an internal
 `EventKey`.
 
-## Auth
-
-`AuthComponent` sits at the top of the chain. It reads an `AuthProvider` from
-context, authenticates the request, enriches the context with
-`AUTH_USER` / `AUTH_AUTHENTICATED` / `AUTH_ROLES`, and gates protected routes.
-
-The login UI is just another composition with its own router and group:
-
-```java
-SimpleAuthProvider authProvider = new SimpleAuthProvider();
-
-Composition auth = new Composition(
-        new Router().route("/auth/login", LoginContract.class),
-        new DefaultLayout(),
-        new Group().bind(LoginContract.class,
-                         LoginContract::new,
-                         () -> new SimpleLoginComponent(authProvider)));
-
-Services services = new Services().service(AuthComponent.AuthProvider.class, authProvider);
-
-App app = new App(new Config(), List.of(auth, postsComposition), services);
-```
-
-`PublicAccessStrategy` and `AuthenticatedOnlyStrategy` are ready-made
-`ViewContract.AuthorizationStrategy` implementations; richer per-contract
-authorization lives in the `authorization` module.
-
 ## Context and Lookup
 
 `Lookup` is the unified API a contract uses to read context, publish events,
@@ -390,6 +363,33 @@ when the session is created and `onStop` when it ends; composition services
 receive them when their composition's scene activates and deactivates. Only
 services registered through `Services` participate in lifecycle hooks;
 services injected by closure capture in `bind(...)` factories do not.
+
+## Auth
+
+`AuthComponent` sits at the top of the chain. It reads an `AuthProvider` from
+context, authenticates the request, enriches the context with
+`AUTH_USER` / `AUTH_AUTHENTICATED` / `AUTH_ROLES`, and gates protected routes.
+
+The login UI is just another composition with its own router and group:
+
+```java
+SimpleAuthProvider authProvider = new SimpleAuthProvider();
+
+Composition auth = new Composition(
+        new Router().route("/auth/login", LoginContract.class),
+        new DefaultLayout(),
+        new Group().bind(LoginContract.class,
+                         LoginContract::new,
+                         () -> new SimpleLoginComponent(authProvider)));
+
+Services services = new Services().service(AuthComponent.AuthProvider.class, authProvider);
+
+App app = new App(new Config(), List.of(auth, postsComposition), services);
+```
+
+`PublicAccessStrategy` and `AuthenticatedOnlyStrategy` are ready-made
+`ViewContract.AuthorizationStrategy` implementations; richer per-contract
+authorization lives in the `authorization` module.
 
 ## Running an Example
 
