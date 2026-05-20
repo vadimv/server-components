@@ -191,7 +191,7 @@ public final class OllamaAgentService extends AgentService {
 
         String toolName = toolNameHolder[0];
         JsonDataType.Object toolArguments = toolArgsHolder[0];
-        LOGGER.log(System.Logger.Level.INFO,
+        LOGGER.log(System.Logger.Level.DEBUG,
             () -> "Ollama [" + prompt + "] -> tool=" + toolNameHolder[0] + " args=" + toolArgsHolder[0]);
 
         // If we got a tool call, convert to AgentResult

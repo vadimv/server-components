@@ -207,7 +207,7 @@ public final class ClaudeAgentService extends AgentService {
         }
 
         String toolName = toolNameHolder[0];
-        LOGGER.log(System.Logger.Level.INFO,
+        LOGGER.log(System.Logger.Level.DEBUG,
             () -> "Claude [" + prompt + "] -> tool=" + toolNameHolder[0] + " input=" + toolInputJson);
 
         // If we got a tool use, convert to AgentResult

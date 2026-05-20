@@ -9,7 +9,6 @@ import rsp.compositions.contract.ViewContract;
 
 import java.util.Objects;
 
-import static java.lang.System.Logger.Level.INFO;
 
 /**
  * Header contract that displays auth status.
@@ -79,7 +78,7 @@ public class HeaderContract extends ViewContract {
     }
 
     private static void logCurrentCategory(String source, String previous, String current) {
-        LOGGER.log(INFO, () -> "HeaderContract current category [" + source + "]: "
+        LOGGER.log(System.Logger.Level.DEBUG, () -> "HeaderContract current category [" + source + "]: "
                 + printable(previous) + " -> " + printable(current));
     }
 
