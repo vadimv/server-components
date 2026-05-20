@@ -2,14 +2,16 @@
 
 This is a pure-Java toolkit for stateful, server-rendered live applications like admin interfaces and internal tools.
 
-No need for writing JavaScript and rely on thousands of transitive npm dependencies.
+**[Try the Live Admin Panel Demo](https://server-components.onrender.com)**
+
+No need for writing JavaScript / JSX and rely on thousands of transitive npm dependencies.  
 No need for REST endpoints, frameworks like React, frontend build steps and managing client-side state.
 
-<img width="1636" height="1029" alt="Admin-UI-demo" src="https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f" />
+[![Admin-UI-demo](https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f)](https://server-components.onrender.com)
 
 - Server-Side-Rendering (SSR) architecture like in Elixir Phoenix LiveView, Blazor Server but for Java.
 - Software Engineers: build UIs in plain modern Java with no annotations and implicit control flows; components can be tested in isolation.
-  The Java HTML DSL is linear and composable. That makes it easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and a component tree.
+- The Java HTML DSL is linear and composable. That makes it easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and a component tree.
 - At runtime, the AI agent natively understands the application's structure, navigates the UI, and queues up the actions with Human-in-the-loop for approvals.
 - This project aims for zero third-party runtime dependencies.
 
@@ -42,6 +44,8 @@ public final class Counter {
 This is a complete runnable interactive web application. For more examples check the [examples/README.md](examples/README.md).
 
 ## Getting started
+
+**Want to skip the local setup?** [Play with the live demo here](https://server-components.onrender.com).
 
 1. Prerequisites
    - Java 25 -- virtual threads, sealed interfaces and pattern matching
