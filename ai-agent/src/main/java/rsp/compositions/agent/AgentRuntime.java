@@ -694,7 +694,7 @@ public class AgentRuntime {
         final ActionGate capturedGate = gate;
         switch (result) {
             case AgentResult.TextReply reply -> {
-                feedback.send(HtmlEscape.escape(reply.message()));
+                feedback.send(HtmlEscape.escape(reply.message()).replace("\n", "<br/>"));
                 return false;
             }
             case AgentResult.NavigateResult nav -> {

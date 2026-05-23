@@ -119,7 +119,20 @@ public class RegexAgentService extends AgentService {
             return handleDelete(m.group(1).trim(), profile);
         }
 
-        return new AgentResult.TextReply("I don't understand: " + prompt);
+        return new AgentResult.TextReply(
+                "Hello, I am a regex-based LLM agent simulator.\n" +
+                "\n" +
+                "I recognise a small set of commands:\n" +
+                "\n" +
+                "  • Navigate:     show posts   /   show comments\n" +
+                "  • Paginate:     go to page 2\n" +
+                "  • Select:       select all\n" +
+                "  • Edit:         edit selected\n" +
+                "  • Delete:       delete 'Post Title 1'\n" +
+                "  • Search:       search posts with id < 2\n" +
+                "  • Update:       update post 2 adding 'draft'\n" +
+                "\n" +
+                "Chain steps with \"and\" or \"then\", e.g. \"show comments and go to page 2\".");
     }
 
     /**
