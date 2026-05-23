@@ -49,6 +49,7 @@ public class SimpleLoginComponent extends Component<SimpleLoginComponent.State> 
     public ComponentView<State> componentView() {
         return _ -> state -> div(attr("class", "login-page"),
                 h1(text("Sign In")),
+                p(text("Clicking \"Sign in\" signs you in as the demo \"admin\" user.")),
                 button(
                         attr("type", "button"),
                         on("click", ctx -> {
