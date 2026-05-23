@@ -2,7 +2,7 @@
 
 This is a pure-Java toolkit for stateful, server-rendered live applications like admin interfaces and internal tools.
 
-**[Try the Live Admin Panel Demo](https://server-components.onrender.com)**
+**[Live Admin Panel Demo](https://server-components.onrender.com)**
 
 No need for writing JavaScript / JSX and rely on thousands of transitive npm dependencies.  
 No need for REST endpoints, frameworks like React, frontend build steps and managing client-side state.
@@ -95,5 +95,6 @@ When you're ready, run `CrudApp` with `-Dai.agent=claude` or `-Dai.agent=ollama`
 ## Docs
 
 - [Core](core/README.md)
-- [Compositions](compositions/README.md)
+- [Compositions framework](compositions/README.md)
+- [Browser-side integration](compositions/CLIENT_INTEGRATION.md)
 - [Examples](examples/README.md)
