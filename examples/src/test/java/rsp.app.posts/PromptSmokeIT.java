@@ -96,12 +96,6 @@ class PromptSmokeIT {
         approveButton.click();
     }
 
-    private void navigateToComments(final Page page) {
-        Locator commentsLink = page.locator(".explorer-item a:has-text(\"Comments\")");
-        assertThat(commentsLink).isVisible();
-        commentsLink.click();
-        page.waitForURL(url -> url.contains("/comments"), new Page.WaitForURLOptions().setTimeout(5000));
-    }
 
     private void login(final Page page) throws InterruptedException {
         page.navigate(BASE_URL + "/posts");
@@ -113,18 +107,6 @@ class PromptSmokeIT {
 
     private Locator promptPanel(final Page page) {
         return page.locator(".prompt-panel");
-    }
-
-    private Locator systemMessages(final Page page) {
-        return page.locator(".prompt-message.system");
-    }
-
-    private void waitForSystemMessageCount(final Page page, final int expectedMinCount) {
-        page.waitForFunction(
-                "expected => document.querySelectorAll('.prompt-message.system').length >= expected",
-                expectedMinCount,
-                new Page.WaitForFunctionOptions().setTimeout(10000)
-        );
     }
 
     private static void waitFor(final long timeMs) throws InterruptedException {
