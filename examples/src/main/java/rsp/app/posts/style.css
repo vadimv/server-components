@@ -425,8 +425,19 @@ h1 {
 }
 
 .comments-rate-axis {
+    stroke: var(--border-strong);
+    stroke-width: 1;
+}
+
+.comments-rate-grid-line {
     stroke: var(--border);
     stroke-width: 1;
+    opacity: 0.65;
+}
+
+.comments-rate-axis-label {
+    fill: var(--text-subtle);
+    font-size: 0.625rem;
 }
 
 .comments-rate-line {
@@ -437,6 +448,26 @@ h1 {
     fill: var(--surface);
     stroke: currentColor;
     stroke-width: 3;
+}
+
+.comments-rate-legend {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
+.comments-rate-legend-swatch {
+    width: 1.25rem;
+    height: 0.1875rem;
+    border-radius: 999px;
+    background: var(--accent);
+    flex-shrink: 0;
+}
+
+.comments-rate-legend-label {
+    line-height: 1;
 }
 
 .comments-rate-footer {
