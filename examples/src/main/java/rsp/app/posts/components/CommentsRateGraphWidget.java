@@ -11,10 +11,12 @@ import rsp.dsl.PlainTag;
 import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import static rsp.dsl.Html.*;
 
-public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.State> {
+public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.State>
+        implements DashboardWidget {
 
     private static final int WIDTH = 320;
     private static final int HEIGHT = 140;
@@ -24,6 +26,40 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
 
     public CommentsRateGraphWidget(final List<GraphSample> samples) {
         this.samples = samples == null ? List.of() : List.copyOf(samples);
+    }
+
+    @Override
+    public String id() {
+        return "comments-rate";
+    }
+
+    @Override
+    public String title() {
+        return "Comments rate";
+    }
+
+    @Override
+    public String description() {
+        return "Static comments per hour trend";
+    }
+
+    @Override
+    public String kind() {
+        return "line-chart";
+    }
+
+    @Override
+    public Component<?> component() {
+        return this;
+    }
+
+    @Override
+    public Map<String, Object> metadataState() {
+        State state = State.from(samples);
+        return Map.of("currentValue", state.currentValue(),
+                "currentLabel", state.currentLabel(),
+                "sampleCount", state.samples().size(),
+                "empty", state.empty());
     }
 
     public record State(List<GraphSample> samples,
@@ -64,7 +100,7 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
         return _ -> state -> div(attr("class", "dashboard-widget comments-rate-widget"),
                 div(attr("class", "dashboard-widget-header"),
                         div(attr("class", "dashboard-widget-title"),
-                                h2("Comments rate"),
+                                h2(title()),
                                 p("Last 6 hours")
                         ),
                         div(attr("class", "dashboard-widget-metric"),

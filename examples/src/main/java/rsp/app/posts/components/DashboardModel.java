@@ -2,14 +2,14 @@ package rsp.app.posts.components;
 
 import java.util.List;
 
-public record DashboardModel(List<GraphSample> commentsRateSamples) {
+public record DashboardModel(DashboardLayout layout) {
 
     public DashboardModel {
-        commentsRateSamples = commentsRateSamples == null ? List.of() : List.copyOf(commentsRateSamples);
+        layout = layout == null ? DashboardDsl.dashboard().build() : layout;
     }
 
     public static DashboardModel demo() {
-        return new DashboardModel(List.of(
+        List<GraphSample> commentsRateSamples = List.of(
                 new GraphSample("09:00", 18),
                 new GraphSample("10:00", 24),
                 new GraphSample("11:00", 21),
@@ -17,7 +17,15 @@ public record DashboardModel(List<GraphSample> commentsRateSamples) {
                 new GraphSample("13:00", 28),
                 new GraphSample("14:00", 36),
                 new GraphSample("13:00", 28)
-        ));
+        );
+
+        return new DashboardModel(DashboardDsl.dashboard()
+                .columns(12)
+                .rowHeightPx(96)
+                .gap("1rem")
+                .place(new CommentsRateGraphWidget(commentsRateSamples),
+                        DashboardDsl.at(1, 1).span(6, 3))
+                .build());
     }
 
     public record GraphSample(String label, int value) {

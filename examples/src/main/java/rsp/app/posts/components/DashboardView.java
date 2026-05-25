@@ -27,11 +27,7 @@ public class DashboardView extends Component<DashboardView.DashboardState> {
     public ComponentView<DashboardState> componentView() {
         return _ -> state -> section(attr("class", "dashboard-page"),
                 h1("Dashboard"),
-                div(attr("class", "dashboard-grid"),
-                        div(attr("class", "dashboard-grid-item"),
-                                new CommentsRateGraphWidget(state.model().commentsRateSamples())
-                        )
-                )
+                new DashboardGrid(state.model().layout())
         );
     }
 }
