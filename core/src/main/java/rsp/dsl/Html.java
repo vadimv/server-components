@@ -7,6 +7,7 @@ import rsp.util.ArrayUtils;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -27,6 +28,7 @@ public final class Html {
      */
     public static final String DEFAULT_PROPERTIES_NAMES =
             "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
+    private static final Set<String> DEFAULT_PROPERTY_NAMES = Set.of(DEFAULT_PROPERTIES_NAMES.split(", "));
 
 
     /**
@@ -1378,6 +1380,6 @@ public final class Html {
 
 
     private static boolean isPropertyByDefault(final String name) {
-        return DEFAULT_PROPERTIES_NAMES.contains(name);
+        return DEFAULT_PROPERTY_NAMES.contains(name);
     }
 }

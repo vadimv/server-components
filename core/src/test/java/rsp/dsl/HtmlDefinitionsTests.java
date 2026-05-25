@@ -9,6 +9,7 @@ import rsp.component.View;
 import rsp.page.QualifiedSessionId;
 import rsp.server.TestCollectingRemoteOut;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.dsl.Html.*;
 import static rsp.page.PageBuilder.DOCUMENT_DOM_PATH;
@@ -44,6 +45,14 @@ public class HtmlDefinitionsTests {
         System.out.println(html);
 
         assertTrue(org.jsoup.Jsoup.parse(expectedHtml).hasSameValue(html));
+    }
+
+    @Test
+    void treats_default_properties_as_exact_names_not_substrings() {
+        assertTrue(attr("value", "hello").isProperty());
+        assertFalse(attr("y", "10").isProperty());
+        assertFalse(attr("sync", "true").isProperty());
+        assertFalse(attr("class", "chart").isProperty());
     }
 
     private static <S> String htmlOf(final View<S> view, final S initialState) {
