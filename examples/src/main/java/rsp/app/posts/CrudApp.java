@@ -4,6 +4,7 @@ import rsp.app.posts.components.CommentCreateContract;
 import rsp.app.posts.components.CommentEditContract;
 import rsp.app.posts.components.CommentsListContract;
 import rsp.app.posts.components.DashboardContract;
+import rsp.app.posts.components.DashboardModel;
 import rsp.app.posts.components.DashboardView;
 import rsp.app.posts.components.ExplorerContract;
 import rsp.app.posts.components.ExplorerView;
@@ -15,6 +16,7 @@ import rsp.app.posts.components.PromptContract;
 import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.services.CommentService;
+import rsp.app.posts.services.CommentRateStreamService;
 import rsp.compositions.agent.ClaudeAgentService;
 import rsp.compositions.agent.OllamaAgentService;
 import rsp.app.posts.services.PostService;
@@ -106,6 +108,9 @@ public class CrudApp {
         final CommentService commentService = new CommentService();
         final PromptService promptService = new PromptService();
         promptService.startTicking();
+        final CommentRateStreamService commentRateStreamService = new CommentRateStreamService();
+        commentRateStreamService.start();
+        final var dashboardModel = DashboardModel.live(commentRateStreamService);
 
         // Agent permissions. The policy says which agent actions are allowed. When an action needs
         // user consent, the prompt asks this spawner for an agent session. Approval decisions are
@@ -121,8 +126,8 @@ public class CrudApp {
         // A view renders that contract.
         // The nested group names become the sidebar menu.
         final Group mainContracts = new Group("Admin").description("Administration panel")
-                .add(new Group("Dashboard").description("Static dashboard widgets for the admin overview")
-                        .bind(DashboardContract.class, DashboardContract::new, DashboardView::new))
+                .add(new Group("Dashboard").description("Live dashboard widgets for the admin overview")
+                        .bind(DashboardContract.class, ctx -> new DashboardContract(ctx, dashboardModel), DashboardView::new))
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
                         .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
                         .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)

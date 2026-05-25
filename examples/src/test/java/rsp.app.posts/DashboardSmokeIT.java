@@ -5,7 +5,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import rsp.app.posts.components.DashboardModel;
 import rsp.jetty.WebServer;
 
 import java.util.stream.Stream;
@@ -19,14 +18,6 @@ class DashboardSmokeIT {
     private static final int PORT = 8085;
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
     private static final String BASE_URL = "http://localhost:" + PORT;
-    private static final String EXPECTED_COMMENTS_RATE_VALUE = String.valueOf(
-            DashboardModel.demo()
-                    .layout()
-                    .placements()
-                    .getFirst()
-                    .widget()
-                    .metadataState()
-                    .get("currentValue"));
 
     private static final Playwright playwright = Playwright.create();
     private static WebServer server;
@@ -62,8 +53,15 @@ class DashboardSmokeIT {
         assertThat(primaryScope(page).locator(".dashboard-grid")).isVisible();
         assertThat(primaryScope(page).locator(".comments-rate-widget")).isVisible();
         assertThat(primaryScope(page).locator(".comments-rate-chart")).isVisible();
-        assertThat(primaryScope(page).locator(".dashboard-widget-value"))
-                .containsText(EXPECTED_COMMENTS_RATE_VALUE);
+        assertThat(primaryScope(page).locator(".comments-rate-line")).isVisible();
+        assertThat(primaryScope(page).locator(".dashboard-widget-value")).isVisible();
+        assertThat(primaryScope(page).locator(".dashboard-widget-unit")).containsText("comments/sec");
+        assertTrue((Boolean) primaryScope(page).locator(".comments-rate-line").evaluate("""
+                line => line.namespaceURI === 'http://www.w3.org/2000/svg'
+                        && line.getAttribute('points').trim().split(/\\s+/).length >= 2
+                        && line.getBBox().width > 0
+                        && line.getBBox().height >= 0
+                """));
     }
 
     private static Stream<BrowserType> browserTypes() {

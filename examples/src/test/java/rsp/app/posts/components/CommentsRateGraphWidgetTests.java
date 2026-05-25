@@ -4,17 +4,25 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 import rsp.app.posts.components.DashboardModel.GraphSample;
+import rsp.app.posts.services.CommentRateStreamService;
 import rsp.component.ComponentContext;
 import rsp.component.TreeBuilder;
 import rsp.component.definitions.Component;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CommentsRateGraphWidgetTests {
+
+    private static final Clock CLOCK =
+            Clock.fixed(Instant.parse("2026-05-25T10:15:30Z"), ZoneOffset.UTC);
 
     @Test
     void renders_title_svg_and_current_value() {
@@ -62,6 +70,37 @@ class CommentsRateGraphWidgetTests {
         assertTrue(document.text().contains("No data yet"));
         assertEquals("0", document.select(".dashboard-widget-value").text());
         assertFalse(document.html().contains("NaN"));
+    }
+
+    @Test
+    void renders_single_sample_as_a_visible_short_segment() {
+        Document document = render(new CommentsRateGraphWidget(List.of(
+                new GraphSample("10:00", 7)
+        )));
+
+        assertEquals("185.0,81.0 201.0,81.0",
+                document.select(".comments-rate-line").attr("points"));
+        assertEquals("7", document.select(".dashboard-widget-value").text());
+        assertFalse(document.html().contains("NaN"));
+    }
+
+    @Test
+    void renders_live_comments_per_second_snapshot() {
+        CommentRateStreamService service = new CommentRateStreamService(List.of(100, 120), 5, CLOCK);
+        service.emitNextSample();
+        service.emitNextSample();
+        CommentsRateGraphWidget widget = CommentsRateGraphWidget.live(service);
+
+        Document document = render(widget);
+        Map<String, Object> metadata = widget.metadataState();
+
+        assertEquals("120", document.select(".dashboard-widget-value").text());
+        assertTrue(document.text().contains("comments/sec"));
+        assertEquals("Comments/sec", document.select(".comments-rate-legend-label").text());
+        assertEquals(true, metadata.get("live"));
+        assertEquals("comments/sec", metadata.get("unit"));
+        assertEquals(2, metadata.get("sampleCount"));
+        assertEquals(120, metadata.get("currentValue"));
     }
 
     private static Document render(final Component<?> component) {

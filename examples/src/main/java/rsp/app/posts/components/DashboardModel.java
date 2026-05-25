@@ -1,5 +1,7 @@
 package rsp.app.posts.components;
 
+import rsp.app.posts.services.CommentRateStreamService;
+
 import java.util.List;
 
 public record DashboardModel(DashboardLayout layout) {
@@ -24,6 +26,16 @@ public record DashboardModel(DashboardLayout layout) {
                 .rowHeightPx(96)
                 .gap("1rem")
                 .place(new CommentsRateGraphWidget(commentsRateSamples),
+                        DashboardDsl.at(1, 1).span(6, 3))
+                .build());
+    }
+
+    public static DashboardModel live(final CommentRateStreamService commentRateStreamService) {
+        return new DashboardModel(DashboardDsl.dashboard()
+                .columns(12)
+                .rowHeightPx(96)
+                .gap("1rem")
+                .place(CommentsRateGraphWidget.live(commentRateStreamService),
                         DashboardDsl.at(1, 1).span(6, 3))
                 .build());
     }

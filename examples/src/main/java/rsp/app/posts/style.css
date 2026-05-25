@@ -442,6 +442,7 @@ h1 {
 
 .comments-rate-line {
     color: var(--accent);
+    stroke: var(--accent);
 }
 
 .comments-rate-point {

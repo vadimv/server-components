@@ -22,7 +22,7 @@ public class DashboardContract extends ViewContract {
         this(lookup, DashboardModel.demo());
     }
 
-    DashboardContract(final Lookup lookup, final DashboardModel model) {
+    public DashboardContract(final Lookup lookup, final DashboardModel model) {
         super(lookup);
         this.model = Objects.requireNonNull(model);
     }

@@ -1,17 +1,24 @@
 package rsp.app.posts.components;
 
 import rsp.app.posts.components.DashboardModel.GraphSample;
+import rsp.app.posts.services.CommentRateStreamService;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
+import rsp.component.ComponentCompositeKey;
+import rsp.component.StateUpdate;
 import rsp.component.definitions.Component;
 import rsp.dom.XmlNs;
 import rsp.dsl.Definition;
 import rsp.dsl.PlainTag;
 
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.IntSummaryStatistics;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static rsp.dsl.Html.*;
 
@@ -28,11 +35,47 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
     private static final double PLOT_HEIGHT = HEIGHT - PLOT_TOP - PLOT_BOTTOM;
     private static final double PLOT_BASELINE = HEIGHT - PLOT_BOTTOM;
     private static final double PLOT_MIDLINE = PLOT_TOP + (PLOT_HEIGHT / 2.0);
+    private static final DateTimeFormatter LIVE_LABEL_FORMATTER =
+            DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
 
     private final List<GraphSample> samples;
+    private final CommentRateStreamService streamService;
+    private final String description;
+    private final String periodLabel;
+    private final String unitLabel;
+    private final String legendLabel;
+    private final Map<ComponentCompositeKey, Runnable> subscriptions = new ConcurrentHashMap<>();
 
     public CommentsRateGraphWidget(final List<GraphSample> samples) {
+        this(samples,
+                null,
+                "Static comments per hour trend",
+                "Last 6 hours",
+                "comments/hour",
+                "Comments/hour");
+    }
+
+    private CommentsRateGraphWidget(final List<GraphSample> samples,
+                                    final CommentRateStreamService streamService,
+                                    final String description,
+                                    final String periodLabel,
+                                    final String unitLabel,
+                                    final String legendLabel) {
         this.samples = samples == null ? List.of() : List.copyOf(samples);
+        this.streamService = streamService;
+        this.description = description;
+        this.periodLabel = periodLabel;
+        this.unitLabel = unitLabel;
+        this.legendLabel = legendLabel;
+    }
+
+    public static CommentsRateGraphWidget live(final CommentRateStreamService streamService) {
+        return new CommentsRateGraphWidget(List.of(),
+                Objects.requireNonNull(streamService),
+                "Live comments per second stream",
+                "Last 30 seconds",
+                "comments/sec",
+                "Comments/sec");
     }
 
     @Override
@@ -47,7 +90,7 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
 
     @Override
     public String description() {
-        return "Static comments per hour trend";
+        return description;
     }
 
     @Override
@@ -62,11 +105,14 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
 
     @Override
     public Map<String, Object> metadataState() {
-        State state = State.from(samples);
+        State state = State.from(currentSamples());
         return Map.of("currentValue", state.currentValue(),
                 "currentLabel", state.currentLabel(),
                 "sampleCount", state.samples().size(),
-                "empty", state.empty());
+                "empty", state.empty(),
+                "live", streamService != null,
+                "unit", unitLabel,
+                "window", periodLabel);
     }
 
     public record State(List<GraphSample> samples,
@@ -165,7 +211,7 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
 
     @Override
     public ComponentStateSupplier<State> initStateSupplier() {
-        return (_, _) -> State.from(samples);
+        return (_, _) -> State.from(currentSamples());
     }
 
     @Override
@@ -174,11 +220,11 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
                 div(attr("class", "dashboard-widget-header"),
                         div(attr("class", "dashboard-widget-title"),
                                 h2(title()),
-                                p("Last 6 hours")
+                                p(periodLabel)
                         ),
                         div(attr("class", "dashboard-widget-metric"),
                                 span(attr("class", "dashboard-widget-value"), text(state.currentValue())),
-                                span(attr("class", "dashboard-widget-unit"), text("comments/hour"))
+                                span(attr("class", "dashboard-widget-unit"), text(unitLabel))
                         )
                 ),
                 div(attr("class", "comments-rate-chart-wrap"),
@@ -186,13 +232,46 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
                 ),
                 div(attr("class", "comments-rate-legend"),
                         span(attr("class", "comments-rate-legend-swatch"), attr("aria-hidden", "true")),
-                        span(attr("class", "comments-rate-legend-label"), text("Comments/hour"))
+                        span(attr("class", "comments-rate-legend-label"), text(legendLabel))
                 ),
                 div(attr("class", "comments-rate-footer"),
                         span(attr("class", "comments-rate-current-label"), text(state.currentLabel())),
                         span(attr("class", "comments-rate-empty"), text(state.empty() ? "No data yet" : ""))
                 )
         );
+    }
+
+    @Override
+    public void onMounted(final ComponentCompositeKey componentId,
+                          final State state,
+                          final StateUpdate<State> stateUpdate) {
+        if (streamService == null) {
+            return;
+        }
+        subscriptions.computeIfAbsent(componentId, _ ->
+                streamService.subscribe(streamSamples ->
+                        stateUpdate.setState(State.from(graphSamplesFrom(streamSamples)))));
+    }
+
+    @Override
+    public void onUnmounted(final ComponentCompositeKey componentId, final State state) {
+        Runnable unsubscribe = subscriptions.remove(componentId);
+        if (unsubscribe != null) {
+            unsubscribe.run();
+        }
+    }
+
+    private List<GraphSample> currentSamples() {
+        if (streamService == null) {
+            return samples;
+        }
+        return graphSamplesFrom(streamService.snapshot());
+    }
+
+    private static List<GraphSample> graphSamplesFrom(final List<CommentRateStreamService.Sample> samples) {
+        return samples.stream()
+                .map(sample -> new GraphSample(LIVE_LABEL_FORMATTER.format(sample.timestamp()), sample.value()))
+                .toList();
     }
 
     private static Definition chart(final State state) {
@@ -277,6 +356,13 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
     }
 
     private static String polylineFor(final List<ChartPoint> chartPoints) {
+        if (chartPoints.size() == 1) {
+            ChartPoint point = chartPoints.getFirst();
+            double halfSegment = 8.0;
+            return formatPoint(point.x() - halfSegment, point.y())
+                    + " "
+                    + formatPoint(point.x() + halfSegment, point.y());
+        }
         StringBuilder points = new StringBuilder();
         for (ChartPoint point : chartPoints) {
             if (!points.isEmpty()) {
