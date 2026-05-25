@@ -3,6 +3,8 @@ package rsp.app.posts;
 import rsp.app.posts.components.CommentCreateContract;
 import rsp.app.posts.components.CommentEditContract;
 import rsp.app.posts.components.CommentsListContract;
+import rsp.app.posts.components.DashboardContract;
+import rsp.app.posts.components.DashboardView;
 import rsp.app.posts.components.ExplorerContract;
 import rsp.app.posts.components.ExplorerView;
 import rsp.app.posts.components.PostCreateContract;
@@ -89,6 +91,7 @@ public class CrudApp {
         // URL to contract mapping. Literal segments ("/posts/new") must precede parameter
         // routes ("/posts/:id") or "/posts/new" would be treated as id "new".
         final Router router = new Router()
+                .route("/dashboard", DashboardContract.class)
                 .route("/posts", PostsListContract.class)
                 .route("/", PostsListContract.class)
                 .route("/posts/new", PostCreateContract.class)
@@ -118,6 +121,8 @@ public class CrudApp {
         // A view renders that contract.
         // The nested group names become the sidebar menu.
         final Group mainContracts = new Group("Admin").description("Administration panel")
+                .add(new Group("Dashboard").description("Static dashboard widgets for the admin overview")
+                        .bind(DashboardContract.class, DashboardContract::new, DashboardView::new))
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
                         .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
                         .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
