@@ -141,19 +141,13 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
         }
     }
 
-    private record ChartRender(String polylinePoints,
+    private record ChartRender(String linePath,
                                List<AxisTick> yTicks,
-                               List<AxisLabel> xLabels,
-                               String currentPointX,
-                               String currentPointY) {
+                               List<AxisLabel> xLabels) {
         private ChartRender {
-            polylinePoints = polylinePoints == null || polylinePoints.isBlank()
-                    ? fallbackPolyline()
-                    : polylinePoints;
+            linePath = linePath == null || linePath.isBlank() ? fallbackLinePath() : linePath;
             yTicks = yTicks == null ? List.of() : List.copyOf(yTicks);
             xLabels = xLabels == null ? List.of() : List.copyOf(xLabels);
-            currentPointX = currentPointX == null ? formatCoordinate(WIDTH - PLOT_RIGHT) : currentPointX;
-            currentPointY = currentPointY == null ? formatCoordinate(PLOT_MIDLINE) : currentPointY;
         }
 
         static ChartRender from(final List<GraphSample> samples) {
@@ -164,22 +158,17 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
 
             Scale scale = Scale.from(safeSamples);
             List<ChartPoint> points = pointsFor(safeSamples, scale);
-            ChartPoint current = points.getLast();
             return new ChartRender(
-                    polylineFor(points),
+                    linePathFor(points),
                     yTicksFor(scale),
-                    xLabelsFor(safeSamples, points),
-                    formatCoordinate(current.x()),
-                    formatCoordinate(current.y()));
+                    xLabelsFor(safeSamples, points));
         }
 
         static ChartRender empty() {
             return new ChartRender(
-                    fallbackPolyline(),
+                    fallbackLinePath(),
                     yTicksFor(new Scale(0, 1, 0)),
-                    List.of(),
-                    formatCoordinate(WIDTH - PLOT_RIGHT),
-                    formatCoordinate(PLOT_MIDLINE));
+                    List.of());
         }
     }
 
@@ -232,10 +221,7 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
                 ),
                 div(attr("class", "comments-rate-legend"),
                         span(attr("class", "comments-rate-legend-swatch"), attr("aria-hidden", "true")),
-                        span(attr("class", "comments-rate-legend-label"), text(legendLabel))
-                ),
-                div(attr("class", "comments-rate-footer"),
-                        span(attr("class", "comments-rate-current-label"), text(state.currentLabel())),
+                        span(attr("class", "comments-rate-legend-label"), text(legendLabel)),
                         span(attr("class", "comments-rate-empty"), text(state.empty() ? "No data yet" : ""))
                 )
         );
@@ -284,31 +270,14 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
                 of(state.chart().yTicks().stream().map(CommentsRateGraphWidget::gridLine)),
                 of(state.chart().yTicks().stream().map(CommentsRateGraphWidget::tickLabel)),
                 of(state.chart().xLabels().stream().map(CommentsRateGraphWidget::xAxisLabel)),
-                new PlainTag(XmlNs.svg, "line",
-                        attr("class", "comments-rate-axis comments-rate-y-axis"),
-                        attr("x1", String.valueOf(PLOT_LEFT)),
-                        attr("y1", String.valueOf(PLOT_TOP)),
-                        attr("x2", String.valueOf(PLOT_LEFT)),
-                        attr("y2", String.valueOf(PLOT_BASELINE))),
-                new PlainTag(XmlNs.svg, "line",
-                        attr("class", "comments-rate-axis comments-rate-x-axis"),
-                        attr("x1", String.valueOf(PLOT_LEFT)),
-                        attr("y1", String.valueOf(PLOT_BASELINE)),
-                        attr("x2", String.valueOf(WIDTH - PLOT_RIGHT)),
-                        attr("y2", String.valueOf(PLOT_BASELINE))),
-                new PlainTag(XmlNs.svg, "polyline",
+                new PlainTag(XmlNs.svg, "path",
                         attr("class", "comments-rate-line"),
-                        attr("points", state.chart().polylinePoints()),
+                        attr("d", state.chart().linePath()),
                         attr("fill", "none"),
                         attr("stroke", "currentColor"),
-                        attr("stroke-width", "3"),
+                        attr("stroke-width", "1.25"),
                         attr("stroke-linecap", "round"),
-                        attr("stroke-linejoin", "round")),
-                new PlainTag(XmlNs.svg, "circle",
-                        attr("class", "comments-rate-point"),
-                        attr("cx", state.chart().currentPointX()),
-                        attr("cy", state.chart().currentPointY()),
-                        attr("r", "4"))
+                        attr("stroke-linejoin", "round"))
         );
     }
 
@@ -355,22 +324,25 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
                 .toList();
     }
 
-    private static String polylineFor(final List<ChartPoint> chartPoints) {
+    private static String linePathFor(final List<ChartPoint> chartPoints) {
+        if (chartPoints.isEmpty()) {
+            return fallbackLinePath();
+        }
         if (chartPoints.size() == 1) {
             ChartPoint point = chartPoints.getFirst();
             double halfSegment = 8.0;
-            return formatPoint(point.x() - halfSegment, point.y())
-                    + " "
-                    + formatPoint(point.x() + halfSegment, point.y());
+            return "M" + formatPoint(point.x() - halfSegment, point.y())
+                    + " L" + formatPoint(point.x() + halfSegment, point.y());
         }
-        StringBuilder points = new StringBuilder();
-        for (ChartPoint point : chartPoints) {
-            if (!points.isEmpty()) {
-                points.append(' ');
-            }
-            points.append(formatPoint(point.x(), point.y()));
+
+        StringBuilder path = new StringBuilder();
+        ChartPoint first = chartPoints.getFirst();
+        path.append("M").append(formatPoint(first.x(), first.y()));
+        for (int i = 1; i < chartPoints.size(); i++) {
+            ChartPoint p = chartPoints.get(i);
+            path.append(" L").append(formatPoint(p.x(), p.y()));
         }
-        return points.toString();
+        return path.toString();
     }
 
     private static List<AxisTick> yTicksFor(final Scale scale) {
@@ -388,11 +360,10 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
         if (samples.isEmpty() || points.isEmpty()) {
             return List.of();
         }
-        int middle = samples.size() / 2;
         if (samples.size() == 1) {
             return List.of(new AxisLabel(samples.getFirst().label(), points.getFirst().x()));
         }
-
+        int middle = samples.size() / 2;
         return List.of(
                 new AxisLabel(samples.getFirst().label(), points.getFirst().x()),
                 new AxisLabel(samples.get(middle).label(), points.get(middle).x()),
@@ -405,10 +376,9 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
         return PLOT_BASELINE - (normalized * PLOT_HEIGHT);
     }
 
-    private static String fallbackPolyline() {
-        return formatPoint(PLOT_LEFT, PLOT_MIDLINE)
-                + " "
-                + formatPoint(WIDTH - PLOT_RIGHT, PLOT_MIDLINE);
+    private static String fallbackLinePath() {
+        return "M" + formatPoint(PLOT_LEFT, PLOT_MIDLINE)
+                + " L" + formatPoint(WIDTH - PLOT_RIGHT, PLOT_MIDLINE);
     }
 
     private static String formatTick(final double value) {

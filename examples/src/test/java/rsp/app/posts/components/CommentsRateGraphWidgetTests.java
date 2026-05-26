@@ -41,7 +41,10 @@ class CommentsRateGraphWidgetTests {
         assertEquals(3, document.select(".comments-rate-grid-line").size());
         assertEquals(3, document.select(".comments-rate-tick-label").size());
         assertEquals(3, document.select(".comments-rate-x-label").size());
-        assertFalse(document.select(".comments-rate-line[points]").isEmpty());
+        String linePath = document.select(".comments-rate-line").attr("d");
+        assertTrue(linePath.startsWith("M"), "line path should start with a move command: " + linePath);
+        assertTrue(linePath.contains(" L"), "line path should contain straight-line segments: " + linePath);
+        assertTrue(document.select(".comments-rate-area").isEmpty());
     }
 
     @Test
@@ -52,8 +55,8 @@ class CommentsRateGraphWidgetTests {
                 new GraphSample("12:00", 7)
         )));
 
-        assertEquals("42.0,81.0 193.0,81.0 344.0,81.0",
-                document.select(".comments-rate-line").attr("points"));
+        String linePath = document.select(".comments-rate-line").attr("d");
+        assertEquals("M42.0,81.0 L193.0,81.0 L344.0,81.0", linePath);
         assertEquals("7", document.select(".dashboard-widget-value").text());
         assertTrue(document.select(".comments-rate-tick-label").text().contains("7"));
         assertFalse(document.html().contains("NaN"));
@@ -63,8 +66,9 @@ class CommentsRateGraphWidgetTests {
     void renders_empty_data_without_failing() {
         Document document = render(new CommentsRateGraphWidget(List.of()));
 
-        assertEquals("42.0,81.0 344.0,81.0",
-                document.select(".comments-rate-line").attr("points"));
+        String linePath = document.select(".comments-rate-line").attr("d");
+        assertEquals("M42.0,81.0 L344.0,81.0", linePath);
+        assertTrue(document.select(".comments-rate-area").isEmpty());
         assertEquals("Comments/hour", document.select(".comments-rate-legend-label").text());
         assertEquals(3, document.select(".comments-rate-grid-line").size());
         assertTrue(document.text().contains("No data yet"));
@@ -78,8 +82,8 @@ class CommentsRateGraphWidgetTests {
                 new GraphSample("10:00", 7)
         )));
 
-        assertEquals("185.0,81.0 201.0,81.0",
-                document.select(".comments-rate-line").attr("points"));
+        String linePath = document.select(".comments-rate-line").attr("d");
+        assertEquals("M185.0,81.0 L201.0,81.0", linePath);
         assertEquals("7", document.select(".dashboard-widget-value").text());
         assertFalse(document.html().contains("NaN"));
     }
