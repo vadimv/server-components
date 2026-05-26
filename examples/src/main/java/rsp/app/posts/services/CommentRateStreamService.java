@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -14,7 +15,6 @@ import java.util.function.Consumer;
 public class CommentRateStreamService {
 
     public static final int DEFAULT_WINDOW_SIZE = 30;
-    public static final List<Integer> DEFAULT_DEMO_VALUES = List.of(100, 120, 80, 320, 10, 0);
 
     public record Sample(long sequence, Instant timestamp, int value) {
         public Sample {
@@ -24,7 +24,7 @@ public class CommentRateStreamService {
     }
 
     private final Object lock = new Object();
-    private final List<Integer> demoValues;
+    private final IntSampleSource source;
     private final int windowSize;
     private final Clock clock;
     private final List<Sample> samples = new ArrayList<>();
@@ -34,20 +34,24 @@ public class CommentRateStreamService {
     private ScheduledExecutorService scheduler;
 
     public CommentRateStreamService() {
-        this(DEFAULT_DEMO_VALUES, DEFAULT_WINDOW_SIZE, Clock.systemDefaultZone());
+        this(OuSpikeSampleSource.commentsRateDefaults(new Random()),
+                DEFAULT_WINDOW_SIZE,
+                Clock.systemDefaultZone());
     }
 
     public CommentRateStreamService(final List<Integer> demoValues,
                                     final int windowSize,
                                     final Clock clock) {
+        this(new CyclingSampleSource(demoValues), windowSize, clock);
+    }
+
+    public CommentRateStreamService(final IntSampleSource source,
+                                    final int windowSize,
+                                    final Clock clock) {
         if (windowSize < 1) {
             throw new IllegalArgumentException("windowSize must be at least 1");
         }
-        List<Integer> safeValues = demoValues == null ? List.of() : List.copyOf(demoValues);
-        if (safeValues.isEmpty()) {
-            throw new IllegalArgumentException("demoValues must contain at least one value");
-        }
-        this.demoValues = safeValues;
+        this.source = Objects.requireNonNull(source, "source");
         this.windowSize = windowSize;
         this.clock = Objects.requireNonNull(clock);
     }
@@ -104,7 +108,7 @@ public class CommentRateStreamService {
     }
 
     private List<Sample> seedInitialWindowLocked() {
-        int initialSampleCount = Math.min(windowSize, demoValues.size());
+        int initialSampleCount = source.initialWindowSize(windowSize);
         Instant now = clock.instant();
         List<Sample> snapshot = List.of();
         for (int i = 0; i < initialSampleCount; i++) {
@@ -116,7 +120,7 @@ public class CommentRateStreamService {
 
     private List<Sample> emitSampleLocked(final Instant timestamp) {
         long nextSequence = ++sequence;
-        int value = demoValues.get((int) ((nextSequence - 1) % demoValues.size()));
+        int value = source.next();
         samples.add(new Sample(nextSequence, timestamp, value));
         while (samples.size() > windowSize) {
             samples.removeFirst();
