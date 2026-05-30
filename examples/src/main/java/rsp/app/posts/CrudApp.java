@@ -17,6 +17,7 @@ import rsp.app.posts.components.PromptView;
 import rsp.app.posts.components.PostsListContract;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.CommentRateStreamService;
+import rsp.app.posts.services.LogStreamService;
 import rsp.compositions.agent.ClaudeAgentService;
 import rsp.compositions.agent.OllamaAgentService;
 import rsp.app.posts.services.PostService;
@@ -110,7 +111,9 @@ public class CrudApp {
         promptService.startTicking();
         final CommentRateStreamService commentRateStreamService = new CommentRateStreamService();
         commentRateStreamService.start();
-        final var dashboardModel = DashboardModel.live(commentRateStreamService);
+        final LogStreamService logStreamService = new LogStreamService();
+        logStreamService.start();
+        final var dashboardModel = DashboardModel.live(commentRateStreamService, logStreamService);
 
         // Agent permissions. The policy says which agent actions are allowed. When an action needs
         // user consent, the prompt asks this spawner for an agent session. Approval decisions are

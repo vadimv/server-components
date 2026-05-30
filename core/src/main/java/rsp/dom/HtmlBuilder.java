@@ -55,6 +55,14 @@ public class HtmlBuilder {
 
         sb.append('<');
         sb.append(tag.name);
+        if (tag.key() != null) {
+            sb.append(' ');
+            sb.append("data-rsp-key");
+            sb.append('=');
+            sb.append('"');
+            sb.append(tag.key());
+            sb.append('"');
+        }
         AttributeNode deferredInnerHtml = null;
         if (tag.attributes.size() > 0) {
             for (final AttributeNode attribute: tag.attributes) {

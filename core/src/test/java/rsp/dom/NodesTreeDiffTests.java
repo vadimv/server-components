@@ -260,33 +260,39 @@ class NodesTreeDiffTests {
         }
 
         @Override
-        public void removeNode(final TreePositionPath parentId, final TreePositionPath id) {
+        public void removeNode(final NodeId parentId, final NodeId id) {
             insertDelimiter(sb);
             sb.append("-NODE:" + parentId + ":" + id);
         }
 
         @Override
-        public void createTag(final TreePositionPath id, final XmlNs xmlNs, final String tag) {
+        public void createTag(final NodeId id, final XmlNs xmlNs, final String tag) {
             insertDelimiter(sb);
             sb.append("+TAG:" + id + ":" + tag);
         }
 
         @Override
-        public void removeAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final boolean isProperty) {
+        public void removeAttr(final NodeId id, final XmlNs xmlNs, final String name, final boolean isProperty) {
             insertDelimiter(sb);
             sb.append("-ATTR:" + id + ":" + name);
         }
 
         @Override
-        public void setAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+        public void setAttr(final NodeId id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             insertDelimiter(sb);
             sb.append("+ATTR:" + id + ":" + name + "=" + value + ":" + isProperty);
         }
 
         @Override
-        public void createText(final TreePositionPath parenPath, final TreePositionPath path, final String text) {
+        public void createText(final NodeId parenPath, final NodeId path, final String text) {
             sb.append("+TEXT:" + parenPath + ":" + path + "=" + text);
             insertDelimiter(sb);
+        }
+
+        @Override
+        public void insertBefore(final NodeId parentId, final NodeId id, final NodeId beforeId) {
+            insertDelimiter(sb);
+            sb.append("~MOVE:" + parentId + ":" + id + ":" + (beforeId == null ? "" : beforeId));
         }
 
         private void insertDelimiter(final StringBuilder sb) {

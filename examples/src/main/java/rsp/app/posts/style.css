@@ -466,6 +466,65 @@ h1 {
     font-size: 0.8125rem;
 }
 
+.logs-widget {
+    --logs-line-height: 18px;
+}
+
+.logs-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: var(--logs-line-height);
+}
+
+.logs-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.logs-ts {
+    color: var(--text-subtle);
+    flex-shrink: 0;
+}
+
+.logs-lvl {
+    width: 3.5em;
+    flex-shrink: 0;
+    color: var(--text-muted);
+}
+
+.logs-msg {
+    color: var(--text);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.logs-row-warn .logs-lvl {
+    color: light-dark(#b45309, #fbbf24);
+}
+
+.logs-row-error .logs-lvl {
+    color: light-dark(#dc2626, #f87171);
+}
+
+.logs-row-error .logs-msg {
+    color: light-dark(#b91c1c, #fca5a5);
+}
+
+.logs-empty {
+    margin-top: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
 @media (max-width: 720px) {
     .dashboard-grid {
         grid-template-columns: 1fr;

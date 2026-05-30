@@ -41,46 +41,46 @@ class RemotePageMessageEncoderTests {
     @Test
     void should_modify_dom_create_tag() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(TreePositionPath.of("1_1"), XmlNs.html, "div")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(NodeId.of("1_1"), XmlNs.html, "div")));
         assertEquals("[4,0,\"1\",\"1_1\",0,\"div\"]", c.result); // TODO should a unified way to be used to encode XmlNs.html and others? e.g. an enum integer values
 
-        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(TreePositionPath.of("100_1"), XmlNs.svg, "a")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(NodeId.of("100_1"), XmlNs.svg, "a")));
         assertEquals("[4,0,\"100\",\"100_1\",\"http://www.w3.org/2000/svg\",\"a\"]", c.result);
     }
 
     @Test
     void should_combine_modify_dom_commands_correctly() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(TreePositionPath.of("1_1"), XmlNs.html, "div"),
-                                    new DefaultDomChangesContext.Create(TreePositionPath.of("1_1_1"), XmlNs.html, "div")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Create(NodeId.of("1_1"), XmlNs.html, "div"),
+                                    new DefaultDomChangesContext.Create(NodeId.of("1_1_1"), XmlNs.html, "div")));
         assertEquals("[4,0,\"1\",\"1_1\",0,\"div\",0,\"1_1\",\"1_1_1\",0,\"div\"]", c.result);
     }
 
     @Test
     void should_modify_dom_create_text() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesContext.CreateText(TreePositionPath.of("1_1"), TreePositionPath.of("1_1_3"), "foo bar")));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.CreateText(NodeId.of("1_1"), NodeId.of("1_1_3"), "foo bar")));
         assertEquals("[4,1,\"1_1\",\"1_1_3\",\"foo bar\"]", c.result); //TODO check escape characters
     }
 
     @Test
     void should_modify_dom_remove_tag() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesContext.Remove(TreePositionPath.of("1_1"), TreePositionPath.of("1_1_3"))));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.Remove(NodeId.of("1_1"), NodeId.of("1_1_3"))));
         assertEquals("[4,2,\"1_1\",\"1_1_3\"]", c.result);
     }
 
     @Test
     void should_modify_dom_create_attr() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(TreePositionPath.of("1_1"), XmlNs.html, "name", "value", true)));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(NodeId.of("1_1"), XmlNs.html, "name", "value", true)));
         assertEquals("[4,3,\"1_1\",0,\"name\",\"value\",true]", c.result);
     }
 
     @Test
     void should_modify_dom_remove_attr() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).modifyDom(List.of(new DefaultDomChangesContext.RemoveAttr(TreePositionPath.of("1_1"), XmlNs.html, "name", false)));
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.RemoveAttr(NodeId.of("1_1"), XmlNs.html, "name", false)));
         assertEquals("[4,4,\"1_1\",0,\"name\",false]", c.result);
     }
 
@@ -96,6 +96,20 @@ class RemotePageMessageEncoderTests {
         final MessagesConsumer c = new MessagesConsumer();
         create(c).modifyDom(List.of(new DefaultDomChangesContext.RemoveStyle(TreePositionPath.of("1_1"),"name")));
         assertEquals("[4,6,\"1_1\",\"name\",false]", c.result); // TODO why the boolean field at the end?
+    }
+
+    @Test
+    void should_modify_dom_insert_before_append() {
+        final MessagesConsumer c = new MessagesConsumer();
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.InsertBefore(NodeId.of("1"), NodeId.of("1_kn6"), null)));
+        assertEquals("[4,7,\"1\",\"1_kn6\",\"\"]", c.result);
+    }
+
+    @Test
+    void should_modify_dom_insert_before_reference() {
+        final MessagesConsumer c = new MessagesConsumer();
+        create(c).modifyDom(List.of(new DefaultDomChangesContext.InsertBefore(NodeId.of("1"), NodeId.of("1_kn0"), NodeId.of("1_kn1"))));
+        assertEquals("[4,7,\"1\",\"1_kn0\",\"1_kn1\"]", c.result);
     }
 
     @Test
@@ -123,7 +137,7 @@ class RemotePageMessageEncoderTests {
     void should_escape_quotes_in_attr_value() {
         final MessagesConsumer c = new MessagesConsumer();
         create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(
-                TreePositionPath.of("1_1"), XmlNs.html, "innerHTML",
+                NodeId.of("1_1"), XmlNs.html, "innerHTML",
                 "<b>hello</b>", true)));
         assertEquals("[4,3,\"1_1\",0,\"innerHTML\",\"<b>hello</b>\",true]", c.result);
     }
@@ -132,7 +146,7 @@ class RemotePageMessageEncoderTests {
     void should_escape_quotes_in_attr_value_with_double_quotes() {
         final MessagesConsumer c = new MessagesConsumer();
         create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(
-                TreePositionPath.of("1_1"), XmlNs.html, "innerHTML",
+                NodeId.of("1_1"), XmlNs.html, "innerHTML",
                 "<a href=\"url\">link</a>", true)));
         assertEquals("[4,3,\"1_1\",0,\"innerHTML\",\"<a href=\\\"url\\\">link</a>\",true]", c.result);
     }
@@ -148,7 +162,7 @@ class RemotePageMessageEncoderTests {
     void should_escape_newlines_in_attr_value() {
         final MessagesConsumer c = new MessagesConsumer();
         create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(
-                TreePositionPath.of("1_1"), XmlNs.html, "innerHTML",
+                NodeId.of("1_1"), XmlNs.html, "innerHTML",
                 "line1\nline2", true)));
         assertEquals("[4,3,\"1_1\",0,\"innerHTML\",\"line1\\nline2\",true]", c.result);
     }

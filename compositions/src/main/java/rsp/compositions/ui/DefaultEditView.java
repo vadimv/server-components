@@ -216,7 +216,7 @@ public class DefaultEditView extends EditView {
             attr("id", field.name()),
             attr("name", field.name()),
             prop("value", valueStr),
-            elementId(fieldRef)
+            ref(fieldRef)
         );
     }
 
@@ -236,7 +236,7 @@ public class DefaultEditView extends EditView {
                 attr("name", field.name()),
                 currentValue != null && (Boolean) currentValue ? attr("checked") : of(),
                 field.isReadOnly() ? attr("disabled") : of(),
-                elementId(fieldRef)
+                ref(fieldRef)
             );
 
             case TEXTAREA -> textarea(
@@ -246,7 +246,7 @@ public class DefaultEditView extends EditView {
                 field.isReadOnly() ? attr("readonly") : of(),
                 renderValidationAttrs(validationAttrs),
                 text(valueStr),
-                elementId(fieldRef)
+                ref(fieldRef)
             );
 
             case SELECT -> select(
@@ -262,7 +262,7 @@ public class DefaultEditView extends EditView {
                         text(opt)
                     ))
                 ),
-                elementId(fieldRef)
+                ref(fieldRef)
             );
 
             case PASSWORD -> input(
@@ -272,7 +272,7 @@ public class DefaultEditView extends EditView {
                 field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
                 field.isReadOnly() ? attr("readonly") : of(),
                 renderValidationAttrs(validationAttrs),
-                elementId(fieldRef)
+                ref(fieldRef)
             );
 
             case DATE_PICKER -> input(
@@ -281,7 +281,7 @@ public class DefaultEditView extends EditView {
                 attr("name", field.name()),
                 prop("value", valueStr),
                 field.isReadOnly() ? attr("readonly") : of(),
-                elementId(fieldRef)
+                ref(fieldRef)
             );
 
             case NUMBER -> input(
@@ -292,7 +292,7 @@ public class DefaultEditView extends EditView {
                 field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
                 field.isReadOnly() ? attr("readonly") : of(),
                 renderValidationAttrs(validationAttrs),
-                elementId(fieldRef)
+                ref(fieldRef)
             );
 
             case HIDDEN -> renderHiddenInput(field, currentValue, fieldRef);
@@ -305,7 +305,7 @@ public class DefaultEditView extends EditView {
                 field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
                 field.isReadOnly() ? attr("readonly") : of(),
                 renderValidationAttrs(validationAttrs),
-                elementId(fieldRef)
+                ref(fieldRef)
             );
         };
     }

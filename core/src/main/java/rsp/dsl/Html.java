@@ -1370,12 +1370,43 @@ public final class Html {
     }
 
     /**
-     * An element ID DSL directive binds its parent element to the reference provided.
-     * @param ref the reference which could be used to access the bind element's properties
+     * A reference DSL directive binds its parent element to the reference provided.
+     * The bound reference can later be used to read the element's properties from an
+     * event handler via {@link EventContext#propertiesByRef(rsp.ref.ElementRef)}.
+     * <p>Note: this does not set the HTML {@code id} attribute; it is an internal
+     * rendering hint, not added to the result HTML tree.
+     * @param ref the reference which could be used to access the bound element's properties
      * @return a rendering hint definition, not added to the result HTML tree
      */
-    public static ElementRef elementId(rsp.ref.ElementRef ref) {
+    public static ElementRef ref(rsp.ref.ElementRef ref) {
         return new ElementRef(ref);
+    }
+
+    /**
+     * Tags the parent element with a stable numeric identity for keyed list diffing.
+     * When every child of a parent carries a key, the diff matches children across renders
+     * by key instead of by sibling position.
+     * <p>The key's value must be stable across renders for the same logical element and unique
+     * among its siblings; use an entity id or a sequence number.
+     * @param value a stable numeric identifier (an {@code int} literal widens to {@code long})
+     * @return a rendering hint definition, not added to the result HTML tree
+     */
+    public static Key key(final long value) {
+        return Key.of(value);
+    }
+
+    /**
+     * Tags the parent element with a stable string identity for keyed list diffing.
+     * When every child of a parent carries a key, the diff matches children across renders
+     * by key instead of by sibling position.
+     * <p>The key's value must be stable across renders for the same logical element and unique
+     * among its siblings; use an entity id. Avoid values regenerated each render
+     * (e.g. {@code UUID.randomUUID()}), which break identity.
+     * @param value a stable string identifier
+     * @return a rendering hint definition, not added to the result HTML tree
+     */
+    public static Key key(final String value) {
+        return Key.of(value);
     }
 
 

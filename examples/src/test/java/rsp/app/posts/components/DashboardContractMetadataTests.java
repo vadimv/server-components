@@ -2,6 +2,7 @@ package rsp.app.posts.components;
 
 import org.junit.jupiter.api.Test;
 import rsp.app.posts.services.CommentRateStreamService;
+import rsp.app.posts.services.LogStreamService;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContractMetadata;
 
@@ -10,6 +11,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -79,7 +81,9 @@ class DashboardContractMetadataTests {
         CommentRateStreamService service = new CommentRateStreamService(List.of(100, 120), 5, CLOCK);
         service.emitNextSample();
         service.emitNextSample();
-        DashboardContract contract = new DashboardContract(new TestLookup(), DashboardModel.live(service));
+        LogStreamService logService = new LogStreamService(5, CLOCK, new Random(0L));
+        DashboardContract contract = new DashboardContract(new TestLookup(),
+                DashboardModel.live(service, logService));
 
         ContractMetadata metadata = contract.contractMetadata();
 

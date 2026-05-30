@@ -10,6 +10,8 @@ import rsp.jetty.WebServer;
 import java.util.stream.Stream;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @net.jcip.annotations.NotThreadSafe
@@ -62,6 +64,50 @@ class DashboardSmokeIT {
                         && line.getBBox().width > 0
                         && line.getBBox().height >= 0
                 """));
+    }
+
+    @ParameterizedTest
+    @MethodSource("browserTypes")
+    void should_preserve_keyed_log_row_identity_across_rotation(final BrowserType browserType) throws Exception {
+        final Browser browser = browserType.launch();
+        final BrowserContext context = browser.newContext();
+        final Page page = context.newPage();
+
+        login(page);
+        page.locator(".explorer-item > a:has-text(\"Dashboard\")").click();
+        page.waitForURL(url -> url.contains("/dashboard"), new Page.WaitForURLOptions().setTimeout(5000));
+
+        final Locator rows = primaryScope(page).locator(".logs-row");
+        assertThat(rows.first()).isVisible();
+
+        // Tag the newest (bottom) row's DOM node and remember the message it shows.
+        final Locator lastRow = rows.last();
+        final String taggedMessage = (String) lastRow.evaluate("""
+                el => { el.__keyedProbe = 'KEYED'; return el.querySelector('.logs-msg').textContent; }
+                """);
+
+        // Wait until a new line is appended (the bottom message changes), i.e. one rotation happened.
+        assertThat(primaryScope(page).locator(".logs-row").last().locator(".logs-msg"))
+                .not().hasText(taggedMessage,
+                        new com.microsoft.playwright.assertions.LocatorAssertions.HasTextOptions().setTimeout(15000));
+
+        // The row still showing the tagged message must be the SAME DOM node we tagged.
+        // Under positional diffing the message would have been rewritten into a different node,
+        // so the node carrying it would not have our probe.
+        final Object probe = primaryScope(page).locator(".logs-row").evaluateAll("""
+                (els, msg) => {
+                    const row = els.find(e => e.querySelector('.logs-msg').textContent === msg);
+                    return row ? (row.__keyedProbe || 'NO_PROBE') : 'ROW_GONE';
+                }
+                """, taggedMessage);
+        assertEquals("KEYED", probe,
+                "keyed row identity not preserved across rotation (probe=" + probe + ", msg=" + taggedMessage + ")");
+
+        // And it should have scrolled up: no longer the bottom row.
+        final String bottomMessageNow = primaryScope(page).locator(".logs-row").last()
+                .locator(".logs-msg").textContent();
+        assertNotEquals(taggedMessage, bottomMessageNow,
+                "tagged row should have moved up after a new line was appended");
     }
 
     private static Stream<BrowserType> browserTypes() {

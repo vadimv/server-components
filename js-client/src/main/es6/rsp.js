@@ -177,7 +177,10 @@ export class RSP {
       var children = node.childNodes;
       for (var i = 0; i < children.length; i++) {
         var child = children[i];
-        var id = prefix + '_' + (i + 1);
+        // Keyed elements get a stable key-based id segment (must match the server's NodeId),
+        // so they keep identity across renders and can be moved instead of rewritten.
+        var key = (child.getAttribute && child.getAttribute('data-rsp-key')) || null;
+        var id = prefix + '_' + (key !== null ? key : (i + 1));
         child.vId = id;
         self.els[id] = child;
         aux(id, child);
@@ -240,8 +243,24 @@ export class RSP {
         case 4: this.removeAttr(r(), r(), r(), r()); break;
         case 5: this.setStyle(r(), r(), r()); break;
         case 6: this.removeStyle(r(), r()); break;
+        case 7: this.insertBefore(r(), r(), r()); break;
       }
     }
+  }
+
+   /**
+    * Relocates an existing child of `id` so it precedes `beforeChildId`, or appends it to the end
+    * when `beforeChildId` is empty. Used by keyed list diffing to move a node without rewriting it.
+    * @param {string} id parent element id
+    * @param {string} childId id of the node to move
+    * @param {string} beforeChildId id of the reference sibling, or "" to append
+    */
+  insertBefore(id, childId, beforeChildId) {
+    var parent = this.els[id],
+      child = this.els[childId];
+    if (!parent || !child) return;
+    var before = beforeChildId ? this.els[beforeChildId] : null;
+    parent.insertBefore(child, before && before.parentNode === parent ? before : null);
   }
   
    /**

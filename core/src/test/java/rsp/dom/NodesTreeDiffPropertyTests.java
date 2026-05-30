@@ -43,6 +43,61 @@ class NodesTreeDiffPropertyTests {
         assertEquals(tree1.toString(), result2.toString(), "Backward transformation failed");
     }
 
+    /**
+     * Keyed diff correctness invariant: for any two sibling lists of keyed children {@code t1, t2},
+     * applying the patch produced by {@code diff(t1, t2)} to a copy of {@code t1} yields a tree that
+     * is observationally equal to {@code t2}. Formally:
+     *
+     * <pre>apply(copy(t1), diff(t1, t2)).toString().equals(t2.toString())</pre>
+     *
+     * <p>Equivalently: the keyed matcher plus the emitted {@code Create / Remove / InsertBefore /
+     * CreateText / SetAttr / RemoveAttr} sequence is a sound transformation under <em>arbitrary</em>
+     * list mutations — additions, removals, reorderings, and any combination thereof. jqwik
+     * generates two random keyed lists from a shared key universe so the property exercises:
+     * pure appends, pure prepends, mid-list insertions, removals from either end, arbitrary
+     * permutations of retained keys, and full replacement.
+     *
+     * <p>What this test does <em>not</em> cover (those live elsewhere):
+     * <ul>
+     *   <li>Minimality of the emitted op set ({@link KeyedNodesTreeDiffTests});</li>
+     *   <li>Guards against mixed keyed/unkeyed siblings or duplicate keys
+     *       ({@link KeyedNodesTreeDiffTests});</li>
+     *   <li>Wire-protocol round-tripping of the {@code InsertBefore} op
+     *       ({@code RemotePageMessageEncoderTests}).</li>
+     * </ul>
+     */
+    @Property
+    void applying_keyed_diff_transforms_source_list_into_target_list_for_any_reorder_insert_or_delete(
+            @ForAll("keyedKeyLists") final List<Long> keys1,
+            @ForAll("keyedKeyLists") final List<Long> keys2) {
+        final TagNode tree1 = keyedUl(keys1);
+        final TagNode tree2 = keyedUl(keys2);
+
+        final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
+        NodesTreeDiff.diff(tree1, tree2, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
+        final TagNode applied = apply(tree1, new Patch(cp.modifications));
+
+        assertEquals(tree2.toString(), applied.toString(),
+                "keyed diff did not transform " + keys1 + " into " + keys2);
+    }
+
+    @Provide
+    Arbitrary<List<Long>> keyedKeyLists() {
+        return Arbitraries.longs().between(1, 9).list().uniqueElements().ofMinSize(0).ofMaxSize(7);
+    }
+
+    /** A {@code <ul>} of keyed {@code <li>} children; each li's text encodes its key so toString distinguishes them. */
+    private static TagNode keyedUl(final List<Long> keys) {
+        final TagNode ul = new TagNode(XmlNs.html, "ul", false);
+        for (final long k : keys) {
+            final TagNode li = new TagNode(XmlNs.html, "li", false);
+            li.setKey(rsp.dsl.Key.of(k).segment());
+            li.addChild(new TextNode("v" + k));
+            ul.addChild(li);
+        }
+        return ul;
+    }
+
     private TagNode apply(final TagNode root, final Patch patch) {
         return applySequential(root, patch);
     }
@@ -62,23 +117,25 @@ class NodesTreeDiffPropertyTests {
             }
         }
 
-        // Sort removals to apply them from the end of lists to the beginning
-        // This prevents index shifting issues for sibling removals.
+        // Sort removals to apply them from the end of lists to the beginning.
+        // This prevents index shifting issues for positional sibling removals; keyed removals
+        // are position-independent (matched by key) so their relative order is harmless.
         removals.sort((m1, m2) -> {
-            final RemoveNode r1 = (RemoveNode) m1;
-            final RemoveNode r2 = (RemoveNode) m2;
-            final TreePositionPath p1 = r1.path();
-            final TreePositionPath p2 = r2.path();
+            final String[] p1 = ((RemoveNode) m1).path().toString().split("_");
+            final String[] p2 = ((RemoveNode) m2).path().toString().split("_");
 
-            // Compare by depth first (deeper paths first)
-            int depthCompare = Integer.compare(p2.elementsCount(), p1.elementsCount());
+            // Deeper paths first
+            int depthCompare = Integer.compare(p2.length, p1.length);
             if (depthCompare != 0) return depthCompare;
 
-            // If same depth, compare path components from left to right, descending
-            for (int i = 0; i < p1.elementsCount(); i++) {
-                int n1 = p1.elementAt(i);
-                int n2 = p2.elementAt(i);
-                int partCompare = Integer.compare(n2, n1);
+            // Same depth: descending; numeric segments compared as ints, key segments as strings
+            for (int i = 0; i < p1.length; i++) {
+                final int partCompare;
+                if (p1[i].matches("\\d+") && p2[i].matches("\\d+")) {
+                    partCompare = Integer.compare(Integer.parseInt(p2[i]), Integer.parseInt(p1[i]));
+                } else {
+                    partCompare = p2[i].compareTo(p1[i]);
+                }
                 if (partCompare != 0) return partCompare;
             }
             return 0;
@@ -99,6 +156,7 @@ class NodesTreeDiffPropertyTests {
 
     private TagNode deepCopy(final TagNode node) {
         final TagNode copy = new TagNode(node.xmlns, node.name, node.isSelfClosing);
+        copy.setKey(node.key());
         for (final AttributeNode attr : node.attributes) {
             copy.addAttribute(attr.name(), attr.value(), attr.isProperty());
         }
@@ -146,28 +204,33 @@ class NodesTreeDiffPropertyTests {
         }
 
         @Override
-        public void removeNode(final TreePositionPath parentId, final TreePositionPath id) {
+        public void removeNode(final NodeId parentId, final NodeId id) {
             modifications.add(new RemoveNode(parentId, id));
         }
 
         @Override
-        public void createTag(final TreePositionPath id, final XmlNs xmlNs, final String tag) {
+        public void createTag(final NodeId id, final XmlNs xmlNs, final String tag) {
             modifications.add(new CreateTag(id, xmlNs, tag));
         }
 
         @Override
-        public void createText(final TreePositionPath parentPath, final TreePositionPath path, final String text) {
+        public void createText(final NodeId parentPath, final NodeId path, final String text) {
             modifications.add(new CreateText(parentPath, path, text));
         }
 
         @Override
-        public void removeAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final boolean isProperty) {
+        public void removeAttr(final NodeId id, final XmlNs xmlNs, final String name, final boolean isProperty) {
             modifications.add(new RemoveAttr(id, name, isProperty));
         }
 
         @Override
-        public void setAttr(final TreePositionPath id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
+        public void setAttr(final NodeId id, final XmlNs xmlNs, final String name, final String value, final boolean isProperty) {
             modifications.add(new SetAttr(id, name, value, isProperty));
+        }
+
+        @Override
+        public void insertBefore(final NodeId parentId, final NodeId id, final NodeId beforeId) {
+            modifications.add(new InsertBefore(parentId, id, beforeId));
         }
     }
 
@@ -177,128 +240,133 @@ class NodesTreeDiffPropertyTests {
         void apply(MutableDom dom);
     }
 
-    record RemoveNode(TreePositionPath parentPath, TreePositionPath path) implements Modification {
+    record RemoveNode(NodeId parentPath, NodeId path) implements Modification {
         public void apply(final MutableDom dom) { dom.removeNode(parentPath, path); }
     }
-    record CreateTag(TreePositionPath path, XmlNs xmlNs, String tag) implements Modification {
+    record CreateTag(NodeId path, XmlNs xmlNs, String tag) implements Modification {
         public void apply(final MutableDom dom) { dom.createTag(path, xmlNs, tag); }
     }
-    record CreateText(TreePositionPath parentPath, TreePositionPath path, String text) implements Modification {
+    record CreateText(NodeId parentPath, NodeId path, String text) implements Modification {
         public void apply(final MutableDom dom) { dom.createText(parentPath, path, text); }
     }
-    record RemoveAttr(TreePositionPath path, String name, boolean isProperty) implements Modification {
+    record RemoveAttr(NodeId path, String name, boolean isProperty) implements Modification {
         public void apply(final MutableDom dom) { dom.removeAttr(path, name, isProperty); }
     }
-    record SetAttr(TreePositionPath path, String name, String value, boolean isProperty) implements Modification {
+    record SetAttr(NodeId path, String name, String value, boolean isProperty) implements Modification {
         public void apply(final MutableDom dom) { dom.setAttr(path, name, value, isProperty); }
     }
+    record InsertBefore(NodeId parentPath, NodeId path, NodeId beforePath) implements Modification {
+        public void apply(final MutableDom dom) { dom.insertBefore(parentPath, path, beforePath); }
+    }
 
+    /**
+     * A small mutable DOM mirror that interprets {@link NodeId} segments the way the client does:
+     * a numeric segment is a 1-based child index, a key segment ("kn.."/"ks..") matches a child by
+     * its {@link TagNode#key()}. Supports insertBefore so keyed reorders can be applied and verified.
+     */
     static class MutableDom {
         private final List<Node> virtualContainer = new ArrayList<>();
 
         MutableDom(final TagNode root) {
             this.virtualContainer.add(root);
         }
-        
+
         TagNode getRoot() {
-            if (virtualContainer.isEmpty()) return null;
-            return (TagNode) virtualContainer.get(0);
+            return virtualContainer.isEmpty() ? null : (TagNode) virtualContainer.get(0);
         }
 
-        private Object findNodeOrContainer(final TreePositionPath path) {
-            if (path.elementsCount() == 0) return virtualContainer;
-            
-            if (path.elementsCount() == 1) {
-                final int index = path.elementAt(0) - 1;
-                if (index >= 0 && index < virtualContainer.size()) {
-                    return virtualContainer.get(index);
-                }
-                throw new IllegalStateException("Root node not found at path: " + path);
-            }
+        private List<Node> childrenOf(final Object container) {
+            if (container instanceof final TagNode tag) return tag.children;
+            @SuppressWarnings("unchecked")
+            final List<Node> list = (List<Node>) container;
+            return list;
+        }
 
-            final int rootIndex = path.elementAt(0) - 1;
-            if (rootIndex < 0 || rootIndex >= virtualContainer.size()) {
-                 throw new IllegalStateException("Root node not found at path: " + path);
+        private int indexOfSegment(final List<Node> children, final String segment) {
+            if (segment.matches("\\d+")) {
+                return Integer.parseInt(segment) - 1;
             }
-            
-            Node current = virtualContainer.get(rootIndex);
-            
-            for (int i = 1; i < path.elementsCount(); i++) {
-                final int childIndex = path.elementAt(i) - 1;
-                if (current instanceof final TagNode tagNode) {
-                    final List<Node> children = tagNode.children;
-                    if (childIndex >= 0 && childIndex < children.size()) {
-                        current = children.get(childIndex);
-                    } else {
-                        throw new IllegalStateException("Node not found at path: " + path + " (index " + childIndex + " out of bounds)");
-                    }
-                } else {
-                    throw new IllegalStateException("Cannot traverse into non-TagNode at path: " + path);
+            for (int i = 0; i < children.size(); i++) {
+                if (children.get(i) instanceof final TagNode t && segment.equals(t.key())) {
+                    return i;
                 }
+            }
+            return -1; // key not present
+        }
+
+        private Object findNodeOrContainer(final NodeId path) {
+            if (path.elementsCount() == 0) return virtualContainer;
+            Object current = virtualContainer;
+            for (int i = 0; i < path.elementsCount(); i++) {
+                final List<Node> children = childrenOf(current);
+                final int idx = indexOfSegment(children, segmentAt(path, i));
+                if (idx < 0 || idx >= children.size()) {
+                    throw new IllegalStateException("Node not found at id: " + path + " (segment " + segmentAt(path, i) + ")");
+                }
+                current = children.get(idx);
             }
             return current;
         }
 
-        void removeNode(final TreePositionPath parentPath, final TreePositionPath path) {
-            final Object parentObj = findNodeOrContainer(parentPath);
-            
-            final int index = path.elementAt(path.elementsCount() - 1) - 1;
+        private static String segmentAt(final NodeId id, final int i) {
+            final String[] parts = id.toString().split("_");
+            return parts[i];
+        }
 
-            if (parentObj instanceof final List container) {
-                if (index >= 0 && index < container.size()) {
-                    container.remove(index);
-                }
-            } else if (parentObj instanceof final TagNode parent) {
-                if (index >= 0 && index < parent.children.size()) {
-                    parent.children.remove(index);
-                }
+        void removeNode(final NodeId parentPath, final NodeId path) {
+            final Object parentObj = findNodeOrContainer(parentPath);
+            final List<Node> children = childrenOf(parentObj);
+            final int index = indexOfSegment(children, path.lastSegment());
+            if (index >= 0 && index < children.size()) {
+                children.remove(index);
             }
         }
 
-        void createTag(final TreePositionPath path, final XmlNs xmlNs, final String tag) {
+        void createTag(final NodeId path, final XmlNs xmlNs, final String tag) {
             final Object parentObj = findNodeOrContainer(path.parent());
-            
-            final int index = path.elementAt(path.elementsCount() - 1) - 1;
+            final List<Node> children = childrenOf(parentObj);
             final TagNode newTag = new TagNode(xmlNs, tag, false);
-
-            if (parentObj instanceof final List container) {
-                if (index >= container.size()) {
-                    container.add(newTag);
-                } else {
-                    container.add(index, newTag);
-                }
-            } else if (parentObj instanceof final TagNode parent) {
-                if (index >= parent.children.size()) {
-                    parent.children.add(newTag);
-                } else {
-                    parent.children.add(index, newTag);
-                }
-            }
-        }
-
-        void createText(final TreePositionPath parentPath, final TreePositionPath path, final String text) {
-            final Object parentObj = findNodeOrContainer(parentPath);
-            final int index = path.elementAt(path.elementsCount() - 1) - 1;
-            final TextNode newText = new TextNode(text);
-
-            if (parentObj instanceof final TagNode parent) {
-                if (index >= parent.children.size()) {
-                    parent.children.add(newText);
-                } else {
-                    // This is a replacement of an existing node
-                    parent.children.set(index, newText);
-                }
+            final String last = path.lastSegment();
+            if (last.matches("\\d+")) {
+                final int index = Integer.parseInt(last) - 1;
+                if (index >= children.size()) children.add(newTag);
+                else children.add(index, newTag);
             } else {
-                 throw new IllegalStateException("Cannot add text to virtual container");
+                newTag.setKey(last); // keyed create: record key, append; insertBefore positions it
+                children.add(newTag);
             }
         }
 
-        void removeAttr(final TreePositionPath path, final String name, final boolean isProperty) {
+        void createText(final NodeId parentPath, final NodeId path, final String text) {
+            final Object parentObj = findNodeOrContainer(parentPath);
+            final List<Node> children = childrenOf(parentObj);
+            final int index = indexOfSegment(children, path.lastSegment());
+            final TextNode newText = new TextNode(text);
+            if (index < 0 || index >= children.size()) children.add(newText);
+            else children.set(index, newText); // replacement of existing node
+        }
+
+        void insertBefore(final NodeId parentPath, final NodeId path, final NodeId beforePath) {
+            final Object parentObj = findNodeOrContainer(parentPath);
+            final List<Node> children = childrenOf(parentObj);
+            final int from = indexOfSegment(children, path.lastSegment());
+            if (from < 0) return;
+            final Node node = children.remove(from);
+            if (beforePath == null) {
+                children.add(node);
+                return;
+            }
+            final int before = indexOfSegment(children, beforePath.lastSegment());
+            if (before < 0 || before > children.size()) children.add(node);
+            else children.add(before, node);
+        }
+
+        void removeAttr(final NodeId path, final String name, final boolean isProperty) {
             final TagNode node = (TagNode) findNodeOrContainer(path);
             node.attributes.removeIf(a -> a.name().equals(name) && a.isProperty() == isProperty);
         }
 
-        void setAttr(final TreePositionPath path, final String name, final String value, final boolean isProperty) {
+        void setAttr(final NodeId path, final String name, final String value, final boolean isProperty) {
             final TagNode node = (TagNode) findNodeOrContainer(path);
             node.attributes.removeIf(a -> a.name().equals(name) && a.isProperty() == isProperty);
             node.addAttribute(name, value, isProperty);

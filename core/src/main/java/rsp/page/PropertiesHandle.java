@@ -53,7 +53,7 @@ public final class PropertiesHandle {
     public CompletableFuture<Void> set(final String propertyName, final String value) {
         Objects.requireNonNull(propertyName);
         Objects.requireNonNull(value);
-        remoteOut.accept(new RemoteCommand.ModifyDom(List.of(new DefaultDomChangesContext.SetAttr(path, XmlNs.html, propertyName, value, true))));
+        remoteOut.accept(new RemoteCommand.ModifyDom(List.of(new DefaultDomChangesContext.SetAttr(rsp.dom.NodeId.of(path), XmlNs.html, propertyName, value, true))));
         return new CompletableFuture<>();
     }
 

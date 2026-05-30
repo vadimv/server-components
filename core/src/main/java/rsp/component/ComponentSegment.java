@@ -539,7 +539,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         // Calculate diff between an old and new DOM trees
         final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
         NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
-        final Set<TreePositionPath> elementsToRemove = domChangePerformer.elementsToRemove;
+        final Set<NodeId> elementsToRemove = domChangePerformer.elementsToRemove;
         commandsEnqueue.offer(new RemoteCommand.ModifyDom(domChangePerformer.changes));
 
         // Keep parent component's tag tree in sync with this component's latest root nodes
@@ -550,7 +550,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         for (final DomEventEntry event : oldEvents) {
             if (!newEvents.contains(event)
                 && event instanceof DomEventEntry domEventEntry
-                && !elementsToRemove.contains(domEventEntry.eventTarget.elementPath())) {
+                && !elementsToRemove.contains(NodeId.of(domEventEntry.eventTarget.elementPath()))) {
                 commandsEnqueue.offer(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.elementPath()));
             }
         }

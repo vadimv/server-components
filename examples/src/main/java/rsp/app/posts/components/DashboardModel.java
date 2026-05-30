@@ -1,6 +1,7 @@
 package rsp.app.posts.components;
 
 import rsp.app.posts.services.CommentRateStreamService;
+import rsp.app.posts.services.LogStreamService;
 
 import java.util.List;
 
@@ -30,13 +31,16 @@ public record DashboardModel(DashboardLayout layout) {
                 .build());
     }
 
-    public static DashboardModel live(final CommentRateStreamService commentRateStreamService) {
+    public static DashboardModel live(final CommentRateStreamService commentRateStreamService,
+                                      final LogStreamService logStreamService) {
         return new DashboardModel(DashboardDsl.dashboard()
                 .columns(12)
                 .rowHeightPx(96)
                 .gap("1rem")
                 .place(CommentsRateGraphWidget.live(commentRateStreamService),
                         DashboardDsl.at(1, 1).span(6, 3))
+                .place(LogsWidget.live(logStreamService),
+                        DashboardDsl.at(7, 1).span(6, 3))
                 .build());
     }
 

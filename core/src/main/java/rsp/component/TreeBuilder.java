@@ -180,6 +180,13 @@ public class TreeBuilder implements TreeBuilderFactory {
         tagsStack.peek().addAttribute(name, value, isProperty);
     }
 
+    public void setKey(final String key) {
+        Objects.requireNonNull(key);
+        final TagNode tag = tagsStack.peek();
+        assert tag != null;
+        tag.setKey(key);
+    }
+
     public void addEvent(final TreePositionPath elementPath,
                          final String eventType,
                          final Consumer<EventContext> eventHandler,

@@ -35,7 +35,7 @@ public class JettyTodos {
                                                                 span(when(todo.getValue().done, () -> attr("style", "text-decoration:line-through")),
                                                                         text(todo.getValue().text))
                                                         )))),
-                                        form(input(elementId(textInputRef),
+                                        form(input(ref(textInputRef),
                                                         attr("type", "text"),
                                                         attr("placeholder", "What should be done?")),
                                                 button(text("Add todo")),

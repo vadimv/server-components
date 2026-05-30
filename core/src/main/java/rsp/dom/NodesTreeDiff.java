@@ -1,24 +1,24 @@
 package rsp.dom;
 
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
- * This class compares two DOM trees and on the base of their difference generates changes instructions for
- * a transformation from the first tree or forest to the second tree or forest.
+ * Compares two DOM trees and emits change instructions transforming the first into the second.
+ *
+ * <p>Children of a tag are diffed in one of two modes:
+ * <ul>
+ *   <li><b>Positional</b> (default): siblings are matched by index, as before keyed diffing existed.</li>
+ *   <li><b>Keyed</b>: when every child of a parent carries a {@link TagNode#key()}, children are matched
+ *       by key across renders. Retained children keep their identity and are moved with
+ *       {@link DomChangesContext#insertBefore} instead of being rewritten; new keys are created, absent
+ *       keys removed.</li>
+ * </ul>
+ * Mixing keyed and unkeyed siblings under one parent, or duplicate keys among siblings, is rejected.
+ *
  * @see DefaultDomChangesContext.DomChange for an atomic transformation
  */
 public final class NodesTreeDiff {
 
-    /**
-     * Diffs two single root trees.
-     * @param tree1 the first tree
-     * @param tree2 the second tree
-     * @param tagPath a start tag's position path, can be a root or a subtree's start position when comparing subtrees
-     * @param changesPerformer an abstraction for a destination of transformation instructions, e.g. a mutable collector
-     *                         after completing of this operation should "know" how to transform the first tree to the second one
-     * @param htmlBuilder a helper mutable object
-     */
     public static void diff(final TagNode tree1,
                             final TagNode tree2,
                             final TreePositionPath tagPath,
@@ -29,24 +29,9 @@ public final class NodesTreeDiff {
         Objects.requireNonNull(tagPath);
         Objects.requireNonNull(changesPerformer);
         Objects.requireNonNull(htmlBuilder);
-        if (!tree1.name.equals(tree2.name)) {
-            changesPerformer.removeNode(tagPath.parent(), tagPath);
-            createTag(tree2, tagPath, changesPerformer, htmlBuilder);
-        } else {
-            diffAttributes(tree1.attributes, tree2.attributes, tagPath, changesPerformer);
-            diffChildren(tree1.children, tree2.children, tagPath.incLevel(), changesPerformer, htmlBuilder);
-        }
+        diffNode(tree1, tree2, NodeId.of(tagPath), changesPerformer, htmlBuilder);
     }
 
-    /**
-     * Diffs two multiroot ordered forests.
-     * @param trees1 the first forest
-     * @param trees2 the second forest
-     * @param startNodePath a start tag's position path, can be a root or a subtree's start position when comparing forests under subtrees
-     * @param changesPerformer an abstraction for a destination of transformation instructions, e.g. a mutable collector,
-     *                         after completing of this operation should "know" how to transform the first forest to the second one
-     * @param htmlBuilder a helper mutable object
-     */
     public static void diffChildren(final List<? extends Node> trees1,
                                     final List<? extends Node> trees2,
                                     final TreePositionPath startNodePath,
@@ -57,19 +42,56 @@ public final class NodesTreeDiff {
         Objects.requireNonNull(startNodePath);
         Objects.requireNonNull(changesPerformer);
         Objects.requireNonNull(htmlBuilder);
+        diffChildrenById(trees1, trees2, NodeId.of(startNodePath), changesPerformer, htmlBuilder);
+    }
 
+    private static void diffNode(final TagNode tree1,
+                                 final TagNode tree2,
+                                 final NodeId id,
+                                 final DomChangesContext changesPerformer,
+                                 final HtmlBuilder htmlBuilder) {
+        if (!tree1.name.equals(tree2.name)) {
+            changesPerformer.removeNode(id.parent(), id);
+            createNode(tree2, id, changesPerformer, htmlBuilder);
+        } else {
+            diffAttributes(tree1.attributes, tree2.attributes, id, changesPerformer);
+            diffChildrenById(tree1.children, tree2.children, id.incLevel(), changesPerformer, htmlBuilder);
+        }
+    }
+
+    private static void diffChildrenById(final List<? extends Node> trees1,
+                                         final List<? extends Node> trees2,
+                                         final NodeId firstChildId,
+                                         final DomChangesContext changesPerformer,
+                                         final HtmlBuilder htmlBuilder) {
+        final boolean keyed1 = hasAnyKey(trees1);
+        final boolean keyed2 = hasAnyKey(trees2);
+        if (keyed1 || keyed2) {
+            requireAllKeyed(trees1);
+            requireAllKeyed(trees2);
+            diffKeyedChildren(trees1, trees2, firstChildId.parent(), changesPerformer, htmlBuilder);
+        } else {
+            diffPositionalChildren(trees1, trees2, firstChildId, changesPerformer, htmlBuilder);
+        }
+    }
+
+    private static void diffPositionalChildren(final List<? extends Node> trees1,
+                                               final List<? extends Node> trees2,
+                                               final NodeId startNodeId,
+                                               final DomChangesContext changesPerformer,
+                                               final HtmlBuilder htmlBuilder) {
         final ListIterator<? extends Node> nodesIterator1 = trees1.listIterator();
         final ListIterator<? extends Node> nodesIterator2 = trees2.listIterator();
-        TreePositionPath path = startNodePath;
-        while(nodesIterator1.hasNext() || nodesIterator2.hasNext()) {
+        NodeId path = startNodeId;
+        while (nodesIterator1.hasNext() || nodesIterator2.hasNext()) {
             if (nodesIterator1.hasNext() && nodesIterator2.hasNext()) {
                 final Node node1 = nodesIterator1.next();
                 final Node node2 = nodesIterator2.next();
                 if (node1 instanceof TagNode tagNode1 && node2 instanceof TagNode tagNode2) {
-                    diff(tagNode1, tagNode2, path, changesPerformer, htmlBuilder);
+                    diffNode(tagNode1, tagNode2, path, changesPerformer, htmlBuilder);
                 } else if (node2 instanceof TagNode t) {
                     changesPerformer.removeNode(path.parent(), path);
-                    createTag(t, path, changesPerformer, htmlBuilder);
+                    createNode(t, path, changesPerformer, htmlBuilder);
                 } else if (node1 instanceof TagNode) {
                     changesPerformer.removeNode(path.parent(), path);
                     htmlBuilder.reset();
@@ -90,9 +112,9 @@ public final class NodesTreeDiff {
                 nodesIterator1.next();
                 changesPerformer.removeNode(path.parent(), path);
             } else {
-                    final Node node2 = nodesIterator2.next();
+                final Node node2 = nodesIterator2.next();
                 if (node2 instanceof TagNode tagNode2) {
-                    createTag(tagNode2, path, changesPerformer, htmlBuilder);
+                    createNode(tagNode2, path, changesPerformer, htmlBuilder);
                 } else {
                     htmlBuilder.reset();
                     htmlBuilder.buildHtml(node2);
@@ -105,38 +127,140 @@ public final class NodesTreeDiff {
         }
     }
 
-    private static void diffAttributes(final CopyOnWriteArraySet<AttributeNode> attributes1,
-                                       final CopyOnWriteArraySet<AttributeNode> attributes2,
-                                       final TreePositionPath nodePath,
-                                       final DomChangesContext changesPerformer) {
-        final Set<AttributeNode> attrs1 = new CopyOnWriteArraySet<>(attributes1);
-        final Set<AttributeNode> attrs2 = new CopyOnWriteArraySet<>(attributes2);
-        attrs1.removeAll(attributes2);
-        attrs1.forEach(attribute -> changesPerformer.removeAttr(nodePath, XmlNs.html, attribute.name(), attribute.isProperty()));
-        attrs2.removeAll(attributes1);
-        attrs2.forEach(attribute -> changesPerformer.setAttr(nodePath, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty()));
-    }
+    private static void diffKeyedChildren(final List<? extends Node> trees1,
+                                          final List<? extends Node> trees2,
+                                          final NodeId parentId,
+                                          final DomChangesContext changesPerformer,
+                                          final HtmlBuilder htmlBuilder) {
+        final Map<String, TagNode> oldByKey = indexByKey(trees1);
+        final Map<String, TagNode> newByKey = indexByKey(trees2);
 
-    private static void createTag(final TagNode tag,
-                                  final TreePositionPath nodePath,
-                                  final DomChangesContext changesPerformer,
-                                  final HtmlBuilder htmlBuilder) {
-        changesPerformer.createTag(nodePath, tag.xmlns, tag.name);
-
-        for (final AttributeNode attribute: tag.attributes) {
-            changesPerformer.setAttr(nodePath, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty());
+        // 1. Remove keys absent from the new list.
+        for (final Node node : trees1) {
+            final String key = ((TagNode) node).key();
+            if (!newByKey.containsKey(key)) {
+                changesPerformer.removeNode(parentId, parentId.child(key));
+            }
         }
 
-        TreePositionPath path = nodePath.incLevel();
-        for (final Node child:tag.children) {
+        // 2. Walk the target order, placing each child. `current` mirrors the live child key order
+        //    so we only emit a move when a node is not already at its target index.
+        final List<String> current = new ArrayList<>();
+        for (final Node node : trees1) {
+            final String key = ((TagNode) node).key();
+            if (newByKey.containsKey(key)) {
+                current.add(key);
+            }
+        }
+
+        for (int ti = 0; ti < trees2.size(); ti++) {
+            final String key = ((TagNode) trees2.get(ti)).key();
+            final NodeId childId = parentId.child(key);
+            final TagNode newNode = newByKey.get(key);
+
+            if (ti < current.size() && current.get(ti).equals(key)) {
+                diffNode(oldByKey.get(key), newNode, childId, changesPerformer, htmlBuilder);
+                continue;
+            }
+
+            final NodeId beforeId = ti < current.size() ? parentId.child(current.get(ti)) : null;
+            if (oldByKey.containsKey(key)) {
+                diffNode(oldByKey.get(key), newNode, childId, changesPerformer, htmlBuilder);
+                current.remove(key);
+                current.add(ti, key);
+            } else {
+                createNode(newNode, childId, changesPerformer, htmlBuilder);
+                current.add(ti, key);
+            }
+            changesPerformer.insertBefore(parentId, childId, beforeId);
+        }
+    }
+
+    private static void diffAttributes(final Set<AttributeNode> attributes1,
+                                       final Set<AttributeNode> attributes2,
+                                       final NodeId nodeId,
+                                       final DomChangesContext changesPerformer) {
+        final Set<AttributeNode> attrs1 = new java.util.concurrent.CopyOnWriteArraySet<>(attributes1);
+        final Set<AttributeNode> attrs2 = new java.util.concurrent.CopyOnWriteArraySet<>(attributes2);
+        attrs1.removeAll(attributes2);
+        attrs1.forEach(attribute -> changesPerformer.removeAttr(nodeId, XmlNs.html, attribute.name(), attribute.isProperty()));
+        attrs2.removeAll(attributes1);
+        attrs2.forEach(attribute -> changesPerformer.setAttr(nodeId, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty()));
+    }
+
+    private static void createNode(final TagNode tag,
+                                   final NodeId nodeId,
+                                   final DomChangesContext changesPerformer,
+                                   final HtmlBuilder htmlBuilder) {
+        changesPerformer.createTag(nodeId, tag.xmlns, tag.name);
+
+        for (final AttributeNode attribute : tag.attributes) {
+            changesPerformer.setAttr(nodeId, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty());
+        }
+
+        final List<NodeId> childIds = childIds(nodeId, tag.children);
+        for (int i = 0; i < tag.children.size(); i++) {
+            final Node child = tag.children.get(i);
+            final NodeId childId = childIds.get(i);
             if (child instanceof TagNode t) {
-                createTag(t, path, changesPerformer, htmlBuilder);
+                createNode(t, childId, changesPerformer, htmlBuilder);
             } else if (child instanceof TextNode) {
                 htmlBuilder.reset();
                 htmlBuilder.buildHtml(child);
-                changesPerformer.createText(nodePath, path, htmlBuilder.toString());
+                changesPerformer.createText(nodeId, childId, htmlBuilder.toString());
             }
-            path = path.incSibling();
+        }
+    }
+
+    /** Computes the ids for a node's children, keyed or positional, validating consistency. */
+    private static List<NodeId> childIds(final NodeId parentId, final List<? extends Node> children) {
+        if (hasAnyKey(children)) {
+            requireAllKeyed(children);
+            indexByKey(children); // validates duplicates
+            final List<NodeId> ids = new ArrayList<>(children.size());
+            for (final Node child : children) {
+                ids.add(parentId.child(((TagNode) child).key()));
+            }
+            return ids;
+        }
+        final List<NodeId> ids = new ArrayList<>(children.size());
+        NodeId childId = parentId.incLevel();
+        for (int i = 0; i < children.size(); i++) {
+            ids.add(childId);
+            if (i < children.size() - 1) {
+                childId = childId.incSibling();
+            }
+        }
+        return ids;
+    }
+
+    private static Map<String, TagNode> indexByKey(final List<? extends Node> children) {
+        final Map<String, TagNode> byKey = new LinkedHashMap<>();
+        for (final Node node : children) {
+            final TagNode tag = (TagNode) node;
+            final String key = tag.key();
+            if (byKey.put(key, tag) != null) {
+                throw new IllegalStateException("Duplicate key among keyed siblings: " + key);
+            }
+        }
+        return byKey;
+    }
+
+    private static boolean hasAnyKey(final List<? extends Node> children) {
+        for (final Node node : children) {
+            if (node instanceof TagNode t && t.key() != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void requireAllKeyed(final List<? extends Node> children) {
+        for (final Node node : children) {
+            if (!(node instanceof TagNode t) || t.key() == null) {
+                throw new IllegalStateException(
+                        "Mixed keyed and unkeyed children under one parent: all siblings must carry a key()");
+            }
         }
     }
 }

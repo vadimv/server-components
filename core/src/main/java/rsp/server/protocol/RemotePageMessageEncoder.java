@@ -46,6 +46,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     private static final int  REMOVE_ATTR = 4; // (id, xmlNs, name, isProperty)
     private static final int  SET_STYLE = 5; // (id, name, value)
     private static final int  REMOVE_STYLE = 6; // (id, name)
+    private static final int  INSERT_BEFORE = 7; // (id, childId, beforeChildId) — beforeChildId "" means append
 
     // EVENT modifier
     private static final int  NO_EVENT_MODIFIER = 0;
@@ -150,6 +151,8 @@ public final class RemotePageMessageEncoder implements RemoteOut {
             case SetStyle c -> joinString(SET_STYLE, quote(c.path()), quote(escape(c.name())), quote(escape(c.value())));
             case CreateText c -> joinString(CREATE_TEXT, quote(c.parentPath()), quote(c.path()), quote(escape(c.text())));
             case Create c -> joinString(CREATE, quote(c.path().parent()), quote(c.path()), xmlNsString(c.xmlNs()), quote(escape(c.tag())));
+            case InsertBefore c -> joinString(INSERT_BEFORE, quote(c.parentPath()), quote(c.path()),
+                                              quote(c.beforePath() == null ? "" : c.beforePath().toString()));
         };
     }
 
