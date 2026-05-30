@@ -1,13 +1,13 @@
 package rsp.page;
 
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 import rsp.page.events.CustomEvent;
 
 public interface EventDispatcher {
     /**
      * Dispatches a custom event.
-     * @param eventElementPath the path to the element, must not be null
+     * @param nodeId the id of the element, must not be null
      * @param customEvent the custom event, must not be null
      */
-    void dispatchEvent(TreePositionPath eventElementPath, CustomEvent customEvent);
+    void dispatchEvent(NodeId nodeId, CustomEvent customEvent);
 }

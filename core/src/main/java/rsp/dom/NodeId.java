@@ -6,8 +6,8 @@ import java.util.Objects;
 /**
  * A DOM-node addressing identity used by the diff → protocol → client seam.
  *
- * <p>Unlike {@link TreePositionPath} (which is purely positional and is used for component and
- * event identity), a {@code NodeId} segment is either a positional index (a decimal string) or a
+ * <p>Unlike {@link TreePositionPath} (which is purely positional and is still used for component
+ * identity), a {@code NodeId} segment is either a positional index (a decimal string) or a
  * stable key segment ({@code "kn<decimal>"} / {@code "ks<escaped>"}) produced by the
  * {@link rsp.dsl.Html#key} directives. Keyed segments give a node an identity that survives
  * reordering, so the diff can move a node ({@code insertBefore}) instead of rewriting it, and the

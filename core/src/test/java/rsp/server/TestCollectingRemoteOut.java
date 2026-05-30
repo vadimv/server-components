@@ -2,7 +2,7 @@ package rsp.server;
 
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.DomEventEntry;
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,19 +20,19 @@ public class TestCollectingRemoteOut implements RemoteOut {
     public void listenEvents(final List<DomEventEntry> events) {
         commands.addAll(events.stream().map(e -> new ListenEventOutMessage(e.eventName,
                                                                            e.preventDefault,
-                                                                           e.eventTarget.elementPath(),
+                                                                           e.eventTarget.nodeId(),
                                                                            e.modifier)).toList());
     }
 
     @Override
-    public void forgetEvent(final String eventType, final TreePositionPath elementPath) {
-        commands.add(new ForgetEventOutMessage(eventType, elementPath));
+    public void forgetEvent(final String eventType, final NodeId nodeId) {
+        commands.add(new ForgetEventOutMessage(eventType, nodeId));
 
     }
 
     @Override
-    public void extractProperty(final int descriptor, final TreePositionPath path, final String name) {
-        commands.add(new ExtractPropertyOutMessage(descriptor, path, name));
+    public void extractProperty(final int descriptor, final NodeId nodeId, final String name) {
+        commands.add(new ExtractPropertyOutMessage(descriptor, nodeId, name));
     }
 
     @Override
@@ -64,31 +64,31 @@ public class TestCollectingRemoteOut implements RemoteOut {
     public record SetRenderNumOutMessage(int renderNum) implements Message {
     }
 
-    public record ListenEventOutMessage(String eventType, boolean preventDefault, TreePositionPath path, DomEventEntry.Modifier modifier) implements Message {
+    public record ListenEventOutMessage(String eventType, boolean preventDefault, NodeId nodeId, DomEventEntry.Modifier modifier) implements Message {
 
         @Override
         public String toString() {
             return "ListenEventOutMessage{" +
                     "eventType='" + eventType + '\'' +
                     ", preventDefault=" + preventDefault +
-                    ", componentPath=" + path +
+                    ", nodeId=" + nodeId +
                     ", modifier=" + modifier +
                     '}';
         }
     }
 
-    public record ForgetEventOutMessage(String eventType, TreePositionPath elementPath) implements Message {
+    public record ForgetEventOutMessage(String eventType, NodeId nodeId) implements Message {
 
         @Override
         public String toString() {
             return "ForgetEventOutMessage{" +
                     "eventType='" + eventType + '\'' +
-                    ", elementPath=" + elementPath +
+                    ", nodeId=" + nodeId +
                     '}';
         }
     }
 
-    public record ExtractPropertyOutMessage(int descriptor, TreePositionPath path, String name) implements Message {
+    public record ExtractPropertyOutMessage(int descriptor, NodeId nodeId, String name) implements Message {
 
     }
 

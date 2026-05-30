@@ -23,7 +23,7 @@ class RemotePageMessageEncoderTests {
     @Test
     void should_listen_event() {
         final MessagesConsumer c = new MessagesConsumer();
-        final DomEventEntry e = new DomEventEntry("click", new DomEventEntry.Target(TreePositionPath.of("1_1")),
+        final DomEventEntry e = new DomEventEntry("click", new DomEventEntry.Target(NodeId.of("1_1")),
                                   ec -> {},
                                   true,
                                   new DomEventEntry.DebounceModifier(100, false));
@@ -34,7 +34,7 @@ class RemotePageMessageEncoderTests {
     @Test
     void should_extract_property() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).extractProperty(32, TreePositionPath.of("1_1"), "value");
+        create(c).extractProperty(32, NodeId.of("1_1"), "value");
         assertEquals("[3,\"32\",\"1_1\",\"value\"]", c.result); // TODO why descriptor id is in quotes?
     }
 
@@ -129,7 +129,7 @@ class RemotePageMessageEncoderTests {
     @Test
     void should_forget_event() {
         final MessagesConsumer c = new MessagesConsumer();
-        create(c).forgetEvent("click", TreePositionPath.of("1_1"));
+        create(c).forgetEvent("click", NodeId.of("1_1"));
         assertEquals("[15,\"click\",\"1_1\"]", c.result);
     }
 

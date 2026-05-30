@@ -1,6 +1,6 @@
 package rsp.page.events;
 
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 
-public record SessionCustomEvent(TreePositionPath path, CustomEvent customEvent) implements Command {
+public record SessionCustomEvent(NodeId nodeId, CustomEvent customEvent) implements Command {
 }

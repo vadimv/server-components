@@ -1,7 +1,7 @@
 package rsp.server;
 
 import rsp.dom.DomEventEntry;
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 import rsp.dom.DefaultDomChangesContext;
 
 import java.util.List;
@@ -25,17 +25,17 @@ public interface RemoteOut {
     /**
      * Forgets an event on the client-side.
      * @param eventType the type of the event, must not be null
-     * @param elementPath the path to the element, must not be null
+     * @param nodeId the id of the element, must not be null
      */
-    void forgetEvent(String eventType, TreePositionPath elementPath);
+    void forgetEvent(String eventType, NodeId nodeId);
 
     /**
      * Extracts a property from an element on the client-side.
      * @param descriptor the descriptor of the request
-     * @param path the path to the element, must not be null
+     * @param nodeId the id of the element, must not be null
      * @param name the name of the property, must not be null
      */
-    void extractProperty(int descriptor, TreePositionPath path, String name);
+    void extractProperty(int descriptor, NodeId nodeId, String name);
 
     /**
      * Modifies the DOM on the client-side.

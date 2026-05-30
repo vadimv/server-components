@@ -1,6 +1,7 @@
 package rsp.server.protocol;
 
 import rsp.dom.DomEventEntry;
+import rsp.dom.NodeId;
 import rsp.dom.XmlNs;
 import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext.*;
@@ -78,7 +79,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
         if (!events.isEmpty()) {
             final String[] changes = events.stream().map(e -> joinString(quote(escape(e.eventName)),
                                                          e.preventDefault,
-                                                         quote(e.eventTarget.elementPath().toString()),
+                                                         quote(e.eventTarget.nodeId().toString()),
                                                          quote(modifierString(e.modifier)))).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(LISTEN_EVENT,
                                                                 joinString(changes)));
@@ -87,12 +88,12 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     }
 
     @Override
-    public void forgetEvent(final String eventType, final TreePositionPath path) {
+    public void forgetEvent(final String eventType, final NodeId nodeId) {
         Objects.requireNonNull(eventType);
-        Objects.requireNonNull(path);
+        Objects.requireNonNull(nodeId);
         final String message = addSquareBrackets(joinString(FORGET_EVENT,
                                                             quote(escape(eventType)),
-                                                            quote(path.toString())));
+                                                            quote(nodeId.toString())));
         messagesOut.accept(message);
     }
 
@@ -107,12 +108,12 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     }
 
     @Override
-    public void extractProperty(final int descriptor, final TreePositionPath path, final String name) {
-        Objects.requireNonNull(path);
+    public void extractProperty(final int descriptor, final NodeId nodeId, final String name) {
+        Objects.requireNonNull(nodeId);
         Objects.requireNonNull(name);
         final String message = addSquareBrackets(joinString(EXTRACT_PROPERTY,
                                                             quote(descriptor),
-                                                            quote(path),
+                                                            quote(nodeId),
                                                             quote(escape(name))));
         messagesOut.accept(message);
     }

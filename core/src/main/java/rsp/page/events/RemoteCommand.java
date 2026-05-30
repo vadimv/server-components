@@ -2,7 +2,7 @@ package rsp.page.events;
 
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.DomEventEntry;
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 import rsp.server.RemoteOut;
 
 import java.util.List;
@@ -32,17 +32,17 @@ public sealed interface RemoteCommand {
         }
     }
 
-    record ForgetEvent(String eventType, TreePositionPath elementPath) implements RemoteCommand, Command {
+    record ForgetEvent(String eventType, NodeId nodeId) implements RemoteCommand, Command {
         @Override
         public void accept(RemoteOut remoteOut) {
-            remoteOut.forgetEvent(eventType, elementPath);
+            remoteOut.forgetEvent(eventType, nodeId);
         }
     }
 
-    record ExtractProperty(int descriptor, TreePositionPath path, String name) implements RemoteCommand, Command {
+    record ExtractProperty(int descriptor, NodeId nodeId, String name) implements RemoteCommand, Command {
         @Override
         public void accept(RemoteOut remoteOut) {
-            remoteOut.extractProperty(descriptor, path, name);
+            remoteOut.extractProperty(descriptor, nodeId, name);
         }
     }
 

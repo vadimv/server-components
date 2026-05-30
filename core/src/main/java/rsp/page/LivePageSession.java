@@ -2,6 +2,7 @@ package rsp.page;
 
 import rsp.component.ComponentEventEntry;
 import rsp.dom.DomEventEntry;
+import rsp.dom.NodeId;
 import rsp.dom.TreePositionPath;
 import rsp.dsl.Window;
 import rsp.page.events.*;
@@ -50,9 +51,9 @@ public final class LivePageSession implements Consumer<Command> {
         Objects.requireNonNull(event);
         switch (event) {
             case InitSessionCommand e -> init(e);
-            case SessionCustomEvent e -> handleDomEvent(0, e.path(), e.customEvent().eventName(), e.customEvent().eventData());
+            case SessionCustomEvent e -> handleDomEvent(0, e.nodeId(), e.customEvent().eventName(), e.customEvent().eventData());
             case ComponentEventNotification e -> handleComponentEvent(e.eventType(), e.eventObject());
-            case DomEventNotification e -> handleDomEvent(e.renderNumber(), e.path(), e.eventType(), e.eventObject());
+            case DomEventNotification e -> handleDomEvent(e.renderNumber(), e.nodeId(), e.eventType(), e.eventObject());
             case EvalJsResponseEvent e -> handleEvalJsResponse(e.descriptorId(), e.value());
             case ExtractPropertyResponseEvent e -> handleExtractPropertyResponse(e.descriptorId(), e.result());
             case RemoteCommand e -> e.accept(remoteOut);
@@ -106,24 +107,24 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private void handleDomEvent(final int renderNumber,
-                                final TreePositionPath eventPath,
+                                final NodeId nodeId,
                                 final String eventType,
                                 final JsonDataType.Object eventObject) {
-        Objects.requireNonNull(eventPath);
+        Objects.requireNonNull(nodeId);
         Objects.requireNonNull(eventType);
         Objects.requireNonNull(eventObject);
-        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", componentPath: " + eventPath + ", type: " + eventType + ", event data: " + eventObject);
-        TreePositionPath eventElementPath = eventPath;
-        while (eventElementPath.elementsCount() >= 0) {
+        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", nodeId: " + nodeId + ", type: " + eventType + ", event data: " + eventObject);
+        NodeId currentNodeId = nodeId;
+        while (currentNodeId.elementsCount() >= 0) {
             for (final DomEventEntry event: pageRenderContext.recursiveEvents()) {
                 if (event instanceof DomEventEntry domEventEntry
-                    && domEventEntry.eventTarget.elementPath().equals(eventElementPath)
+                    && domEventEntry.eventTarget.nodeId().equals(currentNodeId)
                     && event.eventName.equals(eventType)) {
-                    event.eventHandler.accept(createEventContext(eventElementPath, eventObject));
+                    event.eventHandler.accept(createEventContext(currentNodeId, eventObject));
                 }
             }
-            if (eventElementPath.elementsCount() > 0) {
-                eventElementPath = eventElementPath.parent();
+            if (currentNodeId.elementsCount() > 0) {
+                currentNodeId = currentNodeId.parent();
             } else {
                 break;
             }
@@ -141,31 +142,31 @@ public final class LivePageSession implements Consumer<Command> {
         }
     }
 
-    private EventContext createEventContext(final TreePositionPath eventElementPath,
+    private EventContext createEventContext(final NodeId nodeId,
                                             final JsonDataType.Object eventObject) {
-        Objects.requireNonNull(eventElementPath);
+        Objects.requireNonNull(nodeId);
         Objects.requireNonNull(eventObject);
-        return new EventContext(eventElementPath,
+        return new EventContext(nodeId,
                                 this::evalJs,
                                 this::createPropertiesHandle,
                                 eventObject,
-                                (path, customEvent) -> reactor.accept(new SessionCustomEvent(path, customEvent)),
+                                (targetNodeId, customEvent) -> reactor.accept(new SessionCustomEvent(targetNodeId, customEvent)),
                                 this::setHref);
     }
 
     private PropertiesHandle createPropertiesHandle(final Ref ref) {
         Objects.requireNonNull(ref);
-        final TreePositionPath path = resolveRef(ref);
-        if (path == null) {
+        final NodeId nodeId = resolveRef(ref);
+        if (nodeId == null) {
             throw new IllegalStateException("Ref not found: " + ref);
         }
-        return new PropertiesHandle(path, () -> ++descriptorsCounter, registeredEventHandlers, this);
+        return new PropertiesHandle(nodeId, () -> ++descriptorsCounter, registeredEventHandlers, this);
     }
 
-    private TreePositionPath resolveRef(final Ref ref) {
+    private NodeId resolveRef(final Ref ref) {
         Objects.requireNonNull(ref);
         // TODO verify if below condition is correct
-        return ref instanceof Window.WindowRef ? DOCUMENT_DOM_PATH : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
+        return ref instanceof Window.WindowRef ? NodeId.of(DOCUMENT_DOM_PATH) : pageRenderContext.recursiveRefs().get(ref); //TODO check for null
     }
 
     private CompletableFuture<JsonDataType> evalJs(final String js) {

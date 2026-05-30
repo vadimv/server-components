@@ -1,7 +1,7 @@
 package rsp.page;
 
 import rsp.dom.XmlNs;
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.page.events.RemoteCommand;
 import rsp.page.events.Command;
@@ -16,16 +16,16 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public final class PropertiesHandle {
-    private final TreePositionPath path;
+    private final NodeId nodeId;
     private final Supplier<Integer> descriptorSupplier;
     private final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers;
     private final Consumer<Command> remoteOut;
 
-    public PropertiesHandle(final TreePositionPath path,
+    public PropertiesHandle(final NodeId nodeId,
                             final Supplier<Integer> descriptorSupplier,
                             final Map<Integer, CompletableFuture<JsonDataType>> registeredEventHandlers,
                             final Consumer<Command> remoteOut) {
-        this.path = Objects.requireNonNull(path);
+        this.nodeId = Objects.requireNonNull(nodeId);
         this.descriptorSupplier = Objects.requireNonNull(descriptorSupplier);
         this.registeredEventHandlers = Objects.requireNonNull(registeredEventHandlers);
         this.remoteOut = Objects.requireNonNull(remoteOut);
@@ -41,7 +41,7 @@ public final class PropertiesHandle {
         final Integer newDescriptor = descriptorSupplier.get();
         final CompletableFuture<JsonDataType> valueFuture = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, valueFuture);
-        remoteOut.accept(new RemoteCommand.ExtractProperty(newDescriptor, path, propertyName));
+        remoteOut.accept(new RemoteCommand.ExtractProperty(newDescriptor, nodeId, propertyName));
         return valueFuture;
     }
 
@@ -53,7 +53,7 @@ public final class PropertiesHandle {
     public CompletableFuture<Void> set(final String propertyName, final String value) {
         Objects.requireNonNull(propertyName);
         Objects.requireNonNull(value);
-        remoteOut.accept(new RemoteCommand.ModifyDom(List.of(new DefaultDomChangesContext.SetAttr(rsp.dom.NodeId.of(path), XmlNs.html, propertyName, value, true))));
+        remoteOut.accept(new RemoteCommand.ModifyDom(List.of(new DefaultDomChangesContext.SetAttr(nodeId, XmlNs.html, propertyName, value, true))));
         return new CompletableFuture<>();
     }
 

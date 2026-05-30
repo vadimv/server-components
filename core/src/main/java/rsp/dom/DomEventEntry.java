@@ -47,9 +47,9 @@ public final class DomEventEntry {
         return Objects.hash(eventName, eventTarget, preventDefault, modifier);
     }
 
-    public record Target(TreePositionPath elementPath) {
-        public Target(final TreePositionPath elementPath) {
-            this.elementPath = Objects.requireNonNull(elementPath);
+    public record Target(NodeId nodeId) {
+        public Target(final NodeId nodeId) {
+            this.nodeId = Objects.requireNonNull(nodeId);
         }
     }
 

@@ -16,11 +16,13 @@ import java.util.function.*;
 public class TreeBuilder implements TreeBuilderFactory {
 
     private static final TreePositionPath ROOT_COMPONENT_PATH = TreePositionPath.of("1");
+    private static final String KEYED_COMPONENT_MESSAGE =
+            "key() currently supports DOM nodes only; components inside keyed DOM are not supported yet";
 
     protected final QualifiedSessionId sessionId;
     protected final CommandsEnqueue remotePageMessagesOut;
 
-    private final Deque<TagNode> tagsStack = new ArrayDeque<>();
+    private final Deque<TagFrame> tagsStack = new ArrayDeque<>();
     private final List<TreePositionPath> rootNodesPaths = new ArrayList<>();
     private final Deque<ComponentSegment<?>> componentsStack = new ArrayDeque<>();
     private final Deque<ComponentContext> componentContextStack = new ArrayDeque<>();
@@ -31,6 +33,15 @@ public class TreeBuilder implements TreeBuilderFactory {
     private String docType;
     private TreePositionPath domPath;
     private ComponentSegment<?> rootComponent;
+
+    private static final class TagFrame {
+        private final TagNode tag;
+        private boolean containsComponent;
+
+        private TagFrame(final TagNode tag) {
+            this.tag = Objects.requireNonNull(tag);
+        }
+    }
 
     public TreeBuilder(final QualifiedSessionId sessionId,
                        final TreePositionPath startDomPath,
@@ -73,6 +84,12 @@ public class TreeBuilder implements TreeBuilderFactory {
 
     public <S> void openComponent(final ComponentSegment<S> component) {
         Objects.requireNonNull(component);
+        if (!componentsStack.isEmpty() && !tagsStack.isEmpty()) {
+            tagsStack.forEach(frame -> frame.containsComponent = true);
+            if (tagsStack.stream().anyMatch(frame -> frame.tag.key() != null)) {
+                throw new IllegalStateException(KEYED_COMPONENT_MESSAGE);
+            }
+        }
         componentContextStack.push(componentContext);
         if (rootComponent == null) {
             rootComponent = component;
@@ -95,7 +112,8 @@ public class TreeBuilder implements TreeBuilderFactory {
         final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
 
-        final TagNode parent = tagsStack.peek();
+        final TagFrame parentFrame = tagsStack.peek();
+        final TagNode parent = parentFrame == null ? null : parentFrame.tag;
         final TagNode tag = new TagNode(xmlns, name, isSelfClosing);
         if (parent == null) {
             if (!component.isRootNodesEmpty()) {
@@ -111,7 +129,7 @@ public class TreeBuilder implements TreeBuilderFactory {
                 component.setParentTag(parent);
             }
         }
-        tagsStack.push(tag);
+        tagsStack.push(new TagFrame(tag));
 
         component.setStartNodeDomPath(domPath);
         component.addRootDomNode(domPath, tag);
@@ -132,8 +150,11 @@ public class TreeBuilder implements TreeBuilderFactory {
 
     public void closeNode(final String name, final boolean upgrade) {
         Objects.requireNonNull(name);
-        tagsStack.pop();
+        final TagFrame frame = tagsStack.pop();
         domPath = domPath.parent();
+        if (frame.tag.key() != null && frame.containsComponent) {
+            throw new IllegalStateException(KEYED_COMPONENT_MESSAGE);
+        }
     }
 
     public void addTextNode(final String text) {
@@ -141,7 +162,8 @@ public class TreeBuilder implements TreeBuilderFactory {
         final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
 
-        final TagNode parentTag = tagsStack.peek();
+        final TagFrame parentFrame = tagsStack.peek();
+        final TagNode parentTag = parentFrame == null ? null : parentFrame.tag;
         if (parentTag == null) {
             if (!component.isRootNodesEmpty()) {
                 if (component.getLastRootNode() instanceof TextNode prevTextNode) {
@@ -177,12 +199,12 @@ public class TreeBuilder implements TreeBuilderFactory {
         Objects.requireNonNull(xmlNs);
         Objects.requireNonNull(name);
         Objects.requireNonNull(value);
-        tagsStack.peek().addAttribute(name, value, isProperty);
+        tagsStack.peek().tag.addAttribute(name, value, isProperty);
     }
 
     public void setKey(final String key) {
         Objects.requireNonNull(key);
-        final TagNode tag = tagsStack.peek();
+        final TagNode tag = tagsStack.peek().tag;
         assert tag != null;
         tag.setKey(key);
     }
@@ -205,7 +227,7 @@ public class TreeBuilder implements TreeBuilderFactory {
                          final Consumer<EventContext> eventHandler,
                          final boolean preventDefault,
                          final DomEventEntry.Modifier modifier) {
-        final TagNode tag = tagsStack.peek();
+        final TagNode tag = tagsStack.peek().tag;
         assert tag != null;
         addEvent(domPath, eventType, eventHandler, preventDefault, modifier);
     }
@@ -214,7 +236,7 @@ public class TreeBuilder implements TreeBuilderFactory {
         Objects.requireNonNull(ref);
         final ComponentSegment<?> component = componentsStack.peek();
         assert component != null;
-        final TagNode tag = tagsStack.peek();
+        final TagNode tag = tagsStack.peek().tag;
         assert tag != null;
         component.addRef(ref, domPath);
     }
@@ -269,7 +291,7 @@ public class TreeBuilder implements TreeBuilderFactory {
         }
     }
 
-    public Map<Ref, TreePositionPath> recursiveRefs() {
+    public Map<Ref, NodeId> recursiveRefs() {
         if (rootComponent != null) {
             return rootComponent.recursiveRefs();
         } else {
@@ -277,4 +299,3 @@ public class TreeBuilder implements TreeBuilderFactory {
         }
     }
 }
-

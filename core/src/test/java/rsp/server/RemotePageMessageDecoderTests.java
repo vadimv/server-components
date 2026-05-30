@@ -1,7 +1,7 @@
 package rsp.server;
 
 import org.junit.jupiter.api.Test;
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 import rsp.page.events.*;
 import rsp.server.protocol.MessageDecoder;
 import rsp.server.protocol.RemotePageMessageDecoder;
@@ -24,7 +24,7 @@ class RemotePageMessageDecoderTests {
         assertTrue(collector.list.get(0) instanceof DomEventNotification);
         final DomEventNotification result = (DomEventNotification) collector.list.getFirst();
         assertEquals("click", result.eventType());
-        assertEquals(TreePositionPath.of("1_2_1_2_2_1"), result.path());
+        assertEquals(NodeId.of("1_2_1_2_2_1"), result.nodeId());
         assertEquals(new JsonDataType.Object(),  result.eventObject());
     }
 

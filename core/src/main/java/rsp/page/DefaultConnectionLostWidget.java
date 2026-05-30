@@ -7,6 +7,7 @@ import rsp.component.definitions.Component;
 import rsp.component.View;
 import rsp.dom.DefaultDomChangesContext;
 import rsp.dom.DomEventEntry;
+import rsp.dom.NodeId;
 import rsp.dom.TreePositionPath;
 import rsp.server.RemoteOut;
 
@@ -68,12 +69,12 @@ public final class DefaultConnectionLostWidget {
         }
 
         @Override
-        public void forgetEvent(String eventType, TreePositionPath elementPath) {
+        public void forgetEvent(String eventType, NodeId nodeId) {
             // no-op
         }
 
         @Override
-        public void extractProperty(int descriptor, TreePositionPath path, String name) {
+        public void extractProperty(int descriptor, NodeId nodeId, String name) {
             // no-op
         }
 

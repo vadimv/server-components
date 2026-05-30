@@ -1,6 +1,6 @@
 package rsp.page;
 
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 import rsp.page.events.CustomEvent;
 import rsp.ref.ElementRef;
 import rsp.ref.Ref;
@@ -16,7 +16,7 @@ import java.util.function.Function;
  * This is the main object for an application's code to interact with the framework's internals and access data.
  */
 public final class EventContext {
-    private final TreePositionPath eventElementPath;
+    private final NodeId nodeId;
     private final Function<Ref, PropertiesHandle> propertiesHandleLookup;
     private final Function<String, CompletableFuture<JsonDataType>> jsEvaluation;
     private final JsonDataType.Object eventObject;
@@ -30,13 +30,13 @@ public final class EventContext {
      * @param eventObject the event's object
      * @param setHref the proxy object for setting browser's URL
      */
-    public EventContext(final TreePositionPath eventElementPath,
+    public EventContext(final NodeId nodeId,
                         final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
                         final Function<Ref, PropertiesHandle> propertiesHandleLookup,
                         final JsonDataType.Object eventObject,
                         final EventDispatcher eventsDispatcher,
                         final Consumer<String> setHref) {
-        this.eventElementPath = Objects.requireNonNull(eventElementPath);
+        this.nodeId = Objects.requireNonNull(nodeId);
         this.propertiesHandleLookup = Objects.requireNonNull(propertiesHandleLookup);
         this.jsEvaluation = Objects.requireNonNull(jsEvaluation);
         this.eventObject = Objects.requireNonNull(eventObject);
@@ -87,7 +87,7 @@ public final class EventContext {
 
     public void dispatchEvent(CustomEvent customEvent) {
         Objects.requireNonNull(customEvent);
-        eventsDispatcher.dispatchEvent(eventElementPath, customEvent);
+        eventsDispatcher.dispatchEvent(nodeId, customEvent);
     };
 
     /**

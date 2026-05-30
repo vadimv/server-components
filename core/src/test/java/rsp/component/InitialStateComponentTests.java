@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import rsp.component.definitions.InitialStateComponent;
 import rsp.component.definitions.Component;
 import rsp.dom.DomEventEntry;
+import rsp.dom.NodeId;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
@@ -56,15 +57,15 @@ class InitialStateComponentTests {
 
         assertEquals(1, renderContext.recursiveEvents().size());
         assertEquals("click", renderContext.recursiveEvents().get(0).eventName);
-        assertEquals(TreePositionPath.of("1_2_1"), renderContext.recursiveEvents().get(0).eventTarget.elementPath());
+        assertEquals(NodeId.of("1_2_1"), renderContext.recursiveEvents().get(0).eventTarget.nodeId());
 
         // Click
         final DomEventEntry clickEvent = renderContext.recursiveEvents().get(0);
-        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.elementPath(),
+        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.nodeId(),
                                                                 js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
                                                                 ref -> null,
                                                                 JsonDataType.Object.EMPTY,
-                                                                (eventElementPath, customEvent) -> {},
+                                                                (nodeId, customEvent) -> {},
                                                                 ref -> {});
         clickEvent.eventHandler.accept(clickEventContext);
 

@@ -361,7 +361,7 @@ final ElementRef titleInput = createElementRef();
 
 form(
         input(
-                elementId(titleInput),
+                ref(titleInput),
                 attr("type", "text"),
                 attr("name", "title")),
         button(

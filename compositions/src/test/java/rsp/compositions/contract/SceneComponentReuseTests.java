@@ -19,6 +19,7 @@ import rsp.compositions.routing.AutoAddressBarSyncComponent;
 import rsp.compositions.routing.Router;
 import rsp.compositions.routing.UrlSyncComponent;
 import rsp.dom.DomEventEntry;
+import rsp.dom.NodeId;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
@@ -314,7 +315,7 @@ class SceneComponentReuseTests {
                 .put("query", new JsonDataType.String(relativeUrl.query().toString()))
                 .put("fragment", new JsonDataType.String(relativeUrl.fragment().toString()));
         EventContext context = new EventContext(
-                TreePositionPath.of(""),
+                NodeId.of(""),
                 _ -> { throw new UnsupportedOperationException(); },
                 _ -> { throw new UnsupportedOperationException(); },
                 eventObject,
@@ -323,7 +324,7 @@ class SceneComponentReuseTests {
 
         for (DomEventEntry entry : root.recursiveDomEvents()) {
             if ("popstate".equals(entry.eventName)
-                    && TreePositionPath.of("").equals(entry.eventTarget.elementPath())) {
+                    && NodeId.of("").equals(entry.eventTarget.nodeId())) {
                 entry.eventHandler.accept(context);
             }
         }

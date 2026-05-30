@@ -1,7 +1,7 @@
 package rsp.server.protocol;
 
 
-import rsp.dom.TreePositionPath;
+import rsp.dom.NodeId;
 import rsp.page.events.DomEventNotification;
 import rsp.page.events.EvalJsResponseEvent;
 import rsp.page.events.ExtractPropertyResponseEvent;
@@ -119,7 +119,7 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
         Objects.requireNonNull(eventObject);
         final String[] tokens = str.split(":");
         remoteIn.accept(new DomEventNotification(Integer.parseInt(tokens[0]),
-                                     TreePositionPath.of(tokens[1]),
+                                     NodeId.of(tokens[1]),
                                      tokens[2],
                                      eventObject));
     }

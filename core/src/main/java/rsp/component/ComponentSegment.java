@@ -91,7 +91,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     private final TreeBuilderFactory treeBuilderFactory;
     private final Metrics metrics;
 
-    private final List<DomEventEntry> domEventEntries = new ArrayList<>();
+    private final List<PendingDomEventEntry> domEventEntries = new ArrayList<>();
     private final List<ComponentEventEntry> componentEventEntries = new ArrayList<>(); // should it be a dictionary?
     private final Map<ComponentEventEntry, ComponentSegment<?>> componentEventOwners =
             new IdentityHashMap<>();
@@ -122,6 +122,36 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
 
     private static final ThreadLocal<ComponentSegment<?>> CALLBACK_OWNER = new ThreadLocal<>();
     private static final Set<String> AMBIGUOUS_RECONCILIATION_WARNINGS = ConcurrentHashMap.newKeySet();
+
+    private record PendingDomEventEntry(String eventName,
+                                        TreePositionPath elementPath,
+                                        Consumer<EventContext> eventHandler,
+                                        boolean preventDefault,
+                                        DomEventEntry.Modifier modifier) {
+        private PendingDomEventEntry {
+            Objects.requireNonNull(eventName);
+            Objects.requireNonNull(elementPath);
+            Objects.requireNonNull(eventHandler);
+            Objects.requireNonNull(modifier);
+        }
+
+        private DomEventEntry resolve(final Map<TreePositionPath, NodeId> nodeIdsByPath) {
+            if (elementPath.elementsCount() == 0) {
+                return new DomEventEntry(eventName,
+                                         new DomEventEntry.Target(NodeId.of(elementPath)),
+                                         eventHandler,
+                                         preventDefault,
+                                         modifier);
+            }
+            final NodeId nodeId = Optional.ofNullable(nodeIdsByPath.get(elementPath))
+                                          .orElseGet(() -> NodeId.of(elementPath));
+            return new DomEventEntry(eventName,
+                                     new DomEventEntry.Target(nodeId),
+                                     eventHandler,
+                                     preventDefault,
+                                     modifier);
+        }
+    }
 
     /**
      * Creates a new instance of a component segment.
@@ -364,6 +394,63 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         beginChildReconciliation(oldChildren);
     }
 
+    private RenderSnapshot<S> snapshot() {
+        return new RenderSnapshot<>(state,
+                                    stateInitialized,
+                                    new ArrayList<>(domEventEntries),
+                                    new ArrayList<>(componentEventEntries),
+                                    new IdentityHashMap<>(componentEventOwners),
+                                    new HashMap<>(refs),
+                                    new ArrayList<>(children),
+                                    new ArrayList<>(rootNodes),
+                                    startNodeDomPath,
+                                    parentTag,
+                                    previousChildrenForReconciliation,
+                                    claimedChildrenForReconciliation);
+    }
+
+    private void restore(final RenderSnapshot<S> snapshot) {
+        state = snapshot.state;
+        stateInitialized = snapshot.stateInitialized;
+
+        domEventEntries.clear();
+        domEventEntries.addAll(snapshot.domEventEntries);
+
+        componentEventEntries.clear();
+        componentEventEntries.addAll(snapshot.componentEventEntries);
+
+        componentEventOwners.clear();
+        componentEventOwners.putAll(snapshot.componentEventOwners);
+
+        refs.clear();
+        refs.putAll(snapshot.refs);
+
+        children.clear();
+        children.addAll(snapshot.children);
+
+        rootNodes.clear();
+        rootNodes.addAll(snapshot.rootNodes);
+
+        startNodeDomPath = snapshot.startNodeDomPath;
+        parentTag = snapshot.parentTag;
+        previousChildrenForReconciliation = snapshot.previousChildrenForReconciliation;
+        claimedChildrenForReconciliation = snapshot.claimedChildrenForReconciliation;
+    }
+
+    private record RenderSnapshot<S>(S state,
+                                     boolean stateInitialized,
+                                     List<PendingDomEventEntry> domEventEntries,
+                                     List<ComponentEventEntry> componentEventEntries,
+                                     Map<ComponentEventEntry, ComponentSegment<?>> componentEventOwners,
+                                     Map<Ref, TreePositionPath> refs,
+                                     List<ComponentSegment<?>> children,
+                                     List<Node> rootNodes,
+                                     TreePositionPath startNodeDomPath,
+                                     TagNode parentTag,
+                                     List<ComponentSegment<?>> previousChildrenForReconciliation,
+                                     Set<ComponentSegment<?>> claimedChildrenForReconciliation) {
+    }
+
     private void beginChildReconciliation(final List<ComponentSegment<?>> oldChildren) {
         previousChildrenForReconciliation = oldChildren;
         claimedChildrenForReconciliation = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -510,21 +597,21 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             return; // update vetoed by component
         }
 
-        final S oldState = state;
-        state = newState;
-
         // Snapshot everything BEFORE starting tearing down or clearing.
+        final RenderSnapshot<S> snapshot = snapshot();
+        final S oldState = state;
         final List<Node> oldRootNodes = new ArrayList<>(rootNodes());
         final Set<DomEventEntry> oldEvents = new HashSet<>(recursiveDomEvents());
         final List<ComponentSegment<?>> oldChildren = new ArrayList<>(directChildren());
 
-        prepareForRender(true, oldChildren, false);
-
-        logger.log(TRACE, () -> "Component state updated, previous: " + oldState + " new: " + state + " for " + componentId);
-
-        final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
-
+        boolean childReconciliationFinished = false;
         try {
+            state = newState;
+            prepareForRender(true, oldChildren, false);
+
+            logger.log(TRACE, () -> "Component state updated, previous: " + oldState + " new: " + state + " for " + componentId);
+
+            final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
             renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
             renderContext.openComponent(this);
             final Definition view = componentView.use(this).apply(state);
@@ -532,42 +619,52 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             renderContext.closeComponent();
             withCallbackOwner(this, () ->
                     callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
-        } finally {
+
+            // Calculate diff between an old and new DOM trees before unmounting old children.
+            final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
+            NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
+            final Set<NodeId> elementsToRemove = domChangePerformer.elementsToRemove;
+
             finishChildReconciliation();
-        }
+            childReconciliationFinished = true;
 
-        // Calculate diff between an old and new DOM trees
-        final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
-        NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
-        final Set<NodeId> elementsToRemove = domChangePerformer.elementsToRemove;
-        commandsEnqueue.offer(new RemoteCommand.ModifyDom(domChangePerformer.changes));
+            commandsEnqueue.offer(new RemoteCommand.ModifyDom(domChangePerformer.changes));
 
-        // Keep parent component's tag tree in sync with this component's latest root nodes
-        updateParentTagTree(oldRootNodes);
+            // Keep parent component's tag tree in sync with this component's latest root nodes
+            updateParentTagTree(oldRootNodes);
 
-        // Unregister events
-        final Set<DomEventEntry> newEvents = new HashSet<>(recursiveDomEvents());
-        for (final DomEventEntry event : oldEvents) {
-            if (!newEvents.contains(event)
-                && event instanceof DomEventEntry domEventEntry
-                && !elementsToRemove.contains(NodeId.of(domEventEntry.eventTarget.elementPath()))) {
-                commandsEnqueue.offer(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.elementPath()));
+            // Unregister events
+            final Set<DomEventEntry> newEvents = new HashSet<>(recursiveDomEvents());
+            for (final DomEventEntry event : oldEvents) {
+                if (!newEvents.contains(event)
+                    && event instanceof DomEventEntry domEventEntry
+                    && !elementsToRemove.contains(domEventEntry.eventTarget.nodeId())) {
+                    commandsEnqueue.offer(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.nodeId()));
+                }
+            }
+
+            // Register new events on client-side
+            final List<DomEventEntry> eventsToAdd = new ArrayList<>();
+            for (final DomEventEntry event : newEvents) {
+                if (!oldEvents.contains(event)) {
+                    eventsToAdd.add(event);
+                }
+            }
+            if (!eventsToAdd.isEmpty()) {
+                commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
+            }
+
+            withCallbackOwner(this, () ->
+                    callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate()));
+        } catch (RuntimeException | Error failure) {
+            restore(snapshot);
+            throw failure;
+        } finally {
+            if (!childReconciliationFinished) {
+                previousChildrenForReconciliation = List.of();
+                claimedChildrenForReconciliation = Set.of();
             }
         }
-
-        // Register new events on client-side
-        final List<DomEventEntry> eventsToAdd = new ArrayList<>();
-        for (final DomEventEntry event : newEvents) {
-            if (!oldEvents.contains(event)) {
-                eventsToAdd.add(event);
-            }
-        }
-        if (!eventsToAdd.isEmpty()) {
-            commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
-        }
-
-        withCallbackOwner(this, () ->
-                callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate()));
     }
 
     public List<ComponentSegment<?>> directChildren() {
@@ -650,7 +747,11 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     public List<DomEventEntry> recursiveDomEvents() {
-        final List<DomEventEntry> recursiveEvents = new ArrayList<>(domEventEntries);
+        final Map<TreePositionPath, NodeId> nodeIdsByPath = nodeIdsByPath();
+        final List<DomEventEntry> recursiveEvents = new ArrayList<>();
+        for (final PendingDomEventEntry event : domEventEntries) {
+            recursiveEvents.add(event.resolve(nodeIdsByPath));
+        }
         for (final ComponentSegment<?> childComponent : children) {
             recursiveEvents.addAll(childComponent.recursiveDomEvents());
         }
@@ -666,12 +767,87 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
 
-    public Map<Ref, TreePositionPath> recursiveRefs() {
-        final Map<Ref, TreePositionPath> recursiveRefs = new HashMap<>(refs);
+    public Map<Ref, NodeId> recursiveRefs() {
+        final Map<TreePositionPath, NodeId> nodeIdsByPath = nodeIdsByPath();
+        final Map<Ref, NodeId> recursiveRefs = new HashMap<>();
+        for (final Map.Entry<Ref, TreePositionPath> entry : refs.entrySet()) {
+            final NodeId nodeId = nodeIdsByPath.get(entry.getValue());
+            if (nodeId == null) {
+                throw new IllegalStateException("Cannot resolve ref path " + entry.getValue() + " for component " + componentId);
+            }
+            recursiveRefs.put(entry.getKey(), nodeId);
+        }
         for (ComponentSegment<?> childComponent : children) {
             recursiveRefs.putAll(childComponent.recursiveRefs());
         }
         return recursiveRefs;
+    }
+
+    private Map<TreePositionPath, NodeId> nodeIdsByPath() {
+        final Map<TreePositionPath, NodeId> result = new HashMap<>();
+        if (startNodeDomPath == null || rootNodes.isEmpty()) {
+            return result;
+        }
+        final NodeId startNodeId = NodeId.of(startNodeDomPath);
+        final NodeId parentId = startNodeId.elementsCount() == 0
+                ? startNodeId
+                : startNodeId.parent();
+        mapChildren(rootNodes, startNodeDomPath, parentId, result);
+        return result;
+    }
+
+    private static void mapChildren(final List<? extends Node> nodes,
+                                    final TreePositionPath firstChildPath,
+                                    final NodeId parentId,
+                                    final Map<TreePositionPath, NodeId> result) {
+        final boolean keyed = hasAnyKey(nodes);
+        if (keyed) {
+            requireAllKeyed(nodes);
+            validateUniqueKeys(nodes);
+        }
+
+        TreePositionPath childPath = firstChildPath;
+        for (int i = 0; i < nodes.size(); i++) {
+            final Node node = nodes.get(i);
+            final NodeId childId = keyed
+                    ? parentId.child(((TagNode) node).key())
+                    : parentId.child(Integer.toString(childPath.elementAt(childPath.elementsCount() - 1)));
+            result.put(childPath, childId);
+            if (node instanceof TagNode tag) {
+                mapChildren(tag.children, childPath.addChild(1), childId, result);
+            }
+            if (i < nodes.size() - 1) {
+                childPath = childPath.incSibling();
+            }
+        }
+    }
+
+    private static boolean hasAnyKey(final List<? extends Node> nodes) {
+        for (final Node node : nodes) {
+            if (node instanceof TagNode tag && tag.key() != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void requireAllKeyed(final List<? extends Node> nodes) {
+        for (final Node node : nodes) {
+            if (!(node instanceof TagNode tag) || tag.key() == null) {
+                throw new IllegalStateException(
+                        "Mixed keyed and unkeyed children under one parent: all siblings must carry a key()");
+            }
+        }
+    }
+
+    private static void validateUniqueKeys(final List<? extends Node> nodes) {
+        final Set<String> keys = new HashSet<>();
+        for (final Node node : nodes) {
+            final String key = ((TagNode) node).key();
+            if (!keys.add(key)) {
+                throw new IllegalStateException("Duplicate key among keyed siblings: " + key);
+            }
+        }
     }
 
     public void addDomEventHandler(final TreePositionPath elementPath,
@@ -679,8 +855,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
                                    final Consumer<EventContext> eventHandler,
                                    final boolean preventDefault,
                                    final DomEventEntry.Modifier modifier) {
-        final DomEventEntry.Target eventTarget = new DomEventEntry.Target(elementPath);
-        domEventEntries.add(new DomEventEntry(eventType, eventTarget, eventHandler, preventDefault, modifier));
+        domEventEntries.add(new PendingDomEventEntry(eventType, elementPath, eventHandler, preventDefault, modifier));
     }
 
     public Lookup.Registration addComponentEventHandler(final String eventType,

@@ -5,8 +5,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.*;
 import rsp.dom.DomEventEntry;
+import rsp.dom.NodeId;
 import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
+import rsp.dsl.Key;
 import rsp.page.events.*;
 import rsp.server.TestCollectingRemoteOut;
 import rsp.util.json.JsonDataType;
@@ -237,7 +239,7 @@ public class LivePageSessionTests {
 
             // DOM events with no matching handlers should complete without error
             processEvent(new DomEventNotification(0,
-                                                  TreePositionPath.of("1_1"),
+                                                  NodeId.of("1_1"),
                                                   "click",
                                                   JsonDataType.Object.EMPTY));
 
@@ -262,7 +264,7 @@ public class LivePageSessionTests {
 
             // Fire the event
             processEvent(new DomEventNotification(0,
-                                                  elementPath,
+                                                  NodeId.of(elementPath),
                                                   "click",
                                                   JsonDataType.Object.EMPTY));
 
@@ -289,12 +291,60 @@ public class LivePageSessionTests {
 
             // Fire event on child element - should bubble to parent
             processEvent(new DomEventNotification(0,
-                                                  childPath,
+                                                  NodeId.of(childPath),
                                                   "click",
                                                   JsonDataType.Object.EMPTY));
 
             assertEquals(1, invocations.size());
             assertEquals("parent-clicked", invocations.get(0));
+        }
+
+        @Test
+        void keyed_dom_event_invokes_matching_handler() {
+            final PageBuilder pageBuilder = createPageBuilder();
+            final List<String> invocations = new ArrayList<>();
+            final ComponentSegment<String> segment = createComponentWithView(_ -> state -> renderContext -> {
+                renderContext.openNode(XmlNs.html, "div", false);
+                renderContext.openNode(XmlNs.html, "button", false);
+                renderContext.setKey(Key.of("save").segment());
+                renderContext.addEvent("click", _ -> invocations.add("keyed-clicked"), false, DomEventEntry.NO_MODIFIER);
+                renderContext.closeNode("button", false);
+                renderContext.closeNode("div", false);
+            });
+            renderComponent(pageBuilder, segment);
+            initSession(pageBuilder);
+
+            processEvent(new DomEventNotification(0,
+                                                  NodeId.of("1_kssave"),
+                                                  "click",
+                                                  JsonDataType.Object.EMPTY));
+
+            assertEquals(List.of("keyed-clicked"), invocations);
+        }
+
+        @Test
+        void keyed_dom_event_bubbles_to_keyed_parent() {
+            final PageBuilder pageBuilder = createPageBuilder();
+            final List<String> invocations = new ArrayList<>();
+            final ComponentSegment<String> segment = createComponentWithView(_ -> state -> renderContext -> {
+                renderContext.openNode(XmlNs.html, "ul", false);
+                renderContext.openNode(XmlNs.html, "li", false);
+                renderContext.setKey(Key.of(42).segment());
+                renderContext.addEvent("click", _ -> invocations.add("keyed-parent-clicked"), false, DomEventEntry.NO_MODIFIER);
+                renderContext.openNode(XmlNs.html, "button", false);
+                renderContext.closeNode("button", false);
+                renderContext.closeNode("li", false);
+                renderContext.closeNode("ul", false);
+            });
+            renderComponent(pageBuilder, segment);
+            initSession(pageBuilder);
+
+            processEvent(new DomEventNotification(0,
+                                                  NodeId.of("1_kn42_1"),
+                                                  "click",
+                                                  JsonDataType.Object.EMPTY));
+
+            assertEquals(List.of("keyed-parent-clicked"), invocations);
         }
     }
 
@@ -351,6 +401,14 @@ public class LivePageSessionTests {
                                                                          final TreePositionPath elementPath,
                                                                          final String eventType,
                                                                          final Consumer<EventContext> handler) {
+        return createComponentWithView(stateUpdate -> state -> renderContext -> {
+            renderContext.openNode(XmlNs.html, "div", false);
+            renderContext.addEvent(elementPath, eventType, handler, false, DomEventEntry.NO_MODIFIER);
+            renderContext.closeNode("div", false);
+        });
+    }
+
+    private ComponentSegment<String> createComponentWithView(final ComponentView<String> componentView) {
         final ComponentCompositeKey componentId = new ComponentCompositeKey(
                 SESSION_ID,
                 "testType",
@@ -358,11 +416,6 @@ public class LivePageSessionTests {
         );
         final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> "state";
         final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
-        final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {
-            renderContext.openNode(XmlNs.html, "div", false);
-            renderContext.addEvent(elementPath, eventType, handler, false, DomEventEntry.NO_MODIFIER);
-            renderContext.closeNode("div", false);
-        };
 
         return new ComponentSegment<>(
                 componentId,
@@ -370,7 +423,7 @@ public class LivePageSessionTests {
                 contextResolver,
                 componentView,
                 new NoOpCallbacks(),
-                pageBuilder,
+                new TreeBuilder(SESSION_ID, TreePositionPath.of("1"), new ComponentContext(), commandsEnqueue),
                 new ComponentContext(),
                 commandsEnqueue
         );
