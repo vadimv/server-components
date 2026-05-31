@@ -36,11 +36,11 @@ public record DashboardModel(DashboardLayout layout) {
         return new DashboardModel(DashboardDsl.dashboard()
                 .columns(12)
                 .rowHeightPx(96)
-                .gap("1rem")
+                .gap("1.5rem")
                 .place(CommentsRateGraphWidget.live(commentRateStreamService),
                         DashboardDsl.at(1, 1).span(6, 3))
                 .place(LogsWidget.live(logStreamService),
-                        DashboardDsl.at(7, 1).span(6, 3))
+                        DashboardDsl.at(1, 4).span(12, 3))
                 .build());
     }
 

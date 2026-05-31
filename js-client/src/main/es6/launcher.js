@@ -21,9 +21,38 @@ import { ConnectionLostWidget, getDeviceId } from './utils.js';
 window['RSP'] = {
   'setProtocolDebugEnabled': setProtocolDebugEnabled,
   'invokeCallback': () => console.log("RSP is not ready"),
-  'swapElementInRegistry': () => console.log("RSP is not ready")
+  'swapElementInRegistry': () => console.log("RSP is not ready"),
+  'connectionState': 'connecting'
 };
 var reconnect;
+
+function createRspConnectionEvent(type, state) {
+  let event;
+  if (typeof Event === "function") {
+    event = new Event(type);
+  } else {
+    event = document.createEvent('Event');
+    event.initEvent(type, false, false);
+  }
+  event['state'] = state;
+  return event;
+}
+
+function setRspConnectionState(state) {
+  window['RSP']['connectionState'] = state;
+  if (document.body) {
+    document.body.setAttribute('data-rsp-connection', state);
+  }
+  document.dispatchEvent(createRspConnectionEvent('rsp:connection-state', state));
+  if (state === 'open') {
+    document.dispatchEvent(createRspConnectionEvent('rsp:connection-open', state));
+  } else if (state === 'closed') {
+    document.dispatchEvent(createRspConnectionEvent('rsp:connection-close', state));
+  } else if (state === 'connecting') {
+    document.dispatchEvent(createRspConnectionEvent('rsp:connection-connecting', state));
+  }
+}
+
 // TODO
 //window.addEventListener("onbeforeunload", () => reconnect = false);
 window.onbeforeunload = function(event) {
@@ -34,6 +63,7 @@ window.onbeforeunload = function(event) {
 window.document.addEventListener("DOMContentLoaded", () => {
 
   reconnect = true
+  setRspConnectionState('connecting');
 
   let config = window['kfg'];
   let clw = new ConnectionLostWidget(config['clw']);
@@ -51,7 +81,12 @@ window.document.addEventListener("DOMContentLoaded", () => {
 
   window['RSP']['connect'] = () => connection.connect();
 
+  connection.dispatcher.addEventListener('close', () => {
+    setRspConnectionState('closed');
+  });
+
   connection.dispatcher.addEventListener('open', () => {
+    setRspConnectionState('open');
     clw.hide();
     let bridge = new Bridge(config, connection);
     window['RSP']['swapElementInRegistry'] = (a, b) => bridge._RSP.swapElementInRegistry(a, b);

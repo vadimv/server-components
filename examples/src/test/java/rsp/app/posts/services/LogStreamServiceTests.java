@@ -27,9 +27,9 @@ class LogStreamServiceTests {
         List<LogEntry> snapshot = service.emitNextEntry();
 
         assertEquals(3, snapshot.size());
-        assertEquals("Logrem ipsum.. 2", snapshot.get(0).message());
-        assertEquals("Logrem ipsum.. 3", snapshot.get(1).message());
-        assertEquals("Logrem ipsum.. 4", snapshot.get(2).message());
+        assertEquals(generatedMessage(2), snapshot.get(0).message());
+        assertEquals(generatedMessage(3), snapshot.get(1).message());
+        assertEquals(generatedMessage(4), snapshot.get(2).message());
         assertEquals(2, snapshot.get(0).sequence());
         assertEquals(4, snapshot.get(2).sequence());
     }
@@ -45,7 +45,7 @@ class LogStreamServiceTests {
         service.emitNextEntry();
 
         assertEquals(1, received.size());
-        assertEquals("Logrem ipsum.. 1", received.getFirst().getFirst().message());
+        assertEquals(generatedMessage(1), received.getFirst().getFirst().message());
     }
 
     @Test
@@ -57,7 +57,7 @@ class LogStreamServiceTests {
             List<LogEntry> snapshot = service.snapshot();
             assertEquals(5, snapshot.size());
             for (int i = 0; i < snapshot.size(); i++) {
-                assertEquals("Logrem ipsum.. " + (i + 1), snapshot.get(i).message());
+                assertEquals(generatedMessage(i + 1), snapshot.get(i).message());
             }
         } finally {
             service.stop();
@@ -108,5 +108,9 @@ class LogStreamServiceTests {
     void rejects_invalid_buffer_size() {
         assertThrows(IllegalArgumentException.class,
                 () -> new LogStreamService(0, CLOCK, new Random()));
+    }
+
+    private static String generatedMessage(final long sequence) {
+        return "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " + sequence;
     }
 }

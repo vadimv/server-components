@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 
 public class LogStreamService {
 
-    public static final int DEFAULT_BUFFER_SIZE = 10;
+    public static final int DEFAULT_BUFFER_SIZE = 100;
 
     private final Object lock = new Object();
     private final int bufferSize;
@@ -130,7 +130,7 @@ public class LogStreamService {
                 nextSequence,
                 timestamp,
                 pickLevel(),
-                "Logrem ipsum.. " + nextSequence);
+                "Lorem ipsum dolor sit amet, consectetur adipiscing elit. " + nextSequence);
         entries.add(entry);
         while (entries.size() > bufferSize) {
             entries.removeFirst();

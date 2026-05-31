@@ -11,7 +11,6 @@ import rsp.component.definitions.Component;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,6 +22,82 @@ public class LogsWidget extends Component<LogsWidget.State>
 
     private static final DateTimeFormatter TIME_FORMATTER =
             DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
+
+    /**
+     * Client-side helpers for the live logs viewport. Auto-follow keeps the view pinned to the
+     * bottom while the user hasn't scrolled up. The connection indicator follows the browser-side
+     * RSP connection lifecycle because the server cannot re-render the badge after a disconnect.
+     */
+    private static final String LOGS_CLIENT_SCRIPT = """
+            (function(){
+              function syncConnectionIndicators() {
+                var state = document.body
+                  ? document.body.getAttribute('data-rsp-connection')
+                  : '';
+                var label = state === 'closed'
+                  ? 'Reconnecting'
+                  : state === 'connecting'
+                    ? 'Connecting'
+                    : 'Live';
+                var live = state !== 'closed' && state !== 'connecting';
+                var statuses = document.querySelectorAll('.logs-status');
+                for (var i = 0; i < statuses.length; i++) {
+                  var status = statuses[i];
+                  if (status.classList.contains('logs-status-static')) continue;
+                  status.classList.toggle('logs-status-live', live);
+                  status.classList.toggle('logs-status-lost', state === 'closed');
+                  status.classList.toggle('logs-status-connecting', state === 'connecting');
+                  status.textContent = label;
+                }
+              }
+              function init() {
+                var widget = document.querySelector('.logs-widget');
+                if (!widget) return;
+                if (!window.__logsConnectionIndicator) {
+                  window.__logsConnectionIndicator = { sync: syncConnectionIndicators };
+                  document.addEventListener('rsp:connection-state', function() {
+                    window.__logsConnectionIndicator.sync();
+                  });
+                } else {
+                  window.__logsConnectionIndicator.sync = syncConnectionIndicators;
+                }
+                window.__logsConnectionIndicator.sync();
+                var container = widget.querySelector('.logs-content');
+                if (!container) return;
+                if (window.__logsScroller) {
+                  if (window.__logsScroller.container === container) return;
+                  window.__logsScroller.detach();
+                }
+                var BOTTOM_THRESHOLD = 8;
+                var pinned = true;
+                function isAtBottom() {
+                  return container.scrollHeight - container.scrollTop - container.clientHeight <= BOTTOM_THRESHOLD;
+                }
+                function scrollToBottom() {
+                  container.scrollTop = container.scrollHeight;
+                }
+                scrollToBottom();
+                function onScroll() { pinned = isAtBottom(); }
+                container.addEventListener('scroll', onScroll, { passive: true });
+                var observer = new MutationObserver(function() {
+                  if (pinned) scrollToBottom();
+                });
+                observer.observe(container, { childList: true });
+                window.__logsScroller = {
+                  container: container,
+                  detach: function() {
+                    container.removeEventListener('scroll', onScroll);
+                    observer.disconnect();
+                  }
+                };
+              }
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+              } else {
+                init();
+              }
+            })();
+            """;
 
     private final List<LogEntry> staticEntries;
     private final LogStreamService streamService;
@@ -103,17 +178,27 @@ public class LogsWidget extends Component<LogsWidget.State>
     @Override
     public ComponentView<State> componentView() {
         return _ -> state -> div(attr("class", "dashboard-widget logs-widget"),
-                div(attr("class", "dashboard-widget-header"),
+                div(attr("class", "dashboard-widget-header logs-widget-header"),
                         div(attr("class", "dashboard-widget-title"),
                                 h2(title()),
                                 p(periodLabel)
+                        ),
+                        div(attr("class", "logs-widget-meta"),
+                                span(attr("class", streamService == null
+                                                ? "logs-status logs-status-static"
+                                                : "logs-status logs-status-live"),
+                                        text(streamService == null ? "Sample" : "Live")),
+                                span(attr("class", "logs-meta-item"), text(entryCountLabel(state.entries().size()))),
+                                span(attr("class", "logs-meta-item"), text(lastEntryLabel(state.entries())))
                         )
                 ),
                 div(attr("class", "logs-content"),
-                        of(state.entries().stream().map(LogsWidget::logRow))
+                        state.empty()
+                                ? div(attr("class", "logs-empty"), text("No log entries yet"))
+                                : of(state.entries().stream().map(LogsWidget::logRow))
                 ),
-                state.empty()
-                        ? div(attr("class", "logs-empty"), text("No log entries yet"))
+                streamService != null
+                        ? script(text(LOGS_CLIENT_SCRIPT))
                         : text("")
         );
     }
@@ -159,8 +244,15 @@ public class LogsWidget extends Component<LogsWidget.State>
         );
     }
 
-    @SuppressWarnings("unused")
-    private static String formatLevel(final LogEntry.Level level) {
-        return String.format(Locale.ROOT, "%-5s", level.name());
+    private static String entryCountLabel(final int entryCount) {
+        return entryCount + (entryCount == 1 ? " event" : " events");
+    }
+
+    private static String lastEntryLabel(final List<LogEntry> entries) {
+        if (entries.isEmpty()) {
+            return "No events";
+        }
+        LogEntry lastEntry = entries.getLast();
+        return "Last " + TIME_FORMATTER.format(lastEntry.timestamp());
     }
 }

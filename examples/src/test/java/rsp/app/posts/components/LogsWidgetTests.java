@@ -76,8 +76,10 @@ class LogsWidgetTests {
         Map<String, Object> metadata = widget.metadataState();
 
         assertEquals(2, document.select(".logs-row").size());
-        assertTrue(document.text().contains("Logrem ipsum.. 1"));
-        assertTrue(document.text().contains("Logrem ipsum.. 2"));
+        assertTrue(document.text().contains("Lorem ipsum dolor sit amet, consectetur adipiscing elit. 1"));
+        assertTrue(document.text().contains("Lorem ipsum dolor sit amet, consectetur adipiscing elit. 2"));
+        assertTrue(document.select(".logs-status-live").text().contains("Live"));
+        assertTrue(document.text().contains("2 events"));
         assertEquals(true, metadata.get("live"));
         assertEquals(2, metadata.get("entryCount"));
     }
@@ -92,6 +94,19 @@ class LogsWidgetTests {
         assertEquals(1, document.select(".logs-row > .logs-lvl").size());
         assertEquals(1, document.select(".logs-row > .logs-msg").size());
         assertEquals("INFO", document.select(".logs-lvl").text());
+    }
+
+    @Test
+    void live_widget_includes_client_connection_status_sync() {
+        LogsWidget widget = LogsWidget.live(new LogStreamService(5, CLOCK, new Random(0L)));
+
+        Document document = render(widget);
+        String script = document.select("script").html();
+
+        assertTrue(script.contains("data-rsp-connection"));
+        assertTrue(script.contains("rsp:connection-state"));
+        assertTrue(script.contains("Reconnecting"));
+        assertTrue(script.contains("logs-status-lost"));
     }
 
     private static Document render(final Component<?> component) {
