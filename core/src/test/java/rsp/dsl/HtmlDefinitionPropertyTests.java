@@ -1,10 +1,6 @@
 package rsp.dsl;
 
-import net.jqwik.api.Arbitraries;
-import net.jqwik.api.Arbitrary;
-import net.jqwik.api.ForAll;
-import net.jqwik.api.Property;
-import net.jqwik.api.Provide;
+import org.junit.jupiter.api.Test;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import rsp.component.ComponentContext;
@@ -12,69 +8,66 @@ import rsp.component.TreeBuilder;
 import rsp.component.View;
 import rsp.component.definitions.InitialStateComponent;
 import rsp.page.QualifiedSessionId;
+import rsp.pbt.Gen;
+import rsp.pbt.Property;
 import rsp.server.TestCollectingRemoteOut;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static rsp.dsl.Html.*;
 import static rsp.page.PageBuilder.DOCUMENT_DOM_PATH;
 
+/**
+ * Property-based tests for the HTML DSL, using the in-house {@link Gen}/{@link Property} harness.
+ */
 public class HtmlDefinitionPropertyTests {
 
-    @Property
-    void generated_dsl_should_produce_valid_and_correct_html(@ForAll("dslTags") final Tag generatedTag) {
-        // 1. Setup the full document plain DSL view
-        final View<String> view = _ -> html(
-            head(title("pbt-test")),
-            body(generatedTag)
-        );
+    @Test
+    void generated_dsl_should_produce_valid_and_correct_html() {
+        Property.forAll(dslTags()).check(generatedTag -> {
+            // 1. Setup the full document plain DSL view
+            final View<String> view = _ -> html(
+                head(title("pbt-test")),
+                body(generatedTag)
+            );
 
-        // 2. Render the DSL to an HTML string
-        final String renderedHtml = htmlOf(view, "");
+            // 2. Render the DSL to an HTML string
+            final String renderedHtml = htmlOf(view, "");
 
-        // 3. Validate with jsoup
-        final Document parsedDoc = org.jsoup.Jsoup.parse(renderedHtml);
+            // 3. Validate with jsoup
+            final Document parsedDoc = org.jsoup.Jsoup.parse(renderedHtml);
 
-        // 3a. Validate document's structure
-        final Element head = parsedDoc.head();
-        assertNotNull(head);
+            // 3a. Validate document's structure
+            final Element head = parsedDoc.head();
+            assertNotNull(head);
 
-        final String title = parsedDoc.title();
-        assertEquals("pbt-test", title);
+            final String title = parsedDoc.title();
+            assertEquals("pbt-test", title);
 
-        final Element body = parsedDoc.body();
-        assertNotNull(body);
+            final Element body = parsedDoc.body();
+            assertNotNull(body);
 
-        // 3b. Check for the generated tag in the body
-        final Element renderedElement = body.children().first(); // Assuming it's the only child
-        assertNotNull(renderedElement);
+            // 3b. Check for the generated tag in the body
+            final Element renderedElement = body.children().first(); // Assuming it's the only child
+            assertNotNull(renderedElement);
 
-        // 3c. Validate tag name (case-insensitive for HTML)
-        assertEquals(generatedTag.name.toLowerCase(), renderedElement.tagName());
-        
-        // 3d. Validate counts
-        final Counts dslCounts = countDefinitions(generatedTag);
-        final Counts htmlCounts = countJsoupElements(renderedElement);
-        assertEquals(dslCounts, htmlCounts);
+            // 3c. Validate tag name (case-insensitive for HTML)
+            assertEquals(generatedTag.name.toLowerCase(), renderedElement.tagName());
+
+            // 3d. Validate counts
+            final Counts dslCounts = countDefinitions(generatedTag);
+            final Counts htmlCounts = countJsoupElements(renderedElement);
+            assertEquals(dslCounts, htmlCounts);
+        });
     }
 
-    @Provide
-    Arbitrary<Tag> dslTags() {
-        return Arbitraries.recursive(
+    private Gen<Tag> dslTags() {
+        return Gen.recursive(
             // Base case: Inline tags / leaf tags
-            () -> Arbitraries.of(span(text("text")), br(), input(attr("type", "text"))),
+            () -> Gen.of(span(text("text")), br(), input(attr("type", "text"))),
 
-            // Recursive step: Container tags
-            (childArbitrary) -> {
-                // Div can contain anything
-                final Arbitrary<Tag> divWithChildren = childArbitrary.list().ofMaxSize(3)
-                    .map(children -> div(children.toArray(new Definition[0])));
+            // Recursive step: Container tags. Div can contain anything.
+            (childGen) -> childGen.list(0, 3).map(children -> div(children.toArray(new Definition[0]))),
 
-                // P should ideally only contain inline elements, but for this test let's just use div to be safe
-                // or we can define a separate "inline" generator. 
-                // To keep it simple and robust against Jsoup parsing rules, let's stick to div nesting.
-                
-                return divWithChildren;
-            },
             5 // Max recursion depth
         );
     }

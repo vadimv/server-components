@@ -1,89 +1,82 @@
 package rsp.dom;
 
-import net.jqwik.api.*;
+import org.junit.jupiter.api.Test;
+import rsp.pbt.Gen;
+import rsp.pbt.Property;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+/**
+ * Property-based tests for {@link NodesTreeDiff}, using the in-house {@link Gen}/{@link Property}
+ * harness.
+ */
 class NodesTreeDiffPropertyTests {
 
-    @Property
-    void diff_should_be_empty_for_identical_trees(@ForAll("recursiveTagNodes") final TagNode tree) {
-        final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
-        NodesTreeDiff.diff(tree, tree, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
-        assertEquals(true, cp.isEmpty());
+    @Test
+    void diff_should_be_empty_for_identical_trees() {
+        Property.forAll(recursiveTagNodes()).check(tree -> {
+            final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
+            NodesTreeDiff.diff(tree, tree, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
+            assertEquals(true, cp.isEmpty());
+        });
     }
 
-    @Property
-    void diff_should_correctly_transform_tree1_to_tree2(@ForAll("recursiveTagNodes") final TagNode tree1,
-                                                        @ForAll("recursiveTagNodes") final TagNode tree2) {
-        final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
-        NodesTreeDiff.diff(tree1, tree2, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
-        
-        final Patch patch = new Patch(cp.modifications);
-        final TagNode tree1afterApply = apply(tree1, patch);
-        
-        assertEquals(tree2.toString(), tree1afterApply.toString());
+    @Test
+    void diff_should_correctly_transform_tree1_to_tree2() {
+        Property.forAll(recursiveTagNodes(), recursiveTagNodes()).check((tree1, tree2) -> {
+            final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
+            NodesTreeDiff.diff(tree1, tree2, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
+
+            final Patch patch = new Patch(cp.modifications);
+            final TagNode tree1afterApply = apply(tree1, patch);
+
+            assertEquals(tree2.toString(), tree1afterApply.toString());
+        });
     }
 
-    @Property
-    void diff_should_be_reversible(@ForAll("recursiveTagNodes") final TagNode tree1,
-                                   @ForAll("recursiveTagNodes") final TagNode tree2) {
-        // Forward: tree1 -> tree2
-        final PatchCollectingChangesContext cp1 = new PatchCollectingChangesContext();
-        NodesTreeDiff.diff(tree1, tree2, new TreePositionPath(1), cp1, new HtmlBuilder(new StringBuilder()));
-        final TagNode result1 = apply(tree1, new Patch(cp1.modifications));
-        assertEquals(tree2.toString(), result1.toString(), "Forward transformation failed");
+    @Test
+    void diff_should_be_reversible() {
+        Property.forAll(recursiveTagNodes(), recursiveTagNodes()).check((tree1, tree2) -> {
+            // Forward: tree1 -> tree2
+            final PatchCollectingChangesContext cp1 = new PatchCollectingChangesContext();
+            NodesTreeDiff.diff(tree1, tree2, new TreePositionPath(1), cp1, new HtmlBuilder(new StringBuilder()));
+            final TagNode result1 = apply(tree1, new Patch(cp1.modifications));
+            assertEquals(tree2.toString(), result1.toString(), "Forward transformation failed");
 
-        // Backward: tree2 -> tree1
-        final PatchCollectingChangesContext cp2 = new PatchCollectingChangesContext();
-        NodesTreeDiff.diff(tree2, tree1, new TreePositionPath(1), cp2, new HtmlBuilder(new StringBuilder()));
-        final TagNode result2 = apply(tree2, new Patch(cp2.modifications));
-        assertEquals(tree1.toString(), result2.toString(), "Backward transformation failed");
+            // Backward: tree2 -> tree1
+            final PatchCollectingChangesContext cp2 = new PatchCollectingChangesContext();
+            NodesTreeDiff.diff(tree2, tree1, new TreePositionPath(1), cp2, new HtmlBuilder(new StringBuilder()));
+            final TagNode result2 = apply(tree2, new Patch(cp2.modifications));
+            assertEquals(tree1.toString(), result2.toString(), "Backward transformation failed");
+        });
     }
 
     /**
      * Keyed diff correctness invariant: for any two sibling lists of keyed children {@code t1, t2},
      * applying the patch produced by {@code diff(t1, t2)} to a copy of {@code t1} yields a tree that
-     * is observationally equal to {@code t2}. Formally:
-     *
-     * <pre>apply(copy(t1), diff(t1, t2)).toString().equals(t2.toString())</pre>
-     *
-     * <p>Equivalently: the keyed matcher plus the emitted {@code Create / Remove / InsertBefore /
-     * CreateText / SetAttr / RemoveAttr} sequence is a sound transformation under <em>arbitrary</em>
-     * list mutations — additions, removals, reorderings, and any combination thereof. jqwik
-     * generates two random keyed lists from a shared key universe so the property exercises:
-     * pure appends, pure prepends, mid-list insertions, removals from either end, arbitrary
-     * permutations of retained keys, and full replacement.
-     *
-     * <p>What this test does <em>not</em> cover (those live elsewhere):
-     * <ul>
-     *   <li>Minimality of the emitted op set ({@link KeyedNodesTreeDiffTests});</li>
-     *   <li>Guards against mixed keyed/unkeyed siblings or duplicate keys
-     *       ({@link KeyedNodesTreeDiffTests});</li>
-     *   <li>Wire-protocol round-tripping of the {@code InsertBefore} op
-     *       ({@code RemotePageMessageEncoderTests}).</li>
-     * </ul>
+     * is observationally equal to {@code t2}. The harness generates two random keyed lists from a
+     * shared key universe so the property exercises pure appends, prepends, mid-list insertions,
+     * removals from either end, arbitrary permutations of retained keys, and full replacement.
      */
-    @Property
-    void applying_keyed_diff_transforms_source_list_into_target_list_for_any_reorder_insert_or_delete(
-            @ForAll("keyedKeyLists") final List<Long> keys1,
-            @ForAll("keyedKeyLists") final List<Long> keys2) {
-        final TagNode tree1 = keyedUl(keys1);
-        final TagNode tree2 = keyedUl(keys2);
+    @Test
+    void applying_keyed_diff_transforms_source_list_into_target_list_for_any_reorder_insert_or_delete() {
+        Property.forAll(keyedKeyLists(), keyedKeyLists()).check((keys1, keys2) -> {
+            final TagNode tree1 = keyedUl(keys1);
+            final TagNode tree2 = keyedUl(keys2);
 
-        final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
-        NodesTreeDiff.diff(tree1, tree2, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
-        final TagNode applied = apply(tree1, new Patch(cp.modifications));
+            final PatchCollectingChangesContext cp = new PatchCollectingChangesContext();
+            NodesTreeDiff.diff(tree1, tree2, new TreePositionPath(1), cp, new HtmlBuilder(new StringBuilder()));
+            final TagNode applied = apply(tree1, new Patch(cp.modifications));
 
-        assertEquals(tree2.toString(), applied.toString(),
-                "keyed diff did not transform " + keys1 + " into " + keys2);
+            assertEquals(tree2.toString(), applied.toString(),
+                    "keyed diff did not transform " + keys1 + " into " + keys2);
+        });
     }
 
-    @Provide
-    Arbitrary<List<Long>> keyedKeyLists() {
-        return Arbitraries.longs().between(1, 9).list().uniqueElements().ofMinSize(0).ofMaxSize(7);
+    private Gen<List<Long>> keyedKeyLists() {
+        return Gen.longs(1, 9).listUnique(0, 7);
     }
 
     /** A {@code <ul>} of keyed {@code <li>} children; each li's text encodes its key so toString distinguishes them. */
@@ -118,17 +111,13 @@ class NodesTreeDiffPropertyTests {
         }
 
         // Sort removals to apply them from the end of lists to the beginning.
-        // This prevents index shifting issues for positional sibling removals; keyed removals
-        // are position-independent (matched by key) so their relative order is harmless.
         removals.sort((m1, m2) -> {
             final String[] p1 = ((RemoveNode) m1).path().toString().split("_");
             final String[] p2 = ((RemoveNode) m2).path().toString().split("_");
 
-            // Deeper paths first
             int depthCompare = Integer.compare(p2.length, p1.length);
             if (depthCompare != 0) return depthCompare;
 
-            // Same depth: descending; numeric segments compared as ints, key segments as strings
             for (int i = 0; i < p1.length; i++) {
                 final int partCompare;
                 if (p1[i].matches("\\d+") && p2[i].matches("\\d+")) {
@@ -141,16 +130,14 @@ class NodesTreeDiffPropertyTests {
             return 0;
         });
 
-        // Apply sorted removals
         for (final Modification mod : removals) {
             mod.apply(dom);
         }
 
-        // Apply all other modifications in their original order
         for (final Modification mod : others) {
             mod.apply(dom);
         }
-        
+
         return dom.getRoot();
     }
 
@@ -174,22 +161,21 @@ class NodesTreeDiffPropertyTests {
         return copy;
     }
 
-    @Provide
-    Arbitrary<TagNode> recursiveTagNodes() {
-        return Arbitraries.recursive(
-            () -> Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5).map(name -> new TagNode(XmlNs.html, name, false)),
-            (child) -> Combinators.combine(
-                Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5),
-                child.list().ofMinSize(0).ofMaxSize(5),
-                Arbitraries.maps(Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5), Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5)).ofMaxSize(3),
-                Arbitraries.strings().alpha().ofMinLength(1).ofMaxLength(5)
-            ).as((name, children, attrs, text) -> {
-                final TagNode node = new TagNode(XmlNs.html, name, false);
-                node.addChild(new TextNode(text));
-                children.forEach(node::addChild);
-                attrs.forEach((k, v) -> node.addAttribute(k, v, true));
-                return node;
-            }),
+    private Gen<TagNode> recursiveTagNodes() {
+        return Gen.recursive(
+            () -> Gen.alpha(1, 5).map(name -> new TagNode(XmlNs.html, name, false)),
+            (child) -> Gen.combine(
+                Gen.alpha(1, 5),
+                child.list(0, 5),
+                Gen.maps(Gen.alpha(1, 5), Gen.alpha(1, 5), 3),
+                Gen.alpha(1, 5),
+                (name, children, attrs, text) -> {
+                    final TagNode node = new TagNode(XmlNs.html, name, false);
+                    node.addChild(new TextNode(text));
+                    children.forEach(node::addChild);
+                    attrs.forEach((k, v) -> node.addAttribute(k, v, true));
+                    return node;
+                }),
             3
         );
     }

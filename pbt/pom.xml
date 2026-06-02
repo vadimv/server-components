@@ -9,10 +9,11 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>schema</artifactId>
+    <artifactId>pbt</artifactId>
+    <description>A small, zero-dependency property-based testing harness with integrated shrinking.</description>
 
     <dependencies>
-        <!-- Test dependencies -->
+        <!-- Test dependencies only: the harness itself depends on nothing. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
