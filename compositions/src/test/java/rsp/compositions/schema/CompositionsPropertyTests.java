@@ -1,6 +1,5 @@
 package rsp.compositions.schema;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import rsp.component.Lookup;
 import rsp.compositions.contract.ViewContract;
