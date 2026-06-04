@@ -8,7 +8,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
- * Runs property checks over {@link Gen}erated inputs and minimises any counterexample by walking
+ * Runs property checks over {@link Gen}erated inputs and minimizes any counterexample by walking
  * the integrated shrink tree. This is the programmatic, non-annotation replacement for jqwik's
  * {@code @Property}: a property is an ordinary JUnit {@code @Test} that ends with
  * {@code Property.forAll(gen).check(value -> { ... })}.
@@ -32,22 +32,47 @@ public final class Property {
     private Property() {
     }
 
+    /**
+     * Begins a single-argument property.
+     *
+     * @param a   the input generator
+     * @param <A> the input type
+     * @return a builder whose {@code check} runs the property
+     */
     public static <A> ForAll1<A> forAll(final Gen<A> a) {
         return new ForAll1<>(a);
     }
 
+    /**
+     * Begins a two-argument property; the inputs are drawn and shrunk jointly.
+     *
+     * @param a   the first input generator
+     * @param b   the second input generator
+     * @param <A> the first input type
+     * @param <B> the second input type
+     * @return a builder whose {@code check} runs the property
+     */
     public static <A, B> ForAll2<A, B> forAll(final Gen<A> a, final Gen<B> b) {
         return new ForAll2<>(a, b);
     }
 
-    /** Discards the current input (does not count toward tries) unless {@code condition} holds. Replaces {@code Assume.that}. */
+    /**
+     * Discards the current input (it does not count toward tries) unless {@code condition} holds.
+     * Replaces jqwik's {@code Assume.that}.
+     *
+     * @param condition the precondition the input must satisfy to be kept
+     */
     public static void assume(final boolean condition) {
         if (!condition) {
             throw new DiscardException();
         }
     }
 
-    /** A property over a single generated value. */
+    /**
+     * A property over a single generated value.
+     *
+     * @param <A> the input type
+     */
     public static final class ForAll1<A> {
         private final Gen<A> gen;
 
@@ -56,9 +81,13 @@ public final class Property {
         }
 
         /**
-         * Checks {@code body} against generated values. The body asserts (throwing on failure);
-         * a thrown {@link AssertionError}/{@link RuntimeException} is a counterexample. Use
+         * Runs the property: draws inputs and applies {@code body} to each. The body asserts
+         * (throwing on failure); a thrown {@link AssertionError}/{@link RuntimeException} is a
+         * counterexample, which is then shrunk to a minimal value. Use
          * {@link Property#assume(boolean)} to discard unwanted inputs.
+         *
+         * @param body the assertion to run against each generated value
+         * @throws AssertionError on the first failing input, reporting the shrunk counterexample and seed
          */
         public void check(final Consumer<? super A> body) {
             run(gen, a -> {
@@ -68,7 +97,12 @@ public final class Property {
         }
     }
 
-    /** A property over a pair of generated values. */
+    /**
+     * A property over a pair of generated values.
+     *
+     * @param <A> the first input type
+     * @param <B> the second input type
+     */
     public static final class ForAll2<A, B> {
         private final Gen<A> a;
         private final Gen<B> b;
@@ -78,6 +112,12 @@ public final class Property {
             this.b = b;
         }
 
+        /**
+         * Runs the property against each generated pair; see {@link ForAll1#check}.
+         *
+         * @param body the assertion to run against each generated pair
+         * @throws AssertionError on the first failing pair, reporting the shrunk counterexample and seed
+         */
         @SuppressWarnings("unchecked")
         public void check(final BiConsumer<? super A, ? super B> body) {
             run(pairGen(), arr -> {
@@ -95,7 +135,8 @@ public final class Property {
     // Runner
     // ====================================================================
 
-    private static <T> void run(final Gen<T> gen, final Predicate<T> property,
+    private static <T> void run(final Gen<T> gen,
+                                final Predicate<T> property,
                                 final Function<? super T, String> render) {
         final long seed = configuredSeed();
         final int tries = configuredTries();
@@ -138,6 +179,11 @@ public final class Property {
     /**
      * Greedily walks the shrink tree, repeatedly taking the first still-failing child, until no
      * child fails. Package-private so the harness self-tests can assert shrink soundness directly.
+     *
+     * @param failing  a shrinkable whose value fails {@code property}
+     * @param property the check that {@code failing} violates
+     * @param <T>      the input type
+     * @return the minimal still-failing shrinkable and the number of shrink steps taken
      */
     static <T> Minimized<T> minimize(final Shrinkable<T> failing, final Predicate<T> property) {
         Shrinkable<T> current = failing;
@@ -159,12 +205,26 @@ public final class Property {
         return new Minimized<>(current, steps);
     }
 
-    /** Whether {@code value} fails {@code property} under the same rules the runner uses. */
+    /**
+     * Whether {@code value} fails {@code property} under the same rules the runner uses (a thrown
+     * assertion/exception or a {@code false} return counts as failure; a discard does not).
+     *
+     * @param property the check
+     * @param value    the input to evaluate
+     * @param <T>      the input type
+     * @return {@code true} if {@code value} is a counterexample
+     */
     static <T> boolean fails(final Predicate<T> property, final T value) {
         return evaluate(property, value).failed();
     }
 
-    /** Result of {@link #minimize}: the minimal failing shrinkable and the number of shrink steps taken. */
+    /**
+     * Result of {@link #minimize}.
+     *
+     * @param shrinkable the minimal still-failing shrinkable
+     * @param steps      the number of shrink steps taken to reach it
+     * @param <T>        the input type
+     */
     record Minimized<T>(Shrinkable<T> shrinkable, int steps) {
     }
 
@@ -218,7 +278,6 @@ public final class Property {
         }
     }
 
-    /** Internal signal thrown by {@link #assume(boolean)} to discard an input. */
     private static final class DiscardException extends RuntimeException {
         private DiscardException() {
             super(null, null, false, false);

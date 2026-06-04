@@ -13,9 +13,9 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * A generator of random values carrying an integrated shrink tree. A {@code Gen<T>} is a pure
- * function of {@code (random, size)} producing a {@link Shrinkable}; the same seed reproduces the
- * same value, which is what makes property failures replayable.
+ * A generator of random values carrying an integrated shrink tree. A {@code Gen<T>} consumes a
+ * {@link Random} and a size hint to produce a {@link Shrinkable}; the same seed reproduces the same
+ * value, which is what makes property failures replayable.
  *
  * <p>This is the programmatic replacement for jqwik's {@code Arbitrary} / {@code Arbitraries} /
  * {@code Combinators}. Generators are values, not annotations — properties are plain JUnit
@@ -24,19 +24,43 @@ import java.util.stream.Stream;
  * <p>{@code size} is advisory: every generator here is explicitly bounded (ranges, max sizes,
  * recursion depth), so generation does not depend on {@code size}. It is threaded through for
  * forward compatibility.
+ *
+ * @param <T> the type of value produced
  */
 @FunctionalInterface
 public interface Gen<T> {
 
+    /**
+     * Produces one value together with its shrink tree. Deterministic for the same {@code Random}
+     * state and {@code size}; generation advances the supplied random source.
+     *
+     * @param random the source of randomness for this draw
+     * @param size   advisory size hint, unused by the built-in generators (see the type javadoc)
+     * @return the generated value paired with its lazily-computed smaller variants
+     */
     Shrinkable<T> generate(Random random, int size);
 
     // --- instance combinators (shrink-tree preserving) ---
 
+    /**
+     * Transforms each generated value with {@code f}, carrying the shrink tree through unchanged.
+     *
+     * @param f   maps a generated value to the result type
+     * @param <R> the mapped result type
+     * @return a generator of {@code f}-applied values
+     */
     default <R> Gen<R> map(final Function<? super T, ? extends R> f) {
         return (random, size) -> generate(random, size).map(f);
     }
 
-    /** Keeps generating until the value satisfies {@code pred}; shrinks stay within {@code pred}. */
+    /**
+     * Restricts generation to values satisfying {@code pred}, resampling on rejection; surviving
+     * shrinks also satisfy {@code pred}.
+     *
+     * @param pred the predicate a generated value must satisfy
+     * @return a generator yielding only values for which {@code pred} holds
+     * @throws GenerationException if no value satisfies {@code pred} within 1000 attempts
+     */
     default Gen<T> filter(final Predicate<? super T> pred) {
         return (random, size) -> {
             for (int attempt = 0; attempt < 1_000; attempt++) {
@@ -50,9 +74,14 @@ public interface Gen<T> {
     }
 
     /**
-     * Monadic bind. Shrinking is best-effort: it shrinks the outer value (regenerating the inner
-     * with a fixed seed for stability) and the inner value, but does not jointly minimise both.
-     * No current property test relies on user-level {@code flatMap} shrinking.
+     * Monadic bind: feeds each generated value into {@code f} to choose the next generator.
+     * Shrinking is best-effort — it shrinks the outer value (regenerating the inner with a fixed
+     * seed for stability) and the inner value, but does not jointly minimise both. No current
+     * property test relies on user-level {@code flatMap} shrinking.
+     *
+     * @param f   chooses the next generator from a produced value
+     * @param <R> the type produced by the chosen generator
+     * @return a generator that draws an outer value then a dependent inner value
      */
     default <R> Gen<R> flatMap(final Function<? super T, ? extends Gen<R>> f) {
         return (random, size) -> {
@@ -62,12 +91,27 @@ public interface Gen<T> {
         };
     }
 
-    /** A list of this generator's values with length in {@code [min, max]}. */
+    /**
+     * A list of this generator's values with length in {@code [min, max]}; shrinks toward shorter
+     * lists and smaller elements.
+     *
+     * @param min minimum list length (inclusive, {@code >= 0})
+     * @param max maximum list length (inclusive, {@code >= min})
+     * @return a generator of bounded-length lists
+     */
     default Gen<List<T>> list(final int min, final int max) {
         return listOf(this, min, max, false);
     }
 
-    /** A list of distinct values with length in {@code [min, max]}. */
+    /**
+     * Like {@link #list(int, int)} but with distinct elements (by {@code equals}).
+     *
+     * @param min minimum list length (inclusive, {@code >= 0})
+     * @param max maximum list length (inclusive, {@code >= min})
+     * @return a generator of bounded-length lists of distinct values
+     * @throws GenerationException if generation cannot draw {@code min} distinct values within its
+     *                             attempt budget
+     */
     default Gen<List<T>> listUnique(final int min, final int max) {
         return listOf(this, min, max, true);
     }
@@ -76,28 +120,51 @@ public interface Gen<T> {
     // Static factories (1:1 with the jqwik surface this project used)
     // ====================================================================
 
-    /** {@code Arbitraries.integers().between(min, max)}. Shrinks toward 0 clamped into range. */
+    /**
+     * {@code Arbitraries.integers().between(min, max)}. Shrinks toward 0 clamped into range.
+     *
+     * @param min minimum value (inclusive)
+     * @param max maximum value (inclusive, {@code >= min})
+     * @return a generator of ints in {@code [min, max]}
+     */
     static Gen<Integer> integers(final int min, final int max) {
         requireRange(min, max);
         final int target = clampInt(0, min, max);
         return (random, size) -> shrinkIntTowards(target, randomInt(random, min, max));
     }
 
-    /** {@code Arbitraries.longs().between(min, max)}. Shrinks toward 0 clamped into range. */
+    /**
+     * {@code Arbitraries.longs().between(min, max)}. Shrinks toward 0 clamped into range.
+     *
+     * @param min minimum value (inclusive)
+     * @param max maximum value (inclusive, {@code >= min})
+     * @return a generator of longs in {@code [min, max]}
+     */
     static Gen<Long> longs(final long min, final long max) {
         if (min > max) throw new IllegalArgumentException("min > max: " + min + " > " + max);
         final long target = Math.max(min, Math.min(max, 0L));
         return (random, size) -> shrinkLongTowards(target, randomLong(random, min, max));
     }
 
-    /** Booleans; {@code true} shrinks to {@code false}. */
+    /**
+     * Booleans; {@code true} shrinks to {@code false}.
+     *
+     * @return a generator of uniformly random booleans
+     */
     static Gen<Boolean> booleans() {
         return (random, size) -> random.nextBoolean()
                 ? Shrinkable.of(Boolean.TRUE, () -> Stream.of(Shrinkable.leaf(Boolean.FALSE)))
                 : Shrinkable.leaf(Boolean.FALSE);
     }
 
-    /** {@code Arbitraries.strings().alpha().ofMinLength(min).ofMaxLength(max)} (chars {@code a-z}). */
+    /**
+     * {@code Arbitraries.strings().alpha().ofMinLength(min).ofMaxLength(max)} over chars {@code a-z}
+     * (lowercase only). Shrinks toward shorter strings and chars toward {@code 'a'}.
+     *
+     * @param minLength minimum string length (inclusive, {@code >= 0})
+     * @param maxLength maximum string length (inclusive, {@code >= minLength})
+     * @return a generator of lowercase alphabetic strings
+     */
     static Gen<String> alpha(final int minLength, final int maxLength) {
         requireRange(minLength, maxLength);
         if (minLength < 0) throw new IllegalArgumentException("minLength < 0: " + minLength);
@@ -112,7 +179,13 @@ public interface Gen<T> {
         };
     }
 
-    /** {@code Arbitraries.of(values...)}. Picks uniformly; shrinks toward the first value. */
+    /**
+     * {@code Arbitraries.of(values...)}. Picks uniformly; shrinks toward the first value.
+     *
+     * @param values the candidate values (at least one)
+     * @param <T>    the value type
+     * @return a generator choosing uniformly among {@code values}
+     */
     @SafeVarargs
     static <T> Gen<T> of(final T... values) {
         if (values.length == 0) throw new IllegalArgumentException("Gen.of requires at least one value");
@@ -120,7 +193,13 @@ public interface Gen<T> {
         return (random, size) -> shrinkChoice(vs, randomInt(random, 0, vs.size() - 1));
     }
 
-    /** {@code Arbitraries.oneOf(gens...)}. Picks one generator uniformly and delegates to it. */
+    /**
+     * {@code Arbitraries.oneOf(gens...)}. Picks one generator uniformly and delegates to it.
+     *
+     * @param gens the candidate generators (at least one)
+     * @param <T>  the common value type
+     * @return a generator that defers to a uniformly chosen member of {@code gens}
+     */
     @SafeVarargs
     static <T> Gen<T> oneOf(final Gen<? extends T>... gens) {
         if (gens.length == 0) throw new IllegalArgumentException("Gen.oneOf requires at least one generator");
@@ -132,7 +211,16 @@ public interface Gen<T> {
         };
     }
 
-    /** {@code Arbitraries.maps(keys, values).ofMaxSize(maxSize)} with distinct keys. */
+    /**
+     * {@code Arbitraries.maps(keys, values).ofMaxSize(maxSize)} with distinct keys.
+     *
+     * @param keys    generator for map keys (duplicates are dropped, so the result may be smaller)
+     * @param values  generator for map values
+     * @param maxSize maximum entry count (inclusive, {@code >= 0})
+     * @param <K>     the key type
+     * @param <V>     the value type
+     * @return a generator of maps with up to {@code maxSize} distinct-key entries
+     */
     static <K, V> Gen<Map<K, V>> maps(final Gen<K> keys, final Gen<V> values, final int maxSize) {
         if (maxSize < 0) throw new IllegalArgumentException("maxSize < 0: " + maxSize);
         final Gen<Map.Entry<K, V>> entries = combine(keys, values, Map::entry);
@@ -154,9 +242,15 @@ public interface Gen<T> {
     }
 
     /**
-     * {@code Arbitraries.recursive(base, expand, depth)}: {@code expand} applied {@code depth}
-     * times over {@code base}. Branches terminate naturally when an inner {@code list} yields zero
+     * {@code Arbitraries.recursive(base, expand, depth)}: {@code expand} applied {@code depth} times
+     * over {@code base}. Branches terminate naturally when an inner {@code list} yields zero
      * elements.
+     *
+     * @param base   supplies the leaf (depth-0) generator
+     * @param expand wraps a child generator into a deeper one
+     * @param depth  number of {@code expand} applications ({@code <= 0} returns {@code base})
+     * @param <T>    the generated type
+     * @return a generator producing recursively nested structures up to {@code depth}
      */
     static <T> Gen<T> recursive(final Supplier<Gen<T>> base,
                                 final Function<Gen<T>, Gen<T>> expand,
@@ -169,21 +263,60 @@ public interface Gen<T> {
 
     // --- applicative combination (correct tuple shrinking by interleaving child trees) ---
 
-    /** {@code Combinators.combine(a, b).as(f)}. */
+    /**
+     * {@code Combinators.combine(a, b).as(f)}.
+     *
+     * @param a   first component generator
+     * @param b   second component generator
+     * @param f   combines the two values into a result
+     * @param <A> first component type
+     * @param <B> second component type
+     * @param <R> result type
+     * @return a generator of {@code f}-combined pairs, shrinking both components
+     */
     static <A, B, R> Gen<R> combine(final Gen<A> a, final Gen<B> b,
                                     final BiFunction<? super A, ? super B, ? extends R> f) {
         return (random, size) -> combine2(a.generate(random, size), b.generate(random, size), f);
     }
 
-    /** {@code Combinators.combine(a, b, c).as(f)}. */
+    /**
+     * {@code Combinators.combine(a, b, c).as(f)}.
+     *
+     * @param a   first component generator
+     * @param b   second component generator
+     * @param c   third component generator
+     * @param f   combines the three values into a result
+     * @param <A> first component type
+     * @param <B> second component type
+     * @param <C> third component type
+     * @param <R> result type
+     * @return a generator of {@code f}-combined triples, shrinking all components
+     */
     static <A, B, C, R> Gen<R> combine(final Gen<A> a, final Gen<B> b, final Gen<C> c,
                                        final Fn3<? super A, ? super B, ? super C, ? extends R> f) {
         return (random, size) -> combine3(a.generate(random, size), b.generate(random, size),
                 c.generate(random, size), f);
     }
 
-    /** {@code Combinators.combine(a, b, c, d).as(f)}. */
-    static <A, B, C, D, R> Gen<R> combine(final Gen<A> a, final Gen<B> b, final Gen<C> c, final Gen<D> d,
+    /**
+     * {@code Combinators.combine(a, b, c, d).as(f)}.
+     *
+     * @param a   first component generator
+     * @param b   second component generator
+     * @param c   third component generator
+     * @param d   fourth component generator
+     * @param f   combines the four values into a result
+     * @param <A> first component type
+     * @param <B> second component type
+     * @param <C> third component type
+     * @param <D> fourth component type
+     * @param <R> result type
+     * @return a generator of {@code f}-combined quadruples, shrinking all components
+     */
+    static <A, B, C, D, R> Gen<R> combine(final Gen<A> a,
+                                          final Gen<B> b,
+                                          final Gen<C> c,
+                                          final Gen<D> d,
                                           final Fn4<? super A, ? super B, ? super C, ? super D, ? extends R> f) {
         return (random, size) -> combine4(a.generate(random, size), b.generate(random, size),
                 c.generate(random, size), d.generate(random, size), f);
@@ -222,6 +355,11 @@ public interface Gen<T> {
                                 d.shrinks().map(s -> combine4(a, b, c, s, f))))));
     }
 
+    /**
+     * Builds the {@link #flatMap} result tree: the chosen inner value, whose shrinks are the outer
+     * shrinks (each re-bound through {@code f} at the fixed {@code innerSeed}) followed by the
+     * inner's own shrinks.
+     */
     private static <T, R> Shrinkable<R> flatMapShrinkable(final Shrinkable<T> outer,
                                                           final Function<? super T, ? extends Gen<R>> f,
                                                           final long innerSeed, final int size) {
@@ -231,6 +369,11 @@ public interface Gen<T> {
                 inner.shrinks()));
     }
 
+    /**
+     * Shared implementation of {@link #list} and {@link #listUnique}. Unique lists use a bounded
+     * retry loop; if it cannot draw {@code min} distinct values, generation fails instead of
+     * returning an undersized list.
+     */
     private static <T> Gen<List<T>> listOf(final Gen<T> element,
                                            final int min,
                                            final int max,
@@ -252,13 +395,11 @@ public interface Gen<T> {
                         elements.add(e);
                     }
                 }
-                // If the element domain can't supply min distinct values the request is
-                // unsatisfiable — fail loudly rather than returning an undersized list. (Reaching
-                // between min and the randomly chosen length is fine: still within [min, max].)
+                // Reaching between min and the randomly chosen length is fine: still within [min, max].
                 if (elements.size() < min) {
                     throw new GenerationException("listUnique: generated only " + elements.size()
                             + " distinct element(s) but at least " + min + " were required"
-                            + " — the element generator's value domain is too small");
+                            + " — generation could not draw enough distinct values");
                 }
             } else {
                 for (int i = 0; i < length; i++) {
@@ -274,7 +415,15 @@ public interface Gen<T> {
         return list.size() == new java.util.HashSet<>(list).size();
     }
 
-    /** Builds a list shrinkable: shrink by removing elements (down to {@code minSize}) and by shrinking each element. */
+    /**
+     * Builds a list shrinkable: shrink by removing elements (down to {@code minSize}) and by
+     * shrinking each element in place.
+     *
+     * @param elements the per-element shrinkables, in order
+     * @param minSize  the smallest list length removals may reach
+     * @param <T>      the element type
+     * @return a shrinkable list whose tree explores shorter lists and smaller elements
+     */
     private static <T> Shrinkable<List<T>> shrinkableList(final List<Shrinkable<T>> elements, final int minSize) {
         final List<T> values = new ArrayList<>(elements.size());
         for (final Shrinkable<T> e : elements) {
@@ -301,6 +450,7 @@ public interface Gen<T> {
         });
     }
 
+    /** Shrinks a choice toward the first value, with an intermediate step through the previous value. */
     private static <T> Shrinkable<T> shrinkChoice(final List<T> values, final int index) {
         return Shrinkable.of(values.get(index), () -> {
             if (index == 0) {
@@ -327,7 +477,15 @@ public interface Gen<T> {
         return Shrinkable.of(value, () -> intCandidates(target, value).mapToObj(c -> shrinkCharTowards(target, (char) c)));
     }
 
-    /** The halving sequence from {@code target} toward {@code value}: {@code target} first, then closer. */
+    /**
+     * The halving sequence from {@code target} toward {@code value}: {@code target} first, then
+     * successively closer points, ending just shy of {@code value}.
+     *
+     * @param target the value shrinking converges toward
+     * @param value  the value being shrunk
+     * @return candidate ints between {@code target} (inclusive) and {@code value} (exclusive), or
+     *         empty when {@code value == target}
+     */
     private static IntStream intCandidates(final int target, final int value) {
         if (value == target) {
             return IntStream.empty();
@@ -377,6 +535,7 @@ public interface Gen<T> {
         return (int) (min + Math.floorMod(random.nextLong(), range));
     }
 
+    /** A uniform long in {@code [min, max]}, reject-sampling when the span overflows {@code long}. */
     private static long randomLong(final Random random, final long min, final long max) {
         final long range = max - min + 1L;
         if (range <= 0L) {
