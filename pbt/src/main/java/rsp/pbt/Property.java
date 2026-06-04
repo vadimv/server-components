@@ -1,11 +1,18 @@
 package rsp.pbt;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 /**
  * Runs property checks over {@link Gen}erated inputs and minimizes any counterexample by walking
@@ -23,6 +30,11 @@ import java.util.function.Predicate;
  * <p>A check fails if the body throws (an {@link AssertionError} from a JUnit assertion, or any
  * {@link RuntimeException}) or a {@link Predicate} body returns {@code false}. Call
  * {@link #assume(boolean)} to discard an unwanted input without counting it as a try.
+ *
+ * <p>To see <em>what</em> a property actually exercised — and catch the silent failure mode of a
+ * property that passes only because its inputs were uninteresting — chain
+ * {@code classify(label, predicate)} and/or {@code collect(labeller)} before {@code check}; on
+ * success a one-line distribution summary is printed to {@code System.out}.
  */
 public final class Property {
 
@@ -75,9 +87,42 @@ public final class Property {
      */
     public static final class ForAll1<A> {
         private final Gen<A> gen;
+        private final List<Function<? super A, List<String>>> taggers = new ArrayList<>();
+        private final List<String> declaredLabels = new ArrayList<>();
 
         private ForAll1(final Gen<A> gen) {
             this.gen = gen;
+        }
+
+        /**
+         * Records, in the distribution summary, the fraction of inputs for which {@code predicate}
+         * holds. The label always appears, even at {@code 0.0%} — a zero is the signal that the
+         * generator never produced that case.
+         *
+         * @param label     the bucket name to report
+         * @param predicate selects the inputs counted under {@code label}
+         * @return this builder, for chaining
+         */
+        public ForAll1<A> classify(final String label, final Predicate<? super A> predicate) {
+            declaredLabels.add(label);
+            taggers.add(value -> predicate.test(value) ? List.of(label) : List.of());
+            return this;
+        }
+
+        /**
+         * Buckets every input by {@code labeller} and reports each bucket's share in the summary.
+         * Buckets are data-driven, so only labels that actually occur are shown.
+         *
+         * <p>Diagnostics see the original input (before the body runs) and need only be total over
+         * <em>accepted</em> inputs — those the body keeps via {@link Property#assume}. A labeller
+         * that throws on an accepted input fails the run.
+         *
+         * @param labeller maps an input to its bucket label
+         * @return this builder, for chaining
+         */
+        public ForAll1<A> collect(final Function<? super A, ?> labeller) {
+            taggers.add(value -> List.of(String.valueOf(labeller.apply(value))));
+            return this;
         }
 
         /**
@@ -93,7 +138,7 @@ public final class Property {
             run(gen, a -> {
                 body.accept(a);
                 return true;
-            }, String::valueOf);
+            }, String::valueOf, taggers, declaredLabels);
         }
     }
 
@@ -106,10 +151,44 @@ public final class Property {
     public static final class ForAll2<A, B> {
         private final Gen<A> a;
         private final Gen<B> b;
+        private final List<Function<? super Object[], List<String>>> taggers = new ArrayList<>();
+        private final List<String> declaredLabels = new ArrayList<>();
 
         private ForAll2(final Gen<A> a, final Gen<B> b) {
             this.a = a;
             this.b = b;
+        }
+
+        /**
+         * Records, in the distribution summary, the fraction of pairs for which {@code predicate}
+         * holds. The label always appears, even at {@code 0.0%}.
+         *
+         * @param label     the bucket name to report
+         * @param predicate selects the pairs counted under {@code label}
+         * @return this builder, for chaining
+         */
+        @SuppressWarnings("unchecked")
+        public ForAll2<A, B> classify(final String label, final BiPredicate<? super A, ? super B> predicate) {
+            declaredLabels.add(label);
+            taggers.add(arr -> predicate.test((A) arr[0], (B) arr[1]) ? List.of(label) : List.of());
+            return this;
+        }
+
+        /**
+         * Buckets every pair by {@code labeller} and reports each bucket's share in the summary.
+         * Buckets are data-driven, so only labels that actually occur are shown.
+         *
+         * <p>Diagnostics see the original input (before the body runs) and need only be total over
+         * <em>accepted</em> pairs — those the body keeps via {@link Property#assume}. A labeller that
+         * throws on an accepted pair fails the run.
+         *
+         * @param labeller maps a pair to its bucket label
+         * @return this builder, for chaining
+         */
+        @SuppressWarnings("unchecked")
+        public ForAll2<A, B> collect(final BiFunction<? super A, ? super B, ?> labeller) {
+            taggers.add(arr -> List.of(String.valueOf(labeller.apply((A) arr[0], (B) arr[1]))));
+            return this;
         }
 
         /**
@@ -123,7 +202,7 @@ public final class Property {
             run(pairGen(), arr -> {
                 body.accept((A) arr[0], (B) arr[1]);
                 return true;
-            }, Property::renderPair);
+            }, Property::renderPair, taggers, declaredLabels);
         }
 
         private Gen<Object[]> pairGen() {
@@ -137,11 +216,19 @@ public final class Property {
 
     private static <T> void run(final Gen<T> gen,
                                 final Predicate<T> property,
-                                final Function<? super T, String> render) {
+                                final Function<? super T, String> render,
+                                final List<Function<? super T, List<String>>> taggers,
+                                final List<String> declaredLabels) {
         final long seed = configuredSeed();
         final int tries = configuredTries();
         final int maxDiscards = Math.max(10, tries * 10);
         final Random seedSource = new Random(seed);
+        final Map<String, Integer> tally = new LinkedHashMap<>();
+        // Seed declared classify labels at 0 so a never-matched label still prints (e.g. "large 0.0%"),
+        // which is the whole point of catching uninteresting inputs.
+        for (final String label : declaredLabels) {
+            tally.putIfAbsent(label, 0);
+        }
 
         int completed = 0;
         int discards = 0;
@@ -150,6 +237,11 @@ public final class Property {
             // Generation happens outside the evaluation guard so a generator error is never
             // mistaken for a property failure.
             final Shrinkable<T> sh = gen.generate(new Random(seedSource.nextLong()), size);
+            // Classify against the original input: snapshot labels before the body runs, since it
+            // may mutate a generated mutable value (e.g. sort a list in place). A tagger may throw
+            // on a raw value the body would have discarded via assume(), so defer any such failure
+            // and only act on it once we know the input was accepted.
+            final Labels labels = taggers.isEmpty() ? Labels.EMPTY : snapshotLabels(taggers, sh.value());
             final Outcome outcome = evaluate(property, sh.value());
             if (outcome.discarded()) {
                 if (++discards > maxDiscards) {
@@ -162,7 +254,54 @@ public final class Property {
             if (outcome.failed()) {
                 throw shrinkAndReport(sh, property, render, seed, completed);
             }
+            // The input was accepted: a tagger that threw on it is a genuine misuse (not total over
+            // accepted inputs), so surface it; otherwise record the snapshotted labels.
+            if (labels.failure() != null) {
+                throw new IllegalStateException("A classify/collect labeller threw on an accepted input"
+                        + " (seed=" + seed + "); taggers must handle every accepted value", labels.failure());
+            }
+            for (final String label : labels.labels()) {
+                tally.merge(label, 1, Integer::sum);
+            }
         }
+        if (!taggers.isEmpty()) {
+            printDistribution(tally, completed);
+        }
+    }
+
+    /**
+     * Evaluates every tagger on the original {@code value}, capturing either the labels or the first
+     * {@link AssertionError}/{@link RuntimeException} a tagger threw. The failure is deferred (not
+     * rethrown here) because it only matters if the input turns out to be accepted — a discarded
+     * input's diagnostics are irrelevant.
+     */
+    private static <T> Labels snapshotLabels(final List<Function<? super T, List<String>>> taggers, final T value) {
+        final List<String> labels = new ArrayList<>();
+        try {
+            for (final Function<? super T, List<String>> tagger : taggers) {
+                labels.addAll(tagger.apply(value));
+            }
+        } catch (final AssertionError | RuntimeException e) {
+            return new Labels(List.of(), e);
+        }
+        return new Labels(labels, null);
+    }
+
+    /** A label snapshot: the labels gathered, or the deferred tagger {@code failure} (never both populated). */
+    private record Labels(List<String> labels, Throwable failure) {
+        private static final Labels EMPTY = new Labels(List.of(), null);
+    }
+
+    /** Prints the per-label distribution (share of passing inputs), highest share first, to {@code System.out}. */
+    private static void printDistribution(final Map<String, Integer> tally, final int total) {
+        if (total == 0) {
+            return;
+        }
+        final String body = tally.entrySet().stream()
+                .sorted((x, y) -> Integer.compare(y.getValue(), x.getValue()))
+                .map(e -> String.format("%s %.1f%%", e.getKey(), 100.0 * e.getValue() / total))
+                .collect(Collectors.joining(", "));
+        System.out.println("PBT distribution (" + total + " tests): " + body);
     }
 
     private static <T> AssertionError shrinkAndReport(final Shrinkable<T> failing, final Predicate<T> property,

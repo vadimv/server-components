@@ -25,6 +25,13 @@ import java.util.stream.Stream;
  * recursion depth), so generation does not depend on {@code size}. It is threaded through for
  * forward compatibility.
  *
+ * <p><b>Edge-case seeding.</b> The leaf generators bias roughly one draw in {@value #EDGE_ONE_IN}
+ * toward a boundary value — {@code min}/{@code max}/the shrink target for numbers, empty/min/max
+ * length for strings, lists and maps — so off-by-one and empty-collection bugs are exercised far
+ * more often than uniform sampling would manage. Because the bias lives in the value distribution
+ * it propagates for free through {@code map}, {@code combine}, {@code list} and {@code recursive}.
+ * It is probabilistic, not a guarantee.
+ *
  * @param <T> the type of value produced
  */
 @FunctionalInterface
@@ -130,7 +137,10 @@ public interface Gen<T> {
     static Gen<Integer> integers(final int min, final int max) {
         requireRange(min, max);
         final int target = clampInt(0, min, max);
-        return (random, size) -> shrinkIntTowards(target, randomInt(random, min, max));
+        return (random, size) -> {
+            final int value = drawEdge(random) ? edgeInt(random, min, max, target) : randomInt(random, min, max);
+            return shrinkIntTowards(target, value);
+        };
     }
 
     /**
@@ -143,7 +153,10 @@ public interface Gen<T> {
     static Gen<Long> longs(final long min, final long max) {
         if (min > max) throw new IllegalArgumentException("min > max: " + min + " > " + max);
         final long target = Math.max(min, Math.min(max, 0L));
-        return (random, size) -> shrinkLongTowards(target, randomLong(random, min, max));
+        return (random, size) -> {
+            final long value = drawEdge(random) ? edgeLong(random, min, max, target) : randomLong(random, min, max);
+            return shrinkLongTowards(target, value);
+        };
     }
 
     /**
@@ -170,7 +183,8 @@ public interface Gen<T> {
         if (minLength < 0) throw new IllegalArgumentException("minLength < 0: " + minLength);
         final Gen<Character> chars = (random, size) -> shrinkCharTowards('a', (char) ('a' + randomInt(random, 0, 25)));
         return (random, size) -> {
-            final int length = randomInt(random, minLength, maxLength);
+            final int length = drawEdge(random) ? (random.nextBoolean() ? minLength : maxLength)
+                                                : randomInt(random, minLength, maxLength);
             final List<Shrinkable<Character>> elements = new ArrayList<>(length);
             for (int i = 0; i < length; i++) {
                 elements.add(chars.generate(random, size));
@@ -225,11 +239,12 @@ public interface Gen<T> {
         if (maxSize < 0) throw new IllegalArgumentException("maxSize < 0: " + maxSize);
         final Gen<Map.Entry<K, V>> entries = combine(keys, values, Map::entry);
         return (random, size) -> {
-            final int n = randomInt(random, 0, maxSize);
+            final int n = drawEdge(random) ? (random.nextBoolean() ? 0 : maxSize)
+                                           : randomInt(random, 0, maxSize);
             final LinkedHashMap<K, V> seen = new LinkedHashMap<>();
             final List<Shrinkable<Map.Entry<K, V>>> elements = new ArrayList<>();
             int attempts = 0;
-            while (elements.size() < n && attempts < n * 10 + 10) {
+            while (elements.size() < n && attempts < distinctAttempts(n)) {
                 attempts++;
                 final Shrinkable<Map.Entry<K, V>> e = entries.generate(random, size);
                 if (!seen.containsKey(e.value().getKey())) {
@@ -381,11 +396,12 @@ public interface Gen<T> {
         requireRange(min, max);
         if (min < 0) throw new IllegalArgumentException("min size < 0: " + min);
         return (random, size) -> {
-            final int length = randomInt(random, min, max);
+            final int length = drawEdge(random) ? (random.nextBoolean() ? min : max)
+                                                : randomInt(random, min, max);
             final List<Shrinkable<T>> elements = new ArrayList<>(length);
             if (unique) {
                 final List<T> seen = new ArrayList<>();
-                final int maxAttempts = Math.max(length, min) * 100 + 100;
+                final int maxAttempts = distinctAttempts(Math.max(length, min));
                 int attempts = 0;
                 while (elements.size() < length && attempts < maxAttempts) {
                     attempts++;
@@ -530,6 +546,49 @@ public interface Gen<T> {
         return map;
     }
 
+    /** Roughly one draw in this many is biased toward a boundary value (see the type javadoc). */
+    int EDGE_ONE_IN = 8;
+
+    /**
+     * Attempt budget for collecting distinct values (unique lists, distinct map keys):
+     * {@code targetSize * }{@value #DISTINCT_ATTEMPTS_PER_ELEMENT}{@code  + }{@value #DISTINCT_ATTEMPTS_FLOOR}.
+     * The per-element factor absorbs collisions; the floor gives small targets a fair chance. When
+     * the budget is exhausted, {@code listUnique} fails and {@code maps} returns a smaller map.
+     */
+    int DISTINCT_ATTEMPTS_PER_ELEMENT = 100;
+
+    /** Baseline distinct-sampling attempts independent of target size; see {@link #DISTINCT_ATTEMPTS_PER_ELEMENT}. */
+    int DISTINCT_ATTEMPTS_FLOOR = 100;
+
+    /** Whether this draw should yield a boundary value rather than a uniform one. */
+    private static boolean drawEdge(final Random random) {
+        return random.nextInt(EDGE_ONE_IN) == 0;
+    }
+
+    /** The distinct-sampling attempt budget for a target of {@code targetSize} distinct values. */
+    private static int distinctAttempts(final int targetSize) {
+        return targetSize * DISTINCT_ATTEMPTS_PER_ELEMENT + DISTINCT_ATTEMPTS_FLOOR;
+    }
+
+    /** A boundary int chosen uniformly among the distinct values {@code {min, max, target}}. */
+    private static int edgeInt(final Random random, final int min, final int max, final int target) {
+        final List<Integer> edges = new ArrayList<>(3);
+        edges.add(min);
+        if (max != min) edges.add(max);
+        if (target != min && target != max) edges.add(target);
+        return edges.get(random.nextInt(edges.size()));
+    }
+
+    /** A boundary long chosen uniformly among the distinct values {@code {min, max, target}}. */
+    private static long edgeLong(final Random random, final long min, final long max, final long target) {
+        final List<Long> edges = new ArrayList<>(3);
+        edges.add(min);
+        if (max != min) edges.add(max);
+        if (target != min && target != max) edges.add(target);
+        return edges.get(random.nextInt(edges.size()));
+    }
+
+    /** A uniform int in {@code [min, max]}; widened to {@code long} so the range can't overflow. */
     private static int randomInt(final Random random, final int min, final int max) {
         final long range = (long) max - (long) min + 1L;
         return (int) (min + Math.floorMod(random.nextLong(), range));

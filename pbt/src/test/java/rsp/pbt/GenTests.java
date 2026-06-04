@@ -2,8 +2,10 @@ package rsp.pbt;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +26,50 @@ class GenTests {
                      Gen.integers(0, 100).generate(new Random(42), 50).value());
         assertEquals(Gen.alpha(0, 10).generate(new Random(7), 50).value(),
                      Gen.alpha(0, 10).generate(new Random(7), 50).value());
+    }
+
+    @Test
+    void integers_seed_their_boundary_values() {
+        // Edge-case seeding must surface min, max and the shrink target (0) within a modest sample.
+        final Set<Integer> seen = new HashSet<>();
+        final Random source = new Random(1);
+        final Gen<Integer> g = Gen.integers(-50, 50);
+        for (int i = 0; i < 500; i++) {
+            seen.add(g.generate(new Random(source.nextLong()), 50).value());
+        }
+        assertTrue(seen.contains(-50), "min boundary not generated");
+        assertTrue(seen.contains(50), "max boundary not generated");
+        assertTrue(seen.contains(0), "zero (shrink target) boundary not generated");
+    }
+
+    @Test
+    void list_seeds_empty_and_max_length() {
+        boolean empty = false;
+        boolean full = false;
+        final Random source = new Random(2);
+        final Gen<List<Integer>> g = Gen.integers(0, 9).list(0, 5);
+        for (int i = 0; i < 500 && !(empty && full); i++) {
+            final int sz = g.generate(new Random(source.nextLong()), 50).value().size();
+            empty |= sz == 0;
+            full |= sz == 5;
+        }
+        assertTrue(empty, "empty list boundary not generated");
+        assertTrue(full, "max-length list boundary not generated");
+    }
+
+    @Test
+    void alpha_seeds_empty_and_max_length() {
+        boolean empty = false;
+        boolean full = false;
+        final Random source = new Random(3);
+        final Gen<String> g = Gen.alpha(0, 8);
+        for (int i = 0; i < 500 && !(empty && full); i++) {
+            final int len = g.generate(new Random(source.nextLong()), 50).value().length();
+            empty |= len == 0;
+            full |= len == 8;
+        }
+        assertTrue(empty, "empty string boundary not generated");
+        assertTrue(full, "max-length string boundary not generated");
     }
 
     @Test
