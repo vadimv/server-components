@@ -7,6 +7,7 @@ import java.util.*;
  */
 public final class DefaultDomChangesContext implements DomChangesContext {
     public final Set<NodeId> elementsToRemove = new HashSet<>();
+    public final Set<NodeId> elementsToCreate = new HashSet<>();
     public final List<DomChange> changes = new ArrayList<>();
 
     @Override
@@ -28,11 +29,13 @@ public final class DefaultDomChangesContext implements DomChangesContext {
     @Override
     public void createText(final NodeId parentPath, final NodeId path, final String text) {
         changes.add(new CreateText(parentPath, path, text));
+        elementsToCreate.add(path);
     }
 
     @Override
     public void createTag(final NodeId path, final XmlNs xmlNs, final String tag) {
         changes.add(new Create(path, xmlNs, tag));
+        elementsToCreate.add(path);
     }
 
     @Override

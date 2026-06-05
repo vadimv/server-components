@@ -50,7 +50,7 @@ public final class NodesTreeDiff {
                                  final NodeId id,
                                  final DomChangesContext changesPerformer,
                                  final HtmlBuilder htmlBuilder) {
-        if (!tree1.name.equals(tree2.name)) {
+        if (!sameElementType(tree1, tree2)) {
             changesPerformer.removeNode(id.parent(), id);
             createNode(tree2, id, changesPerformer, htmlBuilder);
         } else {
@@ -135,10 +135,10 @@ public final class NodesTreeDiff {
         final Map<String, TagNode> oldByKey = indexByKey(trees1);
         final Map<String, TagNode> newByKey = indexByKey(trees2);
 
-        // A key is "retained" only if it is present in both lists with the same tag name. A name
-        // change cannot be applied in place ({@link #diffNode} removes and recreates the element),
-        // so it is treated as remove+recreate here too — otherwise the recreated element would not
-        // be positioned by the insertBefore below and would drift to the end of the parent.
+        // A key is "retained" only if it is present in both lists with the same element type. A type
+        // change cannot be applied in place (diffNode removes and recreates the element), so it is
+        // treated as remove+recreate here too — otherwise the recreated element would not be
+        // positioned by the insertBefore below and would drift to the end of the parent.
 
         // 1. Remove keys that are not retained (absent from the new list, or whose tag name changed).
         for (final Node node : trees1) {
@@ -181,13 +181,17 @@ public final class NodesTreeDiff {
         }
     }
 
-    /** A keyed child is retained only if it exists in both lists with the same tag name (a name change recreates it). */
+    /** A keyed child is retained only if it exists in both lists with the same element type. */
     private static boolean isRetained(final String key,
                                       final Map<String, TagNode> oldByKey,
                                       final Map<String, TagNode> newByKey) {
         final TagNode oldNode = oldByKey.get(key);
         final TagNode newNode = newByKey.get(key);
-        return oldNode != null && newNode != null && oldNode.name.equals(newNode.name);
+        return oldNode != null && newNode != null && sameElementType(oldNode, newNode);
+    }
+
+    private static boolean sameElementType(final TagNode a, final TagNode b) {
+        return a.xmlns.equals(b.xmlns) && a.name.equals(b.name);
     }
 
     private static void diffAttributes(final Set<AttributeNode> attributes1,

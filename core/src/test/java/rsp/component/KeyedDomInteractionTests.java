@@ -107,6 +107,28 @@ class KeyedDomInteractionTests {
                 </ul>""", treeBuilder.html());
     }
 
+    @Test
+    void keyed_event_is_relistened_when_same_key_node_is_recreated() {
+        final ComponentSegment<String> segment = createSegment("button", state ->
+                div("button".equals(state)
+                        ? button(key("save"), on("click", _ -> {}), text("Save"))
+                        : a(key("save"), on("click", _ -> {}), text("Save"))));
+        final TreeBuilder treeBuilder = new TreeBuilder(sessionId, TreePositionPath.of("1"), componentContext, commandsEnqueue);
+        treeBuilder.openComponent(segment);
+        segment.render(treeBuilder);
+        treeBuilder.closeComponent();
+        commands.clear();
+
+        segment.setState("link");
+
+        final List<RemoteCommand.ListenEvent> listenCommands = commands.stream()
+                .filter(RemoteCommand.ListenEvent.class::isInstance)
+                .map(RemoteCommand.ListenEvent.class::cast)
+                .toList();
+        assertEquals(1, listenCommands.size(), "a recreated keyed node needs a fresh DOM listener");
+        assertEquals(NodeId.of("1_kssave"), listenCommands.getFirst().events().getFirst().eventTarget.nodeId());
+    }
+
     private TreeBuilder render(final java.util.function.Function<String, Definition> viewDefinition) {
         final ComponentSegment<String> segment = createSegment("state", viewDefinition);
         final TreeBuilder treeBuilder = new TreeBuilder(sessionId, TreePositionPath.of("1"), componentContext, commandsEnqueue);

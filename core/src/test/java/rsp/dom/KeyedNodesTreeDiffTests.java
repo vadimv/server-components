@@ -17,6 +17,12 @@ class KeyedNodesTreeDiffTests {
         return li;
     }
 
+    private static TagNode keyed(final XmlNs xmlNs, final String name, final long key) {
+        final TagNode tag = new TagNode(xmlNs, name, false);
+        tag.setKey(Key.of(key).segment());
+        return tag;
+    }
+
     private static TagNode unkeyedLi(final String text) {
         final TagNode li = new TagNode(XmlNs.html, "li", false);
         li.addChild(new TextNode(text));
@@ -92,6 +98,22 @@ class KeyedNodesTreeDiffTests {
         assertTrue(changes.stream().noneMatch(c -> mentionsKey(c, 3)));
         assertEquals(1, changes.size());
         assertTrue(changes.get(0) instanceof CreateText ct && mentionsKey(ct, 2));
+    }
+
+    @Test
+    void same_key_and_name_but_different_namespace_recreates_the_child() {
+        final TagNode t1 = ul(keyed(XmlNs.html, "a", 1));
+        final TagNode t2 = ul(keyed(XmlNs.svg, "a", 1));
+
+        final List<DomChange> changes = diff(t1, t2);
+
+        assertTrue(changes.stream().anyMatch(c -> c instanceof Remove r && mentionsKey(r, 1)),
+                "namespace change must remove the old keyed child; changes=" + changes);
+        assertTrue(changes.stream().anyMatch(c -> c instanceof Create cr
+                        && mentionsKey(cr, 1)
+                        && cr.xmlNs().equals(XmlNs.svg)
+                        && cr.tag().equals("a")),
+                "namespace change must create the new keyed child with the target namespace; changes=" + changes);
     }
 
     @Test

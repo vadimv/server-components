@@ -624,6 +624,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
             NodesTreeDiff.diffChildren(oldRootNodes, rootNodes(), startNodeDomPath, domChangePerformer, new HtmlBuilder(new StringBuilder()));
             final Set<NodeId> elementsToRemove = domChangePerformer.elementsToRemove;
+            final Set<NodeId> elementsToCreate = domChangePerformer.elementsToCreate;
 
             finishChildReconciliation();
             childReconciliationFinished = true;
@@ -646,7 +647,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             // Register new events on client-side
             final List<DomEventEntry> eventsToAdd = new ArrayList<>();
             for (final DomEventEntry event : newEvents) {
-                if (!oldEvents.contains(event)) {
+                if (!oldEvents.contains(event) || wasRecreated(event.eventTarget.nodeId(), elementsToRemove, elementsToCreate)) {
                     eventsToAdd.add(event);
                 }
             }
@@ -848,6 +849,23 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
                 throw new IllegalStateException("Duplicate key among keyed siblings: " + key);
             }
         }
+    }
+
+    private static boolean wasRecreated(final NodeId nodeId,
+                                        final Set<NodeId> removedIds,
+                                        final Set<NodeId> createdIds) {
+        return isAtOrUnderAny(nodeId, removedIds) && isAtOrUnderAny(nodeId, createdIds);
+    }
+
+    private static boolean isAtOrUnderAny(final NodeId nodeId, final Set<NodeId> candidates) {
+        final String id = nodeId.toString();
+        for (final NodeId candidate : candidates) {
+            final String ancestor = candidate.toString();
+            if (id.equals(ancestor) || ancestor.isEmpty() || id.startsWith(ancestor + NodeId.SEPARATOR)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void addDomEventHandler(final TreePositionPath elementPath,
