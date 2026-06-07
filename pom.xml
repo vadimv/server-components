@@ -15,6 +15,7 @@
     <modules>
         <module>core</module>
         <module>pbt</module>
+        <module>mutate</module>
         <module>js-client</module>
         <module>servlet-api</module>
         <module>jetty-web-server</module>

@@ -30,7 +30,7 @@ static class ManualEventLoop implements EventLoop {
 
 ### Property-Based Testing
 
-jqwik is already a dependency. `CompositionsPropertyTests` has PBT for Router matching and DataSchema invariants. It is annotated with `@Disabled`, but jqwik ignores JUnit's `@Disabled` and still executes the properties when discovered. Core has PBT for DOM tree diff reversibility and HTML DSL correctness.
+PBT runs on the in-house, zero-dependency `pbt` module (jqwik was removed). Properties are plain JUnit `@Test` methods calling `Property.forAll(gen).check(...)`, with integrated shrinking, edge-case seeding, and `classify`/`collect` coverage reporting. `CompositionsPropertyTests` has PBT for Router matching and DataSchema invariants; `core` has PBT for DOM tree diff (positional + nested keyed) and HTML DSL correctness. The `pbt` harness is **stateless** today — there is no command-sequence ("ActionChain") support yet; see Gap 2.
 
 ### Unit-Level Contract Tests
 
@@ -54,14 +54,13 @@ ViewContract, ListView, CreateView, EditView, routing, CapabilityBus, Compositio
 
 The existing PBT tests are stateless -- they verify pure functions (path matching, schema transforms). For exploring state space and finding edge cases in navigation/CRUD/agent interactions, stateful property-based testing is needed.
 
-jqwik supports this via `@Property` + `ActionChain` / state machine model:
+This needs **stateful PBT** (command-sequence / state-machine generation). The in-house `pbt` module is currently **stateless only** — it has no `ActionChain` / `Action<Model>` equivalent — so a stateful extension to `pbt` (generate **and shrink** a sequence of commands against a model) is a **prerequisite** for L1/L2 below. Conceptual shape once that exists:
 
 ```java
-// Conceptual sketch
-@Property
-void composition_invariants_hold_under_arbitrary_action_sequences(
-        @ForAll("actions") ActionChain<CompositionModel> chain) {
-    chain.run();
+// Conceptual sketch -- requires a stateful extension to the pbt module
+@Test
+void composition_invariants_hold_under_arbitrary_action_sequences() {
+    Property.forAll(actionSequences()).check(actions -> runAndCheckInvariants(actions));
 }
 ```
 
@@ -121,16 +120,67 @@ record CompositionModel(
 
 | Layer                        | Style                           | What It Tests                                                | Framework                                               |
 |------------------------------|---------------------------------|--------------------------------------------------------------|---------------------------------------------------------|
-| L0: Pure functions           | Stateless PBT                   | Router, Schema, Group resolution, StructureNode              | jqwik `@Property` (already started)                     |
-| L1: Contract lifecycle       | Stateful PBT                    | Single contract: state transitions, event handling, auth     | jqwik `ActionChain` + `TestLookup`                      |
-| L2: Composition session      | Stateful PBT + invariant oracle | Multi-contract navigation, CRUD flows, layer stacking        | `CompositionSessionHarness` + `ManualEventLoop` + jqwik |
+| L0: Pure functions           | Stateless PBT                   | Router, Schema, Group resolution, StructureNode              | in-house `pbt` module (done)                            |
+| L1: Contract lifecycle       | Stateful PBT                    | Single contract: state transitions, event handling, auth     | `pbt` **stateful extension (TBD)** + `TestLookup`       |
+| L2: Composition session      | Stateful PBT + invariant oracle | Multi-contract navigation, CRUD flows, layer stacking        | `CompositionSessionHarness` + `ManualEventLoop` + `pbt` stateful |
 | L3: Deterministic simulation | Seeded simulation               | Concurrency, fault tolerance, agent interactions under chaos | `SimulatedEventLoop` + custom runner                    |
+
+---
+
+## Test Adequacy: The Missing Axis (Mutation Testing)
+
+Everything above describes test **kinds** (unit / session / pbt / dst / e2e) and their runtime **cost**. All of it tests the *system*. None of it answers a different question: **are these tests actually good — would they catch a regression if one were introduced?** That is the *adequacy* axis, and it is orthogonal to kind and cost.
+
+Line/branch coverage is a weak proxy: it proves a line *executed*, not that any assertion would *notice* if it misbehaved. (A dropped `htmlBuilder.reset()` in `NodesTreeDiff` survived with full line coverage of its method.) The credible adequacy metric is the **mutation score**: deliberately perturb the production code (flip a conditional, drop a void call, change a return) and check whether some test fails. A surviving mutant is a hole in the suite, regardless of coverage numbers.
+
+### How it fits (and how it does not)
+
+- It is **meta-testing** — it tests the tests. It is **not** a new tier in the kind×cost grid; it is a process that *consumes* the existing fast, deterministic tiers and reports on their strength.
+- Its output is **new tests, not a feature verdict.** A survivor means a *test is missing/weak*, not that the feature is broken. The mutation step feeds the grid (you commit a killing test); it does not gate the feature the way a failing test does.
+- Mental model: green tests = "the change works"; few *new* survivors = "and we will catch it if it later breaks." Adequacy is a **trust / confidence** measure layered on top of green.
+
+### Hard constraint: deterministic, fast tiers only
+
+Mutation testing is only meaningful against **Tier 0/1 deterministic tests** (unit + fast PBT + deterministic session). Against non-deterministic e2e it produces *false kills* (a mutant "caught" by flakiness, not by an assertion); against slow tiers the per-mutant runtime is prohibitive. State this synergy plainly: **the whole deterministic-infra investment (ManualEventLoop, seeded PBT, DST) is what makes mutation testing viable** — and mutation testing, in return, is what proves those generators are rich enough.
+
+### Synergy with PBT: it answers "grow the generators when?"
+
+This doc advises starting with a few invariants and *growing the generators incrementally* but never says when to grow them. Mutation testing is that signal: **enrich a generator when a mutant in covered code survives.** Recent example: a hand-run mutation (commenting `reset()`) showed the DOM-diff generator never reached the tag↔text branch; enriching it both killed the mutant and uncovered a real keyed-diff bug. Mutation testing is the feedback loop that drives L0–L3 generator quality.
+
+### Two-speed adequacy
+
+| Signal | Cost | Cadence | What it tells you |
+|---|---|---|---|
+| `pbt` `classify` / `collect` coverage | ~free | every build (inside the property) | input-shape distribution — a cheap blackbox proxy ("did we ever generate an empty list / a keyed child?") |
+| mutation run | heavy | diff-scoped on PR; campaigns nightly / release | did a plausible code change go unnoticed? |
+
+Run `classify` always (it is just an assertion-time tally); run mutation occasionally and scoped.
+
+### Cadence & gating
+
+| Stage | Operates on | Gate |
+|---|---|---|
+| **PR** | mutate **changed classes** × covering Tier-0/1 tests | **no *new* survivors in changed code** |
+| **Nightly** | whole-module campaigns | refresh baseline; report adequacy drift |
+| **Release** | broad campaign | adequacy report (informational, not a hard gate) |
+
+Gate **differentially** — "no new survivors" — never on an absolute mutation score, which invites gaming and drowns review in equivalent-mutant noise. The accepted-survivor / known-equivalent baseline lives in-repo and is updated by review.
+
+### It is a build stage, not a test kind
+
+In the classification taxonomy below, mutation testing is **not a `@Tag`** alongside `unit/session/pbt/dst/e2e`. It is a separate build *tool / stage* that runs over those tagged tests. If a label is wanted, treat it as a distinct **`meta` / `adequacy`** category describing analysis-of-tests rather than tests.
+
+### Tooling direction
+
+A hybrid is proposed (see [`docs/mutation-harness-design.md`](../docs/mutation-harness-design.md)): a small **deterministic, zero-dep core** built on the JDK `java.lang.classfile` API (mutation operators as class-file transforms — the same "build the focused 20%" philosophy as the `pbt` module), plus an **LLM `/mutate` Skill** that scopes to the diff, triages equivalent-vs-gap survivors *empirically* (by trying to synthesize a distinguishing test), and writes the killing test — with verdicts always coming from real execution, never the model. The deterministic core is the CI-gateable artifact; the Skill is an accelerator CI never depends on.
+
+**Phasing:** build and **manually validate** the deterministic core first — it must surface real gaps when driven by hand (reproducing the known `reset()` / keyed-diff fixtures and flagging at least one genuine survivor on real code). The LLM Skill is deferred behind that gate; a weak core is fixed at the core, not papered over with an LLM layer.
 
 ---
 
 ## Where to Start
 
-1. **Clean up the existing PBT tests** -- remove the misleading `@Disabled` from `CompositionsPropertyTests`, keep the suite as L0 smoke coverage, and avoid treating it as compositions-session coverage.
+1. **Build a stateful extension to `pbt`** -- the L0 stateless properties already run on the in-house `pbt` module (jqwik removed, `@Disabled` gone, migrated to plain `@Test` + `Property.forAll`). The blocker for L1/L2 is that `pbt` has no command-sequence / state-machine generation yet. That extension (generate **and shrink** an `Action` sequence against a model) is the prerequisite for stateful composition testing. Keep `CompositionsPropertyTests` as L0 smoke coverage, not compositions-session coverage.
 
 2. **Build the `CompositionSessionHarness`** -- the critical missing piece. It bridges the core's `ManualEventLoop` + `TestCollectingRemoteOut` with the compositions-level abstractions (Router, Scene, Contracts). Once this exists, both hand-written integration tests and PBT can use it.
 
@@ -150,7 +200,7 @@ record CompositionModel(
   - `LivePageSession`
   - `PageBuilder`
   - `TestCollectingRemoteOut`
-- `CompositionsPropertyTests` currently runs under jqwik despite `@Disabled`.
+- `CompositionsPropertyTests` has been migrated to the in-house `pbt` module (plain `@Test` + `Property.forAll`); the misleading `@Disabled` is gone.
 - Browser-level CRUD and auth smoke coverage already exists in `examples`, but there is no in-memory compositions session layer between unit tests and Playwright.
 
 ### Important Corrections To The Initial Draft
@@ -460,7 +510,7 @@ Examples in this repo:
 - `CreateViewContractTests`
 - `EditViewContractTests`
 - `ActionDispatcherTests`
-- current small jqwik suites like `NodesTreeDiffPropertyTests` and `CompositionsPropertyTests`
+- in-house `pbt` suites like `NodesTreeDiffPropertyTests` and `CompositionsPropertyTests`
 
 Guidance:
 - should finish in seconds
@@ -733,7 +783,7 @@ Run:
 - optional multi-seed DST exploration
 
 Nightly is the right place for:
-- larger jqwik sample counts
+- larger PBT sample counts (`-Dpbt.tries`)
 - longer action chains
 - many simulation seeds
 - auth/browser matrix expansion
@@ -825,6 +875,8 @@ This lets one test belong to multiple kinds at once:
 - `e2e + slow`
 - `e2e-explore + slow`
 
+Mutation / adequacy analysis is **not** in this list -- it is a build stage that runs *over* these tagged tests, not a kind of test. See "Test Adequacy" above.
+
 ### Recommended JUnit Tags
 
 Consider adding JUnit tags such as:
@@ -913,5 +965,6 @@ That keeps the fast deterministic tests doing most of the heavy lifting, while r
 ## References
 
 - **FoundationDB / Antithesis model**: deterministic simulation with fault injection; the `ManualEventLoop` is already 60% of the way there
-- **jqwik stateful testing**: `@Property` + `Action<M>` + `ActionChain<M>` -- native to the existing test stack
+- **Stateful PBT model**: `Action<M>` + command-sequence generation (jqwik's `ActionChain` is the reference design) -- requires a stateful extension to the in-house `pbt` module, which is currently stateless
+- **Mutation testing**: the test-adequacy measure (see "Test Adequacy" section and `docs/mutation-harness-design.md`)
 - **TLA+ / Alloy style**: define the state machine formally first, then translate to executable tests -- useful for getting the invariants right before writing generators
