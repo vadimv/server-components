@@ -29,10 +29,18 @@ public final class Mutate {
     public static Report run(final String targetBinaryClassName, final List<String> testClasses,
                              final Duration perMutantTimeout) {
         final byte[] original = loadClassBytes(targetBinaryClassName);
-        final MutationEngine engine = new MutationEngine();
-        final List<MutationPoint> points = engine.enumerate(original);
         final MutationRunner runner = new MutationRunner(perMutantTimeout);
 
+        // Baseline: the covering tests must pass (and be runnable) against the UNMUTATED class.
+        // Otherwise every mutant is trivially "killed" and the report is falsely perfect. Running the
+        // original bytes through the same fork path also catches a misconfigured classpath / test name.
+        final Verdict baseline = runner.run(original, targetBinaryClassName, testClasses);
+        if (baseline != Verdict.SURVIVED) {
+            throw new BaselineFailedException(targetBinaryClassName, testClasses, baseline);
+        }
+
+        final MutationEngine engine = new MutationEngine();
+        final List<MutationPoint> points = engine.enumerate(original);
         final List<Report.Result> results = new ArrayList<>(points.size());
         for (final MutationPoint point : points) {
             final byte[] mutant = engine.apply(original, point);

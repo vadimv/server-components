@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -30,5 +31,15 @@ class MutationRunnerEndToEndTest {
                 "dropping the untested setLength side effect survives");
 
         assertTrue(report.survivors().size() >= 1, "at least the record() gap");
+    }
+
+    @Test
+    void aborts_when_the_baseline_suite_is_not_green() {
+        // BrokenAdderProbe fails against the unmutated Adder, so the baseline is red — without this
+        // guard every mutant would be trivially "killed" and the report falsely perfect.
+        final BaselineFailedException ex = assertThrows(BaselineFailedException.class,
+                () -> Mutate.run("rsp.mutate.run.Adder", List.of("rsp.mutate.run.BrokenAdderProbe"),
+                        Duration.ofSeconds(60)));
+        assertTrue(ex.getMessage().contains("Baseline is not green"), ex.getMessage());
     }
 }

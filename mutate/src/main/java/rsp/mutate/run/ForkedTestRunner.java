@@ -20,13 +20,13 @@ import static org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder.r
  *
  * <p>This is the one place the {@code mutate} module touches the JUnit Platform; the engine does not.
  */
-public final class Minion {
+public final class ForkedTestRunner {
 
     static final int SURVIVED = 0;
     static final int KILLED = 1;
     static final int ERROR = 2;
 
-    private Minion() {
+    private ForkedTestRunner() {
     }
 
     public static void main(final String[] args) {

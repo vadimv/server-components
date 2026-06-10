@@ -17,7 +17,10 @@ Class-File API (`java.lang.classfile`, GA in JDK 24; this project runs 25); the 
 
 ## How it works
 
-For a target class and the test classes that cover it, the harness:
+For a target class and the test classes that cover it, the harness first **runs the tests against the
+unmutated class as a baseline** — if they are not all green (a covering test already fails, or cannot
+be discovered/run), it aborts with `BaselineFailedException`, because otherwise every mutant would be
+trivially "killed" and the report falsely perfect. Then it:
 
 1. **enumerates** mutants of the target's bytecode (one per applicable operator site);
 2. **applies** each mutant (Class-File API), writing the mutated `.class` to a temp dir;

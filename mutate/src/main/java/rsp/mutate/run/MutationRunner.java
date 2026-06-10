@@ -47,7 +47,7 @@ public final class MutationRunner {
             command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
             command.add("-cp");
             command.add(classpath);
-            command.add(Minion.class.getName());
+            command.add(ForkedTestRunner.class.getName());
             command.addAll(testClasses);
 
             final Process process = new ProcessBuilder(command)
@@ -59,8 +59,8 @@ public final class MutationRunner {
                 return Verdict.TIMEOUT;
             }
             return switch (process.exitValue()) {
-                case Minion.SURVIVED -> Verdict.SURVIVED;
-                case Minion.KILLED -> Verdict.KILLED;
+                case ForkedTestRunner.SURVIVED -> Verdict.SURVIVED;
+                case ForkedTestRunner.KILLED -> Verdict.KILLED;
                 default -> Verdict.ERROR;
             };
         } catch (final IOException e) {

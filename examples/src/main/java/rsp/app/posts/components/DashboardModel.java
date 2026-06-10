@@ -40,7 +40,7 @@ public record DashboardModel(DashboardLayout layout) {
                 .place(CommentsRateGraphWidget.live(commentRateStreamService),
                         DashboardDsl.at(1, 1).span(6, 3))
                 .place(LogsWidget.live(logStreamService),
-                        DashboardDsl.at(1, 4).span(12, 3))
+                        DashboardDsl.at(1, 4).span(10, 3))
                 .build());
     }
 

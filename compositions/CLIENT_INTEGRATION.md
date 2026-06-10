@@ -33,7 +33,7 @@ This is a target design. Some primitives already exist (`evalJs`, element refere
 | `ctx.evalJs(code, callback)`              | Execute with callback  | `void`                            |
 | `ctx.propertiesByRef(ref).get(prop)`      | Read element property  | `CompletableFuture<JsonDataType>` |
 | `ctx.propertiesByRef(ref).set(prop, val)` | Write element property | `void`                            |
-| `ElementRef` + `elementId(ref)`           | Reference DOM element  | Server-side handle                |
+| `ElementRef` + `ref(ref)`                 | Reference DOM element  | Server-side handle                |
 | `onAfterRendered()`                       | Lifecycle hook         | Called after DOM exists           |
 
 Current gaps to close:
@@ -1205,7 +1205,7 @@ public class ClientView extends Component<ClientView.ClientViewState> {
         return newState -> state -> div(
             attr("class", "client-view-container"),
             div(
-                elementId(containerRef),
+                ref(containerRef),
                 attr("id", "client-" + state.componentId()),
                 attr("class", "client-view-content"),
                 attr("data-component", state.clientComponentName()),
@@ -2225,6 +2225,33 @@ String css = new CssBuilder()
 // Client just applies it through the resource layer
 ctx.resources().injectCss("layout", css, CacheMode.CACHE);
 ```
+
+## New HTML-in-Canvas API
+
+New HTML-in-Canvas API opens up powerful optimization and User Experience (UX) capabilities.
+
+Here is a validation of how this API can be utilized in such a framework, along with new ways to significantly improve the UX for developers and end-users.
+1. Off-Main-Thread UI Rendering (Zero Janks)
+   Traditional LiveView-style frameworks like this rely on JavaScript (like morphdom) on the client's main thread to parse incoming WebSocket diffs and patch the DOM. For heavy administrative interfaces, this can cause "jank" (stuttering) when large updates arrive.
+   The Canvas Solution: By combining an HTML-in-Canvas API with OffscreenCanvas, you can move the entire WebSocket connection and UI rendering process into a Web Worker. The worker receives the Java server's HTML diffs, parses them, renders the HTML directly into the Offscreen Canvas, and simply pushes the pixel buffer to the main thread.
+   UX Improvement: The browser's main thread remains 100% unblocked. Animations, scrolling, and user interactions stay buttery smooth regardless of how much data the Java backend pushes to the client.
+2. Enhancing the Native "AI Agent" Experience
+   The vadimv/server-components repository specifically highlights that AI agents natively understand the app's structure and can navigate the UI with a "Human-in-the-loop" mechanism[1].
+   The Canvas Solution: When AI agents queue up actions (like filling out forms or navigating pages), traditional DOM overlays (adding borders or floating cursors) can trigger expensive browser reflows and layout thrashing.
+   UX Improvement: A Canvas layer can be used to overlay the AI’s "thought process" over the HTML. You can draw 60fps bounding boxes, heatmaps, and ghostly cursors indicating exactly what the AI agent is about to do before the human approves the action, without ever mutating the actual DOM structure.
+3. Latency Masking and Instant Visual Feedback
+   One of the biggest UX drawbacks of pure SSR toolkits is network latency: every button click requires a round trip to the server to get the new state[1].
+   The Canvas Solution: While the framework waits for the WebSocket response from the Java server, an HTML-in-Canvas approach can instantly apply localized, GPU-accelerated shaders or micro-animations exactly where the user clicked.
+   UX Improvement: If a user clicks an "Increment" button, the Canvas can immediately apply a localized "ripple" effect or a subtle loading skeleton over the specific HTML element. This provides the instant tactile feedback of a Single Page Application (SPA), completely masking the 50–100ms network round-trip.
+4. GPU-Accelerated View Transitions
+   Because the Java backend completely dictates the state (e.g., switching from a list of Employees to a Department view), the client is normally abruptly swapping large chunks of DOM elements.
+   The Canvas Solution: Since the HTML is being rendered in a Canvas, the client can easily snapshot the "before" state and the "after" state (when the new HTML diff arrives from the Java server).
+   UX Improvement: You can introduce cinematic, native-feeling transitions (cross-fades, page slides, or element morphing) between server-rendered states. Users get an app-like experience without the developer writing a single line of client-side animation logic.
+5. High-Performance Virtualization for Admin Panels
+   Admin UIs often deal with massive datasets (e.g., tables with tens of thousands of logs or user records)[1]. Standard DOM struggles with rendering thousands of rows, requiring complex client-side JS virtualization libraries.
+   The Canvas Solution: Using an HTML-in-Canvas approach, the Java backend can send a massive HTML string of data, but the Canvas renderer only draws the elements that currently intersect with the user's viewport.
+   UX Improvement: Scrolling through massive server-rendered data tables becomes completely fluid. The memory footprint of the browser drops drastically because the DOM tree isn't being bloated by tens of thousands of <tr> and <td> elements.
+
 
 ### Summary
 
