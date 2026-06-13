@@ -48,6 +48,7 @@ public final class MutationRunner {
             command.add("-cp");
             command.add(classpath);
             command.add(ForkedTestRunner.class.getName());
+            command.add(binaryClassName); // force-loaded by the fork to verify the mutant
             command.addAll(testClasses);
 
             final Process process = new ProcessBuilder(command)
