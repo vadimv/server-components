@@ -6,10 +6,14 @@ import java.lang.classfile.ClassFile;
 import java.lang.constant.ClassDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.MethodTypeDesc;
+import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -55,6 +59,34 @@ class MutationRunnerEndToEndTest {
         final Verdict verdict = new MutationRunner(Duration.ofSeconds(30))
                 .run(invalid, "rsp.mutate.run.Phantom", List.of("rsp.mutate.run.AdderTest"));
         assertEquals(Verdict.ERROR, verdict, "an unverifiable mutant must be ERROR, never SURVIVED");
+    }
+
+    @Test
+    void non_initializing_class_load_does_not_reject_this_unverifiable_bytecode() throws Exception {
+        // Characterizes the JVM behaviour ForkedTestWorker relies on: initialize=false is not enough
+        // for this malformed method body, while initialize=true catches it. That makes isolated
+        // <clinit> side effects an explicit trade-off rather than an accidental detail.
+        assertFalse(rejectsUnverifiableClass("rsp.mutate.run.PhantomLinkOnly", false),
+                "on this JVM, initialize=false loads the class but does not reject this bad method body");
+        assertTrue(rejectsUnverifiableClass("rsp.mutate.run.PhantomInitialize", true),
+                "initialize=true rejects this bad method body, at the cost of running <clinit>");
+    }
+
+    private static boolean rejectsUnverifiableClass(final String binaryName, final boolean initialize) throws Exception {
+        final Path root = Files.createTempDirectory("mutate-invalid-class");
+        final Path classFile = root.resolve(binaryName.replace('.', '/') + ".class");
+        Files.createDirectories(classFile.getParent());
+        Files.write(classFile, unverifiableClass(binaryName));
+
+        try (URLClassLoader loader = new URLClassLoader(new java.net.URL[]{root.toUri().toURL()},
+                ClassLoader.getPlatformClassLoader())) {
+            try {
+                Class.forName(binaryName, initialize, loader);
+                return false;
+            } catch (final LinkageError e) {
+                return true;
+            }
+        }
     }
 
     /**

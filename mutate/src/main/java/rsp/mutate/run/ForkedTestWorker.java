@@ -6,6 +6,10 @@ import org.junit.platform.launcher.core.LauncherFactory;
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener;
 import org.junit.platform.launcher.listeners.TestExecutionSummary;
 
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,9 +22,11 @@ import static org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder.r
  * exit code: {@code 0} all passed (the mutant survived), {@code 1} a failure (the mutant was killed),
  * {@code 2} nothing ran or a load/verify/discovery error occurred.
  *
- * <p>The target is force-loaded (linked and verified) <em>before</em> the tests run, independently of
- * whether any test references it — otherwise an unverifiable mutant the selected tests never load
- * would be falsely reported as a survivor.
+ * <p>The mutated target is linked and verified <em>before</em> the tests run, independently of whether
+ * any test references it — otherwise an unverifiable mutant the selected tests never load would be
+ * falsely reported as a survivor. Verification is done on a throwaway class loader so the tests still
+ * load and initialise the real target lazily, at their natural time (we never force-initialise the
+ * class the tests use).
  *
  * <p>This is the one place the {@code mutate} module touches the JUnit Platform; the engine does not.
  */
@@ -33,18 +39,38 @@ public final class ForkedTestWorker {
     private ForkedTestWorker() {
     }
 
-    public static void main(final String[] args) {
+    static void main(final String[] args) {
         final String targetClass = args[0];
         final List<String> testClasses = Arrays.asList(args).subList(1, args.length);
 
-        // Force the (mutated) target to load, link and verify regardless of test coverage. An invalid
-        // mutant throws here (VerifyError/LinkageError) and is classified as an error, never SURVIVED.
-        try {
-            Class.forName(targetClass);
-        } catch (final Throwable t) {
+        if (!verifies(targetClass)) {
             System.exit(ERROR);
         }
         System.exit(runTests(testClasses));
+    }
+
+    /**
+     * Verifies the (mutated) target regardless of test coverage. On the JDK used by this project,
+     * {@code Class.forName(name, false, loader)} does not reject the malformed-method fixture in the
+     * runner tests, so this initialises a copy in a throwaway child loader. The tests still load the
+     * real target on the system loader, lazily. Any {@code <clinit>} side effects from this probe are
+     * isolated from the test class, but they still happen in the worker process — an intentional M1
+     * trade-off for catching unverifiable mutants that no selected test loads.
+     */
+    private static boolean verifies(final String targetClass) {
+        final String[] entries = System.getProperty("java.class.path").split(File.pathSeparator);
+        final URL[] urls = new URL[entries.length];
+        try {
+            for (int i = 0; i < entries.length; i++) {
+                urls[i] = Path.of(entries[i]).toUri().toURL();
+            }
+            try (URLClassLoader isolated = new URLClassLoader(urls, ClassLoader.getPlatformClassLoader())) {
+                Class.forName(targetClass, true, isolated);
+                return true;
+            }
+        } catch (final Throwable t) {
+            return false; // invalid mutant (VerifyError/LinkageError), or the class could not be loaded
+        }
     }
 
     private static int runTests(final List<String> testClasses) {
