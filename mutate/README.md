@@ -37,8 +37,9 @@ trivially "killed" and the report falsely perfect. Then it:
 | `ERROR`    | the mutant failed to load/verify, or test discovery failed (never counted as a survivor) |
 | `TIMEOUT`  | the run exceeded its budget, e.g. a mutated loop guard (counted as killed)               |
 
-An invalid mutant fails JVM verification on load → `ERROR`, so a broken rewrite can never masquerade
-as a survivor.
+An invalid mutant fails JVM verification → `ERROR`: the fork **force-loads (links and verifies) the
+target** before running the tests, so a broken rewrite is caught even when no selected test
+references it — it can never masquerade as a survivor.
 
 ## Operators (M1)
 
@@ -73,7 +74,7 @@ Run it (the `-Dmutate.run=true` switch enables the gated test; run from the owni
 forked mutants inherit that module's full test classpath):
 
 ```bash
-mvn -pl core -am test -Dtest=MutationDriverTest -Dmutate.run=true
+mvn -q -pl core -am test -Dtest=MutationHarnessManualTest -Dmutate.run=true -DfailIfNoTests=false -Dpbt.tries=2000
 ```
 
 A real example lives at
