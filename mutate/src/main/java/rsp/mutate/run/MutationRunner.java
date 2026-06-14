@@ -22,6 +22,9 @@ import java.util.concurrent.TimeUnit;
  */
 public final class MutationRunner {
 
+    /** Pinned when the caller sets no {@code pbt.seed}, so property-based covering tests are reproducible across mutants and runs. */
+    private static final long DEFAULT_PBT_SEED = 1L;
+
     private final Duration timeout;
 
     public MutationRunner(final Duration timeout) {
@@ -47,6 +50,18 @@ public final class MutationRunner {
             command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
             command.add("-cp");
             command.add(classpath);
+            // Reproducibility: every mutant must face the SAME generated inputs, so propagate the
+            // caller's pbt config and pin a default seed when none is set. Without this each fork
+            // would draw a fresh random seed and a borderline mutant's verdict would flip run to run;
+            // the caller's -Dpbt.tries would also be ignored (the fork would silently use the default).
+            System.getProperties().forEach((key, value) -> {
+                if (key.toString().startsWith("pbt.")) {
+                    command.add("-D" + key + "=" + value);
+                }
+            });
+            if (System.getProperty("pbt.seed") == null) {
+                command.add("-Dpbt.seed=" + DEFAULT_PBT_SEED);
+            }
             command.add(ForkedTestWorker.class.getName());
             command.add(binaryClassName); // force-loaded by the fork to verify the mutant
             command.addAll(testClasses);
