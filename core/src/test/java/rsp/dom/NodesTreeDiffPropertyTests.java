@@ -140,6 +140,42 @@ class NodesTreeDiffPropertyTests {
         });
     }
 
+    /**
+     * The public multi-root {@link NodesTreeDiff#diffChildren} entry — the path {@code ComponentSegment}
+     * uses to diff a component's root nodes on every update, and which the single-root {@code diff(...)}
+     * never reaches. Keyed root lists exercise top-level keyed reconciliation (insert/remove/reorder/
+     * content-change of keyed root nodes) through the public entry, under generative load.
+     *
+     * <p>An <em>unkeyed</em> multi-root variant is deliberately omitted: it surfaced that the test's
+     * {@link MutableDom} oracle is positional (numeric ids are live indices that shift on removal),
+     * whereas the real client ({@code rsp.js}) is <em>id-keyed</em> — it addresses nodes by stable
+     * path-id ({@code this.els[id]}) and never shifts on removal. The diff's emitted patch is correct
+     * for the real client; the positional oracle mis-applies it for "remove a leading node + replace a
+     * trailing one". Re-enabling the unkeyed variant requires making the oracle id-keyed like the
+     * client. Keyed paths match by key (id-like), so they are unaffected.
+     */
+    @Test
+    void diffChildren_round_trips_keyed_root_lists() {
+        Property.forAll(keyedRoots(), keyedRoots())
+            .check((roots1, roots2) -> checkDiffChildrenRoundTrip(roots1, roots2));
+    }
+
+    /** Diffs roots1→roots2 and back via the public {@code diffChildren}; both directions must round-trip. */
+    private void checkDiffChildrenRoundTrip(final List<Node> roots1, final List<Node> roots2) {
+        final PatchCollectingChangesContext forward = new PatchCollectingChangesContext();
+        NodesTreeDiff.diffChildren(roots1, roots2, new TreePositionPath(1), forward, new HtmlBuilder(new StringBuilder()));
+        assertEquivalentRoots(roots2, applyToRoots(roots1, new Patch(forward.modifications)), "forward");
+
+        final PatchCollectingChangesContext backward = new PatchCollectingChangesContext();
+        NodesTreeDiff.diffChildren(roots2, roots1, new TreePositionPath(1), backward, new HtmlBuilder(new StringBuilder()));
+        assertEquivalentRoots(roots1, applyToRoots(roots2, new Patch(backward.modifications)), "backward");
+    }
+
+    /** Uniformly keyed root list: 0–5 keyed element siblings, each a uniformly keyed subtree. */
+    private Gen<List<Node>> keyedRoots() {
+        return keyedGroup(keyedTagNodes());
+    }
+
     private Gen<List<Long>> keyedKeyLists() {
         return Gen.longs(1, 9).listUnique(0, 7);
     }
@@ -190,13 +226,31 @@ class NodesTreeDiffPropertyTests {
     }
 
     private TagNode apply(final TagNode root, final Patch patch) {
-        return applySequential(root, patch);
+        final MutableDom dom = new MutableDom(deepCopy(root));
+        applyPatch(dom, patch);
+        return dom.getRoot();
     }
 
-    private TagNode applySequential(final TagNode root, final Patch patch) {
-        final TagNode copy = deepCopy(root);
-        final MutableDom dom = new MutableDom(copy);
+    /** Applies a {@code diffChildren} patch to a copy of a multi-root node list, returning the result. */
+    private List<Node> applyToRoots(final List<Node> roots, final Patch patch) {
+        final MutableDom dom = new MutableDom(deepCopyList(roots));
+        applyPatch(dom, patch);
+        return dom.getRoots();
+    }
 
+    private List<Node> deepCopyList(final List<Node> nodes) {
+        final List<Node> out = new ArrayList<>(nodes.size());
+        for (final Node n : nodes) {
+            if (n instanceof final TagNode t) {
+                out.add(deepCopy(t));
+            } else if (n instanceof final TextNode tx) {
+                out.add(new TextNode(textOf(tx)));
+            }
+        }
+        return out;
+    }
+
+    private static void applyPatch(final MutableDom dom, final Patch patch) {
         // Separate removals from other modifications
         final List<Modification> removals = new ArrayList<>();
         final List<Modification> others = new ArrayList<>();
@@ -235,8 +289,6 @@ class NodesTreeDiffPropertyTests {
         for (final Modification mod : others) {
             mod.apply(dom);
         }
-
-        return dom.getRoot();
     }
 
     private TagNode deepCopy(final TagNode node) {
@@ -350,6 +402,26 @@ class NodesTreeDiffPropertyTests {
     private static void assertEquivalent(final TagNode expected, final TagNode actual, final String message) {
         assertTrue(equivalent(expected, actual), () -> message + System.lineSeparator()
                 + "  expected: " + expected + System.lineSeparator() + "  actual:   " + actual);
+    }
+
+    /** Structural equivalence of two root-node lists (same as {@link #equivalent} but at list level). */
+    private static void assertEquivalentRoots(final List<Node> expected, final List<Node> actual, final String message) {
+        assertTrue(equivalentLists(expected, actual), () -> message + System.lineSeparator()
+                + "  expected: " + expected + System.lineSeparator() + "  actual:   " + actual);
+    }
+
+    private static boolean equivalentLists(final List<Node> a, final List<Node> b) {
+        final List<Node> ma = mergeAdjacentText(a);
+        final List<Node> mb = mergeAdjacentText(b);
+        if (ma.size() != mb.size()) {
+            return false;
+        }
+        for (int i = 0; i < ma.size(); i++) {
+            if (!equivalent(ma.get(i), mb.get(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -486,8 +558,16 @@ class NodesTreeDiffPropertyTests {
             this.virtualContainer.add(root);
         }
 
+        MutableDom(final List<Node> roots) {
+            this.virtualContainer.addAll(roots);
+        }
+
         TagNode getRoot() {
             return virtualContainer.isEmpty() ? null : (TagNode) virtualContainer.get(0);
+        }
+
+        List<Node> getRoots() {
+            return virtualContainer;
         }
 
         private List<Node> childrenOf(final Object container) {
