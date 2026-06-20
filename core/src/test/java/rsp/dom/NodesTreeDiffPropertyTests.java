@@ -146,18 +146,26 @@ class NodesTreeDiffPropertyTests {
      * never reaches. Keyed root lists exercise top-level keyed reconciliation (insert/remove/reorder/
      * content-change of keyed root nodes) through the public entry, under generative load.
      *
-     * <p>An <em>unkeyed</em> multi-root variant is deliberately omitted: it surfaced that the test's
-     * {@link MutableDom} oracle is positional (numeric ids are live indices that shift on removal),
-     * whereas the real client ({@code rsp.js}) is <em>id-keyed</em> — it addresses nodes by stable
-     * path-id ({@code this.els[id]}) and never shifts on removal. The diff's emitted patch is correct
-     * for the real client; the positional oracle mis-applies it for "remove a leading node + replace a
-     * trailing one". Re-enabling the unkeyed variant requires making the oracle id-keyed like the
-     * client. Keyed paths match by key (id-like), so they are unaffected.
+     * <p>The companion {@code diffChildren_round_trips_unkeyed_root_lists} covers positional multi-root
+     * reconciliation — including the mid-list node-type replacement that {@link NodesTreeDiff} must
+     * reposition with {@code insertBefore} (see {@code NodesTreeDiffPositionalOrderTest}). Both rely on
+     * the id-keyed {@link MutableDom} oracle, which mirrors the real client's stable {@code els[id]} map.
      */
     @Test
     void diffChildren_round_trips_keyed_root_lists() {
         Property.forAll(keyedRoots(), keyedRoots())
             .check((roots1, roots2) -> checkDiffChildrenRoundTrip(roots1, roots2));
+    }
+
+    @Test
+    void diffChildren_round_trips_unkeyed_root_lists() {
+        Property.forAll(unkeyedRoots(), unkeyedRoots())
+            .check((roots1, roots2) -> checkDiffChildrenRoundTrip(roots1, roots2));
+    }
+
+    /** Unkeyed root list: 0–5 siblings, each a text node or an unkeyed element subtree. */
+    private Gen<List<Node>> unkeyedRoots() {
+        return Gen.oneOf(Gen.alpha(0, 5).map(TextNode::new), recursiveTagNodes()).list(0, 5);
     }
 
     /** Diffs roots1→roots2 and back via the public {@code diffChildren}; both directions must round-trip. */
@@ -251,42 +259,9 @@ class NodesTreeDiffPropertyTests {
     }
 
     private static void applyPatch(final MutableDom dom, final Patch patch) {
-        // Separate removals from other modifications
-        final List<Modification> removals = new ArrayList<>();
-        final List<Modification> others = new ArrayList<>();
+        // Apply in emitted order, exactly as the real client (js-client/.../rsp.js) does. The client
+        // addresses nodes by a stable wire id, so ops must not be reordered or re-resolved positionally.
         for (final Modification mod : patch.modifications) {
-            if (mod instanceof RemoveNode) {
-                removals.add(mod);
-            } else {
-                others.add(mod);
-            }
-        }
-
-        // Sort removals to apply them from the end of lists to the beginning.
-        removals.sort((m1, m2) -> {
-            final String[] p1 = ((RemoveNode) m1).path().toString().split("_");
-            final String[] p2 = ((RemoveNode) m2).path().toString().split("_");
-
-            int depthCompare = Integer.compare(p2.length, p1.length);
-            if (depthCompare != 0) return depthCompare;
-
-            for (int i = 0; i < p1.length; i++) {
-                final int partCompare;
-                if (p1[i].matches("\\d+") && p2[i].matches("\\d+")) {
-                    partCompare = Integer.compare(Integer.parseInt(p2[i]), Integer.parseInt(p1[i]));
-                } else {
-                    partCompare = p2[i].compareTo(p1[i]);
-                }
-                if (partCompare != 0) return partCompare;
-            }
-            return 0;
-        });
-
-        for (final Modification mod : removals) {
-            mod.apply(dom);
-        }
-
-        for (final Modification mod : others) {
             mod.apply(dom);
         }
     }
@@ -547,122 +522,145 @@ class NodesTreeDiffPropertyTests {
     }
 
     /**
-     * A small mutable DOM mirror that interprets {@link NodeId} segments the way the client does:
-     * a numeric segment is a 1-based child index, a key segment ("kn.."/"ks..") matches a child by
-     * its {@link TagNode#key()}. Supports insertBefore so keyed reorders can be applied and verified.
+     * A mutable DOM mirror faithful to the real browser client ({@code js-client/.../rsp.js}): nodes are
+     * held in a stable {@code id -> node} map ({@code els}), so an id keeps addressing the same node even
+     * as siblings shift. Mutations match the client exactly:
+     * <ul>
+     *   <li>{@code create}/{@code createText}: {@code replaceChild} when the id still resolves to a node
+     *       under its parent, otherwise {@code appendChild} — they never insert at a positional index.</li>
+     *   <li>{@code removeNode}: detaches the node but leaves its {@code els} entry dangling, as the
+     *       client's {@code remove} does (so a later create at that id appends rather than replaces).</li>
+     *   <li>{@code insertBefore}: relocates an existing child before a reference sibling, or appends.</li>
+     * </ul>
+     * Ids are seeded over the initial tree exactly as {@link NodesTreeDiff} computes them
+     * (positional {@code incLevel}/{@code incSibling}, or keyed {@code child(key)}), under a synthetic
+     * root container addressed by the empty id.
      */
     static class MutableDom {
-        private final List<Node> virtualContainer = new ArrayList<>();
+        private final TagNode container = new TagNode(XmlNs.html, "#root", false);
+        private final Map<String, Node> els = new HashMap<>();
 
         MutableDom(final TagNode root) {
-            this.virtualContainer.add(root);
+            container.addChild(root);
+            seedContainer();
         }
 
         MutableDom(final List<Node> roots) {
-            this.virtualContainer.addAll(roots);
+            roots.forEach(container::addChild);
+            seedContainer();
         }
 
         TagNode getRoot() {
-            return virtualContainer.isEmpty() ? null : (TagNode) virtualContainer.get(0);
+            return container.children.isEmpty() ? null : (TagNode) container.children.get(0);
         }
 
         List<Node> getRoots() {
-            return virtualContainer;
+            return new ArrayList<>(container.children);
         }
 
-        private List<Node> childrenOf(final Object container) {
-            if (container instanceof final TagNode tag) return tag.children;
-            @SuppressWarnings("unchecked")
-            final List<Node> list = (List<Node>) container;
-            return list;
-        }
-
-        private int indexOfSegment(final List<Node> children, final String segment) {
-            if (segment.matches("\\d+")) {
-                return Integer.parseInt(segment) - 1;
+        private void seedContainer() {
+            els.put("", container);
+            // Top-level roots are addressed the same way children are: keyed roots by key under the
+            // empty id ("".child(key)), unkeyed roots positionally ("1", "2", ...).
+            final List<NodeId> ids = childIds(new NodeId(), container.children);
+            for (int i = 0; i < container.children.size(); i++) {
+                seed(ids.get(i), container.children.get(i));
             }
-            for (int i = 0; i < children.size(); i++) {
-                if (children.get(i) instanceof final TagNode t && segment.equals(t.key())) {
-                    return i;
+        }
+
+        private void seed(final NodeId id, final Node node) {
+            els.put(id.toString(), node);
+            if (node instanceof final TagNode t && !t.children.isEmpty()) {
+                final List<NodeId> ids = childIds(id, t.children);
+                for (int i = 0; i < t.children.size(); i++) {
+                    seed(ids.get(i), t.children.get(i));
                 }
             }
-            return -1; // key not present
         }
 
-        private Object findNodeOrContainer(final NodeId path) {
-            if (path.elementsCount() == 0) return virtualContainer;
-            Object current = virtualContainer;
-            for (int i = 0; i < path.elementsCount(); i++) {
-                final List<Node> children = childrenOf(current);
-                final int idx = indexOfSegment(children, segmentAt(path, i));
-                if (idx < 0 || idx >= children.size()) {
-                    throw new IllegalStateException("Node not found at id: " + path + " (segment " + segmentAt(path, i) + ")");
+        /** Mirrors {@code NodesTreeDiff.childIds}: keyed children by key segment, else positional. */
+        private static List<NodeId> childIds(final NodeId parentId, final List<Node> children) {
+            boolean keyed = false;
+            for (final Node c : children) {
+                if (c instanceof final TagNode t && t.key() != null) {
+                    keyed = true;
+                    break;
                 }
-                current = children.get(idx);
             }
-            return current;
-        }
-
-        private static String segmentAt(final NodeId id, final int i) {
-            final String[] parts = id.toString().split("_");
-            return parts[i];
+            final List<NodeId> ids = new ArrayList<>(children.size());
+            if (keyed) {
+                for (final Node c : children) {
+                    ids.add(parentId.child(((TagNode) c).key()));
+                }
+            } else {
+                NodeId childId = parentId.incLevel();
+                for (int i = 0; i < children.size(); i++) {
+                    ids.add(childId);
+                    if (i < children.size() - 1) {
+                        childId = childId.incSibling();
+                    }
+                }
+            }
+            return ids;
         }
 
         void removeNode(final NodeId parentPath, final NodeId path) {
-            final Object parentObj = findNodeOrContainer(parentPath);
-            final List<Node> children = childrenOf(parentObj);
-            final int index = indexOfSegment(children, path.lastSegment());
-            if (index >= 0 && index < children.size()) {
-                children.remove(index);
+            final Node parent = els.get(parentPath.toString());
+            final Node child = els.get(path.toString());
+            if (parent instanceof final TagNode p && child != null) {
+                p.children.remove(child); // els entry intentionally left dangling, as rsp.js does
             }
         }
 
         void createTag(final NodeId path, final XmlNs xmlNs, final String tag) {
-            final Object parentObj = findNodeOrContainer(path.parent());
-            final List<Node> children = childrenOf(parentObj);
-            final TagNode newTag = new TagNode(xmlNs, tag, false);
+            final TagNode created = new TagNode(xmlNs, tag, false);
             final String last = path.lastSegment();
-            if (last.matches("\\d+")) {
-                final int index = Integer.parseInt(last) - 1;
-                if (index >= children.size()) children.add(newTag);
-                else children.add(index, newTag);
-            } else {
-                newTag.setKey(last); // keyed create: record key, append; insertBefore positions it
-                children.add(newTag);
+            if (!last.matches("\\d+")) {
+                created.setKey(last); // keyed segment carries the node's key
             }
+            place(path, created);
         }
 
         void createText(final NodeId parentPath, final NodeId path, final String text) {
-            final Object parentObj = findNodeOrContainer(parentPath);
-            final List<Node> children = childrenOf(parentObj);
-            final int index = indexOfSegment(children, path.lastSegment());
-            final TextNode newText = new TextNode(text);
-            if (index < 0 || index >= children.size()) children.add(newText);
-            else children.set(index, newText); // replacement of existing node
+            place(path, new TextNode(text));
+        }
+
+        /** replaceChild when the id still resolves to a node under its parent, else appendChild. */
+        private void place(final NodeId path, final Node created) {
+            final TagNode parent = (TagNode) els.get(path.parent().toString());
+            final Node existing = els.get(path.toString());
+            final int index = existing == null ? -1 : parent.children.indexOf(existing);
+            if (index >= 0) {
+                parent.children.set(index, created);
+            } else {
+                parent.children.add(created);
+            }
+            els.put(path.toString(), created);
         }
 
         void insertBefore(final NodeId parentPath, final NodeId path, final NodeId beforePath) {
-            final Object parentObj = findNodeOrContainer(parentPath);
-            final List<Node> children = childrenOf(parentObj);
-            final int from = indexOfSegment(children, path.lastSegment());
-            if (from < 0) return;
-            final Node node = children.remove(from);
-            if (beforePath == null) {
-                children.add(node);
+            final TagNode parent = (TagNode) els.get(parentPath.toString());
+            final Node child = els.get(path.toString());
+            if (parent == null || child == null) {
                 return;
             }
-            final int before = indexOfSegment(children, beforePath.lastSegment());
-            if (before < 0 || before > children.size()) children.add(node);
-            else children.add(before, node);
+            parent.children.remove(child);
+            final Node before = beforePath != null ? els.get(beforePath.toString()) : null;
+            final int index = before == null ? -1 : parent.children.indexOf(before);
+            if (index >= 0) {
+                parent.children.add(index, child);
+            } else {
+                parent.children.add(child);
+            }
         }
 
         void removeAttr(final NodeId path, final String name, final boolean isProperty) {
-            final TagNode node = (TagNode) findNodeOrContainer(path);
+            final TagNode node = (TagNode) els.get(path.toString());
             node.attributes.removeIf(a -> a.name().equals(name) && a.isProperty() == isProperty);
         }
 
         void setAttr(final NodeId path, final String name, final String value, final boolean isProperty) {
-            final TagNode node = (TagNode) findNodeOrContainer(path);
+            final TagNode node = (TagNode) els.get(path.toString());
             node.attributes.removeIf(a -> a.name().equals(name) && a.isProperty() == isProperty);
             node.addAttribute(name, value, isProperty);
         }

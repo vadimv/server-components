@@ -87,17 +87,10 @@ public final class NodesTreeDiff {
             if (nodesIterator1.hasNext() && nodesIterator2.hasNext()) {
                 final Node node1 = nodesIterator1.next();
                 final Node node2 = nodesIterator2.next();
-                if (node1 instanceof TagNode tagNode1 && node2 instanceof TagNode tagNode2) {
+                if (node1 instanceof TagNode tagNode1 && node2 instanceof TagNode tagNode2
+                        && sameElementType(tagNode1, tagNode2)) {
                     diffNode(tagNode1, tagNode2, path, changesPerformer, htmlBuilder);
-                } else if (node2 instanceof TagNode t) {
-                    changesPerformer.removeNode(path.parent(), path);
-                    createNode(t, path, changesPerformer, htmlBuilder);
-                } else if (node1 instanceof TagNode) {
-                    changesPerformer.removeNode(path.parent(), path);
-                    htmlBuilder.reset();
-                    htmlBuilder.buildHtml(node2);
-                    changesPerformer.createText(path.parent(), path, htmlBuilder.toString());
-                } else {
+                } else if (node1 instanceof TextNode && node2 instanceof TextNode) {
                     htmlBuilder.reset();
                     htmlBuilder.buildHtml(node1);
                     final String ncText = htmlBuilder.toString();
@@ -107,19 +100,24 @@ public final class NodesTreeDiff {
                     if (!ncText.equals(nwText)) {
                         changesPerformer.createText(path.parent(), path, nwText);
                     }
+                } else {
+                    // A node-type change (text<->tag, or a renamed tag) cannot be applied in place:
+                    // removeNode detaches the old node, so the subsequent create appends the
+                    // replacement to the end of the parent. Reposition it before the following sibling
+                    // (which still holds the next positional id) so sibling order is preserved; when no
+                    // sibling follows, the append already lands it in the right place. The keyed branch
+                    // solves the same problem with the insertBefore at the end of diffKeyedChildren.
+                    changesPerformer.removeNode(path.parent(), path);
+                    createReplacement(node2, path, changesPerformer, htmlBuilder);
+                    if (nodesIterator1.hasNext()) {
+                        changesPerformer.insertBefore(path.parent(), path, path.incSibling());
+                    }
                 }
             } else if (nodesIterator1.hasNext()) {
                 nodesIterator1.next();
                 changesPerformer.removeNode(path.parent(), path);
             } else {
-                final Node node2 = nodesIterator2.next();
-                if (node2 instanceof TagNode tagNode2) {
-                    createNode(tagNode2, path, changesPerformer, htmlBuilder);
-                } else {
-                    htmlBuilder.reset();
-                    htmlBuilder.buildHtml(node2);
-                    changesPerformer.createText(path.parent(), path, htmlBuilder.toString());
-                }
+                createReplacement(nodesIterator2.next(), path, changesPerformer, htmlBuilder);
             }
             if (path.elementsCount() > 0) {
                 path = path.incSibling();
@@ -204,6 +202,20 @@ public final class NodesTreeDiff {
         attrs1.forEach(attribute -> changesPerformer.removeAttr(nodeId, XmlNs.html, attribute.name(), attribute.isProperty()));
         attrs2.removeAll(attributes1);
         attrs2.forEach(attribute -> changesPerformer.setAttr(nodeId, XmlNs.html, attribute.name(), attribute.value(), attribute.isProperty()));
+    }
+
+    /** Creates {@code node} at {@code nodeId}: a tag (with its subtree) or a text node. */
+    private static void createReplacement(final Node node,
+                                          final NodeId nodeId,
+                                          final DomChangesContext changesPerformer,
+                                          final HtmlBuilder htmlBuilder) {
+        if (node instanceof TagNode tag) {
+            createNode(tag, nodeId, changesPerformer, htmlBuilder);
+        } else {
+            htmlBuilder.reset();
+            htmlBuilder.buildHtml(node);
+            changesPerformer.createText(nodeId.parent(), nodeId, htmlBuilder.toString());
+        }
     }
 
     private static void createNode(final TagNode tag,

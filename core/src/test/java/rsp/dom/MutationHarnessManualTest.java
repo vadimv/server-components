@@ -17,7 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * {@link NodesTreeDiff} against {@code NodesTreeDiffPropertyTests} and prints the survivor report,
  * then asserts the two known-bug fixtures are caught:
  * <ul>
- *   <li>dropping {@code htmlBuilder.reset()} at the tag&rarr;text branch (line 97) is KILLED;</li>
+ *   <li>dropping {@code htmlBuilder.reset()} before building the new text in the text&harr;text
+ *       comparison branch (line {@value #RESET_LINE}) is KILLED;</li>
  *   <li>forcing the keyed {@code isRetained} to {@code true} is KILLED.</li>
  * </ul>
  *
@@ -27,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @EnabledIfSystemProperty(named = "mutate.run", matches = "true")
 class MutationHarnessManualTest {
 
-    private static final int RESET_LINE = 97; // htmlBuilder.reset() at the tag->text replacement branch
+    private static final int RESET_LINE = 97; // htmlBuilder.reset() before building the new text (text<->text branch)
 
     @Test
     void mutating_NodesTreeDiff_is_caught_by_its_property_tests() {
