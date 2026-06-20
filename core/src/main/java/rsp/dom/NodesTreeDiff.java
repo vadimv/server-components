@@ -75,6 +75,12 @@ public final class NodesTreeDiff {
         }
     }
 
+    /**
+     * Diffs two unkeyed sibling lists by pairing them by position: the old and new child at the same
+     * index share a wire id and are reconciled against each other, walking both lists in lockstep.
+     * Each index has one of three outcomes when both lists still have a node, plus two when one list
+     * is longer; see the per-branch comments below.
+     */
     private static void diffPositionalChildren(final List<? extends Node> trees1,
                                                final List<? extends Node> trees2,
                                                final NodeId startNodeId,
@@ -85,12 +91,16 @@ public final class NodesTreeDiff {
         NodeId path = startNodeId;
         while (nodesIterator1.hasNext() || nodesIterator2.hasNext()) {
             if (nodesIterator1.hasNext() && nodesIterator2.hasNext()) {
+                // Both lists have a node at this index: reconcile the old/new pair sharing this id.
                 final Node node1 = nodesIterator1.next();
                 final Node node2 = nodesIterator2.next();
-                if (node1 instanceof TagNode tagNode1 && node2 instanceof TagNode tagNode2
+                if (node1 instanceof TagNode tagNode1
+                        && node2 instanceof TagNode tagNode2
                         && sameElementType(tagNode1, tagNode2)) {
+                    // Same element type: keep the node and diff its attributes and children in place.
                     diffNode(tagNode1, tagNode2, path, changesPerformer, htmlBuilder);
                 } else if (node1 instanceof TextNode && node2 instanceof TextNode) {
+                    // Text on both sides: keep the node, rewriting its content only when it changed.
                     htmlBuilder.reset();
                     htmlBuilder.buildHtml(node1);
                     final String ncText = htmlBuilder.toString();
@@ -114,11 +124,14 @@ public final class NodesTreeDiff {
                     }
                 }
             } else if (nodesIterator1.hasNext()) {
+                // Old list is longer: this index is a surplus trailing child, so remove it.
                 nodesIterator1.next();
                 changesPerformer.removeNode(path.parent(), path);
             } else {
+                // New list is longer: this index is a brand-new trailing child, so create it.
                 createReplacement(nodesIterator2.next(), path, changesPerformer, htmlBuilder);
             }
+            // Advance to the next positional sibling id when this id has a sibling segment.
             if (path.elementsCount() > 0) {
                 path = path.incSibling();
             }

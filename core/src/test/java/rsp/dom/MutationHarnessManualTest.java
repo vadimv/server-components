@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @EnabledIfSystemProperty(named = "mutate.run", matches = "true")
 class MutationHarnessManualTest {
 
-    private static final int RESET_LINE = 97; // htmlBuilder.reset() before building the new text (text<->text branch)
+    private static final int RESET_LINE = 107; // htmlBuilder.reset() before building the new text (text<->text branch)
 
     @Test
     void mutating_NodesTreeDiff_is_caught_by_its_property_tests() {
