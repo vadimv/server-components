@@ -60,7 +60,7 @@ class DashboardSmokeIT {
         assertThat(primaryScope(page).locator(".dashboard-widget-unit")).containsText("comments/sec");
         assertTrue((Boolean) primaryScope(page).locator(".comments-rate-line").evaluate("""
                 line => line.namespaceURI === 'http://www.w3.org/2000/svg'
-                        && line.getAttribute('points').trim().split(/\\s+/).length >= 2
+                        && line.getAttribute('d').trim().split(/\\s+/).length >= 2
                         && line.getBBox().width > 0
                         && line.getBBox().height >= 0
                 """));
