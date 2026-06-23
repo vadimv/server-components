@@ -12,7 +12,7 @@ Class-File API (`java.lang.classfile`, GA in JDK 24; this project runs 25); the 
 > **Status — M1 (deterministic core, run manually).** No LLM. It enumerates mutants, runs the
 > covering tests against each in a fresh JVM, and prints a survivor report you read by hand. The
 > design, phasing, and where this fits the QA strategy are in
-> [`docs/mutation-harness-design.md`](../docs/mutation-harness-design.md) and
+> [`docs/mutation-harness-design.md`](../../docs/mutation-harness-design.md) and
 > [`compositions/TEST_STRATEGY.md`](../compositions/TEST_STRATEGY.md) ("Test Adequacy").
 
 ## How it works

@@ -5,14 +5,26 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.vadimv</groupId>
-        <artifactId>rsp</artifactId>
+        <artifactId>system</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>authorization</artifactId>
+    <artifactId>core</artifactId>
 
     <dependencies>
-        <!-- Test dependencies -->
+        <dependency>
+            <groupId>com.googlecode.json-simple</groupId>
+            <artifactId>json-simple</artifactId>
+            <version>${json-simple.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -23,6 +35,18 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.vadimv</groupId>
+            <artifactId>pbt</artifactId>
+            <version>${revision}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.vadimv</groupId>
+            <artifactId>mutate</artifactId>
+            <version>${revision}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

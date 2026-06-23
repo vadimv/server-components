@@ -5,27 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.vadimv</groupId>
-        <artifactId>rsp</artifactId>
+        <artifactId>system</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>mutate</artifactId>
-    <description>A small deterministic mutation-testing harness (test tooling, not part of the published library).
-        The engine (rsp.mutate.engine) uses only the JDK Class-File API; the runner (rsp.mutate.run) drives JUnit.</description>
-
-    <properties>
-        <junit.platform.version>1.10.0</junit.platform.version>
-    </properties>
+    <artifactId>schema</artifactId>
 
     <dependencies>
-        <!-- Runner only: launches JUnit tests in the forked mutant JVM. The engine package imports none of this. -->
-        <dependency>
-            <groupId>org.junit.platform</groupId>
-            <artifactId>junit-platform-launcher</artifactId>
-            <version>${junit.platform.version}</version>
-        </dependency>
-
-        <!-- Self-tests -->
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>

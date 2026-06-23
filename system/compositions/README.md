@@ -442,6 +442,6 @@ authorization lives in the `authorization` module.
 
 ## Running an Example
 
-The [examples](../examples/README.md) module ships `CrudApp`, which wires
+The [examples](../../examples/README.md) module ships `CrudApp`, which wires
 everything described here into a full posts/comments admin panel with an AI
 prompt sidebar.

@@ -13,18 +13,10 @@
     <url>https://github.com/vadimv/server-components</url>
 
     <modules>
-        <module>core</module>
-        <module>pbt</module>
-        <module>mutate</module>
-        <module>js-client</module>
-        <module>servlet-api</module>
-        <module>jetty-web-server</module>
-        <module>authorization</module>
-        <module>schema</module>
-        <module>compositions</module>
-        <module>ai-agent</module>
         <module>examples</module>
-
+        <module>system</module>
+        <module>harness</module>
+        <module>extensions</module>
     </modules>
 
     <properties>

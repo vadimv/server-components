@@ -172,7 +172,7 @@ In the classification taxonomy below, mutation testing is **not a `@Tag`** along
 
 ### Tooling direction
 
-A hybrid is proposed (see [`docs/mutation-harness-design.md`](../docs/mutation-harness-design.md)): a small **deterministic, zero-dep core** built on the JDK `java.lang.classfile` API (mutation operators as class-file transforms — the same "build the focused 20%" philosophy as the `pbt` module), plus an **LLM `/mutate` Skill** that scopes to the diff, triages equivalent-vs-gap survivors *empirically* (by trying to synthesize a distinguishing test), and writes the killing test — with verdicts always coming from real execution, never the model. The deterministic core is the CI-gateable artifact; the Skill is an accelerator CI never depends on.
+A hybrid is proposed (see [`docs/mutation-harness-design.md`](../../docs/mutation-harness-design.md)): a small **deterministic, zero-dep core** built on the JDK `java.lang.classfile` API (mutation operators as class-file transforms — the same "build the focused 20%" philosophy as the `pbt` module), plus an **LLM `/mutate` Skill** that scopes to the diff, triages equivalent-vs-gap survivors *empirically* (by trying to synthesize a distinguishing test), and writes the killing test — with verdicts always coming from real execution, never the model. The deterministic core is the CI-gateable artifact; the Skill is an accelerator CI never depends on.
 
 **Phasing:** build and **manually validate** the deterministic core first — it must surface real gaps when driven by hand (reproducing the known `reset()` / keyed-diff fixtures and flagging at least one genuine survivor on real code). The LLM Skill is deferred behind that gate; a weak core is fixed at the core, not papered over with an LLM layer.
 

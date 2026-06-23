@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.vadimv</groupId>
-        <artifactId>rsp</artifactId>
+        <artifactId>system</artifactId>
         <version>${revision}</version>
     </parent>
 
@@ -38,8 +38,8 @@
                 <configuration>
                     <mainClass>rsp.util.JsCompiler</mainClass>
                     <arguments>
-                        <argument>./js-client/src/main/es6</argument>
-                        <argument>./js-client/target/classes/static</argument>
+                        <argument>./system/js-client/src/main/es6</argument>
+                        <argument>./system/js-client/target/classes/static</argument>
                         <argument>js-client</argument>
                     </arguments>
                 </configuration>

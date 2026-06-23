@@ -5,26 +5,15 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>io.github.vadimv</groupId>
-        <artifactId>rsp</artifactId>
+        <artifactId>harness</artifactId>
         <version>${revision}</version>
     </parent>
 
-    <artifactId>core</artifactId>
+    <artifactId>pbt</artifactId>
+    <description>A small, zero-dependency property-based testing harness with integrated shrinking.</description>
 
     <dependencies>
-        <dependency>
-            <groupId>com.googlecode.json-simple</groupId>
-            <artifactId>json-simple</artifactId>
-            <version>${json-simple.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>*</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-
-
+        <!-- Test dependencies only: the harness itself depends on nothing. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
@@ -35,18 +24,6 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.github.vadimv</groupId>
-            <artifactId>pbt</artifactId>
-            <version>${revision}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.github.vadimv</groupId>
-            <artifactId>mutate</artifactId>
-            <version>${revision}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
