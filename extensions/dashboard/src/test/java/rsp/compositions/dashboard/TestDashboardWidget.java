@@ -1,4 +1,4 @@
-package rsp.app.posts.components;
+package rsp.compositions.dashboard;
 
 import rsp.component.definitions.Component;
 import rsp.component.definitions.StatelessComponent;

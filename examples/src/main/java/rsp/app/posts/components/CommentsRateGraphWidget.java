@@ -1,7 +1,7 @@
 package rsp.app.posts.components;
 
-import rsp.app.posts.components.DashboardModel.GraphSample;
 import rsp.app.posts.services.CommentRateStreamService;
+import rsp.compositions.dashboard.DashboardWidget;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.ComponentCompositeKey;

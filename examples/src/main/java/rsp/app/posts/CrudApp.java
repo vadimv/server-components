@@ -3,9 +3,9 @@ package rsp.app.posts;
 import rsp.app.posts.components.CommentCreateContract;
 import rsp.app.posts.components.CommentEditContract;
 import rsp.app.posts.components.CommentsListContract;
-import rsp.app.posts.components.DashboardContract;
-import rsp.app.posts.components.DashboardModel;
-import rsp.app.posts.components.DashboardView;
+import rsp.app.posts.components.DemoDashboards;
+import rsp.compositions.dashboard.DashboardContract;
+import rsp.compositions.dashboard.DashboardView;
 import rsp.app.posts.components.ExplorerContract;
 import rsp.app.posts.components.ExplorerView;
 import rsp.app.posts.components.PostCreateContract;
@@ -113,7 +113,7 @@ public class CrudApp {
         commentRateStreamService.start();
         final LogStreamService logStreamService = new LogStreamService();
         logStreamService.start();
-        final var dashboardModel = DashboardModel.live(commentRateStreamService, logStreamService);
+        final var dashboardModel = DemoDashboards.live(commentRateStreamService, logStreamService);
 
         // Agent permissions. The policy says which agent actions are allowed. When an action needs
         // user consent, the prompt asks this spawner for an agent session. Approval decisions are

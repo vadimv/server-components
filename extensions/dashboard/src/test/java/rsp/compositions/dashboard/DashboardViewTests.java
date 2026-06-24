@@ -1,4 +1,4 @@
-package rsp.app.posts.components;
+package rsp.compositions.dashboard;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -14,15 +14,18 @@ import static org.junit.jupiter.api.Assertions.*;
 class DashboardViewTests {
 
     @Test
-    void contract_enriches_context_with_static_dashboard_model() {
-        DashboardContract contract = new DashboardContract(new TestLookup());
+    void contract_enriches_context_with_dashboard_model() {
+        DashboardModel model = new DashboardModel(DashboardDsl.dashboard()
+                .place(new TestDashboardWidget("only"), DashboardDsl.at(1, 1).span(6, 3))
+                .build());
+        DashboardContract contract = new DashboardContract(new TestLookup(), model);
         ComponentContext context = contract.enrichContext(new ComponentContext());
 
-        DashboardModel model = context.get(DashboardContract.DASHBOARD_MODEL);
+        DashboardModel enriched = context.get(DashboardContract.DASHBOARD_MODEL);
 
         assertEquals("Dashboard", contract.title());
-        assertNotNull(model);
-        assertFalse(model.layout().placements().isEmpty());
+        assertNotNull(enriched);
+        assertFalse(enriched.layout().placements().isEmpty());
     }
 
     @Test

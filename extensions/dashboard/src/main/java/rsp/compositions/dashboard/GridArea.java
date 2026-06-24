@@ -1,4 +1,4 @@
-package rsp.app.posts.components;
+package rsp.compositions.dashboard;
 
 public record GridArea(int column, int row, int columnSpan, int rowSpan) {
     public GridArea {

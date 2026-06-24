@@ -2,6 +2,7 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.services.LogEntry;
 import rsp.app.posts.services.LogStreamService;
+import rsp.compositions.dashboard.DashboardWidget;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.ComponentCompositeKey;

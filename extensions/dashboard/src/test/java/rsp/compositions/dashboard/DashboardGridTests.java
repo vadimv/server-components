@@ -1,4 +1,4 @@
-package rsp.app.posts.components;
+package rsp.compositions.dashboard;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;

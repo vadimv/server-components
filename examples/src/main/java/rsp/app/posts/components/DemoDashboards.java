@@ -2,14 +2,19 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.services.CommentRateStreamService;
 import rsp.app.posts.services.LogStreamService;
+import rsp.compositions.dashboard.DashboardDsl;
+import rsp.compositions.dashboard.DashboardModel;
 
 import java.util.List;
 
-public record DashboardModel(DashboardLayout layout) {
+/**
+ * App-specific dashboard compositions for the posts example. Assembles concrete widgets
+ * ({@link CommentsRateGraphWidget}, {@link LogsWidget}) into a {@link DashboardModel} using
+ * the generic {@code rsp.compositions.dashboard} grid DSL.
+ */
+public final class DemoDashboards {
 
-    public DashboardModel {
-        layout = layout == null ? DashboardDsl.dashboard().build() : layout;
-    }
+    private DemoDashboards() {}
 
     public static DashboardModel demo() {
         List<GraphSample> commentsRateSamples = List.of(
@@ -42,11 +47,5 @@ public record DashboardModel(DashboardLayout layout) {
                 .place(LogsWidget.live(logStreamService),
                         DashboardDsl.at(1, 4).span(10, 3))
                 .build());
-    }
-
-    public record GraphSample(String label, int value) {
-        public GraphSample {
-            label = label == null ? "" : label;
-        }
     }
 }

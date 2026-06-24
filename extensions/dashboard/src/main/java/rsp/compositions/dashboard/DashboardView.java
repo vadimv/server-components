@@ -1,6 +1,5 @@
-package rsp.app.posts.components;
+package rsp.compositions.dashboard;
 
-import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
@@ -11,7 +10,7 @@ public class DashboardView extends Component<DashboardView.DashboardState> {
 
     public record DashboardState(DashboardModel model) {
         public DashboardState {
-            model = model == null ? DashboardModel.demo() : model;
+            model = model == null ? new DashboardModel(null) : model;
         }
     }
 

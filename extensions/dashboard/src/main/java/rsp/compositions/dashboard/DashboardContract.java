@@ -1,4 +1,4 @@
-package rsp.app.posts.components;
+package rsp.compositions.dashboard;
 
 import rsp.component.ComponentContext;
 import rsp.component.ContextKey;
@@ -17,10 +17,6 @@ public class DashboardContract extends ViewContract {
             new ContextKey.StringKey<>("dashboard.model", DashboardModel.class);
 
     private final DashboardModel model;
-
-    public DashboardContract(final Lookup lookup) {
-        this(lookup, DashboardModel.demo());
-    }
 
     public DashboardContract(final Lookup lookup, final DashboardModel model) {
         super(lookup);
