@@ -15,5 +15,6 @@
     <modules>
         <module>ai-agent</module>
         <module>dashboard</module>
+        <module>ui-shell</module>
     </modules>
 </project>

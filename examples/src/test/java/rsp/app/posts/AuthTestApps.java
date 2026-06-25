@@ -1,6 +1,10 @@
 package rsp.app.posts;
 
 import rsp.app.posts.components.*;
+import rsp.compositions.shell.ExplorerContract;
+import rsp.compositions.shell.ExplorerView;
+import rsp.compositions.shell.HeaderContract;
+import rsp.compositions.shell.HeaderView;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
 import rsp.compositions.application.App;

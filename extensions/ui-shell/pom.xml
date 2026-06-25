@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.github.vadimv</groupId>
+        <artifactId>extensions</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>ui-shell</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.github.vadimv</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.vadimv</groupId>
+            <artifactId>compositions</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+</project>

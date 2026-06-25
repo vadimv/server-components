@@ -1,4 +1,4 @@
-package rsp.app.posts.components;
+package rsp.compositions.shell;
 
 import rsp.component.*;
 import rsp.component.definitions.Component;

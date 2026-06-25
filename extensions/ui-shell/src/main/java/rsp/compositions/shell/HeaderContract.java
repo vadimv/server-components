@@ -1,4 +1,4 @@
-package rsp.app.posts.components;
+package rsp.compositions.shell;
 
 import rsp.component.ComponentContext;
 import rsp.component.ContextKey;
@@ -36,11 +36,8 @@ public class HeaderContract extends ViewContract {
         this.username = user != null ? user.toString() : "";
         this.authProvider = lookup.get(ContextKeys.AUTH_PROVIDER);
 
-        /**
-         * The code fragment below illustrates a contract-level context read and events watching for a sibling/companion contract.
-         * @see ExplorerContract
-         * @see PromptView
-         */
+        // Illustrates a contract-level context read plus watching a sibling/companion
+        // contract's published category (see ExplorerContract).
         this.currentCategory = normalizeCategory(lookup.get(ContextKeys.PRIMARY_CATEGORY_KEY));
         logCurrentCategory("init", "", currentCategory);
         watch(ContextKeys.PRIMARY_CATEGORY_KEY, (previous, next) ->

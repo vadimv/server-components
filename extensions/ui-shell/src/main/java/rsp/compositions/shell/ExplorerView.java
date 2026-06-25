@@ -1,7 +1,5 @@
-package rsp.app.posts.components;
+package rsp.compositions.shell;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.contract.ContextKeys;
@@ -29,7 +27,6 @@ import static rsp.dsl.Html.*;
  */
 public class ExplorerView extends Component<ExplorerView.ExplorerViewState> {
 
-    private static final Logger log = LoggerFactory.getLogger(ExplorerView.class);
     private Lookup lookup;
     private Lookup.Registration activeCategorySubscription;
 
