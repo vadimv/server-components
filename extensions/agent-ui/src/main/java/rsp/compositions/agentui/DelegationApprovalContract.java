@@ -16,8 +16,8 @@ import java.util.Objects;
 /**
  * Standardized approval dialog for agent delegation requests.
  * <p>
- * Shown as a modal overlay when {@link AgentSpawner} returns
- * {@link SpawnResult.RequiresApproval}. Displays scope, control mode,
+ * Shown as a modal overlay when {@link rsp.compositions.agent.AgentSpawner} returns
+ * {@link rsp.compositions.agent.SpawnResult.RequiresApproval}. Displays scope, control mode,
  * and purpose. User clicks Approve or Deny. Decision is saved to
  * {@link DelegationStore} and {@link #APPROVAL_DECIDED} event is emitted.
  */
