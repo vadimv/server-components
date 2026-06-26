@@ -1,4 +1,4 @@
-package rsp.app.posts.services;
+package rsp.compositions.agentui;
 
 import java.util.List;
 import java.util.concurrent.*;

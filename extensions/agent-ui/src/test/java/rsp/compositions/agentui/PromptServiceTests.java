@@ -1,4 +1,4 @@
-package rsp.app.posts.services;
+package rsp.compositions.agentui;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

@@ -1,9 +1,8 @@
-package rsp.app.posts.components;
+package rsp.compositions.agentui;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 

@@ -1,6 +1,5 @@
-package rsp.app.posts.components;
+package rsp.compositions.agentui;
 
-import rsp.app.posts.services.PromptService;
 import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
@@ -9,7 +8,6 @@ import rsp.compositions.agent.AgentFeedback;
 import rsp.compositions.agent.AgentRuntime;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.AgentSpawner;
-import rsp.compositions.agent.DelegationApprovalContract;
 import rsp.compositions.agent.LoopPolicy;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.composition.StructureNode;
@@ -77,7 +75,8 @@ public class PromptContract extends ViewContract {
         };
 
         this.runtime = new AgentRuntime(agentService, dispatcher, spawner,
-                authorization, structure, lookup, feedback, LoopPolicy.DEFAULT, scopeKey);
+                authorization, structure, lookup, feedback,
+                DelegationApprovalContract.class, LoopPolicy.DEFAULT, scopeKey);
 
         subscribe(SEND_PROMPT, (eventName, text) -> {
             logger.log(System.Logger.Level.DEBUG,

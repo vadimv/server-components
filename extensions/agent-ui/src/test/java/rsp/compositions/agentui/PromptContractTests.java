@@ -1,7 +1,6 @@
-package rsp.app.posts.components;
+package rsp.compositions.agentui;
 
 import org.junit.jupiter.api.Test;
-import rsp.app.posts.services.PromptService;
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentEventEntry;

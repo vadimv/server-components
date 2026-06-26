@@ -97,7 +97,7 @@ class AgentRuntimeTests {
                 "delegation approval modal must be shown via SHOW event");
         ActionBindings.ShowPayload payload =
                 runtimeLookup.getLastPublishedPayload(EventKeys.SHOW);
-        assertEquals(DelegationApprovalContract.class, payload.contractClass());
+        assertEquals(StubContract.class, payload.contractClass());
     }
 
     /** Invariant 1c: with an active session, Deny is a real refusal — no
@@ -882,7 +882,7 @@ class AgentRuntimeTests {
                                            Lookup lookup,
                                            LoopPolicy policy) {
         return new AgentRuntime(service, dispatcher, spawner,
-                authorization, null, lookup, feedback, policy, "test-runtime");
+                authorization, null, lookup, feedback, StubContract.class, policy, "test-runtime");
     }
 
     private static AgentRuntime newRuntime(AgentService service,
@@ -893,7 +893,7 @@ class AgentRuntimeTests {
                                            Lookup lookup,
                                            InterruptionPolicy interruptionPolicy) {
         return new AgentRuntime(service, dispatcher, spawner,
-                authorization, null, lookup, feedback, LoopPolicy.DEFAULT,
+                authorization, null, lookup, feedback, StubContract.class, LoopPolicy.DEFAULT,
                 interruptionPolicy, "test-runtime");
     }
 

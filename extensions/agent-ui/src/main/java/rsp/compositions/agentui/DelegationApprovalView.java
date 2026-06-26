@@ -1,4 +1,4 @@
-package rsp.compositions.agent;
+package rsp.compositions.agentui;
 
 import rsp.component.*;
 import rsp.component.definitions.Component;

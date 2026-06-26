@@ -1,9 +1,10 @@
-package rsp.compositions.agent;
+package rsp.compositions.agentui;
 
 import rsp.component.ComponentContext;
 import rsp.component.ContextKey;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
+import rsp.compositions.agent.DelegationStore;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.ViewContract;

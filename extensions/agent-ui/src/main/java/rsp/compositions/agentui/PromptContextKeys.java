@@ -1,6 +1,5 @@
-package rsp.app.posts.components;
+package rsp.compositions.agentui;
 
-import rsp.app.posts.services.PromptService;
 import rsp.component.ContextKey;
 
 public final class PromptContextKeys {

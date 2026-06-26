@@ -1,7 +1,18 @@
-package rsp.compositions.agent;
+package rsp.compositions.agentui;
 
 import org.junit.jupiter.api.Test;
 import rsp.page.QualifiedSessionId;
+import rsp.compositions.agent.AgentContext;
+import rsp.compositions.agent.AgentSession;
+import rsp.compositions.agent.AgentSpawner;
+import rsp.compositions.agent.AllowAllSpawner;
+import rsp.compositions.agent.ApprovalSpawner;
+import rsp.compositions.agent.ControlMode;
+import rsp.compositions.agent.DelegationStore;
+import rsp.compositions.agent.InMemoryDelegationStore;
+import rsp.compositions.agent.PolicySpawner;
+import rsp.compositions.agent.SpawnRequest;
+import rsp.compositions.agent.SpawnResult;
 import rsp.compositions.authorization.Attributes;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.authorization.DelegationGrant;

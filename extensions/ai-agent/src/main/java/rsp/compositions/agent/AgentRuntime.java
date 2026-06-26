@@ -103,6 +103,7 @@ public class AgentRuntime {
     private final StructureNode structure;
     private final Lookup lookup;
     private final AgentFeedback feedback;
+    private final Class<? extends ViewContract> approvalContractClass;
     private final LoopPolicy loopPolicy;
     private final InterruptionPolicy interruptionPolicy;
     private final String diagnosticLabel;
@@ -152,10 +153,11 @@ public class AgentRuntime {
                         StructureNode structure,
                         Lookup lookup,
                         AgentFeedback feedback,
+                        Class<? extends ViewContract> approvalContractClass,
                         LoopPolicy loopPolicy,
                         String diagnosticLabel) {
         this(agentService, dispatcher, spawner, authorization, structure, lookup,
-                feedback, loopPolicy, InterruptionPolicy.strictStop(), diagnosticLabel);
+                feedback, approvalContractClass, loopPolicy, InterruptionPolicy.strictStop(), diagnosticLabel);
     }
 
     public AgentRuntime(AgentService agentService,
@@ -165,6 +167,7 @@ public class AgentRuntime {
                         StructureNode structure,
                         Lookup lookup,
                         AgentFeedback feedback,
+                        Class<? extends ViewContract> approvalContractClass,
                         LoopPolicy loopPolicy,
                         InterruptionPolicy interruptionPolicy,
                         String diagnosticLabel) {
@@ -176,6 +179,7 @@ public class AgentRuntime {
         this.lookup = Objects.requireNonNull(lookup);
         this.interruptionPolicy = Objects.requireNonNull(interruptionPolicy);
         this.feedback = Objects.requireNonNull(feedback);
+        this.approvalContractClass = Objects.requireNonNull(approvalContractClass);
         this.loopPolicy = Objects.requireNonNull(loopPolicy);
         this.diagnosticLabel = diagnosticLabel != null ? diagnosticLabel : "unknown";
 
@@ -672,7 +676,7 @@ public class AgentRuntime {
                 this.queuedResult = result;
                 this.queuedUserText = userText;
                 lookup.publish(EventKeys.SHOW, new ActionBindings.ShowPayload(
-                        DelegationApprovalContract.class,
+                        approvalContractClass,
                         Map.of("scope", request.scope().name(),
                                "controlMode", request.controlMode().name(),
                                "reason", describe(result))));
