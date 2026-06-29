@@ -13,8 +13,11 @@ import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonParser;
 import rsp.util.json.JsonUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,8 +25,11 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Flow;
 
 import static rsp.dsl.Html.html;
 
@@ -47,6 +53,13 @@ import static rsp.dsl.Html.html;
 public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
     private static final String DEVICE_ID_COOKIE_NAME = "deviceId";
+
+    /**
+     * Maximum size of an OAuth endpoint response body we will buffer. Token and userinfo responses
+     * are small; this bounds memory against a misbehaving or compromised IdP returning an unbounded
+     * (or chunked, length-lying) body. Exceeding it aborts the read with an {@link IOException}.
+     */
+    private static final int MAX_RESPONSE_BYTES = 1024 * 1024;
 
     private final System.Logger logger = System.getLogger(getClass().getName());
     private final JsonParser jsonParser = JsonUtils.createParser();
@@ -252,7 +265,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
         try (java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient()) {
             java.net.http.HttpResponse<String> response =
-                    httpClient.send(tokenRequest, java.net.http.HttpResponse.BodyHandlers.ofString());
+                    httpClient.send(tokenRequest, boundedStringBodyHandler(MAX_RESPONSE_BYTES));
 
             if (response.statusCode() != 200) {
                 logger.log(System.Logger.Level.ERROR,
@@ -283,7 +296,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
         try (java.net.http.HttpClient httpClient = java.net.http.HttpClient.newHttpClient()) {
             java.net.http.HttpResponse<String> response =
-                    httpClient.send(userInfoRequest, java.net.http.HttpResponse.BodyHandlers.ofString());
+                    httpClient.send(userInfoRequest, boundedStringBodyHandler(MAX_RESPONSE_BYTES));
 
             if (response.statusCode() != 200) {
                 logger.log(System.Logger.Level.ERROR,
@@ -323,6 +336,71 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
     private static String encode(String value) {
         return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    // ===== Bounded response reading =====
+
+    /**
+     * A {@link HttpResponse.BodyHandler} that reads the body as a UTF-8 string but aborts once more
+     * than {@code maxBytes} have arrived, so a misbehaving endpoint cannot exhaust the heap.
+     *
+     * @param maxBytes the maximum number of body bytes to buffer
+     * @return a body handler producing the decoded string, or failing with {@link IOException}
+     */
+    private static HttpResponse.BodyHandler<String> boundedStringBodyHandler(final int maxBytes) {
+        return responseInfo -> HttpResponse.BodySubscribers.mapping(
+                new BoundedByteSubscriber(maxBytes),
+                bytes -> new String(bytes, StandardCharsets.UTF_8));
+    }
+
+    /** Collects body bytes, cancelling the subscription if the configured cap is exceeded. */
+    static final class BoundedByteSubscriber implements HttpResponse.BodySubscriber<byte[]> {
+        private final int maxBytes;
+        private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        private final CompletableFuture<byte[]> result = new CompletableFuture<>();
+        private Flow.Subscription subscription;
+        private int total;
+
+        BoundedByteSubscriber(final int maxBytes) {
+            this.maxBytes = maxBytes;
+        }
+
+        @Override
+        public CompletionStage<byte[]> getBody() {
+            return result;
+        }
+
+        @Override
+        public void onSubscribe(final Flow.Subscription subscription) {
+            this.subscription = subscription;
+            subscription.request(Long.MAX_VALUE);
+        }
+
+        @Override
+        public void onNext(final List<ByteBuffer> items) {
+            for (final ByteBuffer item : items) {
+                final int remaining = item.remaining();
+                if (total + remaining > maxBytes) {
+                    subscription.cancel();
+                    result.completeExceptionally(new IOException("Response body exceeds " + maxBytes + " bytes"));
+                    return;
+                }
+                total += remaining;
+                final byte[] chunk = new byte[remaining];
+                item.get(chunk);
+                buffer.writeBytes(chunk);
+            }
+        }
+
+        @Override
+        public void onError(final Throwable throwable) {
+            result.completeExceptionally(throwable);
+        }
+
+        @Override
+        public void onComplete() {
+            result.complete(buffer.toByteArray());
+        }
     }
 
     // ===== Records =====

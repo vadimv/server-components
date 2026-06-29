@@ -32,6 +32,14 @@ public final class MainWebSocketEndpoint extends Endpoint {
     public static final String HANDSHAKE_REQUEST_PROPERTY_NAME = "handshakereq";
     private static final String LIVE_PAGE_SESSION_USER_PROPERTY_NAME = "livePage";
 
+    /**
+     * Maximum size of an inbound WebSocket message. The container buffers a whole message before
+     * delivering it to {@link #onOpen}'s handler, so this caps the total bytes (and hence the JSON
+     * the parser must handle) per message; oversized frames are rejected by the container. Defends
+     * the parse path at the transport boundary, where total input size must be bounded.
+     */
+    public static final int MAX_INBOUND_MESSAGE_BYTES = 256 * 1024;
+
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
     private final Supplier<EventLoop> eventLoopSupplier;
 
@@ -47,6 +55,10 @@ public final class MainWebSocketEndpoint extends Endpoint {
     @Override
     public void onOpen(final Session session, final EndpointConfig endpointConfig) {
         logger.log(DEBUG, () -> "Websocket endpoint opened, session: " + session.getId());
+
+        // Bound inbound message size at the transport boundary before any message is buffered.
+        session.setMaxTextMessageBufferSize(MAX_INBOUND_MESSAGE_BYTES);
+        session.setMaxBinaryMessageBufferSize(MAX_INBOUND_MESSAGE_BYTES);
 
         final HttpRequest handshakeRequest = (HttpRequest) endpointConfig.getUserProperties().get(HANDSHAKE_REQUEST_PROPERTY_NAME);
         final QualifiedSessionId qsid = new QualifiedSessionId(session.getPathParameters().get("pid"),
