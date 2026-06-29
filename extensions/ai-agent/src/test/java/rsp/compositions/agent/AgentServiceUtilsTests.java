@@ -154,7 +154,7 @@ class AgentServiceUtilsTests {
         JsonDataType.Object output = jsonObject(Map.of(
             "type", new JsonDataType.String("intent"),
             "action", new JsonDataType.String("page"),
-            "payload", new JsonDataType.Number(3)));
+            "payload", JsonDataType.Number.of(3)));
 
         ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
         Optional<AgentResult> result = AgentServiceUtils.toAgentResult(output, profile, TREE);
@@ -230,7 +230,7 @@ class AgentServiceUtilsTests {
     @Test
     void toolUseToAgentResult_action_tool() {
         JsonDataType.Object input = jsonObject(Map.of(
-            "payload", new JsonDataType.Number(3)));
+            "payload", JsonDataType.Number.of(3)));
 
         ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
         Optional<AgentResult> result = AgentServiceUtils.toolUseToAgentResult("page", input, profile, TREE);

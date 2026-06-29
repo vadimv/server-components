@@ -96,7 +96,7 @@ public final class PayloadParsers {
     static Object unwrap(JsonDataType value) {
         return switch (value) {
             case JsonDataType.String s -> s.value();
-            case JsonDataType.Number n -> n.isFractional() ? n.value() : (int) n.asLong();
+            case JsonDataType.Number n -> n.isFractional() ? n.asDouble() : (int) n.asLong();
             case JsonDataType.Boolean b -> b.value();
             case JsonDataType.Array a -> {
                 List<Object> list = new ArrayList<>(a.size());

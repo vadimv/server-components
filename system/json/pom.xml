@@ -9,15 +9,9 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>core</artifactId>
+    <artifactId>json</artifactId>
 
     <dependencies>
-        <dependency>
-            <groupId>io.github.vadimv</groupId>
-            <artifactId>json</artifactId>
-            <version>${revision}</version>
-        </dependency>
-
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>

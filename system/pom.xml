@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>json</module>
         <module>core</module>
         <module>js-client</module>
         <module>servlet-api</module>

@@ -31,7 +31,6 @@
         <jsoup.version>1.17.2</jsoup.version>
 
         <jetty.version>12.0.30</jetty.version>
-        <json-simple.version>1.1.1</json-simple.version>
         <jakarta.websocket.version>2.1.0</jakarta.websocket.version>
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
         <closure-compiler.version>v20250820</closure-compiler.version>
