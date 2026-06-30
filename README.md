@@ -18,7 +18,7 @@ For over a decade, web UI stacks have been confusing and unpredictable. Building
 - **SSR Architecture:** A Server-Side-Rendering architecture similar to Elixir Phoenix LiveView or Blazor Server, but built natively for Java.
 - **Plain Modern Java:** Write web UIs with zero annotations, zero "beans", and no implicit control flows. Constructors are the preferred way for dependency injection, and components can be tested in isolation.
 - **Compact and All-Inclusive:** The project's total code footprint is currently about 50K LOC (with plans to cap at ~100K LOC), including tests, examples, and documentation. It provides a full UI stack with a level of complexity kept well within the reach of a small team.
-- **Auditable:** Aims for zero third-party runtime dependencies (currently just one dependency outside the web server layer), making the UI stack auditable by design.
+- **Auditable:** Aims for zero third-party runtime dependencies (currently **no external runtime dependencies** outside the web server layer), making the UI stack auditable by design.
 - **AI-Generation Friendly:** The Java HTML DSL is linear and composable, making it incredibly easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and component trees.
 - **Native AI Flows:** At runtime, AI agents can natively understand the application's structure, navigate the UI, and queue up actions using Human-in-the-loop flows for user approval.
 
@@ -117,7 +117,7 @@ Once you've run the example, open your favorite AI coding assistant (Claude, Git
 
 Within a Life Cycle of an internal tool usually the boring "maintain" part is what takes a sheer size of efforts and risks over the years.
 
-You built it—you should be able to maintain and repair it. You should be able to replace and fix almost every part of your stack by yourself.
+**You built it—you should be able to maintain and repair it.** You should be able to replace and fix almost every part of your stack by yourself.
 Of course, with great power comes great responsibility: to fix your tractor, you have to know how and have the necessary skills and tools in your garage.
 
 Open Source software gives a promise that this would be possible yet in practice an NPM-style dependency management makes it almost impossible.
