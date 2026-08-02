@@ -1,10 +1,13 @@
 package rsp.app.posts;
 
 import com.microsoft.playwright.*;
+import com.microsoft.playwright.options.Cookie;
+import com.microsoft.playwright.options.SameSiteAttribute;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
+import rsp.compositions.auth.OAuthPKCEProvider;
 import rsp.jetty.WebServer;
 
 import java.util.stream.Stream;
@@ -80,6 +83,8 @@ class OAuthPKCESmokeIT {
         page.navigate(BASE_URL + "/posts");
         waitFor(PAGE_INIT_MS);
         assertTrue(page.url().contains("/auth/login"));
+        final Cookie deviceCookieBefore = cookieByName(context, "deviceId");
+        assertNotNull(deviceCookieBefore, "deviceId cookie should exist before OAuth sign-in");
 
         // Click "Sign in" → triggers PKCE flow → StubOAuthServer auto-approves → callback → /posts
         page.locator("button:has-text('Sign in')").click();
@@ -89,6 +94,15 @@ class OAuthPKCESmokeIT {
         waitFor(PAGE_INIT_MS);
 
         assertTrue(page.url().contains("/posts"), "Should be on /posts after OAuth login, but URL is: " + page.url());
+
+        final Cookie authCookie = cookieByName(context, OAuthPKCEProvider.SESSION_COOKIE_NAME);
+        final Cookie deviceCookieAfter = cookieByName(context, "deviceId");
+        assertNotNull(authCookie, "OAuth login should create a dedicated auth session cookie");
+        assertNotNull(deviceCookieAfter, "deviceId cookie should remain present after OAuth login");
+        assertEquals(deviceCookieBefore.value, deviceCookieAfter.value, "OAuth login should not rotate deviceId");
+        assertNotEquals(deviceCookieAfter.value, authCookie.value, "auth session token must be distinct from deviceId");
+        assertTrue(Boolean.TRUE.equals(authCookie.httpOnly), "OAuth auth cookie should be HttpOnly");
+        assertEquals(SameSiteAttribute.LAX, authCookie.sameSite, "OAuth auth cookie should use SameSite=Lax");
 
         // Verify header shows username from StubOAuthServer
         assertThat(page.locator(".header-username")).isVisible();
@@ -113,10 +127,14 @@ class OAuthPKCESmokeIT {
         page.locator("button:has-text('Sign in')").click();
         page.waitForURL("**/posts**", new Page.WaitForURLOptions().setTimeout(10000));
         waitFor(PAGE_INIT_MS);
+        assertNotNull(cookieByName(context, OAuthPKCEProvider.SESSION_COOKIE_NAME),
+                "OAuth auth cookie should exist before sign-out");
 
         // Click sign-out — triggers SetHref("/auth/signout")
         page.locator(".header-signout").click();
         waitFor(2000);
+        assertNull(cookieByName(context, OAuthPKCEProvider.SESSION_COOKIE_NAME),
+                "OAuth auth cookie should be removed after sign-out");
 
         // Now navigate to /posts — session removed, should redirect to login
         page.navigate(BASE_URL + "/posts");
@@ -151,6 +169,8 @@ class OAuthPKCESmokeIT {
         // After the failed flow settles, navigate to /posts — should redirect to login (no session created)
         page.navigate(BASE_URL + "/posts");
         waitFor(PAGE_INIT_MS);
+        assertNull(cookieByName(context, OAuthPKCEProvider.SESSION_COOKIE_NAME),
+                "Denied OAuth flow should not create an auth cookie");
 
         assertTrue(page.url().contains("/auth/login"),
                 "Should redirect to login after denied auth, but URL is: " + page.url());
@@ -165,6 +185,14 @@ class OAuthPKCESmokeIT {
 
     private static Stream<BrowserType> browserTypes() {
         return Stream.of(playwright.chromium());
+    }
+
+    private Cookie cookieByName(BrowserContext context, String name) {
+        return context.cookies(BASE_URL)
+                .stream()
+                .filter(cookie -> name.equals(cookie.name))
+                .findFirst()
+                .orElse(null);
     }
 
     private static void waitFor(long ms) throws InterruptedException {

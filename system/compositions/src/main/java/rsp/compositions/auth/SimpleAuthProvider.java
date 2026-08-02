@@ -2,6 +2,7 @@ package rsp.compositions.auth;
 
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
+import rsp.compositions.contract.ContextKeys;
 import rsp.dsl.Definition;
 import rsp.page.events.RemoteCommand;
 import rsp.server.http.HttpRequest;
@@ -60,7 +61,11 @@ public class SimpleAuthProvider implements AuthComponent.AuthProvider {
     }
 
     @Override
-    public Definition gateResponse(String currentPath) {
+    public Definition gateResponse(ComponentContext context, AuthComponent.AuthResult authResult) {
+        if (authResult.authenticated()) {
+            return null;
+        }
+        String currentPath = context.getRequired(ContextKeys.ROUTE_PATH);
         if (currentPath.startsWith("/auth")) {
             return null; // public path — no gate
         }
