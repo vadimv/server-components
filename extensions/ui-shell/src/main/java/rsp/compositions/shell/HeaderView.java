@@ -1,69 +1,45 @@
 package rsp.compositions.shell;
 
-import rsp.component.*;
-import rsp.component.definitions.Component;
+import rsp.component.ComponentView;
+import rsp.component.IntentDispatcher;
 import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.contract.ContextKeys;
-import rsp.dom.TreePositionPath;
 import rsp.dsl.Definition;
-import rsp.page.QualifiedSessionId;
 
 import static rsp.dsl.Html.*;
 
 /**
  * HeaderView - Renders a horizontal stripe showing the active category name and auth status.
  * <p>
- * Reads the active category and auth data from context (set by {@link HeaderContract#enrichContext}).
+ * Receives auth data from {@link HeaderContract}'s local state cache.
  * When authenticated, shows username and a "Sign out" button (if the auth provider supports it).
  */
-public class HeaderView extends Component<HeaderView.HeaderViewState> {
+public class HeaderView implements ComponentView<HeaderView.HeaderViewState, HeaderView.SignOutRequested> {
 
-    private CommandsEnqueue commandsEnqueue;
-    private AuthComponent.AuthProvider authProvider;
-
-    public record HeaderViewState(boolean authenticated, String username) {}
-
-    @Override
-    public ComponentSegment<HeaderViewState> createComponentSegment(QualifiedSessionId sessionId,
-                                                                     TreePositionPath componentPath,
-                                                                     TreeBuilderFactory treeBuilderFactory,
-                                                                     ComponentContext componentContext,
-                                                                     CommandsEnqueue commandsEnqueue) {
-        this.commandsEnqueue = commandsEnqueue;
-        return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
+    public record HeaderViewState(boolean authenticated, String username, AuthComponent.AuthProvider authProvider) {
     }
 
-    @Override
-    public ComponentStateSupplier<HeaderViewState> initStateSupplier() {
-        return (_, context) -> {
-            Boolean auth = context.get(HeaderContract.HEADER_AUTHENTICATED);
-            String username = context.get(HeaderContract.HEADER_USERNAME);
-            this.authProvider = context.get(ContextKeys.AUTH_PROVIDER);
-            return new HeaderViewState(
-                    Boolean.TRUE.equals(auth),
-                    username != null ? username : "");
-        };
-    }
+    public enum SignOutRequested { INSTANCE }
 
     @Override
-    public ComponentView<HeaderViewState> componentView() {
-        return _ -> state -> div(attr("class", "layout-header"),
-                authSection(state)
+    public rsp.component.View<HeaderViewState> use(IntentDispatcher<SignOutRequested> intents) {
+        return state -> div(attr("class", "layout-header"),
+                authSection(state, intents)
         );
     }
 
-    private Definition authSection(HeaderViewState state) {
+    private Definition authSection(HeaderViewState state,
+                                   IntentDispatcher<SignOutRequested> intents) {
         if (!state.authenticated()) {
             return span();
         }
-        if (authProvider == null || !authProvider.supportsSignOut()) {
+        if (state.authProvider() == null || !state.authProvider().supportsSignOut()) {
             return span(attr("class", "header-auth"),
                     span(attr("class", "header-username"), text(state.username())));
         }
         return span(attr("class", "header-auth"),
                 span(attr("class", "header-username"), text(state.username())),
                 a(attr("href", "#"), attr("class", "header-signout"),
-                        on("click", true, ctx -> authProvider.signOut(commandsEnqueue)),
+                        on("click", true, ctx -> intents.dispatch(SignOutRequested.INSTANCE)),
                         text("Sign out"))
         );
     }

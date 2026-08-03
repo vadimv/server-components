@@ -181,7 +181,7 @@ class AutoAddressBarSyncComponentTests {
         }
 
         @Override
-        public ComponentView<RelativeUrl> componentView() {
+        public ComponentView<RelativeUrl, Object> componentView() {
             return _ -> _ -> renderContext -> { };
         }
     }
@@ -199,7 +199,7 @@ class AutoAddressBarSyncComponentTests {
         }
     }
 
-    private static final class RecordingStateUpdate implements StateUpdate<RelativeUrl> {
+    private static final class RecordingStateUpdate implements StateUpdater<RelativeUrl> {
         private RelativeUrl state;
 
         private RecordingStateUpdate(RelativeUrl initialState) {

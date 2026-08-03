@@ -7,7 +7,7 @@ import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.server.Path;
 import rsp.server.http.NotFoundException;
 
@@ -17,7 +17,7 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 
 /**
- * RoutingComponent - Matches URL path to ViewContract classes by iterating Compositions.
+ * RoutingComponent - Matches URL path to contract component classes by iterating Compositions.
  * <p>
  * This component:
  * 1. Reads url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
@@ -37,7 +37,7 @@ import java.util.function.BiFunction;
  * changing them should flow through context without recreating the route shell
  * or stable layout companions such as prompt/sidebar contracts.
  */
-public class RoutingComponent extends Component<RoutingComponent.RoutingComponentState> {
+public class RoutingComponent extends Component<RoutingComponent.RoutingComponentState, Object> {
 
     public RoutingComponent() {
         this(null);
@@ -90,7 +90,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
 
     /**
      * Enrich context with routing results from state.
-     * Downstream components (ExplorerContract, ListView, FormViewContract) read these keys from context.
+     * Downstream components read these keys from context.
      */
     @Override
     public BiFunction<ComponentContext, RoutingComponentState, ComponentContext> subComponentsContext() {
@@ -102,7 +102,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
     }
 
     @Override
-    public ComponentView<RoutingComponentState> componentView() {
+    public ComponentView<RoutingComponentState, Object> componentView() {
         return _ -> _ -> new AuthComponent();
     }
 
@@ -113,7 +113,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
 
     public record RoutingComponentState(
             Composition composition,
-            Class<? extends ViewContract> contractClass,
+            Class<? extends Contract> contractClass,
             String path,
             String pattern
     ) {

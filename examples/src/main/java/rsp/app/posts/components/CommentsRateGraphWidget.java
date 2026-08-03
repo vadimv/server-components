@@ -5,7 +5,7 @@ import rsp.compositions.dashboard.DashboardWidget;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.ComponentCompositeKey;
-import rsp.component.StateUpdate;
+import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
 import rsp.dom.XmlNs;
 import rsp.dsl.Definition;
@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static rsp.dsl.Html.*;
 
-public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.State>
+public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.State, Object>
         implements DashboardWidget {
 
     private static final int WIDTH = 360;
@@ -99,7 +99,7 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
     }
 
     @Override
-    public Component<?> component() {
+    public Component<?, ?> component() {
         return this;
     }
 
@@ -204,7 +204,7 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
     }
 
     @Override
-    public ComponentView<State> componentView() {
+    public ComponentView<State, Object> componentView() {
         return _ -> state -> div(attr("class", "dashboard-widget comments-rate-widget"),
                 div(attr("class", "dashboard-widget-header"),
                         div(attr("class", "dashboard-widget-title"),
@@ -230,7 +230,7 @@ public class CommentsRateGraphWidget extends Component<CommentsRateGraphWidget.S
     @Override
     public void onMounted(final ComponentCompositeKey componentId,
                           final State state,
-                          final StateUpdate<State> stateUpdate) {
+                          final StateUpdater<State> stateUpdate) {
         if (streamService == null) {
             return;
         }

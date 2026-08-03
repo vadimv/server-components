@@ -1,6 +1,6 @@
 package rsp.compositions.composition;
 
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.List;
 import java.util.Objects;
@@ -20,7 +20,7 @@ import java.util.Objects;
 public record StructureNode(String label,
                             String description,
                             List<StructureNode> children,
-                            List<Class<? extends ViewContract>> contracts) {
+                            List<Class<? extends Contract>> contracts) {
     public StructureNode {
         Objects.requireNonNull(children, "children");
         Objects.requireNonNull(contracts, "contracts");
@@ -32,7 +32,7 @@ public record StructureNode(String label,
      * @param contractClass The contract class to search for
      * @return true if found at this level or in any descendant
      */
-    public boolean contains(Class<? extends ViewContract> contractClass) {
+    public boolean contains(Class<? extends Contract> contractClass) {
         if (contracts.contains(contractClass)) {
             return true;
         }
@@ -51,7 +51,7 @@ public record StructureNode(String label,
      * @param contractClass The contract class to search for
      * @return the label of the containing node, or null if not found
      */
-    public String labelFor(Class<? extends ViewContract> contractClass) {
+    public String labelFor(Class<? extends Contract> contractClass) {
         if (contracts.contains(contractClass)) {
             return label;
         }

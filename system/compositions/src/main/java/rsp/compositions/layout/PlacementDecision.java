@@ -1,6 +1,6 @@
 package rsp.compositions.layout;
 
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.Objects;
 
@@ -15,7 +15,7 @@ import java.util.Objects;
 public record PlacementDecision(Placement placement,
                                 boolean userOverridable,
                                 PlacementDecisionSource source,
-                                Class<? extends ViewContract> matchedContractType) {
+                                Class<? extends Contract> matchedContractType) {
     public PlacementDecision {
         Objects.requireNonNull(placement, "placement");
         Objects.requireNonNull(source, "source");
@@ -30,7 +30,7 @@ public record PlacementDecision(Placement placement,
     }
 
     public static PlacementDecision layoutPlacement(Placement placement,
-                                                    Class<? extends ViewContract> matchedContractType) {
+                                                    Class<? extends Contract> matchedContractType) {
         return new PlacementDecision(
                 placement,
                 true,

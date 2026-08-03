@@ -13,7 +13,7 @@ import java.util.function.Function;
  * Registers services and compositions, creates AppComponent for each request.
  * Routes and UI registries are defined within each Composition.
  */
-public class App implements Function<HttpRequest, Component<?>> {
+public class App implements Function<HttpRequest, Component<?, ?>> {
     private final Config config;
     private final List<Composition> compositions;
     private final Map<Class<?>, Object> services;
@@ -33,7 +33,7 @@ public class App implements Function<HttpRequest, Component<?>> {
     }
 
     @Override
-    public Component<?> apply(HttpRequest httpRequest) {
+    public Component<?, ?> apply(HttpRequest httpRequest) {
         return new AppComponent(config, compositions, services, httpRequest);
     }
 }

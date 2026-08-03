@@ -43,7 +43,7 @@ import rsp.compositions.application.Services;
 import rsp.compositions.auth.*;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
-import rsp.compositions.contract.FormViewContract;
+import rsp.compositions.contract.FormContractComponent;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.GroupPlacementPolicy;
 import rsp.compositions.layout.Placement;
@@ -130,24 +130,24 @@ public class CrudApp {
         // The nested group names become the sidebar menu.
         final Group mainContracts = new Group("Admin").description("Administration panel")
                 .add(new Group("Dashboard").description("Live dashboard widgets for the admin overview")
-                        .bind(DashboardContract.class, ctx -> new DashboardContract(ctx, dashboardModel), DashboardView::new))
+                        .bind(DashboardContract.class, () -> new DashboardContract(dashboardModel)))
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
-                        .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
-                        .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
-                        .bind(PostEditContract.class, ctx -> new PostEditContract(ctx, postService), DefaultEditView::new))
+                        .bind(PostsListContract.class, () -> new PostsListContract(postService, new DefaultListView()))
+                        .bind(PostCreateContract.class, () -> new PostCreateContract(postService, new DefaultEditView()))
+                        .bind(PostEditContract.class, () -> new PostEditContract(postService, new DefaultEditView())))
                 .add(new Group("Comments").description("User comments for the posts")
-                        .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new)
-                        .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
-                        .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new));
+                        .bind(CommentsListContract.class, () -> new CommentsListContract(commentService, new DefaultListView()))
+                        .bind(CommentCreateContract.class, () -> new CommentCreateContract(commentService, new DefaultEditView()))
+                        .bind(CommentEditContract.class, () -> new CommentEditContract(commentService, new DefaultEditView())));
 
         // These views support the page but are not menu items. Explorer builds the sidebar from
         // mainContracts; Prompt lets the user talk to the agent; Header shows the session;
         // DelegationApproval appears only when consent is needed.
         final Group systemContracts = new Group()
-                .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
-                .bind(PromptContract.class, ctx -> new PromptContract(ctx, promptService, agentService, actionDispatcher, authorization, spawner, mainContracts.structureTree()), PromptView::new)
-                .bind(HeaderContract.class, HeaderContract::new, HeaderView::new)
-                .bind(DelegationApprovalContract.class, ctx -> new DelegationApprovalContract(ctx, delegationStore), DelegationApprovalView::new);
+                .bind(ExplorerContract.class, () -> new ExplorerContract(mainContracts.structureTree()))
+                .bind(PromptContract.class, () -> new PromptContract(promptService, agentService, actionDispatcher, authorization, spawner, mainContracts.structureTree()))
+                .bind(HeaderContract.class, HeaderContract::new)
+                .bind(DelegationApprovalContract.class, () -> new DelegationApprovalContract(delegationStore));
 
         // Layout chooses where each contract appears. The sidebars and header are always visible.
         // Forms replace the main content; approval is always a modal.
@@ -156,7 +156,7 @@ public class CrudApp {
                 .rightSidebar(PromptContract.class)
                 .header(HeaderContract.class)
                 .groupPlacementPolicy(GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL)
-                .placement(FormViewContract.class, Placement.INLINE.primary())
+                .placement(FormContractComponent.class, Placement.INLINE.primary())
                 .placement(DelegationApprovalContract.class, Placement.MODAL);
 
         // This is the posts feature package: routes decide which page is active, layout decides
@@ -169,7 +169,7 @@ public class CrudApp {
         final Router authRouter = new Router()
                 .route("/auth/login", LoginContract.class);
         final Group authGroup = new Group()
-                .bind(LoginContract.class, LoginContract::new, () -> new SimpleLoginComponent(authProvider));
+                .bind(LoginContract.class, () -> new LoginContract(authProvider));
         final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
 
         // App-wide services available to any contract. The auth provider is stored here so

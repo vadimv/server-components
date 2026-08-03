@@ -2,11 +2,11 @@ package rsp.compositions.contract;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.Lookup;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
 import rsp.compositions.application.TestLookup;
 import rsp.component.ContextKey;
 import rsp.compositions.routing.Router;
-import rsp.compositions.schema.DataSchema;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -110,18 +110,8 @@ class ContextKeysTests {
         }
 
         @Test
-        void list_schema_key_has_correct_type() {
-            assertEquals(DataSchema.class, ContextKeys.LIST_SCHEMA.type());
-        }
-
-        @Test
         void route_pattern_key_has_correct_type() {
             assertEquals(String.class, ContextKeys.ROUTE_PATTERN.type());
-        }
-
-        @Test
-        void list_page_key_has_correct_type() {
-            assertEquals(Integer.class, ContextKeys.LIST_PAGE.type());
         }
 
         @Test
@@ -151,15 +141,6 @@ class ContextKeysTests {
         }
 
         @Test
-        void can_store_and_retrieve_list_schema() {
-            final DataSchema schema = DataSchema.fromRecordClass(TestRecord.class);
-            final TestLookup lookup = new TestLookup()
-                    .withData(ContextKeys.LIST_SCHEMA, schema);
-
-            assertSame(schema, lookup.get(ContextKeys.LIST_SCHEMA));
-        }
-
-        @Test
         void can_store_and_retrieve_route_pattern() {
             final TestLookup lookup = new TestLookup()
                     .withData(ContextKeys.ROUTE_PATTERN, "/posts/:id");
@@ -167,31 +148,23 @@ class ContextKeysTests {
             assertEquals("/posts/:id", lookup.get(ContextKeys.ROUTE_PATTERN));
         }
 
-        @Test
-        void can_store_and_retrieve_list_page() {
-            final TestLookup lookup = new TestLookup()
-                    .withData(ContextKeys.LIST_PAGE, 5);
-
-            assertEquals(5, lookup.get(ContextKeys.LIST_PAGE));
-        }
     }
 
     // Test fixtures
-    record TestRecord(String id, String name) {}
+    static class TestContract extends ContractNodeComponent<String, Object> {
+        @Override
+        public ComponentStateSupplier<String> initStateSupplier() {
+            return (_, _) -> "ready";
+        }
 
-    static class TestContract extends ViewContract {
-        TestContract(final Lookup lookup) {
-            super(lookup);
+        @Override
+        public ComponentView<String, Object> componentView() {
+            return _ -> _ -> null;
         }
 
         @Override
         public String title() {
             return "Test";
-        }
-
-        @Override
-        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
-            return context; // Test fixture - no enrichment needed
         }
     }
 }

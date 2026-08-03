@@ -2,10 +2,10 @@ package rsp.compositions.layout;
 
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ContractBoundaryComponent;
-import rsp.compositions.contract.ContractRuntime;
+import rsp.compositions.contract.ContractDescriptor;
+import rsp.compositions.contract.DirectContractHost;
 import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.dsl.Definition;
 
 import java.util.ArrayList;
@@ -23,8 +23,8 @@ import static rsp.dsl.Html.*;
  * Default base layout with CSS class-based positioning.
  * <p>
  * Configurable via builder methods that declare which contract classes
- * should appear in which position. These contracts are eagerly instantiated
- * as companions during scene building (via {@link #requiredContracts()}).
+ * should appear in which position. These contracts become companion descriptors
+ * during scene building (via {@link #requiredContracts()}).
  * <p>
  * Structure:
  * <ul>
@@ -38,20 +38,20 @@ import static rsp.dsl.Html.*;
 public final class DefaultLayout implements Layout {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final Class<? extends ViewContract> leftSidebarClass;
-    private final Class<? extends ViewContract> rightSidebarClass;
-    private final Class<? extends ViewContract> headerClass;
-    private final Map<Class<? extends ViewContract>, Placement> placements;
+    private final Class<? extends Contract> leftSidebarClass;
+    private final Class<? extends Contract> rightSidebarClass;
+    private final Class<? extends Contract> headerClass;
+    private final Map<Class<? extends Contract>, Placement> placements;
     private final GroupPlacementPolicy groupPlacementPolicy;
 
     public DefaultLayout() {
         this(null, null, null, Map.of(), GroupPlacementPolicy.ALL_MODAL);
     }
 
-    private DefaultLayout(Class<? extends ViewContract> leftSidebarClass,
-                          Class<? extends ViewContract> rightSidebarClass,
-                          Class<? extends ViewContract> headerClass,
-                          Map<Class<? extends ViewContract>, Placement> placements,
+    private DefaultLayout(Class<? extends Contract> leftSidebarClass,
+                          Class<? extends Contract> rightSidebarClass,
+                          Class<? extends Contract> headerClass,
+                          Map<Class<? extends Contract>, Placement> placements,
                           GroupPlacementPolicy groupPlacementPolicy) {
         this.leftSidebarClass = leftSidebarClass;
         this.rightSidebarClass = rightSidebarClass;
@@ -60,17 +60,17 @@ public final class DefaultLayout implements Layout {
         this.groupPlacementPolicy = Objects.requireNonNull(groupPlacementPolicy, "groupPlacementPolicy");
     }
 
-    public DefaultLayout leftSidebar(Class<? extends ViewContract> contractClass) {
+    public DefaultLayout leftSidebar(Class<? extends Contract> contractClass) {
         return new DefaultLayout(contractClass, rightSidebarClass, headerClass,
                 placements, groupPlacementPolicy);
     }
 
-    public DefaultLayout rightSidebar(Class<? extends ViewContract> contractClass) {
+    public DefaultLayout rightSidebar(Class<? extends Contract> contractClass) {
         return new DefaultLayout(leftSidebarClass, contractClass, headerClass,
                 placements, groupPlacementPolicy);
     }
 
-    public DefaultLayout header(Class<? extends ViewContract> contractClass) {
+    public DefaultLayout header(Class<? extends Contract> contractClass) {
         return new DefaultLayout(leftSidebarClass, rightSidebarClass, contractClass,
                 placements, groupPlacementPolicy);
     }
@@ -82,11 +82,11 @@ public final class DefaultLayout implements Layout {
      * This is a layout hint: future user preferences or fixed framework rules
      * may override it. More specific contract types win over broader base types.
      */
-    public DefaultLayout placement(Class<? extends ViewContract> contractType,
+    public DefaultLayout placement(Class<? extends Contract> contractType,
                                    Placement placement) {
         Objects.requireNonNull(contractType, "contractType");
         Objects.requireNonNull(placement, "placement");
-        Map<Class<? extends ViewContract>, Placement> updated = new LinkedHashMap<>(placements);
+        Map<Class<? extends Contract>, Placement> updated = new LinkedHashMap<>(placements);
         updated.put(contractType, placement);
         return new DefaultLayout(leftSidebarClass, rightSidebarClass, headerClass,
                 updated, groupPlacementPolicy);
@@ -98,15 +98,15 @@ public final class DefaultLayout implements Layout {
     }
 
     @Override
-    public PlacementDecision resolvePlacement(Class<? extends ViewContract> contractClass,
+    public PlacementDecision resolvePlacement(Class<? extends Contract> contractClass,
                                               Scene scene) {
         return PlacementResolver.resolve(contractClass, scene, placements, groupPlacementPolicy,
                 scene != null ? scene.contracts() : null);
     }
 
     @Override
-    public Set<Class<? extends ViewContract>> requiredContracts() {
-        Set<Class<? extends ViewContract>> required = new HashSet<>();
+    public Set<Class<? extends Contract>> requiredContracts() {
+        Set<Class<? extends Contract>> required = new HashSet<>();
         if (leftSidebarClass != null) required.add(leftSidebarClass);
         if (rightSidebarClass != null) required.add(rightSidebarClass);
         if (headerClass != null) required.add(headerClass);
@@ -118,15 +118,15 @@ public final class DefaultLayout implements Layout {
         logger.log(TRACE, () -> "Resolving default layout");
 
         // Resolve routed contract to UI component
-        Component<?> primary = null;
-        if (scene.routedRuntime() != null) {
-            primary = resolveRuntime(scene, scene.routedRuntime());
+        Component<?, ?> primary = null;
+        if (scene.routedDescriptor() != null) {
+            primary = resolveDescriptor(scene, scene.routedDescriptor());
         }
 
         // Resolve companion contracts to UI components
-        Component<?> leftSidebar = resolveCompanion(scene, leftSidebarClass);
-        Component<?> rightSidebar = resolveCompanion(scene, rightSidebarClass);
-        Component<?> header = resolveCompanion(scene, headerClass);
+        Component<?, ?> leftSidebar = resolveCompanion(scene, leftSidebarClass);
+        Component<?, ?> rightSidebar = resolveCompanion(scene, rightSidebarClass);
+        Component<?, ?> header = resolveCompanion(scene, headerClass);
 
         // Build layout: [header?] then container with [left-sidebar?] [primary] [right-sidebar?]
         List<Definition> wrapper = new ArrayList<>();
@@ -153,15 +153,14 @@ public final class DefaultLayout implements Layout {
         return div(wrapper.toArray(Definition[]::new));
     }
 
-    private Component<?> resolveCompanion(Scene scene, Class<? extends ViewContract> contractClass) {
+    private Component<?, ?> resolveCompanion(Scene scene, Class<? extends Contract> contractClass) {
         if (contractClass == null) return null;
-        ContractRuntime runtime = scene.companionRuntime(contractClass);
-        if (runtime == null) return null;
-        return resolveRuntime(scene, runtime);
+        ContractDescriptor descriptor = scene.companionDescriptor(contractClass);
+        if (descriptor == null) return null;
+        return resolveDescriptor(scene, descriptor);
     }
 
-    private Component<?> resolveRuntime(Scene scene, ContractRuntime runtime) {
-        Component<?> content = scene.contracts().resolveView(runtime.contractClass());
-        return new ContractBoundaryComponent(runtime, content);
+    private Component<?, ?> resolveDescriptor(Scene scene, ContractDescriptor descriptor) {
+        return new DirectContractHost(descriptor, scene.contracts().resolveComponent(descriptor.contractClass()));
     }
 }

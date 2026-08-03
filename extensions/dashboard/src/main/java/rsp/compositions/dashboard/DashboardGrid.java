@@ -7,7 +7,7 @@ import rsp.dsl.Definition;
 
 import static rsp.dsl.Html.*;
 
-public class DashboardGrid extends Component<DashboardLayout> {
+public class DashboardGrid extends Component<DashboardLayout, Object> {
 
     private final DashboardLayout layout;
 
@@ -21,7 +21,7 @@ public class DashboardGrid extends Component<DashboardLayout> {
     }
 
     @Override
-    public ComponentView<DashboardLayout> componentView() {
+    public ComponentView<DashboardLayout, Object> componentView() {
         return _ -> state -> div(
                 attr("class", "dashboard-grid"),
                 attr("style", gridStyle(state)),

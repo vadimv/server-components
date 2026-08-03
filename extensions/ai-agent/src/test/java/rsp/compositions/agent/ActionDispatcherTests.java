@@ -173,17 +173,18 @@ class ActionDispatcherTests {
 
     // --- Stubs ---
 
-    /** Minimal ViewContract stub for testing. */
-    private static class StubContract extends rsp.compositions.contract.ViewContract {
+    /** Minimal contract stub with a test-controlled active lookup. */
+    private static class StubContract implements rsp.compositions.contract.Contract {
         private final List<ContractAction> actions;
+        private final Lookup lookup;
 
         StubContract(List<ContractAction> actions) {
             this(actions, new StubLookup());
         }
 
         StubContract(List<ContractAction> actions, Lookup lookup) {
-            super(lookup);
             this.actions = actions;
+            this.lookup = lookup;
         }
 
         @Override
@@ -192,8 +193,8 @@ class ActionDispatcherTests {
         }
 
         @Override
-        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext ctx) {
-            return ctx;
+        public Lookup lookup() {
+            return lookup;
         }
 
         @Override

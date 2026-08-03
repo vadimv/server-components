@@ -1,13 +1,13 @@
 package rsp.compositions.agentui;
 
-import rsp.component.ComponentContext;
-import rsp.component.ContextKey;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
 import rsp.component.EventKey;
-import rsp.component.Lookup;
+import rsp.component.StateUpdater;
 import rsp.compositions.agent.DelegationStore;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.ContractNodeComponent;
 import rsp.page.QualifiedSessionId;
 
 import java.util.Map;
@@ -21,53 +21,47 @@ import java.util.Objects;
  * and purpose. User clicks Approve or Deny. Decision is saved to
  * {@link DelegationStore} and {@link #APPROVAL_DECIDED} event is emitted.
  */
-public class DelegationApprovalContract extends ViewContract {
+public class DelegationApprovalContract
+        extends ContractNodeComponent<DelegationApprovalView.ApprovalViewState, DelegationApprovalView.Decision> {
 
     /** Emitted when user decides. Payload: {@code true}=approved, {@code false}=denied. */
     public static final EventKey.SimpleKey<Boolean> APPROVAL_DECIDED =
             new EventKey.SimpleKey<>("delegation.approval.decided", Boolean.class);
 
-    /** Internal event from view buttons to contract. */
-    public static final EventKey.SimpleKey<Boolean> USER_DECISION =
-            new EventKey.SimpleKey<>("delegation.approval.userDecision", Boolean.class);
-
-    /** Context key for scope label passed to view. */
-    public static final ContextKey.StringKey<String> APPROVAL_SCOPE =
-            new ContextKey.StringKey<>("approval.scope", String.class);
-
-    /** Context key for control mode label passed to view. */
-    public static final ContextKey.StringKey<String> APPROVAL_CONTROL_MODE =
-            new ContextKey.StringKey<>("approval.controlMode", String.class);
-
-    /** Context key for reason/purpose passed to view. */
-    public static final ContextKey.StringKey<String> APPROVAL_REASON =
-            new ContextKey.StringKey<>("approval.reason", String.class);
-
     private final DelegationStore store;
-    private final String scopeLabel;
-    private final String controlModeLabel;
-    private final String reason;
 
-    public DelegationApprovalContract(Lookup lookup, DelegationStore store) {
-        super(lookup);
+    public DelegationApprovalContract(DelegationStore store) {
         this.store = Objects.requireNonNull(store);
+    }
 
-        Map<String, Object> showData = lookup.get(ContextKeys.SHOW_DATA);
-        this.scopeLabel = showData != null
-                ? String.valueOf(showData.getOrDefault("scope", "APP")) : "APP";
-        this.controlModeLabel = showData != null
-                ? String.valueOf(showData.getOrDefault("controlMode", "ASSIST")) : "ASSIST";
-        this.reason = showData != null
-                ? String.valueOf(showData.getOrDefault("reason", "")) : "";
+    @Override
+    public ComponentStateSupplier<DelegationApprovalView.ApprovalViewState> initStateSupplier() {
+        return (_, context) -> {
+            Map<String, Object> showData = context.get(ContextKeys.SHOW_DATA);
+            String scope = showData == null ? "APP" : String.valueOf(showData.getOrDefault("scope", "APP"));
+            String controlMode = showData == null
+                    ? "ASSIST"
+                    : String.valueOf(showData.getOrDefault("controlMode", "ASSIST"));
+            String reason = showData == null ? "" : String.valueOf(showData.getOrDefault("reason", ""));
+            return new DelegationApprovalView.ApprovalViewState(scope, controlMode, reason);
+        };
+    }
 
-        subscribe(USER_DECISION, (eventName, approved) -> {
-            QualifiedSessionId qsid = lookup.get(QualifiedSessionId.class);
+    @Override
+    public ComponentView<DelegationApprovalView.ApprovalViewState, DelegationApprovalView.Decision> componentView() {
+        return new DelegationApprovalView();
+    }
+
+    @Override
+    protected void onIntent(DelegationApprovalView.Decision intent,
+                            DelegationApprovalView.ApprovalViewState state,
+                            StateUpdater<DelegationApprovalView.ApprovalViewState> stateUpdater) {
+            QualifiedSessionId qsid = lookup().get(QualifiedSessionId.class);
             String sessionKey = qsid != null ? qsid.sessionId() : "unknown-session";
-            store.recordDecision(sessionKey, approved);
+            store.recordDecision(sessionKey, intent.approved());
 
-            lookup.publish(APPROVAL_DECIDED, approved);
-            lookup.publish(EventKeys.HIDE, DelegationApprovalContract.class);
-        });
+            lookup().publish(APPROVAL_DECIDED, intent.approved());
+            lookup().publish(EventKeys.HIDE, DelegationApprovalContract.class);
     }
 
     @Override
@@ -75,13 +69,4 @@ public class DelegationApprovalContract extends ViewContract {
         return "Agent Delegation Approval";
     }
 
-    @Override
-    public ComponentContext enrichContext(ComponentContext context) {
-        return context
-                .with(ContextKeys.CONTRACT_TITLE, title())
-                .with(ContextKeys.OVERLAY_TITLE, title())
-                .with(APPROVAL_SCOPE, scopeLabel)
-                .with(APPROVAL_CONTROL_MODE, controlModeLabel)
-                .with(APPROVAL_REASON, reason);
-    }
 }

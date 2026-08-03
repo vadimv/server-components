@@ -3,7 +3,7 @@ package rsp.app.gameoflife;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
-import rsp.component.StateUpdate;
+import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
 import rsp.jetty.WebServer;
 import rsp.server.StaticResources;
@@ -26,8 +26,20 @@ import static rsp.dsl.Html.*;
 public class Life {
     private static final int NEXT_GENERATION_DELAY_MS = 50;
 
+    private sealed interface LifeIntent permits ToggleCell, SetRunning, ResetBoard {
+    }
+
+    private record ToggleCell(int x, int y) implements LifeIntent {
+    }
+
+    private record SetRunning(boolean running) implements LifeIntent {
+    }
+
+    private record ResetBoard(boolean random) implements LifeIntent {
+    }
+
     public static void main(String[] args) {
-        final Component<State> componentDefinition = new Component<>() {
+        final Component<State, LifeIntent> componentDefinition = new Component<>() {
 
             private final ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(8);
             private final Map<Object, ScheduledFuture<?>> schedules = new HashMap<>();
@@ -39,8 +51,8 @@ public class Life {
             }
 
             @Override
-            public ComponentView<State> componentView() {
-                return  newState -> state -> {
+            public ComponentView<State, LifeIntent> componentView() {
+                return intents -> state -> {
                     final var cells = state.board.cells;
                     return html(head(title("Conway's Game of Life"),
                                     link(attr("rel", "stylesheet"),
@@ -53,7 +65,7 @@ public class Life {
                                                                             when(!state.isRunning,
                                                                                     on("click", c -> {
                                                                                         System.out.println("Clicked x=" + Board.x(index) + " y=" + Board.y(index));
-                                                                                        newState.setState(state.toggleCell(Board.x(index), Board.y(index)));
+                                                                                        intents.dispatch(new ToggleCell(Board.x(index), Board.y(index)));
                                                                                     }))))))),
                                     div(attr("class", "controls"),
                                             button(attr("type", "button"),
@@ -61,35 +73,48 @@ public class Life {
                                                     text("Start"),
                                                     on("click", c -> {
                                                         System.out.println("Start");
-                                                        newState.applyStateTransformation(s -> s.setIsRunning(true));
+                                                        intents.dispatch(new SetRunning(true));
                                                     })),
                                             button(attr("type", "button"),
                                                     when(!state.isRunning, () -> attr("disabled")),
                                                     text("Stop"),
                                                     on("click", c -> {
                                                         System.out.println("Stop");
-                                                        newState.applyStateTransformation(s -> s.setIsRunning(false));
+                                                        intents.dispatch(new SetRunning(false));
                                                     })),
                                             button(attr("type", "button"),
                                                     when(state.isRunning, () -> attr("disabled")),
                                                     text("Clear"),
                                                     on("click", c -> {
                                                         System.out.println("Clear");
-                                                        newState.applyStateTransformation(s -> State.initialState());
+                                                        intents.dispatch(new ResetBoard(false));
                                                     })),
                                             button(attr("type", "button"),
                                                     when(state.isRunning, () -> attr("disabled")),
                                                     text("Random"),
                                                     on("click", c -> {
                                                         System.out.println("Random");
-                                                        newState.applyStateTransformation(s -> State.initialState(true));
+                                                        intents.dispatch(new ResetBoard(true));
                                                     })))));
                 };
             }
 
+            @Override
+            protected void onIntent(final LifeIntent intent,
+                                    final State state,
+                                    final StateUpdater<State> stateUpdater) {
+                if (intent instanceof ToggleCell toggleCell) {
+                    stateUpdater.setState(state.toggleCell(toggleCell.x(), toggleCell.y()));
+                } else if (intent instanceof SetRunning setRunning) {
+                    stateUpdater.setState(state.setIsRunning(setRunning.running()));
+                } else if (intent instanceof ResetBoard resetBoard) {
+                    stateUpdater.setState(State.initialState(resetBoard.random()));
+                }
+            }
+
 
             @Override
-            public void onUpdated(ComponentCompositeKey componentId, State oldState, State newState, StateUpdate<State> stateUpdate) {
+            public void onUpdated(ComponentCompositeKey componentId, State oldState, State newState, StateUpdater<State> stateUpdate) {
                 if (!oldState.isRunning && newState.isRunning) {
                     scheduleAtFixedRate(() -> stateUpdate.applyStateTransformation(State::advance),
                             componentId,

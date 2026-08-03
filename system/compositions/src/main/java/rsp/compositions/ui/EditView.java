@@ -1,80 +1,51 @@
 package rsp.compositions.ui;
 
-import rsp.component.*;
-import rsp.component.definitions.Component;
-import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.EditViewContract;
-import rsp.compositions.contract.FormViewContract;
 import rsp.compositions.schema.DataSchema;
-import rsp.dom.TreePositionPath;
-import rsp.page.QualifiedSessionId;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * EditView - Adaptive edit/form view component.
- * <p>
- * Renders forms for editing any domain objects based on schema metadata.
- * UI adapts to any number of fields and types at runtime.
- * <p>
- * Event handling is delegated to the {@link EditViewContract} which registers
- * handlers for form.submitted and delete.requested events.
- */
-public abstract class EditView extends Component<EditView.EditViewState> {
-
-    private static final System.Logger LOGGER = System.getLogger(EditView.class.getName());
-
-    protected Lookup lookup;
-
-    /** Registration for the FORM_FIELD_SET subscription installed in
-     *  {@link #onMounted}. Held so it can be released in {@link #onUnmounted},
-     *  preventing a subscription leak that left old EditView instances
-     *  receiving events and produced "Ignored state update on unmounted
-     *  component" warnings on every subsequent agent action. */
-    private Lookup.Registration formFieldSetRegistration;
-
-    @Override
-    public boolean isReusable() {
-        return false;
+/** State and intents shared by form contract components and edit views. */
+public final class EditView {
+    private EditView() {
     }
 
-    /**
-     * State containing the entity data being edited and schema metadata.
-     *
-     * @param fieldValues Map of field names to current values
-     * @param schema Schema defining field metadata
-     * @param isDirty Whether form has unsaved changes
-     * @param listRoute Route to navigate back to list
-     * @param isCreateMode Whether in create mode (new entity) vs edit mode (existing entity)
-     * @param validationErrors Map of field names to validation error messages
-     * @param title The form title (e.g., "Create Post", "Edit Post")
-     */
-    public record EditViewState(
-        Map<String, Object> fieldValues,
-        DataSchema schema,
-        boolean isDirty,
-        String listRoute,
-        boolean isCreateMode,
-        Map<String, List<String>> validationErrors,
-        String title
-    ) {
+    public sealed interface EditIntent permits FormValuesCollected, CancelRequested, DeleteConfirmed {
+    }
+
+    public record FormValuesCollected(Map<String, Object> values) implements EditIntent {
+        public FormValuesCollected {
+            values = Map.copyOf(values);
+        }
+    }
+
+    public enum CancelRequested implements EditIntent {
+        INSTANCE
+    }
+
+    public enum DeleteConfirmed implements EditIntent {
+        INSTANCE
+    }
+
+    public record EditViewState(Map<String, Object> fieldValues,
+                                DataSchema schema,
+                                boolean isDirty,
+                                String listRoute,
+                                boolean isCreateMode,
+                                Map<String, List<String>> validationErrors,
+                                String title) {
         public EditViewState {
-            fieldValues = fieldValues != null ? fieldValues : Map.of();
-            schema = schema != null ? schema : new DataSchema(java.util.List.of());
-            listRoute = listRoute != null ? listRoute : "/";
-            validationErrors = validationErrors != null ? validationErrors : Map.of();
-            title = title != null ? title : (isCreateMode ? "Create Item" : "Edit Item");
+            fieldValues = fieldValues == null ? Map.of() : Map.copyOf(fieldValues);
+            schema = schema == null ? new DataSchema(List.of()) : schema;
+            listRoute = listRoute == null ? "/" : listRoute;
+            validationErrors = validationErrors == null ? Map.of() : Map.copyOf(validationErrors);
+            title = title == null ? (isCreateMode ? "Create Item" : "Edit Item") : title;
         }
 
-        /**
-         * Backwards-compatible constructor without title.
-         */
         public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty,
                              String listRoute, boolean isCreateMode, Map<String, List<String>> validationErrors) {
             this(fieldValues, schema, isDirty, listRoute, isCreateMode, validationErrors,
-                 isCreateMode ? "Create Item" : "Edit Item");
+                    isCreateMode ? "Create Item" : "Edit Item");
         }
 
         public EditViewState(Map<String, Object> fieldValues, DataSchema schema) {
@@ -89,203 +60,18 @@ public abstract class EditView extends Component<EditView.EditViewState> {
             this(fieldValues, schema, isDirty, listRoute, false, Map.of(), "Edit Item");
         }
 
-        public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty, String listRoute, boolean isCreateMode) {
+        public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty,
+                             String listRoute, boolean isCreateMode) {
             this(fieldValues, schema, isDirty, listRoute, isCreateMode, Map.of(),
-                 isCreateMode ? "Create Item" : "Edit Item");
+                    isCreateMode ? "Create Item" : "Edit Item");
         }
 
-        /**
-         * Check if there are any validation errors.
-         */
         public boolean hasErrors() {
             return !validationErrors.isEmpty();
         }
 
-        /**
-         * Get validation error messages for a specific field.
-         *
-         * @param fieldName The field name
-         * @return List of error messages (empty if no errors)
-         */
         public List<String> errorsFor(String fieldName) {
             return validationErrors.getOrDefault(fieldName, List.of());
         }
-    }
-
-    @Override
-    public ComponentStateSupplier<EditViewState> initStateSupplier() {
-        return (_, context) -> {
-            // Read entity, schema, and title from context (populated by contract.enrichContext())
-            Object entity = context.get(ContextKeys.EDIT_ENTITY);
-            DataSchema schema = context.get(ContextKeys.EDIT_SCHEMA);
-            String listRoute = context.get(ContextKeys.EDIT_LIST_ROUTE);
-            Boolean isCreateModeValue = context.get(ContextKeys.EDIT_IS_CREATE_MODE);
-            // Read from OVERLAY_TITLE first (specific to overlays), fallback to CONTRACT_TITLE
-            String pageTitle = context.get(ContextKeys.OVERLAY_TITLE);
-            if (pageTitle == null) {
-                pageTitle = context.get(ContextKeys.CONTRACT_TITLE);
-            }
-
-            // Apply defaults
-            listRoute = listRoute != null ? listRoute : "/";
-            boolean isCreateMode = isCreateModeValue != null && isCreateModeValue;
-            String title = pageTitle != null ? pageTitle : (isCreateMode ? "Create Item" : "Edit Item");
-
-            if (schema == null && entity != null) {
-                // Auto-derive schema from entity if not provided
-                schema = DataSchema.fromFirstItem(entity);
-            }
-
-            if (schema == null) {
-                return new EditViewState(Map.of(), new DataSchema(java.util.List.of()), false, listRoute, isCreateMode, Map.of(), title);
-            }
-
-            // Convert entity to Map for editing
-            Map<String, Object> fieldValues = entity != null
-                ? schema.toMap(entity)
-                : createEmptyFieldValues(schema);
-
-            return new EditViewState(fieldValues, schema, false, listRoute, isCreateMode, Map.of(), title);
-        };
-    }
-
-    @Override
-    public ComponentSegment<EditViewState> createComponentSegment(final QualifiedSessionId sessionId,
-                                                                   final TreePositionPath componentPath,
-                                                                   final TreeBuilderFactory treeBuilderFactory,
-                                                                   final ComponentContext componentContext,
-                                                                   final CommandsEnqueue commandsEnqueue) {
-        // Create Lookup for use in view (for event publishing)
-        this.lookup = createLookup(componentContext, commandsEnqueue);
-
-        // Create the segment
-        return super.createComponentSegment(sessionId, componentPath, treeBuilderFactory, componentContext, commandsEnqueue);
-    }
-
-    /**
-     * Subscribe to {@link FormViewContract#FORM_FIELD_SET} once per component
-     * mount. When the agent dispatches a {@code set_field} action, the runtime
-     * publishes this event on the contract lookup; we apply it as a state
-     * transformation so the rendered input picks up the new value.
-     * <p>
-     * The {@code value} entry is normalised to {@code String} (LLM tool payloads
-     * arrive as strings); the form view binds inputs to {@code value.toString()}
-     * for rendering, and {@link rsp.compositions.schema.DataSchema#validate}
-     * applies type coercion at submit time.
-     */
-    @Override
-    public void onMounted(ComponentCompositeKey componentId,
-                          EditViewState state,
-                          StateUpdate<EditViewState> stateUpdate) {
-        if (lookup == null) {
-            return;
-        }
-        // Defensive: if a previous registration somehow survived (shouldn't,
-        // given onUnmounted releases it), clear it before re-subscribing.
-        if (formFieldSetRegistration != null) {
-            formFieldSetRegistration.unsubscribe();
-            formFieldSetRegistration = null;
-        }
-        formFieldSetRegistration = lookup.subscribe(FormViewContract.FORM_FIELD_SET, (eventName, payload) -> {
-            if (payload == null) return;
-            Object nameRaw = payload.get("name");
-            Object valueRaw = payload.get("value");
-            if (!(nameRaw instanceof String fieldName) || fieldName.isEmpty()) {
-                return;
-            }
-            String value = valueRaw != null ? valueRaw.toString() : "";
-            stateUpdate.applyStateTransformation(s -> {
-                if (s.schema() == null || s.schema().field(fieldName) == null) {
-                    // Unknown field — log and ignore rather than mutate state.
-                    // The agent-side fix is to inspect the per-form "Form fields"
-                    // listing in describeState() and use the exact names there.
-                    LOGGER.log(System.Logger.Level.WARNING,
-                        () -> "FORM_FIELD_SET ignored: '" + fieldName
-                              + "' is not a field in the active form's schema. "
-                              + "Known fields: "
-                              + (s.schema() == null ? "<no schema>"
-                                  : s.schema().fields().stream()
-                                        .map(rsp.compositions.schema.FieldDef::name)
-                                        .toList()));
-                    return s;
-                }
-                Map<String, Object> updated = new LinkedHashMap<>(s.fieldValues());
-                updated.put(fieldName, value);
-                return new EditViewState(
-                    updated,
-                    s.schema(),
-                    true,
-                    s.listRoute(),
-                    s.isCreateMode(),
-                    s.validationErrors(),
-                    s.title()
-                );
-            });
-        });
-    }
-
-    @Override
-    public void onUnmounted(ComponentCompositeKey componentId, EditViewState state) {
-        // Release the FORM_FIELD_SET subscription so events fired on the
-        // contract lookup after this view is gone don't try to update a
-        // destroyed component. Without this, every new mount accumulates a
-        // dangling subscriber and the framework logs "Ignored state update
-        // on unmounted component" on each subsequent agent dispatch.
-        if (formFieldSetRegistration != null) {
-            formFieldSetRegistration.unsubscribe();
-            formFieldSetRegistration = null;
-        }
-    }
-
-    /**
-     * Create a Lookup from ComponentContext for event publishing.
-     */
-    private Lookup createLookup(ComponentContext context, CommandsEnqueue commandsEnqueue) {
-        Subscriber subscriber = context.get(Subscriber.class);
-        if (subscriber == null) {
-            // Fallback: create a no-op subscriber for publish-only usage
-            subscriber = NoOpSubscriber.INSTANCE;
-        }
-        return new ContextLookup(context, commandsEnqueue, subscriber);
-    }
-
-    /**
-     * No-op Subscriber for Views that only need to publish events, not subscribe.
-     */
-    private static final class NoOpSubscriber implements Subscriber {
-        static final NoOpSubscriber INSTANCE = new NoOpSubscriber();
-
-        @Override
-        public void addWindowEventHandler(String eventType, java.util.function.Consumer<rsp.page.EventContext> eventHandler,
-                                          boolean preventDefault, rsp.dom.DomEventEntry.Modifier modifier) {}
-
-        @Override
-        public Lookup.Registration addComponentEventHandler(String eventType, java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                                            boolean preventDefault) {
-            return () -> {};
-        }
-    }
-
-    /**
-     * Create empty field values map initialized with default values based on field types.
-     */
-    private Map<String, Object> createEmptyFieldValues(DataSchema schema) {
-        Map<String, Object> values = new java.util.LinkedHashMap<>();
-        for (DataSchema.ColumnDef column : schema.columns()) {
-            values.put(column.name(), getDefaultValue(column.type()));
-        }
-        return values;
-    }
-
-    /**
-     * Get default value for a field type.
-     */
-    private Object getDefaultValue(Class<?> type) {
-        if (type == String.class) return "";
-        if (type == Integer.class || type == int.class) return 0;
-        if (type == Long.class || type == long.class) return 0L;
-        if (type == Double.class || type == double.class) return 0.0;
-        if (type == Boolean.class || type == boolean.class) return false;
-        return null;
     }
 }

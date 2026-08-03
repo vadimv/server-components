@@ -29,12 +29,12 @@ public final class HttpHandler {
     private final RandomString randomStringGenerator = new RandomString(KEY_LENGTH);
 
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
-    private final Function<HttpRequest, Component<?>> rootComponentDefinition;
+    private final Function<HttpRequest, Component<?, ?>> rootComponentDefinition;
     private final Optional<StaticResourceHandler> staticResourceHandler;
     private final int heartBeatIntervalMs;
 
     public HttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
-                       final Function<HttpRequest, Component<?>> rootComponentDefinition,
+                       final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
                        final Optional<StaticResourceHandler> staticResourceHandler,
                        final int heartBeatIntervalMs) {
 
@@ -94,7 +94,7 @@ public final class HttpHandler {
                                                             componentContext,
                                                             commandsEnqueue);
 
-            final Component<?> pageRootComponent = rootComponentDefinition.apply(request);
+            final Component<?, ?> pageRootComponent = rootComponentDefinition.apply(request);
             pageRootComponent.render(pageBuilder);
             final List<Throwable> renderExceptions = pageBuilder.exceptions();
             if (renderExceptions.size() > 0) {

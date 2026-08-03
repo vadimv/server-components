@@ -7,7 +7,7 @@ import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -67,7 +67,7 @@ public class ActionDispatcher {
      * @return the dispatch result
      */
     public DispatchResult dispatch(ContractAction action, ContractActionPayload payload,
-                                   ViewContract contract, Lookup lookup, ActionGate gate) {
+                                   Contract contract, Lookup lookup, ActionGate gate) {
         AGENT_DISPATCH.set(Boolean.TRUE);
         try {
             GateResult result = gate.evaluate(action, payload, lookup);
@@ -85,7 +85,7 @@ public class ActionDispatcher {
      * Dispatch an action directly (no gate evaluation).
      * Used after confirmation has been received.
      */
-    public DispatchResult dispatchDirect(ContractAction action, ContractActionPayload payload, ViewContract contract) {
+    public DispatchResult dispatchDirect(ContractAction action, ContractActionPayload payload, Contract contract) {
         AGENT_DISPATCH.set(Boolean.TRUE);
         try {
             return publishEvent(action, payload, contract);
@@ -100,7 +100,7 @@ public class ActionDispatcher {
      * @param targetContract the contract class to navigate to
      * @param lookup         the current context (for event publishing)
      */
-    public void dispatchNavigate(Class<? extends ViewContract> targetContract, Lookup lookup) {
+    public void dispatchNavigate(Class<? extends Contract> targetContract, Lookup lookup) {
         AGENT_DISPATCH.set(Boolean.TRUE);
         try {
             lookup.publish(EventKeys.SET_PRIMARY, targetContract);
@@ -110,7 +110,7 @@ public class ActionDispatcher {
     }
 
     @SuppressWarnings("unchecked")
-    private DispatchResult publishEvent(ContractAction action, ContractActionPayload payload, ViewContract contract) {
+    private DispatchResult publishEvent(ContractAction action, ContractActionPayload payload, Contract contract) {
         Lookup contractLookup = contract.lookup();
         EventKey<?> key = action.eventKey();
 

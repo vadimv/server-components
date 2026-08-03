@@ -40,7 +40,7 @@ class DashboardGridTests {
         assertTrue(document.text().contains("Widget beta"));
     }
 
-    private static Document render(final Component<?> component) {
+    private static Document render(final Component<?, ?> component) {
         TreeBuilder treeBuilder = new TreeBuilder(
                 new QualifiedSessionId("device", "session"),
                 TreePositionPath.of("1"),

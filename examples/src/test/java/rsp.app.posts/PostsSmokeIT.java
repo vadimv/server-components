@@ -109,6 +109,9 @@ class PostsSmokeIT {
             System.out.println("Before Next click, URL: " + beforeUrl);
             nextButton.click();
 
+            page.waitForURL(url -> url.contains("p=2"),
+                    new Page.WaitForURLOptions().setTimeout(5000));
+
             // Wait for page indicator to change to Page 2 (with timeout)
             try {
                 primaryScope(page).locator("span:has-text(\"Page 2\")").first()

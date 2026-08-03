@@ -17,7 +17,7 @@ import java.util.function.Consumer;
  *
  * <p><b>Usage:</b></p>
  * <pre>{@code
- * public EditViewContract(Lookup lookup) {
+ * public ContractNodeComponent() {
  *     // Service lookup
  *     Router router = lookup.get(Router.class);
  *

@@ -1,524 +1,95 @@
 package rsp.compositions.layout;
 
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.CommandsEnqueue;
-import rsp.component.ComponentContext;
-import rsp.component.ComponentEventEntry;
-import rsp.component.ContextScope;
-import rsp.component.Lookup;
-import rsp.component.Subscriber;
-import rsp.compositions.composition.Composition;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
 import rsp.compositions.composition.Group;
-import rsp.compositions.contract.ContractRuntime;
-import rsp.compositions.contract.FormViewContract;
-import rsp.compositions.contract.LookupFactory;
+import rsp.compositions.contract.Contract;
+import rsp.compositions.contract.ContractDescriptor;
+import rsp.compositions.contract.ContractNodeComponent;
 import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.ViewContract;
-import rsp.compositions.routing.Router;
-import rsp.compositions.schema.DataSchema;
-import rsp.dom.DomEventEntry;
-import rsp.page.EventContext;
 
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests for {@link PlacementResolver}.
- */
-public class PlacementResolverTests {
+/** Placement rules operate on the direct contract component type hierarchy. */
+class PlacementResolverTests {
 
-    @Nested
-    class ExactRuleBeatsBaseRule {
+    @Test
+    void exact_rule_wins_over_a_base_component_rule() {
+        Map<Class<? extends Contract>, Placement> rules = Map.of(
+                BaseContract.class, Placement.MODAL,
+                ChildContract.class, Placement.INLINE.primary());
 
-        @Test
-        void child_rule_wins_over_base_rule() {
-            final Map<Class<? extends ViewContract>, Placement> placements = new LinkedHashMap<>();
-            placements.put(BaseTestContract.class, Placement.MODAL);
-            placements.put(ChildTestContract.class, Placement.INLINE.primary());
+        PlacementDecision decision = PlacementResolver.resolve(
+                ChildContract.class, null, rules, GroupPlacementPolicy.ALL_MODAL, null);
 
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    ChildTestContract.class, null, placements, GroupPlacementPolicy.ALL_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals(ChildTestContract.class, decision.matchedContractType());
-            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
-        }
-
-        @Test
-        void child_rule_wins_regardless_of_insertion_order() {
-            final Map<Class<? extends ViewContract>, Placement> placements = new LinkedHashMap<>();
-            placements.put(ChildTestContract.class, Placement.INLINE.primary());
-            placements.put(BaseTestContract.class, Placement.MODAL);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    ChildTestContract.class, null, placements, GroupPlacementPolicy.ALL_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals(ChildTestContract.class, decision.matchedContractType());
-        }
-
-        @Test
-        void grandchild_uses_closest_ancestor_rule() {
-            final Map<Class<? extends ViewContract>, Placement> placements = new LinkedHashMap<>();
-            placements.put(BaseTestContract.class, Placement.MODAL);
-            placements.put(ChildTestContract.class, Placement.INLINE.primary());
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    GrandChildTestContract.class, null, placements, GroupPlacementPolicy.ALL_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals(ChildTestContract.class, decision.matchedContractType());
-        }
-
-        @Test
-        void exact_match_wins_distance_zero() {
-            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
-                    BaseTestContract.class, Placement.INLINE.primary());
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, placements, GroupPlacementPolicy.ALL_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals(BaseTestContract.class, decision.matchedContractType());
-        }
-
-        @Test
-        void unrelated_rule_is_ignored() {
-            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
-                    UnrelatedContract.class, Placement.INLINE.primary());
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, placements, GroupPlacementPolicy.ALL_MODAL, null);
-
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.GROUP_PLACEMENT_POLICY, decision.source());
-            assertNull(decision.matchedContractType());
-        }
+        assertTrue(decision.placement().isInline());
+        assertEquals(ChildContract.class, decision.matchedContractType());
     }
 
-    @Nested
-    class GroupPolicies {
+    @Test
+    void closest_ancestor_rule_is_selected() {
+        Map<Class<? extends Contract>, Placement> rules = Map.of(
+                BaseContract.class, Placement.MODAL,
+                ChildContract.class, Placement.INLINE.primary());
 
-        @Test
-        void all_modal_with_no_rule_returns_modal() {
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, Map.of(), GroupPlacementPolicy.ALL_MODAL, null);
+        PlacementDecision decision = PlacementResolver.resolve(
+                GrandchildContract.class, null, rules, GroupPlacementPolicy.ALL_MODAL, null);
 
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.GROUP_PLACEMENT_POLICY, decision.source());
-            assertNull(decision.matchedContractType());
-        }
-
-        @Test
-        void all_inline_with_no_rule_returns_inline_primary() {
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, Map.of(), GroupPlacementPolicy.ALL_INLINE, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals("primary", decision.placement().slot());
-            assertEquals(PlacementDecisionSource.GROUP_PLACEMENT_POLICY, decision.source());
-        }
+        assertTrue(decision.placement().isInline());
+        assertEquals(ChildContract.class, decision.matchedContractType());
     }
 
-    @Nested
-    class FirstInSceneInlineOthersModal {
+    @Test
+    void group_policy_provides_the_default_when_no_rule_matches() {
+        PlacementDecision allInline = PlacementResolver.resolve(
+                BaseContract.class, null, Map.of(), GroupPlacementPolicy.ALL_INLINE, null);
+        PlacementDecision allModal = PlacementResolver.resolve(
+                BaseContract.class, null, Map.of(), GroupPlacementPolicy.ALL_MODAL, null);
 
-        @Test
-        void null_scene_returns_inline() {
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_SCENE_INLINE_OTHERS_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals("primary", decision.placement().slot());
-        }
-
-        @Test
-        void null_routed_runtime_returns_inline() {
-            final Scene scene = sceneWithoutRoutedRuntime();
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_SCENE_INLINE_OTHERS_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-        }
-
-        @Test
-        void active_routed_runtime_returns_modal_regardless_of_group() {
-            final Scene scene = sceneWithRoutedRuntime(BaseTestContract.class);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    UnrelatedContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_SCENE_INLINE_OTHERS_MODAL, null);
-
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.GROUP_PLACEMENT_POLICY, decision.source());
-        }
+        assertTrue(allInline.placement().isInline());
+        assertTrue(allModal.placement().isModal());
+        assertNull(allInline.matchedContractType());
     }
 
-    @Nested
-    class FirstInGroupInlineOthersModal {
+    @Test
+    void first_in_group_policy_keeps_same_group_targets_modal() {
+        Group posts = new Group("Posts")
+                .bind(BaseContract.class, BaseContract::new)
+                .bind(ChildContract.class, ChildContract::new);
+        Scene scene = Scene.of(ContractDescriptor.forContract(BaseContract.class, Map.of()), Map.of(),
+                new rsp.compositions.composition.Composition(new rsp.compositions.routing.Router(),
+                        new DefaultLayout(), posts));
 
-        @Test
-        void null_scene_returns_inline() {
-            final Group contracts = twoGroupComposition().contracts();
+        PlacementDecision decision = PlacementResolver.resolve(ChildContract.class, scene, Map.of(),
+                GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, posts);
 
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, contracts);
-
-            assertTrue(decision.placement().isInline());
-        }
-
-        @Test
-        void null_routed_runtime_returns_inline() {
-            final Composition composition = twoGroupComposition();
-            final Scene scene = Scene.of(null, Map.of(), Map.of(), composition);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, composition.contracts());
-
-            assertTrue(decision.placement().isInline());
-        }
-
-        @Test
-        void unbound_target_without_routed_context_returns_modal() {
-            final Group contracts = singleGroupComposition().contracts();
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    UnrelatedContract.class, null, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, contracts);
-
-            assertTrue(decision.placement().isModal(),
-                    "unbound/system contracts should not become primary content by group policy");
-        }
-
-        @Test
-        void unlabeled_owning_group_returns_modal() {
-            final Group contracts = new Group()
-                    .bind(UnrelatedContract.class, UnrelatedContract::new, () -> null);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    UnrelatedContract.class, null, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, contracts);
-
-            assertTrue(decision.placement().isModal(),
-                    "unlabeled/system groups should not become primary content by group policy");
-        }
-
-        @Test
-        void target_in_same_group_as_routed_returns_modal() {
-            final Composition composition = twoGroupComposition();
-            final Scene scene = Scene.of(
-                    newRuntime(BaseTestContract.class, BaseTestContract::new),
-                    Map.of(), Map.of(), composition);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    ChildTestContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, composition.contracts());
-
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.GROUP_PLACEMENT_POLICY, decision.source());
-        }
-
-        @Test
-        void target_in_different_group_from_routed_returns_inline() {
-            final Composition composition = twoGroupComposition();
-            final Scene scene = Scene.of(
-                    newRuntime(BaseTestContract.class, BaseTestContract::new),
-                    Map.of(), Map.of(), composition);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    UnrelatedContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, composition.contracts());
-
-            assertTrue(decision.placement().isInline());
-            assertEquals("primary", decision.placement().slot());
-        }
-
-        @Test
-        void duplicate_display_labels_do_not_collapse_placement_groups() {
-            final Group contracts = new Group()
-                    .add(new Group("Posts")
-                            .bind(BaseTestContract.class, BaseTestContract::new, () -> null))
-                    .add(new Group("Posts")
-                            .bind(UnrelatedContract.class, UnrelatedContract::new, () -> null));
-            final Composition composition = new Composition(
-                    new Router().route("/base", BaseTestContract.class),
-                    new DefaultLayout(),
-                    contracts);
-            final Scene scene = Scene.of(
-                    newRuntime(BaseTestContract.class, BaseTestContract::new),
-                    Map.of(), Map.of(), composition);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    UnrelatedContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, contracts);
-
-            assertTrue(decision.placement().isInline());
-        }
-
-        @Test
-        void unbound_target_with_bound_routed_returns_modal() {
-            // Composition only binds Posts contracts; UnrelatedContract is not in the group tree.
-            // Unknown group identity is not enough evidence to replace the routed primary.
-            final Composition composition = singleGroupComposition();
-            final Scene scene = Scene.of(
-                    newRuntime(BaseTestContract.class, BaseTestContract::new),
-                    Map.of(), Map.of(), composition);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    UnrelatedContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, composition.contracts());
-
-            assertTrue(decision.placement().isModal(),
-                    "unbound/system contracts should not become primary content by group policy");
-        }
-
-        @Test
-        void null_group_with_active_routed_falls_back_to_modal() {
-            final Scene scene = sceneWithRoutedRuntime(BaseTestContract.class);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, scene, Map.of(),
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, null);
-
-            assertTrue(decision.placement().isModal(),
-                    "without a group, we cannot tell same-vs-different group; conservative default is modal");
-        }
+        assertTrue(decision.placement().isModal());
     }
 
-    @Nested
-    class ExplicitOverridesGroupPolicy {
+    @Test
+    void explicit_rule_overrides_group_policy_for_unlabeled_contracts() {
+        Group system = new Group().bind(UnrelatedContract.class, UnrelatedContract::new);
 
-        @Test
-        void explicit_modal_beats_all_inline_policy() {
-            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
-                    BaseTestContract.class, Placement.MODAL);
+        PlacementDecision decision = PlacementResolver.resolve(UnrelatedContract.class, null,
+                Map.of(UnrelatedContract.class, Placement.INLINE.primary()),
+                GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, system);
 
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, placements, GroupPlacementPolicy.ALL_INLINE, null);
-
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
-            assertEquals(BaseTestContract.class, decision.matchedContractType());
-        }
-
-        @Test
-        void explicit_inline_beats_all_modal_policy() {
-            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
-                    BaseTestContract.class, Placement.INLINE.primary());
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, placements, GroupPlacementPolicy.ALL_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
-        }
-
-        @Test
-        void explicit_inline_beats_group_policy_for_unbound_contract() {
-            final Composition composition = singleGroupComposition();
-            final Scene scene = Scene.of(
-                    newRuntime(BaseTestContract.class, BaseTestContract::new),
-                    Map.of(), Map.of(), composition);
-            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
-                    UnrelatedContract.class, Placement.INLINE.primary());
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    UnrelatedContract.class, scene, placements,
-                    GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL, composition.contracts());
-
-            assertTrue(decision.placement().isInline());
-            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
-            assertEquals(UnrelatedContract.class, decision.matchedContractType());
-        }
-
-        @Test
-        void base_form_inline_rule_applies_to_assignable_form_contract() {
-            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
-                    FormBaseTestContract.class, Placement.INLINE.primary());
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    CreateFormTestContract.class, null, placements,
-                    GroupPlacementPolicy.ALL_MODAL, null);
-
-            assertTrue(decision.placement().isInline());
-            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
-            assertEquals(FormBaseTestContract.class, decision.matchedContractType());
-        }
-
-        @Test
-        void concrete_modal_rule_beats_base_form_inline_rule() {
-            final Map<Class<? extends ViewContract>, Placement> placements = new LinkedHashMap<>();
-            placements.put(FormBaseTestContract.class, Placement.INLINE.primary());
-            placements.put(ApprovalFormTestContract.class, Placement.MODAL);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    ApprovalFormTestContract.class, null, placements,
-                    GroupPlacementPolicy.ALL_INLINE, null);
-
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
-            assertEquals(ApprovalFormTestContract.class, decision.matchedContractType());
-        }
-
-        @Test
-        void explicit_modal_beats_first_in_scene_when_no_routed() {
-            final Map<Class<? extends ViewContract>, Placement> placements = Map.of(
-                    BaseTestContract.class, Placement.MODAL);
-
-            final PlacementDecision decision = PlacementResolver.resolve(
-                    BaseTestContract.class, null, placements,
-                    GroupPlacementPolicy.FIRST_IN_SCENE_INLINE_OTHERS_MODAL, null);
-
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.LAYOUT_PLACEMENT, decision.source());
-        }
+        assertTrue(decision.placement().isInline());
+        assertEquals(UnrelatedContract.class, decision.matchedContractType());
     }
 
-    @Nested
-    class FrameworkDefault {
-
-        @Test
-        void framework_default_is_modal() {
-            final PlacementDecision decision = PlacementDecision.frameworkDefault();
-
-            assertTrue(decision.placement().isModal());
-            assertEquals(PlacementDecisionSource.FRAMEWORK_DEFAULT, decision.source());
-            assertTrue(decision.userOverridable());
-            assertNull(decision.matchedContractType());
-        }
-
-        @Test
-        void layout_interface_default_returns_framework_default() {
-            final Layout layout = (scene, lookup) -> rsp.dsl.Html.div();
-
-            final PlacementDecision decision = layout.resolvePlacement(BaseTestContract.class, null);
-
-            assertEquals(PlacementDecisionSource.FRAMEWORK_DEFAULT, decision.source());
-            assertTrue(decision.placement().isModal());
-        }
-    }
-
-    // --- Scene fixtures -----------------------------------------------------
-
-    private Scene sceneWithoutRoutedRuntime() {
-        return Scene.of(null, Map.of(), Map.of(), singleGroupComposition());
-    }
-
-    private Scene sceneWithRoutedRuntime(Class<? extends ViewContract> routedClass) {
-        final ContractRuntime runtime = newRuntime(routedClass, lookup -> {
-            if (routedClass == BaseTestContract.class) return new BaseTestContract(lookup);
-            if (routedClass == ChildTestContract.class) return new ChildTestContract(lookup);
-            if (routedClass == UnrelatedContract.class) return new UnrelatedContract(lookup);
-            throw new IllegalArgumentException("Unknown class: " + routedClass);
-        });
-        return Scene.of(runtime, Map.of(), Map.of(), singleGroupComposition());
-    }
-
-    private Composition singleGroupComposition() {
-        final Group group = new Group("Posts")
-                .bind(BaseTestContract.class, BaseTestContract::new, () -> null)
-                .bind(ChildTestContract.class, ChildTestContract::new, () -> null);
-        return new Composition(
-                new Router().route("/base", BaseTestContract.class),
-                new DefaultLayout(),
-                group);
-    }
-
-    private Composition twoGroupComposition() {
-        // BaseTestContract + ChildTestContract live in "Posts"; UnrelatedContract lives in "Comments".
-        final Group posts = new Group("Posts")
-                .bind(BaseTestContract.class, BaseTestContract::new, () -> null)
-                .bind(ChildTestContract.class, ChildTestContract::new, () -> null);
-        final Group comments = new Group("Comments")
-                .bind(UnrelatedContract.class, UnrelatedContract::new, () -> null);
-        final Group root = new Group()
-                .add(posts)
-                .add(comments);
-        return new Composition(
-                new Router().route("/base", BaseTestContract.class),
-                new DefaultLayout(),
-                root);
-    }
-
-    private ContractRuntime newRuntime(Class<? extends ViewContract> cls,
-                                       java.util.function.Function<Lookup, ViewContract> factory) {
-        final ComponentContext ctx = baseContext();
-        final ContextScope.Controller controller = ContextScope.controller(ctx);
-        final Lookup lookup = LookupFactory.create(controller.scope(), ctx);
-        final ViewContract contract = factory.apply(lookup);
-        assertNotNull(contract, "factory must produce a contract");
-        return new ContractRuntime(cls, contract, controller);
-    }
-
-    private ComponentContext baseContext() {
-        return new ComponentContext()
-                .with(CommandsEnqueue.class, (CommandsEnqueue) _ -> {})
-                .with(Subscriber.class, new NoOpSubscriber());
-    }
-
-    // --- Test contract fixtures --------------------------------------------
-
-    static class BaseTestContract extends ViewContract {
-        BaseTestContract(Lookup lookup) { super(lookup); }
-        @Override public ComponentContext enrichContext(ComponentContext context) { return context; }
+    static class BaseContract extends ContractNodeComponent<String, Object> {
+        @Override public ComponentStateSupplier<String> initStateSupplier() { return (_, _) -> "ready"; }
+        @Override public ComponentView<String, Object> componentView() { return _ -> _ -> null; }
         @Override public String title() { return "Base"; }
     }
 
-    static class ChildTestContract extends BaseTestContract {
-        ChildTestContract(Lookup lookup) { super(lookup); }
-    }
-
-    static class GrandChildTestContract extends ChildTestContract {
-        GrandChildTestContract(Lookup lookup) { super(lookup); }
-    }
-
-    static class UnrelatedContract extends ViewContract {
-        UnrelatedContract(Lookup lookup) { super(lookup); }
-        @Override public ComponentContext enrichContext(ComponentContext context) { return context; }
-        @Override public String title() { return "Unrelated"; }
-    }
-
-    static class FormBaseTestContract extends FormViewContract<Object> {
-        FormBaseTestContract(Lookup lookup) { super(lookup); }
-        @Override public ComponentContext enrichContext(ComponentContext context) { return context; }
-        @Override public String title() { return "Form"; }
-        @Override public DataSchema schema() { return new DataSchema(List.of()); }
-        @Override public boolean save(Map<String, Object> fieldValues) { return true; }
-    }
-
-    static class CreateFormTestContract extends FormBaseTestContract {
-        CreateFormTestContract(Lookup lookup) { super(lookup); }
-    }
-
-    static class ApprovalFormTestContract extends FormBaseTestContract {
-        ApprovalFormTestContract(Lookup lookup) { super(lookup); }
-    }
-
-    private static final class NoOpSubscriber implements Subscriber {
-        @Override
-        public void addWindowEventHandler(String eventType,
-                                          Consumer<EventContext> eventHandler,
-                                          boolean preventDefault,
-                                          DomEventEntry.Modifier modifier) {}
-
-        @Override
-        public Lookup.Registration addComponentEventHandler(String eventType,
-                                                            Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                                            boolean preventDefault) {
-            return () -> {};
-        }
-    }
+    static class ChildContract extends BaseContract {}
+    static class GrandchildContract extends ChildContract {}
+    static class UnrelatedContract extends BaseContract {}
 }

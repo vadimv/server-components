@@ -13,7 +13,7 @@ import java.util.Objects;
  * This decouples Views from concrete Contracts - Views don't know about
  * PostEditContract.class, they just emit ACTION("edit", {id: "123"}).
  * <p>
- * Example usage in a ListViewContract:
+ * Example usage in a list contract component:
  * <pre>
  * {@code
  * @Override
@@ -32,12 +32,13 @@ public class ActionBindings {
      * ShowPayload - Data emitted with SHOW events.
      * <p>
      * Contracts emit SHOW events to trigger on-demand instantiation of other contracts.
-     * SceneComponent handles these events and instantiates the target contract.
+     * Scene event handlers select a descriptor; the target contract host
+     * instantiates the contract when its branch mounts.
      *
      * @param contractClass The contract class to instantiate and show
      * @param data Data to pass to the contract (e.g., {id: "123"} for edit)
      */
-    public record ShowPayload(Class<? extends ViewContract> contractClass, Map<String, Object> data) {
+    public record ShowPayload(Class<? extends Contract> contractClass, Map<String, Object> data) {
         public ShowPayload {
             Objects.requireNonNull(contractClass, "contractClass");
             Objects.requireNonNull(data, "data");

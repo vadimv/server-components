@@ -11,8 +11,8 @@ import rsp.compositions.contract.ContractMetadata;
 import rsp.compositions.contract.PayloadParsers;
 import rsp.compositions.contract.PayloadSchema;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.EditViewContract;
-import rsp.compositions.contract.ListViewContract;
+import rsp.compositions.contract.EditContractComponent;
+import rsp.compositions.contract.ListContractComponent;
 
 import java.util.List;
 import java.util.Map;
@@ -82,10 +82,10 @@ class RegexAgentServiceTests {
     }
 
     // Marker classes for isList()/isEdit() checks
-    static abstract class MockListContract extends ListViewContract<Object> {
+    static abstract class MockListContract extends ListContractComponent<Object> {
         MockListContract() { super(null); }
     }
-    static abstract class MockEditContract extends EditViewContract<Object> {
+    static abstract class MockEditContract extends EditContractComponent<Object> {
         MockEditContract() { super(null); }
     }
 

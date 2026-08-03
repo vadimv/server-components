@@ -2,11 +2,12 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.entities.Comment;
 import rsp.app.posts.services.CommentService;
-import rsp.component.Lookup;
-import rsp.compositions.contract.CreateViewContract;
+import rsp.component.ComponentView;
+import rsp.compositions.contract.FormContractComponent;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
+import rsp.compositions.ui.EditView;
 
 import java.util.Map;
 import java.util.Objects;
@@ -14,12 +15,13 @@ import java.util.Objects;
 /**
  * CommentCreateContract - Contract for creating a new comment.
  */
-public class CommentCreateContract extends CreateViewContract<Comment> {
+public class CommentCreateContract extends FormContractComponent<Comment> {
 
     private final CommentService commentService;
 
-    public CommentCreateContract(final Lookup lookup, final CommentService commentService) {
-        super(lookup);
+    public CommentCreateContract(final CommentService commentService,
+                                 ComponentView<EditView.EditViewState, EditView.EditIntent> view) {
+        super(view);
         this.commentService = Objects.requireNonNull(commentService);
     }
 
@@ -41,6 +43,11 @@ public class CommentCreateContract extends CreateViewContract<Comment> {
                 .required()
                 .placeholder("Post ID this comment belongs to")
             .build();
+    }
+
+    @Override
+    protected boolean isCreateMode() {
+        return true;
     }
 
     @Override

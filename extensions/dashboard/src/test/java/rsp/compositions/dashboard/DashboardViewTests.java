@@ -14,18 +14,16 @@ import static org.junit.jupiter.api.Assertions.*;
 class DashboardViewTests {
 
     @Test
-    void contract_enriches_context_with_dashboard_model() {
+    void contract_initializes_its_local_dashboard_state() {
         DashboardModel model = new DashboardModel(DashboardDsl.dashboard()
                 .place(new TestDashboardWidget("only"), DashboardDsl.at(1, 1).span(6, 3))
                 .build());
-        DashboardContract contract = new DashboardContract(new TestLookup(), model);
-        ComponentContext context = contract.enrichContext(new ComponentContext());
-
-        DashboardModel enriched = context.get(DashboardContract.DASHBOARD_MODEL);
+        DashboardContract contract = new DashboardContract(model);
+        DashboardView.DashboardState state = contract.initStateSupplier().getState(null, new ComponentContext());
 
         assertEquals("Dashboard", contract.title());
-        assertNotNull(enriched);
-        assertFalse(enriched.layout().placements().isEmpty());
+        assertSame(model, state.model());
+        assertFalse(state.model().layout().placements().isEmpty());
     }
 
     @Test
@@ -34,8 +32,7 @@ class DashboardViewTests {
                 .place(new TestDashboardWidget("single"), DashboardDsl.at(1, 1).span(6, 3))
                 .build());
 
-        Document document = render(new DashboardView(),
-                new ComponentContext().with(DashboardContract.DASHBOARD_MODEL, model));
+        Document document = render(new DashboardContract(model), new ComponentContext());
 
         assertEquals(1, document.select(".dashboard-grid").size());
         assertEquals(1, document.select(".dashboard-grid-item").size());
@@ -45,7 +42,7 @@ class DashboardViewTests {
         assertTrue(document.text().contains("Widget single"));
     }
 
-    private static Document render(final Component<?> component, final ComponentContext context) {
+    private static Document render(final Component<?, ?> component, final ComponentContext context) {
         TreeBuilder treeBuilder = new TreeBuilder(
                 new QualifiedSessionId("device", "session"),
                 TreePositionPath.of("1"),

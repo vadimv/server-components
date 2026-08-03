@@ -20,6 +20,19 @@ package rsp.component;
 public interface ComponentCallbacks<S> {
 
     /**
+     * Called immediately before each render of the live segment.
+     * <p>
+     * This is the safe place to capture mount-owned handles from the segment,
+     * such as its live {@link ContextScope}. Unlike candidate construction, this
+     * callback runs only for a segment that is about to render into the tree.
+     *
+     * @param segment the live rendering segment
+     * @param state current immutable state snapshot
+     */
+    default void onBeforeRendered(ComponentSegment<S> segment, S state) {
+    }
+
+    /**
      * Called before a state update is applied.
      * Override this method to intercept state changes, e.g., to notify parent components
      * or to veto the update (by returning false).
@@ -37,26 +50,26 @@ public interface ComponentCallbacks<S> {
      * @param state the current state
      * @param subscriber for adding event handlers (window, component events)
      * @param commandsEnqueue for sending commands (e.g., PushHistory)
-     * @param stateUpdate for updating state from event handlers
+     * @param stateUpdater for updating state from event handlers
      */
     void onAfterRendered(S state,
                          Subscriber subscriber,
                          CommandsEnqueue commandsEnqueue,
-                         StateUpdate<S> stateUpdate);
+                         StateUpdater<S> stateUpdater);
 
     /**
      * Called after the component is initially mounted to the segments tree.
-     * It is thread-safe to call the state update's methods in this callback.
+     * It is thread-safe to call the state updater's methods in this callback.
      * <p>
      * Components that need access to the live mounted segment should override
-     * {@link #onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdate)}
+     * {@link #onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdater)}
      * instead. This callback is retained as the simple lifecycle hook.
      *
      * @param componentId component's composite key
      * @param state current state
-     * @param stateUpdate for updating state asynchronously
+     * @param stateUpdater for updating state asynchronously
      */
-    void onMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate);
+    void onMounted(ComponentCompositeKey componentId, S state, StateUpdater<S> stateUpdater);
 
     /**
      * Called after the component is initially mounted to the segments tree, with
@@ -65,32 +78,32 @@ public interface ComponentCallbacks<S> {
      * Override this method for mount-owned resources that need the segment's live
      * {@link ContextScope}, such as context watchers or event subscriptions that
      * must not be rebound from reconciliation candidates. The default delegates
-     * to {@link #onMounted(ComponentCompositeKey, Object, StateUpdate)}.
+     * to {@link #onMounted(ComponentCompositeKey, Object, StateUpdater)}.
      *
      * @param segment live mounted segment
      * @param componentId component's composite key
      * @param state current state
      * @param commandsEnqueue for sending commands
-     * @param stateUpdate for updating state asynchronously
+     * @param stateUpdater for updating state asynchronously
      */
     default void onMounted(ComponentSegment<S> segment,
                            ComponentCompositeKey componentId,
                            S state,
                            CommandsEnqueue commandsEnqueue,
-                           StateUpdate<S> stateUpdate) {
-        onMounted(componentId, state, stateUpdate);
+                           StateUpdater<S> stateUpdater) {
+        onMounted(componentId, state, stateUpdater);
     }
 
     /**
      * Called after the component's state is updated.
-     * It is thread-safe to call the state update's methods in this callback.
+     * It is thread-safe to call the state updater's methods in this callback.
      *
      * @param componentId component's composite key
      * @param oldState the previous state
      * @param newState the new state
-     * @param stateUpdate for updating state asynchronously
+     * @param stateUpdater for updating state asynchronously
      */
-    void onUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate);
+    void onUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdater<S> stateUpdater);
 
     /**
      * Called when the component is unmounted from the rendered tree.

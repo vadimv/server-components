@@ -2,7 +2,7 @@ package rsp.compositions.layout;
 
 import rsp.component.Lookup;
 import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.dsl.Definition;
 
 import java.util.Set;
@@ -29,7 +29,7 @@ public interface Layout {
      *
      * @return set of contract classes this layout requires
      */
-    default Set<Class<? extends ViewContract>> requiredContracts() {
+    default Set<Class<? extends Contract>> requiredContracts() {
         return Set.of();
     }
 
@@ -43,7 +43,7 @@ public interface Layout {
      * @param scene the active scene
      * @return the effective placement decision
      */
-    default PlacementDecision resolvePlacement(Class<? extends ViewContract> contractClass,
+    default PlacementDecision resolvePlacement(Class<? extends Contract> contractClass,
                                                Scene scene) {
         return PlacementDecision.frameworkDefault();
     }

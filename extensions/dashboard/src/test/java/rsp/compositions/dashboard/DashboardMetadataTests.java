@@ -20,7 +20,7 @@ class DashboardMetadataTests {
                 .place(new TestDashboardWidget("agent-visible"),
                         DashboardDsl.at(2, 3).span(4, 2))
                 .build();
-        DashboardContract contract = new DashboardContract(new TestLookup(), new DashboardModel(layout));
+        DashboardContract contract = new DashboardContract(new DashboardModel(layout));
 
         ContractMetadata metadata = contract.contractMetadata();
 
@@ -51,7 +51,7 @@ class DashboardMetadataTests {
     }
 
     private static boolean containsComponent(final Object value) {
-        if (value instanceof Component<?>) {
+        if (value instanceof Component<?, ?>) {
             return true;
         }
         if (value instanceof Map<?, ?> map) {

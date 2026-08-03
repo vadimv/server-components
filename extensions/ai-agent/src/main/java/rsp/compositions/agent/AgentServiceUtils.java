@@ -8,7 +8,7 @@ import rsp.compositions.contract.PayloadSchema;
 
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.util.json.JsonDataType;
 
 import java.util.ArrayList;
@@ -109,7 +109,7 @@ public final class AgentServiceUtils {
                     && payload.value() instanceof JsonDataType.String s && !s.value().isBlank()) {
                 targetContract = s.value();
             }
-            Class<? extends ViewContract> target = resolveTargetContract(targetContract, structureTree);
+            Class<? extends Contract> target = resolveTargetContract(targetContract, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
                     "I couldn't resolve navigation target: " + targetContract));
@@ -154,7 +154,7 @@ public final class AgentServiceUtils {
     /**
      * Resolves a contract class from a target name string by searching the structure tree.
      */
-    public static Class<? extends ViewContract> resolveTargetContract(String targetName,
+    public static Class<? extends Contract> resolveTargetContract(String targetName,
                                                                        StructureNode node) {
         if (targetName == null || targetName.isBlank() || node == null) {
             return null;
@@ -162,16 +162,16 @@ public final class AgentServiceUtils {
         return findContractByName(targetName.trim(), node);
     }
 
-    private static Class<? extends ViewContract> findContractByName(String name, StructureNode node) {
+    private static Class<? extends Contract> findContractByName(String name, StructureNode node) {
         // Exact match on class name
-        for (Class<? extends ViewContract> contract : node.contracts()) {
+        for (Class<? extends Contract> contract : node.contracts()) {
             if (contract.getSimpleName().equalsIgnoreCase(name)
                 || contract.getName().equalsIgnoreCase(name)) {
                 return contract;
             }
         }
         // Fuzzy match: class name contains the search term
-        for (Class<? extends ViewContract> contract : node.contracts()) {
+        for (Class<? extends Contract> contract : node.contracts()) {
             if (contract.getSimpleName().toLowerCase(Locale.ROOT)
                     .contains(name.toLowerCase(Locale.ROOT))) {
                 return contract;
@@ -183,7 +183,7 @@ public final class AgentServiceUtils {
             return node.contracts().get(0);
         }
         for (StructureNode child : node.children()) {
-            Class<? extends ViewContract> found = findContractByName(name, child);
+            Class<? extends Contract> found = findContractByName(name, child);
             if (found != null) {
                 return found;
             }
@@ -422,7 +422,7 @@ public final class AgentServiceUtils {
 
         if ("navigate".equals(toolName)) {
             String targetContract = getString(input.value("targetContract")).orElse("");
-            Class<? extends ViewContract> target = resolveTargetContract(targetContract, structureTree);
+            Class<? extends Contract> target = resolveTargetContract(targetContract, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
                     "I couldn't resolve navigation target: " + targetContract));

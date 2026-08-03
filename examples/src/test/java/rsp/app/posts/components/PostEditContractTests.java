@@ -3,10 +3,9 @@ package rsp.app.posts.components;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.Lookup;
-import rsp.compositions.contract.ContextKeys;
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
+import rsp.compositions.ui.DefaultEditView;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -24,13 +23,6 @@ class PostEditContractTests {
         postService = new PostService();
     }
 
-    private Lookup lookupWithPathId(final String id) {
-        return new TestLookup()
-                .withData(PostService.class, postService)
-                .withData(ContextKeys.URL_PATH.with("1"), id)
-                .withData(ContextKeys.ROUTE_PATTERN, "/posts/:id");
-    }
-
     @Nested
     class DeleteTests {
 
@@ -41,10 +33,9 @@ class PostEditContractTests {
             assertTrue(postService.find(id).isPresent());
 
             // Delete via contract
-            final Lookup lookup = lookupWithPathId(id);
-            final PostEditContract contract = new PostEditContract(lookup, postService);
+            final PostEditContract contract = new PostEditContract(postService, new DefaultEditView());
 
-            final boolean result = contract.delete();
+            final boolean result = contract.delete(id);
 
             assertTrue(result);
             assertFalse(postService.find(id).isPresent());
@@ -52,10 +43,9 @@ class PostEditContractTests {
 
         @Test
         void delete_returns_false_for_nonexistent_post() {
-            final Lookup lookup = lookupWithPathId("99999");
-            final PostEditContract contract = new PostEditContract(lookup, postService);
+            final PostEditContract contract = new PostEditContract(postService, new DefaultEditView());
 
-            final boolean result = contract.delete();
+            final boolean result = contract.delete("99999");
 
             assertFalse(result);
         }
@@ -67,10 +57,9 @@ class PostEditContractTests {
         @Test
         void item_returns_post_in_edit_mode() {
             final String id = postService.create(new Post(null, "Title", "Content"));
-            final Lookup lookup = lookupWithPathId(id);
-            final PostEditContract contract = new PostEditContract(lookup, postService);
+            final PostEditContract contract = new PostEditContract(postService, new DefaultEditView());
 
-            final Post post = contract.item();
+            final Post post = contract.item(id);
 
             assertNotNull(post);
             assertEquals(id, post.id());
@@ -79,10 +68,9 @@ class PostEditContractTests {
 
         @Test
         void item_returns_null_for_nonexistent_post() {
-            final Lookup lookup = lookupWithPathId("99999");
-            final PostEditContract contract = new PostEditContract(lookup, postService);
+            final PostEditContract contract = new PostEditContract(postService, new DefaultEditView());
 
-            assertNull(contract.item());
+            assertNull(contract.item("99999"));
         }
     }
 }

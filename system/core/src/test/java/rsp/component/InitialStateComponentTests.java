@@ -2,12 +2,14 @@ package rsp.component;
 
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.LocalStateComponent;
 import rsp.component.definitions.Component;
 import rsp.dom.DomEventEntry;
 import rsp.dom.NodeId;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
+import rsp.page.events.GenericTaskEvent;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
@@ -24,13 +26,14 @@ import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
 class InitialStateComponentTests {
 
-    static final ComponentView<String> view = newState -> state ->
+    static final ComponentView<String, Object> view = intents -> state ->
             div(
                     span(state),
-                    new InitialStateComponent<>("test",
-                                                100,
-                                                ns -> s -> div(a(on("click", c -> ns.setState(101)),
-                                                                                          text("test-link-" + s))))
+                    new LocalStateComponent<Integer, Integer>((_, _) -> 100,
+                                                              childIntents -> s -> div(
+                                                                      a(on("click", c -> childIntents.dispatch(101)),
+                                                                        text("test-link-" + s))),
+                                                              (_, next) -> next)
             );
 
     @Test
@@ -42,8 +45,7 @@ class InitialStateComponentTests {
                                                           TreePositionPath.of("1"),
                                                           new ComponentContext(),
                                                           commands);
-        final Component<String> scd = new InitialStateComponent<>("state-0",
-                                                                   view);
+        final Component<String, Object> scd = new InitialStateComponent<>("state-0", view);
         // Initial render
         scd.render(renderContext);
 
@@ -68,9 +70,15 @@ class InitialStateComponentTests {
                                                                 (nodeId, customEvent) -> {},
                                                                 ref -> {});
         clickEvent.eventHandler.accept(clickEventContext);
+        runQueuedTask(commands);
 
         assertEquals(1, commands.list.size());
         assertInstanceOf(RemoteCommand.ModifyDom.class, commands.list.get(0));
         assertTrue(commands.list.get(0).toString().contains("test-link-101"));
+    }
+
+    private static void runQueuedTask(final TestSessonEventsConsumer commands) {
+        assertInstanceOf(GenericTaskEvent.class, commands.list.getFirst()).task().run();
+        commands.list.removeFirst();
     }
 }

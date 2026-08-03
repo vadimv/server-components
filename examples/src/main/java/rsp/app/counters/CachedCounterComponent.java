@@ -2,6 +2,7 @@ package rsp.app.counters;
 
 import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentView;
+import rsp.component.StateUpdater;
 import rsp.component.definitions.StoredStateComponent;
 
 import java.util.Map;
@@ -17,7 +18,7 @@ import java.util.Map;
  * @see CountersView for the UI rendering logic
  * @see HideableCounterComponent for the parent component that conditionally renders this
  */
-public class CachedCounterComponent extends StoredStateComponent<Integer> {
+public class CachedCounterComponent extends StoredStateComponent<Integer, CountersView.CounterIntent> {
 
     private final String name;
 
@@ -44,7 +45,14 @@ public class CachedCounterComponent extends StoredStateComponent<Integer> {
      * @see CountersView for the UI implementation
      */
     @Override
-    public ComponentView<Integer> componentView() {
+    public ComponentView<Integer, CountersView.CounterIntent> componentView() {
         return new CountersView(this.name);
+    }
+
+    @Override
+    protected void onIntent(final CountersView.CounterIntent intent,
+                            final Integer state,
+                            final StateUpdater<Integer> stateUpdater) {
+        stateUpdater.setState(intent == CountersView.CounterIntent.INCREMENT ? state + 1 : state - 1);
     }
 }

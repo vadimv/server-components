@@ -2,7 +2,7 @@ package rsp.compositions.layout;
 
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.dom.XmlNs;
 import rsp.dsl.Definition;
 import rsp.dsl.PlainTag;
@@ -18,8 +18,8 @@ import static rsp.dsl.Html.*;
  */
 public final class ModalLayerLayout implements LayerLayout {
     @Override
-    public Definition resolve(Component<?> content,
-                              Class<? extends ViewContract> contractClass,
+    public Definition resolve(Component<?, ?> content,
+                              Class<? extends Contract> contractClass,
                               Lookup lookup) {
         return div(attr("class", "modal-overlay"),
                 div(attr("class", "modal-backdrop"),
@@ -29,7 +29,7 @@ public final class ModalLayerLayout implements LayerLayout {
                         content));
     }
 
-    private static Definition closeButton(Class<? extends ViewContract> contractClass, Lookup lookup) {
+    private static Definition closeButton(Class<? extends Contract> contractClass, Lookup lookup) {
         return button(
                 attr("type", "button"),
                 attr("class", "modal-close"),

@@ -126,7 +126,7 @@ public class CountersMainComponent extends AddressBarSyncComponent {
      * @see HideableCounterComponent for conditional counter with persistence
      */
     @Override
-    public ComponentView<RelativeUrl> componentView() {
+    public ComponentView<RelativeUrl, Object> componentView() {
         return _ ->_ -> div(new ContextCounterComponent("c1"),
                                                         br(),
                                                         new ContextCounterComponent("c2"),

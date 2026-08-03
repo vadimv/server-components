@@ -1,6 +1,6 @@
 package rsp.compositions.routing;
 
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.server.Path;
 
 import java.util.LinkedHashMap;
@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Router - Maps URL paths to ViewContract classes.
+ * Router - Maps URL paths to contract component classes.
  * <p>
  * Supports both exact routes and path parameter routes:
  * <ul>
@@ -22,19 +22,19 @@ public class Router {
     /**
      * Result of matching a route.
      *
-     * @param contractClass The ViewContract class for this route
+     * @param contractClass The contract component class for this route
      * @param pattern The route pattern (e.g., "/posts/:id")
      */
-    public record RouteMatch(Class<? extends ViewContract> contractClass, String pattern) {}
+    public record RouteMatch(Class<? extends Contract> contractClass, String pattern) {}
 
     /**
      * Register a route pattern.
      *
      * @param path The path pattern (e.g., "/posts" or "/posts/:id")
-     * @param contractClass The ViewContract class to use for this route
+     * @param contractClass The contract component class to use for this route
      * @return this Router for chaining
      */
-    public Router route(String path, Class<? extends ViewContract> contractClass) {
+    public Router route(String path, Class<? extends Contract> contractClass) {
         routes.put(path, new RoutePattern(path, contractClass));
         return this;
     }
@@ -62,7 +62,7 @@ public class Router {
      * @param contractClass The contract class to check
      * @return true if a route is registered for this contract
      */
-    public boolean hasRoute(Class<? extends ViewContract> contractClass) {
+    public boolean hasRoute(Class<? extends Contract> contractClass) {
         return routes.values().stream()
                 .anyMatch(p -> p.contractClass().equals(contractClass));
     }
@@ -76,7 +76,7 @@ public class Router {
      * @param contractClass The contract class to find
      * @return The route pattern (e.g., "/posts"), or empty if not found
      */
-    public Optional<String> findRoutePattern(Class<? extends ViewContract> contractClass) {
+    public Optional<String> findRoutePattern(Class<? extends Contract> contractClass) {
         for (RoutePattern pattern : routes.values()) {
             if (pattern.contractClass().equals(contractClass)) {
                 return Optional.of(pattern.pattern());
@@ -140,7 +140,7 @@ public class Router {
     /**
      * A route pattern that can match exact paths or paths with parameters.
      */
-    private record RoutePattern(String pattern, Class<? extends ViewContract> contractClass) {
+    private record RoutePattern(String pattern, Class<? extends Contract> contractClass) {
 
         /**
          * Check if this pattern matches the given path.

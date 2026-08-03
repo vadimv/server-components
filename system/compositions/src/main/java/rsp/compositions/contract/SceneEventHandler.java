@@ -5,13 +5,11 @@ import rsp.component.definitions.AddressBarSyncComponent;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.PlacementDecision;
 import rsp.compositions.routing.Router;
-import rsp.server.http.Query;
 import rsp.server.http.RelativeUrl;
 
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
 import static rsp.compositions.contract.ActionBindings.ShowPayload;
 import static rsp.compositions.contract.EventKeys.*;
@@ -43,7 +41,7 @@ public final class SceneEventHandler {
     public void registerHandlers(Scene state,
                                  Subscriber subscriber,
                                  CommandsEnqueue commandsEnqueue,
-                                 StateUpdate<Scene> stateUpdate) {
+                                 StateUpdater<Scene> stateUpdate) {
         subscriber.addEventHandler(SHOW, (eventName, payload) -> {
             handleShow(state, payload, stateUpdate, commandsEnqueue);
         }, false);
@@ -61,15 +59,19 @@ public final class SceneEventHandler {
             handleSceneQueryUpdated(state, update, commandsEnqueue, stateUpdate);
         }, false);
 
+        subscriber.addEventHandler(SCENE_TITLE_UPDATED, (eventName, update) -> {
+            handleSceneTitleUpdated(state, update, stateUpdate);
+        }, false);
+
         subscriber.addEventHandler(AddressBarSyncComponent.HISTORY_ENTRY_CHANGED, (eventName, url) ->
                 handleBrowserHistory(state, url, commandsEnqueue, stateUpdate), false);
     }
 
     private void handleShow(Scene state,
                             ShowPayload payload,
-                            StateUpdate<Scene> stateUpdate,
+                            StateUpdater<Scene> stateUpdate,
                             CommandsEnqueue commandsEnqueue) {
-        Class<? extends ViewContract> contractClass = payload.contractClass();
+        Class<? extends Contract> contractClass = payload.contractClass();
         PlacementDecision decision = state.composition().layout().resolvePlacement(contractClass, state);
 
         if (decision.placement().isInline()) {
@@ -83,12 +85,11 @@ public final class SceneEventHandler {
 
     private void handleShowInline(Scene state,
                                   ShowPayload payload,
-                                  StateUpdate<Scene> stateUpdate,
+                                  StateUpdater<Scene> stateUpdate,
                                   CommandsEnqueue commandsEnqueue) {
-        Class<? extends ViewContract> contractClass = payload.contractClass();
+        Class<? extends Contract> contractClass = payload.contractClass();
 
-        if (state.routedRuntime() != null
-                && state.routedRuntime().contractClass().equals(contractClass)) {
+        if (state.isRouted(contractClass)) {
             return;
         }
 
@@ -98,14 +99,9 @@ public final class SceneEventHandler {
         final SceneNavigator navigator = new SceneNavigator(savedContext, commandsEnqueue);
         final Scene.InlineReturnTarget returnTarget = navigator.captureInlineReturnTarget(state);
 
-        ContractRuntime newRuntime = resolveAndInstantiate(state, contractClass, commandsEnqueue,
-                true, payload.data());
-        if (newRuntime == null) {
+        ContractDescriptor descriptor = describeContract(state, contractClass, payload.data());
+        if (descriptor == null) {
             return;
-        }
-
-        if (state.routedRuntime() != null) {
-            state.routedRuntime().destroy();
         }
 
         // Update the URL bar to reflect the now-routed inline contract (e.g. /comments/3).
@@ -114,7 +110,7 @@ public final class SceneEventHandler {
         RelativeUrl targetUrl = navigator.pushInlineUrl(state, contractClass, payload.data());
 
         stateUpdate.applyStateTransformation(s -> {
-            Scene next = s.withRoutedRuntime(newRuntime);
+            Scene next = s.withRoutedDescriptor(descriptor);
             if (targetUrl != null) {
                 next = next.withEffectiveUrl(targetUrl);
             }
@@ -125,7 +121,7 @@ public final class SceneEventHandler {
     private void handleSceneQueryUpdated(Scene state,
                                          EventKeys.SceneQueryUpdate update,
                                          CommandsEnqueue commandsEnqueue,
-                                         StateUpdate<Scene> stateUpdate) {
+                                         StateUpdater<Scene> stateUpdate) {
         RelativeUrl updatedUrl = new SceneNavigator(savedContext, commandsEnqueue)
                 .pushSceneQueryUpdate(state.effectiveUrl(), update);
         if (updatedUrl == null) {
@@ -134,10 +130,25 @@ public final class SceneEventHandler {
         stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(updatedUrl));
     }
 
+    private void handleSceneTitleUpdated(Scene state,
+                                         EventKeys.SceneTitleUpdate update,
+                                         StateUpdater<Scene> stateUpdate) {
+        ContractDescriptor routed = state.routedDescriptor();
+        boolean isPrimary = routed != null && routed.instanceId() == update.descriptorId();
+        ContractDescriptor autoOpen = state.autoOpen() == null
+                ? null
+                : state.preActivatedDescriptor(state.autoOpen().contractClass());
+        boolean isAutoOpenOverlay = autoOpen != null && autoOpen.instanceId() == update.descriptorId();
+        if ((!isPrimary && !isAutoOpenOverlay) || state.pageTitle().equals(update.title())) {
+            return;
+        }
+        stateUpdate.applyStateTransformation(s -> s.withPageTitle(update.title()));
+    }
+
     private void handleBrowserHistory(Scene state,
                                       RelativeUrl targetUrl,
                                       CommandsEnqueue commandsEnqueue,
-                                      StateUpdate<Scene> stateUpdate) {
+                                      StateUpdater<Scene> stateUpdate) {
         if (state.effectiveUrl() == null) {
             return;
         }
@@ -156,28 +167,19 @@ public final class SceneEventHandler {
             return;
         }
 
-        Class<? extends ViewContract> targetClass = match.get().contractClass();
-        if (state.routedRuntime() != null
-                && state.routedRuntime().contractClass().equals(targetClass)) {
+        Class<? extends Contract> targetClass = match.get().contractClass();
+        if (state.isRouted(targetClass)) {
             stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(targetUrl));
             return;
         }
 
-        ContractRuntime newRuntime = resolveAndInstantiateForUrl(state,
-                                                                 targetClass,
-                                                                 match.get().pattern(),
-                                                                 targetUrl,
-                                                                 commandsEnqueue);
-        if (newRuntime == null) {
+        ContractDescriptor descriptor = describeContractForUrl(state, targetClass);
+        if (descriptor == null) {
             return;
         }
 
-        if (state.routedRuntime() != null) {
-            state.routedRuntime().destroy();
-        }
-
         stateUpdate.applyStateTransformation(s ->
-                s.withRoutedRuntime(newRuntime)
+                s.withRoutedDescriptor(descriptor)
                         .clearInlineReturnTarget()
                         .withEffectiveUrl(targetUrl));
     }
@@ -187,30 +189,22 @@ public final class SceneEventHandler {
      */
     @SuppressWarnings("unchecked")
     private void handleSetPrimary(Scene state, Class contractClass,
-                                  StateUpdate<Scene> stateUpdate,
+                                  StateUpdater<Scene> stateUpdate,
                                   CommandsEnqueue commandsEnqueue) {
         // Check if already the routed contract
-        if (state.routedContract() != null && state.routedContract().getClass().equals(contractClass)) {
+        if (state.routedDescriptor() != null && state.routedDescriptor().contractClass().equals(contractClass)) {
             return;
         }
 
-        // Destroy old routed contract
-        if (state.routedRuntime() != null) {
-            state.routedRuntime().destroy();
-        }
-
-        // Resolve and instantiate the new contract.
-        // stripQueryParams=true: SET_PRIMARY navigates to a different contract class,
-        // stale query state (e.g. ?p=2 from Posts) must not carry over to the new contract.
-        ContractRuntime newRuntime = resolveAndInstantiate(state, contractClass, commandsEnqueue, true);
-        if (newRuntime == null) {
+        ContractDescriptor descriptor = describeContract(state, contractClass, Map.of());
+        if (descriptor == null) {
             return;
         }
 
         // Update URL to reflect the new routed contract's route.
         // SET_PRIMARY is a fresh primary-contract selection, so the navigator
         // uses an empty query and fragment for the target URL.
-        Class<? extends ViewContract> typedContractClass = (Class<? extends ViewContract>) contractClass;
+        Class<? extends Contract> typedContractClass = (Class<? extends Contract>) contractClass;
         RelativeUrl targetUrl = new SceneNavigator(savedContext, commandsEnqueue)
                 .pushPrimaryUrl(state, typedContractClass);
 
@@ -219,108 +213,38 @@ public final class SceneEventHandler {
         final RelativeUrl effectiveUrl = targetUrl;
         stateUpdate.applyStateTransformation(s ->
                 effectiveUrl != null
-                        ? s.withRoutedRuntime(newRuntime).clearInlineReturnTarget().withEffectiveUrl(effectiveUrl)
-                        : s.withRoutedRuntime(newRuntime).clearInlineReturnTarget());
+                        ? s.withRoutedDescriptor(descriptor).clearInlineReturnTarget().withEffectiveUrl(effectiveUrl)
+                        : s.withRoutedDescriptor(descriptor).clearInlineReturnTarget());
     }
 
     /**
-     * Resolve factory, create lookup, instantiate contract, register handlers.
+     * Resolve a fresh descriptor for a contract that will mount in the tree.
      */
     @SuppressWarnings("unchecked")
-    private ContractRuntime resolveAndInstantiate(Scene state, Class contractClass,
-                                                  CommandsEnqueue commandsEnqueue,
-                                                  boolean stripQueryParams) {
-        return resolveAndInstantiate(state, contractClass, commandsEnqueue, stripQueryParams, Map.of());
+    private ContractDescriptor describeContract(Scene state, Class contractClass) {
+        return describeContract(state, contractClass, Map.of());
     }
 
     /**
-     * Resolve factory, create lookup, instantiate contract, register handlers.
+     * Select a fresh component-owned contract descriptor.
      */
     @SuppressWarnings("unchecked")
-    private ContractRuntime resolveAndInstantiate(Scene state, Class contractClass,
-                                                  CommandsEnqueue commandsEnqueue,
-                                                  boolean stripQueryParams,
+    private ContractDescriptor describeContract(Scene state, Class contractClass,
                                                   Map<String, Object> showData) {
-        // Get factory from scene lazy factories
-        Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
-        if (factory == null) {
-            // Check composition registry
-            Composition composition = state.composition();
-            if (composition != null) {
-                factory = composition.contracts().contractFactory(contractClass);
-            }
-        }
-
-        if (factory == null) {
+        Composition composition = state.composition();
+        if (composition == null || !composition.contracts().hasBinding(contractClass)) {
             return null;
         }
-
-        // Create lookup with context enrichment.
-        // When stripQueryParams=true (SET_PRIMARY path): strip stale query params so a
-        // newly-routed contract starts clean (e.g. navigating from /posts?p=2 to Comments
-        // must not carry over p=2).
-        // When stripQueryParams=false (ACTION_SUCCESS refresh path): preserve query params
-        // so pagination/sort/filter state survives an in-place refresh of the same contract.
-        ComponentContext base = stripQueryParams
-            ? savedContext.withoutStringPrefix(ContextKeys.URL_QUERY.baseKey() + ".")
-            : savedContext;
-        ComponentContext showContext = base
-            .with(ContextKeys.CONTRACT_CLASS, contractClass)
-            .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
-            .with(ContextKeys.SCENE, state);
-
-        if (showData != null && !showData.isEmpty()) {
-            showContext = showContext.with(ContextKeys.SHOW_DATA, showData);
-        }
-
-        return ContractRuntime.instantiate(contractClass, factory, showContext, commandsEnqueue);
+        return ContractDescriptor.forContract(contractClass, showData);
     }
 
-    private ContractRuntime resolveAndInstantiateForUrl(Scene state,
-                                                        Class<? extends ViewContract> contractClass,
-                                                        String routePattern,
-                                                        RelativeUrl url,
-                                                        CommandsEnqueue commandsEnqueue) {
-        Function<Lookup, ViewContract> factory = state.getFactory(contractClass);
-        if (factory == null && state.composition() != null) {
-            factory = state.composition().contracts().contractFactory(contractClass);
-        }
-        if (factory == null) {
+    private ContractDescriptor describeContractForUrl(Scene state,
+                                                       Class<? extends Contract> contractClass) {
+        if (state.composition() == null
+                || !state.composition().contracts().hasBinding(contractClass)) {
             return null;
         }
-
-        ComponentContext context = contextForUrl(savedContext, state, contractClass, routePattern, url);
-        return ContractRuntime.instantiate(contractClass, factory, context, commandsEnqueue);
-    }
-
-    private static ComponentContext contextForUrl(ComponentContext context,
-                                                  Scene state,
-                                                  Class<? extends ViewContract> contractClass,
-                                                  String routePattern,
-                                                  RelativeUrl url) {
-        ComponentContext next = context
-                .withoutStringPrefix(ContextKeys.URL_QUERY.baseKey() + ".")
-                .withoutStringPrefix(ContextKeys.URL_PATH.baseKey() + ".")
-                .with(ContextKeys.URL_PATH_FULL, url.path())
-                .with(ContextKeys.URL_FRAGMENT,
-                        url.fragment() == null ? "" : url.fragment().fragmentString())
-                .with(ContextKeys.ROUTE_COMPOSITION, state.composition())
-                .with(ContextKeys.ROUTE_CONTRACT_CLASS, contractClass)
-                .with(ContextKeys.ROUTE_PATH, url.path().toString())
-                .with(ContextKeys.ROUTE_PATTERN, routePattern)
-                .with(ContextKeys.CONTRACT_CLASS, contractClass)
-                .with(ContextKeys.IS_ACTIVE_CONTRACT, true)
-                .with(ContextKeys.SCENE, state);
-
-        for (int i = 0; i < url.path().elementsCount(); i++) {
-            next = next.with(ContextKeys.URL_PATH.with(String.valueOf(i)), url.path().get(i));
-        }
-
-        for (Query.Parameter param : url.query().parameters()) {
-            next = next.with(ContextKeys.URL_QUERY.with(param.name()), param.value());
-        }
-
-        return next;
+        return ContractDescriptor.forContract(contractClass, Map.of());
     }
 
     /**
@@ -338,40 +262,35 @@ public final class SceneEventHandler {
     private void handleActionSuccess(Scene state,
                                      ActionResult result,
                                      CommandsEnqueue commandsEnqueue,
-                                     StateUpdate<Scene> stateUpdate) {
-        Class<? extends ViewContract> contractClass = result.contractClass();
+                                     StateUpdater<Scene> stateUpdate) {
+        Class<? extends Contract> contractClass = result.contractClass();
         if (contractClass == null) {
             return;
         }
-        if (state.routedRuntime() == null) {
+        if (state.routedDescriptor() == null) {
             return;
         }
 
         Scene.InlineReturnTarget returnTarget = state.inlineReturnTarget();
         if (returnTarget != null
-                && state.routedRuntime().contractClass().equals(contractClass)) {
+                && state.routedDescriptor().contractClass().equals(contractClass)) {
             restoreInlineReturn(state, returnTarget, commandsEnqueue, stateUpdate);
             return;
         }
 
         // In-place refresh — same contract class, preserve query state.
-        Class routedClass = state.routedRuntime().contractClass();
-        state.routedRuntime().destroy();
-        ContractRuntime refreshed = resolveAndInstantiate(state, routedClass, commandsEnqueue, false);
+        Class routedClass = state.routedDescriptor().contractClass();
+        ContractDescriptor refreshed = describeContract(state, routedClass);
         if (refreshed != null) {
-            stateUpdate.applyStateTransformation(s -> s.withRoutedRuntime(refreshed));
+            stateUpdate.applyStateTransformation(s -> s.withRoutedDescriptor(refreshed));
         }
     }
 
     private void restoreInlineReturn(Scene state,
                                      Scene.InlineReturnTarget target,
                                      CommandsEnqueue commandsEnqueue,
-                                     StateUpdate<Scene> stateUpdate) {
-        state.routedRuntime().destroy();
-        // stripQueryParams=true: we'll set the canonical URL state from the captured
-        // return target rather than relying on whatever savedContext currently holds.
-        ContractRuntime restored = resolveAndInstantiate(state, target.contractClass(),
-                commandsEnqueue, true);
+                                     StateUpdater<Scene> stateUpdate) {
+        ContractDescriptor restored = describeContract(state, target.contractClass());
         if (restored == null) {
             return;
         }
@@ -380,6 +299,6 @@ public final class SceneEventHandler {
                 .pushReturnUrl(target);
 
         stateUpdate.applyStateTransformation(s ->
-                s.withRoutedRuntime(restored).clearInlineReturnTarget().withEffectiveUrl(url));
+                s.withRoutedDescriptor(restored).clearInlineReturnTarget().withEffectiveUrl(url));
     }
 }

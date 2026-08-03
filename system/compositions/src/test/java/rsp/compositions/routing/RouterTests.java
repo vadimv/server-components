@@ -2,8 +2,9 @@ package rsp.compositions.routing;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.Lookup;
-import rsp.compositions.contract.ViewContract;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
+import rsp.compositions.contract.ContractNodeComponent;
 import rsp.server.Path;
 
 import java.util.Optional;
@@ -16,36 +17,24 @@ import static org.junit.jupiter.api.Assertions.*;
 public class RouterTests {
 
     // Minimal test contract for testing Router
-    static class TestContract extends ViewContract {
-        protected TestContract(final Lookup lookup) {
-            super(lookup);
-        }
+    static class TestContract extends ContractNodeComponent<String, Object> {
+        @Override public ComponentStateSupplier<String> initStateSupplier() { return (_, _) -> "ready"; }
+        @Override public ComponentView<String, Object> componentView() { return _ -> _ -> null; }
 
         @Override
         public String title() {
             return "Test";
         }
 
-        @Override
-        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
-            return context; // Test fixture - no enrichment needed
-        }
     }
 
-    static class AnotherTestContract extends ViewContract {
-        protected AnotherTestContract(final Lookup lookup) {
-            super(lookup);
-        }
+    static class AnotherTestContract extends TestContract {
 
         @Override
         public String title() {
             return "AnotherTest";
         }
 
-        @Override
-        public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext context) {
-            return context; // Test fixture - no enrichment needed
-        }
     }
 
     @Nested

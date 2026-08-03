@@ -14,7 +14,7 @@ import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.contract.DispatchEffect;
 import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
@@ -1026,27 +1026,30 @@ class AgentRuntimeTests {
         }
     }
 
-    /** Minimal concrete {@link ViewContract} used as a navigation target in
+    /** Minimal concrete contract used as a navigation target in
      *  tests that need a {@link AgentResult.NavigateResult} carrying a real class. */
-    private static final class StubContract extends ViewContract {
-        StubContract(Lookup lookup) { super(lookup); }
-        @Override public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext ctx) { return ctx; }
+    private static final class StubContract implements Contract {
+        private final Lookup lookup;
+        StubContract(Lookup lookup) { this.lookup = lookup; }
+        @Override public Lookup lookup() { return lookup; }
         @Override public String title() { return "Stub"; }
     }
 
     /** Concrete contract whose lookup is the one supplied at construction —
      *  used so {@link ActionDispatcher#dispatch} (which publishes on
      *  {@code contract.lookup()}) targets a test-controlled lookup. */
-    private static final class StubLookupContract extends ViewContract {
-        StubLookupContract(Lookup lookup) { super(lookup); }
-        @Override public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext ctx) { return ctx; }
+    private static final class StubLookupContract implements Contract {
+        private final Lookup lookup;
+        StubLookupContract(Lookup lookup) { this.lookup = lookup; }
+        @Override public Lookup lookup() { return lookup; }
         @Override public String title() { return "StubLookup"; }
     }
 
     /** Second stub used to simulate a scene change in monitor-rebind tests. */
-    private static final class AlternateStubContract extends ViewContract {
-        AlternateStubContract(Lookup lookup) { super(lookup); }
-        @Override public rsp.component.ComponentContext enrichContext(rsp.component.ComponentContext ctx) { return ctx; }
+    private static final class AlternateStubContract implements Contract {
+        private final Lookup lookup;
+        AlternateStubContract(Lookup lookup) { this.lookup = lookup; }
+        @Override public Lookup lookup() { return lookup; }
         @Override public String title() { return "Alternate"; }
     }
 
@@ -1063,7 +1066,7 @@ class AgentRuntimeTests {
 
         @Override
         public DispatchResult dispatch(ContractAction action, ContractActionPayload payload,
-                                       ViewContract contract, Lookup lookup, ActionGate gate) {
+                                       Contract contract, Lookup lookup, ActionGate gate) {
             dispatchCalls.add(action.action());
             return behavior.apply(action);
         }
@@ -1077,7 +1080,7 @@ class AgentRuntimeTests {
         @Override
         public DispatchResult dispatchDirect(ContractAction action,
                                              ContractActionPayload payload,
-                                             ViewContract contract) {
+                                             Contract contract) {
             directCalls.add(action.action());
             return new DispatchResult.Dispatched(action, payload,
                     CompletableFuture.completedFuture(null));

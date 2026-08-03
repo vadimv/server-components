@@ -51,37 +51,40 @@ client script or open a live session.
 
 ## Smallest Useful Shape
 
-A view is a function of state. A component view receives a `StateUpdate<S>` and
-returns that state-to-HTML function.
+A view is a function of state. A component view receives an
+`IntentDispatcher<I>` and returns that state-to-HTML function. It can request
+work from its owner, but it cannot update the owner's state cache directly.
 
 ```java
 import rsp.component.ComponentView;
-import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.LocalStateComponent;
 
 import static rsp.dsl.Html.*;
 
 record Counter(int value) {}
+enum CounterIntent { INCREMENT }
 
-final ComponentView<Counter> view = stateUpdate -> state ->
+final ComponentView<Counter, CounterIntent> view = intents -> state ->
         html(
                 body(
                         h1("Current count: " + state.value()),
                         button(
-                                on("click", event ->
-                                        stateUpdate.setState(new Counter(state.value() + 1))),
+                                on("click", event -> intents.dispatch(CounterIntent.INCREMENT)),
                                 text("Increment"))
                 )
         );
 
-final var root = new InitialStateComponent<>(new Counter(0), view);
+final var root = new LocalStateComponent<>(
+        (_, _) -> new Counter(0), view,
+        (state, intent) -> new Counter(state.value() + 1));
 ```
 
 Read the type from left to right:
 
-- `ComponentView<S>` receives the framework's `StateUpdate<S>`.
+- `ComponentView<S, I>` receives an `IntentDispatcher<I>`.
 - It returns a `View<S>`.
 - `View<S>` receives the current immutable state snapshot and returns a DSL `Definition`.
-- Calling `stateUpdate.setState(...)` schedules a server-side re-render.
+- Dispatching an intent delegates state changes to the owning component.
 
 To run a page in an embedded server, use an adapter such as
 `jetty-web-server`:
@@ -90,7 +93,8 @@ To run a page in an embedded server, use an adapter such as
 import rsp.jetty.WebServer;
 
 final var server = new WebServer(8080, request ->
-        new InitialStateComponent<>(new Counter(0), view));
+        new LocalStateComponent<>((_, _) -> new Counter(0), view,
+                (state, intent) -> new Counter(state.value() + 1)));
 server.start();
 server.join();
 ```
@@ -177,7 +181,7 @@ Plain heads render regular HTML and do not inject the live-page client scripts.
 
 ## Components
 
-`Component<S>` is the base class for reusable UI definitions. A component
+`Component<S, I>` is the base class for reusable UI definitions. A component
 instance is the definition/controller object; the mounted runtime object is a
 `ComponentSegment`, and that segment owns the current state.
 
@@ -185,6 +189,7 @@ Prefer immutable state records:
 
 ```java
 record CounterState(int value) {}
+enum CounterIntent { INCREMENT }
 ```
 
 A custom component supplies initial state and a component view:
@@ -196,29 +201,37 @@ import rsp.component.definitions.Component;
 
 import static rsp.dsl.Html.*;
 
-final class CounterComponent extends Component<CounterState> {
+final class CounterComponent extends Component<CounterState, CounterIntent> {
     @Override
     public ComponentStateSupplier<CounterState> initStateSupplier() {
         return (key, context) -> new CounterState(0);
     }
 
     @Override
-    public ComponentView<CounterState> componentView() {
-        return stateUpdate -> state ->
+    public ComponentView<CounterState, CounterIntent> componentView() {
+        return intents -> state ->
                 div(
                         span("Count: " + state.value()),
                         button(
-                                on("click", event ->
-                                        stateUpdate.setState(new CounterState(state.value() + 1))),
+                                on("click", event -> intents.dispatch(CounterIntent.INCREMENT)),
                                 text("+"))
                 );
+    }
+
+    @Override
+    protected void onIntent(CounterIntent intent, CounterState state,
+                            StateUpdater<CounterState> stateUpdater) {
+        if (intent == CounterIntent.INCREMENT) {
+            stateUpdater.setState(new CounterState(state.value() + 1));
+        }
     }
 }
 ```
 
 Useful built-in definitions:
 
-- `InitialStateComponent<S>`: fixed initial state plus a view.
+- `InitialStateComponent<S, I>`: fixed initial state plus an intent-only view.
+- `LocalStateComponent<S, I>`: fixed local cache plus a reducer for its intents.
 - `StatelessComponent`: a component without durable state.
 - `StoredStateComponent<S>`: state loaded from and saved to a state store.
 - `AddressBarSyncComponent` and `ContextStateComponent`: low-level building
@@ -259,12 +272,12 @@ static final EventKey.SimpleKey<String> MESSAGE =
         new EventKey.SimpleKey<>("message", String.class);
 ```
 
-Render-created DOM handlers can publish component events through
-`StateUpdate`:
+Render-created DOM handlers dispatch component intents. Component callbacks and
+intent handlers can publish typed events through `StateUpdater` or `Lookup`:
 
 ```java
 button(
-        on("click", event -> stateUpdate.publish(SAVED)),
+        on("click", event -> intents.dispatch(EditorIntent.SAVE)),
         text("Save"))
 ```
 
@@ -281,9 +294,9 @@ record State(boolean saved) {
 public void onAfterRendered(State state,
                             Subscriber subscriber,
                             CommandsEnqueue commands,
-                            StateUpdate<State> stateUpdate) {
+                            StateUpdater<State> stateUpdater) {
     subscriber.addEventHandler(SAVED, () ->
-            stateUpdate.applyStateTransformation(State::markSaved));
+            stateUpdater.applyStateTransformation(State::markSaved));
 }
 ```
 
@@ -296,8 +309,7 @@ Attach browser event handlers with `on(eventType, handler)`:
 
 ```java
 button(
-        on("click", event ->
-                stateUpdate.setState(new Counter(state.value() + 1))),
+        on("click", event -> intents.dispatch(CounterIntent.INCREMENT)),
         text("Increment"))
 ```
 

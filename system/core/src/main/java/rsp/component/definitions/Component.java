@@ -33,10 +33,10 @@ import java.util.function.BiFunction;
  * In particular, {@link #createComponentSegment} may be invoked to construct a
  * reconciliation candidate that is discarded before it ever mounts. Reusable
  * components must not mutate long-lived instance fields from that method based
- * on the candidate segment. Use {@link ComponentCallbacks#onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdate)}
- * for mount-owned handles that need the live segment, and use
- * {@link StateUpdate#publish(EventKey.SimpleKey, Object)} from render-created
- * event handlers that need to publish component events.
+ * on the candidate segment. Use {@link ComponentCallbacks#onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdater)}
+ * for mount-owned handles that need the live segment. Render-created event
+ * handlers dispatch {@link IntentDispatcher intents}, which component logic
+ * translates into state-cache updates or effects.
  * <p>
  * Components also declare runtime policy through {@link ComponentRuntimePolicy}.
  * In particular, {@link #isReusable()} controls whether an existing segment may
@@ -49,10 +49,12 @@ import java.util.function.BiFunction;
  * default non-reusable policy.
  *
  * @param <S> this component's state type
+ * @param <I> this component's intent type
  */
-public abstract class Component<S> implements Definition,
+public abstract class Component<S, I> implements Definition,
                                               ComponentSegmentFactory<S>,
                                               ComponentCallbacks<S>,
+                                              ComponentIntentHandler<S, I>,
                                               ComponentRuntimePolicy {
 
     protected final Object componentType;
@@ -84,7 +86,7 @@ public abstract class Component<S> implements Definition,
      * The view together with the state will be used for rendering.
      * @return a view for this component
      */
-    public abstract ComponentView<S> componentView();
+    public abstract ComponentView<S, I> componentView();
 
     /**
      * Provides a capability to define common context for downstream components states.
@@ -97,6 +99,25 @@ public abstract class Component<S> implements Definition,
         return (c, s) -> c;
     }
 
+    /**
+     * Handles a view-dispatched intent. The updater is private to component
+     * logic and lifecycle callbacks; rendering never receives it.
+     */
+    protected void onIntent(final I intent, final S state, final StateUpdater<S> stateUpdater) {
+    }
+
+    @Override
+    public final void onIntentDispatched(final I intent,
+                                         final S state,
+                                         final StateUpdater<S> stateUpdater) {
+        onIntent(intent, state, stateUpdater);
+    }
+
+    @Override
+    public void onBeforeRendered(ComponentSegment<S> segment, S state) {
+    }
+
+
     @Override
     public boolean onBeforeUpdated(S newState, CommandsEnqueue commandsEnqueue) {
         return true;
@@ -106,15 +127,15 @@ public abstract class Component<S> implements Definition,
     public void onAfterRendered(S state,
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
-                                StateUpdate<S> stateUpdate) {
+                                StateUpdater<S> stateUpdater) {
     }
 
     @Override
-    public void onMounted(ComponentCompositeKey componentId, S state, StateUpdate<S> stateUpdate) {
+    public void onMounted(ComponentCompositeKey componentId, S state, StateUpdater<S> stateUpdater) {
     }
 
     @Override
-    public void onUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdate<S> stateUpdate) {
+    public void onUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdater<S> stateUpdater) {
     }
 
     @Override
@@ -136,6 +157,7 @@ public abstract class Component<S> implements Definition,
                                       initStateSupplier(),
                                       subComponentsContext(),
                                       componentView(),
+                                      this,
                                       this,
                                       this,
                                       treeBuilderFactory,

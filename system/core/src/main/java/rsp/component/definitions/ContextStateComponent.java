@@ -18,8 +18,9 @@ import java.util.function.Function;
  *
  * @see AddressBarSyncComponent
  * @param <S> this component's state type
+ * @param <I> this component's intent type
  */
-public abstract class ContextStateComponent<S> extends Component<S> {
+public abstract class ContextStateComponent<S, I> extends Component<S, I> {
     /**
      * The prefix for component event names used for state synchronization.
      */

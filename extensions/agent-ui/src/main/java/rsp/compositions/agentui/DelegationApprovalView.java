@@ -1,9 +1,7 @@
 package rsp.compositions.agentui;
 
-import rsp.component.*;
-import rsp.component.definitions.Component;
-import rsp.dom.TreePositionPath;
-import rsp.page.QualifiedSessionId;
+import rsp.component.ComponentView;
+import rsp.component.IntentDispatcher;
 
 import static rsp.dsl.Html.*;
 
@@ -12,44 +10,15 @@ import static rsp.dsl.Html.*;
  * <p>
  * Renders scope, control mode, reason, and Approve/Deny buttons.
  */
-public class DelegationApprovalView extends Component<DelegationApprovalView.ApprovalViewState> {
+public class DelegationApprovalView implements ComponentView<DelegationApprovalView.ApprovalViewState, DelegationApprovalView.Decision> {
 
     public record ApprovalViewState(String scope, String controlMode, String reason) {}
 
-    private Lookup lookup;
+    public record Decision(boolean approved) {}
 
     @Override
-    public ComponentStateSupplier<ApprovalViewState> initStateSupplier() {
-        return (_, context) -> {
-            String scope = context.get(DelegationApprovalContract.APPROVAL_SCOPE);
-            String controlMode = context.get(DelegationApprovalContract.APPROVAL_CONTROL_MODE);
-            String reason = context.get(DelegationApprovalContract.APPROVAL_REASON);
-            return new ApprovalViewState(
-                    scope != null ? scope : "APP",
-                    controlMode != null ? controlMode : "ASSIST",
-                    reason != null ? reason : "");
-        };
-    }
-
-    @Override
-    public ComponentSegment<ApprovalViewState> createComponentSegment(
-            final QualifiedSessionId sessionId,
-            final TreePositionPath componentPath,
-            final TreeBuilderFactory treeBuilderFactory,
-            final ComponentContext componentContext,
-            final CommandsEnqueue commandsEnqueue) {
-        Subscriber subscriber = componentContext.get(Subscriber.class);
-        if (subscriber == null) {
-            subscriber = NoOpSubscriber.INSTANCE;
-        }
-        this.lookup = new ContextLookup(componentContext, commandsEnqueue, subscriber);
-        return super.createComponentSegment(sessionId, componentPath,
-                treeBuilderFactory, componentContext, commandsEnqueue);
-    }
-
-    @Override
-    public ComponentView<ApprovalViewState> componentView() {
-        return _ -> state -> div(attr("class", "approval-dialog"),
+    public rsp.component.View<ApprovalViewState> use(IntentDispatcher<Decision> intents) {
+        return state -> div(attr("class", "approval-dialog"),
                 div(attr("class", "approval-header"),
                         text("Agent Delegation Request")),
                 div(attr("class", "approval-body"),
@@ -68,30 +37,12 @@ public class DelegationApprovalView extends Component<DelegationApprovalView.App
                 div(attr("class", "approval-actions"),
                         button(attr("class", "btn btn-approve"),
                                 text("Approve"),
-                                on("click", ctx ->
-                                        lookup.publish(DelegationApprovalContract.USER_DECISION, true))),
+                                on("click", ctx -> intents.dispatch(new Decision(true)))),
                         button(attr("class", "btn btn-deny"),
                                 text("Deny"),
-                                on("click", ctx ->
-                                        lookup.publish(DelegationApprovalContract.USER_DECISION, false)))
+                                on("click", ctx -> intents.dispatch(new Decision(false))))
                 )
         );
     }
 
-    private static final class NoOpSubscriber implements Subscriber {
-        static final NoOpSubscriber INSTANCE = new NoOpSubscriber();
-
-        @Override
-        public void addWindowEventHandler(String eventType,
-                                          java.util.function.Consumer<rsp.page.EventContext> eventHandler,
-                                          boolean preventDefault,
-                                          rsp.dom.DomEventEntry.Modifier modifier) {}
-
-        @Override
-        public Lookup.Registration addComponentEventHandler(String eventType,
-                                                            java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
-                                                            boolean preventDefault) {
-            return () -> {};
-        }
-    }
 }

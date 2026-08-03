@@ -106,7 +106,7 @@ class CommentsRateGraphWidgetTests {
         assertEquals(120, metadata.get("currentValue"));
     }
 
-    private static Document render(final Component<?> component) {
+    private static Document render(final Component<?, ?> component) {
         TreeBuilder treeBuilder = new TreeBuilder(
                 new QualifiedSessionId("device", "session"),
                 TreePositionPath.of("1"),

@@ -2,7 +2,7 @@ package rsp.app.todos;
 
 
 import rsp.component.ComponentView;
-import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.LocalStateComponent;
 import rsp.jetty.WebServer;
 import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
@@ -17,9 +17,18 @@ import static rsp.dsl.Html.*;
 
 public class JettyTodos {
 
+    private sealed interface TodoIntent permits ToggleTodo, AddTodo {
+    }
+
+    private record ToggleTodo(int index) implements TodoIntent {
+    }
+
+    private record AddTodo(String text) implements TodoIntent {
+    }
+
     public static void main(String[] args) {
         final ElementRef textInputRef = createElementRef();
-        final ComponentView<State> view = newState -> state ->
+        final ComponentView<State, TodoIntent> view = intents -> state ->
                 html(
                         body(
                                 div(text("TODO tracker"),
@@ -30,7 +39,7 @@ public class JettyTodos {
                                                                         when(todo.getValue().done, () -> attr("checked", "checked")),
                                                                         attr("autocomplete", "off"), /* reset the checkbox on Firefox reload current page */
                                                                         on("click", c -> {
-                                                                            newState.setState(state.toggleDone(todo.getKey()));
+                                                                            intents.dispatch(new ToggleTodo(todo.getKey()));
                                                                         })),
                                                                 span(when(todo.getValue().done, () -> attr("style", "text-decoration:line-through")),
                                                                         text(todo.getValue().text))
@@ -43,19 +52,23 @@ public class JettyTodos {
                                                     final var textInputProps = c.propertiesByRef(textInputRef);
                                                     textInputProps.get("value").thenApply(v -> {
                                                                 if (v instanceof JsonDataType.String todo) {
-                                                                    return state.addTodo(todo.value());
+                                                                    return todo.value();
                                                                 } else {
                                                                     throw new IllegalStateException();
                                                                 }
 
                                                             })
-                                                            .thenAccept(s -> {
+                                                            .thenAccept(todoText -> {
                                                                 textInputProps.set("value", "");
-                                                                newState.setState(s);
+                                                                intents.dispatch(new AddTodo(todoText));
                                                             });
                                                 })))));
 
-        final var server = new WebServer(8080, _ -> new InitialStateComponent<>(initialState(), view));
+        final var server = new WebServer(8080, _ -> new LocalStateComponent<>(
+                (_, _) -> initialState(), view, (state, intent) -> switch (intent) {
+                    case ToggleTodo toggle -> state.toggleDone(toggle.index());
+                    case AddTodo add -> state.addTodo(add.text());
+                }));
         server.start();
         server.join();
     }

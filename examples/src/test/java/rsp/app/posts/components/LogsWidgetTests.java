@@ -109,7 +109,7 @@ class LogsWidgetTests {
         assertTrue(script.contains("logs-status-lost"));
     }
 
-    private static Document render(final Component<?> component) {
+    private static Document render(final Component<?, ?> component) {
         TreeBuilder treeBuilder = new TreeBuilder(
                 new QualifiedSessionId("device", "session"),
                 TreePositionPath.of("1"),

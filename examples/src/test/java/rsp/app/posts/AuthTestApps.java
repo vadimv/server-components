@@ -2,9 +2,7 @@ package rsp.app.posts;
 
 import rsp.app.posts.components.*;
 import rsp.compositions.shell.ExplorerContract;
-import rsp.compositions.shell.ExplorerView;
 import rsp.compositions.shell.HeaderContract;
-import rsp.compositions.shell.HeaderView;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
 import rsp.compositions.application.App;
@@ -40,17 +38,17 @@ class AuthTestApps {
 
         final Group mainContracts = new Group("Admin")
                 .add(new Group("Posts")
-                        .bind(PostsListContract.class, ctx -> new PostsListContract(ctx, postService), DefaultListView::new)
-                        .bind(PostCreateContract.class, ctx -> new PostCreateContract(ctx, postService), DefaultEditView::new)
-                        .bind(PostEditContract.class, ctx -> new PostEditContract(ctx, postService), DefaultEditView::new))
+                        .bind(PostsListContract.class, () -> new PostsListContract(postService, new DefaultListView()))
+                        .bind(PostCreateContract.class, () -> new PostCreateContract(postService, new DefaultEditView()))
+                        .bind(PostEditContract.class, () -> new PostEditContract(postService, new DefaultEditView())))
                 .add(new Group("Comments")
-                        .bind(CommentsListContract.class, ctx -> new CommentsListContract(ctx, commentService), DefaultListView::new)
-                        .bind(CommentCreateContract.class, ctx -> new CommentCreateContract(ctx, commentService), DefaultEditView::new)
-                        .bind(CommentEditContract.class, ctx -> new CommentEditContract(ctx, commentService), DefaultEditView::new));
+                        .bind(CommentsListContract.class, () -> new CommentsListContract(commentService, new DefaultListView()))
+                        .bind(CommentCreateContract.class, () -> new CommentCreateContract(commentService, new DefaultEditView()))
+                        .bind(CommentEditContract.class, () -> new CommentEditContract(commentService, new DefaultEditView())));
 
         final Group systemContracts = new Group()
-                .bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
-                .bind(HeaderContract.class, HeaderContract::new, HeaderView::new);
+                .bind(ExplorerContract.class, () -> new ExplorerContract(mainContracts.structureTree()))
+                .bind(HeaderContract.class, HeaderContract::new);
 
         final DefaultLayout layout = new DefaultLayout()
                 .leftSidebar(ExplorerContract.class)
@@ -64,8 +62,7 @@ class AuthTestApps {
 
         final Router authRouter = new Router().route("/auth/login", LoginContract.class);
         final Group authGroup = new Group()
-                .bind(LoginContract.class, LoginContract::new,
-                      () -> new SimpleLoginComponent(authProvider));
+                .bind(LoginContract.class, () -> new LoginContract(authProvider));
         final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
 
         final Services services = new Services()

@@ -10,6 +10,7 @@ import rsp.dom.XmlNs;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
 import rsp.page.events.ComponentEventNotification;
+import rsp.page.events.GenericTaskEvent;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +40,7 @@ public class ComponentSegmentTests {
     private List<Command> capturedCommands;
     private CommandsEnqueue commandsEnqueue;
     private TestCallbacks callbacks;
+    private ComponentIntentHandler<String, String> intentHandler;
 
     @BeforeEach
     void setUp() {
@@ -52,6 +54,7 @@ public class ComponentSegmentTests {
         capturedCommands = new ArrayList<>();
         commandsEnqueue = capturedCommands::add;
         callbacks = new TestCallbacks();
+        intentHandler = ComponentIntentHandler.noOp();
     }
 
     private TreeBuilder createTreeBuilder() {
@@ -65,7 +68,7 @@ public class ComponentSegmentTests {
     private ComponentSegment<String> createSegment(final String initialState, final TreeBuilderFactory factory) {
         final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> initialState;
         final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
-        final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {
+        final ComponentView<String, Object> componentView = stateUpdate -> state -> renderContext -> {
             renderContext.openNode(XmlNs.html, "div", false);
             renderContext.closeNode("div", false);
         };
@@ -76,6 +79,7 @@ public class ComponentSegmentTests {
                 contextResolver,
                 componentView,
                 callbacks,
+                intentHandler,
                 factory,
                 componentContext,
                 commandsEnqueue
@@ -85,7 +89,7 @@ public class ComponentSegmentTests {
     private ComponentSegment<String> createSegmentWithEmptyView(final String initialState, final TreeBuilderFactory factory) {
         final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> initialState;
         final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
-        final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {};
+        final ComponentView<String, Object> componentView = stateUpdate -> state -> renderContext -> {};
 
         return new ComponentSegment<>(
                 componentId,
@@ -93,6 +97,7 @@ public class ComponentSegmentTests {
                 contextResolver,
                 componentView,
                 callbacks,
+                intentHandler,
                 factory,
                 componentContext,
                 commandsEnqueue
@@ -129,18 +134,18 @@ public class ComponentSegmentTests {
         }
 
         @Override
-        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdate<String> stateUpdate) {
+        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdater<String> stateUpdate) {
             callOrder.add("onAfterRendered:" + state);
         }
 
         @Override
-        public void onMounted(final ComponentCompositeKey componentId, final String state, final StateUpdate<String> stateUpdate) {
+        public void onMounted(final ComponentCompositeKey componentId, final String state, final StateUpdater<String> stateUpdate) {
             callOrder.add("onMounted:" + state);
             this.lastComponentId = componentId;
         }
 
         @Override
-        public void onUpdated(final ComponentCompositeKey componentId, final String oldState, final String newState, final StateUpdate<String> stateUpdate) {
+        public void onUpdated(final ComponentCompositeKey componentId, final String oldState, final String newState, final StateUpdater<String> stateUpdate) {
             callOrder.add("onUpdated:" + oldState + "->" + newState);
             this.lastComponentId = componentId;
             this.lastOldState = oldState;
@@ -151,6 +156,45 @@ public class ComponentSegmentTests {
         public void onUnmounted(final ComponentCompositeKey componentId, final String state) {
             callOrder.add("onUnmounted:" + state);
             this.lastComponentId = componentId;
+        }
+    }
+
+    @Nested
+    class IntentDispatchTests {
+
+        @Test
+        void supplies_current_state_and_a_usable_cache_updater() {
+            final AtomicReference<String> observedState = new AtomicReference<>();
+            intentHandler = (intent, state, stateUpdater) -> {
+                assertEquals("refresh", intent);
+                observedState.set(state);
+                stateUpdater.setState(NEW_STATE);
+            };
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegment(INITIAL_STATE, treeBuilder);
+            renderSegment(treeBuilder, segment);
+
+            segment.dispatch("refresh");
+
+            assertEquals(INITIAL_STATE, observedState.get());
+            assertInstanceOf(GenericTaskEvent.class, capturedCommands.getFirst());
+            ((GenericTaskEvent) capturedCommands.getFirst()).task().run();
+            assertEquals(NEW_STATE, callbacks.lastNewState);
+        }
+
+        @Test
+        void drops_intents_after_unmount() {
+            final AtomicInteger handled = new AtomicInteger();
+            intentHandler = (intent, state, stateUpdater) -> handled.incrementAndGet();
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegmentWithEmptyView(INITIAL_STATE, treeBuilder);
+            renderSegment(treeBuilder, segment);
+            segment.unmount();
+
+            segment.dispatch("refresh");
+
+            assertEquals(0, handled.get());
+            assertTrue(capturedCommands.isEmpty());
         }
     }
 
@@ -177,7 +221,7 @@ public class ComponentSegmentTests {
                                       ComponentCompositeKey componentId,
                                       String state,
                                       CommandsEnqueue commandsEnqueue,
-                                      StateUpdate<String> stateUpdate) {
+                                      StateUpdater<String> stateUpdate) {
                     mountedSegment.set(segment);
                     stateUpdate.publish(key, "payload");
                 }
@@ -275,7 +319,7 @@ public class ComponentSegmentTests {
         private ComponentSegment<String> createChildSegment(final String initialState, final TreeBuilderFactory factory) {
             final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> initialState;
             final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
-            final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {
+            final ComponentView<String, Object> componentView = stateUpdate -> state -> renderContext -> {
                 renderContext.openNode(XmlNs.html, "span", false);
                 renderContext.closeNode("span", false);
                 if ("with-button".equals(state)) {
@@ -299,7 +343,7 @@ public class ComponentSegmentTests {
         private ComponentSegment<String> createParentSegment(final ComponentSegment<String> child, final TreeBuilderFactory factory) {
             final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> INITIAL_STATE;
             final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
-            final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {
+            final ComponentView<String, Object> componentView = stateUpdate -> state -> renderContext -> {
                 renderContext.openNode(XmlNs.html, "div", false);
                 renderContext.openComponent(child);
                 child.render(renderContext);
@@ -405,7 +449,7 @@ public class ComponentSegmentTests {
             final TreeBuilder treeBuilder = createTreeBuilder();
             final ComponentStateSupplier<String> nullStateSupplier = (key, ctx) -> null;
             final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
-            final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {};
+            final ComponentView<String, Object> componentView = stateUpdate -> state -> renderContext -> {};
 
             final ComponentSegment<String> segment = new ComponentSegment<>(
                     componentId,
@@ -499,7 +543,7 @@ public class ComponentSegmentTests {
                 );
             };
 
-            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> renderContext -> {
                 childARef[0] = renderContext.openComponent(childAFactory);
                 childARef[0].render(renderContext);
                 renderContext.closeComponent();
@@ -594,7 +638,7 @@ public class ComponentSegmentTests {
             };
 
             // Parent's view re-creates the child Definition every render, like a real Layout does.
-            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> renderContext -> {
                 renderContext.openNode(XmlNs.html, "div", false);
                 final ComponentSegment<String> child = renderContext.openComponent(childFactory);
                 child.render(renderContext);
@@ -670,7 +714,7 @@ public class ComponentSegmentTests {
                 return seg;
             };
 
-            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> renderContext -> {
                 renderContext.openNode(XmlNs.html, "div", false);
                 final ComponentSegment<String> child = renderContext.openComponent(childFactory);
                 child.render(renderContext);
@@ -741,7 +785,7 @@ public class ComponentSegmentTests {
                     private Lookup.Registration registration;
 
                     @Override
-                    public void onMounted(ComponentCompositeKey id, String state, StateUpdate<String> upd) {
+                    public void onMounted(ComponentCompositeKey id, String state, StateUpdater<String> upd) {
                         super.onMounted(id, state, upd);
                         // Mirror PromptView's pattern: register on parent's subscriber.
                         registration = parentSubscriber.addComponentEventHandler(CHILD_EVENT, c -> {}, false);
@@ -768,7 +812,7 @@ public class ComponentSegmentTests {
                 );
             };
 
-            final ComponentView<String> parentView = stateUpdate -> state -> renderContext -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> renderContext -> {
                 renderContext.openNode(XmlNs.html, "div", false);
                 final ComponentSegment<String> child = renderContext.openComponent(childFactory);
                 child.render(renderContext);
@@ -819,7 +863,7 @@ public class ComponentSegmentTests {
                 public void onAfterRendered(String state,
                                             Subscriber subscriber,
                                             CommandsEnqueue commandsEnqueue,
-                                            StateUpdate<String> stateUpdate) {
+                                            StateUpdater<String> stateUpdate) {
                     super.onAfterRendered(state, subscriber, commandsEnqueue, stateUpdate);
                     capturedSubscriber[0] = subscriber;
                 }
@@ -895,7 +939,7 @@ public class ComponentSegmentTests {
                 return child;
             };
 
-            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> rc -> {
                 rc.openNode(XmlNs.html, "div", false);
                 final ComponentSegment<String> child = rc.openComponent(childFactory);
                 child.render(rc);
@@ -954,14 +998,14 @@ public class ComponentSegmentTests {
                                 public void onAfterRendered(String state,
                                                             Subscriber subscriber,
                                                             CommandsEnqueue commandsEnqueue,
-                                                            StateUpdate<String> stateUpdate) {
+                                                            StateUpdater<String> stateUpdate) {
                                     afterRenderedCalls.incrementAndGet();
                                 }
 
                                 @Override
                                 public void onMounted(ComponentCompositeKey componentId,
                                                       String state,
-                                                      StateUpdate<String> stateUpdate) {
+                                                      StateUpdater<String> stateUpdate) {
                                     mountedCalls.incrementAndGet();
                                 }
                             },
@@ -971,7 +1015,7 @@ public class ComponentSegmentTests {
                             cmd
                     );
 
-            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> rc -> {
                 final ComponentSegment<String> child = rc.openComponent(childFactory);
                 child.render(rc);
                 rc.closeComponent();
@@ -1029,7 +1073,7 @@ public class ComponentSegmentTests {
                 return child;
             };
 
-            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> rc -> {
                 final ComponentSegment<String> child = rc.openComponent(childFactory);
                 child.render(rc);
                 rc.closeComponent();
@@ -1084,7 +1128,7 @@ public class ComponentSegmentTests {
                 return child;
             };
 
-            final ComponentView<String> parentView = stateUpdate -> state -> rc -> {
+            final ComponentView<String, Object> parentView = stateUpdate -> state -> rc -> {
                 final ComponentSegment<String> child = rc.openComponent(childFactory);
                 child.render(rc);
                 rc.closeComponent();

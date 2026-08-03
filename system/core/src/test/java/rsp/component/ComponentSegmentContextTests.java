@@ -48,7 +48,7 @@ class ComponentSegmentContextTests {
         final TreeBuilder tb = new TreeBuilder(sessionId, START_DOM_PATH, ctx, commandsEnqueue);
         final ComponentStateSupplier<String> stateSupplier = (key, c) -> "initial";
         final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (c, s) -> c;
-        final ComponentView<String> view = stateUpdate -> s -> rc -> {
+        final ComponentView<String, Object> view = intents -> s -> rc -> {
             rc.openNode(XmlNs.html, "div", false);
             rc.closeNode("div", false);
         };
@@ -166,9 +166,9 @@ class ComponentSegmentContextTests {
 
     private static final class NoOpCallbacks implements ComponentCallbacks<String> {
         @Override public boolean onBeforeUpdated(String s, CommandsEnqueue c) { return true; }
-        @Override public void onAfterRendered(String s, Subscriber sub, CommandsEnqueue c, StateUpdate<String> u) {}
-        @Override public void onMounted(ComponentCompositeKey id, String s, StateUpdate<String> u) {}
-        @Override public void onUpdated(ComponentCompositeKey id, String o, String n, StateUpdate<String> u) {}
+        @Override public void onAfterRendered(String s, Subscriber sub, CommandsEnqueue c, StateUpdater<String> u) {}
+        @Override public void onMounted(ComponentCompositeKey id, String s, StateUpdater<String> u) {}
+        @Override public void onUpdated(ComponentCompositeKey id, String o, String n, StateUpdater<String> u) {}
         @Override public void onUnmounted(ComponentCompositeKey id, String s) {}
     }
 

@@ -9,7 +9,7 @@ import java.util.Objects;
 /**
  * A component with no state.
  */
-public class StatelessComponent extends Component<StatelessComponent.Unit> {
+public class StatelessComponent extends Component<StatelessComponent.Unit, Object> {
 
     /**
      * A singleton type representing the absence of a meaningful state.
@@ -21,9 +21,9 @@ public class StatelessComponent extends Component<StatelessComponent.Unit> {
         INSTANCE
     }
 
-    private final ComponentView<Unit> view;
+    private final ComponentView<Unit, Object> view;
 
-    public StatelessComponent(final ComponentView<Unit> view) {
+    public StatelessComponent(final ComponentView<Unit, Object> view) {
         super(StatelessComponent.class);
         this.view = Objects.requireNonNull(view);
     }
@@ -35,7 +35,7 @@ public class StatelessComponent extends Component<StatelessComponent.Unit> {
     }
 
     public StatelessComponent(final Object componentType,
-                              final ComponentView<Unit> view) {
+                              final ComponentView<Unit, Object> view) {
         super(componentType);
         this.view = Objects.requireNonNull(view);
     }
@@ -46,7 +46,7 @@ public class StatelessComponent extends Component<StatelessComponent.Unit> {
     }
 
     @Override
-    public ComponentView<Unit> componentView() {
+    public ComponentView<Unit, Object> componentView() {
         return view;
     }
 }

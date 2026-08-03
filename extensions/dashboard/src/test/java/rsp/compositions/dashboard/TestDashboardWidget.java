@@ -35,7 +35,7 @@ final class TestDashboardWidget implements DashboardWidget {
     }
 
     @Override
-    public Component<?> component() {
+    public Component<?, ?> component() {
         return new StatelessComponent(id, _ -> _ ->
                 div(attr("class", "test-widget"), text(title())));
     }

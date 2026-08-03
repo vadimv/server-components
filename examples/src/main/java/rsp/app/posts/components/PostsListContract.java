@@ -2,24 +2,27 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
+import rsp.component.ComponentView;
 import rsp.component.Lookup;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.contract.ListViewContract;
+import rsp.compositions.contract.ListContractComponent;
+import rsp.compositions.contract.ListView;
 import rsp.compositions.contract.QueryParam;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public class PostsListContract extends ListViewContract<Post> {
+public class PostsListContract extends ListContractComponent<Post> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
     private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
 
     private final PostService postService;
 
-    public PostsListContract(final Lookup lookup, PostService postService) {
-        super(lookup);
+    public PostsListContract(PostService postService,
+                             ComponentView<ListView.ListViewState, ListView.ListIntent> view) {
+        super(view);
         this.postService = Objects.requireNonNull(postService);
     }
 
@@ -34,19 +37,13 @@ public class PostsListContract extends ListViewContract<Post> {
     }
 
     @Override
-    public String sort() {
-        return resolve(SORT);
+    protected String sort(Lookup lookup) {
+        return SORT.resolve(lookup);
     }
 
     @Override
-    public List<Post> items() {
-        // Get query params from context (populated by AutoAddressBarSyncComponent)
-        int page = page();  // Uses resolve(PAGE) → reads from context "url.query.p"
-        String sort = sort();  // Uses resolve(SORT) → reads from context "url.query.sort"
-
-        // Call service directly (service comes from context)
-        // Use pageSize from base class (configured via Config)
-        return postService.findAll(page, pageSize(), sort);
+    protected List<Post> items(int page, int pageSize, String sort) {
+        return postService.findAll(page, pageSize, sort);
     }
 
     @Override
@@ -61,12 +58,12 @@ public class PostsListContract extends ListViewContract<Post> {
     }
 
     @Override
-    protected Class<? extends ViewContract> createElementContract() {
+    protected Class<? extends Contract> createElementContract() {
         return PostCreateContract.class;
     }
 
     @Override
-    protected Class<? extends ViewContract> editElementContract() {
+    protected Class<? extends Contract> editElementContract() {
         return PostEditContract.class;
     }
 }

@@ -2,7 +2,7 @@ package rsp.compositions.layout;
 
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.dsl.Definition;
 
 /**
@@ -23,7 +23,7 @@ public interface LayerLayout {
      * @param lookup        for event publishing
      * @return the rendered layer definition
      */
-    Definition resolve(Component<?> content,
-                       Class<? extends ViewContract> contractClass,
+    Definition resolve(Component<?, ?> content,
+                       Class<? extends Contract> contractClass,
                        Lookup lookup);
 }

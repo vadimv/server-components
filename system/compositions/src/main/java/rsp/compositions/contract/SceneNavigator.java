@@ -41,14 +41,14 @@ final class SceneNavigator {
      * has no registered route (e.g., IDE-style UIs without a router).
      */
     Scene.InlineReturnTarget captureInlineReturnTarget(Scene state) {
-        if (state.routedRuntime() == null) {
+        if (state.routedDescriptor() == null) {
             return null;
         }
         Composition composition = state.composition();
         if (composition == null || composition.router() == null) {
             return null;
         }
-        Class<? extends ViewContract> prevClass = state.routedRuntime().contractClass();
+        Class<? extends Contract> prevClass = state.routedDescriptor().contractClass();
         String prevRoute = composition.router().findRoutePattern(prevClass).orElse(null);
         if (prevRoute == null) {
             return null;
@@ -62,7 +62,7 @@ final class SceneNavigator {
      * downstream scene context should expose.
      */
     RelativeUrl pushInlineUrl(Scene state,
-                              Class<? extends ViewContract> contractClass,
+                              Class<? extends Contract> contractClass,
                               Map<String, Object> showData) {
         Composition composition = state.composition();
         if (composition == null || composition.router() == null) {
@@ -85,7 +85,7 @@ final class SceneNavigator {
      * SET_PRIMARY intentionally clears query and fragment state because it
      * switches to a different primary contract class.
      */
-    RelativeUrl pushPrimaryUrl(Scene state, Class<? extends ViewContract> contractClass) {
+    RelativeUrl pushPrimaryUrl(Scene state, Class<? extends Contract> contractClass) {
         Composition composition = state.composition();
         if (composition == null || composition.router() == null) {
             return null;

@@ -408,7 +408,7 @@ public class LivePageSessionTests {
         });
     }
 
-    private ComponentSegment<String> createComponentWithView(final ComponentView<String> componentView) {
+    private ComponentSegment<String> createComponentWithView(final ComponentView<String, Object> componentView) {
         final ComponentCompositeKey componentId = new ComponentCompositeKey(
                 SESSION_ID,
                 "testType",
@@ -439,7 +439,7 @@ public class LivePageSessionTests {
         );
         final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> "state";
         final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, state) -> ctx;
-        final ComponentView<String> componentView = stateUpdate -> state -> renderContext -> {
+        final ComponentView<String, Object> componentView = intents -> state -> renderContext -> {
             renderContext.openNode(XmlNs.html, "div", false);
             renderContext.closeNode("div", false);
         };
@@ -473,15 +473,15 @@ public class LivePageSessionTests {
         }
 
         @Override
-        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdate<String> stateUpdate) {
+        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdater<String> stateUpdate) {
         }
 
         @Override
-        public void onMounted(final ComponentCompositeKey componentId, final String state, final StateUpdate<String> stateUpdate) {
+        public void onMounted(final ComponentCompositeKey componentId, final String state, final StateUpdater<String> stateUpdate) {
         }
 
         @Override
-        public void onUpdated(final ComponentCompositeKey componentId, final String oldState, final String newState, final StateUpdate<String> stateUpdate) {
+        public void onUpdated(final ComponentCompositeKey componentId, final String oldState, final String newState, final StateUpdater<String> stateUpdate) {
         }
 
         @Override
@@ -502,7 +502,7 @@ public class LivePageSessionTests {
         }
 
         @Override
-        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdate<String> stateUpdate) {
+        public void onAfterRendered(final String state, final Subscriber subscriber, final CommandsEnqueue commandsEnqueue, final StateUpdater<String> stateUpdate) {
             subscriber.addComponentEventHandler(eventType, handler, false);
         }
     }

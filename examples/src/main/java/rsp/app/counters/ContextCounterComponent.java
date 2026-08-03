@@ -1,6 +1,7 @@
 package rsp.app.counters;
 
 import rsp.component.ComponentView;
+import rsp.component.StateUpdater;
 import rsp.component.definitions.ContextStateComponent;
 
 import java.util.Objects;
@@ -19,7 +20,7 @@ import java.util.function.Function;
  * @see CountersView for the counter's UI definition and events handlers logic
  * @see CountersMainComponent for the counters group UI
  */
-public class ContextCounterComponent extends ContextStateComponent<Integer> {
+public class ContextCounterComponent extends ContextStateComponent<Integer, CountersView.CounterIntent> {
 
     private final String name;
 
@@ -72,8 +73,15 @@ public class ContextCounterComponent extends ContextStateComponent<Integer> {
      * @see CountersView for the UI implementation
      */
     @Override
-    public ComponentView<Integer> componentView() {
+    public ComponentView<Integer, CountersView.CounterIntent> componentView() {
         return new CountersView(this.name);
+    }
+
+    @Override
+    protected void onIntent(final CountersView.CounterIntent intent,
+                            final Integer state,
+                            final StateUpdater<Integer> stateUpdater) {
+        stateUpdater.setState(intent == CountersView.CounterIntent.INCREMENT ? state + 1 : state - 1);
     }
 
 }

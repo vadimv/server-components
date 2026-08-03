@@ -142,7 +142,7 @@ class KeyedDomInteractionTests {
                                                    final java.util.function.Function<String, Definition> viewDefinition) {
         final ComponentStateSupplier<String> stateSupplier = (_, _) -> initialState;
         final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, _) -> ctx;
-        final ComponentView<String> componentView = _ -> state -> viewDefinition.apply(state);
+        final ComponentView<String, Object> componentView = _ -> state -> viewDefinition.apply(state);
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, "test", TreePositionPath.of("1")),
                                       stateSupplier,
                                       contextResolver,
@@ -156,7 +156,7 @@ class KeyedDomInteractionTests {
     private ComponentSegment<List<Long>> createListSegment(final List<Long> initialState) {
         final ComponentStateSupplier<List<Long>> stateSupplier = (_, _) -> initialState;
         final BiFunction<ComponentContext, List<Long>, ComponentContext> contextResolver = (ctx, _) -> ctx;
-        final ComponentView<List<Long>> componentView = _ -> state ->
+        final ComponentView<List<Long>, Object> componentView = _ -> state ->
                 ul(of(state.stream().map(id -> li(key(id), text("item-" + id)))));
         return new ComponentSegment<>(new ComponentCompositeKey(sessionId, "list", TreePositionPath.of("1")),
                                       stateSupplier,
@@ -178,18 +178,18 @@ class KeyedDomInteractionTests {
         public void onAfterRendered(final S state,
                                     final Subscriber subscriber,
                                     final CommandsEnqueue commandsEnqueue,
-                                    final StateUpdate<S> stateUpdate) {
+                                    final StateUpdater<S> stateUpdate) {
         }
 
         @Override
-        public void onMounted(final ComponentCompositeKey componentId, final S state, final StateUpdate<S> stateUpdate) {
+        public void onMounted(final ComponentCompositeKey componentId, final S state, final StateUpdater<S> stateUpdate) {
         }
 
         @Override
         public void onUpdated(final ComponentCompositeKey componentId,
                               final S oldState,
                               final S newState,
-                              final StateUpdate<S> stateUpdate) {
+                              final StateUpdater<S> stateUpdate) {
         }
 
         @Override
@@ -197,14 +197,14 @@ class KeyedDomInteractionTests {
         }
     }
 
-    private static final class StaticChildComponent extends Component<String> {
+    private static final class StaticChildComponent extends Component<String, Object> {
         @Override
         public ComponentStateSupplier<String> initStateSupplier() {
             return (_, _) -> "child";
         }
 
         @Override
-        public ComponentView<String> componentView() {
+        public ComponentView<String, Object> componentView() {
             return _ -> state -> span(text(state));
         }
     }

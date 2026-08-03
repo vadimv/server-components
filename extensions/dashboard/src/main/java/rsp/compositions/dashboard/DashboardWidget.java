@@ -13,7 +13,7 @@ public interface DashboardWidget {
 
     String kind();
 
-    Component<?> component();
+    Component<?, ?> component();
 
     Map<String, Object> metadataState();
 }

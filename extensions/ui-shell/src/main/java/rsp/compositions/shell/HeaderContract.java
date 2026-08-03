@@ -1,11 +1,12 @@
 package rsp.compositions.shell;
 
-import rsp.component.ComponentContext;
-import rsp.component.ContextKey;
-import rsp.component.Lookup;
+import rsp.component.CommandsEnqueue;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
+import rsp.component.StateUpdater;
 import rsp.compositions.auth.AuthComponent;
+import rsp.compositions.contract.ContractNodeComponent;
 import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.ViewContract;
 
 import java.util.Objects;
 
@@ -15,34 +16,11 @@ import java.util.Objects;
  * <p>
  * Reads auth data from context to display username and sign-out button.
  */
-public class HeaderContract extends ViewContract {
+public class HeaderContract extends ContractNodeComponent<HeaderView.HeaderViewState, HeaderView.SignOutRequested> {
     private static final System.Logger LOGGER = System.getLogger(HeaderContract.class.getName());
 
-    public static final ContextKey.StringKey<Boolean> HEADER_AUTHENTICATED =
-            new ContextKey.StringKey<>("header.authenticated", Boolean.class);
-    public static final ContextKey.StringKey<String> HEADER_USERNAME =
-            new ContextKey.StringKey<>("header.username", String.class);
-
-    private final boolean authenticated;
-    private final String username;
-    private final AuthComponent.AuthProvider authProvider;
+    private CommandsEnqueue commandsEnqueue;
     private volatile String currentCategory;
-
-    public HeaderContract(Lookup lookup) {
-        super(lookup);
-        Boolean auth = lookup.get(ContextKeys.AUTH_AUTHENTICATED);
-        this.authenticated = Boolean.TRUE.equals(auth);
-        Object user = lookup.get(ContextKeys.AUTH_USER);
-        this.username = user != null ? user.toString() : "";
-        this.authProvider = lookup.get(ContextKeys.AUTH_PROVIDER);
-
-        // Illustrates a contract-level context read plus watching a sibling/companion
-        // contract's published category (see ExplorerContract).
-        this.currentCategory = normalizeCategory(lookup.get(ContextKeys.PRIMARY_CATEGORY_KEY));
-        logCurrentCategory("init", "", currentCategory);
-        watch(ContextKeys.PRIMARY_CATEGORY_KEY, (previous, next) ->
-                updateCurrentCategory("watch", previous, next));
-    }
 
     @Override
     public String title() {
@@ -50,15 +28,45 @@ public class HeaderContract extends ViewContract {
     }
 
     @Override
-    public ComponentContext enrichContext(ComponentContext context) {
-        updateCurrentCategory("enrichContext", currentCategory, context.get(ContextKeys.PRIMARY_CATEGORY_KEY));
-        ComponentContext enriched = context
-                .with(HEADER_AUTHENTICATED, authenticated)
-                .with(HEADER_USERNAME, username);
-        if (authProvider != null) {
-            enriched = enriched.with(ContextKeys.AUTH_PROVIDER, authProvider);
+    public ComponentStateSupplier<HeaderView.HeaderViewState> initStateSupplier() {
+        return (_, context) -> {
+            Boolean authenticated = context.get(ContextKeys.AUTH_AUTHENTICATED);
+            Object user = context.get(ContextKeys.AUTH_USER);
+            AuthComponent.AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
+            return new HeaderView.HeaderViewState(Boolean.TRUE.equals(authenticated),
+                    user != null ? user.toString() : "", authProvider);
+        };
+    }
+
+    @Override
+    public ComponentView<HeaderView.HeaderViewState, HeaderView.SignOutRequested> componentView() {
+        return new HeaderView();
+    }
+
+    @Override
+    protected void onContractMounted(HeaderView.HeaderViewState state,
+                                     StateUpdater<HeaderView.HeaderViewState> stateUpdate) {
+        commandsEnqueue = lookup().get(CommandsEnqueue.class);
+        currentCategory = normalizeCategory(lookup().get(ContextKeys.PRIMARY_CATEGORY_KEY));
+        logCurrentCategory("mount", "", currentCategory);
+        watch(ContextKeys.PRIMARY_CATEGORY_KEY, (previous, next) ->
+                updateCurrentCategory("watch", previous, next));
+    }
+
+    @Override
+    protected void onIntent(HeaderView.SignOutRequested intent,
+                            HeaderView.HeaderViewState state,
+                            StateUpdater<HeaderView.HeaderViewState> stateUpdater) {
+        AuthComponent.AuthProvider authProvider = state.authProvider();
+        if (authProvider != null && authProvider.supportsSignOut() && commandsEnqueue != null) {
+            authProvider.signOut(commandsEnqueue);
         }
-        return enriched;
+    }
+
+    @Override
+    public void onUnmounted(rsp.component.ComponentCompositeKey componentId, HeaderView.HeaderViewState state) {
+        super.onUnmounted(componentId, state);
+        commandsEnqueue = null;
     }
 
     private void updateCurrentCategory(String source, String previous, String next) {

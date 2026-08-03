@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -89,21 +89,21 @@ class AgentServiceUtilsTests {
 
     @Test
     void resolveTargetContract_exact_match() {
-        Class<? extends ViewContract> result =
+        Class<? extends Contract> result =
             AgentServiceUtils.resolveTargetContract("StubContract", TREE);
         assertEquals(StubContract.class, result);
     }
 
     @Test
     void resolveTargetContract_fuzzy_match() {
-        Class<? extends ViewContract> result =
+        Class<? extends Contract> result =
             AgentServiceUtils.resolveTargetContract("Stub", TREE);
         assertEquals(StubContract.class, result);
     }
 
     @Test
     void resolveTargetContract_label_match() {
-        Class<? extends ViewContract> result =
+        Class<? extends Contract> result =
             AgentServiceUtils.resolveTargetContract("Posts", TREE);
         assertEquals(StubContract.class, result);
     }
@@ -315,7 +315,8 @@ class AgentServiceUtilsTests {
         return new JsonDataType.Object(entries);
     }
 
-    static abstract class StubContract extends ViewContract {
-        StubContract() { super(null); }
+    static abstract class StubContract implements Contract {
+        @Override public rsp.component.Lookup lookup() { return null; }
+        @Override public String title() { return "Stub"; }
     }
 }

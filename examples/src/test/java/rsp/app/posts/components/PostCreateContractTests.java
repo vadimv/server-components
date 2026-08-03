@@ -3,9 +3,8 @@ package rsp.app.posts.components;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.Lookup;
-import rsp.compositions.contract.ContextKeys;
 import rsp.app.posts.services.PostService;
+import rsp.compositions.ui.DefaultEditView;
 
 import java.util.Map;
 
@@ -23,19 +22,12 @@ class PostCreateContractTests {
         postService = new PostService();
     }
 
-    private Lookup createLookup() {
-        return new TestLookup()
-                .withData(PostService.class, postService)
-                .withData(ContextKeys.ROUTE_PATTERN, "/posts/new");
-    }
-
     @Nested
     class SaveTests {
 
         @Test
         void save_creates_new_post() {
-            final Lookup lookup = createLookup();
-            final PostCreateContract contract = new PostCreateContract(lookup, postService);
+            final PostCreateContract contract = new PostCreateContract(postService, new DefaultEditView());
 
             final Map<String, Object> fieldValues = Map.of(
                     "title", "Unique Test Post Title",
@@ -61,8 +53,7 @@ class PostCreateContractTests {
 
         @Test
         void schema_has_title_and_content_fields() {
-            final Lookup lookup = createLookup();
-            final PostCreateContract contract = new PostCreateContract(lookup, postService);
+            final PostCreateContract contract = new PostCreateContract(postService, new DefaultEditView());
 
             final var schema = contract.schema();
 
@@ -73,15 +64,4 @@ class PostCreateContractTests {
         }
     }
 
-    @Nested
-    class ListRouteTests {
-
-        @Test
-        void list_route_returns_posts_path() {
-            final Lookup lookup = createLookup();
-            final PostCreateContract contract = new PostCreateContract(lookup, postService);
-
-            assertEquals("/posts", contract.listRoute());
-        }
-    }
 }

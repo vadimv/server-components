@@ -2,7 +2,6 @@ package rsp.compositions.contract;
 
 import rsp.component.ComponentContext;
 import rsp.component.Lookup;
-import rsp.server.http.AuthorizationException;
 import rsp.compositions.application.ServicesLifecycleHandler;
 import rsp.compositions.application.Services;
 import rsp.compositions.composition.Composition;
@@ -14,42 +13,38 @@ import rsp.server.http.Fragment;
 import rsp.server.http.Query;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * Constructs Scene instances from composition configuration.
  * <p>
  * Lifecycle derivation:
  * <ul>
- *   <li>The routed contract (matched by RoutingComponent) is eagerly instantiated</li>
- *   <li>Contracts required by the Layout are eagerly instantiated (companions)</li>
- *   <li>All other contracts are stored as lazy factories (for on-demand SHOW events)</li>
+ *   <li>The routed contract becomes a descriptor</li>
+ *   <li>Contracts required by the Layout become companion descriptors</li>
+ *   <li>Live contract instances are created only by DirectContractHost on mount</li>
  * </ul>
  * <p>
  * When the routed contract has a parent route (e.g., "/posts/:id" has parent "/posts"),
- * it is treated as an overlay-like contract: the parent is instantiated as the routed contract
+ * it is treated as an overlay-like contract: the parent becomes the routed descriptor
  * and this contract is pre-activated for LayerComponent auto-open.
  * <p>
- * Throws {@link AuthorizationException} if the contract's authorization check fails.
- * Throws {@link IllegalStateException} if scene building fails for any other reason.
+ * Throws {@link IllegalStateException} if a required binding is missing.
  */
 public final class SceneBuilder {
 
     private final Composition composition;
-    private final Class<? extends ViewContract> contractClass;
+    private final Class<? extends Contract> contractClass;
     private final String routePattern;
     private final Layout layout;
 
     public SceneBuilder(Composition composition,
-                        Class<? extends ViewContract> contractClass,
+                        Class<? extends Contract> contractClass,
                         String routePattern,
                         Layout layout) {
         this.composition = Objects.requireNonNull(composition, "composition");
@@ -61,14 +56,13 @@ public final class SceneBuilder {
     /**
      * Build a complete Scene from the given context.
      *
-     * @throws AuthorizationException if the contract's authorization check fails
-     * @throws IllegalStateException if scene building fails
+     * @throws IllegalStateException if a required binding is missing
      */
     public Scene buildScene(ComponentContext context) {
         Group contracts = composition.contracts();
 
         // Verify contract is registered
-        if (contracts.contractFactory(this.contractClass) == null) {
+        if (!contracts.hasBinding(this.contractClass)) {
             throw new IllegalStateException("Contract not found in composition: " + this.contractClass.getName());
         }
 
@@ -79,9 +73,9 @@ public final class SceneBuilder {
 
         Scene scene;
         if (parentRoute.isPresent() && resolvesToModal(this.contractClass)) {
-            scene = buildAutoOpenScene(context, parentRoute.get());
+            scene = buildAutoOpenScene(parentRoute.get());
         } else {
-            scene = buildStandardScene(context);
+            scene = buildStandardScene();
             // Inline placement reached via direct URL hit on a child route
             // (e.g., refresh of /comments/3, or shared link): seed a return target
             // so save/cancel navigates back to the parent list, mirroring the
@@ -126,101 +120,57 @@ public final class SceneBuilder {
     /**
      * Build scene for standard primary contract (no parent route).
      */
-    private Scene buildStandardScene(ComponentContext context) {
-        Group contracts = composition.contracts();
-        Function<Lookup, ViewContract> routedFactory = contracts.contractFactory(this.contractClass);
+    private Scene buildStandardScene() {
+        ContractDescriptor routedDescriptor = ContractDescriptor.forContract(this.contractClass, Map.of());
 
-        ContractRuntime routedRuntime = instantiateContract(this.contractClass, routedFactory, context);
-        if (routedRuntime == null) {
-            throw new IllegalStateException("Failed to instantiate contract: " + this.contractClass.getName());
-        }
+        Map<Class<? extends Contract>, ContractDescriptor> companionDescriptors = describeCompanions();
 
-        if (!routedRuntime.contract().isAuthorized()) {
-            throw new AuthorizationException("Access denied: insufficient permissions for " + this.contractClass.getName());
-        }
-
-        // Instantiate companion contracts (requested by Layout)
-        Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes = instantiateCompanions(context);
-
-        // Store remaining contract classes as lazy factories
-        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories =
-                collectLazyFactories(this.contractClass, companionRuntimes);
-
-        return Scene.of(routedRuntime, orderedUnmodifiableCopy(companionRuntimes), Map.copyOf(lazyFactories), composition);
+        return Scene.of(routedDescriptor, companionDescriptors, composition);
     }
 
     /**
      * Build scene for overlay-like contract routed directly via URL.
      * The parent contract becomes the routed contract; this contract is pre-activated for LayerComponent.
      */
-    private Scene buildAutoOpenScene(ComponentContext context, Router.RouteMatch parentRoute) {
+    private Scene buildAutoOpenScene(Router.RouteMatch parentRoute) {
         Group contracts = composition.contracts();
 
-        // Overlay contract factory
-        Function<Lookup, ViewContract> overlayFactory = contracts.contractFactory(this.contractClass);
-        if (overlayFactory == null) {
+        if (!contracts.hasBinding(this.contractClass)) {
             throw new IllegalStateException("Overlay contract not found: " + this.contractClass.getName());
         }
 
-        // Find and instantiate the parent contract as the routed contract
-        Class<? extends ViewContract> parentClass = parentRoute.contractClass();
-        Function<Lookup, ViewContract> parentFactory = contracts.contractFactory(parentClass);
-        if (parentFactory == null) {
+        // Select the parent contract as the routed descriptor
+        Class<? extends Contract> parentClass = parentRoute.contractClass();
+        if (!contracts.hasBinding(parentClass)) {
             throw new IllegalStateException(
                     "Parent contract not found in composition: " + parentClass.getName());
         }
 
-        ContractRuntime parentRuntime = instantiateContract(parentClass, parentFactory, context);
-        if (parentRuntime == null) {
-            throw new IllegalStateException(
-                    "Failed to instantiate parent contract: " + parentClass.getName());
-        }
+        ContractDescriptor parentDescriptor = ContractDescriptor.forContract(parentClass, Map.of());
 
-        if (!parentRuntime.contract().isAuthorized()) {
-            throw new AuthorizationException(
-                    "Access denied: insufficient permissions for " + parentClass.getName());
-        }
+        Map<Class<? extends Contract>, ContractDescriptor> companionDescriptors = describeCompanions();
 
-        // Instantiate companion contracts (requested by Layout)
-        Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes = instantiateCompanions(context);
+        // The live overlay runtime is created by LayerComponent.
+        ContractDescriptor overlayDescriptor = ContractDescriptor.forContract(this.contractClass, Map.of());
+        Map<Class<? extends Contract>, ContractDescriptor> preActivated = new LinkedHashMap<>();
+        preActivated.put(this.contractClass, overlayDescriptor);
 
-        // Pre-instantiate the overlay contract for LayerComponent auto-open
-        ComponentContext overlayContext = context.with(ContextKeys.CONTRACT_CLASS, this.contractClass);
-        ContractRuntime overlayRuntime = instantiateContract(this.contractClass, overlayFactory, overlayContext);
-        Map<Class<? extends ViewContract>, ContractRuntime> preActivated = new HashMap<>();
-        if (overlayRuntime != null) {
-            preActivated.put(this.contractClass, overlayRuntime);
-        }
-
-        // Store remaining contract classes as lazy factories (excludes parent, companions, pre-activated)
-        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
-        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
-            if (!cls.equals(parentClass)
-                    && !companionRuntimes.containsKey(cls)
-                    && !preActivated.containsKey(cls)) {
-                lazyFactories.put(cls, contracts.contractFactory(cls));
-            }
-        }
-
-        return Scene.withAutoOpen(parentRuntime, orderedUnmodifiableCopy(companionRuntimes), Map.copyOf(lazyFactories),
-                Map.copyOf(preActivated), composition,
+        return Scene.withAutoOpen(parentDescriptor, companionDescriptors, preActivated, composition,
                 new Scene.AutoOpen(this.contractClass, routePattern));
     }
 
     /**
-     * Instantiate companion contracts declared by the Layout.
+     * Describe companion contracts declared by the Layout.
      */
-    private Map<Class<? extends ViewContract>, ContractRuntime> instantiateCompanions(ComponentContext context) {
-        Set<Class<? extends ViewContract>> requiredByLayout = layout.requiredContracts();
+    private Map<Class<? extends Contract>, ContractDescriptor> describeCompanions() {
+        Set<Class<? extends Contract>> requiredByLayout = layout.requiredContracts();
         Group contracts = composition.contracts();
-        Map<Class<? extends ViewContract>, ContractRuntime> companions = new LinkedHashMap<>();
+        Map<Class<? extends Contract>, ContractDescriptor> companions = new LinkedHashMap<>();
 
-        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
+        for (Class<? extends Contract> cls : contracts.contractClasses()) {
             if (requiredByLayout.contains(cls)) {
-                Function<Lookup, ViewContract> factory = contracts.contractFactory(cls);
-                ContractRuntime companion = instantiateContract(cls, factory, context);
-                if (companion != null) {
-                    companions.put(cls, companion);
+                if (contracts.hasBinding(cls)) {
+                    companions.put(cls, ContractDescriptor.forContract(cls, Map.of()));
                 }
             }
         }
@@ -228,43 +178,14 @@ public final class SceneBuilder {
         return companions;
     }
 
-    private static <K, V> Map<K, V> orderedUnmodifiableCopy(Map<K, V> map) {
-        return Collections.unmodifiableMap(new LinkedHashMap<>(map));
-    }
-
-    /**
-     * Collect lazy factories for all contracts that are not the routed contract or companions.
-     */
-    private Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> collectLazyFactories(
-            Class<? extends ViewContract> routedClass,
-            Map<Class<? extends ViewContract>, ContractRuntime> companionRuntimes) {
-        Group contracts = composition.contracts();
-        Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> lazyFactories = new HashMap<>();
-        for (Class<? extends ViewContract> cls : contracts.contractClasses()) {
-            if (!cls.equals(routedClass) && !companionRuntimes.containsKey(cls)) {
-                lazyFactories.put(cls, contracts.contractFactory(cls));
-            }
-        }
-        return lazyFactories;
-    }
-
-    /**
-     * Instantiate a contract from its factory.
-     */
-    ContractRuntime instantiateContract(Class<? extends ViewContract> contractClass,
-                                        Function<Lookup, ViewContract> factory,
-                                        ComponentContext context) {
-        return ContractRuntime.instantiate(contractClass, factory, context);
-    }
-
     /**
      * Whether the layout would render this contract as a modal layer.
      * <p>
      * The Scene argument is null because no Scene exists at build time — the
-     * resolver tolerates null and treats this as a "no routed runtime yet" hint
+     * resolver tolerates null and treats this as a "no routed descriptor yet" hint
      * (the first-in-* policies return INLINE in that case).
      */
-    private boolean resolvesToModal(Class<? extends ViewContract> contractClass) {
+    private boolean resolvesToModal(Class<? extends Contract> contractClass) {
         PlacementDecision decision = layout.resolvePlacement(contractClass, null);
         return decision.placement().isModal();
     }

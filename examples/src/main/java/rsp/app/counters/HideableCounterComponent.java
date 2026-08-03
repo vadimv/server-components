@@ -3,7 +3,8 @@ package rsp.app.counters;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
-import rsp.component.StateUpdate;
+import rsp.component.IntentDispatcher;
+import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
 import rsp.page.EventContext;
 
@@ -47,7 +48,11 @@ import static rsp.dsl.Html.*;
  * @see Component for the base class and component lifecycle
  * @see CountersMainComponent for the parent that orchestrates all counters
  */
-public class HideableCounterComponent extends Component<Boolean> {
+public class HideableCounterComponent extends Component<Boolean, HideableCounterComponent.ToggleIntent> {
+
+    enum ToggleIntent {
+        TOGGLE
+    }
 
     private final Map<ComponentCompositeKey, Integer> stateStore;
 
@@ -85,21 +90,28 @@ public class HideableCounterComponent extends Component<Boolean> {
      * @see CachedCounterComponent for the child component
      */
     @Override
-    public ComponentView<Boolean> componentView() {
-        return newState -> state ->
+    public ComponentView<Boolean, ToggleIntent> componentView() {
+        return intents -> state ->
                 div(
                         when(state, new CachedCounterComponent("c3", 101, stateStore)),
                         input(attr("type", "checkbox"),
                                 when(state, attr("checked", "checked")),
                                 attr("id","c3"),
                                 attr("name", "c3"),
-                                on("click", checkboxClickHandler(state, newState))),
+                                on("click", checkboxClickHandler(intents))),
                         label(attr("for", "c3"),
                                 text("Show counter 3"))
                 );
     }
 
-    private static Consumer<EventContext> checkboxClickHandler(Boolean state, StateUpdate<Boolean> newState) {
-        return  _ -> newState.setState(!state);
+    @Override
+    protected void onIntent(final ToggleIntent intent,
+                            final Boolean state,
+                            final StateUpdater<Boolean> stateUpdater) {
+        stateUpdater.setState(!state);
+    }
+
+    private static Consumer<EventContext> checkboxClickHandler(IntentDispatcher<ToggleIntent> intents) {
+        return  _ -> intents.dispatch(ToggleIntent.TOGGLE);
     }
 }

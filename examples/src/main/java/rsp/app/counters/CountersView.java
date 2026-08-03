@@ -1,7 +1,7 @@
 package rsp.app.counters;
 
 import rsp.component.ComponentView;
-import rsp.component.StateUpdate;
+import rsp.component.IntentDispatcher;
 import rsp.component.View;
 import rsp.page.EventContext;
 
@@ -29,7 +29,12 @@ import static rsp.dsl.Html.text;
  * @see ContextCounterComponent for URL-synced counter example
  * @see CachedCounterComponent for persistent state counter example
  */
-    public class CountersView implements ComponentView<Integer> {
+public class CountersView implements ComponentView<Integer, CountersView.CounterIntent> {
+
+    public enum CounterIntent {
+        INCREMENT,
+        DECREMENT
+    }
 
     private final String name;
 
@@ -42,26 +47,26 @@ import static rsp.dsl.Html.text;
     }
 
     /**
-     * Applies the state update API to create a stateful view function.
+     * Applies the intent dispatcher to create a stateful view function.
      * <p>
      * This implements the outer level of the two-level composition pattern.
      * The returned View function will be called repeatedly as the state changes.
      * <p>
-     * <strong>Closure capture:</strong> The {@code newState} parameter is captured in the returned
-     * View's closures, allowing event handlers to access the state update API.
+     * <strong>Closure capture:</strong> The {@code intents} parameter is captured in the returned
+     * View's closures, allowing event handlers to dispatch counter intents.
      *
-     * @param newState the state update API - used by event handlers to dispatch state changes
+     * @param intents dispatcher used by event handlers to dispatch counter intents
      * @return a View function that transforms the current state into DOM markup
      */
     @Override
-    public View<Integer> use(StateUpdate<Integer> newState) {
+    public View<Integer> use(IntentDispatcher<CounterIntent> intents) {
         return state ->
                 div(span(name),
                         button(attr("type", "button"),
                                 attr("id", name + "_b0"),
                                 text("+"),
                                 on("click",
-                                        counterButtonClickHandlerPlus(state, newState))),
+                                        counterButtonClickHandlerPlus(intents))),
                         span(attr("id", name + "_s0"),
                                 attr("class", state % 2 == 0 ? "red" : "blue"),
                                 text(state)),
@@ -69,15 +74,15 @@ import static rsp.dsl.Html.text;
                                 attr("id", name + "_b1"),
                                 text("-"),
                                 on("click",
-                                        counterButtonClickHandlerMinus(state, newState))));
+                                        counterButtonClickHandlerMinus(intents))));
     }
 
-    private static Consumer<EventContext> counterButtonClickHandlerPlus(Integer state, StateUpdate<Integer> newState) {
-        return  _ -> newState.setState(state + 1);
+    private static Consumer<EventContext> counterButtonClickHandlerPlus(IntentDispatcher<CounterIntent> intents) {
+        return  _ -> intents.dispatch(CounterIntent.INCREMENT);
     }
 
-    private static Consumer<EventContext> counterButtonClickHandlerMinus(Integer state, StateUpdate<Integer> newState) {
-        return  _ -> newState.setState(state - 1);
+    private static Consumer<EventContext> counterButtonClickHandlerMinus(IntentDispatcher<CounterIntent> intents) {
+        return  _ -> intents.dispatch(CounterIntent.DECREMENT);
     }
 
 }

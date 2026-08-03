@@ -5,7 +5,7 @@ import rsp.compositions.contract.ContractMetadata;
 
 import rsp.component.Lookup;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.List;
 import java.util.Objects;
@@ -35,12 +35,12 @@ public class AgentContext {
     public enum Scope { CONTRACT, APP, FRAMEWORK }
 
     private final Scope scope;
-    private final ViewContract activeContract;
+    private final Contract activeContract;
     private final StructureNode structureTree;
     private final AgentActionFilter filter;
     private final Lookup lookup;
 
-    private AgentContext(Scope scope, ViewContract activeContract,
+    private AgentContext(Scope scope, Contract activeContract,
                          StructureNode structureTree, AgentActionFilter filter,
                          Lookup lookup) {
         this.scope = Objects.requireNonNull(scope);
@@ -59,7 +59,7 @@ public class AgentContext {
      * @param filter         action filter (nullable = no filtering)
      * @param lookup         the current context
      */
-    public static AgentContext forScope(Scope scope, ViewContract activeContract,
+    public static AgentContext forScope(Scope scope, Contract activeContract,
                                         StructureNode structureTree,
                                         AgentActionFilter filter, Lookup lookup) {
         return new AgentContext(scope, activeContract, structureTree, filter, lookup);
@@ -125,7 +125,7 @@ public class AgentContext {
     }
 
     public Scope scope() { return scope; }
-    public ViewContract activeContract() { return activeContract; }
+    public Contract activeContract() { return activeContract; }
     public StructureNode structureTree() { return structureTree; }
 
     private List<ContractAction> applyFilter(List<ContractAction> actions) {

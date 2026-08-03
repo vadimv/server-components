@@ -183,7 +183,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     public void onAfterRendered(RelativeUrl state,
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
-                                StateUpdate<RelativeUrl> stateUpdate) {
+                                StateUpdater<RelativeUrl> stateUpdate) {
         super.onAfterRendered(state, subscriber, commandsEnqueue, stateUpdate);
         subscribeForQueryParameterUpdates(subscriber, commandsEnqueue, stateUpdate);
         subscribeForPathElementUpdates(state, subscriber, commandsEnqueue, stateUpdate);
@@ -206,7 +206,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      */
     private void subscribeForNavigationEvents(Subscriber subscriber,
                                               CommandsEnqueue commandsEnqueue,
-                                              StateUpdate<RelativeUrl> stateUpdate) {
+                                              StateUpdater<RelativeUrl> stateUpdate) {
         subscriber.addEventHandler(SET_PATH, (eventName, pathUpdate) -> {
             final RelativeUrl target = pathUpdate.url();
             if (pathUpdate.mode() == PathUpdateMode.PUSH_URL_ONLY) {
@@ -248,7 +248,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
      */
     private void subscribeForQueryParameterUpdates(Subscriber subscriber,
                                                    CommandsEnqueue commandsEnqueue,
-                                                   StateUpdate<RelativeUrl> stateUpdate) {
+                                                   StateUpdater<RelativeUrl> stateUpdate) {
         // Single handler for ALL query parameter updates using wildcard pattern
         subscriber.addComponentEventHandler(STATE_UPDATED_EVENT_PREFIX + "*",
             eventContext -> {
@@ -275,7 +275,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     private void subscribeForPathElementUpdates(RelativeUrl initialUrl,
                                                 Subscriber subscriber,
                                                 CommandsEnqueue commandsEnqueue,
-                                                StateUpdate<RelativeUrl> stateUpdate) {
+                                                StateUpdater<RelativeUrl> stateUpdate) {
         // Subscribe for each path element position
         for (int i = 0; i < initialUrl.path().elementsCount(); i++) {
             final int index = i;

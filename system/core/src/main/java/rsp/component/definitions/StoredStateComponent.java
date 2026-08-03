@@ -29,7 +29,7 @@ import java.util.Objects;
  *   ↓
  * Render with ComponentView
  *   ↓
- * User clicks button → state changes
+ * View dispatches intent → component updates cached state
  *   ↓
  * onUpdated() saves state to store
  *   ↓
@@ -41,8 +41,9 @@ import java.util.Objects;
  * </pre>
  *
  * @param <S> this component's state type
+ * @param <I> this component's intent type
  */
-public abstract class StoredStateComponent<S> extends Component<S> {
+public abstract class StoredStateComponent<S, I> extends Component<S, I> {
 
     private final S initialState;
     private final Map<ComponentCompositeKey, S> stateStore;
@@ -75,7 +76,7 @@ public abstract class StoredStateComponent<S> extends Component<S> {
     }
 
     @Override
-    public void onUpdated(final ComponentCompositeKey componentId, final S oldState, final S newState, final StateUpdate<S> stateUpdate) {
+    public void onUpdated(final ComponentCompositeKey componentId, final S oldState, final S newState, final StateUpdater<S> stateUpdate) {
         stateStore.put(componentId, newState);
     }
 

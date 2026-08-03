@@ -1,15 +1,12 @@
 package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
+import rsp.component.IntentDispatcher;
 import rsp.compositions.schema.FieldDef;
-import rsp.compositions.schema.ValidationResult;
 import rsp.compositions.schema.Widget;
 import rsp.dsl.Definition;
 import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
-
-import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.ViewContract;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,9 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static rsp.compositions.contract.EditViewContract.CANCEL_REQUESTED;
-import static rsp.compositions.contract.EditViewContract.DELETE_REQUESTED;
-import static rsp.compositions.contract.FormViewContract.FORM_SUBMITTED;
 import static rsp.compositions.ui.FormField.formField;
 import static rsp.dsl.Html.*;
 
@@ -29,19 +23,19 @@ import static rsp.dsl.Html.*;
  * Renders form fields for ANY entity based on schema metadata.
  * Supports both legacy ColumnDef and new FieldDef with widgets and validators.
  * <p>
- * Emits events:
+ * Dispatches intents:
  * <ul>
  *   <li>"form.submitted" - Form data collected and ready for processing (payload: field values map)</li>
  *   <li>"delete.requested" - User confirmed delete action (payload: empty map)</li>
  * </ul>
  * <p>
- * Views only collect and validate data; Contracts decide what to do with it.
+ * The view only collects browser input and dispatches it to its contract.
  */
-public class DefaultEditView extends EditView {
+public class DefaultEditView implements ComponentView<EditView.EditViewState, EditView.EditIntent> {
 
     @Override
-    public ComponentView<EditViewState> componentView() {
-        return newState -> state -> {
+    public rsp.component.View<EditView.EditViewState> use(IntentDispatcher<EditView.EditIntent> intents) {
+        return state -> {
             // Get fields - prefer FieldDef for enhanced rendering
             final List<FieldDef> fields = state.schema().fields();
 
@@ -107,39 +101,11 @@ public class DefaultEditView extends EditView {
                                         }
                                     });
 
-                                    // Validate before submitting
-                                    ValidationResult result = state.schema().validate(collectedValues);
-
-                                    if (!result.isValid()) {
-                                        // Update state with errors - triggers re-render with error messages
-                                        newState.setState(new EditViewState(
-                                            collectedValues,
-                                            state.schema(),
-                                            true,
-                                            state.listRoute(),
-                                            state.isCreateMode(),
-                                            result.errors(),
-                                            state.title()
-                                        ));
-                                    } else {
-                                        // Clear any previous errors and submit
-                                        newState.setState(new EditViewState(
-                                            collectedValues,
-                                            state.schema(),
-                                            state.isDirty(),
-                                            state.listRoute(),
-                                            state.isCreateMode(),
-                                            Map.of(),
-                                            state.title()
-                                        ));
-                                        // Emit form.submitted event with collected field values
-                                        // Contract will decide what to do (save, etc.)
-                                        lookup.publish(FORM_SUBMITTED, collectedValues);
-                                    }
+                                    intents.dispatch(new EditView.FormValuesCollected(collectedValues));
                                 });
                             })
                         ),
-                        renderCancelButton(state.listRoute()),
+                        renderCancelButton(intents),
 
                         // Delete button - only shown in edit mode (not create mode)
                         state.isCreateMode() ? of() : button(
@@ -151,9 +117,7 @@ public class DefaultEditView extends EditView {
                                 ctx.evalJs("confirm('Are you sure you want to delete this item?')")
                                     .thenAccept(result -> {
                                         if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
-                                            // Emit delete.requested event
-                                            // Contract will decide what to do
-                                            lookup.publish(DELETE_REQUESTED);
+                                            intents.dispatch(EditView.DeleteConfirmed.INSTANCE);
                                         }
                                     });
                             })
@@ -174,21 +138,12 @@ public class DefaultEditView extends EditView {
      *   <li>PRIMARY → framework navigates to list route (derived from Router)</li>
      * </ul>
      */
-    @SuppressWarnings("unchecked")
-    private Definition renderCancelButton(String listRoute) {
-        // Get contract class from context
-        Class<? extends ViewContract> contractClass = lookup.get(ContextKeys.CONTRACT_CLASS);
-
-        // Emit ACTION_SUCCESS(CANCEL) - framework derives behavior from composition
+    private Definition renderCancelButton(IntentDispatcher<EditView.EditIntent> intents) {
         return button(
             attr("type", "button"),
             attr("class", "cancel-button"),
             text("Cancel"),
-            on("click", ctx -> {
-                if (contractClass != null) {
-                    lookup.publish(CANCEL_REQUESTED);
-                }
-            })
+            on("click", ctx -> intents.dispatch(EditView.CancelRequested.INSTANCE))
         );
     }
 

@@ -34,7 +34,9 @@ PBT runs on the in-house, zero-dependency `pbt` module (jqwik was removed). Prop
 
 ### Unit-Level Contract Tests
 
-ViewContract, ListView, CreateView, EditView, routing, CapabilityBus, Composition/Group assembly all have JUnit 5 tests.
+Direct contract components, intent-only list and edit views, routing, scene
+handlers, `Composition`/`Group` assembly, context watches, and list cache
+refreshes all have JUnit 5 tests.
 
 ---
 

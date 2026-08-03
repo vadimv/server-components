@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.function.BiFunction;
 
 
-public class AppComponent extends Component<AppComponent.AppComponentState> {
+public class AppComponent extends Component<AppComponent.AppComponentState, Object> {
 
     private final Config config;
     private final List<Composition> compositions;
@@ -61,13 +61,13 @@ public class AppComponent extends Component<AppComponent.AppComponentState> {
     }
 
     @Override
-    public ComponentView<AppComponentState> componentView() {
+    public ComponentView<AppComponentState, Object> componentView() {
         return _ -> _ -> new UrlSyncComponent(httpRequest.relativeUrl());
     }
 
     @Override
     public void onMounted(ComponentCompositeKey componentId, AppComponentState state,
-                          StateUpdate<AppComponentState> stateUpdate) {
+                          StateUpdater<AppComponentState> stateUpdate) {
         Lookup lookup = new ServiceMapLookup(services);
         for (Object service : services.values()) {
             if (service instanceof ServicesLifecycleHandler handler) {

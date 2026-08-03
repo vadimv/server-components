@@ -17,7 +17,7 @@ Or from your IDE, by running the `main` method of the entry-point class.
 ### 1. Counter — minimal stateful component
 - Entry point: [Counter.java](src/main/java/rsp/app/Counter.java)
 - URL: <http://localhost:8080>
-- Demonstrates: the smallest possible app — a single `InitialStateComponent<Integer>`, a `ComponentView` lambda, and a click handler that calls `newState.setState(...)`.
+- Demonstrates: the smallest possible app — a `LocalStateComponent<Integer, CounterIntent>`, an intent-only `ComponentView<Integer, CounterIntent>`, and a reducer that owns the count cache.
 
 ### 2. PlainForm — request-driven page with GET/POST
 - Entry point: [PlainForm.java](src/main/java/rsp/app/PlainForm.java)
@@ -49,10 +49,10 @@ Or from your IDE, by running the `main` method of the entry-point class.
 - URL: <http://localhost:8085>
 - Demonstrates the end-to-end `compositions` stack:
   - **Routing** — `Router` mapping `/posts`, `/posts/new`, `/posts/:id`, `/comments`, `/comments/:id` to contracts.
-  - **Contracts + views** — list ([PostsListContract](src/main/java/rsp/app/posts/components/PostsListContract.java), [CommentsListContract](src/main/java/rsp/app/posts/components/CommentsListContract.java)) and edit/create forms ([PostEditContract](src/main/java/rsp/app/posts/components/PostEditContract.java), [PostCreateContract](src/main/java/rsp/app/posts/components/PostCreateContract.java), [CommentEditContract](src/main/java/rsp/app/posts/components/CommentEditContract.java), [CommentCreateContract](src/main/java/rsp/app/posts/components/CommentCreateContract.java)) bound through `DefaultListView` / `DefaultEditView`.
+  - **Contracts + views** — direct state-owning list ([PostsListContract](src/main/java/rsp/app/posts/components/PostsListContract.java), [CommentsListContract](src/main/java/rsp/app/posts/components/CommentsListContract.java)) and edit/create form components ([PostEditContract](src/main/java/rsp/app/posts/components/PostEditContract.java), [PostCreateContract](src/main/java/rsp/app/posts/components/PostCreateContract.java), [CommentEditContract](src/main/java/rsp/app/posts/components/CommentEditContract.java), [CommentCreateContract](src/main/java/rsp/app/posts/components/CommentCreateContract.java)). `DefaultListView` and `DefaultEditView` render their state and dispatch typed intents.
   - **Groups** — nested `Group("Admin") → Group("Posts") / Group("Comments")`; the tree drives the [ExplorerContract](src/main/java/rsp/app/posts/components/ExplorerContract.java) sidebar menu.
   - **Layout** — `DefaultLayout` with left sidebar (Explorer), right sidebar (Prompt), header, and a placement policy mapping forms inline and approvals to modals.
-  - **Auth** — a separate `Composition` for `/auth/login` using `SimpleAuthProvider` + `SimpleLoginComponent`; `AuthComponent` redirects anonymous requests.
+  - **Auth** — a separate `Composition` for `/auth/login` using `SimpleAuthProvider` + `LoginContract`; `AuthComponent` redirects anonymous requests.
   - **AI agent** — [PromptContract](src/main/java/rsp/app/posts/components/PromptContract.java) talks to an `AgentService`, selectable via `-Dai.agent=regex|claude|ollama`. Backed by ABAC authorization (`AccessPolicy`, `Authorization`) and human-in-the-loop approvals via `ApprovalSpawner` + `DelegationApprovalContract`.
   - **Domain** — [PostService](src/main/java/rsp/app/posts/services/PostService.java), [CommentService](src/main/java/rsp/app/posts/services/CommentService.java), [RegexAgentService](src/main/java/rsp/app/posts/services/RegexAgentService.java), entities in [entities/](src/main/java/rsp/app/posts/entities/).
 

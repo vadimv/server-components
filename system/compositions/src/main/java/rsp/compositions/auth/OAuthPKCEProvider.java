@@ -160,8 +160,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
                 .route(config.callbackPath(), LoginContract.class)
                 .route(config.signOutPath(), LoginContract.class);
         final Group group = new Group()
-                .bind(LoginContract.class, LoginContract::new,
-                      () -> new OAuthLoginComponent(config.signinPath()));
+                .bind(LoginContract.class, () -> new LoginContract(config.signinPath()));
         return new Composition(router, new DefaultLayout(), group);
     }
 

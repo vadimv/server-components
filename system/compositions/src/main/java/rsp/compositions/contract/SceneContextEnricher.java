@@ -14,9 +14,8 @@ import java.util.Optional;
  * <p>
  * Pure data transformation: (context, scene) -> enriched context.
  * <p>
- * Enrichments include: Scene reference, routed contract data,
- * companion contract data, and edit route info.
- * Overlay/layer context enrichment is handled by LayerComponent.
+ * Enrichments include: scene navigation metadata, scene-local URL state, and
+ * edit route info. Contract components enrich their own descendant context.
  */
 public final class SceneContextEnricher {
 
@@ -38,17 +37,10 @@ public final class SceneContextEnricher {
         // Add Scene to context
         ComponentContext enrichedContext = context.with(ContextKeys.SCENE, scene);
 
-        // Let the routed contract enrich context with its data (items, schema, etc.)
-        if (scene.routedRuntime() != null) {
-            scene.routedRuntime().replaceContext(enrichedContext);
-            enrichedContext = scene.routedRuntime().contract().enrichContext(enrichedContext);
-        }
-
-        // Let all companion contracts enrich context with their data
-        for (ContractRuntime companion : scene.companionRuntimes().values()) {
-            companion.replaceContext(enrichedContext);
-            enrichedContext = companion.contract().enrichContext(enrichedContext);
-        }
+        // Layers are siblings of the primary branch, so keep the primary title
+        // available at scene scope. The active contract overrides it for its
+        // descendants and restores it for overlay branches.
+        enrichedContext = enrichedContext.with(ContextKeys.CONTRACT_TITLE, scene.pageTitle());
 
         // Add edit route info to context for DefaultListView
         enrichedContext = enrichEditInfo(enrichedContext, composition, composition.router());
@@ -88,11 +80,11 @@ public final class SceneContextEnricher {
             next = next.with(ContextKeys.URL_QUERY.with(param.name()), param.value());
         }
 
-        if (scene.routedRuntime() == null) {
+        if (scene.routedDescriptor() == null) {
             return next;
         }
 
-        Class<? extends ViewContract> contractClass = scene.routedRuntime().contractClass();
+        Class<? extends Contract> contractClass = scene.routedDescriptor().contractClass();
         next = next
                 .with(ContextKeys.ROUTE_COMPOSITION, composition)
                 .with(ContextKeys.ROUTE_CONTRACT_CLASS, contractClass)
@@ -113,10 +105,10 @@ public final class SceneContextEnricher {
      * This helps DefaultListView determine how to render the Edit button.
      */
     private ComponentContext enrichEditInfo(ComponentContext context, Composition composition, Router router) {
-        // Find EditViewContract-based contract class in the composition
-        Class<? extends ViewContract> editContractClass = null;
-        for (Class<? extends ViewContract> cls : composition.contracts().contractClasses()) {
-            if (EditViewContract.class.isAssignableFrom(cls)) {
+        // Find the edit contract class in the composition.
+        Class<? extends Contract> editContractClass = null;
+        for (Class<? extends Contract> cls : composition.contracts().contractClasses()) {
+            if (EditContractComponent.class.isAssignableFrom(cls)) {
                 editContractClass = cls;
                 break;
             }

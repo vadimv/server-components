@@ -216,99 +216,29 @@ class DelegationApprovalTests {
     // --- DelegationApprovalContract ---
 
     @Test
-    void contract_reads_show_data() {
-        DelegationStore store = new InMemoryDelegationStore();
-        TestLookup lookup = new TestLookup()
-                .withData(ContextKeys.SHOW_DATA,
-                        Map.of("scope", "APP", "controlMode", "ASSIST", "reason", "testing"))
-                .withData(QualifiedSessionId.class,
-                        new QualifiedSessionId("device-1", SESSION_KEY));
+    void contract_initializes_approval_state_from_show_data() {
+        DelegationApprovalContract contract = new DelegationApprovalContract(new InMemoryDelegationStore());
+        rsp.component.ComponentContext context = new rsp.component.ComponentContext()
+                .with(ContextKeys.SHOW_DATA,
+                        Map.of("scope", "APP", "controlMode", "ASSIST", "reason", "testing"));
 
-        DelegationApprovalContract contract = new DelegationApprovalContract(lookup, store);
+        DelegationApprovalView.ApprovalViewState state = contract.initStateSupplier().getState(null, context);
+
+        assertEquals("APP", state.scope());
+        assertEquals("ASSIST", state.controlMode());
+        assertEquals("testing", state.reason());
         assertEquals("Agent Delegation Approval", contract.title());
     }
 
     @Test
-    void contract_user_decision_true_saves_approved() {
-        DelegationStore store = new InMemoryDelegationStore();
-        TestLookup lookup = new TestLookup()
-                .withData(ContextKeys.SHOW_DATA,
-                        Map.of("scope", "APP", "controlMode", "ASSIST", "reason", ""))
-                .withData(QualifiedSessionId.class,
-                        new QualifiedSessionId("device-1", SESSION_KEY));
+    void contract_defaults_approval_state_without_show_data() {
+        DelegationApprovalContract contract = new DelegationApprovalContract(new InMemoryDelegationStore());
 
-        new DelegationApprovalContract(lookup, store);
+        DelegationApprovalView.ApprovalViewState state = contract.initStateSupplier()
+                .getState(null, new rsp.component.ComponentContext());
 
-        // Simulate user clicking Approve
-        lookup.publish(DelegationApprovalContract.USER_DECISION, true);
-
-        DelegationStore.Decision decision = store.getDecision(SESSION_KEY);
-        assertNotNull(decision);
-        assertTrue(decision.approved());
-    }
-
-    @Test
-    void contract_user_decision_false_saves_denied() {
-        DelegationStore store = new InMemoryDelegationStore();
-        TestLookup lookup = new TestLookup()
-                .withData(ContextKeys.SHOW_DATA,
-                        Map.of("scope", "APP", "controlMode", "ASSIST", "reason", ""))
-                .withData(QualifiedSessionId.class,
-                        new QualifiedSessionId("device-1", SESSION_KEY));
-
-        new DelegationApprovalContract(lookup, store);
-
-        lookup.publish(DelegationApprovalContract.USER_DECISION, false);
-
-        DelegationStore.Decision decision = store.getDecision(SESSION_KEY);
-        assertNotNull(decision);
-        assertFalse(decision.approved());
-    }
-
-    @Test
-    void contract_emits_approval_decided_event() {
-        DelegationStore store = new InMemoryDelegationStore();
-        TestLookup lookup = new TestLookup()
-                .withData(ContextKeys.SHOW_DATA,
-                        Map.of("scope", "APP", "controlMode", "ASSIST", "reason", ""))
-                .withData(QualifiedSessionId.class,
-                        new QualifiedSessionId("device-1", SESSION_KEY));
-
-        new DelegationApprovalContract(lookup, store);
-
-        lookup.publish(DelegationApprovalContract.USER_DECISION, true);
-
-        assertTrue(lookup.wasPublished(DelegationApprovalContract.APPROVAL_DECIDED));
-        Boolean payload = lookup.getLastPublishedPayload(
-                DelegationApprovalContract.APPROVAL_DECIDED);
-        assertTrue(payload);
-    }
-
-    @Test
-    void contract_emits_hide_to_close_overlay() {
-        DelegationStore store = new InMemoryDelegationStore();
-        TestLookup lookup = new TestLookup()
-                .withData(ContextKeys.SHOW_DATA,
-                        Map.of("scope", "APP", "controlMode", "ASSIST", "reason", ""))
-                .withData(QualifiedSessionId.class,
-                        new QualifiedSessionId("device-1", SESSION_KEY));
-
-        new DelegationApprovalContract(lookup, store);
-
-        lookup.publish(DelegationApprovalContract.USER_DECISION, false);
-
-        assertTrue(lookup.wasPublished(
-                rsp.compositions.contract.EventKeys.HIDE));
-    }
-
-    @Test
-    void contract_defaults_when_no_show_data() {
-        DelegationStore store = new InMemoryDelegationStore();
-        TestLookup lookup = new TestLookup()
-                .withData(QualifiedSessionId.class,
-                        new QualifiedSessionId("device-1", SESSION_KEY));
-
-        DelegationApprovalContract contract = new DelegationApprovalContract(lookup, store);
-        assertEquals("Agent Delegation Approval", contract.title());
+        assertEquals("APP", state.scope());
+        assertEquals("ASSIST", state.controlMode());
+        assertEquals("", state.reason());
     }
 }

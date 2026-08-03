@@ -4,30 +4,31 @@ import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
 import rsp.compositions.contract.ContextKeys;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HeaderContractTests {
 
     @Test
-    void enriches_context_with_auth_status_when_authenticated() {
-        TestLookup lookup = new TestLookup()
-                .withData(ContextKeys.AUTH_AUTHENTICATED, Boolean.TRUE)
-                .withData(ContextKeys.AUTH_USER, "alice");
-        HeaderContract contract = new HeaderContract(lookup);
+    void initial_state_reads_authenticated_user_from_context() {
+        HeaderContract contract = new HeaderContract();
+        HeaderView.HeaderViewState state = contract.initStateSupplier().getState(null,
+                new ComponentContext()
+                        .with(ContextKeys.AUTH_AUTHENTICATED, Boolean.TRUE)
+                        .with(ContextKeys.AUTH_USER, "alice"));
 
         assertEquals("Header", contract.title());
-
-        ComponentContext context = contract.enrichContext(new ComponentContext());
-        assertEquals(Boolean.TRUE, context.get(HeaderContract.HEADER_AUTHENTICATED));
-        assertEquals("alice", context.get(HeaderContract.HEADER_USERNAME));
+        assertTrue(state.authenticated());
+        assertEquals("alice", state.username());
     }
 
     @Test
-    void defaults_to_unauthenticated_with_blank_username() {
-        HeaderContract contract = new HeaderContract(new TestLookup());
+    void initial_state_defaults_to_anonymous_user() {
+        HeaderView.HeaderViewState state = new HeaderContract().initStateSupplier()
+                .getState(null, new ComponentContext());
 
-        ComponentContext context = contract.enrichContext(new ComponentContext());
-        assertEquals(Boolean.FALSE, context.get(HeaderContract.HEADER_AUTHENTICATED));
-        assertEquals("", context.get(HeaderContract.HEADER_USERNAME));
+        assertFalse(state.authenticated());
+        assertEquals("", state.username());
     }
 }

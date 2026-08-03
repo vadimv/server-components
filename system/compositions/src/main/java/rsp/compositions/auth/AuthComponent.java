@@ -8,7 +8,7 @@ import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.contract.SceneComponent;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import rsp.dsl.Definition;
 
@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
  * <p>
  * This is a pure framework component - no application-specific dependencies.
  */
-public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
+public class AuthComponent extends Component<AuthComponent.AuthComponentState, Object> {
 
     public AuthComponent() {
         super();
@@ -58,7 +58,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
     }
 
     @Override
-    public ComponentView<AuthComponentState> componentView() {
+    public ComponentView<AuthComponentState, Object> componentView() {
         return _ -> state -> {
             if (state.authProvider() != null && !state.authenticated()) {
                 Definition gate = state.authProvider().gateResponse(state.path());
@@ -101,7 +101,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState> {
                                      String[] roles,
                                      AuthProvider authProvider,
                                      Composition composition,
-                                     Class<? extends ViewContract> contractClass,
+                                     Class<? extends Contract> contractClass,
                                      String path,
                                      String pattern) {
         public AuthComponentState {

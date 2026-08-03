@@ -2,7 +2,6 @@ package rsp.app.posts.services;
 
 import org.junit.jupiter.api.Test;
 import rsp.app.posts.components.TestLookup;
-import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractActionPayload;
@@ -12,8 +11,8 @@ import rsp.compositions.agent.ActionDispatcher.DispatchResult;
 import rsp.compositions.agent.ActionGate;
 import rsp.compositions.contract.PayloadSchema;
 import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.ListViewContract;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
+import rsp.compositions.contract.ListContractEvents;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -27,32 +26,38 @@ class ActionDispatcherTests {
 
     // Declared actions for the stub contract
     private static final ContractAction CREATE_ACTION = new ContractAction("create",
-        ListViewContract.CREATE_ELEMENT_REQUESTED, "Open create form");
+        ListContractEvents.CREATE_ELEMENT_REQUESTED, "Open create form");
     private static final ContractAction EDIT_ACTION = new ContractAction("edit",
-        ListViewContract.EDIT_ELEMENT_REQUESTED, "Open edit form",
+        ListContractEvents.EDIT_ELEMENT_REQUESTED, "Open edit form",
         new PayloadSchema.StringValue("row ID"));
     private static final ContractAction DELETE_ACTION = new ContractAction("delete",
-        ListViewContract.BULK_DELETE_REQUESTED, "Delete items",
+        ListContractEvents.BULK_DELETE_REQUESTED, "Delete items",
         new PayloadSchema.StringSet("row IDs"));
     private static final ContractAction PAGE_ACTION = new ContractAction("page",
-        ListViewContract.PAGE_CHANGE_REQUESTED, "Navigate to page",
+        ListContractEvents.PAGE_CHANGE_REQUESTED, "Navigate to page",
         new PayloadSchema.IntegerValue("page number"));
     private static final ContractAction SELECT_ALL_ACTION = new ContractAction("select_all",
-        ListViewContract.SELECT_ALL_REQUESTED, "Select all rows");
+        ListContractEvents.SELECT_ALL_REQUESTED, "Select all rows");
 
     /**
      * Stub contract that declares standard list actions for testing.
      */
-    static class StubListContract extends ViewContract {
-        StubListContract(Lookup lookup) { super(lookup); }
+    static class StubListContract implements Contract {
+        private final Lookup lookup;
+
+        StubListContract(Lookup lookup) {
+            this.lookup = lookup;
+        }
+
+        @Override
+        public Lookup lookup() {
+            return lookup;
+        }
 
         @Override
         public List<ContractAction> agentActions() {
             return List.of(CREATE_ACTION, EDIT_ACTION, DELETE_ACTION, PAGE_ACTION, SELECT_ALL_ACTION);
         }
-
-        @Override
-        public ComponentContext enrichContext(ComponentContext context) { return context; }
 
         @Override
         public String title() { return "Stub"; }
@@ -75,8 +80,8 @@ class ActionDispatcherTests {
         DispatchResult result = dispatcher.dispatch(PAGE_ACTION, ContractActionPayload.of(3), contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListViewContract.PAGE_CHANGE_REQUESTED));
-        assertEquals(3, (int) lookup.getLastPublishedPayload(ListViewContract.PAGE_CHANGE_REQUESTED));
+        assertTrue(lookup.wasPublished(ListContractEvents.PAGE_CHANGE_REQUESTED));
+        assertEquals(3, (int) lookup.getLastPublishedPayload(ListContractEvents.PAGE_CHANGE_REQUESTED));
     }
 
     @Test
@@ -87,7 +92,7 @@ class ActionDispatcherTests {
         DispatchResult result = dispatcher.dispatch(SELECT_ALL_ACTION, ContractActionPayload.EMPTY, contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListViewContract.SELECT_ALL_REQUESTED));
+        assertTrue(lookup.wasPublished(ListContractEvents.SELECT_ALL_REQUESTED));
     }
 
     @Test
@@ -98,8 +103,8 @@ class ActionDispatcherTests {
         DispatchResult result = dispatcher.dispatch(EDIT_ACTION, ContractActionPayload.of("42"), contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListViewContract.EDIT_ELEMENT_REQUESTED));
-        assertEquals("42", lookup.getLastPublishedPayload(ListViewContract.EDIT_ELEMENT_REQUESTED));
+        assertTrue(lookup.wasPublished(ListContractEvents.EDIT_ELEMENT_REQUESTED));
+        assertEquals("42", lookup.getLastPublishedPayload(ListContractEvents.EDIT_ELEMENT_REQUESTED));
     }
 
     @Test
@@ -110,7 +115,7 @@ class ActionDispatcherTests {
         DispatchResult result = dispatcher.dispatch(CREATE_ACTION, ContractActionPayload.EMPTY, contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListViewContract.CREATE_ELEMENT_REQUESTED));
+        assertTrue(lookup.wasPublished(ListContractEvents.CREATE_ELEMENT_REQUESTED));
     }
 
     @Test
@@ -123,7 +128,7 @@ class ActionDispatcherTests {
         DispatchResult result = dispatcher.dispatch(DELETE_ACTION, deletePayload, contract, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListViewContract.BULK_DELETE_REQUESTED));
+        assertTrue(lookup.wasPublished(ListContractEvents.BULK_DELETE_REQUESTED));
     }
 
     @Test
@@ -164,6 +169,6 @@ class ActionDispatcherTests {
         DispatchResult result = dispatcher.dispatchDirect(SELECT_ALL_ACTION, ContractActionPayload.EMPTY, contract);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListViewContract.SELECT_ALL_REQUESTED));
+        assertTrue(lookup.wasPublished(ListContractEvents.SELECT_ALL_REQUESTED));
     }
 }

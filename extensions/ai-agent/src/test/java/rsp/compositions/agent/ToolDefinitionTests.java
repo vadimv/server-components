@@ -7,7 +7,7 @@ import rsp.compositions.contract.PayloadSchema;
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.List;
 
@@ -108,11 +108,13 @@ class ToolDefinitionTests {
 
     // --- Stubs ---
 
-    static abstract class StubListContract extends ViewContract {
-        StubListContract() { super(null); }
+    static abstract class StubListContract implements Contract {
+        @Override public rsp.component.Lookup lookup() { return null; }
+        @Override public String title() { return "List"; }
     }
 
-    static abstract class StubEditContract extends ViewContract {
-        StubEditContract() { super(null); }
+    static abstract class StubEditContract implements Contract {
+        @Override public rsp.component.Lookup lookup() { return null; }
+        @Override public String title() { return "Edit"; }
     }
 }

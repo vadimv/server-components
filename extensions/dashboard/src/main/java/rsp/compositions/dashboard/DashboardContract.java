@@ -1,34 +1,30 @@
 package rsp.compositions.dashboard;
 
-import rsp.component.ComponentContext;
-import rsp.component.ContextKey;
-import rsp.component.Lookup;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
 import rsp.compositions.contract.ContractMetadata;
-import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.ContractNodeComponent;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class DashboardContract extends ViewContract {
-
-    public static final ContextKey.StringKey<DashboardModel> DASHBOARD_MODEL =
-            new ContextKey.StringKey<>("dashboard.model", DashboardModel.class);
+public class DashboardContract extends ContractNodeComponent<DashboardView.DashboardState, Object> {
 
     private final DashboardModel model;
 
-    public DashboardContract(final Lookup lookup, final DashboardModel model) {
-        super(lookup);
+    public DashboardContract(final DashboardModel model) {
         this.model = Objects.requireNonNull(model);
     }
 
     @Override
-    public ComponentContext enrichContext(final ComponentContext context) {
-        return context
-                .with(ContextKeys.CONTRACT_CLASS, getClass())
-                .with(ContextKeys.CONTRACT_TITLE, title())
-                .with(DASHBOARD_MODEL, model);
+    public ComponentStateSupplier<DashboardView.DashboardState> initStateSupplier() {
+        return (_, _) -> new DashboardView.DashboardState(model);
+    }
+
+    @Override
+    public ComponentView<DashboardView.DashboardState, Object> componentView() {
+        return new DashboardView();
     }
 
     @Override

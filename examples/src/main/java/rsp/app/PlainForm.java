@@ -21,7 +21,7 @@ import static rsp.dsl.Html.*;
  */
 public class PlainForm {
     static void main(final String[] args) {
-        final var server = new WebServer(8080, httpRequest -> new Component<Name>() {
+        final var server = new WebServer(8080, httpRequest -> new Component<Name, Object>() {
 
             @Override
             public ComponentStateSupplier<Name> initStateSupplier() {
@@ -35,7 +35,7 @@ public class PlainForm {
             }
 
             @Override
-            public ComponentView<Name> componentView() {
+            public ComponentView<Name, Object> componentView() {
                 return _ -> pagesView();
             }
         });

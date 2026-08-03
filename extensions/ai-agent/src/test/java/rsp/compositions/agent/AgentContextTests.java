@@ -6,11 +6,10 @@ import rsp.compositions.contract.PayloadSchema;
 
 
 import org.junit.jupiter.api.Test;
-import rsp.component.ComponentContext;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.List;
 import java.util.Map;
@@ -33,8 +32,13 @@ class AgentContextTests {
         List.of(new StructureNode("Posts", "Blog posts", List.of(), List.of())),
         List.of());
 
-    static class StubAgentContract extends ViewContract {
-        StubAgentContract(Lookup lookup) { super(lookup); }
+    static class StubAgentContract implements Contract {
+        private final Lookup lookup;
+
+        StubAgentContract(Lookup lookup) { this.lookup = lookup; }
+
+        @Override
+        public Lookup lookup() { return lookup; }
 
         @Override
         public ContractMetadata contractMetadata() {
@@ -46,17 +50,16 @@ class AgentContextTests {
         public List<ContractAction> agentActions() { return ACTIONS; }
 
         @Override
-        public ComponentContext enrichContext(ComponentContext ctx) { return ctx; }
-
-        @Override
         public String title() { return "Posts"; }
     }
 
-    static class StubPlainContract extends ViewContract {
-        StubPlainContract(Lookup lookup) { super(lookup); }
+    static class StubPlainContract implements Contract {
+        private final Lookup lookup;
+
+        StubPlainContract(Lookup lookup) { this.lookup = lookup; }
 
         @Override
-        public ComponentContext enrichContext(ComponentContext ctx) { return ctx; }
+        public Lookup lookup() { return lookup; }
 
         @Override
         public String title() { return "Plain"; }

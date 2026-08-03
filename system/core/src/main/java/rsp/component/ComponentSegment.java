@@ -63,7 +63,7 @@ import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
  * values, fixed context snapshots, or candidate-backed {@link ContextLookup}
  * instances in reusable component fields. If a mount-owned resource needs this
  * live segment's {@link #contextScope()}, override the segment-aware
- * {@link ComponentCallbacks#onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdate)}
+ * {@link ComponentCallbacks#onMounted(ComponentSegment, ComponentCompositeKey, Object, CommandsEnqueue, StateUpdater)}
  * callback.
  * <p>
  * Reuse is opt-in. A reusable component should treat the upstream context as
@@ -78,15 +78,16 @@ import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
  *
  * @param <S> a type for this component's state snapshot
  */
-public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
+public final class ComponentSegment<S> implements Segment, StateUpdater<S>, IntentDispatcher<Object> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final ComponentCompositeKey componentId;
     private final CommandsEnqueue commandsEnqueue;
     private final ComponentStateSupplier<S> stateResolver;
     private final BiFunction<ComponentContext, S, ComponentContext> contextResolver;
-    private final ComponentView<S> componentView;
+    private final ComponentView<S, ?> componentView;
     private final ComponentCallbacks<S> callbacks;
+    private final ComponentIntentHandler<S, ?> intentHandler;
     private final ComponentRuntimePolicy runtimePolicy;
     private final TreeBuilderFactory treeBuilderFactory;
     private final Metrics metrics;
@@ -161,6 +162,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
      * @param contextResolver a function that builds a context object propagated to descendant components
      * @param componentView contains DOM subtree definition
      * @param callbacks the callbacks invoked during component lifecycle
+     * @param intentHandler the handler invoked for view-dispatched intents
      * @param runtimePolicy declarative runtime decisions for this component
      * @param treeBuilderFactory a factory for a render context for children components
      * @param componentContext a context object from ascendant components
@@ -169,8 +171,9 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     public ComponentSegment(final ComponentCompositeKey componentId,
                             final ComponentStateSupplier<S> stateResolver,
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
-                            final ComponentView<S> componentView,
+                            final ComponentView<S, ?> componentView,
                             final ComponentCallbacks<S> callbacks,
+                            final ComponentIntentHandler<S, ?> intentHandler,
                             final ComponentRuntimePolicy runtimePolicy,
                             final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
@@ -180,6 +183,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         this.contextResolver = Objects.requireNonNull(contextResolver);
         this.componentView = Objects.requireNonNull(componentView);
         this.callbacks = Objects.requireNonNull(callbacks);
+        this.intentHandler = Objects.requireNonNull(intentHandler);
         this.runtimePolicy = Objects.requireNonNull(runtimePolicy);
         this.treeBuilderFactory = Objects.requireNonNull(treeBuilderFactory);
         this.contextScope = new ContextScope(Objects.requireNonNull(componentContext));
@@ -200,7 +204,57 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     public ComponentSegment(final ComponentCompositeKey componentId,
                             final ComponentStateSupplier<S> stateResolver,
                             final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
-                            final ComponentView<S> componentView,
+                            final ComponentView<S, ?> componentView,
+                            final ComponentCallbacks<S> callbacks,
+                            final ComponentIntentHandler<S, ?> intentHandler,
+                            final TreeBuilderFactory treeBuilderFactory,
+                            final ComponentContext componentContext,
+                            final CommandsEnqueue commandsEnqueue) {
+        this(componentId,
+             stateResolver,
+             contextResolver,
+             componentView,
+             callbacks,
+             intentHandler,
+             ComponentRuntimePolicy.DEFAULT,
+             treeBuilderFactory,
+             componentContext,
+             commandsEnqueue);
+    }
+
+    /**
+     * Creates a segment with a no-op intent handler. This constructor is for
+     * low-level segments whose views never dispatch an intent.
+     */
+    public ComponentSegment(final ComponentCompositeKey componentId,
+                            final ComponentStateSupplier<S> stateResolver,
+                            final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
+                            final ComponentView<S, ?> componentView,
+                            final ComponentCallbacks<S> callbacks,
+                            final ComponentRuntimePolicy runtimePolicy,
+                            final TreeBuilderFactory treeBuilderFactory,
+                            final ComponentContext componentContext,
+                            final CommandsEnqueue commandsEnqueue) {
+        this(componentId,
+             stateResolver,
+             contextResolver,
+             componentView,
+             callbacks,
+             ComponentIntentHandler.noOp(),
+             runtimePolicy,
+             treeBuilderFactory,
+             componentContext,
+             commandsEnqueue);
+    }
+
+    /**
+     * Creates a low-level segment with the default runtime policy and a no-op
+     * intent handler.
+     */
+    public ComponentSegment(final ComponentCompositeKey componentId,
+                            final ComponentStateSupplier<S> stateResolver,
+                            final BiFunction<ComponentContext, S, ComponentContext> contextResolver,
+                            final ComponentView<S, ?> componentView,
                             final ComponentCallbacks<S> callbacks,
                             final TreeBuilderFactory treeBuilderFactory,
                             final ComponentContext componentContext,
@@ -210,6 +264,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
              contextResolver,
              componentView,
              callbacks,
+             ComponentIntentHandler.noOp(),
              ComponentRuntimePolicy.DEFAULT,
              treeBuilderFactory,
              componentContext,
@@ -217,7 +272,8 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
     }
 
     /**
-     * A path representing a position of this component in the components tree
+     * A path representing a position of this component in the components tree.
+     *
      * @return a position of this component segment in the components tree relative to the tree's root
      */
     public TreePositionPath path() {
@@ -335,16 +391,17 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             state = Objects.requireNonNull(stateResolver.getState(componentId, componentContext()),
                                            "Initial state cannot be null for component " + componentId);
             stateInitialized = true;
+            withCallbackOwner(this, () -> callbacks.onBeforeRendered(this, state));
             renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
 
-            final View<S> view = componentView.use(this);
+            final View<S> view = resolveView();
             final Definition uiDefinition = view.apply(state);
 
             uiDefinition.render(renderContext);
             withCallbackOwner(this, () ->
-                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
+                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdater()));
             withCallbackOwner(this, () ->
-                    callbacks.onMounted(this, componentId, state, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
+                    callbacks.onMounted(this, componentId, state, commandsEnqueue, this.new EnqueueTaskStateUpdater()));
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
@@ -355,12 +412,13 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         final List<ComponentSegment<?>> oldChildren = new ArrayList<>(children);
         prepareForRender(true, oldChildren, true);
         try {
+            withCallbackOwner(this, () -> callbacks.onBeforeRendered(this, state));
             renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
-            final View<S> view = componentView.use(this);
+            final View<S> view = resolveView();
             final Definition uiDefinition = view.apply(state);
             uiDefinition.render(renderContext);
             withCallbackOwner(this, () ->
-                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
+                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdater()));
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
@@ -554,6 +612,30 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         }
     }
 
+    @Override
+    public void dispatch(final Object intent) {
+        Objects.requireNonNull(intent, "intent");
+        if (isUnmounted) {
+            logger.log(WARNING, () -> "Ignored intent on unmounted component: " + componentId);
+            metrics.incrementCounter(MetricNames.SEGMENT_UPDATE_DROPPED_UNMOUNTED);
+            return;
+        }
+        withCallbackOwner(this, () ->
+                dispatchIntent(intent, state, new EnqueueTaskStateUpdater()));
+    }
+
+    /**
+     * This is the only erased intent bridge. A segment can host a component
+     * with any intent type, while the view receives the typed dispatcher from
+     * its owning component.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void dispatchIntent(final Object intent,
+                                final S state,
+                                final StateUpdater<S> stateUpdater) {
+        ((ComponentIntentHandler) intentHandler).onIntentDispatched(intent, state, stateUpdater);
+    }
+
     /**
      * Sets a new state for this component.
      * The component will be re-rendered.
@@ -608,17 +690,18 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         try {
             state = newState;
             prepareForRender(true, oldChildren, false);
+            withCallbackOwner(this, () -> callbacks.onBeforeRendered(this, state));
 
             logger.log(TRACE, () -> "Component state updated, previous: " + oldState + " new: " + state + " for " + componentId);
 
             final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
             renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));
             renderContext.openComponent(this);
-            final Definition view = componentView.use(this).apply(state);
+            final Definition view = resolveView().apply(state);
             view.render(renderContext);
             renderContext.closeComponent();
             withCallbackOwner(this, () ->
-                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdate()));
+                    callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdater()));
 
             // Calculate diff between an old and new DOM trees before unmounting old children.
             final DefaultDomChangesContext domChangePerformer = new DefaultDomChangesContext();
@@ -656,7 +739,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
             }
 
             withCallbackOwner(this, () ->
-                    callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdate()));
+                    callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdater()));
         } catch (RuntimeException | Error failure) {
             restore(snapshot);
             throw failure;
@@ -998,7 +1081,13 @@ public final class ComponentSegment<S> implements Segment, StateUpdate<S> {
         return Objects.hash(componentId);
     }
 
-    private final class EnqueueTaskStateUpdate implements StateUpdate<S> {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private View<S> resolveView() {
+        return ((ComponentView) componentView).use(this);
+    }
+
+    private final class EnqueueTaskStateUpdater implements StateUpdater<S> {
+
         @Override
         public void setState(final S newState) {
             commandsEnqueue.offer(new GenericTaskEvent(() -> {

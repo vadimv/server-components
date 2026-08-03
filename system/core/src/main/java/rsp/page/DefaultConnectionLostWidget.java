@@ -32,7 +32,7 @@ public final class DefaultConnectionLostWidget {
         HTML = treeBuilder.html();
     }
 
-    private static Component<String> widgetComponent() {
+    private static Component<String, Object> widgetComponent() {
         return new InitialStateComponent<>("", widget());
     }
 

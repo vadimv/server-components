@@ -1,15 +1,15 @@
 package rsp.compositions.shell;
 
-import rsp.component.ComponentContext;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
 import rsp.component.EventKey;
-import rsp.component.Lookup;
+import rsp.component.StateUpdater;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.contract.ContractNodeComponent;
 import rsp.compositions.contract.NavigationEntry;
 import rsp.compositions.contract.NavigationNode;
-import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,28 +26,15 @@ import static rsp.compositions.contract.EventKeys.SET_PRIMARY;
  * <p>
  * Register in composition and configure as left sidebar in Layout:
  * <pre>{@code
- * group.bind(ExplorerContract.class, ctx -> new ExplorerContract(ctx, mainContracts.structureTree()), ExplorerView::new)
+ * group.bind(ExplorerContract.class, () -> new ExplorerContract(mainContracts.structureTree()))
  * new DefaultLayout().leftSidebar(ExplorerContract.class)
  * }</pre>
  */
-public class ExplorerContract extends ViewContract {
-
-    public static EventKey.SimpleKey<NavigationEntry> REQUEST_OPEN_CONTRACT =
-            new EventKey.SimpleKey<>("explorer.open.contract", NavigationEntry.class);
+public class ExplorerContract extends ContractNodeComponent<ExplorerView.ExplorerViewState, ExplorerView.OpenContract> {
 
     private final StructureNode structure;
-    private final NavigationNode tree;
-
-    public ExplorerContract(Lookup lookup, StructureNode structure) {
-        super(lookup);
+    public ExplorerContract(StructureNode structure) {
         this.structure = Objects.requireNonNull(structure);
-
-        List<Composition> compositions = lookup.get(ContextKeys.APP_COMPOSITIONS);
-        this.tree = buildNavigationTree(compositions, structure);
-
-        subscribe(REQUEST_OPEN_CONTRACT, (eventName, entry) -> {
-            lookup.publish(SET_PRIMARY, entry.contractClass());
-        });
     }
 
     @Override
@@ -56,18 +43,43 @@ public class ExplorerContract extends ViewContract {
     }
 
     @Override
-    public ComponentContext enrichContext(ComponentContext context) {
-        context = context.with(ContextKeys.NAVIGATION_TREE, tree);
+    public ComponentStateSupplier<ExplorerView.ExplorerViewState> initStateSupplier() {
+        return (_, context) -> {
+            List<Composition> compositions = context.get(rsp.compositions.contract.ContextKeys.APP_COMPOSITIONS);
+            NavigationNode tree = buildNavigationTree(compositions, structure);
+            String category = categoryFor(context);
+            return new ExplorerView.ExplorerViewState(tree, category);
+        };
+    }
 
-        Scene scene = context.get(ContextKeys.SCENE);
-        if (scene != null && scene.routedContract() != null) {
-            String categoryKey = structure.labelFor(scene.routedContract().getClass());
-            if (categoryKey != null) {
-                context = context.with(ContextKeys.PRIMARY_CATEGORY_KEY, categoryKey);
-            }
-        }
+    @Override
+    public ComponentView<ExplorerView.ExplorerViewState, ExplorerView.OpenContract> componentView() {
+        return new ExplorerView();
+    }
 
-        return context;
+    @Override
+    protected void onContractMounted(ExplorerView.ExplorerViewState state,
+                                     StateUpdater<ExplorerView.ExplorerViewState> stateUpdate) {
+        watch(rsp.compositions.contract.ContextKeys.SCENE, (_, scene) ->
+                stateUpdate.applyStateTransformation(current ->
+                        new ExplorerView.ExplorerViewState(current.tree(), categoryFor(scene))));
+    }
+
+    @Override
+    protected void onIntent(ExplorerView.OpenContract intent,
+                            ExplorerView.ExplorerViewState state,
+                            StateUpdater<ExplorerView.ExplorerViewState> stateUpdater) {
+        lookup().publish(SET_PRIMARY, intent.entry().contractClass());
+    }
+
+    private String categoryFor(rsp.component.ComponentContext context) {
+        return categoryFor(context.get(rsp.compositions.contract.ContextKeys.SCENE));
+    }
+
+    private String categoryFor(rsp.compositions.contract.Scene scene) {
+        return scene == null || scene.routedDescriptor() == null
+                ? null
+                : structure.labelFor(scene.routedDescriptor().contractClass());
     }
 
     private static NavigationNode buildNavigationTree(List<Composition> compositions,
@@ -82,7 +94,7 @@ public class ExplorerContract extends ViewContract {
 
         NavigationEntry entry = null;
         if (node.label() != null && compositions != null) {
-            for (Class<? extends ViewContract> contractClass : node.contracts()) {
+            for (Class<? extends Contract> contractClass : node.contracts()) {
                 Optional<String> routeOpt = findRoute(compositions, contractClass);
                 if (routeOpt.isPresent() && !routeOpt.get().contains(":")) {
                     entry = new NavigationEntry(node.label(), node.label(), contractClass, routeOpt.get());
@@ -99,7 +111,7 @@ public class ExplorerContract extends ViewContract {
     }
 
     private static Optional<String> findRoute(List<Composition> compositions,
-                                              Class<? extends ViewContract> contractClass) {
+                                              Class<? extends Contract> contractClass) {
         for (Composition comp : compositions) {
             Optional<String> route = comp.router().findRoutePattern(contractClass);
             if (route.isPresent()) {

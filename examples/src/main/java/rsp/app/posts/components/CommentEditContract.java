@@ -2,12 +2,14 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.entities.Comment;
 import rsp.app.posts.services.CommentService;
+import rsp.component.ComponentView;
 import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.contract.EditViewContract;
+import rsp.compositions.contract.EditContractComponent;
 import rsp.compositions.contract.PathParam;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
+import rsp.compositions.ui.EditView;
 
 import java.util.Map;
 import java.util.Objects;
@@ -15,13 +17,14 @@ import java.util.Objects;
 /**
  * CommentEditContract - Contract for editing an existing comment.
  */
-public class CommentEditContract extends EditViewContract<Comment> {
+public class CommentEditContract extends EditContractComponent<Comment> {
     private static final PathParam<String> COMMENT_ID = new PathParam<>(1, String.class, null);
 
     private final CommentService commentService;
 
-    public CommentEditContract(final Lookup lookup, final CommentService commentService) {
-        super(lookup);
+    public CommentEditContract(final CommentService commentService,
+                               ComponentView<EditView.EditViewState, EditView.EditIntent> view) {
+        super(view);
         this.commentService = Objects.requireNonNull(commentService);
     }
 
@@ -31,13 +34,12 @@ public class CommentEditContract extends EditViewContract<Comment> {
     }
 
     @Override
-    protected String resolveIdFromPath() {
-        return resolve(COMMENT_ID);
+    protected String resolveIdFromPath(Lookup lookup) {
+        return COMMENT_ID.resolve(lookup);
     }
 
     @Override
-    public Comment item() {
-        String commentId = resolveId();
+    public Comment item(String commentId) {
         if (commentId == null) {
             return null;
         }
@@ -73,8 +75,7 @@ public class CommentEditContract extends EditViewContract<Comment> {
     }
 
     @Override
-    public boolean delete() {
-        String id = resolveId();
+    public boolean delete(String id) {
         if (id == null || id.isEmpty()) {
             return false;
         }

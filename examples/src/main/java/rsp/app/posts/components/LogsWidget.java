@@ -6,7 +6,7 @@ import rsp.compositions.dashboard.DashboardWidget;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.ComponentCompositeKey;
-import rsp.component.StateUpdate;
+import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
 
 import java.time.ZoneId;
@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static rsp.dsl.Html.*;
 
-public class LogsWidget extends Component<LogsWidget.State>
+public class LogsWidget extends Component<LogsWidget.State, Object>
         implements DashboardWidget {
 
     private static final DateTimeFormatter TIME_FORMATTER =
@@ -148,7 +148,7 @@ public class LogsWidget extends Component<LogsWidget.State>
     }
 
     @Override
-    public Component<?> component() {
+    public Component<?, ?> component() {
         return this;
     }
 
@@ -177,7 +177,7 @@ public class LogsWidget extends Component<LogsWidget.State>
     }
 
     @Override
-    public ComponentView<State> componentView() {
+    public ComponentView<State, Object> componentView() {
         return _ -> state -> div(attr("class", "dashboard-widget logs-widget"),
                 div(attr("class", "dashboard-widget-header logs-widget-header"),
                         div(attr("class", "dashboard-widget-title"),
@@ -207,7 +207,7 @@ public class LogsWidget extends Component<LogsWidget.State>
     @Override
     public void onMounted(final ComponentCompositeKey componentId,
                           final State state,
-                          final StateUpdate<State> stateUpdate) {
+                          final StateUpdater<State> stateUpdate) {
         if (streamService == null) {
             return;
         }

@@ -1,12 +1,11 @@
 package rsp.compositions.dashboard;
 
-import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
-import rsp.component.definitions.Component;
+import rsp.component.IntentDispatcher;
 
 import static rsp.dsl.Html.*;
 
-public class DashboardView extends Component<DashboardView.DashboardState> {
+public class DashboardView implements ComponentView<DashboardView.DashboardState, Object> {
 
     public record DashboardState(DashboardModel model) {
         public DashboardState {
@@ -15,16 +14,8 @@ public class DashboardView extends Component<DashboardView.DashboardState> {
     }
 
     @Override
-    public ComponentStateSupplier<DashboardState> initStateSupplier() {
-        return (_, context) -> {
-            DashboardModel model = context.get(DashboardContract.DASHBOARD_MODEL);
-            return new DashboardState(model);
-        };
-    }
-
-    @Override
-    public ComponentView<DashboardState> componentView() {
-        return _ -> state -> section(attr("class", "dashboard-page"),
+    public rsp.component.View<DashboardState> use(IntentDispatcher<Object> intents) {
+        return state -> section(attr("class", "dashboard-page"),
                 h1("Dashboard"),
                 new DashboardGrid(state.model().layout())
         );

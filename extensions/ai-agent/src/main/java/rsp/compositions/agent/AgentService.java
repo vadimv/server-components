@@ -6,7 +6,7 @@ import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.contract.ContractAction;
 
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -29,7 +29,7 @@ public class AgentService {
         /** A contract action to be dispatched via ActionDispatcher. */
         record ActionResult(ContractAction action, ContractActionPayload payload) implements AgentResult {}
         /** A navigation request to switch the active contract. */
-        record NavigateResult(Class<? extends ViewContract> targetContract) implements AgentResult {}
+        record NavigateResult(Class<? extends Contract> targetContract) implements AgentResult {}
         /** A text reply to show the user (no framework event). */
         record TextReply(String message) implements AgentResult {}
         /** A multi-step plan: each step is a natural-language intent to be executed sequentially. */

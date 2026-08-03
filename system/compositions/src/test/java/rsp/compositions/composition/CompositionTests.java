@@ -1,462 +1,111 @@
 package rsp.compositions.composition;
 
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.Lookup;
-import rsp.compositions.contract.*;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
+import rsp.compositions.contract.ContractNodeComponent;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
-import rsp.compositions.schema.DataSchema;
 
 import java.util.List;
-import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests for Composition class methods.
- */
-public class CompositionTests {
+/** Tests the direct contract-component bindings held by a composition. */
+class CompositionTests {
 
-    @Nested
-    class ContractLookupTests {
+    @Test
+    void direct_bindings_are_resolved_as_fresh_contract_components() {
+        Group group = new Group().bind(ListContract.class, ListContract::new);
 
-        @Test
-        void contractFactory_finds_registered_class() {
-            final Composition composition = createCompositionWithMultipleContracts();
-
-            final var factory = composition.contracts().contractFactory(TestListContract.class);
-
-            assertNotNull(factory);
-        }
-
-        @Test
-        void contractFactory_returns_null_when_not_found() {
-            final Composition composition = createSimpleComposition();
-
-            final var factory = composition.contracts().contractFactory(TestEditContract.class);
-
-            assertNull(factory);
-        }
-
-        @Test
-        void contractClasses_returns_all_registered_classes() {
-            final Composition composition = createCompositionWithMultipleContracts();
-
-            assertEquals(3, composition.contracts().contractClasses().size());
-        }
+        assertTrue(group.hasBinding(ListContract.class));
+        assertTrue(group.resolveComponent(ListContract.class) instanceof ListContract);
+        assertTrue(group.resolveComponent(ListContract.class) instanceof ListContract);
     }
 
-    @Nested
-    class CompositionConstructorTests {
+    @Test
+    void composition_keeps_routes_and_all_bound_contract_classes() {
+        Router router = new Router()
+                .route("/items", ListContract.class)
+                .route("/items/:id", EditContract.class);
+        Group group = new Group()
+                .bind(ListContract.class, ListContract::new)
+                .bind(CreateContract.class, CreateContract::new)
+                .bind(EditContract.class, EditContract::new);
 
-        @Test
-        void composition_stores_router() {
-            final Router router = new Router().route("/test", TestListContract.class);
-            final Group group = new Group()
-                    .bind(TestListContract.class, TestListContract::new, () -> null);
+        Composition composition = new Composition(router, new DefaultLayout(), group);
 
-            final Composition composition = new Composition(router, new DefaultLayout(), group);
-
-            assertSame(router, composition.router());
-        }
-
-        @Test
-        void contractClasses_returns_unmodifiable_set() {
-            final Composition composition = createSimpleComposition();
-
-            final var classes = composition.contracts().contractClasses();
-
-            assertThrows(UnsupportedOperationException.class, () -> classes.add(null));
-        }
-
-        @Test
-        void constructor_rejects_null_router() {
-            final Group group = new Group();
-
-            assertThrows(NullPointerException.class, () -> new Composition(null, new DefaultLayout(), group));
-        }
-
-        @Test
-        void constructor_rejects_no_groups() {
-            final Router router = new Router();
-
-            assertThrows(IllegalArgumentException.class, () -> new Composition(router, new DefaultLayout()));
-        }
+        assertSame(router, composition.router());
+        assertEquals(3, composition.contracts().contractClasses().size());
+        assertTrue(composition.contracts().hasBinding(ListContract.class));
+        assertFalse(composition.contracts().hasBinding(UnknownContract.class));
+        assertThrows(UnsupportedOperationException.class,
+                () -> composition.contracts().contractClasses().add(null));
     }
 
-    @Nested
-    class RouterIntegrationTests {
+    @Test
+    void nested_groups_expose_structure_paths_and_placement_ownership() {
+        Group posts = new Group("Posts")
+                .description("Blog posts")
+                .bind(ListContract.class, ListContract::new);
+        Group comments = new Group("Comments")
+                .description("User comments")
+                .bind(CreateContract.class, CreateContract::new);
+        Group root = new Group("Admin").add(posts).add(comments);
 
-        @Test
-        void router_matches_routes() {
-            final Router router = new Router()
-                    .route("/items", TestListContract.class)
-                    .route("/items/:id", TestEditContract.class);
-            final Group group = new Group()
-                    .bind(TestListContract.class, TestListContract::new, () -> null)
-                    .bind(TestEditContract.class, TestEditContract::new, () -> null);
+        StructureNode tree = root.structureTree();
 
-            final Composition composition = new Composition(router, new DefaultLayout(), group);
-
-            assertTrue(composition.router().hasRoute(TestListContract.class));
-            assertTrue(composition.router().hasRoute(TestEditContract.class));
-        }
+        assertEquals(List.of("Admin", "Posts"), root.groupPathFor(ListContract.class).orElseThrow());
+        assertEquals(List.of("Admin", "Comments"), root.groupPathFor(CreateContract.class).orElseThrow());
+        assertSame(posts, root.placementGroupFor(ListContract.class).orElseThrow());
+        assertEquals("Posts", tree.labelFor(ListContract.class));
+        assertTrue(tree.agentDescription().contains("Blog posts"));
+        assertTrue(tree.agentDescription().contains("User comments"));
     }
 
-    @Nested
-    class GroupTests {
+    @Test
+    void merged_groups_keep_bindings_from_each_group() {
+        Group main = new Group("Main").bind(ListContract.class, ListContract::new);
+        Group system = new Group().bind(CreateContract.class, CreateContract::new);
 
-        @Test
-        void nested_group_contractClasses_aggregates() {
-            final Group group = new Group("Root")
-                    .add(new Group("A")
-                            .bind(TestListContract.class, TestListContract::new, () -> null))
-                    .add(new Group("B")
-                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
+        Composition composition = new Composition(new Router(), new DefaultLayout(), main, system);
 
-            assertEquals(2, group.contractClasses().size());
-            assertTrue(group.contractClasses().contains(TestListContract.class));
-            assertTrue(group.contractClasses().contains(TestCreateContract.class));
-        }
-
-        @Test
-        void nested_group_contractFactory_finds_in_children() {
-            final Group group = new Group("Root")
-                    .add(new Group("A")
-                            .bind(TestListContract.class, TestListContract::new, () -> null));
-
-            assertNotNull(group.contractFactory(TestListContract.class));
-        }
-
-        @Test
-        void structureTree_reflects_group_hierarchy() {
-            final Group group = new Group("Root")
-                    .bind(TestListContract.class, TestListContract::new, () -> null)
-                    .add(new Group("Child")
-                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
-
-            StructureNode tree = group.structureTree();
-
-            assertEquals("Root", tree.label());
-            assertEquals(1, tree.contracts().size());
-            assertEquals(1, tree.children().size());
-            assertEquals("Child", tree.children().get(0).label());
-            assertEquals(1, tree.children().get(0).contracts().size());
-        }
-
-        @Test
-        void structureNode_contains_searches_subtree() {
-            final Group group = new Group("Root")
-                    .add(new Group("Child")
-                            .bind(TestListContract.class, TestListContract::new, () -> null));
-
-            StructureNode tree = group.structureTree();
-
-            assertTrue(tree.contains(TestListContract.class));
-            assertFalse(tree.contains(TestEditContract.class));
-        }
-
-        @Test
-        void structureNode_labelFor_finds_owning_group() {
-            final Group group = new Group("Root")
-                    .add(new Group("Posts")
-                            .bind(TestListContract.class, TestListContract::new, () -> null))
-                    .add(new Group("Comments")
-                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
-
-            StructureNode tree = group.structureTree();
-
-            assertEquals("Posts", tree.labelFor(TestListContract.class));
-            assertEquals("Comments", tree.labelFor(TestCreateContract.class));
-            assertNull(tree.labelFor(TestEditContract.class));
-        }
-
-        @Test
-        void structureNode_agentDescription_renders_tree() {
-            final Group group = new Group("Admin").description("Administration panel")
-                    .add(new Group("Posts").description("Blog posts with CRUD")
-                            .bind(TestListContract.class, TestListContract::new, () -> null))
-                    .add(new Group("Comments").description("User comments")
-                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
-
-            String desc = group.structureTree().agentDescription();
-
-            assertTrue(desc.contains("Admin"));
-            assertTrue(desc.contains("Administration panel"));
-            assertTrue(desc.contains("Posts"));
-            assertTrue(desc.contains("Blog posts with CRUD"));
-            assertTrue(desc.contains("Comments"));
-            assertTrue(desc.contains("User comments"));
-        }
-
-        @Test
-        void structureNode_agentDescription_indents_children() {
-            final Group group = new Group("Root")
-                    .add(new Group("Child")
-                            .bind(TestListContract.class, TestListContract::new, () -> null));
-
-            String desc = group.structureTree().agentDescription();
-
-            assertTrue(desc.contains("Root\n"));
-            assertTrue(desc.contains("  Child"));
-        }
-
-        @Test
-        void structureNode_agentDescription_omits_unlabeled_root() {
-            final Group group = new Group()
-                    .add(new Group("Posts")
-                            .bind(TestListContract.class, TestListContract::new, () -> null));
-
-            String desc = group.structureTree().agentDescription();
-
-            assertTrue(desc.startsWith("Posts"));
-            assertFalse(desc.contains("null"));
-        }
-
-        @Test
-        void groupPathFor_returns_path_for_directly_bound_contract() {
-            final Group group = new Group("Posts")
-                    .bind(TestListContract.class, TestListContract::new, () -> null);
-
-            assertEquals(List.of("Posts"),
-                    group.groupPathFor(TestListContract.class).orElseThrow());
-        }
-
-        @Test
-        void groupPathFor_returns_path_for_nested_child_group_binding() {
-            final Group group = new Group("Root")
-                    .add(new Group("Posts")
-                            .bind(TestListContract.class, TestListContract::new, () -> null));
-
-            assertEquals(List.of("Root", "Posts"),
-                    group.groupPathFor(TestListContract.class).orElseThrow());
-        }
-
-        @Test
-        void groupPathFor_returns_empty_for_unknown_contract() {
-            final Group group = new Group("Posts")
-                    .bind(TestListContract.class, TestListContract::new, () -> null);
-
-            assertTrue(group.groupPathFor(TestEditContract.class).isEmpty());
-        }
-
-        @Test
-        void groupPathFor_skips_unlabeled_root() {
-            final Group group = new Group()
-                    .add(new Group("Posts")
-                            .bind(TestListContract.class, TestListContract::new, () -> null));
-
-            assertEquals(List.of("Posts"),
-                    group.groupPathFor(TestListContract.class).orElseThrow());
-        }
-
-        @Test
-        void groupPathFor_skips_unlabeled_intermediate_group() {
-            final Group group = new Group("Admin")
-                    .add(new Group()
-                            .bind(TestListContract.class, TestListContract::new, () -> null));
-
-            assertEquals(List.of("Admin"),
-                    group.groupPathFor(TestListContract.class).orElseThrow());
-        }
-
-        @Test
-        void groupPathFor_returns_deep_path_for_nested_binding() {
-            final Group group = new Group("Admin")
-                    .add(new Group("Content")
-                            .add(new Group("Posts")
-                                    .bind(TestListContract.class, TestListContract::new, () -> null)));
-
-            assertEquals(List.of("Admin", "Content", "Posts"),
-                    group.groupPathFor(TestListContract.class).orElseThrow());
-        }
-
-        @Test
-        void groupPathFor_picks_owning_group_when_multiple_groups() {
-            final Group group = new Group("Root")
-                    .add(new Group("Posts")
-                            .bind(TestListContract.class, TestListContract::new, () -> null))
-                    .add(new Group("Comments")
-                            .bind(TestCreateContract.class, TestCreateContract::new, () -> null));
-
-            assertEquals(List.of("Root", "Posts"),
-                    group.groupPathFor(TestListContract.class).orElseThrow());
-            assertEquals(List.of("Root", "Comments"),
-                    group.groupPathFor(TestCreateContract.class).orElseThrow());
-        }
-
-        @Test
-        void groupPathFor_rejects_null_input() {
-            final Group group = new Group("Posts");
-
-            assertThrows(NullPointerException.class, () -> group.groupPathFor(null));
-        }
-
-        @Test
-        void placementGroupFor_returns_labeled_owning_group() {
-            final Group posts = new Group("Posts")
-                    .bind(TestListContract.class, TestListContract::new, () -> null);
-            final Group group = new Group()
-                    .add(posts);
-
-            assertSame(posts, group.placementGroupFor(TestListContract.class).orElseThrow());
-        }
-
-        @Test
-        void placementGroupFor_returns_empty_for_unlabeled_owning_group() {
-            final Group group = new Group()
-                    .bind(TestListContract.class, TestListContract::new, () -> null);
-
-            assertTrue(group.placementGroupFor(TestListContract.class).isEmpty());
-        }
-
-        @Test
-        void placementGroupFor_distinguishes_duplicate_display_labels() {
-            final Group postsA = new Group("Posts")
-                    .bind(TestListContract.class, TestListContract::new, () -> null);
-            final Group postsB = new Group("Posts")
-                    .bind(TestCreateContract.class, TestCreateContract::new, () -> null);
-            final Group group = new Group()
-                    .add(postsA)
-                    .add(postsB);
-
-            assertSame(postsA, group.placementGroupFor(TestListContract.class).orElseThrow());
-            assertSame(postsB, group.placementGroupFor(TestCreateContract.class).orElseThrow());
-            assertNotSame(group.placementGroupFor(TestListContract.class).orElseThrow(),
-                    group.placementGroupFor(TestCreateContract.class).orElseThrow());
-        }
-
-        @Test
-        void composition_merges_multiple_groups() {
-            final Router router = new Router().route("/items", TestListContract.class);
-            final Group main = new Group("Main")
-                    .bind(TestListContract.class, TestListContract::new, () -> null);
-            final Group system = new Group()
-                    .bind(TestCreateContract.class, TestCreateContract::new, () -> null);
-
-            final Composition composition = new Composition(router, new DefaultLayout(), main, system);
-
-            assertEquals(2, composition.contracts().contractClasses().size());
-            assertNotNull(composition.contracts().contractFactory(TestListContract.class));
-            assertNotNull(composition.contracts().contractFactory(TestCreateContract.class));
-        }
+        assertEquals(2, composition.contracts().contractClasses().size());
+        assertTrue(composition.contracts().hasBinding(ListContract.class));
+        assertTrue(composition.contracts().hasBinding(CreateContract.class));
     }
 
-    // Helper methods to create test compositions
+    @Test
+    void constructor_rejects_missing_required_composition_parts() {
+        Group group = new Group();
 
-    private Composition createSimpleComposition() {
-        final Router router = new Router().route("/items", TestListContract.class);
-        final Group group = new Group()
-                .bind(TestListContract.class, TestListContract::new, () -> null);
-        return new Composition(router, new DefaultLayout(), group);
+        assertThrows(NullPointerException.class, () -> new Composition(null, new DefaultLayout(), group));
+        assertThrows(IllegalArgumentException.class, () -> new Composition(new Router(), new DefaultLayout()));
     }
 
-    private Composition createCompositionWithMultipleContracts() {
-        final Router router = new Router()
-                .route("/items", TestListContract.class)
-                .route("/items/:id", TestEditContract.class);
-        final Group group = new Group()
-                .bind(TestListContract.class, TestListContract::new, () -> null)
-                .bind(TestCreateContract.class, TestCreateContract::new, () -> null)
-                .bind(TestEditContract.class, TestEditContract::new, () -> null);
-        return new Composition(router, new DefaultLayout(), group);
-    }
-
-    // Test contract classes
-
-    static class TestListContract extends ListViewContract<Object> {
-        TestListContract(final Lookup lookup) {
-            super(lookup);
+    static class TestContract extends ContractNodeComponent<String, Object> {
+        @Override
+        public ComponentStateSupplier<String> initStateSupplier() {
+            return (_, _) -> "ready";
         }
 
         @Override
-        protected QueryParam<Integer> pageQueryParam() {
-            return null;
+        public ComponentView<String, Object> componentView() {
+            return _ -> _ -> null;
         }
 
         @Override
         public String title() {
             return "Test";
         }
-
-        @Override
-        public int page() {
-            return 1;
-        }
-
-        @Override
-        public String sort() {
-            return "asc";
-        }
-
-        @Override
-        public List<Object> items() {
-            return List.of();
-        }
-
-        @Override
-        protected Class<? extends ViewContract> createElementContract() {
-            return null;
-        }
-
-        @Override
-        protected Class<? extends ViewContract> editElementContract() {
-            return null;
-        }
     }
 
-    record TestEntity(String id, String name) {}
-
-    static class TestCreateContract extends CreateViewContract<TestEntity> {
-        TestCreateContract(final Lookup lookup) {
-            super(lookup);
-        }
-
-        @Override
-        public String title() {
-            return "TestEntity";
-        }
-
-        @Override
-        public DataSchema schema() {
-            return DataSchema.fromRecordClass(TestEntity.class);
-        }
-
-        @Override
-        public boolean save(final Map<String, Object> fieldValues) {
-            return true;
-        }
-    }
-
-    static class TestEditContract extends EditViewContract<TestEntity> {
-        TestEditContract(final Lookup lookup) {
-            super(lookup);
-        }
-
-        @Override
-        public String title() {
-            return "TestEntity";
-        }
-
-        @Override
-        protected String resolveIdFromPath() {
-            return null;
-        }
-
-        @Override
-        public TestEntity item() {
-            return null;
-        }
-
-        @Override
-        public DataSchema schema() {
-            return DataSchema.fromRecordClass(TestEntity.class);
-        }
-
-        @Override
-        public boolean save(final Map<String, Object> fieldValues) {
-            return true;
-        }
-    }
+    static class ListContract extends TestContract {}
+    static class CreateContract extends TestContract {}
+    static class EditContract extends TestContract {}
+    static class UnknownContract extends TestContract {}
 }

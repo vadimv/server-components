@@ -46,7 +46,7 @@ class ComponentSegmentMetricsTests {
     private ComponentSegment<String> createSegment(final TreeBuilderFactory factory) {
         final ComponentStateSupplier<String> stateSupplier = (key, ctx) -> "initial";
         final BiFunction<ComponentContext, String, ComponentContext> contextResolver = (ctx, s) -> ctx;
-        final ComponentView<String> view = stateUpdate -> s -> rc -> {
+        final ComponentView<String, Object> view = intents -> s -> rc -> {
             rc.openNode(XmlNs.html, "div", false);
             rc.closeNode("div", false);
         };
@@ -149,9 +149,9 @@ class ComponentSegmentMetricsTests {
 
     private static final class NoOpCallbacks implements ComponentCallbacks<String> {
         @Override public boolean onBeforeUpdated(String newState, CommandsEnqueue cmd) { return true; }
-        @Override public void onAfterRendered(String state, Subscriber sub, CommandsEnqueue cmd, StateUpdate<String> upd) {}
-        @Override public void onMounted(ComponentCompositeKey id, String state, StateUpdate<String> upd) {}
-        @Override public void onUpdated(ComponentCompositeKey id, String oldS, String newS, StateUpdate<String> upd) {}
+        @Override public void onAfterRendered(String state, Subscriber sub, CommandsEnqueue cmd, StateUpdater<String> upd) {}
+        @Override public void onMounted(ComponentCompositeKey id, String state, StateUpdater<String> upd) {}
+        @Override public void onUpdated(ComponentCompositeKey id, String oldS, String newS, StateUpdater<String> upd) {}
         @Override public void onUnmounted(ComponentCompositeKey id, String state) {}
     }
 }

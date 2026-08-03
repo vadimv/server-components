@@ -1,22 +1,23 @@
 package rsp.component;
 
 /**
- * Resolves a view function given a state update object.
- * This functional interface injects a state update object enabling the framework to listen to the state updates
- * initiated by the client code.
+ * Resolves a view function given an intent dispatcher.
+ * A view can describe user interactions by dispatching intents, but it cannot
+ * update the component's local state cache directly.
  *
- * @see StateUpdate
+ * @see IntentDispatcher
  * @see View
  * @see rsp.dsl.Definition
  * @param <S> a type of the state
+ * @param <I> a type of intents accepted by the owning component
  */
 @FunctionalInterface
-public interface ComponentView<S> {
+public interface ComponentView<S, I> {
 
     /**
      * Resolves a view function.
-     * @param stateUpdate a state updates listener, must not be null
+     * @param intents dispatcher for the component's typed intents, must not be null
      * @return a function that can be used for obtaining of a UI definition
      */
-    View<S> use(StateUpdate<S> stateUpdate);
+    View<S> use(IntentDispatcher<I> intents);
 }

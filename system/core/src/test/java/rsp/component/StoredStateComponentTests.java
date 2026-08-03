@@ -2,6 +2,7 @@ package rsp.component;
 
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.LocalStateComponent;
 import rsp.component.definitions.Component;
 import rsp.component.definitions.StoredStateComponent;
 import rsp.dom.DefaultDomChangesContext;
@@ -9,6 +10,7 @@ import rsp.dom.DomEventEntry;
 import rsp.dom.TreePositionPath;
 import rsp.page.EventContext;
 import rsp.page.QualifiedSessionId;
+import rsp.page.events.GenericTaskEvent;
 import rsp.page.events.RemoteCommand;
 import rsp.server.Path;
 import rsp.server.TestSessonEventsConsumer;
@@ -29,15 +31,14 @@ import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
 
 class StoredStateComponentTests {
     static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
-    static final ComponentView<Boolean> view = newState -> state ->
+    static final ComponentView<Boolean, Boolean> view = intents -> state ->
             div(
-                    span(text("toggle"), on("click", ctx -> newState.setState(!state))),
+                    span(text("toggle"), on("click", ctx -> intents.dispatch(!state))),
                     when(state, () ->
-                         new StoredStateComponent<>(100,
-                                                              stateStore) {
+                         new StoredStateComponent<Integer, Object>(100, stateStore) {
 
                              @Override
-                             public ComponentView<Integer> componentView() {
+                             public ComponentView<Integer, Object> componentView() {
                                  return _ -> s -> div(text("test-store-" + s));
                              }
                          })
@@ -57,8 +58,9 @@ class StoredStateComponentTests {
                                                           TreePositionPath.of("1"),
                                                           new ComponentContext(),
                                                           commands);
-        final Component<Boolean> scd = new InitialStateComponent<>(true,
-                                                                    view);
+        final Component<Boolean, Boolean> scd = new LocalStateComponent<>((_, _) -> true,
+                                                                            view,
+                                                                            (_, next) -> next);
         // Initial render
         scd.render(renderContext);
 
@@ -82,6 +84,7 @@ class StoredStateComponentTests {
                                                                 (nodeId, customEvent) -> {},
                                                                 ref -> {});
         clickEvent.eventHandler.accept(clickEventContext);
+        runQueuedTask(commands);
 
         assertEquals(1, commands.list.size());
         final var modifyDomOutMessage = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
@@ -93,9 +96,15 @@ class StoredStateComponentTests {
         // Add the hidden stateful component back
         final DomEventEntry clickEvent2 = renderContext.recursiveEvents().get(0);
         clickEvent2.eventHandler.accept(clickEventContext);
+        runQueuedTask(commands);
         assertEquals(1, commands.list.size());
         final RemoteCommand.ModifyDom modifyDomOutMessage2 = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
         assertTrue(modifyDomOutMessage2.toString().contains("test-store-100"));
+    }
+
+    private static void runQueuedTask(final TestSessonEventsConsumer commands) {
+        assertInstanceOf(GenericTaskEvent.class, commands.list.getFirst()).task().run();
+        commands.list.removeFirst();
     }
 
     public static <U> Optional<U> findFirstListElementByType(final Class<U> modifyDomOutMessageClass, final List<?> list) {

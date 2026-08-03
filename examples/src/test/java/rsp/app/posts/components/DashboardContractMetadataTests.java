@@ -26,8 +26,7 @@ class DashboardContractMetadataTests {
         service.emitNextSample();
         service.emitNextSample();
         LogStreamService logService = new LogStreamService(5, CLOCK, new Random(0L));
-        DashboardContract contract = new DashboardContract(new TestLookup(),
-                DemoDashboards.live(service, logService));
+        DashboardContract contract = new DashboardContract(DemoDashboards.live(service, logService));
 
         ContractMetadata metadata = contract.contractMetadata();
 

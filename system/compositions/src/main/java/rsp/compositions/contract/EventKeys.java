@@ -13,14 +13,14 @@ public final class EventKeys {
     /**
      * Show a contract (on-demand instantiation).
      * Emitted by: Contracts (via ACTION binding translation)
-     * Handled by: SceneComponent (instantiates contract, adds to scene)
+     * Handled by: SceneEventHandler (selects a descriptor in scene state)
      * Payload: ShowPayload with contract class and data
      * <p>
      * Data flow:
      * <ol>
      *   <li>View emits ACTION("edit", {id: "123"})</li>
      *   <li>Contract translates via actionBindings() to SHOW(EditContract.class, {id: "123"})</li>
-     *   <li>SceneComponent receives SHOW, instantiates contract on-demand</li>
+     *   <li>SceneEventHandler receives SHOW and selects a descriptor on-demand</li>
      * </ol>
      */
     public static final EventKey.SimpleKey<ShowPayload> SHOW =
@@ -43,16 +43,17 @@ public final class EventKeys {
     /**
      * Hide a contract (destroy instance).
      * Emitted by: Views (close button), Contracts (after save/delete)
-     * Handled by: SceneComponent (calls onDestroy, removes from scene)
+     * Handled by: LayerComponent, which removes the descriptor and unmounts
+     * its DirectContractHost.
      * Payload: Contract class to hide (always explicit about what to close)
      * <p>
      * Unlike CLOSE_OVERLAY which is generic, HIDE always specifies which
      * contract to close. This supports multiple overlays being shown.
      */
     @SuppressWarnings("unchecked")
-    public static final EventKey.SimpleKey<Class<? extends ViewContract>> HIDE =
+    public static final EventKey.SimpleKey<Class<? extends Contract>> HIDE =
             new EventKey.SimpleKey<>("hide",
-                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+                    (Class<Class<? extends Contract>>) (Class<?>) Class.class);
 
 
     /**
@@ -77,6 +78,22 @@ public final class EventKeys {
             new EventKey.SimpleKey<>("scene.query.updated", SceneQueryUpdate.class);
 
     /**
+     * Reports the title produced by a mounted contract runtime. Scene state uses
+     * this only for the matching primary descriptor, keeping title resolution
+     * inside the component tree without letting companions overwrite it.
+     */
+    public static final EventKey.SimpleKey<SceneTitleUpdate> SCENE_TITLE_UPDATED =
+            new EventKey.SimpleKey<>("scene.title.updated", SceneTitleUpdate.class);
+
+    /**
+     * Announces that the component tree mounted the currently routed contract.
+     * Consumers that need a live contract, such as an agent sidebar, keep their
+     * own local reference rather than reading one from Scene state.
+     */
+    public static final EventKey.SimpleKey<MountedPrimaryContract> PRIMARY_CONTRACT_MOUNTED =
+            new EventKey.SimpleKey<>("scene.primary.contract.mounted", MountedPrimaryContract.class);
+
+    /**
      * Query parameter update payload for scene-local URL state.
      *
      * @param name query parameter name
@@ -89,10 +106,28 @@ public final class EventKeys {
         }
     }
 
+    public record SceneTitleUpdate(long descriptorId, String title) {
+        public SceneTitleUpdate {
+            if (descriptorId < 1) {
+                throw new IllegalArgumentException("descriptorId must be positive");
+            }
+            Objects.requireNonNull(title, "title");
+        }
+    }
+
+    public record MountedPrimaryContract(long descriptorId, Contract contract) {
+        public MountedPrimaryContract {
+            if (descriptorId < 1) {
+                throw new IllegalArgumentException("descriptorId must be positive");
+            }
+            Objects.requireNonNull(contract, "contract");
+        }
+    }
+
 
     /**
      * Action succeeded (data event).
-     * Emitted by: Contracts (EditViewContract, FormViewContract) after successful operations
+     * Emitted by: form contract components after successful operations
      * Payload: ActionResult containing contract class
      * <p>
      * This is a data event — contracts decide their own post-action behavior.
@@ -108,7 +143,7 @@ public final class EventKeys {
      * @param contractClass The class of the contract that performed the action
      */
     public record ActionResult(
-        Class<? extends ViewContract> contractClass
+        Class<? extends Contract> contractClass
     ) {}
 
 }

@@ -2,7 +2,7 @@ package rsp.compositions.layout;
 
 import rsp.compositions.composition.Group;
 import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -19,9 +19,9 @@ public final class PlacementResolver {
     private PlacementResolver() {}
 
     public static PlacementDecision resolve(
-            Class<? extends ViewContract> contractClass,
+            Class<? extends Contract> contractClass,
             Scene scene,
-            Map<Class<? extends ViewContract>, Placement> placements,
+            Map<? extends Class<? extends Contract>, Placement> placements,
             GroupPlacementPolicy groupPlacementPolicy,
             Group contracts) {
         Objects.requireNonNull(contractClass, "contractClass");
@@ -42,7 +42,7 @@ public final class PlacementResolver {
     }
 
     private static PlacementDecision firstInScene(Scene scene) {
-        if (scene == null || scene.routedRuntime() == null) {
+        if (scene == null || scene.routedDescriptor() == null) {
             return PlacementDecision.groupPolicy(Placement.INLINE.primary());
         }
         return PlacementDecision.groupPolicy(Placement.MODAL);
@@ -55,7 +55,7 @@ public final class PlacementResolver {
      * unbound or unlabeled targets stay modal unless an explicit layout rule
      * matched first.
      */
-    private static PlacementDecision firstInGroup(Class<? extends ViewContract> targetClass,
+    private static PlacementDecision firstInGroup(Class<? extends Contract> targetClass,
                                                   Scene scene,
                                                   Group contracts) {
         if (contracts == null) {
@@ -65,10 +65,10 @@ public final class PlacementResolver {
         if (targetGroup.isEmpty()) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
-        if (scene == null || scene.routedRuntime() == null) {
+        if (scene == null || scene.routedDescriptor() == null) {
             return PlacementDecision.groupPolicy(Placement.INLINE.primary());
         }
-        Class<? extends ViewContract> routedClass = scene.routedRuntime().contractClass();
+        Class<? extends Contract> routedClass = scene.routedDescriptor().contractClass();
         Optional<Group> routedGroup = contracts.placementGroupFor(routedClass);
         if (routedGroup.isEmpty()) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
@@ -80,11 +80,11 @@ public final class PlacementResolver {
     }
 
     private static RuleMatch findBestRule(
-            Class<? extends ViewContract> contractClass,
-            Map<Class<? extends ViewContract>, Placement> placements) {
+            Class<? extends Contract> contractClass,
+            Map<? extends Class<? extends Contract>, Placement> placements) {
         RuleMatch best = null;
-        for (var entry : placements.entrySet()) {
-            Class<? extends ViewContract> ruleType = entry.getKey();
+        for (Map.Entry<? extends Class<? extends Contract>, Placement> entry : placements.entrySet()) {
+            Class<? extends Contract> ruleType = entry.getKey();
             if (!ruleType.isAssignableFrom(contractClass)) {
                 continue;
             }
@@ -123,7 +123,7 @@ public final class PlacementResolver {
         return Integer.MAX_VALUE;
     }
 
-    private record RuleMatch(Class<? extends ViewContract> contractType,
+    private record RuleMatch(Class<? extends Contract> contractType,
                              Placement placement,
                              int distance) {}
 

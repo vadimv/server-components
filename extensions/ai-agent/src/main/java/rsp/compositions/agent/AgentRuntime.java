@@ -13,12 +13,12 @@ import rsp.compositions.contract.ActionBindings;
 import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.contract.DispatchEffect;
-import rsp.compositions.contract.EditViewContract;
+import rsp.compositions.contract.EditContractEvents;
 import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.FormViewContract;
-import rsp.compositions.contract.ListViewContract;
+import rsp.compositions.contract.FormContractEvents;
+import rsp.compositions.contract.ListContractEvents;
 import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.util.html.HtmlEscape;
 
 import java.util.ArrayDeque;
@@ -84,17 +84,17 @@ public class AgentRuntime {
      */
     private static final List<EventKey<?>> DEFAULT_MONITORED_USER_EVENTS = List.of(
             EventKeys.SET_PRIMARY,
-            ListViewContract.CREATE_ELEMENT_REQUESTED,
-            ListViewContract.EDIT_ELEMENT_REQUESTED,
-            ListViewContract.EDIT_SELECTED_REQUESTED,
-            ListViewContract.BULK_DELETE_REQUESTED,
-            ListViewContract.DELETE_SELECTED_REQUESTED,
-            ListViewContract.PAGE_CHANGE_REQUESTED,
-            ListViewContract.SELECT_ALL_REQUESTED,
-            FormViewContract.FORM_SUBMITTED,
-            FormViewContract.CANCEL_REQUESTED,
-            FormViewContract.FORM_FIELD_SET,
-            EditViewContract.DELETE_REQUESTED);
+            ListContractEvents.CREATE_ELEMENT_REQUESTED,
+            ListContractEvents.EDIT_ELEMENT_REQUESTED,
+            ListContractEvents.EDIT_SELECTED_REQUESTED,
+            ListContractEvents.BULK_DELETE_REQUESTED,
+            ListContractEvents.DELETE_SELECTED_REQUESTED,
+            ListContractEvents.PAGE_CHANGE_REQUESTED,
+            ListContractEvents.SELECT_ALL_REQUESTED,
+            FormContractEvents.FORM_SUBMITTED,
+            FormContractEvents.CANCEL_REQUESTED,
+            FormContractEvents.FORM_FIELD_SET,
+            EditContractEvents.DELETE_REQUESTED);
 
     private final AgentService agentService;
     private final ActionDispatcher dispatcher;
@@ -103,7 +103,7 @@ public class AgentRuntime {
     private final StructureNode structure;
     private final Lookup lookup;
     private final AgentFeedback feedback;
-    private final Class<? extends ViewContract> approvalContractClass;
+    private final Class<? extends Contract> approvalContractClass;
     private final LoopPolicy loopPolicy;
     private final InterruptionPolicy interruptionPolicy;
     private final String diagnosticLabel;
@@ -118,6 +118,8 @@ public class AgentRuntime {
     private volatile String queuedUserText;
     private volatile PendingAction pendingConfirm;
     private volatile Scene currentScene;
+    private volatile Contract activeContract;
+    private volatile long activeContractDescriptorId;
     private volatile CompletableFuture<Scene> sceneSettleFuture;
 
     // Loop lifecycle: at most one loop runs at a time.
@@ -132,11 +134,11 @@ public class AgentRuntime {
     private int planStepsEnqueuedTotal;
 
     // User-event monitoring on the active contract's lookup. Subscriptions
-    // are torn down and re-installed in {@link #onScene} whenever the routed
-    // contract class changes. Accessed only from the event thread (onScene),
-    // so no synchronisation is needed.
+    // are torn down and re-installed when the component tree announces a new
+    // mounted primary contract. Accessed only from the event thread, so no
+    // synchronisation is needed.
     private final List<Lookup.Registration> userEventMonitorRegistrations = new ArrayList<>();
-    private Class<? extends ViewContract> monitoredContractClass;
+    private Class<? extends Contract> monitoredContractClass;
 
     // Set true while the loop is inside dispatch + scene-settle. Cleared
     // shortly after; {@link #lastDispatchEndMillis} provides a grace window
@@ -153,7 +155,7 @@ public class AgentRuntime {
                         StructureNode structure,
                         Lookup lookup,
                         AgentFeedback feedback,
-                        Class<? extends ViewContract> approvalContractClass,
+                        Class<? extends Contract> approvalContractClass,
                         LoopPolicy loopPolicy,
                         String diagnosticLabel) {
         this(agentService, dispatcher, spawner, authorization, structure, lookup,
@@ -167,7 +169,7 @@ public class AgentRuntime {
                         StructureNode structure,
                         Lookup lookup,
                         AgentFeedback feedback,
-                        Class<? extends ViewContract> approvalContractClass,
+                        Class<? extends Contract> approvalContractClass,
                         LoopPolicy loopPolicy,
                         InterruptionPolicy interruptionPolicy,
                         String diagnosticLabel) {
@@ -195,10 +197,9 @@ public class AgentRuntime {
     // ==================================================================
 
     /**
-     * Push the current scene from the host contract. Completes any pending
-     * scene-settle future used by plan/loop navigation, and rebinds the
-     * user-event monitor onto the new active contract's lookup so user
-     * button actions can interrupt the running loop.
+     * Push the current scene descriptor from the host contract. Completes any
+     * pending scene-settle future used by plan/loop navigation. The live
+     * contract itself arrives separately through {@link #onPrimaryContractMounted}.
      */
     public void onScene(Scene scene) {
         this.currentScene = scene;
@@ -206,7 +207,28 @@ public class AgentRuntime {
         if (future != null && !future.isDone()) {
             future.complete(scene);
         }
-        rebindUserEventMonitor(scene);
+        if (scene == null || scene.routedDescriptor() == null
+                || scene.routedDescriptor().instanceId() != activeContractDescriptorId) {
+            activeContract = null;
+            activeContractDescriptorId = 0;
+            rebindUserEventMonitor(null, null);
+        }
+    }
+
+    /**
+     * Accept the live primary contract published by its owning component.
+     * Stale publications from an unmounted/replaced descriptor are ignored.
+     */
+    public void onPrimaryContractMounted(EventKeys.MountedPrimaryContract mounted) {
+        Objects.requireNonNull(mounted, "mounted");
+        Scene scene = currentScene;
+        if (scene == null || scene.routedDescriptor() == null
+                || scene.routedDescriptor().instanceId() != mounted.descriptorId()) {
+            return;
+        }
+        activeContract = mounted.contract();
+        activeContractDescriptorId = mounted.descriptorId();
+        rebindUserEventMonitor(mounted.contract().getClass(), mounted.contract().lookup());
     }
 
     /**
@@ -216,24 +238,10 @@ public class AgentRuntime {
      * NOT tagged by {@link ActionDispatcher#isAgentDispatch()} — i.e. the
      * event came from a user button action rather than from the agent itself.
      * <p>
-     * The monitor is rebound only when the routed contract class changes, so
-     * repeated {@link #onScene} pushes with the same routed contract are cheap.
-     */
-    private void rebindUserEventMonitor(Scene scene) {
-        Class<? extends ViewContract> newClass =
-                (scene != null && scene.routedContract() != null)
-                        ? scene.routedContract().getClass() : null;
-        Lookup activeLookup =
-                (scene != null && scene.routedContract() != null)
-                        ? scene.routedContract().lookup() : null;
-        rebindUserEventMonitor(newClass, activeLookup);
-    }
-
-    /**
      * Variant accepting the class + lookup directly. Package-private so tests
      * can install monitoring without constructing a real {@link Scene}.
      */
-    void rebindUserEventMonitor(Class<? extends ViewContract> newClass, Lookup activeLookup) {
+    void rebindUserEventMonitor(Class<? extends Contract> newClass, Lookup activeLookup) {
         if (Objects.equals(newClass, monitoredContractClass)) {
             return;
         }
@@ -343,7 +351,7 @@ public class AgentRuntime {
 
         AbortToken token = new AbortToken();
         this.currentToken = token;
-        final ViewContract initialContract = activeContract();
+        final Contract initialContract = activeContract();
         feedback.send("<em>Thinking...</em>");
         final long startTime = System.currentTimeMillis();
 
@@ -447,7 +455,7 @@ public class AgentRuntime {
         }
     }
 
-    private void startLoopFromApproval(AgentResult queued, String userText, ViewContract capturedContract) {
+    private void startLoopFromApproval(AgentResult queued, String userText, Contract capturedContract) {
         // The original submit's loop has already returned (after queueing),
         // so {@code running} should be false. Defensive guard for unexpected state.
         if (!running.compareAndSet(false, true)) {
@@ -494,7 +502,7 @@ public class AgentRuntime {
      * The queue and counters are reset on each invocation so the runtime is
      * reusable across submits. Package-private to allow direct unit testing.
      */
-    void runLoop(String userText, ViewContract initialContract, AbortToken token, long startTime) {
+    void runLoop(String userText, Contract initialContract, AbortToken token, long startTime) {
         runLoop(userText, initialContract, token, startTime, null);
     }
 
@@ -504,13 +512,13 @@ public class AgentRuntime {
      * calling the LLM — used by the post-approval path so a queued
      * {@code PlanResult} actually iterates to completion.
      */
-    void runLoop(String userText, ViewContract initialContract, AbortToken token,
+    void runLoop(String userText, Contract initialContract, AbortToken token,
                  long startTime, AgentResult kickstart) {
         int step = 0;
         boolean hasRun = false;
         boolean followupAllowed = false;
         boolean followupConsumed = false;
-        ViewContract capturedContract = initialContract;
+        Contract capturedContract = initialContract;
         this.planQueue = new ArrayDeque<>();
         this.planStepsConsumed = 0;
         this.planStepsEnqueuedTotal = 0;
@@ -649,7 +657,7 @@ public class AgentRuntime {
      * terminal state (text reply, plan, blocked, awaiting confirm, awaiting
      * approval, denied).
      */
-    private boolean evaluateAndDispatch(AgentResult result, ViewContract capturedContract, String userText) {
+    private boolean evaluateAndDispatch(AgentResult result, Contract capturedContract, String userText) {
         Authorization current = (agentSession != null && agentSession.isValid())
                 ? authorization.delegated(agentSession.grant())
                 : authorization;
@@ -694,7 +702,7 @@ public class AgentRuntime {
      * Dispatch one LLM result. Returns {@code true} if the loop may proceed
      * to a next iteration, {@code false} otherwise.
      */
-    private boolean executeStep(AgentResult result, ViewContract capturedContract) {
+    private boolean executeStep(AgentResult result, Contract capturedContract) {
         final ActionGate capturedGate = gate;
         switch (result) {
             case AgentResult.TextReply reply -> {
@@ -702,8 +710,7 @@ public class AgentRuntime {
                 return false;
             }
             case AgentResult.NavigateResult nav -> {
-                if (currentScene != null && currentScene.routedContract() != null
-                        && nav.targetContract().isInstance(currentScene.routedContract())) {
+                if (isRoutedBy(currentScene, nav.targetContract())) {
                     feedback.send("Already on " + nav.targetContract().getSimpleName());
                     return true;
                 }
@@ -714,8 +721,7 @@ public class AgentRuntime {
                 if (settled == null) {
                     return false;
                 }
-                if (settled.routedContract() == null
-                        || !nav.targetContract().isInstance(settled.routedContract())) {
+                if (!isRoutedBy(settled, nav.targetContract())) {
                     feedback.send("Loop interrupted: unexpected navigation target.");
                     return false;
                 }
@@ -903,12 +909,16 @@ public class AgentRuntime {
     }
 
     private AgentContext buildAgentContext() {
-        ViewContract active = currentScene != null ? currentScene.routedContract() : null;
-        return AgentContext.forScope(AgentContext.Scope.APP, active, structure, actionFilter, lookup);
+        return AgentContext.forScope(AgentContext.Scope.APP, activeContract(), structure, actionFilter, lookup);
     }
 
-    private ViewContract activeContract() {
-        return currentScene != null ? currentScene.routedContract() : null;
+    private Contract activeContract() {
+        return activeContract;
+    }
+
+    private boolean isRoutedBy(Scene scene, Class<? extends Contract> contractClass) {
+        return scene != null && scene.routedContractClass() != null
+                && contractClass.isAssignableFrom(scene.routedContractClass());
     }
 
     private static String abbreviate(String s) {

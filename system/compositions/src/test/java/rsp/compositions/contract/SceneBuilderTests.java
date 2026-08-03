@@ -1,9 +1,10 @@
 package rsp.compositions.contract;
 
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
 import rsp.component.ComponentEventEntry;
 import rsp.component.Lookup;
 import rsp.component.Subscriber;
@@ -16,7 +17,7 @@ import rsp.compositions.routing.Router;
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 
-import java.util.function.Consumer;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -24,139 +25,71 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/**
- * Tests for {@link SceneBuilder} — particularly the parent-route handling
- * that branches on {@link rsp.compositions.layout.Layout#resolvePlacement}.
- */
+/** Verifies parent-route placement with direct contract components. */
 class SceneBuilderTests {
 
-    @Nested
-    class ParentRouteWithModalPlacement {
+    @Test
+    void modal_child_keeps_parent_as_primary_and_auto_opens_child() {
+        Composition composition = compositionWith(new DefaultLayout());
 
-        @Test
-        void preserves_auto_open_for_overlay_contract() {
-            // Default layout with no placement override → ALL_MODAL.
-            final Composition composition = compositionWith(new DefaultLayout());
-            final SceneBuilder builder = new SceneBuilder(
-                    composition, EditContract.class, "/posts/:id", composition.layout());
+        Scene scene = new SceneBuilder(composition, EditContract.class, "/posts/:id", composition.layout())
+                .buildScene(testContext());
 
-            final Scene scene = builder.buildScene(testContext());
-
-            assertEquals(ListContract.class, scene.routedRuntime().contractClass(),
-                    "modal placement keeps the parent contract as the routed primary");
-            assertTrue(scene.hasPreActivatedContracts(),
-                    "modal placement pre-activates the overlay for LayerComponent auto-open");
-            assertNotNull(scene.autoOpen());
-            assertEquals(EditContract.class, scene.autoOpen().contractClass());
-            assertEquals("/posts/:id", scene.autoOpen().routePattern());
-        }
-
-        @Test
-        void explicit_modal_placement_keeps_auto_open() {
-            final DefaultLayout layout = new DefaultLayout()
-                    .placement(EditContract.class, Placement.MODAL);
-            final Composition composition = compositionWith(layout);
-            final SceneBuilder builder = new SceneBuilder(
-                    composition, EditContract.class, "/posts/:id", layout);
-
-            final Scene scene = builder.buildScene(testContext());
-
-            assertEquals(ListContract.class, scene.routedRuntime().contractClass());
-            assertTrue(scene.hasPreActivatedContracts());
-        }
+        assertEquals(ListContract.class, scene.routedDescriptor().contractClass());
+        assertTrue(scene.hasPreActivatedContracts());
+        assertNotNull(scene.autoOpen());
+        assertEquals(EditContract.class, scene.autoOpen().contractClass());
     }
 
-    @Nested
-    class ParentRouteWithInlinePlacement {
+    @Test
+    void inline_child_becomes_primary_without_an_overlay() {
+        DefaultLayout layout = new DefaultLayout().placement(EditContract.class, Placement.INLINE.primary());
+        Composition composition = compositionWith(layout);
 
-        @Test
-        void routes_child_directly_as_primary() {
-            final DefaultLayout layout = new DefaultLayout()
-                    .placement(EditContract.class, Placement.INLINE.primary());
-            final Composition composition = compositionWith(layout);
-            final SceneBuilder builder = new SceneBuilder(
-                    composition, EditContract.class, "/posts/:id", layout);
+        Scene scene = new SceneBuilder(composition, EditContract.class, "/posts/:id", layout)
+                .buildScene(testContext());
 
-            final Scene scene = builder.buildScene(testContext());
-
-            assertEquals(EditContract.class, scene.routedRuntime().contractClass(),
-                    "inline placement routes the child contract directly as the primary");
-            assertFalse(scene.hasPreActivatedContracts(),
-                    "inline placement does NOT pre-activate any overlay");
-            assertNull(scene.autoOpen(), "inline placement leaves autoOpen null");
-        }
-
-        @Test
-        void inline_via_form_base_class_placement_routes_child_directly() {
-            // Mirror the CrudApp pattern: blanket FormViewContract → inline.primary().
-            // Here EditContract extends FormBaseContract; the rule applies via base class.
-            final DefaultLayout layout = new DefaultLayout()
-                    .placement(FormBaseContract.class, Placement.INLINE.primary());
-            final Composition composition = compositionWithFormBase(layout);
-            final SceneBuilder builder = new SceneBuilder(
-                    composition, FormChildContract.class, "/posts/:id", layout);
-
-            final Scene scene = builder.buildScene(testContext());
-
-            assertEquals(FormChildContract.class, scene.routedRuntime().contractClass());
-            assertFalse(scene.hasPreActivatedContracts());
-        }
-
-        @Test
-        void all_inline_group_policy_routes_child_directly() {
-            final DefaultLayout layout = new DefaultLayout()
-                    .groupPlacementPolicy(GroupPlacementPolicy.ALL_INLINE);
-            final Composition composition = compositionWith(layout);
-            final SceneBuilder builder = new SceneBuilder(
-                    composition, EditContract.class, "/posts/:id", layout);
-
-            final Scene scene = builder.buildScene(testContext());
-
-            assertEquals(EditContract.class, scene.routedRuntime().contractClass());
-            assertFalse(scene.hasPreActivatedContracts());
-        }
+        assertEquals(EditContract.class, scene.routedDescriptor().contractClass());
+        assertFalse(scene.hasPreActivatedContracts());
+        assertNull(scene.autoOpen());
     }
 
-    @Nested
-    class NoParentRoute {
+    @Test
+    void base_component_placement_applies_to_a_child_contract() {
+        DefaultLayout layout = new DefaultLayout().placement(FormBaseContract.class, Placement.INLINE.primary());
+        Group group = new Group("Posts")
+                .bind(ListContract.class, ListContract::new)
+                .bind(FormChildContract.class, FormChildContract::new);
+        Composition composition = new Composition(new Router()
+                .route("/posts", ListContract.class)
+                .route("/posts/:id", FormChildContract.class), layout, group);
 
-        @Test
-        void routes_directly_regardless_of_placement() {
-            // /posts has no parent route — placement decision is irrelevant.
-            final DefaultLayout layout = new DefaultLayout()
-                    .placement(ListContract.class, Placement.MODAL);
-            final Composition composition = compositionWith(layout);
-            final SceneBuilder builder = new SceneBuilder(
-                    composition, ListContract.class, "/posts", layout);
+        Scene scene = new SceneBuilder(composition, FormChildContract.class, "/posts/:id", layout)
+                .buildScene(testContext());
 
-            final Scene scene = builder.buildScene(testContext());
-
-            assertEquals(ListContract.class, scene.routedRuntime().contractClass());
-            assertFalse(scene.hasPreActivatedContracts());
-            assertNull(scene.autoOpen());
-        }
+        assertEquals(FormChildContract.class, scene.routedDescriptor().contractClass());
+        assertFalse(scene.hasPreActivatedContracts());
     }
 
-    // --- Fixtures ----------------------------------------------------------
+    @Test
+    void group_inline_policy_routes_child_directly() {
+        DefaultLayout layout = new DefaultLayout().groupPlacementPolicy(GroupPlacementPolicy.ALL_INLINE);
+        Composition composition = compositionWith(layout);
+
+        Scene scene = new SceneBuilder(composition, EditContract.class, "/posts/:id", layout)
+                .buildScene(testContext());
+
+        assertEquals(EditContract.class, scene.routedDescriptor().contractClass());
+        assertFalse(scene.hasPreActivatedContracts());
+    }
 
     private Composition compositionWith(DefaultLayout layout) {
-        final Group group = new Group("Posts")
-                .bind(ListContract.class, ListContract::new, () -> null)
-                .bind(EditContract.class, EditContract::new, () -> null);
-        final Router router = new Router()
+        Group group = new Group("Posts")
+                .bind(ListContract.class, ListContract::new)
+                .bind(EditContract.class, EditContract::new);
+        return new Composition(new Router()
                 .route("/posts", ListContract.class)
-                .route("/posts/:id", EditContract.class);
-        return new Composition(router, layout, group);
-    }
-
-    private Composition compositionWithFormBase(DefaultLayout layout) {
-        final Group group = new Group("Posts")
-                .bind(ListContract.class, ListContract::new, () -> null)
-                .bind(FormChildContract.class, FormChildContract::new, () -> null);
-        final Router router = new Router()
-                .route("/posts", ListContract.class)
-                .route("/posts/:id", FormChildContract.class);
-        return new Composition(router, layout, group);
+                .route("/posts/:id", EditContract.class), layout, group);
     }
 
     private ComponentContext testContext() {
@@ -165,40 +98,30 @@ class SceneBuilderTests {
                 .with(Subscriber.class, new NoOpSubscriber());
     }
 
-    // --- Test contracts ----------------------------------------------------
-
-    static class ListContract extends ViewContract {
-        ListContract(Lookup lookup) { super(lookup); }
-        @Override public ComponentContext enrichContext(ComponentContext c) { return c; }
+    static class ListContract extends ContractNodeComponent<String, Object> {
+        @Override public ComponentStateSupplier<String> initStateSupplier() { return (_, _) -> "ready"; }
+        @Override public ComponentView<String, Object> componentView() { return _ -> _ -> null; }
         @Override public String title() { return "List"; }
     }
 
-    static class EditContract extends ViewContract {
-        EditContract(Lookup lookup) { super(lookup); }
-        @Override public ComponentContext enrichContext(ComponentContext c) { return c; }
+    static class EditContract extends ListContract {
         @Override public String title() { return "Edit"; }
     }
 
-    static abstract class FormBaseContract extends ViewContract {
-        FormBaseContract(Lookup lookup) { super(lookup); }
-        @Override public ComponentContext enrichContext(ComponentContext c) { return c; }
-        @Override public String title() { return "Form"; }
-    }
-
-    static class FormChildContract extends FormBaseContract {
-        FormChildContract(Lookup lookup) { super(lookup); }
-    }
+    static abstract class FormBaseContract extends ListContract {}
+    static class FormChildContract extends FormBaseContract {}
 
     private static final class NoOpSubscriber implements Subscriber {
         @Override
         public void addWindowEventHandler(String eventType,
-                                          Consumer<EventContext> eventHandler,
+                                          java.util.function.Consumer<EventContext> eventHandler,
                                           boolean preventDefault,
-                                          DomEventEntry.Modifier modifier) {}
+                                          DomEventEntry.Modifier modifier) {
+        }
 
         @Override
         public Lookup.Registration addComponentEventHandler(String eventType,
-                                                            Consumer<ComponentEventEntry.EventContext> eventHandler,
+                                                            java.util.function.Consumer<ComponentEventEntry.EventContext> eventHandler,
                                                             boolean preventDefault) {
             return () -> {};
         }

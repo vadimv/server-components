@@ -1,12 +1,7 @@
 package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
-import rsp.component.CommandsEnqueue;
-import rsp.component.StateUpdate;
-import rsp.component.Subscriber;
-import rsp.component.definitions.ContextStateComponent;
-import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.ListViewContract;
+import rsp.component.IntentDispatcher;
 import rsp.compositions.contract.ListView;
 import rsp.dsl.Definition;
 
@@ -14,8 +9,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-import static rsp.compositions.contract.EventKeys.*;
-import static rsp.compositions.contract.ListViewContract.*;
 import static rsp.dsl.Html.*;
 
 /**
@@ -27,28 +20,11 @@ import static rsp.dsl.Html.*;
  * <p>
  * Create/Edit actions trigger events that open overlay contracts via SHOW events.
  */
-public class DefaultListView extends ListView {
-
-    private final System.Logger logger = System.getLogger(getClass().getName());
+public class DefaultListView implements ComponentView<ListView.ListViewState, ListView.ListIntent> {
 
     @Override
-    public void onAfterRendered(ListViewState state,
-                                Subscriber subscriber,
-                                CommandsEnqueue commandsEnqueue,
-                                StateUpdate<ListViewState> stateUpdate) {
-        subscriber.addEventHandler(ListViewContract.SELECT_ALL_REQUESTED, () -> {
-            stateUpdate.applyStateTransformation(s -> {
-                ListViewState newState = s.selectAll();
-                lookup.publish(ListViewContract.SELECTION_CHANGED,
-                        new ListViewContract.SelectedItems(newState.selectedIds()));
-                return newState;
-            });
-        }, false);
-    }
-
-    @Override
-    public ComponentView<ListViewState> componentView() {
-        return newState -> state -> {
+    public rsp.component.View<ListView.ListViewState> use(IntentDispatcher<ListView.ListIntent> intents) {
+        return state -> {
             final int page = state.page();
             final String sort = state.sort();
             final String modulePath = state.modulePath();
@@ -62,16 +38,16 @@ public class DefaultListView extends ListView {
 
                 // Create New action - triggers event to open overlay
                 div(attr("class", "list-actions"),
-                    renderCreateButton(),
+                    renderCreateButton(intents),
                     // Bulk delete button (only when selectable and has selections)
                     selectable && !state.selectedIds().isEmpty()
-                        ? renderBulkDeleteButton(state, newState)
+                        ? renderBulkDeleteButton(state, intents)
                         : of()
                 ),
 
                 // Pagination controls at top
                 div(attr("class", "pagination-top"),
-                    renderPaginationControls(page, state, newState)
+                    renderPaginationControls(page, state, intents)
                 ),
 
                 // Table with sortable headers
@@ -85,15 +61,13 @@ public class DefaultListView extends ListView {
                                         attr("type", "checkbox"),
                                         state.isAllSelected() ? attr("checked", "checked") : of(),
                                         on("click", ctx -> {
-                                            ListViewState updated;
+                                            ListView.ListViewState updated;
                                             if (state.isAllSelected()) {
                                                 updated = state.clearSelection();
                                             } else {
                                                 updated = state.selectAll();
                                             }
-                                            newState.setState(updated);
-                                            lookup.publish(ListViewContract.SELECTION_CHANGED,
-                                                    new ListViewContract.SelectedItems(updated.selectedIds()));
+                                            intents.dispatch(new ListView.SelectionChanged(updated.selectedIds()));
                                         })
                                     )
                                   )
@@ -109,9 +83,7 @@ public class DefaultListView extends ListView {
                                             String newSort = sort.equals("asc") ? "desc" : "asc";
 
                                             // Send event to AddressBarSyncComponent
-                                            lookup.publish(STATE_UPDATED.with("sort"),
-                                                new ContextStateComponent.ContextValue.StringValue(newSort)
-                                            );
+                                            intents.dispatch(new ListView.SortRequested(newSort));
                                         })
                                     )
                                 ))
@@ -132,10 +104,8 @@ public class DefaultListView extends ListView {
                                             attr("type", "checkbox"),
                                             state.isSelected(rowId) ? attr("checked", "checked") : of(),
                                             on("click", ctx -> {
-                                                ListViewState updated = state.toggleSelection(rowId);
-                                                newState.setState(updated);
-                                                lookup.publish(ListViewContract.SELECTION_CHANGED,
-                                                        new ListViewContract.SelectedItems(updated.selectedIds()));
+                                                ListView.ListViewState updated = state.toggleSelection(rowId);
+                                                intents.dispatch(new ListView.SelectionChanged(updated.selectedIds()));
                                             })
                                         )
                                       )
@@ -146,7 +116,7 @@ public class DefaultListView extends ListView {
                                 ),
                                 // Actions column with Edit button
                                 td(
-                                    renderEditButton(rowId, currentQueryParams)
+                                    renderEditButton(rowId, currentQueryParams, state.editTarget(), intents)
                                 )
                             );
                         }))
@@ -155,7 +125,7 @@ public class DefaultListView extends ListView {
 
                 // Pagination controls at bottom
                 div(attr("class", "pagination-bottom"),
-                    renderPaginationControls(page, state, newState)
+                    renderPaginationControls(page, state, intents)
                 )
             );
         };
@@ -165,8 +135,8 @@ public class DefaultListView extends ListView {
      * Render the bulk delete button.
      * Clears selection immediately after confirming delete (optimistic UI update).
      */
-    private Definition renderBulkDeleteButton(ListViewState state,
-                                              rsp.component.StateUpdate<ListViewState> stateUpdate) {
+    private Definition renderBulkDeleteButton(ListView.ListViewState state,
+                                              IntentDispatcher<ListView.ListIntent> intents) {
         int count = state.selectedIds().size();
         return button(
             attr("type", "button"),
@@ -176,13 +146,7 @@ public class DefaultListView extends ListView {
                 ctx.evalJs("confirm('Are you sure you want to delete " + count + " items?')")
                     .thenAccept(result -> {
                         if (result instanceof rsp.util.json.JsonDataType.Boolean confirmed && confirmed.value()) {
-                            lookup.publish(BULK_DELETE_REQUESTED, state.selectedIds());
-                            // Clear selection immediately (optimistic UI update)
-                            // This hides the button and unchecks all checkboxes
-                            ListViewState cleared = state.clearSelection();
-                            stateUpdate.setState(cleared);
-                            lookup.publish(ListViewContract.SELECTION_CHANGED,
-                                    new ListViewContract.SelectedItems(cleared.selectedIds()));
+                            intents.dispatch(new ListView.BulkDeleteConfirmed(state.selectedIds()));
                         }
                     });
             })
@@ -201,14 +165,12 @@ public class DefaultListView extends ListView {
      * Render the Create button.
      * Emits abstract ACTION("create") event - contract translates to SHOW via actionBindings().
      */
-    private Definition renderCreateButton() {
+    private Definition renderCreateButton(IntentDispatcher<ListView.ListIntent> intents) {
         return button(
             attr("type", "button"),
             attr("class", "create-button"),
             text("Create New"),
-            on("click", ctx -> {
-                lookup.publish(CREATE_ELEMENT_REQUESTED);
-            }));
+            on("click", ctx -> intents.dispatch(ListView.CreateRequested.INSTANCE)));
     }
 
     /**
@@ -223,14 +185,16 @@ public class DefaultListView extends ListView {
      * @param rowId The row ID for the edit link
      * @param queryParams Query params to preserve (e.g., "fromP=2&fromSort=desc")
      */
-    private Definition renderEditButton(String rowId, String queryParams) {
-        Boolean editHasRoute = lookup.get(ContextKeys.EDIT_HAS_ROUTE);
-        Boolean editOpensAsOverlay = lookup.get(ContextKeys.EDIT_OPENS_AS_OVERLAY);
-        String editRoutePattern = lookup.get(ContextKeys.EDIT_ROUTE_PATTERN);
+    private Definition renderEditButton(String rowId,
+                                        String queryParams,
+                                        ListView.EditTarget editTarget,
+                                        IntentDispatcher<ListView.ListIntent> intents) {
+        boolean editHasRoute = editTarget.hasRoute();
+        boolean editOpensAsOverlay = editTarget.opensAsOverlay();
+        String editRoutePattern = editTarget.routePattern();
 
         // Primary-like with route → navigate via link
-        if (editHasRoute != null && editHasRoute
-                && (editOpensAsOverlay == null || !editOpensAsOverlay)) {
+        if (editHasRoute && !editOpensAsOverlay) {
             String editUrl = buildEditUrl(editRoutePattern, rowId, queryParams);
             return a(
                 attr("href", editUrl),
@@ -244,9 +208,7 @@ public class DefaultListView extends ListView {
             attr("type", "button"),
             attr("class", "edit-button"),
             text("Edit"),
-            on("click", ctx -> {
-                lookup.publish(EDIT_ELEMENT_REQUESTED, rowId);
-            })
+            on("click", ctx -> intents.dispatch(new ListView.EditRequested(rowId)))
         );
     }
 
@@ -271,8 +233,9 @@ public class DefaultListView extends ListView {
      * Render pagination controls (Previous/Next buttons).
      * Clears selection when page changes.
      */
-    private Definition renderPaginationControls(int currentPage, ListViewState state,
-                                                  rsp.component.StateUpdate<ListViewState> newState) {
+    private Definition renderPaginationControls(int currentPage,
+                                                ListView.ListViewState state,
+                                                IntentDispatcher<ListView.ListIntent> intents) {
         return div(
             // Previous button - conditionally render based on page
             currentPage <= 1
@@ -285,11 +248,7 @@ public class DefaultListView extends ListView {
                     attr("type", "button"),
                     text("← Previous"),
                     on("click", ctx -> {
-                        ListViewState cleared = state.clearSelection();
-                        newState.setState(cleared);
-                        lookup.publish(ListViewContract.SELECTION_CHANGED,
-                                new ListViewContract.SelectedItems(cleared.selectedIds()));
-                        lookup.publish(PAGE_CHANGE_REQUESTED, currentPage - 1);
+                        intents.dispatch(new ListView.PageRequested(currentPage - 1));
                     })
                   ),
 
@@ -304,11 +263,7 @@ public class DefaultListView extends ListView {
                 attr("type", "button"),
                 text("Next →"),
                 on("click", ctx -> {
-                    ListViewState cleared = state.clearSelection();
-                    newState.setState(cleared);
-                    lookup.publish(ListViewContract.SELECTION_CHANGED,
-                            new ListViewContract.SelectedItems(cleared.selectedIds()));
-                    lookup.publish(PAGE_CHANGE_REQUESTED, currentPage + 1);
+                    intents.dispatch(new ListView.PageRequested(currentPage + 1));
                 })
             )
         );

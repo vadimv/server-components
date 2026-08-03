@@ -1,22 +1,19 @@
 package rsp.compositions.composition;
 
-import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * Group - Unified binding of contract types to their factories, views, and navigation structure.
+ * Group - Binding of contract component types to their factories and navigation structure.
  * <p>
- * Replaces both {@code Contracts} (factory/view binding) and {@code Category} (navigation grouping).
- * Each {@link #bind} call declares a 1-1-1 relationship: contract type, its constructor,
- * and its view. Groups can be nested via {@link #add} to create a tree structure
+ * Each {@link #bind} call declares the contract component and its constructor.
+ * Groups can be nested via {@link #add} to create a tree structure
  * for navigation and other metadata consumers.
  * <p>
- * Lookup methods ({@link #resolveView}, {@link #contractFactory}, {@link #contractClasses})
+ * Lookup methods ({@link #resolveComponent}, {@link #contractClasses})
  * aggregate across the entire tree (own bindings + all descendants).
  */
 public class Group {
@@ -24,8 +21,7 @@ public class Group {
     private final String label;
     private String description;
     private final List<Group> children;
-    private final Map<Class<? extends ViewContract>, Function<Lookup, ViewContract>> contractFactories;
-    private final Map<Class<? extends ViewContract>, Supplier<? extends Component<?>>> views;
+    private final Map<Class<? extends Contract>, Supplier<? extends Component<?, ?>>> contractComponents;
 
     /**
      * Create an unlabeled group (e.g., for system/infrastructure contracts).
@@ -42,8 +38,7 @@ public class Group {
     public Group(String label) {
         this.label = label;
         this.children = new ArrayList<>();
-        this.contractFactories = new LinkedHashMap<>();
-        this.views = new LinkedHashMap<>();
+        this.contractComponents = new LinkedHashMap<>();
     }
 
     /**
@@ -59,18 +54,20 @@ public class Group {
     }
 
     /**
-     * Bind a contract type to its factory and view factory.
+     * Bind an intent-driven contract component directly.
      *
-     * @param contractClass   The concrete contract class
-     * @param contractFactory Factory that takes a Lookup and produces a ViewContract
-     * @param viewFactory     Factory that creates the UI component for this contract
+     * <p>The supplied component is the contract: it owns state, lifecycle,
+     * subscriptions, and effects. Its view is therefore rendering-only.</p>
+     *
+     * @param contractClass concrete contract component class
+     * @param componentFactory factory producing a fresh contract component
      * @return this for chaining
      */
-    public Group bind(Class<? extends ViewContract> contractClass,
-                      Function<Lookup, ViewContract> contractFactory,
-                      Supplier<? extends Component<?>> viewFactory) {
-        contractFactories.put(contractClass, contractFactory);
-        views.put(contractClass, viewFactory);
+    public Group bind(Class<? extends Contract> contractClass,
+                      Supplier<? extends Component<?, ?>> componentFactory) {
+        Objects.requireNonNull(contractClass, "contractClass");
+        Objects.requireNonNull(componentFactory, "componentFactory");
+        contractComponents.put(contractClass, componentFactory);
         return this;
     }
 
@@ -87,41 +84,24 @@ public class Group {
     }
 
     /**
-     * Resolve the UI component for the given contract class.
-     * Searches own bindings first, then children depth-first.
+     * Resolve the directly bound contract component for the given class.
      *
-     * @param contractClass The contract class to resolve
-     * @return The UI component instance
-     * @throws IllegalStateException if no view factory is bound for this class
+     * @param contractClass the contract component class
+     * @return a fresh contract component instance
+     * @throws IllegalStateException if the contract has no direct component binding
      */
-    public Component<?> resolveView(Class<? extends ViewContract> contractClass) {
-        Supplier<? extends Component<?>> factory = findView(contractClass);
+    public Component<?, ?> resolveComponent(Class<? extends Contract> contractClass) {
+        Supplier<? extends Component<?, ?>> factory = findContractComponent(contractClass);
         if (factory == null) {
             throw new IllegalStateException(
-                    "No UI component bound for contract: " + contractClass.getName());
+                    "No contract component bound for contract: " + contractClass.getName());
         }
         return factory.get();
     }
 
-    /**
-     * Returns the contract factory for the given class, or null if not bound.
-     * Searches own bindings first, then children depth-first.
-     *
-     * @param contractClass The contract class
-     * @return The factory, or null
-     */
-    public Function<Lookup, ViewContract> contractFactory(Class<? extends ViewContract> contractClass) {
-        Function<Lookup, ViewContract> factory = contractFactories.get(contractClass);
-        if (factory != null) {
-            return factory;
-        }
-        for (Group child : children) {
-            factory = child.contractFactory(contractClass);
-            if (factory != null) {
-                return factory;
-            }
-        }
-        return null;
+    /** Returns whether this group tree contains a binding for the contract. */
+    public boolean hasBinding(Class<? extends Contract> contractClass) {
+        return findContractComponent(contractClass) != null;
     }
 
     /**
@@ -130,8 +110,8 @@ public class Group {
      *
      * @return unmodifiable set of contract classes
      */
-    public Set<Class<? extends ViewContract>> contractClasses() {
-        Set<Class<? extends ViewContract>> result = new LinkedHashSet<>(contractFactories.keySet());
+    public Set<Class<? extends Contract>> contractClasses() {
+        Set<Class<? extends Contract>> result = new LinkedHashSet<>(contractComponents.keySet());
         for (Group child : children) {
             result.addAll(child.contractClasses());
         }
@@ -148,7 +128,7 @@ public class Group {
      * @param contractClass The contract class to locate
      * @return the owning labeled path, or empty if the contract is not bound
      */
-    public Optional<List<String>> groupPathFor(Class<? extends ViewContract> contractClass) {
+    public Optional<List<String>> groupPathFor(Class<? extends Contract> contractClass) {
         Objects.requireNonNull(contractClass, "contractClass");
         return groupPathFor(contractClass, List.of());
     }
@@ -167,7 +147,7 @@ public class Group {
      * @return the labeled owning group, or empty if the contract is unknown or
      *         owned by an unlabeled group
      */
-    public Optional<Group> placementGroupFor(Class<? extends ViewContract> contractClass) {
+    public Optional<Group> placementGroupFor(Class<? extends Contract> contractClass) {
         Objects.requireNonNull(contractClass, "contractClass");
         return placementGroupForInternal(contractClass);
     }
@@ -186,17 +166,17 @@ public class Group {
         return new StructureNode(label,
                 description,
                 List.copyOf(childNodes),
-                List.copyOf(contractFactories.keySet()));
+                contractClassesInThisGroup());
     }
 
-    private Optional<List<String>> groupPathFor(Class<? extends ViewContract> contractClass,
+    private Optional<List<String>> groupPathFor(Class<? extends Contract> contractClass,
                                                 List<String> parentPath) {
         List<String> currentPath = parentPath;
         if (label != null) {
             currentPath = new ArrayList<>(parentPath);
             currentPath.add(label);
         }
-        if (contractFactories.containsKey(contractClass)) {
+        if (containsContract(contractClass)) {
             return Optional.of(List.copyOf(currentPath));
         }
         for (Group child : children) {
@@ -208,8 +188,8 @@ public class Group {
         return Optional.empty();
     }
 
-    private Optional<Group> placementGroupForInternal(Class<? extends ViewContract> contractClass) {
-        if (contractFactories.containsKey(contractClass)) {
+    private Optional<Group> placementGroupForInternal(Class<? extends Contract> contractClass) {
+        if (containsContract(contractClass)) {
             return label != null ? Optional.of(this) : Optional.empty();
         }
         for (Group child : children) {
@@ -221,17 +201,25 @@ public class Group {
         return Optional.empty();
     }
 
-    private Supplier<? extends Component<?>> findView(Class<? extends ViewContract> contractClass) {
-        Supplier<? extends Component<?>> factory = views.get(contractClass);
+    private Supplier<? extends Component<?, ?>> findContractComponent(Class<? extends Contract> contractClass) {
+        Supplier<? extends Component<?, ?>> factory = contractComponents.get(contractClass);
         if (factory != null) {
             return factory;
         }
         for (Group child : children) {
-            factory = child.findView(contractClass);
+            factory = child.findContractComponent(contractClass);
             if (factory != null) {
                 return factory;
             }
         }
         return null;
+    }
+
+    private boolean containsContract(Class<? extends Contract> contractClass) {
+        return contractComponents.containsKey(contractClass);
+    }
+
+    private List<Class<? extends Contract>> contractClassesInThisGroup() {
+        return List.copyOf(contractComponents.keySet());
     }
 }

@@ -1,7 +1,6 @@
 package rsp.compositions.contract;
 
 import rsp.component.ContextKey;
-import rsp.compositions.schema.DataSchema;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.routing.Router;
@@ -44,10 +43,10 @@ public final class ContextKeys {
 
     /**
      * Authorization strategy for access control.
-     * Stored as: ViewContract.AuthorizationStrategy.class → ViewContract.AuthorizationStrategy instance
+     * Stored as: Contract.AuthorizationStrategy.class → Contract.AuthorizationStrategy instance
      */
-    public static final ContextKey.ClassKey<ViewContract.AuthorizationStrategy> AUTHORIZATION_STRATEGY =
-            new ContextKey.ClassKey<>(ViewContract.AuthorizationStrategy.class);
+    public static final ContextKey.ClassKey<Contract.AuthorizationStrategy> AUTHORIZATION_STRATEGY =
+            new ContextKey.ClassKey<>(Contract.AuthorizationStrategy.class);
 
     // ===== STRING-BASED KEYS (Namespaced metadata) =====
 
@@ -61,13 +60,13 @@ public final class ContextKeys {
 
     /**
      * The contract class for the current route.
-     * Type: {@code Class<? extends ViewContract>}
+     * Type: {@code Class<? extends Contract>}
      * Example: PostsListContract.class
      */
     @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<Class<? extends ViewContract>> ROUTE_CONTRACT_CLASS =
+    public static final ContextKey.StringKey<Class<? extends Contract>> ROUTE_CONTRACT_CLASS =
             new ContextKey.StringKey<>("route.contractClass",
-                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+                    (Class<Class<? extends Contract>>) (Class<?>) Class.class);
 
     /**
      * The URL path matched by the router.
@@ -84,73 +83,6 @@ public final class ContextKeys {
      */
     public static final ContextKey.StringKey<String> ROUTE_PATTERN =
             new ContextKey.StringKey<>("route.pattern", String.class);
-
-    /**
-     * List of items to display in ListView.
-     * Type: {@code List<?>} (typically {@code List<Map<String, Object>>})
-     * Each map represents a database row with column names as keys.
-     */
-    @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<List<?>> LIST_ITEMS =
-            new ContextKey.StringKey<>("list.items",
-                    (Class<List<?>>) (Class<?>) List.class);
-
-    /**
-     * Schema definition for list columns.
-     * Type: DataSchema
-     * Defines column names, types, and rendering information.
-     */
-    public static final ContextKey.StringKey<DataSchema> LIST_SCHEMA =
-            new ContextKey.StringKey<>("list.schema", DataSchema.class);
-
-    /**
-     * Current page number for paginated lists.
-     * Type: Integer
-     * Example: 3 (for page 3)
-     */
-    public static final ContextKey.StringKey<Integer> LIST_PAGE =
-            new ContextKey.StringKey<>("list.page", Integer.class);
-
-    /**
-     * Sort direction for list view.
-     * Type: String
-     * Values: "asc" or "desc"
-     */
-    public static final ContextKey.StringKey<String> LIST_SORT =
-            new ContextKey.StringKey<>("list.sort", String.class);
-
-    /**
-     * Entity being edited in EditView.
-     * Type: Object (typically {@code Map<String, Object>})
-     * Represents a single database row.
-     */
-    public static final ContextKey.StringKey<Object> EDIT_ENTITY =
-            new ContextKey.StringKey<>("edit.entity", Object.class);
-
-    /**
-     * Schema definition for edit form fields.
-     * Type: DataSchema
-     * Defines field names, types, and validation rules.
-     */
-    public static final ContextKey.StringKey<DataSchema> EDIT_SCHEMA =
-            new ContextKey.StringKey<>("edit.schema", DataSchema.class);
-
-    /**
-     * Whether the current edit view is in create mode.
-     * Type: Boolean
-     * True when creating a new entity, false when editing existing.
-     */
-    public static final ContextKey.StringKey<Boolean> EDIT_IS_CREATE_MODE =
-            new ContextKey.StringKey<>("edit.isCreateMode", Boolean.class);
-
-    /**
-     * The route to navigate back to list view.
-     * Type: String
-     * Example: {@literal /posts} or {@literal /posts?p=3&sort=desc}
-     * Used by EditView to know where to navigate after save/cancel.
-     */
-    public static final ContextKey.StringKey<String> EDIT_LIST_ROUTE =
-            new ContextKey.StringKey<>("edit.listRoute", String.class);
 
     /**
      * Whether the edit contract has a registered route.
@@ -186,8 +118,8 @@ public final class ContextKeys {
      * Type: {@code Map<String, Object>}
      * Example: {id: "123"} for edit contract
      * <p>
-     * Set by SceneComponent when instantiating a contract on SHOW event.
-     * Contracts read this in their constructor or registerHandlers() to get
+     * Set by DirectContractHost when it mounts a descriptor selected by SHOW.
+     * Contracts read this during state initialization to get
      * entity IDs or other data needed for initialization.
      */
     @SuppressWarnings("unchecked")
@@ -199,7 +131,7 @@ public final class ContextKeys {
      * Whether this contract instance is currently active.
      * Type: Boolean
      * <p>
-     * Set to true by SceneComponent when instantiating a contract.
+     * Set to true by DirectContractHost while it owns the contract component.
      * Used by contracts to determine if they should handle events.
      * When multiple overlays are stacked, only the topmost has IS_ACTIVE_CONTRACT=true.
      * <p>
@@ -220,15 +152,15 @@ public final class ContextKeys {
 
     /**
      * The contract class that is currently being hidden.
-     * Type: {@code Class<? extends ViewContract>}
+     * Type: {@code Class<? extends Contract>}
      * <p>
      * Set temporarily when HIDE event is processed.
      * Used by DefaultEditView to know its own contract class for HIDE events.
      */
     @SuppressWarnings("unchecked")
-    public static final ContextKey.StringKey<Class<? extends ViewContract>> CONTRACT_CLASS =
+    public static final ContextKey.StringKey<Class<? extends Contract>> CONTRACT_CLASS =
             new ContextKey.StringKey<>("contract.class",
-                    (Class<Class<? extends ViewContract>>) (Class<?>) Class.class);
+                    (Class<Class<? extends Contract>>) (Class<?>) Class.class);
 
     /**
      * The authenticated user object.
@@ -264,7 +196,7 @@ public final class ContextKeys {
 
     /**
      * The title of the currently active overlay contract.
-     * Used by EditView/CreateView to display their title independently of the primary contract's title.
+     * Used by edit contract views to display their title independently of the primary contract's title.
      * Type: String (e.g., "Edit Post", "Create Comment")
      */
     public static final ContextKey.StringKey<String> OVERLAY_TITLE =

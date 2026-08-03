@@ -38,7 +38,7 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
  *
  * @see ContextStateComponent for state-to-context synchronization
  */
-public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
+public abstract class AddressBarSyncComponent extends Component<RelativeUrl, Object> {
 
     /**
      * A browser session's history entry change event name.
@@ -99,14 +99,14 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
     public void onAfterRendered(RelativeUrl state,
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
-                                StateUpdate<RelativeUrl> stateUpdate) {
+                                StateUpdater<RelativeUrl> stateUpdate) {
         subscribeForBrowserHistoryEvents(subscriber, commandsEnqueue, stateUpdate);
         subscribeForSessionObjectsUpdates(subscriber, commandsEnqueue, stateUpdate);
     }
 
     private void subscribeForBrowserHistoryEvents(Subscriber subscriber,
                                                   CommandsEnqueue commandsEnqueue,
-                                                  StateUpdate<RelativeUrl> stateUpdate) {
+                                                  StateUpdater<RelativeUrl> stateUpdate) {
         subscriber.addWindowEventHandler(HISTORY_ENTRY_CHANGE_EVENT_NAME,
             eventContext -> {
                 final RelativeUrl newRelativeUrl = extractRelativeUrl(eventContext.eventObject());
@@ -119,7 +119,7 @@ public abstract class AddressBarSyncComponent extends Component<RelativeUrl> {
 
     private void subscribeForSessionObjectsUpdates(Subscriber subscriber,
                                                    CommandsEnqueue commandsEnqueue,
-                                                   StateUpdate<RelativeUrl> stateUpdate) {
+                                                   StateUpdater<RelativeUrl> stateUpdate) {
         // prepare indices for path elements session keys
         final Map<String, Integer> pathElementsKeysIndices = new HashMap<>();
         for (final PositionKey pathElementsKey : pathElementsPositionKeys()) {

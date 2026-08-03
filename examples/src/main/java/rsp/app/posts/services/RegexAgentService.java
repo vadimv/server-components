@@ -5,7 +5,7 @@ import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.agent.AgentService;
 import rsp.compositions.agent.ContractProfile;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 import rsp.util.json.JsonDataType;
 
 import java.util.*;
@@ -286,7 +286,7 @@ public class RegexAgentService extends AgentService {
     // --- Navigation ---
 
     private AgentResult handleNavigate(String target, StructureNode structureTree) {
-        Class<? extends ViewContract> contractClass = findContractByLabel(target.trim(), structureTree);
+        Class<? extends Contract> contractClass = findContractByLabel(target.trim(), structureTree);
         if (contractClass != null) {
             return new AgentResult.NavigateResult(contractClass);
         }
@@ -294,17 +294,17 @@ public class RegexAgentService extends AgentService {
     }
 
     @SuppressWarnings("unchecked")
-    private Class<? extends ViewContract> findContractByLabel(String label, StructureNode node) {
+    private Class<? extends Contract> findContractByLabel(String label, StructureNode node) {
         if (node.label() != null && node.label().equalsIgnoreCase(label)) {
             if (!node.contracts().isEmpty()) {
                 Class<?> cls = node.contracts().iterator().next();
-                if (ViewContract.class.isAssignableFrom(cls)) {
-                    return (Class<? extends ViewContract>) cls;
+                if (Contract.class.isAssignableFrom(cls)) {
+                    return (Class<? extends Contract>) cls;
                 }
             }
         }
         for (StructureNode child : node.children()) {
-            Class<? extends ViewContract> found = findContractByLabel(label, child);
+            Class<? extends Contract> found = findContractByLabel(label, child);
             if (found != null) return found;
         }
         return null;

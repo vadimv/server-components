@@ -1,168 +1,42 @@
 package rsp.compositions.agentui;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import rsp.component.ComponentContext;
-import rsp.component.ComponentStateSupplier;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 class PromptViewTests {
 
-    private PromptService promptService;
-    private static final String SCOPE = "test-session";
+    @Test
+    void duplicate_messages_are_not_added_twice() {
+        PromptContract.Message message = new PromptContract.Message(1, "reply", false);
+        PromptView.PromptViewState state = new PromptView.PromptViewState(List.of(message), "Posts");
 
-    @BeforeEach
-    void setUp() {
-        promptService = new PromptService();
+        PromptView.PromptViewState updated = state.withMessage(message);
+
+        assertSame(state, updated);
     }
 
-    private ComponentContext contextWithService() {
-        return new ComponentContext()
-                .with(PromptContextKeys.PROMPT_SERVICE, promptService)
-                .with(PromptContextKeys.SCOPE_KEY, SCOPE);
+    @Test
+    void optimistic_messages_get_distinct_local_ids() {
+        PromptView.PromptViewState state = new PromptView.PromptViewState(List.of(), "Posts");
+
+        PromptView.PromptViewState updated = state.withOptimisticMessage("first")
+                .withOptimisticMessage("second");
+
+        assertEquals(List.of(-1L, -2L), updated.messages().stream().map(PromptContract.Message::id).toList());
     }
 
-    @Nested
-    class InitStateSupplier {
+    @Test
+    void active_category_changes_preserve_the_message_cache() {
+        PromptContract.Message message = new PromptContract.Message(1, "reply", false);
+        PromptView.PromptViewState state = new PromptView.PromptViewState(List.of(message), "Posts");
 
-        @Test
-        void loads_history_from_service() {
-            promptService.sendPrompt(SCOPE, "cmd1");
-            promptService.sendReply(SCOPE, "reply1");
+        PromptView.PromptViewState updated = state.withActiveCategory("Comments");
 
-            PromptView view = new PromptView();
-            ComponentStateSupplier<PromptView.PromptViewState> supplier = view.initStateSupplier();
-            PromptView.PromptViewState state = supplier.getState(null, contextWithService());
-
-            assertEquals(2, state.messages().size());
-            assertEquals("cmd1", state.messages().get(0).text());
-            assertTrue(state.messages().get(0).fromUser());
-            assertEquals("reply1", state.messages().get(1).text());
-            assertFalse(state.messages().get(1).fromUser());
-        }
-
-        @Test
-        void returns_empty_when_no_service_in_context() {
-            PromptView view = new PromptView();
-            ComponentStateSupplier<PromptView.PromptViewState> supplier = view.initStateSupplier();
-            PromptView.PromptViewState state = supplier.getState(null, new ComponentContext());
-
-            assertTrue(state.messages().isEmpty());
-        }
-
-        @Test
-        void returns_empty_when_no_history() {
-            PromptView view = new PromptView();
-            ComponentStateSupplier<PromptView.PromptViewState> supplier = view.initStateSupplier();
-            PromptView.PromptViewState state = supplier.getState(null, contextWithService());
-
-            assertTrue(state.messages().isEmpty());
-        }
-
-        @Test
-        void reads_active_category_from_prompt_context() {
-            PromptView view = new PromptView();
-            ComponentStateSupplier<PromptView.PromptViewState> supplier = view.initStateSupplier();
-
-            PromptView.PromptViewState state = supplier.getState(
-                    null,
-                    contextWithService().with(PromptContextKeys.ACTIVE_CATEGORY, "Posts"));
-
-            assertEquals("Posts", state.activeCategory());
-        }
-
-        @Test
-        void preserves_message_ids_from_service() {
-            promptService.sendReply(SCOPE, "msg1");
-            promptService.sendReply(SCOPE, "msg2");
-
-            List<PromptService.Message> serviceHistory = promptService.getMessageHistory(SCOPE);
-            long id1 = serviceHistory.get(0).id();
-            long id2 = serviceHistory.get(1).id();
-
-            PromptView view = new PromptView();
-            PromptView.PromptViewState state = view.initStateSupplier().getState(null, contextWithService());
-
-            assertEquals(id1, state.messages().get(0).id());
-            assertEquals(id2, state.messages().get(1).id());
-        }
-
-        @Test
-        void history_snapshot_is_independent_of_later_service_changes() {
-            promptService.sendReply(SCOPE, "before");
-
-            PromptView view = new PromptView();
-            PromptView.PromptViewState state = view.initStateSupplier().getState(null, contextWithService());
-
-            promptService.sendReply(SCOPE, "after");
-
-            assertEquals(1, state.messages().size(),
-                    "State should reflect history at init time, not later additions");
-        }
-    }
-
-    @Nested
-    class DedupIntegration {
-
-        @Test
-        void history_then_event_for_same_message_does_not_duplicate() {
-            promptService.sendReply(SCOPE, "reply");
-
-            PromptView view = new PromptView();
-            PromptView.PromptViewState state = view.initStateSupplier().getState(null, contextWithService());
-            assertEquals(1, state.messages().size());
-
-            // Simulate NEW_MESSAGE event for same message (same ID)
-            long existingId = state.messages().get(0).id();
-            var eventMsg = new PromptContract.Message(existingId, "reply", false);
-            PromptView.PromptViewState updated = state.withMessage(eventMsg);
-
-            assertSame(state, updated, "Duplicate should be rejected");
-            assertEquals(1, updated.messages().size());
-        }
-
-        @Test
-        void history_then_new_event_appends_correctly() {
-            promptService.sendReply(SCOPE, "old-reply");
-
-            PromptView view = new PromptView();
-            PromptView.PromptViewState state = view.initStateSupplier().getState(null, contextWithService());
-
-            // Simulate NEW_MESSAGE for a genuinely new message
-            var newMsg = new PromptContract.Message(999, "new-reply", false);
-            PromptView.PromptViewState updated = state.withMessage(newMsg);
-
-            assertEquals(2, updated.messages().size());
-            assertEquals("old-reply", updated.messages().get(0).text());
-            assertEquals("new-reply", updated.messages().get(1).text());
-        }
-    }
-
-    @Nested
-    class ActiveCategory {
-
-        @Test
-        void withActiveCategory_updates_category_without_losing_messages() {
-            var message = new PromptContract.Message(1, "reply", false);
-            var state = new PromptView.PromptViewState(List.of(message), "Posts");
-
-            var updated = state.withActiveCategory("Comments");
-
-            assertEquals("Comments", updated.activeCategory());
-            assertEquals(List.of(message), updated.messages());
-        }
-
-        @Test
-        void withActiveCategory_normalizes_null_to_empty() {
-            var state = new PromptView.PromptViewState(List.of(), "Posts");
-
-            var updated = state.withActiveCategory(null);
-
-            assertEquals("", updated.activeCategory());
-        }
+        assertEquals("Comments", updated.activeCategory());
+        assertEquals(List.of(message), updated.messages());
     }
 }

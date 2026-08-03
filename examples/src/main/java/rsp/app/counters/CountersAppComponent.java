@@ -15,7 +15,7 @@ import static rsp.dsl.Html.link;
 /**
  * The root component of CountersApp.
  */
-public class CountersAppComponent extends Component<CountersAppComponent.AppState> {
+public class CountersAppComponent extends Component<CountersAppComponent.AppState, Object> {
 
     private static final Definition NOT_FOUND_PAGE =
             html(head(HeadType.PLAIN, title("Not found")),
@@ -35,7 +35,7 @@ public class CountersAppComponent extends Component<CountersAppComponent.AppStat
     }
 
     @Override
-    public ComponentView<AppState> componentView() {
+    public ComponentView<AppState, Object> componentView() {
         return _ ->state -> switch(state) {
             case CountersAppState _ -> page(httpRequest);
             case NotFoundState _ -> NOT_FOUND_PAGE;

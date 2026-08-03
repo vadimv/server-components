@@ -2,11 +2,12 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
-import rsp.component.Lookup;
-import rsp.compositions.contract.CreateViewContract;
+import rsp.component.ComponentView;
+import rsp.compositions.contract.FormContractComponent;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
+import rsp.compositions.ui.EditView;
 
 import java.util.Map;
 import java.util.Objects;
@@ -24,12 +25,13 @@ import java.util.Objects;
  * Uses the same schema as PostEditContract but can be customized
  * if create form needs different fields (e.g., no ID field).
  */
-public class PostCreateContract extends CreateViewContract<Post> {
+public class PostCreateContract extends FormContractComponent<Post> {
 
     private final PostService postService;
 
-    public PostCreateContract(final Lookup lookup, PostService postService) {
-        super(lookup);
+    public PostCreateContract(PostService postService,
+                              ComponentView<EditView.EditViewState, EditView.EditIntent> view) {
+        super(view);
         this.postService = Objects.requireNonNull(postService);
     }
 
@@ -52,6 +54,11 @@ public class PostCreateContract extends CreateViewContract<Post> {
                 .widget(Widget.TEXTAREA)
                 .placeholder("Write your post content here...")
             .build();
+    }
+
+    @Override
+    protected boolean isCreateMode() {
+        return true;
     }
 
     @Override

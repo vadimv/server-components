@@ -14,6 +14,6 @@ package rsp.compositions.contract;
  */
 public record NavigationEntry(String categoryKey,
                               String label,
-                              Class<? extends ViewContract> contractClass,
+                              Class<? extends Contract> contractClass,
                               String route) {
 }

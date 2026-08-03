@@ -2,12 +2,14 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
+import rsp.component.ComponentView;
 import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.contract.EditViewContract;
+import rsp.compositions.contract.EditContractComponent;
 import rsp.compositions.contract.PathParam;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
+import rsp.compositions.ui.EditView;
 
 import java.util.Map;
 import java.util.Objects;
@@ -20,13 +22,14 @@ import java.util.Objects;
  * <p>
  * For creating new posts, use {@link PostCreateContract}.
  */
-public class PostEditContract extends EditViewContract<Post> {
+public class PostEditContract extends EditContractComponent<Post> {
     private static final PathParam<String> POST_ID = new PathParam<>(1, String.class, null);
 
     private final PostService postService;
 
-    public PostEditContract(final Lookup lookup, PostService postService) {
-        super(lookup);
+    public PostEditContract(PostService postService,
+                            ComponentView<EditView.EditViewState, EditView.EditIntent> view) {
+        super(view);
         this.postService = Objects.requireNonNull(postService);
     }
 
@@ -36,16 +39,12 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
-    protected String resolveIdFromPath() {
-        // Extract ID from URL path parameter
-        // Parent class handles SHOW_DATA automatically
-        return resolve(POST_ID);
+    protected String resolveIdFromPath(Lookup lookup) {
+        return POST_ID.resolve(lookup);
     }
 
     @Override
-    public Post item() {
-        String postId = resolveId();
-        // Return null if no ID available (e.g., when pre-instantiated as overlay)
+    public Post item(String postId) {
         if (postId == null) {
             return null;
         }
@@ -83,8 +82,7 @@ public class PostEditContract extends EditViewContract<Post> {
     }
 
     @Override
-    public boolean delete() {
-        String id = resolveId();
+    public boolean delete(String id) {
         if (id == null || id.isEmpty()) {
             return false;
         }

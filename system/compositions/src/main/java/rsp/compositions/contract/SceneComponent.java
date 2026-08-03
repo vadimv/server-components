@@ -30,7 +30,7 @@ import static rsp.dsl.Html.*;
  * <p>
  * Position in component chain: AuthComponent → SceneComponent → [Layout, LayerComponent]
  */
-public class SceneComponent extends Component<Scene> {
+public class SceneComponent extends Component<Scene, Object> {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
     private final SceneBuilder sceneBuilder;
@@ -38,19 +38,19 @@ public class SceneComponent extends Component<Scene> {
     private final Layout layout;
     private final LayerLayout layerLayout;
 
-    private ComponentContext savedContext;
+    private ContextScope activeContextScope;
 
 
     public SceneComponent(Object componentType,
                           Composition composition,
-                          Class<? extends ViewContract> contractClass,
+                          Class<? extends Contract> contractClass,
                           String routePattern) {
         this(componentType, composition, contractClass, routePattern, new DefaultLayout(), new ModalLayerLayout());
     }
 
     public SceneComponent(Object componentType,
                           Composition composition,
-                          Class<? extends ViewContract> contractClass,
+                          Class<? extends Contract> contractClass,
                           String routePattern,
                           Layout layout) {
         this(componentType, composition, contractClass, routePattern, layout, new ModalLayerLayout());
@@ -58,7 +58,7 @@ public class SceneComponent extends Component<Scene> {
 
     public SceneComponent(Object componentType,
                           Composition composition,
-                          Class<? extends ViewContract> contractClass,
+                          Class<? extends Contract> contractClass,
                           String routePattern,
                           Layout layout,
                           LayerLayout layerLayout) {
@@ -74,26 +74,25 @@ public class SceneComponent extends Component<Scene> {
 
     @Override
     public ComponentStateSupplier<Scene> initStateSupplier() {
-        return (_, context) -> {
-            this.savedContext = context;
-            return sceneBuilder.buildScene(context);
-        };
+        return (_, context) -> sceneBuilder.buildScene(context);
     }
 
     @Override
     public BiFunction<ComponentContext, Scene, ComponentContext> subComponentsContext() {
-        return (context, scene) -> {
-            this.savedContext = context;
-            return contextEnricher.enrich(context, scene);
-        };
+        return contextEnricher::enrich;
+    }
+
+    @Override
+    public void onBeforeRendered(ComponentSegment<Scene> segment, Scene state) {
+        activeContextScope = segment.contextScope();
     }
 
     @Override
     public void onAfterRendered(Scene state,
                                 Subscriber subscriber,
                                 CommandsEnqueue commandsEnqueue,
-                                StateUpdate<Scene> stateUpdate) {
-        SceneEventHandler eventHandler = new SceneEventHandler(savedContext);
+                                StateUpdater<Scene> stateUpdate) {
+        SceneEventHandler eventHandler = new SceneEventHandler(activeContext());
         eventHandler.registerHandlers(state, subscriber, commandsEnqueue, stateUpdate);
     }
 
@@ -102,14 +101,7 @@ public class SceneComponent extends Component<Scene> {
         if (scene == null) {
             return;
         }
-        // Destroy routed contract
-        if (scene.routedRuntime() != null) {
-            scene.routedRuntime().destroy();
-        }
-        // Destroy all companion contracts
-        for (var companion : scene.companionRuntimes().values()) {
-            companion.destroy();
-        }
+        activeContextScope = null;
         stopServicesLifecycleHandlers(scene);
     }
 
@@ -131,12 +123,19 @@ public class SceneComponent extends Component<Scene> {
     }
 
     @Override
-    public ComponentView<Scene> componentView() {
+    public ComponentView<Scene, Object> componentView() {
         return _ -> scene ->
             html(head(title(scene.pageTitle()),
                             link(attr("rel", "stylesheet"),
                                  attr("href", "/res/style.css"))),
-                    body(layout.resolve(scene, LookupFactory.create(savedContext)),
+                    body(layout.resolve(scene, LookupFactory.create(activeContext())),
                          new LayerComponent(layerLayout)));
+    }
+
+    private ComponentContext activeContext() {
+        if (activeContextScope == null) {
+            throw new IllegalStateException("SceneComponent has no live context scope");
+        }
+        return activeContextScope.current();
     }
 }

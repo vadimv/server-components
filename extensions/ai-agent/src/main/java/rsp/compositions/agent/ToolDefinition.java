@@ -6,7 +6,7 @@ import rsp.compositions.contract.PayloadSchemas;
 import rsp.compositions.contract.ContractAction;
 
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ViewContract;
+import rsp.compositions.contract.Contract;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +102,7 @@ public record ToolDefinition(String name, String description, String inputSchema
 
     private static void collectContractNames(StructureNode node, List<String> names) {
         if (node == null) return;
-        for (Class<? extends ViewContract> contract : node.contracts()) {
+        for (Class<? extends Contract> contract : node.contracts()) {
             names.add(contract.getSimpleName());
         }
         for (StructureNode child : node.children()) {
