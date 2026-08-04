@@ -12,6 +12,9 @@ public interface ComponentIntentHandler<S, I> {
     /**
      * Handles an intent with the component's current state and its private
      * state-cache update capability.
+     * <p>
+     * The framework invokes this method from the owning page's event loop after
+     * the intent has been queued by {@link IntentDispatcher#dispatch(Object)}.
      *
      * @param intent the dispatched component intent
      * @param state the current immutable local state snapshot

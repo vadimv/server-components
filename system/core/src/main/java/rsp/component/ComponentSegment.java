@@ -615,13 +615,17 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
     @Override
     public void dispatch(final Object intent) {
         Objects.requireNonNull(intent, "intent");
+        commandsEnqueue.offer(new GenericTaskEvent(() ->
+                withCallbackOwner(this, () -> dispatchQueuedIntent(intent))));
+    }
+
+    private void dispatchQueuedIntent(final Object intent) {
         if (isUnmounted) {
             logger.log(WARNING, () -> "Ignored intent on unmounted component: " + componentId);
             metrics.incrementCounter(MetricNames.SEGMENT_UPDATE_DROPPED_UNMOUNTED);
             return;
         }
-        withCallbackOwner(this, () ->
-                dispatchIntent(intent, state, new EnqueueTaskStateUpdater()));
+        dispatchIntent(intent, state, this);
     }
 
     /**

@@ -10,11 +10,17 @@ import rsp.compositions.authorization.Attributes;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.authorization.DelegationGrant;
 import rsp.compositions.contract.ActionBindings;
+import rsp.compositions.contract.ContractDescriptor;
 import rsp.compositions.contract.ContractAction;
 import rsp.compositions.contract.ContractActionPayload;
 import rsp.compositions.contract.DispatchEffect;
 import rsp.compositions.contract.EventKeys;
 import rsp.compositions.contract.Contract;
+import rsp.compositions.contract.Scene;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.Group;
+import rsp.compositions.layout.DefaultLayout;
+import rsp.compositions.routing.Router;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
@@ -22,12 +28,14 @@ import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -220,23 +228,30 @@ class AgentRuntimeTests {
     // Scene settle
     // ------------------------------------------------------------------
 
-    /** Invariant 5: onScene completes any pending settle future used by
-     *  plan navigation. Repeated calls are safe. */
+    /** Invariant 5: scene settle waits for the routed descriptor's live
+     *  primary contract, not descriptor visibility alone. */
     @Test
-    void onScene_completesPendingSettleFuture() {
+    void onScene_waitsForMatchingMountedPrimaryContractBeforeCompletingSettleFuture() {
         AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
                 new ActionDispatcher(), new FailingSpawner(), allowAuthorization(),
                 new RecordingFeedback(), new TestLookup());
+        ContractDescriptor descriptor = ContractDescriptor.forContract(StubContract.class, Map.of());
+        Scene scene = sceneFor(descriptor);
 
-        CompletableFuture<Object> future = new CompletableFuture<>();
-        setField(runtime, "sceneSettleFuture", future);
+        CompletableFuture<Scene> future = runtime.armSceneSettle(StubContract.class);
 
-        runtime.onScene(null);
+        runtime.onScene(scene);
 
-        assertTrue(future.isDone(), "future should complete on first scene push");
+        assertFalse(future.isDone(), "descriptor visibility alone is not enough");
 
-        // Second push must not throw or attempt a re-completion that errors.
-        runtime.onScene(null);
+        runtime.onPrimaryContractMounted(new EventKeys.MountedPrimaryContract(
+                descriptor.instanceId(), new StubContract(new TestLookup())));
+
+        assertTrue(future.isDone(), "future should complete when the matching primary mounts");
+        assertEquals(scene, future.join());
+
+        // Repeated pushes must not throw or attempt a re-completion that errors.
+        runtime.onScene(scene);
         assertFalse(future.isCompletedExceptionally());
     }
 
@@ -604,6 +619,32 @@ class AgentRuntimeTests {
                 "publish on the new active contract's lookup must cancel");
     }
 
+    @Test
+    void userEventMonitor_rebindsWhenSameClassDescriptorRefreshes() {
+        AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
+                new ActionDispatcher(), new FailingSpawner(),
+                allowAuthorization(), new RecordingFeedback(), new TestLookup());
+
+        TestLookup firstContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(1, StubLookupContract.class, firstContractLookup);
+
+        TestLookup refreshedContractLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(2, StubLookupContract.class, refreshedContractLookup);
+
+        AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
+        running.set(true);
+        AbortToken token = new AbortToken();
+        setField(runtime, "currentToken", token);
+
+        firstContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        assertFalse(token.isCancelled(),
+                "publish on same-class stale lookup must not affect the runtime");
+
+        refreshedContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        assertTrue(token.isCancelled(),
+                "publish on same-class refreshed lookup must cancel");
+    }
+
     /** Custom InterruptionPolicy is consulted with the origin and key. */
     @Test
     void notifyEvent_invokesCustomPolicy_withOriginAndKey() {
@@ -743,9 +784,9 @@ class AgentRuntimeTests {
     }
 
     /** Effect gating: a {@code SCENE_CHANGE}-effect action in an intermediate
-     *  plan step must block the loop on {@code sceneSettleFuture} until
-     *  {@link AgentRuntime#onScene} fires. Without the gate the next step would
-     *  see stale context and the LLM would refuse the dependent action (e.g.
+     *  plan step must block the loop until the next routed descriptor's live
+     *  primary contract mounts. Without the gate the next step would see stale
+     *  or empty context and the LLM would refuse the dependent action (e.g.
      *  "set_field" called before the form is open). */
     @Test
     void loop_sceneChangeAction_blocksUntilOnScene_thenProceeds()
@@ -773,13 +814,17 @@ class AgentRuntimeTests {
                 allowAuthorization(), feedback, new TestLookup());
 
         // Watchdog: once the runtime arms sceneSettleFuture after the first
-        // (SCENE_CHANGE) dispatch, simulate the scene rebuild by calling onScene.
+        // (SCENE_CHANGE) dispatch, simulate descriptor visibility followed by
+        // the matching live primary contract mount.
         Thread watcher = new Thread(() -> {
             long deadline = System.currentTimeMillis() + 3_000;
             while (System.currentTimeMillis() < deadline) {
                 CompletableFuture<?> f = (CompletableFuture<?>) getField(runtime, "sceneSettleFuture");
                 if (f != null && !f.isDone()) {
-                    runtime.onScene(null);
+                    ContractDescriptor descriptor = ContractDescriptor.forContract(StubLookupContract.class, Map.of());
+                    runtime.onScene(sceneFor(descriptor));
+                    runtime.onPrimaryContractMounted(new EventKeys.MountedPrimaryContract(
+                            descriptor.instanceId(), new StubLookupContract(new TestLookup())));
                     return;
                 }
                 try { Thread.sleep(5); } catch (InterruptedException e) { return; }
@@ -791,10 +836,63 @@ class AgentRuntimeTests {
         runtime.submit("plan with scene change");
 
         assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
-                "follow-up dispatch must run after onScene completes the gate");
+                "follow-up dispatch must run after the live primary contract completes the gate");
         Thread.sleep(50);
         assertEquals(List.of("scene_act", "follow"), dispatcher.dispatchCalls,
                 "scene-change dispatch must precede the follow-up; both must occur");
+    }
+
+    @Test
+    void loop_navigation_waitsForMountedPrimaryBeforeBuildingNextProfile()
+            throws InterruptedException {
+        AtomicInteger callCount = new AtomicInteger();
+        AtomicReference<Class<?>> followUpProfileClass = new AtomicReference<>();
+        CountDownLatch followUpCalled = new CountDownLatch(1);
+        AgentService service = new AgentService() {
+            @Override
+            public AgentResult handlePrompt(String prompt, ContractProfile profile,
+                                            rsp.compositions.composition.StructureNode tree) {
+                int call = callCount.incrementAndGet();
+                if (call == 1) {
+                    return new AgentResult.PlanResult(List.of("go", "inspect"), "");
+                }
+                if (call == 2) {
+                    return new AgentResult.NavigateResult(AlternateStubContract.class);
+                }
+                followUpProfileClass.set(profile.contractClass());
+                followUpCalled.countDown();
+                return new AgentResult.TextReply("done");
+            }
+
+            @Override
+            public AgentResult handlePrompt(String prompt, ContractProfile profile,
+                                            rsp.compositions.composition.StructureNode tree,
+                                            Consumer<String> partial) {
+                return handlePrompt(prompt, profile, tree);
+            }
+        };
+        RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("done"));
+        AgentRuntime runtime = newRuntime(service, new ActionDispatcher(),
+                new FailingSpawner(), allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("navigate then inspect");
+        CompletableFuture<?> pendingSettle = awaitPendingSettle(runtime);
+        ContractDescriptor descriptor = ContractDescriptor.forContract(AlternateStubContract.class, Map.of());
+
+        runtime.onScene(sceneFor(descriptor));
+
+        Thread.sleep(100);
+        assertEquals(2, callCount.get(),
+                "descriptor visibility alone must not release the next agent step");
+        assertFalse(followUpCalled.await(100, TimeUnit.MILLISECONDS));
+        assertFalse(pendingSettle.isDone());
+
+        runtime.onPrimaryContractMounted(new EventKeys.MountedPrimaryContract(
+                descriptor.instanceId(), new AlternateStubContract(new TestLookup())));
+
+        assertTrue(followUpCalled.await(ASYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        assertEquals(AlternateStubContract.class, followUpProfileClass.get());
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS));
     }
 
     /** Post-approval: a queued PlanResult must iterate to completion, not
@@ -895,6 +993,25 @@ class AgentRuntimeTests {
         return new AgentRuntime(service, dispatcher, spawner,
                 authorization, null, lookup, feedback, StubContract.class, LoopPolicy.DEFAULT,
                 interruptionPolicy, "test-runtime");
+    }
+
+    private static Scene sceneFor(ContractDescriptor descriptor) {
+        return Scene.of(descriptor, Map.of(),
+                new Composition(new Router(), new DefaultLayout(), new Group()));
+    }
+
+    private static CompletableFuture<?> awaitPendingSettle(AgentRuntime runtime)
+            throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 3_000;
+        while (System.currentTimeMillis() < deadline) {
+            CompletableFuture<?> future =
+                    (CompletableFuture<?>) getField(runtime, "sceneSettleFuture");
+            if (future != null && !future.isDone()) {
+                return future;
+            }
+            Thread.sleep(5);
+        }
+        throw new AssertionError("sceneSettleFuture was not armed");
     }
 
     private static Authorization allowAuthorization() {

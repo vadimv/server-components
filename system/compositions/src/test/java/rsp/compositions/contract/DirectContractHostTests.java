@@ -20,6 +20,7 @@ import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -61,6 +62,34 @@ class DirectContractHostTests {
         assertEquals("42", contract.showDataId);
         assertEquals(TestContract.class, contract.contractClass);
         assertEquals(Boolean.TRUE, contract.active);
+        treeBuilder.shutdown();
+    }
+
+    @Test
+    void authorization_uses_descriptor_context_available_to_descendant_contract() {
+        TestContract contract = new TestContract();
+        ContractDescriptor descriptor = ContractDescriptor.forContract(TestContract.class, Map.of("id", "42"));
+        AtomicBoolean inspected = new AtomicBoolean();
+        Contract.AuthorizationStrategy strategy = (_, lookup) -> {
+            inspected.set(true);
+            Map<String, Object> showData = lookup.get(ContextKeys.SHOW_DATA);
+            return showData != null
+                    && "42".equals(showData.get("id"))
+                    && lookup.get(ContextKeys.CONTRACT_CLASS) == TestContract.class
+                    && Boolean.TRUE.equals(lookup.get(ContextKeys.IS_ACTIVE_CONTRACT));
+        };
+        TreeBuilder treeBuilder = new TreeBuilder(
+                new QualifiedSessionId("device", "session"),
+                TreePositionPath.of("1"),
+                new ComponentContext()
+                        .with(CommandsEnqueue.class, commands)
+                        .with(Subscriber.class, subscriber)
+                        .with(ContextKeys.AUTHORIZATION_STRATEGY, strategy),
+                commands);
+
+        new DirectContractHost(descriptor, contract).render(treeBuilder);
+
+        assertTrue(inspected.get());
         treeBuilder.shutdown();
     }
 

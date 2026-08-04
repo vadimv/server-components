@@ -176,14 +176,31 @@ public class ComponentSegmentTests {
 
             segment.dispatch("refresh");
 
+            assertNull(observedState.get());
+            runFirstQueuedTask();
             assertEquals(INITIAL_STATE, observedState.get());
-            assertInstanceOf(GenericTaskEvent.class, capturedCommands.getFirst());
-            ((GenericTaskEvent) capturedCommands.getFirst()).task().run();
             assertEquals(NEW_STATE, callbacks.lastNewState);
         }
 
         @Test
-        void drops_intents_after_unmount() {
+        void applies_rapid_intents_against_the_latest_state() {
+            intentHandler = (intent, state, stateUpdater) ->
+                    stateUpdater.setState(String.valueOf(Integer.parseInt(state) + 1));
+            final TreeBuilder treeBuilder = createTreeBuilder();
+            final ComponentSegment<String> segment = createSegment("0", treeBuilder);
+            renderSegment(treeBuilder, segment);
+
+            segment.dispatch("increment");
+            segment.dispatch("increment");
+
+            runFirstQueuedTask();
+            runFirstQueuedTask();
+
+            assertEquals("2", callbacks.lastNewState);
+        }
+
+        @Test
+        void drops_intents_that_execute_after_unmount() {
             final AtomicInteger handled = new AtomicInteger();
             intentHandler = (intent, state, stateUpdater) -> handled.incrementAndGet();
             final TreeBuilder treeBuilder = createTreeBuilder();
@@ -194,7 +211,12 @@ public class ComponentSegmentTests {
             segment.dispatch("refresh");
 
             assertEquals(0, handled.get());
-            assertTrue(capturedCommands.isEmpty());
+            runFirstQueuedTask();
+            assertEquals(0, handled.get());
+        }
+
+        private void runFirstQueuedTask() {
+            assertInstanceOf(GenericTaskEvent.class, capturedCommands.removeFirst()).task().run();
         }
     }
 

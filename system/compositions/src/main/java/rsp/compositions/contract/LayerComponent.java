@@ -86,7 +86,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState, Object>
             }
             Class<? extends Contract> contractClass = state.descriptor().contractClass();
             Component<?, ?> bounded = new DirectContractHost(
-                    state.descriptor(), scene.contracts().resolveComponent(contractClass), true);
+                    state.descriptor(), scene.contracts().resolveBoundComponent(contractClass), true);
             Lookup lookup = LookupFactory.create(context);
             return div(
                     layout.resolve(bounded, contractClass, lookup),

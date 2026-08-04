@@ -161,6 +161,6 @@ public final class DefaultLayout implements Layout {
     }
 
     private Component<?, ?> resolveDescriptor(Scene scene, ContractDescriptor descriptor) {
-        return new DirectContractHost(descriptor, scene.contracts().resolveComponent(descriptor.contractClass()));
+        return new DirectContractHost(descriptor, scene.contracts().resolveBoundComponent(descriptor.contractClass()));
     }
 }

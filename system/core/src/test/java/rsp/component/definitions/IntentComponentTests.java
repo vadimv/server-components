@@ -23,6 +23,19 @@ class IntentComponentTests {
         assertEquals(5, updater.value);
     }
 
+    @Test
+    void reducer_uses_state_transformation_so_stale_snapshots_do_not_overwrite_current_state() {
+        Counter counter = new Counter();
+        RecordingStateUpdater updater = new RecordingStateUpdater(4);
+
+        // Both calls deliberately pass the same stale snapshot. ReducerComponent
+        // must reduce from the updater's current state to preserve both intents.
+        counter.onIntentDispatched(CounterIntent.INCREMENT, 4, updater);
+        counter.onIntentDispatched(CounterIntent.INCREMENT, 4, updater);
+
+        assertEquals(6, updater.value);
+    }
+
     private enum CounterIntent { INCREMENT, DECREMENT }
 
     private static final class Counter extends ReducerComponent<Integer, CounterIntent> {

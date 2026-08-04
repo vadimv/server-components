@@ -25,27 +25,35 @@ public final class DirectContractHost extends Component<ContractDescriptor, Obje
     private final Contract contract;
     private final boolean layer;
 
-    public DirectContractHost(ContractDescriptor descriptor, Component<?, ?> content) {
+    @SuppressWarnings("rawtypes")
+    public <C extends Component & Contract> DirectContractHost(ContractDescriptor descriptor, C content) {
+        this(descriptor, BoundContractComponent.of(content), false);
+    }
+
+    public DirectContractHost(ContractDescriptor descriptor, BoundContractComponent content) {
         this(descriptor, content, false);
     }
 
-    public DirectContractHost(ContractDescriptor descriptor, Component<?, ?> content, boolean layer) {
+    @SuppressWarnings("rawtypes")
+    public <C extends Component & Contract> DirectContractHost(ContractDescriptor descriptor, C content, boolean layer) {
+        this(descriptor, BoundContractComponent.of(content), layer);
+    }
+
+    public DirectContractHost(ContractDescriptor descriptor, BoundContractComponent content, boolean layer) {
         super(new ComponentType(Objects.requireNonNull(descriptor, "descriptor").contractClass(),
                 descriptor.instanceId()));
         this.descriptor = descriptor;
-        this.content = Objects.requireNonNull(content, "content");
-        if (!(content instanceof Contract boundContract)) {
-            throw new IllegalArgumentException("Direct contract binding must implement Contract: "
-                    + descriptor.contractClass().getName());
-        }
-        this.contract = boundContract;
+        BoundContractComponent bound = Objects.requireNonNull(content, "content");
+        this.content = bound.component();
+        this.contract = bound.contract();
         this.layer = layer;
     }
 
     @Override
     public ComponentStateSupplier<ContractDescriptor> initStateSupplier() {
         return (_, context) -> {
-            if (!contract.isAuthorized(LookupFactory.create(context))) {
+            ComponentContext contractContext = enrich(context);
+            if (!contract.isAuthorized(LookupFactory.create(contractContext))) {
                 throw new rsp.server.http.AuthorizationException(
                         "Access denied: insufficient permissions for " + descriptor.contractClass().getName());
             }

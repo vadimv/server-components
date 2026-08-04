@@ -4,6 +4,7 @@ package rsp.component;
  * Resolves a view function given an intent dispatcher.
  * A view can describe user interactions by dispatching intents, but it cannot
  * update the component's local state cache directly.
+ * Intent handling runs asynchronously on the owning page's event loop.
  *
  * @see IntentDispatcher
  * @see View

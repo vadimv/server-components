@@ -35,6 +35,7 @@ public abstract class ReducerComponent<S, I> extends Component<S, I> {
 
     @Override
     protected final void onIntent(final I intent, final S state, final StateUpdater<S> stateUpdater) {
-        stateUpdater.setState(Objects.requireNonNull(reduce(state, intent), "Reducer cannot return null"));
+        stateUpdater.applyStateTransformation(current ->
+                Objects.requireNonNull(reduce(current, intent), "Reducer cannot return null"));
     }
 }

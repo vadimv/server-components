@@ -121,6 +121,8 @@ public class AgentRuntime {
     private volatile Contract activeContract;
     private volatile long activeContractDescriptorId;
     private volatile CompletableFuture<Scene> sceneSettleFuture;
+    private volatile long sceneSettlePreviousDescriptorId;
+    private volatile Class<? extends Contract> sceneSettleTargetContractClass;
 
     // Loop lifecycle: at most one loop runs at a time.
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -139,6 +141,8 @@ public class AgentRuntime {
     // synchronisation is needed.
     private final List<Lookup.Registration> userEventMonitorRegistrations = new ArrayList<>();
     private Class<? extends Contract> monitoredContractClass;
+    private long monitoredContractDescriptorId;
+    private Lookup monitoredLookup;
 
     // Set true while the loop is inside dispatch + scene-settle. Cleared
     // shortly after; {@link #lastDispatchEndMillis} provides a grace window
@@ -197,22 +201,19 @@ public class AgentRuntime {
     // ==================================================================
 
     /**
-     * Push the current scene descriptor from the host contract. Completes any
-     * pending scene-settle future used by plan/loop navigation. The live
-     * contract itself arrives separately through {@link #onPrimaryContractMounted}.
+     * Push the current scene descriptor from the host contract. Pending scene
+     * settles complete only after the matching live primary contract also
+     * arrives through {@link #onPrimaryContractMounted}.
      */
     public void onScene(Scene scene) {
         this.currentScene = scene;
-        CompletableFuture<Scene> future = this.sceneSettleFuture;
-        if (future != null && !future.isDone()) {
-            future.complete(scene);
-        }
         if (scene == null || scene.routedDescriptor() == null
                 || scene.routedDescriptor().instanceId() != activeContractDescriptorId) {
             activeContract = null;
             activeContractDescriptorId = 0;
             rebindUserEventMonitor(null, null);
         }
+        completeSceneSettleIfReady();
     }
 
     /**
@@ -228,7 +229,45 @@ public class AgentRuntime {
         }
         activeContract = mounted.contract();
         activeContractDescriptorId = mounted.descriptorId();
-        rebindUserEventMonitor(mounted.contract().getClass(), mounted.contract().lookup());
+        rebindUserEventMonitor(mounted.descriptorId(), mounted.contract().getClass(), mounted.contract().lookup());
+        completeSceneSettleIfReady();
+    }
+
+    CompletableFuture<Scene> armSceneSettle(Class<? extends Contract> targetContractClass) {
+        sceneSettlePreviousDescriptorId = routedDescriptorId(currentScene);
+        sceneSettleTargetContractClass = targetContractClass;
+        sceneSettleFuture = new CompletableFuture<>();
+        completeSceneSettleIfReady();
+        return sceneSettleFuture;
+    }
+
+    private void completeSceneSettleIfReady() {
+        CompletableFuture<Scene> future = sceneSettleFuture;
+        if (future == null || future.isDone()) {
+            return;
+        }
+
+        Scene scene = currentScene;
+        if (scene == null || scene.routedDescriptor() == null || activeContract == null) {
+            return;
+        }
+        if (scene.routedDescriptor().instanceId() == sceneSettlePreviousDescriptorId) {
+            return;
+        }
+        if (scene.routedDescriptor().instanceId() != activeContractDescriptorId) {
+            return;
+        }
+        if (sceneSettleTargetContractClass != null
+                && !sceneSettleTargetContractClass.isAssignableFrom(scene.routedContractClass())) {
+            return;
+        }
+        future.complete(scene);
+    }
+
+    private static long routedDescriptorId(Scene scene) {
+        return scene == null || scene.routedDescriptor() == null
+                ? 0
+                : scene.routedDescriptor().instanceId();
     }
 
     /**
@@ -242,7 +281,15 @@ public class AgentRuntime {
      * can install monitoring without constructing a real {@link Scene}.
      */
     void rebindUserEventMonitor(Class<? extends Contract> newClass, Lookup activeLookup) {
-        if (Objects.equals(newClass, monitoredContractClass)) {
+        rebindUserEventMonitor(0, newClass, activeLookup);
+    }
+
+    void rebindUserEventMonitor(long descriptorId,
+                                Class<? extends Contract> newClass,
+                                Lookup activeLookup) {
+        if (Objects.equals(newClass, monitoredContractClass)
+                && descriptorId == monitoredContractDescriptorId
+                && activeLookup == monitoredLookup) {
             return;
         }
         for (Lookup.Registration reg : userEventMonitorRegistrations) {
@@ -255,6 +302,8 @@ public class AgentRuntime {
         }
         userEventMonitorRegistrations.clear();
         monitoredContractClass = newClass;
+        monitoredContractDescriptorId = descriptorId;
+        monitoredLookup = activeLookup;
         if (activeLookup == null) {
             return;
         }
@@ -714,7 +763,7 @@ public class AgentRuntime {
                     feedback.send("Already on " + nav.targetContract().getSimpleName());
                     return true;
                 }
-                sceneSettleFuture = new CompletableFuture<>();
+                armSceneSettle(nav.targetContract());
                 dispatcher.dispatchNavigate(nav.targetContract(), lookup);
                 feedback.send("Navigating...");
                 Scene settled = awaitSceneSettle();
@@ -758,9 +807,10 @@ public class AgentRuntime {
      * For actions declared as {@link DispatchEffect#SCENE_CHANGE}, the runtime
      * arms {@link #sceneSettleFuture} before dispatch and waits for it to
      * complete after the dispatcher's processed-fence — so the next iteration
-     * sees the rebuilt scene. The wait only happens when more plan steps
-     * remain (single-shot dispatches don't need the next context). A timeout
-     * means the scene didn't rebuild as declared; treated as a hard error.
+     * sees a rebuilt scene with its live primary contract mounted. The wait
+     * only happens when more plan steps remain (single-shot dispatches don't
+     * need the next context). A timeout means the scene didn't become ready as
+     * declared; treated as a hard error.
      */
     private boolean handleDispatchResultForLoop(DispatchResult result) {
         return switch (result) {
@@ -769,9 +819,9 @@ public class AgentRuntime {
                         && planQueue != null
                         && !planQueue.isEmpty();
                 if (awaitSceneChange) {
-                    // Arm before dispatch so onScene completes the future even if
-                    // the rebuild races with our processed.join below.
-                    sceneSettleFuture = new CompletableFuture<>();
+                    // Arm before dispatch so the scene + mounted primary signals
+                    // complete the future even if they race with processed.join.
+                    armSceneSettle(null);
                 }
                 feedback.send(d.action().description());
                 try {
@@ -874,30 +924,29 @@ public class AgentRuntime {
         CompletableFuture<Scene> future = sceneSettleFuture;
         if (future == null) return currentScene;
         try {
-            Scene settled = future.get(SCENE_SETTLE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            sceneSettleFuture = null;
-            return settled;
+            return future.get(SCENE_SETTLE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
             feedback.send("Loop interrupted: scene did not settle in time.");
             return null;
         } catch (Exception e) {
             Thread.currentThread().interrupt();
             return null;
+        } finally {
+            clearSceneSettle(future);
         }
     }
 
     /**
-     * Boolean variant: true if {@link #sceneSettleFuture} completed within the
-     * timeout (regardless of the value it carried — onScene may legitimately
-     * deliver a null Scene), false on timeout. Used by the dispatch-effect
-     * gate where the caller only needs to know "the rebuild signaled."
+     * Boolean variant: true if {@link #sceneSettleFuture} completed after the
+     * next routed descriptor's live primary contract mounted, false on timeout.
+     * Used by the dispatch-effect gate where the caller only needs to know
+     * "the next primary contract is ready."
      */
     private boolean awaitSceneSettled() {
         CompletableFuture<Scene> future = sceneSettleFuture;
         if (future == null) return true;
         try {
             future.get(SCENE_SETTLE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            sceneSettleFuture = null;
             return true;
         } catch (TimeoutException e) {
             feedback.send("Loop interrupted: scene did not settle in time.");
@@ -905,6 +954,16 @@ public class AgentRuntime {
         } catch (Exception e) {
             Thread.currentThread().interrupt();
             return false;
+        } finally {
+            clearSceneSettle(future);
+        }
+    }
+
+    private void clearSceneSettle(CompletableFuture<Scene> completedFuture) {
+        if (sceneSettleFuture == completedFuture) {
+            sceneSettleFuture = null;
+            sceneSettlePreviousDescriptorId = 0;
+            sceneSettleTargetContractClass = null;
         }
     }
 

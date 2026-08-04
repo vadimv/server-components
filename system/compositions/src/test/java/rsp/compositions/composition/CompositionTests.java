@@ -3,6 +3,7 @@ package rsp.compositions.composition;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
+import rsp.compositions.contract.BoundContractComponent;
 import rsp.compositions.contract.ContractNodeComponent;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
@@ -25,6 +26,9 @@ class CompositionTests {
         assertTrue(group.hasBinding(ListContract.class));
         assertTrue(group.resolveComponent(ListContract.class) instanceof ListContract);
         assertTrue(group.resolveComponent(ListContract.class) instanceof ListContract);
+        BoundContractComponent bound = group.resolveBoundComponent(ListContract.class);
+        assertTrue(bound.component() instanceof ListContract);
+        assertSame(bound.component(), bound.contract());
     }
 
     @Test

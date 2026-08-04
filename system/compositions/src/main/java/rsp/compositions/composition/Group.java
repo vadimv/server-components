@@ -1,6 +1,7 @@
 package rsp.compositions.composition;
 
 import rsp.component.definitions.Component;
+import rsp.compositions.contract.BoundContractComponent;
 import rsp.compositions.contract.Contract;
 
 import java.util.*;
@@ -21,7 +22,7 @@ public class Group {
     private final String label;
     private String description;
     private final List<Group> children;
-    private final Map<Class<? extends Contract>, Supplier<? extends Component<?, ?>>> contractComponents;
+    private final Map<Class<? extends Contract>, Supplier<BoundContractComponent>> contractComponents;
 
     /**
      * Create an unlabeled group (e.g., for system/infrastructure contracts).
@@ -63,11 +64,12 @@ public class Group {
      * @param componentFactory factory producing a fresh contract component
      * @return this for chaining
      */
-    public Group bind(Class<? extends Contract> contractClass,
-                      Supplier<? extends Component<?, ?>> componentFactory) {
+    @SuppressWarnings("rawtypes")
+    public <C extends Component & Contract> Group bind(Class<C> contractClass,
+                                                       Supplier<? extends C> componentFactory) {
         Objects.requireNonNull(contractClass, "contractClass");
         Objects.requireNonNull(componentFactory, "componentFactory");
-        contractComponents.put(contractClass, componentFactory);
+        contractComponents.put(contractClass, () -> BoundContractComponent.of(componentFactory.get()));
         return this;
     }
 
@@ -91,7 +93,18 @@ public class Group {
      * @throws IllegalStateException if the contract has no direct component binding
      */
     public Component<?, ?> resolveComponent(Class<? extends Contract> contractClass) {
-        Supplier<? extends Component<?, ?>> factory = findContractComponent(contractClass);
+        return resolveBoundComponent(contractClass).component();
+    }
+
+    /**
+     * Resolve the directly bound contract component and contract runtime for the given class.
+     *
+     * @param contractClass the contract component class
+     * @return a fresh component/contract binding
+     * @throws IllegalStateException if the contract has no direct component binding
+     */
+    public BoundContractComponent resolveBoundComponent(Class<? extends Contract> contractClass) {
+        Supplier<BoundContractComponent> factory = findContractComponent(contractClass);
         if (factory == null) {
             throw new IllegalStateException(
                     "No contract component bound for contract: " + contractClass.getName());
@@ -201,8 +214,8 @@ public class Group {
         return Optional.empty();
     }
 
-    private Supplier<? extends Component<?, ?>> findContractComponent(Class<? extends Contract> contractClass) {
-        Supplier<? extends Component<?, ?>> factory = contractComponents.get(contractClass);
+    private Supplier<BoundContractComponent> findContractComponent(Class<? extends Contract> contractClass) {
+        Supplier<BoundContractComponent> factory = contractComponents.get(contractClass);
         if (factory != null) {
             return factory;
         }
