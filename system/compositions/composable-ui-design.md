@@ -51,7 +51,7 @@ The corresponding view has no `Lookup` or `StateUpdater`:
 ```java
 public final class SearchView implements ComponentView<SearchState, SearchIntent> {
     @Override
-    public View<SearchState> use(IntentDispatcher<SearchIntent> intents) {
+    public View<SearchState> resolve(IntentDispatcher<SearchIntent> intents) {
         return state -> form(on("submit", true,
                 _ -> intents.dispatch(new SearchRequested(state.query()))));
     }

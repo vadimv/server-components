@@ -79,7 +79,7 @@ public class PromptView implements ComponentView<PromptView.PromptViewState, Pro
     }
 
     @Override
-    public rsp.component.View<PromptViewState> use(IntentDispatcher<PromptIntent> intents) {
+    public rsp.component.View<PromptViewState> resolve(IntentDispatcher<PromptIntent> intents) {
         return state -> div(attr("class", "prompt-panel"),
                 div(attr("class", "prompt-header"), text("Prompt")),
                 div(attr("class", "prompt-messages"),

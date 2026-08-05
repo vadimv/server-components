@@ -32,7 +32,7 @@ public class ExplorerView implements ComponentView<ExplorerView.ExplorerViewStat
     public record OpenContract(NavigationEntry entry) {}
 
     @Override
-    public rsp.component.View<ExplorerViewState> use(IntentDispatcher<OpenContract> intents) {
+    public rsp.component.View<ExplorerViewState> resolve(IntentDispatcher<OpenContract> intents) {
         return state -> {
             NavigationNode root = state.tree();
             List<NavigationNode> topLevel = root == null

@@ -20,5 +20,5 @@ public interface ComponentView<S, I> {
      * @param intents dispatcher for the component's typed intents, must not be null
      * @return a function that can be used for obtaining of a UI definition
      */
-    View<S> use(IntentDispatcher<I> intents);
+    View<S> resolve(IntentDispatcher<I> intents);
 }

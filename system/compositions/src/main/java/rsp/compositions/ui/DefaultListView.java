@@ -23,7 +23,7 @@ import static rsp.dsl.Html.*;
 public class DefaultListView implements ComponentView<ListView.ListViewState, ListView.ListIntent> {
 
     @Override
-    public rsp.component.View<ListView.ListViewState> use(IntentDispatcher<ListView.ListIntent> intents) {
+    public rsp.component.View<ListView.ListViewState> resolve(IntentDispatcher<ListView.ListIntent> intents) {
         return state -> {
             final int page = state.page();
             final String sort = state.sort();

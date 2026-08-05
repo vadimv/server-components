@@ -14,7 +14,7 @@ public class DashboardView implements ComponentView<DashboardView.DashboardState
     }
 
     @Override
-    public rsp.component.View<DashboardState> use(IntentDispatcher<Object> intents) {
+    public rsp.component.View<DashboardState> resolve(IntentDispatcher<Object> intents) {
         return state -> section(attr("class", "dashboard-page"),
                 h1("Dashboard"),
                 new DashboardGrid(state.model().layout())

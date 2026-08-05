@@ -21,7 +21,7 @@ public class HeaderView implements ComponentView<HeaderView.HeaderViewState, Hea
     public enum SignOutRequested { INSTANCE }
 
     @Override
-    public rsp.component.View<HeaderViewState> use(IntentDispatcher<SignOutRequested> intents) {
+    public rsp.component.View<HeaderViewState> resolve(IntentDispatcher<SignOutRequested> intents) {
         return state -> div(attr("class", "layout-header"),
                 authSection(state, intents)
         );

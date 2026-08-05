@@ -17,7 +17,7 @@ public class DelegationApprovalView implements ComponentView<DelegationApprovalV
     public record Decision(boolean approved) {}
 
     @Override
-    public rsp.component.View<ApprovalViewState> use(IntentDispatcher<Decision> intents) {
+    public rsp.component.View<ApprovalViewState> resolve(IntentDispatcher<Decision> intents) {
         return state -> div(attr("class", "approval-dialog"),
                 div(attr("class", "approval-header"),
                         text("Agent Delegation Request")),

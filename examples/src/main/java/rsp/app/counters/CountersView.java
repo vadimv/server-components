@@ -59,7 +59,7 @@ public class CountersView implements ComponentView<Integer, CountersView.Counter
      * @return a View function that transforms the current state into DOM markup
      */
     @Override
-    public View<Integer> use(IntentDispatcher<CounterIntent> intents) {
+    public View<Integer> resolve(IntentDispatcher<CounterIntent> intents) {
         return state ->
                 div(span(name),
                         button(attr("type", "button"),

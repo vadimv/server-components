@@ -1087,7 +1087,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
 
     @SuppressWarnings({"rawtypes", "unchecked"})
     private View<S> resolveView() {
-        return ((ComponentView) componentView).use(this);
+        return ((ComponentView) componentView).resolve(this);
     }
 
     private final class EnqueueTaskStateUpdater implements StateUpdater<S> {

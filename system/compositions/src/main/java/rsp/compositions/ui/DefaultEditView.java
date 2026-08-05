@@ -34,7 +34,7 @@ import static rsp.dsl.Html.*;
 public class DefaultEditView implements ComponentView<EditView.EditViewState, EditView.EditIntent> {
 
     @Override
-    public rsp.component.View<EditView.EditViewState> use(IntentDispatcher<EditView.EditIntent> intents) {
+    public rsp.component.View<EditView.EditViewState> resolve(IntentDispatcher<EditView.EditIntent> intents) {
         return state -> {
             // Get fields - prefer FieldDef for enhanced rendering
             final List<FieldDef> fields = state.schema().fields();
