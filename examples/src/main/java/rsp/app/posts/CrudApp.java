@@ -50,7 +50,7 @@ import rsp.compositions.layout.Placement;
 import rsp.compositions.routing.Router;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 import rsp.server.StaticResources;
 
 import java.io.File;

@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jetty-web-server</artifactId>
+            <artifactId>http</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -6,7 +6,7 @@ import rsp.component.definitions.Component;
 import rsp.component.View;
 import rsp.dsl.Html;
 import rsp.dsl.Tag;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 
 import java.util.Objects;
 

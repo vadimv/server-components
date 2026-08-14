@@ -3,7 +3,7 @@ package rsp.app.todos;
 
 import rsp.component.ComponentView;
 import rsp.component.definitions.LocalStateComponent;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
 

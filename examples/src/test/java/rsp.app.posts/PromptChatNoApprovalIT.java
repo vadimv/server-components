@@ -4,7 +4,7 @@ import com.microsoft.playwright.*;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
@@ -15,7 +15,7 @@ import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertTha
 @net.jcip.annotations.NotThreadSafe
 class PromptChatNoApprovalIT {
 
-    private static final int PORT = 8086;
+    private static final int PORT = 8085;
     private static final String BASE_URL = "http://localhost:" + PORT;
 
     private static final Playwright playwright = Playwright.create();
@@ -29,7 +29,6 @@ class PromptChatNoApprovalIT {
     }
 
     private static WebServer run() {
-        // Hand-rolled run on PORT 8086 to avoid clash with PromptSmokeIT (PORT 8085).
         return new CrudApp().run(false);
     }
 
@@ -48,7 +47,7 @@ class PromptChatNoApprovalIT {
         Page page = context.newPage();
 
         // Login
-        page.navigate("http://localhost:8085/posts");
+        page.navigate(BASE_URL + "/posts");
         Thread.sleep(300);
         page.locator("button:has-text('Sign in')").click();
         page.waitForURL("**/posts**", new Page.WaitForURLOptions().setTimeout(5000));

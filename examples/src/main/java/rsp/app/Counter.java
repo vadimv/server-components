@@ -2,7 +2,7 @@ package rsp.app;
 
 import rsp.component.ComponentView;
 import rsp.component.definitions.LocalStateComponent;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 
 import static rsp.dsl.Html.*;
 

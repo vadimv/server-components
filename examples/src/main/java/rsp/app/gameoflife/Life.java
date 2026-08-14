@@ -5,7 +5,7 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 import rsp.server.StaticResources;
 
 import java.io.File;

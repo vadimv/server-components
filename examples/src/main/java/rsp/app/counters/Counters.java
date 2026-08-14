@@ -1,7 +1,7 @@
 package rsp.app.counters;
 
 import rsp.component.ComponentView;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 import rsp.server.StaticResources;
 
 import java.io.File;
