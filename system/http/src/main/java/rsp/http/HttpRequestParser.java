@@ -219,6 +219,11 @@ final class HttpRequestParser {
             case "content-type" -> "Content-Type";
             case "cookie" -> "Cookie";
             case "host" -> "Host";
+            case "origin" -> "Origin";
+            case "sec-websocket-extensions" -> "Sec-WebSocket-Extensions";
+            case "sec-websocket-key" -> "Sec-WebSocket-Key";
+            case "sec-websocket-protocol" -> "Sec-WebSocket-Protocol";
+            case "sec-websocket-version" -> "Sec-WebSocket-Version";
             case "upgrade" -> "Upgrade";
             default -> name;
         };

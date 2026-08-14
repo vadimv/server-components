@@ -65,6 +65,8 @@ public class WebServer {
     private final HttpHandler httpHandler;
     private final HttpRequestParser requestParser = new HttpRequestParser();
     private final HttpResponseWriter responseWriter = new HttpResponseWriter();
+    private final WebSocketUpgrader webSocketUpgrader = new WebSocketUpgrader();
+    private final WebSocketEndpoint rspWebSocketEndpoint;
     private final Object lifecycleLock = new Object();
     private final Semaphore connectionPermits;
 
@@ -98,6 +100,7 @@ public class WebServer {
         this.eventLoopSupplier = Objects.requireNonNull(eventLoopSupplier);
         this.connectionPermits = new Semaphore(this.connectionLimit);
         this.boundPort = port;
+        this.rspWebSocketEndpoint = new RspWebSocketEndpoint(pagesStorage, this.eventLoopSupplier);
         this.staticResourceHandler = this.staticResources.map(sr -> new StaticResourceHandler(sr.resourcesBaseDir(),
                                                                                               sr.contextPath()));
         this.httpHandler = new HttpHandler(pagesStorage,
@@ -318,15 +321,13 @@ public class WebServer {
                 return;
             }
             final ParsedHttpRequest request = parsedRequest.get();
+            if (isWebSocketDispatch(request.request())) {
+                handleWebSocket(socket, request);
+                return;
+            }
             if (!isSupportedHttpMethod(request.method())) {
                 responseWriter.write(socket.getOutputStream(),
                                      HttpResponses.text(405, "Method Not Allowed"),
-                                     request.method());
-                return;
-            }
-            if (request.isWebSocketUpgrade()) {
-                responseWriter.write(socket.getOutputStream(),
-                                     HttpResponses.text(501, "WebSocket transport is not implemented yet"),
                                      request.method());
                 return;
             }
@@ -346,6 +347,30 @@ public class WebServer {
             logger.log(ERROR, "Unexpected HTTP connection error", ex);
             writeRuntimeError(socket, ex);
         }
+    }
+
+    private void handleWebSocket(final Socket socket, final ParsedHttpRequest request) throws IOException {
+        try {
+            final WebSocketEndpoint endpoint = webSocketEndpoint(request.request())
+                    .orElseThrow(() -> new WebSocketHandshakeException(404, "WebSocket endpoint not found"));
+            endpoint.validate(request.request());
+            webSocketUpgrader.upgrade(socket, request, endpoint.supportedSubprotocols());
+            final WebSocketSession session = new WebSocketSession(socket);
+            new WebSocketConnection(socket, session, endpoint.open(request.request(), session)).run();
+        } catch (final WebSocketHandshakeException ex) {
+            responseWriter.write(socket.getOutputStream(), HttpResponses.text(ex.status(), ex.getMessage()), request.method());
+        }
+    }
+
+    private boolean isWebSocketDispatch(final HttpRequest request) {
+        return webSocketUpgrader.isWebSocketRequest(request) || webSocketEndpoint(request).isPresent();
+    }
+
+    private Optional<WebSocketEndpoint> webSocketEndpoint(final HttpRequest request) {
+        if (rspWebSocketEndpoint.matches(request)) {
+            return Optional.of(rspWebSocketEndpoint);
+        }
+        return Optional.empty();
     }
 
     private void writeProtocolError(final Socket socket, final HttpProtocolException ex) {
