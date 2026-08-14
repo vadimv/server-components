@@ -18,7 +18,7 @@ For over a decade, web UI stacks have been confusing and unpredictable. Building
 - **SSR Architecture:** A Server-Side-Rendering architecture similar to Elixir Phoenix LiveView or Blazor Server, but built natively for Java.
 - **Plain Modern Java:** Write web UIs with zero annotations, zero "beans", and no implicit control flows. Constructors are the preferred way for dependency injection, and components can be tested in isolation.
 - **Compact and All-Inclusive:** The project's total code footprint is currently about 50K LOC (with plans to cap at ~100K LOC), including tests, examples, and documentation. It provides a full UI stack with a level of complexity kept well within the reach of a small team.
-- **Auditable:** Aims for zero third-party runtime dependencies (currently **no external runtime dependencies** outside the web server layer), making the UI stack auditable by design.
+- **Auditable:** No third-party runtime dependencies, making the UI stack auditable by design.
 - **AI-Generation Friendly:** The Java HTML DSL is linear and composable, making it incredibly easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and component trees.
 - **Native AI Flows:** At runtime, AI agents can natively understand the application's structure, navigate the UI, and queue up actions using Human-in-the-loop flows for user approval.
 
@@ -27,7 +27,7 @@ For over a decade, web UI stacks have been confusing and unpredictable. Building
 ```java
 import rsp.component.ComponentView;
 import rsp.component.definitions.LocalStateComponent;
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 
 import static rsp.dsl.Html.*;
 

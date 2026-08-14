@@ -16,8 +16,6 @@
         <module>json</module>
         <module>core</module>
         <module>js-client</module>
-        <module>servlet-api</module>
-        <module>jetty-web-server</module>
         <module>authorization</module>
         <module>schema</module>
         <module>compositions</module>

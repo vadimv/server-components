@@ -11,13 +11,13 @@ Core provides:
 - browser command APIs such as DOM property reads and JavaScript evaluation,
 - HTTP request/response primitives used by server adapters.
 
-Core is intentionally not the whole toolkit. The Jetty runner, servlet
-integration, application compositions, authorization, schema, AI agent integration,
-and examples live in sibling modules.
+Core is intentionally not the whole toolkit. The embedded HTTP server,
+application compositions, authorization, schema, AI agent integration, and
+examples live in sibling modules.
 
-The embedded Jetty server class `rsp.jetty.WebServer` is implemented in the
-`jetty-web-server` module. Examples import it because they run complete apps,
-but the core runtime itself is server-adapter neutral.
+The embedded server class `rsp.http.WebServer` is implemented in the `http`
+module. Examples import it because they run complete apps, but the core runtime
+itself is server-adapter neutral.
 
 ## Live Page Model
 
@@ -86,11 +86,10 @@ Read the type from left to right:
 - `View<S>` receives the current immutable state snapshot and returns a DSL `Definition`.
 - Dispatching an intent delegates state changes to the owning component.
 
-To run a page in an embedded server, use an adapter such as
-`jetty-web-server`:
+To run a page in an embedded server, use the `http` module:
 
 ```java
-import rsp.jetty.WebServer;
+import rsp.http.WebServer;
 
 final var server = new WebServer(8080, request ->
         new LocalStateComponent<>((_, _) -> new Counter(0), view,
@@ -462,7 +461,7 @@ final var ssl =
         new SslConfiguration("/keystore/path", "changeit");
 ```
 
-The Jetty adapter consumes these values:
+The HTTP server consumes these values:
 
 ```java
 new WebServer(8443, app, staticResources, ssl);
