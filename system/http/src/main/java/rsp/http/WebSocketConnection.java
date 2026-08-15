@@ -10,6 +10,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import static java.lang.System.Logger.Level.DEBUG;
 
@@ -22,11 +23,12 @@ final class WebSocketConnection {
     private final Socket socket;
     private final WebSocketSession session;
     private final WebSocketListener listener;
+    private final CompletableFuture<Void> closed = new CompletableFuture<>();
 
     private int fragmentedOpcode = -1;
     private ByteArrayOutputStream fragmentedPayload;
-    private int closeCode = 1006;
-    private String closeReason = "";
+    private volatile int closeCode = 1006;
+    private volatile String closeReason = "";
 
     WebSocketConnection(final Socket socket,
                         final WebSocketSession session,
@@ -51,8 +53,35 @@ final class WebSocketConnection {
             listener.onError(ex);
             throw ex;
         } finally {
-            listener.onClose(closeCode, closeReason);
+            try {
+                listener.onClose(closeCode, closeReason);
+            } finally {
+                closed.complete(null);
+            }
         }
+    }
+
+    void initiateClose(final int code,
+                       final String reason) {
+        if (!session.isOpen()) {
+            return;
+        }
+        closeCode = code;
+        closeReason = reason;
+        try {
+            session.close(code, reason);
+        } catch (final IOException ex) {
+            logger.log(DEBUG, "Failed to send WebSocket close frame", ex);
+            forceClose();
+        }
+    }
+
+    void forceClose() {
+        session.closeSocket();
+    }
+
+    CompletableFuture<Void> closed() {
+        return closed;
     }
 
     private void readLoop() throws IOException, WebSocketProtocolException {

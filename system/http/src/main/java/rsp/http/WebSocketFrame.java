@@ -18,6 +18,7 @@ record WebSocketFrame(boolean fin, int opcode, byte[] payload) {
     static final int OPCODE_PONG = 0xA;
 
     static final int CLOSE_NORMAL = 1000;
+    static final int CLOSE_GOING_AWAY = 1001;
     static final int CLOSE_PROTOCOL_ERROR = 1002;
     static final int CLOSE_UNSUPPORTED_DATA = 1003;
     static final int CLOSE_INVALID_PAYLOAD = 1007;

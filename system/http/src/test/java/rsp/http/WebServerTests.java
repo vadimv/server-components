@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import static java.net.http.HttpRequest.BodyPublishers;
 import static java.net.http.HttpResponse.BodyHandlers;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static rsp.dsl.Html.HeadType.PLAIN;
@@ -191,6 +192,94 @@ class WebServerTests {
 
             assertEquals("abc", StandardCharsets.UTF_8.decode(pong.get(2, TimeUnit.SECONDS)).toString());
             webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "").join();
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void stop_sends_going_away_close_to_active_websocket() throws Exception {
+        final WebServer server = started(new WebServer(0, _ -> page("stop")));
+        try (Socket socket = new Socket("localhost", server.port())) {
+            client.send(get(server, "/stop"), BodyHandlers.ofString());
+            final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
+            writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
+            assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
+            readServerFrame(socket);
+            awaitActiveWebSockets(server, 1);
+
+            final CompletableFuture<Void> stopped = stopAsync(server);
+            final RawServerFrame close = readFrameWithOpcode(socket, WebSocketFrame.OPCODE_CLOSE);
+
+            assertEquals(WebSocketFrame.CLOSE_GOING_AWAY, closeCode(close));
+            assertEquals(WebServer.WEB_SOCKET_SERVER_STOP_REASON, closeReason(close));
+
+            socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_CLOSE, close.payload));
+            socket.getOutputStream().flush();
+            stopped.get(2, TimeUnit.SECONDS);
+            assertEquals(0, server.activeWebSocketCount());
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void stop_force_closes_websocket_that_does_not_reply_to_close() throws Exception {
+        final WebServer server = started(new WebServer(0, _ -> page("force stop")));
+        try (Socket socket = new Socket("localhost", server.port())) {
+            socket.setSoTimeout(3_000);
+            client.send(get(server, "/force-stop"), BodyHandlers.ofString());
+            final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
+            writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
+            assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
+            readServerFrame(socket);
+            awaitActiveWebSockets(server, 1);
+
+            final long startedAt = System.nanoTime();
+            server.stop();
+            final long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAt);
+
+            assertTrue(elapsedMs < WebServer.WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS + 2_000);
+            assertEquals(0, server.activeWebSocketCount());
+            assertEquals(WebSocketFrame.CLOSE_GOING_AWAY, readCloseCode(socket));
+            assertEquals(-1, socket.getInputStream().read());
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void client_close_deregisters_active_websocket() throws Exception {
+        final WebServer server = started(new WebServer(0, _ -> page("client close")));
+        try (Socket socket = new Socket("localhost", server.port())) {
+            client.send(get(server, "/client-close"), BodyHandlers.ofString());
+            final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
+            writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
+            assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
+            readServerFrame(socket);
+            awaitActiveWebSockets(server, 1);
+
+            socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_CLOSE,
+                                                             WebSocketFrame.closePayload(WebSocketFrame.CLOSE_NORMAL, "")));
+            socket.getOutputStream().flush();
+
+            assertEquals(WebSocketFrame.CLOSE_NORMAL, readCloseCode(socket));
+            awaitActiveWebSockets(server, 0);
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void stop_clears_pending_rendered_pages() throws Exception {
+        final WebServer server = started(new WebServer(0, _ -> page("pending")));
+        try {
+            client.send(get(server, "/pending"), BodyHandlers.ofString());
+            assertFalse(server.pagesStorage.isEmpty());
+
+            server.stop();
+
+            assertTrue(server.pagesStorage.isEmpty());
         } finally {
             server.stop();
         }
@@ -424,6 +513,9 @@ class WebServerTests {
     private static RawServerFrame readServerFrame(final Socket socket) throws Exception {
         final int first = socket.getInputStream().read();
         final int second = socket.getInputStream().read();
+        if (first < 0 || second < 0) {
+            throw new AssertionError("Unexpected end of WebSocket stream");
+        }
         final int opcode = first & 0x0F;
         final int lengthCode = second & 0x7F;
         final int length;
@@ -436,6 +528,43 @@ class WebServerTests {
         }
         final byte[] payload = socket.getInputStream().readNBytes(length);
         return new RawServerFrame(opcode, payload);
+    }
+
+    private static int closeCode(final RawServerFrame frame) {
+        assertTrue(frame.payload.length >= 2);
+        return ((frame.payload[0] & 0xFF) << 8) | (frame.payload[1] & 0xFF);
+    }
+
+    private static String closeReason(final RawServerFrame frame) {
+        if (frame.payload.length <= 2) {
+            return "";
+        }
+        return new String(frame.payload, 2, frame.payload.length - 2, StandardCharsets.UTF_8);
+    }
+
+    private static CompletableFuture<Void> stopAsync(final WebServer server) {
+        final CompletableFuture<Void> stopped = new CompletableFuture<>();
+        Thread.startVirtualThread(() -> {
+            try {
+                server.stop();
+                stopped.complete(null);
+            } catch (final Throwable ex) {
+                stopped.completeExceptionally(ex);
+            }
+        });
+        return stopped;
+    }
+
+    private static void awaitActiveWebSockets(final WebServer server,
+                                              final int expected) throws Exception {
+        final long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (System.nanoTime() < deadline) {
+            if (server.activeWebSocketCount() == expected) {
+                return;
+            }
+            Thread.sleep(10);
+        }
+        assertEquals(expected, server.activeWebSocketCount());
     }
 
     private static Component<?, ?> page(final String text) {

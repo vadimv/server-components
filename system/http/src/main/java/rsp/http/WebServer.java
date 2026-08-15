@@ -20,10 +20,16 @@ import java.net.SocketException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -49,6 +55,8 @@ public class WebServer {
      * The default rate of heartbeat messages from a browser to server.
      */
     public static final int DEFAULT_HEARTBEAT_INTERVAL_MS = 10_000;
+    static final int WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS = 1_000;
+    static final String WEB_SOCKET_SERVER_STOP_REASON = "Server stopping";
 
     /**
      * Rendered pages waiting for their WebSocket session to bind.
@@ -69,6 +77,7 @@ public class WebServer {
     private final WebSocketEndpoint rspWebSocketEndpoint;
     private final Object lifecycleLock = new Object();
     private final Semaphore connectionPermits;
+    private final Set<WebSocketConnection> activeWebSockets = ConcurrentHashMap.newKeySet();
 
     private volatile ServerSocket serverSocket;
     private volatile ExecutorService connectionExecutor;
@@ -210,15 +219,20 @@ public class WebServer {
     public void stop() {
         final ServerSocket socketToClose;
         final ExecutorService executorToClose;
+        final Thread threadToInterrupt;
+        final Set<WebSocketConnection> webSocketsToClose;
         synchronized (lifecycleLock) {
-            if (!running && serverSocket == null) {
+            if (!running && serverSocket == null && connectionExecutor == null && activeWebSockets.isEmpty()) {
                 return;
             }
             running = false;
             socketToClose = serverSocket;
             executorToClose = connectionExecutor;
+            threadToInterrupt = acceptorThread;
+            webSocketsToClose = Set.copyOf(activeWebSockets);
             serverSocket = null;
             connectionExecutor = null;
+            acceptorThread = null;
         }
 
         if (socketToClose != null) {
@@ -228,13 +242,17 @@ public class WebServer {
                 logger.log(DEBUG, "Error closing server socket", ex);
             }
         }
-        final Thread thread = acceptorThread;
-        if (thread != null) {
-            thread.interrupt();
+        if (threadToInterrupt != null) {
+            threadToInterrupt.interrupt();
         }
+        pagesStorage.clear();
         if (executorToClose != null) {
-            executorToClose.shutdownNow();
+            executorToClose.shutdown();
         }
+        initiateWebSocketShutdown(webSocketsToClose);
+        awaitWebSocketsClosed(webSocketsToClose, WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS);
+        forceCloseWebSockets(webSocketsToClose);
+        awaitConnectionExecutor(executorToClose);
     }
 
     /**
@@ -274,6 +292,10 @@ public class WebServer {
         return httpHandler;
     }
 
+    int activeWebSocketCount() {
+        return activeWebSockets.size();
+    }
+
     private void acceptLoop() {
         while (running) {
             Socket socket = null;
@@ -286,7 +308,6 @@ public class WebServer {
                 socket = currentServerSocket.accept();
                 connectionPermits.acquire();
                 final Socket acceptedSocket = socket;
-                socket = null;
                 currentExecutor.submit(() -> {
                     try {
                         handleConnection(acceptedSocket);
@@ -294,6 +315,13 @@ public class WebServer {
                         connectionPermits.release();
                     }
                 });
+                socket = null;
+            } catch (final RejectedExecutionException ex) {
+                connectionPermits.release();
+                closeQuietly(socket);
+                if (running) {
+                    logger.log(ERROR, "HTTP connection rejected by executor", ex);
+                }
             } catch (final SocketException ex) {
                 if (running) {
                     logger.log(ERROR, "Server socket failed", ex);
@@ -356,9 +384,73 @@ public class WebServer {
             endpoint.validate(request.request());
             webSocketUpgrader.upgrade(socket, request, endpoint.supportedSubprotocols());
             final WebSocketSession session = new WebSocketSession(socket);
-            new WebSocketConnection(socket, session, endpoint.open(request.request(), session)).run();
+            final WebSocketConnection connection = new WebSocketConnection(socket,
+                                                                           session,
+                                                                           endpoint.open(request.request(), session));
+            final boolean shouldRun = registerWebSocket(connection);
+            try {
+                if (!shouldRun) {
+                    connection.initiateClose(WebSocketFrame.CLOSE_GOING_AWAY, WEB_SOCKET_SERVER_STOP_REASON);
+                    connection.forceClose();
+                    return;
+                }
+                connection.run();
+            } finally {
+                activeWebSockets.remove(connection);
+            }
         } catch (final WebSocketHandshakeException ex) {
             responseWriter.write(socket.getOutputStream(), HttpResponses.text(ex.status(), ex.getMessage()), request.method());
+        }
+    }
+
+    private boolean registerWebSocket(final WebSocketConnection connection) {
+        synchronized (lifecycleLock) {
+            activeWebSockets.add(connection);
+            return running;
+        }
+    }
+
+    private void initiateWebSocketShutdown(final Set<WebSocketConnection> connections) {
+        connections.forEach(connection ->
+                connection.initiateClose(WebSocketFrame.CLOSE_GOING_AWAY, WEB_SOCKET_SERVER_STOP_REASON));
+    }
+
+    private void forceCloseWebSockets(final Set<WebSocketConnection> connections) {
+        connections.stream()
+                .filter(connection -> !connection.closed().isDone())
+                .forEach(WebSocketConnection::forceClose);
+    }
+
+    private void awaitWebSocketsClosed(final Set<WebSocketConnection> connections,
+                                       final int timeoutMs) {
+        if (connections.isEmpty()) {
+            return;
+        }
+        final CompletableFuture<?>[] closed = connections.stream()
+                .map(WebSocketConnection::closed)
+                .toArray(CompletableFuture<?>[]::new);
+        try {
+            CompletableFuture.allOf(closed).get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (final TimeoutException ex) {
+            logger.log(DEBUG, () -> "Timed out waiting for WebSocket close handshakes");
+        } catch (final ExecutionException ex) {
+            logger.log(DEBUG, "WebSocket close waiter failed", ex);
+        } catch (final InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private void awaitConnectionExecutor(final ExecutorService executor) {
+        if (executor == null) {
+            return;
+        }
+        try {
+            if (!executor.awaitTermination(WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
+                executor.shutdownNow();
+            }
+        } catch (final InterruptedException ex) {
+            executor.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 
