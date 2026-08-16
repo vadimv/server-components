@@ -23,6 +23,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -69,14 +71,25 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
     private final System.Logger logger = System.getLogger(getClass().getName());
     private final JsonParser jsonParser = JsonUtils.createParser();
     private final OAuthConfig config;
+    private final Clock clock;
+    private final long sessionMaxAgeSeconds;
 
-    // auth session token → username
-    private final ConcurrentMap<String, String> sessions = new ConcurrentHashMap<>();
+    // auth session token → session data
+    private final ConcurrentMap<String, Session> sessions = new ConcurrentHashMap<>();
     // OAuth state parameter → pending auth data
     private final ConcurrentMap<String, PendingAuth> pendingAuths = new ConcurrentHashMap<>();
 
     public OAuthPKCEProvider(OAuthConfig config) {
+        this(config, Clock.systemUTC(), SESSION_MAX_AGE_SECONDS);
+    }
+
+    OAuthPKCEProvider(OAuthConfig config, Clock clock, long sessionMaxAgeSeconds) {
         this.config = Objects.requireNonNull(config);
+        this.clock = Objects.requireNonNull(clock);
+        if (sessionMaxAgeSeconds <= 0) {
+            throw new IllegalArgumentException("sessionMaxAgeSeconds must be positive");
+        }
+        this.sessionMaxAgeSeconds = sessionMaxAgeSeconds;
     }
 
     @Override
@@ -91,12 +104,16 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             return AuthComponent.AuthResult.anonymous();
         }
 
-        String username = sessions.get(token);
-        if (username != null) {
-            return AuthComponent.AuthResult.authenticated(username);
+        Session session = sessions.get(token);
+        if (session == null) {
+            return AuthComponent.AuthResult.anonymous();
+        }
+        if (session.isExpired(clock.instant())) {
+            sessions.remove(token, session);
+            return AuthComponent.AuthResult.anonymous();
         }
 
-        return AuthComponent.AuthResult.anonymous();
+        return AuthComponent.AuthResult.authenticated(session.username());
     }
 
     @Override
@@ -127,7 +144,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             String redirect = request != null
                     ? request.queryParameters.parameterValue("redirect")
                     : null;
-            return startPKCEFlow(request, redirect != null ? redirect : "/");
+            return startPKCEFlow(request, safeLocalRedirect(redirect));
         }
 
         if (authResult.authenticated()) {
@@ -183,7 +200,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
         }
 
         String state = generateRandomString(16);
-        pendingAuths.put(state, new PendingAuth(deviceId, codeVerifier, currentPath));
+        pendingAuths.put(state, new PendingAuth(deviceId, codeVerifier, safeLocalRedirect(currentPath)));
 
         String authorizationUrl = config.authorizationEndpoint()
                 + "?response_type=code"
@@ -239,8 +256,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             }
 
             // Create session
-            String sessionToken = generateRandomString(32);
-            sessions.put(sessionToken, username);
+            String sessionToken = createSession(username);
             logger.log(System.Logger.Level.DEBUG, "OAuth session created for user: " + username);
 
             return html().redirect(pending.originalPath())
@@ -262,6 +278,13 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
                 .addHeader("Set-Cookie", expiredSessionCookie());
     }
 
+    String createSession(String username) {
+        Objects.requireNonNull(username, "username");
+        String sessionToken = generateRandomString(32);
+        sessions.put(sessionToken, new Session(username, clock.instant().plusSeconds(sessionMaxAgeSeconds)));
+        return sessionToken;
+    }
+
     private String authSessionToken(HttpRequest request) {
         if (request == null) {
             return null;
@@ -281,7 +304,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
     private String sessionCookie(String token) {
         return SESSION_COOKIE_NAME + "=" + token
                 + "; Path=/"
-                + "; Max-Age=" + SESSION_MAX_AGE_SECONDS
+                + "; Max-Age=" + sessionMaxAgeSeconds
                 + "; HttpOnly"
                 + "; SameSite=Lax"
                 + secureCookieAttribute();
@@ -298,6 +321,34 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
     private String secureCookieAttribute() {
         return config.redirectUri().startsWith("https://") ? "; Secure" : "";
+    }
+
+    /**
+     * Normalizes user-controlled OAuth redirect targets to same-origin path URLs.
+     * External, protocol-relative, malformed, or header-unsafe values fall back to root.
+     */
+    static String safeLocalRedirect(String redirect) {
+        if (redirect == null || redirect.isBlank()) {
+            return "/";
+        }
+
+        final String candidate = redirect.trim();
+        if (!candidate.startsWith("/")
+                || candidate.startsWith("//")
+                || candidate.indexOf('\\') >= 0
+                || candidate.chars().anyMatch(ch -> Character.isISOControl(ch) || Character.isWhitespace(ch))) {
+            return "/";
+        }
+
+        try {
+            final URI uri = URI.create(candidate);
+            if (uri.isAbsolute() || uri.getRawAuthority() != null || uri.getRawPath() == null) {
+                return "/";
+            }
+            return candidate;
+        } catch (IllegalArgumentException _) {
+            return "/";
+        }
     }
 
     // ===== Token Exchange =====
@@ -510,6 +561,17 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             Objects.requireNonNull(deviceId);
             Objects.requireNonNull(codeVerifier);
             Objects.requireNonNull(originalPath);
+        }
+    }
+
+    private record Session(String username, Instant expiresAt) {
+        Session {
+            Objects.requireNonNull(username);
+            Objects.requireNonNull(expiresAt);
+        }
+
+        boolean isExpired(Instant now) {
+            return !expiresAt.isAfter(now);
         }
     }
 }
