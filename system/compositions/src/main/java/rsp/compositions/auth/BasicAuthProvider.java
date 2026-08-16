@@ -77,7 +77,10 @@ public class BasicAuthProvider implements AuthComponent.AuthProvider {
     }
 
     @Override
-    public Definition gateResponse(String currentPath) {
+    public Definition gateResponse(ComponentContext context, AuthComponent.AuthResult authResult) {
+        if (authResult.authenticated()) {
+            return null;
+        }
         return html().statusCode(401).addHeader("WWW-Authenticate", "Basic realm=\"" + realm + "\"");
     }
 

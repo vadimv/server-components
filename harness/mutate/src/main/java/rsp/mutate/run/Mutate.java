@@ -26,6 +26,32 @@ public final class Mutate {
         return run(targetBinaryClassName, testClasses, DEFAULT_TIMEOUT);
     }
 
+    /**
+     * A short "how to run me" banner for a mutation driver test whose run method is gated behind
+     * {@code -Dmutate.run=true}. A driver mutates a target class against its covering tests; it is a
+     * manual, minutes-long gate (a fresh JVM is forked per mutant), so it is off by default and the
+     * gated method is silently skipped in a normal build. Surface this banner in that case — e.g. from
+     * a companion test annotated {@code @DisabledIfSystemProperty(named = "mutate.run", matches = "true")}
+     * — so a developer who forgot the flag is told what to do instead of seeing nothing happen.
+     *
+     * @param mavenModule    the module path to pass to {@code -pl}, e.g. {@code system/json}
+     * @param driverTestName the simple name of the driver test class, e.g. {@code JsonMutationHarnessManualTest}
+     * @return a multi-line, ready-to-print help message
+     */
+    public static String gateHelp(final String mavenModule, final String driverTestName) {
+        final String nl = System.lineSeparator();
+        return nl
+                + "  Mutation gate is OFF: -Dmutate.run is not \"true\", so no mutation run happened." + nl
+                + "  It is a manual, minutes-long gate (a JVM is forked per mutant), not part of the normal build." + nl
+                + nl
+                + "  To run it:" + nl
+                + "    mvn -pl " + mavenModule + " -am test -Dtest=" + driverTestName + " -Dmutate.run=true" + nl
+                + nl
+                + "  Optional tuning (forwarded into each mutant fork):" + nl
+                + "    -Dpbt.tries=N   thoroughness of the property-based covering tests" + nl
+                + "    -Dpbt.seed=N    pin the covering-test seed (a default is pinned for reproducibility)" + nl;
+    }
+
     public static Report run(final String targetBinaryClassName, final List<String> testClasses,
                              final Duration perMutantTimeout) {
         final byte[] original = loadClassBytes(targetBinaryClassName);

@@ -4,6 +4,7 @@ import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
+import rsp.compositions.contract.ContextKeys;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
 import rsp.dsl.Definition;
@@ -22,6 +23,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Clock;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Objects;
@@ -39,8 +42,10 @@ import static rsp.dsl.Html.html;
  * Implements the Authorization Code flow with PKCE (Proof Key for Code Exchange).
  * Works with any OAuth 2.0 / OpenID Connect provider (Keycloak, Auth0, etc.).
  * <p>
- * Session tracking uses the framework's {@code deviceId} cookie (long-lived, set by HttpHandler).
- * No additional cookies are needed.
+ * The framework's long-lived {@code deviceId} cookie is used only to bind a
+ * pending PKCE flow to the browser that started it. Authenticated sessions use
+ * a separate HTTP-set cookie so the auth credential can be rotated, expired,
+ * and protected with {@code HttpOnly}.
  * <p>
  * Flow:
  * <ol>
@@ -53,6 +58,8 @@ import static rsp.dsl.Html.html;
 public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
     private static final String DEVICE_ID_COOKIE_NAME = "deviceId";
+    public static final String SESSION_COOKIE_NAME = "rsp_oauth_session";
+    private static final int SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 
     /**
      * Maximum size of an OAuth endpoint response body we will buffer. Token and userinfo responses
@@ -64,54 +71,59 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
     private final System.Logger logger = System.getLogger(getClass().getName());
     private final JsonParser jsonParser = JsonUtils.createParser();
     private final OAuthConfig config;
+    private final Clock clock;
+    private final long sessionMaxAgeSeconds;
 
-    // deviceId → username
-    private final ConcurrentMap<String, String> sessions = new ConcurrentHashMap<>();
+    // auth session token → session data
+    private final ConcurrentMap<String, Session> sessions = new ConcurrentHashMap<>();
     // OAuth state parameter → pending auth data
     private final ConcurrentMap<String, PendingAuth> pendingAuths = new ConcurrentHashMap<>();
 
-    // Saved per-request for use in gateResponse()
-    private HttpRequest savedRequest;
-    private String savedDeviceId;
-
     public OAuthPKCEProvider(OAuthConfig config) {
+        this(config, Clock.systemUTC(), SESSION_MAX_AGE_SECONDS);
+    }
+
+    OAuthPKCEProvider(OAuthConfig config, Clock clock, long sessionMaxAgeSeconds) {
         this.config = Objects.requireNonNull(config);
+        this.clock = Objects.requireNonNull(clock);
+        if (sessionMaxAgeSeconds <= 0) {
+            throw new IllegalArgumentException("sessionMaxAgeSeconds must be positive");
+        }
+        this.sessionMaxAgeSeconds = sessionMaxAgeSeconds;
     }
 
     @Override
     public AuthComponent.AuthResult authenticate(ComponentContext context) {
-        savedRequest = context.get(HttpRequest.class);
-        savedDeviceId = null;
-
-        if (savedRequest == null) {
+        HttpRequest request = context.get(HttpRequest.class);
+        if (request == null) {
             return AuthComponent.AuthResult.anonymous();
         }
 
-        List<String> deviceIds = savedRequest.cookies(DEVICE_ID_COOKIE_NAME);
-        if (deviceIds.isEmpty()) {
-            return AuthComponent.AuthResult.anonymous();
-        }
-        savedDeviceId = deviceIds.getFirst();
-
-        String currentPath = savedRequest.path.toString();
-
-        // Sign-out: remove session
-        if (currentPath.startsWith(config.signOutPath())) {
-            sessions.remove(savedDeviceId);
+        String token = authSessionToken(request);
+        if (token == null) {
             return AuthComponent.AuthResult.anonymous();
         }
 
-        // Check existing session
-        String username = sessions.get(savedDeviceId);
-        if (username != null) {
-            return AuthComponent.AuthResult.authenticated(username);
+        Session session = sessions.get(token);
+        if (session == null) {
+            return AuthComponent.AuthResult.anonymous();
+        }
+        if (session.isExpired(clock.instant())) {
+            sessions.remove(token, session);
+            return AuthComponent.AuthResult.anonymous();
         }
 
-        return AuthComponent.AuthResult.anonymous();
+        return AuthComponent.AuthResult.authenticated(session.username());
     }
 
     @Override
-    public Definition gateResponse(String currentPath) {
+    public Definition gateResponse(ComponentContext context, AuthComponent.AuthResult authResult) {
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(authResult, "authResult");
+
+        HttpRequest request = context.get(HttpRequest.class);
+        String currentPath = context.getRequired(ContextKeys.ROUTE_PATH);
+
         // Login page: public — let the composition render it
         if (currentPath.startsWith(config.loginPath())) {
             return null;
@@ -119,20 +131,24 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
         // Callback: exchange code for token, create session, redirect to original URL
         if (currentPath.startsWith(config.callbackPath())) {
-            return handleCallback();
+            return handleCallback(request);
         }
 
-        // Sign-out path: redirect to root (will trigger login page again)
+        // Sign-out path: clear auth session and redirect to root (will trigger login page again)
         if (currentPath.startsWith(config.signOutPath())) {
-            return html().redirect("/");
+            return handleSignOut(request);
         }
 
         // Sign-in trigger: start PKCE flow, redirect param has the original path
         if (currentPath.startsWith(config.signinPath())) {
-            String redirect = savedRequest != null
-                    ? savedRequest.queryParameters.parameterValue("redirect")
+            String redirect = request != null
+                    ? request.queryParameters.parameterValue("redirect")
                     : null;
-            return startPKCEFlow(redirect != null ? redirect : "/");
+            return startPKCEFlow(request, safeLocalRedirect(redirect));
+        }
+
+        if (authResult.authenticated()) {
+            return null;
         }
 
         // Protected path: redirect to login page
@@ -166,8 +182,9 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
     // ===== PKCE Flow =====
 
-    private Definition startPKCEFlow(String currentPath) {
-        if (savedDeviceId == null) {
+    private Definition startPKCEFlow(HttpRequest request, String currentPath) {
+        String deviceId = deviceId(request);
+        if (deviceId == null) {
             logger.log(System.Logger.Level.WARNING, "No deviceId cookie — cannot start PKCE flow");
             return html().redirect("/");
         }
@@ -182,7 +199,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
         }
 
         String state = generateRandomString(16);
-        pendingAuths.put(state, new PendingAuth(savedDeviceId, codeVerifier, currentPath));
+        pendingAuths.put(state, new PendingAuth(deviceId, codeVerifier, safeLocalRedirect(currentPath)));
 
         String authorizationUrl = config.authorizationEndpoint()
                 + "?response_type=code"
@@ -197,13 +214,13 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
         return html().redirect(authorizationUrl);
     }
 
-    private Definition handleCallback() {
-        if (savedRequest == null) {
+    private Definition handleCallback(HttpRequest request) {
+        if (request == null) {
             return html().redirect("/");
         }
 
-        String state = savedRequest.queryParameters.parameterValue("state");
-        String code = savedRequest.queryParameters.parameterValue("code");
+        String state = request.queryParameters.parameterValue("state");
+        String code = request.queryParameters.parameterValue("code");
 
         if (state == null || code == null) {
             logger.log(System.Logger.Level.WARNING, "Callback missing state or code parameter");
@@ -213,6 +230,12 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
         PendingAuth pending = pendingAuths.remove(state);
         if (pending == null) {
             logger.log(System.Logger.Level.WARNING, "No pending auth for state: " + state);
+            return html().redirect("/");
+        }
+
+        String deviceId = deviceId(request);
+        if (deviceId == null || !deviceId.equals(pending.deviceId())) {
+            logger.log(System.Logger.Level.WARNING, "Callback deviceId does not match pending auth");
             return html().redirect("/");
         }
 
@@ -232,13 +255,98 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             }
 
             // Create session
-            sessions.put(pending.deviceId(), username);
+            String sessionToken = createSession(username);
             logger.log(System.Logger.Level.DEBUG, "OAuth session created for user: " + username);
 
-            return html().redirect(pending.originalPath());
+            return html().redirect(pending.originalPath())
+                    .addHeader("Set-Cookie", sessionCookie(sessionToken));
         } catch (Exception e) {
             logger.log(System.Logger.Level.ERROR, "OAuth callback error", e);
             return html().redirect("/");
+        }
+    }
+
+    private Definition handleSignOut(HttpRequest request) {
+        if (request != null) {
+            String token = authSessionToken(request);
+            if (token != null) {
+                sessions.remove(token);
+            }
+        }
+        return html().redirect("/")
+                .addHeader("Set-Cookie", expiredSessionCookie());
+    }
+
+    String createSession(String username) {
+        Objects.requireNonNull(username, "username");
+        String sessionToken = generateRandomString(32);
+        sessions.put(sessionToken, new Session(username, clock.instant().plusSeconds(sessionMaxAgeSeconds)));
+        return sessionToken;
+    }
+
+    private String authSessionToken(HttpRequest request) {
+        if (request == null) {
+            return null;
+        }
+        List<String> cookies = request.cookies(SESSION_COOKIE_NAME);
+        return cookies.isEmpty() ? null : cookies.getFirst();
+    }
+
+    private String deviceId(HttpRequest request) {
+        if (request == null) {
+            return null;
+        }
+        List<String> deviceIds = request.cookies(DEVICE_ID_COOKIE_NAME);
+        return deviceIds.isEmpty() ? null : deviceIds.getFirst();
+    }
+
+    private String sessionCookie(String token) {
+        return SESSION_COOKIE_NAME + "=" + token
+                + "; Path=/"
+                + "; Max-Age=" + sessionMaxAgeSeconds
+                + "; HttpOnly"
+                + "; SameSite=Lax"
+                + secureCookieAttribute();
+    }
+
+    private String expiredSessionCookie() {
+        return SESSION_COOKIE_NAME + "="
+                + "; Path=/"
+                + "; Max-Age=0"
+                + "; HttpOnly"
+                + "; SameSite=Lax"
+                + secureCookieAttribute();
+    }
+
+    private String secureCookieAttribute() {
+        return config.redirectUri().startsWith("https://") ? "; Secure" : "";
+    }
+
+    /**
+     * Normalizes user-controlled OAuth redirect targets to same-origin path URLs.
+     * External, protocol-relative, malformed, or header-unsafe values fall back to root.
+     */
+    static String safeLocalRedirect(String redirect) {
+        if (redirect == null || redirect.isBlank()) {
+            return "/";
+        }
+
+        final String candidate = redirect.trim();
+        if (!candidate.startsWith("/")
+                || candidate.startsWith("//")
+                || candidate.indexOf('\\') >= 0
+                || candidate.chars().anyMatch(ch -> Character.isISOControl(ch) || Character.isWhitespace(ch))) {
+            return "/";
+        }
+
+        try {
+            final URI uri = URI.create(candidate);
+            if (uri.isAbsolute() || uri.getRawAuthority() != null || uri.getRawPath() == null) {
+                return "/";
+            }
+            return candidate;
+        } catch (IllegalArgumentException _) {
+            return "/";
         }
     }
 
@@ -452,6 +560,17 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             Objects.requireNonNull(deviceId);
             Objects.requireNonNull(codeVerifier);
             Objects.requireNonNull(originalPath);
+        }
+    }
+
+    private record Session(String username, Instant expiresAt) {
+        Session {
+            Objects.requireNonNull(username);
+            Objects.requireNonNull(expiresAt);
+        }
+
+        boolean isExpired(Instant now) {
+            return !expiresAt.isAfter(now);
         }
     }
 }
