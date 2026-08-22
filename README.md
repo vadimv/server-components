@@ -1,28 +1,17 @@
-# Java UI for Admin Panels and realtime web apps
+# Java UI for Admin Panels and Realtime Web Apps
 
-**A realtime UI toolkit for admin panels, internal tools, and live web apps—featuring native Human-in-the-Loop AI flows.**
+Welcome! This is a server-side Java UI toolkit for admin panels, internal tools, and live
+web applications. Components keep state and run event handlers on the server;
+the browser receives initial HTML and small DOM updates over WebSocket.
 
-Deliver internal tool UIs predictably in plain Java. Free from dependency fatigue.
+[![Admin UI demo](https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f)](https://server-components.onrender.com)
 
-[![Admin-UI-demo](https://github.com/user-attachments/assets/ce5f6944-7bd2-4a3c-9afe-cfa72799074f)](https://server-components.onrender.com)
+- plain Java with constructor injection and no annotation-driven lifecycle;
+- typed component state, intents, context, and events;
+- no third-party runtime dependencies in the framework modules;
+- optional compositions, schema, authorization, dashboard, and agent modules.
 
-## Why?
-
-For over a decade, web UI stacks have been confusing and unpredictable. Building a modern frontend usually means:
-* Adopting a Node-based stack with thousands of transitive npm dependencies (often with opaque ownership and non-existent support guarantees).
-* Maintaining REST/GraphQL endpoints just to serve your own frontend.
-* Setting up separate frontend build steps and CI pipelines, even when your core stack is Java.
-
-## What does this project suggest instead?
-
-- **SSR Architecture:** A Server-Side-Rendering architecture similar to Elixir Phoenix LiveView or Blazor Server, but built natively for Java.
-- **Plain Modern Java:** Write web UIs with zero annotations, zero "beans", and no implicit control flows. Constructors are the preferred way for dependency injection, and components can be tested in isolation.
-- **Compact and All-Inclusive:** The project's total code footprint is currently about 50K LOC (with plans to cap at ~100K LOC), including tests, examples, and documentation. It provides a full UI stack with a level of complexity kept well within the reach of a small team.
-- **Auditable:** No third-party runtime dependencies, making the UI stack auditable by design.
-- **AI-Generation Friendly:** The Java HTML DSL is linear and composable, making it incredibly easy for coding LLMs (like Claude or Codex) to generate valid DSL HTML and component trees.
-- **Native AI Flows:** At runtime, AI agents can natively understand the application's structure, navigate the UI, and queue up actions using Human-in-the-loop flows for user approval.
-
-## What does the essential code look like?
+## Smallest Interactive Application
 
 ```java
 import rsp.component.ComponentView;
@@ -32,102 +21,47 @@ import rsp.http.WebServer;
 import static rsp.dsl.Html.*;
 
 public final class Counter {
-   private enum CounterIntent { INCREMENT }
+    private enum CounterIntent { INCREMENT }
 
-   static void main(final String[] args) {
-      final ComponentView<Integer, CounterIntent> view = intents -> state ->
-              html(
-                      body(
-                              h1("Current count: " + state),
-                              button(on("click", _ -> intents.dispatch(CounterIntent.INCREMENT)),
-                                     text("Increment"))
-                      )
-              );
+    static void main(String[] args) {
+        ComponentView<Integer, CounterIntent> view = intents -> state ->
+                html(body(
+                        h1("Current count: " + state),
+                        button(on("click", _ -> intents.dispatch(CounterIntent.INCREMENT)),
+                               text("Increment"))));
 
-      final var server = new WebServer(8080, _ ->
-              new LocalStateComponent<>((_, _) -> 0, view, (state, intent) -> state + 1));
-      server.start();
-      server.join();
-   }
+        WebServer server = new WebServer(8080, _ ->
+                new LocalStateComponent<>((_, _) -> 0, view,
+                        (state, intent) -> state + 1));
+        server.start();
+        server.join();
+    }
 }
 ```
-*This is a complete, runnable, interactive web application.*
 
-### How it works:
-1. The server generates the initial HTML and sends it to the browser.
-2. A tiny JavaScript client opens a WebSocket connection to the server.
-3. When you click a button, the event is sent over the WebSocket.
-4. The Java server updates the state, recalculates the UI, and sends a tiny DOM diff back over the WebSocket.
-5. The browser patches the DOM.
+The server renders the first page, the browser opens a WebSocket, and subsequent
+events run Java handlers that produce targeted DOM patches. Application state
+does not need to be duplicated in a JavaScript frontend.
 
-## Higher-level abstractions
+## Try The Repository
 
-Instead of magic annotations and complex lifecycles, this toolkit relies on a predictable mental model:
+Requirements: Java 25 and Maven 3.8.7 or newer.
 
-* **📦 Components (The Building Blocks):** Plain, generic Java classes strongly typed by their state. The framework natively manages state, while parent components pass configuration and services to their descendants via a keyed data context.
-* **🎨 Intent-Only Views (The UI):** A `ComponentView<S, I>` renders immutable state and dispatches typed intents. It cannot mutate state or publish framework events.
-* **🤝 Contracts (The Behavior and AI Bridge):** A contract is a state-owning component mounted in the tree. It translates intents into cache updates, domain effects, and declared agent actions.
-* **⚡ Typed Events (The Glue):** Contracts publish typed events for cross-component work; the scene resolves navigation and placement without owning a second contract runtime.
-
-## Getting Started: Admin Panel + AI Flow bonus
-
-**[Live Demo (might take up to 1 min for a cold start)](https://server-components.onrender.com)**
-
-### 1. Prerequisites
-- Java 25+ (virtual threads, sealed interfaces, pattern matching)
-- Maven 3.9+
-
-### 2. Clone the repository
 ```bash
 git clone https://github.com/vadimv/server-components.git
 cd server-components
-```
-
-> **Tip:** Now is a great time to run your favorite LLM coding tool over the project to review the architecture and perform an initial audit!
-
-### 3. Build the project
-```bash
 mvn clean install
+mvn exec:java -pl examples -Dexec.mainClass=rsp.app.posts.CrudApp
 ```
 
-### 4. Run the included admin example
-```bash
-mvn exec:java -pl examples -Dexec.mainClass="rsp.app.posts.CrudApp"
-```
-Open `http://localhost:8085`, click **Sign in**, and explore the Posts/Comments admin application.
+Open <http://localhost:8085> and select **Sign in**. The default agent is a
+deterministic local stub and requires no API key.
 
-### 5. Try a few AI Prompts
+## Documentation
 
-> By default, `CrudApp` uses `RegexAgentService`, a deterministic regex-based agent stub included in the repository. It is meant for demos and local validation, allowing you to try the AI workflow without setting up Anthropic, Ollama, or any other external LLM backend.
-
-Once inside the app, try typing these commands into the agent interface:
-- `"open comments"`
-- `"go to page 2"`
-- `"open comments and go to page 2 and select all"`
-
-When you're ready to use real AI reasoning, you can run `CrudApp` with a real model backend:
-```bash
-mvn exec:java -pl examples -Dexec.mainClass="rsp.app.posts.CrudApp" -Dai.agent=claude
-# or -Dai.agent=ollama
-```
-
-### 6. Build your own admin app via LLM
-Once you've run the example, open your favorite AI coding assistant (Claude, GitHub Copilot, ChatGPT) in the project root and paste a prompt like this:
-
-> *"Read `examples/src/main/java/rsp/app/posts/CrudApp.java`. Generate a similar realtime admin tool for managing Employees and Departments. Create mock services and a new `EmployeeAdminApp.java` using the same routing, composition, and AI-agent integration patterns."*
-
-## Maintainable in the long run
-
-Within a Life Cycle of an internal tool usually the boring "maintain" part is what takes a sheer size of efforts and risks over the years.
-
-**You built it—you should be able to maintain and repair it.** You should be able to replace and fix almost every part of your stack by yourself.
-Of course, with great power comes great responsibility: to fix your tractor, you have to know how and have the necessary skills and tools in your garage.
-
-Open Source software gives a promise that this would be possible yet in practice an NPM-style dependency management makes it almost impossible.
-That is the core idea this project aims to demonstrate: the entire UI stack is provided in a bundled, compact form, fully available for exploration and modification.
-Good luck doing that with the entangled dependency trees of modern JS frameworks!
-
-The AI revolution removes the remaining friction. Spinning up a new component with one or two short prompts in this toolkit feels like magic.
-You remain in control: ride the edge of the AI frontier, or—once you tame the manageable complexity of this codebase—go completely off-grid, potentially with help of a local model.
-
-The result? Simpler, predictable software that you can confidently maintain for the long haul.
+- [Documentation home](docs/index.md)
+- [Getting started](docs/getting-started.md)
+- [Examples](docs/examples.md)
+- [Core runtime and component concepts](docs/concepts/core.md)
+- [Compositions and routed application concepts](docs/concepts/compositions.md)
+- [Module map](docs/reference/module-map.md)
