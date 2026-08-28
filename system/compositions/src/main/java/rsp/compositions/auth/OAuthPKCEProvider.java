@@ -4,7 +4,7 @@ import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
-import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.block.ContextKeys;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
 import rsp.dsl.Definition;
@@ -171,12 +171,12 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
      */
     public Composition authComposition() {
         final Router router = new Router()
-                .route(config.loginPath(), LoginContract.class)
-                .route(config.signinPath(), LoginContract.class)
-                .route(config.callbackPath(), LoginContract.class)
-                .route(config.signOutPath(), LoginContract.class);
+                .route(config.loginPath(), LoginBlock.class)
+                .route(config.signinPath(), LoginBlock.class)
+                .route(config.callbackPath(), LoginBlock.class)
+                .route(config.signOutPath(), LoginBlock.class);
         final Group group = new Group()
-                .bind(LoginContract.class, () -> new LoginContract(config.signinPath()));
+                .bind(LoginBlock.class, () -> new LoginBlock(config.signinPath()));
         return new Composition(router, new DefaultLayout(), group);
     }
 

@@ -2,7 +2,7 @@ package rsp.compositions.dashboard;
 
 import org.junit.jupiter.api.Test;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ContractMetadata;
+import rsp.compositions.block.BlockMetadata;
 
 import java.util.List;
 import java.util.Map;
@@ -13,18 +13,18 @@ class DashboardMetadataTests {
 
     @Test
     void exposes_layout_and_widget_metadata_for_agents() {
-        DashboardLayout layout = DashboardDsl.dashboard()
+        DashboardDefinition definition = DashboardDsl.dashboard("agent", "Operations")
                 .columns(12)
                 .rowHeightPx(96)
                 .gap("1rem")
-                .place(new TestDashboardWidget("agent-visible"),
+                .place(new TestWidgetDefinition("agent-visible"),
                         DashboardDsl.at(2, 3).span(4, 2))
                 .build();
-        DashboardContract contract = new DashboardContract(new DashboardModel(layout));
+        DashboardBlock block = new DashboardBlock(definition, TestDashboardRuntime.customWidgets());
 
-        ContractMetadata metadata = contract.contractMetadata();
+        BlockMetadata metadata = block.blockMetadata();
 
-        assertEquals("Dashboard", metadata.title());
+        assertEquals("Operations", metadata.title());
         assertEquals(12, metadata.state().get("columns"));
         assertEquals(96, metadata.state().get("rowHeightPx"));
         assertEquals("1rem", metadata.state().get("gap"));
@@ -44,8 +44,8 @@ class DashboardMetadataTests {
         assertEquals(4, grid.get("columnSpan"));
         assertEquals(2, grid.get("rowSpan"));
 
-        Map<?, ?> state = (Map<?, ?>) widget.get("state");
-        assertEquals("agent-visible".length(), state.get("value"));
+        Map<?, ?> widgetDefinition = (Map<?, ?>) widget.get("definition");
+        assertEquals("agent-visible".length(), widgetDefinition.get("value"));
         assertFalse(containsComponent(metadata.state()),
                 "Agent metadata should expose structured data, not server component instances.");
     }

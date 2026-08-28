@@ -3,7 +3,7 @@ package rsp.compositions.layout;
 import java.util.Objects;
 
 /**
- * Preferred visual placement for a contract.
+ * Preferred visual placement for a block.
  * <p>
  * Placements are layout hints. A resolver may later override them with user
  * preferences, fixed framework rules, or safety constraints.

@@ -1,14 +1,15 @@
 package rsp.compositions.auth;
 
+import rsp.compositions.block.Block;
+
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.SceneComponent;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.ContextKeys;
+import rsp.compositions.block.SceneComponent;
 
 import rsp.dsl.Definition;
 
@@ -68,7 +69,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
             // Pass through — create SceneComponent from routing context
             return new SceneComponent(state.path(),
                                       state.composition(),
-                                      state.contractClass(),
+                                      state.blockClass(),
                                       state.pattern(),
                                       state.composition().layout());
         };
@@ -90,7 +91,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
                 authResult.roles(),
                 authProvider,
                 context.getRequired(ContextKeys.ROUTE_COMPOSITION),
-                context.getRequired(ContextKeys.ROUTE_CONTRACT_CLASS),
+                context.getRequired(ContextKeys.ROUTE_BLOCK_CLASS),
                 context.getRequired(ContextKeys.ROUTE_PATH),
                 context.getRequired(ContextKeys.ROUTE_PATTERN),
                 gateResponse);
@@ -101,14 +102,14 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
                                      String[] roles,
                                      AuthProvider authProvider,
                                      Composition composition,
-                                     Class<? extends Contract> contractClass,
+                                     Class<? extends Block<?, ?>> blockClass,
                                      String path,
                                      String pattern,
                                      Definition gateResponse) {
         public AuthComponentState {
             roles = roles != null ? roles.clone() : new String[0];
             Objects.requireNonNull(composition, "composition");
-            Objects.requireNonNull(contractClass, "contractClass");
+            Objects.requireNonNull(blockClass, "blockClass");
             Objects.requireNonNull(path, "path");
             Objects.requireNonNull(pattern, "pattern");
         }

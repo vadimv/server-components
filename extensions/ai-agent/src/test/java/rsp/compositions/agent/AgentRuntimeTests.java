@@ -1,5 +1,7 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.block.Block;
+
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
@@ -9,14 +11,14 @@ import rsp.compositions.authorization.AccessPolicy;
 import rsp.compositions.authorization.Attributes;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.authorization.DelegationGrant;
-import rsp.compositions.contract.ActionBindings;
-import rsp.compositions.contract.ContractDescriptor;
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractActionPayload;
-import rsp.compositions.contract.DispatchEffect;
-import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.Contract;
-import rsp.compositions.contract.Scene;
+import rsp.compositions.block.ActionBindings;
+import rsp.compositions.block.BlockDescriptor;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockActionPayload;
+import rsp.compositions.block.DispatchEffect;
+import rsp.compositions.block.EventKeys;
+import rsp.compositions.block.BlockRuntime;
+import rsp.compositions.block.Scene;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
@@ -86,9 +88,9 @@ class AgentRuntimeTests {
         RecordingFeedback feedback = new RecordingFeedback(
                 m -> m.contains("requires your approval"));
         EventKey.VoidKey actionKey = new EventKey.VoidKey("test.create");
-        ContractAction action = new ContractAction("create", actionKey, "Create");
+        BlockAction action = new BlockAction("create", actionKey, "Create");
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
         ScriptedSpawner spawner = new ScriptedSpawner(
                 new SpawnResult.RequiresApproval("ticket-1", "needs approval"));
         TestLookup runtimeLookup = new TestLookup();
@@ -105,7 +107,7 @@ class AgentRuntimeTests {
                 "delegation approval modal must be shown via SHOW event");
         ActionBindings.ShowPayload payload =
                 runtimeLookup.getLastPublishedPayload(EventKeys.SHOW);
-        assertEquals(StubContract.class, payload.contractClass());
+        assertEquals(StubBlock.class, payload.blockClass());
     }
 
     /** Invariant 1c: with an active session, Deny is a real refusal — no
@@ -116,9 +118,9 @@ class AgentRuntimeTests {
         RecordingFeedback feedback = new RecordingFeedback(
                 m -> m.startsWith("Action not permitted"));
         EventKey.VoidKey actionKey = new EventKey.VoidKey("test.delete");
-        ContractAction action = new ContractAction("delete", actionKey, "Delete");
+        BlockAction action = new BlockAction("delete", actionKey, "Delete");
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
 
         AgentRuntime runtime = newRuntime(service, new ActionDispatcher(),
                 new FailingSpawner(), denyAuthorization("not authorized"),
@@ -168,7 +170,7 @@ class AgentRuntimeTests {
         AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
                 allowAuthorization(), new RecordingFeedback(), new TestLookup());
 
-        ContractAction action = new ContractAction("do",
+        BlockAction action = new BlockAction("do",
                 new EventKey.VoidKey("test.do"), "Do it");
         setField(runtime, "pendingConfirm", pendingAction(action));
 
@@ -190,7 +192,7 @@ class AgentRuntimeTests {
         AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
                 allowAuthorization(), feedback, new TestLookup());
 
-        ContractAction action = new ContractAction("do",
+        BlockAction action = new BlockAction("do",
                 new EventKey.VoidKey("test.do"), "Do it");
         setField(runtime, "pendingConfirm", pendingAction(action));
 
@@ -229,23 +231,23 @@ class AgentRuntimeTests {
     // ------------------------------------------------------------------
 
     /** Invariant 5: scene settle waits for the routed descriptor's live
-     *  primary contract, not descriptor visibility alone. */
+     *  primary block, not descriptor visibility alone. */
     @Test
-    void onScene_waitsForMatchingMountedPrimaryContractBeforeCompletingSettleFuture() {
+    void onScene_waitsForMatchingMountedPrimaryBlockBeforeCompletingSettleFuture() {
         AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
                 new ActionDispatcher(), new FailingSpawner(), allowAuthorization(),
                 new RecordingFeedback(), new TestLookup());
-        ContractDescriptor descriptor = ContractDescriptor.forContract(StubContract.class, Map.of());
+        BlockDescriptor descriptor = BlockDescriptor.forBlock(StubBlock.class, Map.of());
         Scene scene = sceneFor(descriptor);
 
-        CompletableFuture<Scene> future = runtime.armSceneSettle(StubContract.class);
+        CompletableFuture<Scene> future = runtime.armSceneSettle(StubBlock.class);
 
         runtime.onScene(scene);
 
         assertFalse(future.isDone(), "descriptor visibility alone is not enough");
 
-        runtime.onPrimaryContractMounted(new EventKeys.MountedPrimaryContract(
-                descriptor.instanceId(), new StubContract(new TestLookup())));
+        runtime.onPrimaryBlockMounted(new EventKeys.MountedPrimaryBlock(
+                descriptor.instanceId(), new StubBlock(new TestLookup())));
 
         assertTrue(future.isDone(), "future should complete when the matching primary mounts");
         assertEquals(scene, future.join());
@@ -265,13 +267,13 @@ class AgentRuntimeTests {
     @Test
     void loop_singleAction_dispatchesOnceAndStops() throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.act");
-        ContractAction action = new ContractAction("act", key, "Act");
+        BlockAction action = new BlockAction("act", key, "Act");
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
-                        a, ContractActionPayload.EMPTY,
+                        a, BlockActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
         RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("Act"));
 
@@ -294,13 +296,13 @@ class AgentRuntimeTests {
     @Test
     void loop_terminates_onAwaitingConfirmation_andPreservesPending() throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.confirm");
-        ContractAction action = new ContractAction("delete", key, "Delete");
+        BlockAction action = new BlockAction("delete", key, "Delete");
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.AwaitingConfirmation(
-                        "Are you sure?", a, ContractActionPayload.EMPTY));
+                        "Are you sure?", a, BlockActionPayload.EMPTY));
         RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("Are you sure?"));
 
         AgentRuntime runtime = newRuntime(service, dispatcher, new FailingSpawner(),
@@ -319,10 +321,10 @@ class AgentRuntimeTests {
     @Test
     void loop_terminates_onBlockedDispatch() throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.blocked");
-        ContractAction action = new ContractAction("blocked", key, "Blocked");
+        BlockAction action = new BlockAction("blocked", key, "Blocked");
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Blocked("forbidden by gate"));
         RecordingFeedback feedback = new RecordingFeedback(m -> m.equals("forbidden by gate"));
@@ -344,16 +346,16 @@ class AgentRuntimeTests {
     void loop_terminates_atStepBudget_whileDispatchingPlanSteps()
             throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.act");
-        ContractAction action = new ContractAction("act", key, "Act");
+        BlockAction action = new BlockAction("act", key, "Act");
         ScriptedAgentService service = new ScriptedAgentService(
                 new AgentResult.PlanResult(List.of("s1", "s2", "s3", "s4"), ""),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
-                        a, ContractActionPayload.EMPTY,
+                        a, BlockActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
         RecordingFeedback feedback = new RecordingFeedback(m -> m.contains("step budget"));
 
@@ -470,17 +472,17 @@ class AgentRuntimeTests {
     void actionDispatcher_setsAndClears_agentDispatchFlag() {
         ActionDispatcher dispatcher = new ActionDispatcher();
         EventKey.VoidKey key = new EventKey.VoidKey("test.flag");
-        ContractAction action = new ContractAction("flag", key, "Test flag");
+        BlockAction action = new BlockAction("flag", key, "Test flag");
 
         boolean[] observedInsidePublish = {false};
-        TestLookup contractLookup = new TestLookup();
-        contractLookup.subscribe(key, () -> observedInsidePublish[0] = ActionDispatcher.isAgentDispatch());
-        StubLookupContract contract = new StubLookupContract(contractLookup);
+        TestLookup blockLookup = new TestLookup();
+        blockLookup.subscribe(key, () -> observedInsidePublish[0] = ActionDispatcher.isAgentDispatch());
+        StubLookupBlock block = new StubLookupBlock(blockLookup);
 
         assertFalse(ActionDispatcher.isAgentDispatch(),
                 "flag must be false outside any dispatch");
 
-        dispatcher.dispatch(action, ContractActionPayload.EMPTY, contract, new TestLookup(),
+        dispatcher.dispatch(action, BlockActionPayload.EMPTY, block, new TestLookup(),
                 (a, p, l) -> new GateResult.Allow(a, p));
 
         assertTrue(observedInsidePublish[0],
@@ -489,7 +491,7 @@ class AgentRuntimeTests {
                 "AGENT_DISPATCH must be cleared in the dispatcher's finally block");
     }
 
-    /** User-driven publish (no AGENT_DISPATCH set) on the active contract
+    /** User-driven publish (no AGENT_DISPATCH set) on the active block
      *  fires the monitor and cancels the running loop under strictStop. */
     @Test
     void userEventMonitor_userPublish_cancelsLoop() {
@@ -502,17 +504,17 @@ class AgentRuntimeTests {
         AbortToken token = new AbortToken();
         setField(runtime, "currentToken", token);
 
-        TestLookup activeContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+        TestLookup activeBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupBlock.class, activeBlockLookup);
 
         // User-driven publish: SET_PRIMARY without AGENT_DISPATCH set.
-        activeContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        activeBlockLookup.publish(EventKeys.SET_PRIMARY, StubLookupBlock.class);
 
         assertTrue(token.isCancelled(),
                 "user-driven SET_PRIMARY must cancel the running loop");
     }
 
-    /** Agent dispatch on the same active contract does NOT trigger the monitor. */
+    /** Agent dispatch on the same active block does NOT trigger the monitor. */
     @Test
     void userEventMonitor_agentDispatch_doesNotCancelLoop() {
         ActionDispatcher dispatcher = new ActionDispatcher();
@@ -525,11 +527,11 @@ class AgentRuntimeTests {
         AbortToken token = new AbortToken();
         setField(runtime, "currentToken", token);
 
-        TestLookup activeContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+        TestLookup activeBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupBlock.class, activeBlockLookup);
 
         // Simulate an agent dispatch: publish via the dispatcher's navigate path.
-        dispatcher.dispatchNavigate(StubLookupContract.class, activeContractLookup);
+        dispatcher.dispatchNavigate(StubLookupBlock.class, activeBlockLookup);
 
         assertFalse(token.isCancelled(),
                 "agent's own navigate must NOT cancel the loop");
@@ -550,15 +552,15 @@ class AgentRuntimeTests {
         AbortToken token = new AbortToken();
         setField(runtime, "currentToken", token);
 
-        TestLookup activeContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+        TestLookup activeBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupBlock.class, activeBlockLookup);
 
         // Simulate "we are inside dispatch + settle" by forcing the flag.
         setField(runtime, "agentDispatchActive", true);
 
         // Publish without AGENT_DISPATCH set (simulates an async re-render
         // event arriving on the framework's command thread).
-        activeContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        activeBlockLookup.publish(EventKeys.SET_PRIMARY, StubLookupBlock.class);
 
         assertFalse(token.isCancelled(),
                 "events during agent dispatch+settle must be treated as aftermath");
@@ -577,31 +579,31 @@ class AgentRuntimeTests {
         AbortToken token = new AbortToken();
         setField(runtime, "currentToken", token);
 
-        TestLookup activeContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(StubLookupContract.class, activeContractLookup);
+        TestLookup activeBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupBlock.class, activeBlockLookup);
 
         // Simulate "we JUST finished a dispatch."
         setField(runtime, "lastDispatchEndMillis", System.currentTimeMillis());
 
-        activeContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        activeBlockLookup.publish(EventKeys.SET_PRIMARY, StubLookupBlock.class);
 
         assertFalse(token.isCancelled(),
                 "events within the post-dispatch grace window must not cancel");
     }
 
-    /** Monitor rebinds when the active contract changes — events on the old
-     *  contract no longer trigger interruption. */
+    /** Monitor rebinds when the active block changes — events on the old
+     *  block no longer trigger interruption. */
     @Test
     void userEventMonitor_rebindsOnSceneChange() {
         AgentRuntime runtime = newRuntime(new ScriptedAgentService(),
                 new ActionDispatcher(), new FailingSpawner(),
                 allowAuthorization(), new RecordingFeedback(), new TestLookup());
 
-        TestLookup firstContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(StubLookupContract.class, firstContractLookup);
+        TestLookup firstBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(StubLookupBlock.class, firstBlockLookup);
 
-        TestLookup secondContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(AlternateStubContract.class, secondContractLookup);
+        TestLookup secondBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(AlternateStubBlock.class, secondBlockLookup);
 
         AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
         running.set(true);
@@ -609,14 +611,14 @@ class AgentRuntimeTests {
         setField(runtime, "currentToken", token);
 
         // Publish on the OLD lookup — must not cancel (monitor moved).
-        firstContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        firstBlockLookup.publish(EventKeys.SET_PRIMARY, StubLookupBlock.class);
         assertFalse(token.isCancelled(),
                 "publish on stale lookup must not affect the runtime");
 
         // Publish on the NEW lookup — must cancel.
-        secondContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        secondBlockLookup.publish(EventKeys.SET_PRIMARY, StubLookupBlock.class);
         assertTrue(token.isCancelled(),
-                "publish on the new active contract's lookup must cancel");
+                "publish on the new active block's lookup must cancel");
     }
 
     @Test
@@ -625,22 +627,22 @@ class AgentRuntimeTests {
                 new ActionDispatcher(), new FailingSpawner(),
                 allowAuthorization(), new RecordingFeedback(), new TestLookup());
 
-        TestLookup firstContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(1, StubLookupContract.class, firstContractLookup);
+        TestLookup firstBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(1, StubLookupBlock.class, firstBlockLookup);
 
-        TestLookup refreshedContractLookup = new TestLookup();
-        runtime.rebindUserEventMonitor(2, StubLookupContract.class, refreshedContractLookup);
+        TestLookup refreshedBlockLookup = new TestLookup();
+        runtime.rebindUserEventMonitor(2, StubLookupBlock.class, refreshedBlockLookup);
 
         AtomicBoolean running = (AtomicBoolean) getField(runtime, "running");
         running.set(true);
         AbortToken token = new AbortToken();
         setField(runtime, "currentToken", token);
 
-        firstContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        firstBlockLookup.publish(EventKeys.SET_PRIMARY, StubLookupBlock.class);
         assertFalse(token.isCancelled(),
                 "publish on same-class stale lookup must not affect the runtime");
 
-        refreshedContractLookup.publish(EventKeys.SET_PRIMARY, StubLookupContract.class);
+        refreshedBlockLookup.publish(EventKeys.SET_PRIMARY, StubLookupBlock.class);
         assertTrue(token.isCancelled(),
                 "publish on same-class refreshed lookup must cancel");
     }
@@ -683,14 +685,14 @@ class AgentRuntimeTests {
     void loop_enqueuesPlanSteps_andDispatchesEachThenStops()
             throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.act");
-        ContractAction action = new ContractAction("act", key, "Act");
+        BlockAction action = new BlockAction("act", key, "Act");
         ScriptedAgentService service = new ScriptedAgentService(
                 new AgentResult.PlanResult(List.of("first step", "second step"), ""),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
-                        a, ContractActionPayload.EMPTY,
+                        a, BlockActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
         RecordingFeedback feedback = new RecordingFeedback(
                 m -> m.contains("Step 2/2"));
@@ -722,19 +724,19 @@ class AgentRuntimeTests {
     @Test
     void loop_sceneChangeThenFollowupPlan_dispatchesPlanSteps()
             throws InterruptedException {
-        ContractAction openForm = new ContractAction("open_form",
+        BlockAction openForm = new BlockAction("open_form",
                 new EventKey.VoidKey("test.open_form"),
                 "Open a form", DispatchEffect.SCENE_CHANGE);
-        ContractAction noop = new ContractAction("noop",
+        BlockAction noop = new BlockAction("noop",
                 new EventKey.VoidKey("test.noop"), "Noop");
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(openForm, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(openForm, BlockActionPayload.EMPTY),
                 new AgentResult.PlanResult(List.of("a", "b"), ""),
-                new AgentResult.ActionResult(noop, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(noop, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(noop, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(noop, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
-                        a, ContractActionPayload.EMPTY,
+                        a, BlockActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
         RecordingFeedback feedback = new RecordingFeedback(m -> m.contains("Step 2/2"));
 
@@ -758,17 +760,17 @@ class AgentRuntimeTests {
     @Test
     void loop_sceneChangeThenSceneChange_stopsAfterTwo()
             throws InterruptedException {
-        ContractAction sceneAction = new ContractAction("scene_act",
+        BlockAction sceneAction = new BlockAction("scene_act",
                 new EventKey.VoidKey("test.scene_act"),
                 "Scene action", DispatchEffect.SCENE_CHANGE);
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(sceneAction, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(sceneAction, ContractActionPayload.EMPTY),
+                new AgentResult.ActionResult(sceneAction, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(sceneAction, BlockActionPayload.EMPTY),
                 // A 3rd call would indicate the cascade is unbounded.
-                new AgentResult.ActionResult(sceneAction, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(sceneAction, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
-                        a, ContractActionPayload.EMPTY,
+                        a, BlockActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
         RecordingFeedback feedback = new RecordingFeedback();
 
@@ -785,27 +787,27 @@ class AgentRuntimeTests {
 
     /** Effect gating: a {@code SCENE_CHANGE}-effect action in an intermediate
      *  plan step must block the loop until the next routed descriptor's live
-     *  primary contract mounts. Without the gate the next step would see stale
+     *  primary block mounts. Without the gate the next step would see stale
      *  or empty context and the LLM would refuse the dependent action (e.g.
      *  "set_field" called before the form is open). */
     @Test
     void loop_sceneChangeAction_blocksUntilOnScene_thenProceeds()
             throws InterruptedException {
-        ContractAction sceneChange = new ContractAction("scene_act",
+        BlockAction sceneChange = new BlockAction("scene_act",
                 new EventKey.VoidKey("test.scene_act"),
                 "Scene-changing action",
                 DispatchEffect.SCENE_CHANGE);
-        ContractAction followUp = new ContractAction("follow",
+        BlockAction followUp = new BlockAction("follow",
                 new EventKey.VoidKey("test.follow"),
                 "Follow-up action");
 
         ScriptedAgentService service = new ScriptedAgentService(
                 new AgentResult.PlanResult(List.of("open", "follow"), ""),
-                new AgentResult.ActionResult(sceneChange, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(followUp, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(sceneChange, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(followUp, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
-                        a, ContractActionPayload.EMPTY,
+                        a, BlockActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
         RecordingFeedback feedback = new RecordingFeedback(
                 m -> m.equals("Follow-up action"));
@@ -815,16 +817,16 @@ class AgentRuntimeTests {
 
         // Watchdog: once the runtime arms sceneSettleFuture after the first
         // (SCENE_CHANGE) dispatch, simulate descriptor visibility followed by
-        // the matching live primary contract mount.
+        // the matching live primary block mount.
         Thread watcher = new Thread(() -> {
             long deadline = System.currentTimeMillis() + 3_000;
             while (System.currentTimeMillis() < deadline) {
                 CompletableFuture<?> f = (CompletableFuture<?>) getField(runtime, "sceneSettleFuture");
                 if (f != null && !f.isDone()) {
-                    ContractDescriptor descriptor = ContractDescriptor.forContract(StubLookupContract.class, Map.of());
+                    BlockDescriptor descriptor = BlockDescriptor.forBlock(StubLookupBlock.class, Map.of());
                     runtime.onScene(sceneFor(descriptor));
-                    runtime.onPrimaryContractMounted(new EventKeys.MountedPrimaryContract(
-                            descriptor.instanceId(), new StubLookupContract(new TestLookup())));
+                    runtime.onPrimaryBlockMounted(new EventKeys.MountedPrimaryBlock(
+                            descriptor.instanceId(), new StubLookupBlock(new TestLookup())));
                     return;
                 }
                 try { Thread.sleep(5); } catch (InterruptedException e) { return; }
@@ -836,7 +838,7 @@ class AgentRuntimeTests {
         runtime.submit("plan with scene change");
 
         assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS),
-                "follow-up dispatch must run after the live primary contract completes the gate");
+                "follow-up dispatch must run after the live primary block completes the gate");
         Thread.sleep(50);
         assertEquals(List.of("scene_act", "follow"), dispatcher.dispatchCalls,
                 "scene-change dispatch must precede the follow-up; both must occur");
@@ -850,22 +852,22 @@ class AgentRuntimeTests {
         CountDownLatch followUpCalled = new CountDownLatch(1);
         AgentService service = new AgentService() {
             @Override
-            public AgentResult handlePrompt(String prompt, ContractProfile profile,
+            public AgentResult handlePrompt(String prompt, BlockProfile profile,
                                             rsp.compositions.composition.StructureNode tree) {
                 int call = callCount.incrementAndGet();
                 if (call == 1) {
                     return new AgentResult.PlanResult(List.of("go", "inspect"), "");
                 }
                 if (call == 2) {
-                    return new AgentResult.NavigateResult(AlternateStubContract.class);
+                    return new AgentResult.NavigateResult(AlternateStubBlock.class);
                 }
-                followUpProfileClass.set(profile.contractClass());
+                followUpProfileClass.set(profile.blockClass());
                 followUpCalled.countDown();
                 return new AgentResult.TextReply("done");
             }
 
             @Override
-            public AgentResult handlePrompt(String prompt, ContractProfile profile,
+            public AgentResult handlePrompt(String prompt, BlockProfile profile,
                                             rsp.compositions.composition.StructureNode tree,
                                             Consumer<String> partial) {
                 return handlePrompt(prompt, profile, tree);
@@ -877,7 +879,7 @@ class AgentRuntimeTests {
 
         runtime.submit("navigate then inspect");
         CompletableFuture<?> pendingSettle = awaitPendingSettle(runtime);
-        ContractDescriptor descriptor = ContractDescriptor.forContract(AlternateStubContract.class, Map.of());
+        BlockDescriptor descriptor = BlockDescriptor.forBlock(AlternateStubBlock.class, Map.of());
 
         runtime.onScene(sceneFor(descriptor));
 
@@ -887,11 +889,11 @@ class AgentRuntimeTests {
         assertFalse(followUpCalled.await(100, TimeUnit.MILLISECONDS));
         assertFalse(pendingSettle.isDone());
 
-        runtime.onPrimaryContractMounted(new EventKeys.MountedPrimaryContract(
-                descriptor.instanceId(), new AlternateStubContract(new TestLookup())));
+        runtime.onPrimaryBlockMounted(new EventKeys.MountedPrimaryBlock(
+                descriptor.instanceId(), new AlternateStubBlock(new TestLookup())));
 
         assertTrue(followUpCalled.await(ASYNC_TIMEOUT_SECONDS, TimeUnit.SECONDS));
-        assertEquals(AlternateStubContract.class, followUpProfileClass.get());
+        assertEquals(AlternateStubBlock.class, followUpProfileClass.get());
         assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS));
     }
 
@@ -902,15 +904,15 @@ class AgentRuntimeTests {
     void onApprovalDecided_true_runsPlanQueuedResultToCompletion()
             throws InterruptedException {
         EventKey.VoidKey key = new EventKey.VoidKey("test.act");
-        ContractAction action = new ContractAction("act", key, "Act");
+        BlockAction action = new BlockAction("act", key, "Act");
         // Service is consulted for each enqueued plan step (not for the
         // queued PlanResult itself, which is used as the kickstart).
         ScriptedAgentService service = new ScriptedAgentService(
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY),
-                new AgentResult.ActionResult(action, ContractActionPayload.EMPTY));
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY),
+                new AgentResult.ActionResult(action, BlockActionPayload.EMPTY));
         ScriptedDispatcher dispatcher = new ScriptedDispatcher(
                 a -> new ActionDispatcher.DispatchResult.Dispatched(
-                        a, ContractActionPayload.EMPTY,
+                        a, BlockActionPayload.EMPTY,
                         CompletableFuture.completedFuture(null)));
         ScriptedSpawner spawner = new ScriptedSpawner(
                 new SpawnResult.Approved(validSession()));
@@ -980,7 +982,7 @@ class AgentRuntimeTests {
                                            Lookup lookup,
                                            LoopPolicy policy) {
         return new AgentRuntime(service, dispatcher, spawner,
-                authorization, null, lookup, feedback, StubContract.class, policy, "test-runtime");
+                authorization, null, lookup, feedback, StubBlock.class, policy, "test-runtime");
     }
 
     private static AgentRuntime newRuntime(AgentService service,
@@ -991,11 +993,11 @@ class AgentRuntimeTests {
                                            Lookup lookup,
                                            InterruptionPolicy interruptionPolicy) {
         return new AgentRuntime(service, dispatcher, spawner,
-                authorization, null, lookup, feedback, StubContract.class, LoopPolicy.DEFAULT,
+                authorization, null, lookup, feedback, StubBlock.class, LoopPolicy.DEFAULT,
                 interruptionPolicy, "test-runtime");
     }
 
-    private static Scene sceneFor(ContractDescriptor descriptor) {
+    private static Scene sceneFor(BlockDescriptor descriptor) {
         return Scene.of(descriptor, Map.of(),
                 new Composition(new Router(), new DefaultLayout(), new Group()));
     }
@@ -1030,13 +1032,13 @@ class AgentRuntimeTests {
         return new AgentSession("session-id", grant);
     }
 
-    private static Object pendingAction(ContractAction action) {
+    private static Object pendingAction(BlockAction action) {
         // PendingAction is a private record inside AgentRuntime — instantiate via reflection.
         try {
             Class<?> cls = Class.forName("rsp.compositions.agent.AgentRuntime$PendingAction");
             java.lang.reflect.Constructor<?> ctor = cls.getDeclaredConstructors()[0];
             ctor.setAccessible(true);
-            return ctor.newInstance(action, ContractActionPayload.EMPTY);
+            return ctor.newInstance(action, BlockActionPayload.EMPTY);
         } catch (ReflectiveOperationException e) {
             throw new AssertionError(e);
         }
@@ -1106,7 +1108,7 @@ class AgentRuntimeTests {
         }
 
         @Override
-        public AgentResult handlePrompt(String prompt, ContractProfile profile,
+        public AgentResult handlePrompt(String prompt, BlockProfile profile,
                                         rsp.compositions.composition.StructureNode tree) {
             callCount.incrementAndGet();
             AgentResult next = results.poll();
@@ -1114,7 +1116,7 @@ class AgentRuntimeTests {
         }
 
         @Override
-        public AgentResult handlePrompt(String prompt, ContractProfile profile,
+        public AgentResult handlePrompt(String prompt, BlockProfile profile,
                                         rsp.compositions.composition.StructureNode tree,
                                         Consumer<String> partial) {
             return handlePrompt(prompt, profile, tree);
@@ -1143,61 +1145,73 @@ class AgentRuntimeTests {
         }
     }
 
-    /** Minimal concrete contract used as a navigation target in
+    /** Minimal concrete block used as a navigation target in
      *  tests that need a {@link AgentResult.NavigateResult} carrying a real class. */
-    private static final class StubContract implements Contract {
-        private final Lookup lookup;
-        StubContract(Lookup lookup) { this.lookup = lookup; }
-        @Override public Lookup lookup() { return lookup; }
+    private static final class StubBlock extends LookupBlock {
+        StubBlock(Lookup lookup) { super(lookup); }
         @Override public String title() { return "Stub"; }
     }
 
-    /** Concrete contract whose lookup is the one supplied at construction —
+    /** Concrete block whose lookup is the one supplied at construction —
      *  used so {@link ActionDispatcher#dispatch} (which publishes on
-     *  {@code contract.lookup()}) targets a test-controlled lookup. */
-    private static final class StubLookupContract implements Contract {
-        private final Lookup lookup;
-        StubLookupContract(Lookup lookup) { this.lookup = lookup; }
-        @Override public Lookup lookup() { return lookup; }
+     *  {@code block.lookup()}) targets a test-controlled lookup. */
+    private static final class StubLookupBlock extends LookupBlock {
+        StubLookupBlock(Lookup lookup) { super(lookup); }
         @Override public String title() { return "StubLookup"; }
     }
 
     /** Second stub used to simulate a scene change in monitor-rebind tests. */
-    private static final class AlternateStubContract implements Contract {
-        private final Lookup lookup;
-        AlternateStubContract(Lookup lookup) { this.lookup = lookup; }
-        @Override public Lookup lookup() { return lookup; }
+    private static final class AlternateStubBlock extends LookupBlock {
+        AlternateStubBlock(Lookup lookup) { super(lookup); }
         @Override public String title() { return "Alternate"; }
+    }
+
+    private abstract static class LookupBlock extends Block<Object, Object> {
+        private final Lookup lookup;
+
+        LookupBlock(Lookup lookup) { this.lookup = lookup; }
+
+        @Override public Lookup lookup() { return lookup; }
+
+        @Override
+        public rsp.component.ComponentStateSupplier<Object> initStateSupplier() {
+            return (_, _) -> new Object();
+        }
+
+        @Override
+        public rsp.component.ComponentView<Object, Object> componentView() {
+            return _ -> _ -> rsp.dsl.Html.text("");
+        }
     }
 
     /** Dispatcher that produces a caller-supplied DispatchResult per call,
      *  recording the action name. Used for tests that need to drive the loop
-     *  through specific dispatch outcomes without wiring a real contract. */
+     *  through specific dispatch outcomes without wiring a real block. */
     private static final class ScriptedDispatcher extends ActionDispatcher {
         final List<String> dispatchCalls = new CopyOnWriteArrayList<>();
-        private final Function<ContractAction, DispatchResult> behavior;
+        private final Function<BlockAction, DispatchResult> behavior;
 
-        ScriptedDispatcher(Function<ContractAction, DispatchResult> behavior) {
+        ScriptedDispatcher(Function<BlockAction, DispatchResult> behavior) {
             this.behavior = behavior;
         }
 
         @Override
-        public DispatchResult dispatch(ContractAction action, ContractActionPayload payload,
-                                       Contract contract, Lookup lookup, ActionGate gate) {
+        public DispatchResult dispatch(BlockAction action, BlockActionPayload payload,
+                                       BlockRuntime block, Lookup lookup, ActionGate gate) {
             dispatchCalls.add(action.action());
             return behavior.apply(action);
         }
     }
 
     /** Records calls to {@link #dispatchDirect} so tests can verify routing
-     *  without needing a fully-wired routed contract / Scene. */
+     *  without needing a fully-wired routed block / Scene. */
     private static final class RecordingDispatcher extends ActionDispatcher {
         final List<String> directCalls = new CopyOnWriteArrayList<>();
 
         @Override
-        public DispatchResult dispatchDirect(ContractAction action,
-                                             ContractActionPayload payload,
-                                             Contract contract) {
+        public DispatchResult dispatchDirect(BlockAction action,
+                                             BlockActionPayload payload,
+                                             BlockRuntime block) {
             directCalls.add(action.action());
             return new DispatchResult.Dispatched(action, payload,
                     CompletableFuture.completedFuture(null));

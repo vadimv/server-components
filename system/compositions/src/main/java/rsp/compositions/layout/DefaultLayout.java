@@ -1,11 +1,13 @@
 package rsp.compositions.layout;
 
+import rsp.compositions.block.Block;
+
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ContractDescriptor;
-import rsp.compositions.contract.DirectContractHost;
-import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.BlockDescriptor;
+import rsp.compositions.block.DirectBlockHost;
+import rsp.compositions.block.Scene;
+import rsp.compositions.block.BlockRuntime;
 import rsp.dsl.Definition;
 
 import java.util.ArrayList;
@@ -22,36 +24,36 @@ import static rsp.dsl.Html.*;
 /**
  * Default base layout with CSS class-based positioning.
  * <p>
- * Configurable via builder methods that declare which contract classes
- * should appear in which position. These contracts become companion descriptors
- * during scene building (via {@link #requiredContracts()}).
+ * Configurable via builder methods that declare which block classes
+ * should appear in which position. These blocks become companion descriptors
+ * during scene building (via {@link #requiredBlocks()}).
  * <p>
  * Structure:
  * <ul>
  *   <li>{@code layout-wrapper} - outer wrapper div</li>
  *   <li>{@code layout-container} - content container</li>
  *   <li>{@code layout-sidebar} - optional left sidebar</li>
- *   <li>{@code layout-primary} - main content area (routed contract)</li>
+ *   <li>{@code layout-primary} - main content area (routed block)</li>
  *   <li>{@code layout-right-sidebar} - optional right sidebar</li>
  * </ul>
  */
 public final class DefaultLayout implements Layout {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final Class<? extends Contract> leftSidebarClass;
-    private final Class<? extends Contract> rightSidebarClass;
-    private final Class<? extends Contract> headerClass;
-    private final Map<Class<? extends Contract>, Placement> placements;
+    private final Class<? extends Block<?, ?>> leftSidebarClass;
+    private final Class<? extends Block<?, ?>> rightSidebarClass;
+    private final Class<? extends Block<?, ?>> headerClass;
+    private final Map<Class<? extends BlockRuntime>, Placement> placements;
     private final GroupPlacementPolicy groupPlacementPolicy;
 
     public DefaultLayout() {
         this(null, null, null, Map.of(), GroupPlacementPolicy.ALL_MODAL);
     }
 
-    private DefaultLayout(Class<? extends Contract> leftSidebarClass,
-                          Class<? extends Contract> rightSidebarClass,
-                          Class<? extends Contract> headerClass,
-                          Map<Class<? extends Contract>, Placement> placements,
+    private DefaultLayout(Class<? extends Block<?, ?>> leftSidebarClass,
+                          Class<? extends Block<?, ?>> rightSidebarClass,
+                          Class<? extends Block<?, ?>> headerClass,
+                          Map<Class<? extends BlockRuntime>, Placement> placements,
                           GroupPlacementPolicy groupPlacementPolicy) {
         this.leftSidebarClass = leftSidebarClass;
         this.rightSidebarClass = rightSidebarClass;
@@ -60,34 +62,34 @@ public final class DefaultLayout implements Layout {
         this.groupPlacementPolicy = Objects.requireNonNull(groupPlacementPolicy, "groupPlacementPolicy");
     }
 
-    public DefaultLayout leftSidebar(Class<? extends Contract> contractClass) {
-        return new DefaultLayout(contractClass, rightSidebarClass, headerClass,
+    public DefaultLayout leftSidebar(Class<? extends Block<?, ?>> blockClass) {
+        return new DefaultLayout(blockClass, rightSidebarClass, headerClass,
                 placements, groupPlacementPolicy);
     }
 
-    public DefaultLayout rightSidebar(Class<? extends Contract> contractClass) {
-        return new DefaultLayout(leftSidebarClass, contractClass, headerClass,
+    public DefaultLayout rightSidebar(Class<? extends Block<?, ?>> blockClass) {
+        return new DefaultLayout(leftSidebarClass, blockClass, headerClass,
                 placements, groupPlacementPolicy);
     }
 
-    public DefaultLayout header(Class<? extends Contract> contractClass) {
-        return new DefaultLayout(leftSidebarClass, rightSidebarClass, contractClass,
+    public DefaultLayout header(Class<? extends Block<?, ?>> blockClass) {
+        return new DefaultLayout(leftSidebarClass, rightSidebarClass, blockClass,
                 placements, groupPlacementPolicy);
     }
 
     /**
-     * Declares the preferred placement for contracts assignable to
-     * {@code contractType}.
+     * Declares the preferred placement for blocks assignable to
+     * {@code blockType}.
      * <p>
      * This is a layout hint: future user preferences or fixed framework rules
-     * may override it. More specific contract types win over broader base types.
+     * may override it. More specific block types win over broader base types.
      */
-    public DefaultLayout placement(Class<? extends Contract> contractType,
+    public DefaultLayout placement(Class<? extends BlockRuntime> blockType,
                                    Placement placement) {
-        Objects.requireNonNull(contractType, "contractType");
+        Objects.requireNonNull(blockType, "blockType");
         Objects.requireNonNull(placement, "placement");
-        Map<Class<? extends Contract>, Placement> updated = new LinkedHashMap<>(placements);
-        updated.put(contractType, placement);
+        Map<Class<? extends BlockRuntime>, Placement> updated = new LinkedHashMap<>(placements);
+        updated.put(blockType, placement);
         return new DefaultLayout(leftSidebarClass, rightSidebarClass, headerClass,
                 updated, groupPlacementPolicy);
     }
@@ -98,15 +100,15 @@ public final class DefaultLayout implements Layout {
     }
 
     @Override
-    public PlacementDecision resolvePlacement(Class<? extends Contract> contractClass,
+    public PlacementDecision resolvePlacement(Class<? extends Block<?, ?>> blockClass,
                                               Scene scene) {
-        return PlacementResolver.resolve(contractClass, scene, placements, groupPlacementPolicy,
-                scene != null ? scene.contracts() : null);
+        return PlacementResolver.resolve(blockClass, scene, placements, groupPlacementPolicy,
+                scene != null ? scene.blocks() : null);
     }
 
     @Override
-    public Set<Class<? extends Contract>> requiredContracts() {
-        Set<Class<? extends Contract>> required = new HashSet<>();
+    public Set<Class<? extends Block<?, ?>>> requiredBlocks() {
+        Set<Class<? extends Block<?, ?>>> required = new HashSet<>();
         if (leftSidebarClass != null) required.add(leftSidebarClass);
         if (rightSidebarClass != null) required.add(rightSidebarClass);
         if (headerClass != null) required.add(headerClass);
@@ -117,13 +119,13 @@ public final class DefaultLayout implements Layout {
     public Definition resolve(Scene scene, Lookup lookup) {
         logger.log(TRACE, () -> "Resolving default layout");
 
-        // Resolve routed contract to UI component
+        // Resolve routed block to UI component
         Component<?, ?> primary = null;
         if (scene.routedDescriptor() != null) {
             primary = resolveDescriptor(scene, scene.routedDescriptor());
         }
 
-        // Resolve companion contracts to UI components
+        // Resolve companion blocks to UI components
         Component<?, ?> leftSidebar = resolveCompanion(scene, leftSidebarClass);
         Component<?, ?> rightSidebar = resolveCompanion(scene, rightSidebarClass);
         Component<?, ?> header = resolveCompanion(scene, headerClass);
@@ -153,14 +155,14 @@ public final class DefaultLayout implements Layout {
         return div(wrapper.toArray(Definition[]::new));
     }
 
-    private Component<?, ?> resolveCompanion(Scene scene, Class<? extends Contract> contractClass) {
-        if (contractClass == null) return null;
-        ContractDescriptor descriptor = scene.companionDescriptor(contractClass);
+    private Component<?, ?> resolveCompanion(Scene scene, Class<? extends Block<?, ?>> blockClass) {
+        if (blockClass == null) return null;
+        BlockDescriptor descriptor = scene.companionDescriptor(blockClass);
         if (descriptor == null) return null;
         return resolveDescriptor(scene, descriptor);
     }
 
-    private Component<?, ?> resolveDescriptor(Scene scene, ContractDescriptor descriptor) {
-        return new DirectContractHost(descriptor, scene.contracts().resolveBoundComponent(descriptor.contractClass()));
+    private Component<?, ?> resolveDescriptor(Scene scene, BlockDescriptor descriptor) {
+        return new DirectBlockHost(descriptor, scene.blocks().resolveBlock(descriptor.blockClass()));
     }
 }

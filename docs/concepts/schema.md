@@ -3,7 +3,7 @@
 The `schema` module describes record fields for reusable list and form
 components. A `DataSchema` contains field definitions, validators, optional list
 column configuration, and whether list rows are selectable. It contains
-metadata only; contracts still own data loading, persistence, and authorization.
+metadata only; blocks still own data loading, persistence, and authorization.
 
 ## Derive A Schema From A Record
 
@@ -78,11 +78,11 @@ validation.
 - Column settings control sortability, filterability, width, alignment, and
   formatting metadata.
 - `withSelectable(true)` enables row-selection state used by bulk list actions.
-- `FormContractComponent` uses a schema for initial values, rendering, and
+- `FormBlock` uses a schema for initial values, rendering, and
   validation.
-- `ListContractComponent` can derive a record schema and customize it through
+- `ListBlock` can derive a record schema and customize it through
   `customizeSchema(...)`.
 
 See the real schemas in
-[PostCreateContract.java](../../examples/src/main/java/rsp/app/posts/components/PostCreateContract.java)
+[PostCreateBlock.java](../../examples/src/main/java/rsp/app/posts/components/PostCreateBlock.java)
 and the surrounding [compositions model](compositions.md).

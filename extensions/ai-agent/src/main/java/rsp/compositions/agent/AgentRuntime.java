@@ -1,5 +1,7 @@
 package rsp.compositions.agent;
 
+import rsp.compositions.block.Block;
+
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.agent.ActionDispatcher.DispatchResult;
@@ -9,16 +11,16 @@ import rsp.compositions.authorization.AttributeKeys;
 import rsp.compositions.authorization.Attributes;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.ActionBindings;
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractActionPayload;
-import rsp.compositions.contract.DispatchEffect;
-import rsp.compositions.contract.EditContractEvents;
-import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.FormContractEvents;
-import rsp.compositions.contract.ListContractEvents;
-import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.ActionBindings;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockActionPayload;
+import rsp.compositions.block.DispatchEffect;
+import rsp.compositions.block.EditBlockEvents;
+import rsp.compositions.block.EventKeys;
+import rsp.compositions.block.FormBlockEvents;
+import rsp.compositions.block.ListBlockEvents;
+import rsp.compositions.block.Scene;
+import rsp.compositions.block.BlockRuntime;
 import rsp.util.html.HtmlEscape;
 
 import java.util.ArrayDeque;
@@ -34,10 +36,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Orchestrates LLM calls, authorization, action dispatch and plan execution
- * on behalf of a host contract (e.g. {@code PromptContract}).
+ * on behalf of a host block (e.g. {@code PromptBlock}).
  * <p>
  * The runtime is presentation-agnostic: status updates flow through
- * {@link AgentFeedback}. The host contract supplies the active {@link Scene}
+ * {@link AgentFeedback}. The host block supplies the active {@link Scene}
  * via {@link #onScene(Scene)} and routes user input via {@link #submit(String)}.
  * <p>
  * <b>Multi-step loop (Phase 1B):</b> a {@code submit} iterates — for each
@@ -76,7 +78,7 @@ public class AgentRuntime {
     private static final long POST_DISPATCH_GRACE_MILLIS = 1000;
 
     /**
-     * Default set of event keys monitored on the active contract's lookup
+     * Default set of event keys monitored on the active block's lookup
      * for user-driven interruption. When any of these events fires without
      * {@link ActionDispatcher#isAgentDispatch()} being set, the runtime
      * treats it as a user button action and applies the
@@ -84,17 +86,17 @@ public class AgentRuntime {
      */
     private static final List<EventKey<?>> DEFAULT_MONITORED_USER_EVENTS = List.of(
             EventKeys.SET_PRIMARY,
-            ListContractEvents.CREATE_ELEMENT_REQUESTED,
-            ListContractEvents.EDIT_ELEMENT_REQUESTED,
-            ListContractEvents.EDIT_SELECTED_REQUESTED,
-            ListContractEvents.BULK_DELETE_REQUESTED,
-            ListContractEvents.DELETE_SELECTED_REQUESTED,
-            ListContractEvents.PAGE_CHANGE_REQUESTED,
-            ListContractEvents.SELECT_ALL_REQUESTED,
-            FormContractEvents.FORM_SUBMITTED,
-            FormContractEvents.CANCEL_REQUESTED,
-            FormContractEvents.FORM_FIELD_SET,
-            EditContractEvents.DELETE_REQUESTED);
+            ListBlockEvents.CREATE_ELEMENT_REQUESTED,
+            ListBlockEvents.EDIT_ELEMENT_REQUESTED,
+            ListBlockEvents.EDIT_SELECTED_REQUESTED,
+            ListBlockEvents.BULK_DELETE_REQUESTED,
+            ListBlockEvents.DELETE_SELECTED_REQUESTED,
+            ListBlockEvents.PAGE_CHANGE_REQUESTED,
+            ListBlockEvents.SELECT_ALL_REQUESTED,
+            FormBlockEvents.FORM_SUBMITTED,
+            FormBlockEvents.CANCEL_REQUESTED,
+            FormBlockEvents.FORM_FIELD_SET,
+            EditBlockEvents.DELETE_REQUESTED);
 
     private final AgentService agentService;
     private final ActionDispatcher dispatcher;
@@ -103,7 +105,7 @@ public class AgentRuntime {
     private final StructureNode structure;
     private final Lookup lookup;
     private final AgentFeedback feedback;
-    private final Class<? extends Contract> approvalContractClass;
+    private final Class<? extends Block<?, ?>> approvalBlockClass;
     private final LoopPolicy loopPolicy;
     private final InterruptionPolicy interruptionPolicy;
     private final String diagnosticLabel;
@@ -118,11 +120,11 @@ public class AgentRuntime {
     private volatile String queuedUserText;
     private volatile PendingAction pendingConfirm;
     private volatile Scene currentScene;
-    private volatile Contract activeContract;
-    private volatile long activeContractDescriptorId;
+    private volatile BlockRuntime activeBlock;
+    private volatile long activeBlockDescriptorId;
     private volatile CompletableFuture<Scene> sceneSettleFuture;
     private volatile long sceneSettlePreviousDescriptorId;
-    private volatile Class<? extends Contract> sceneSettleTargetContractClass;
+    private volatile Class<? extends Block<?, ?>> sceneSettleTargetBlockClass;
 
     // Loop lifecycle: at most one loop runs at a time.
     private final AtomicBoolean running = new AtomicBoolean(false);
@@ -135,13 +137,13 @@ public class AgentRuntime {
     private int planStepsConsumed;
     private int planStepsEnqueuedTotal;
 
-    // User-event monitoring on the active contract's lookup. Subscriptions
+    // User-event monitoring on the active block's lookup. Subscriptions
     // are torn down and re-installed when the component tree announces a new
-    // mounted primary contract. Accessed only from the event thread, so no
+    // mounted primary block. Accessed only from the event thread, so no
     // synchronisation is needed.
     private final List<Lookup.Registration> userEventMonitorRegistrations = new ArrayList<>();
-    private Class<? extends Contract> monitoredContractClass;
-    private long monitoredContractDescriptorId;
+    private Class<? extends Block<?, ?>> monitoredBlockClass;
+    private long monitoredBlockDescriptorId;
     private Lookup monitoredLookup;
 
     // Set true while the loop is inside dispatch + scene-settle. Cleared
@@ -150,7 +152,7 @@ public class AgentRuntime {
     private volatile boolean agentDispatchActive;
     private volatile long lastDispatchEndMillis;
 
-    private record PendingAction(ContractAction action, ContractActionPayload payload) {}
+    private record PendingAction(BlockAction action, BlockActionPayload payload) {}
 
     public AgentRuntime(AgentService agentService,
                         ActionDispatcher dispatcher,
@@ -159,11 +161,11 @@ public class AgentRuntime {
                         StructureNode structure,
                         Lookup lookup,
                         AgentFeedback feedback,
-                        Class<? extends Contract> approvalContractClass,
+                        Class<? extends Block<?, ?>> approvalBlockClass,
                         LoopPolicy loopPolicy,
                         String diagnosticLabel) {
         this(agentService, dispatcher, spawner, authorization, structure, lookup,
-                feedback, approvalContractClass, loopPolicy, InterruptionPolicy.strictStop(), diagnosticLabel);
+                feedback, approvalBlockClass, loopPolicy, InterruptionPolicy.strictStop(), diagnosticLabel);
     }
 
     public AgentRuntime(AgentService agentService,
@@ -173,7 +175,7 @@ public class AgentRuntime {
                         StructureNode structure,
                         Lookup lookup,
                         AgentFeedback feedback,
-                        Class<? extends Contract> approvalContractClass,
+                        Class<? extends Block<?, ?>> approvalBlockClass,
                         LoopPolicy loopPolicy,
                         InterruptionPolicy interruptionPolicy,
                         String diagnosticLabel) {
@@ -185,7 +187,7 @@ public class AgentRuntime {
         this.lookup = Objects.requireNonNull(lookup);
         this.interruptionPolicy = Objects.requireNonNull(interruptionPolicy);
         this.feedback = Objects.requireNonNull(feedback);
-        this.approvalContractClass = Objects.requireNonNull(approvalContractClass);
+        this.approvalBlockClass = Objects.requireNonNull(approvalBlockClass);
         this.loopPolicy = Objects.requireNonNull(loopPolicy);
         this.diagnosticLabel = diagnosticLabel != null ? diagnosticLabel : "unknown";
 
@@ -201,41 +203,41 @@ public class AgentRuntime {
     // ==================================================================
 
     /**
-     * Push the current scene descriptor from the host contract. Pending scene
-     * settles complete only after the matching live primary contract also
-     * arrives through {@link #onPrimaryContractMounted}.
+     * Push the current scene descriptor from the host block. Pending scene
+     * settles complete only after the matching live primary block also
+     * arrives through {@link #onPrimaryBlockMounted}.
      */
     public void onScene(Scene scene) {
         this.currentScene = scene;
         if (scene == null || scene.routedDescriptor() == null
-                || scene.routedDescriptor().instanceId() != activeContractDescriptorId) {
-            activeContract = null;
-            activeContractDescriptorId = 0;
+                || scene.routedDescriptor().instanceId() != activeBlockDescriptorId) {
+            activeBlock = null;
+            activeBlockDescriptorId = 0;
             rebindUserEventMonitor(null, null);
         }
         completeSceneSettleIfReady();
     }
 
     /**
-     * Accept the live primary contract published by its owning component.
+     * Accept the live primary block published by its owning component.
      * Stale publications from an unmounted/replaced descriptor are ignored.
      */
-    public void onPrimaryContractMounted(EventKeys.MountedPrimaryContract mounted) {
+    public void onPrimaryBlockMounted(EventKeys.MountedPrimaryBlock mounted) {
         Objects.requireNonNull(mounted, "mounted");
         Scene scene = currentScene;
         if (scene == null || scene.routedDescriptor() == null
                 || scene.routedDescriptor().instanceId() != mounted.descriptorId()) {
             return;
         }
-        activeContract = mounted.contract();
-        activeContractDescriptorId = mounted.descriptorId();
-        rebindUserEventMonitor(mounted.descriptorId(), mounted.contract().getClass(), mounted.contract().lookup());
+        activeBlock = mounted.block();
+        activeBlockDescriptorId = mounted.descriptorId();
+        rebindUserEventMonitor(mounted.descriptorId(), mounted.block().blockClass(), mounted.block().lookup());
         completeSceneSettleIfReady();
     }
 
-    CompletableFuture<Scene> armSceneSettle(Class<? extends Contract> targetContractClass) {
+    CompletableFuture<Scene> armSceneSettle(Class<? extends Block<?, ?>> targetBlockClass) {
         sceneSettlePreviousDescriptorId = routedDescriptorId(currentScene);
-        sceneSettleTargetContractClass = targetContractClass;
+        sceneSettleTargetBlockClass = targetBlockClass;
         sceneSettleFuture = new CompletableFuture<>();
         completeSceneSettleIfReady();
         return sceneSettleFuture;
@@ -248,17 +250,17 @@ public class AgentRuntime {
         }
 
         Scene scene = currentScene;
-        if (scene == null || scene.routedDescriptor() == null || activeContract == null) {
+        if (scene == null || scene.routedDescriptor() == null || activeBlock == null) {
             return;
         }
         if (scene.routedDescriptor().instanceId() == sceneSettlePreviousDescriptorId) {
             return;
         }
-        if (scene.routedDescriptor().instanceId() != activeContractDescriptorId) {
+        if (scene.routedDescriptor().instanceId() != activeBlockDescriptorId) {
             return;
         }
-        if (sceneSettleTargetContractClass != null
-                && !sceneSettleTargetContractClass.isAssignableFrom(scene.routedContractClass())) {
+        if (sceneSettleTargetBlockClass != null
+                && !sceneSettleTargetBlockClass.isAssignableFrom(scene.routedBlockClass())) {
             return;
         }
         future.complete(scene);
@@ -271,7 +273,7 @@ public class AgentRuntime {
     }
 
     /**
-     * Install (or replace) subscribers on the active contract's lookup for
+     * Install (or replace) subscribers on the active block's lookup for
      * each event in {@link #DEFAULT_MONITORED_USER_EVENTS}. Subscribers fire
      * {@link #notifyEvent} with {@link EventOrigin#USER} when the publish was
      * NOT tagged by {@link ActionDispatcher#isAgentDispatch()} — i.e. the
@@ -280,15 +282,15 @@ public class AgentRuntime {
      * Variant accepting the class + lookup directly. Package-private so tests
      * can install monitoring without constructing a real {@link Scene}.
      */
-    void rebindUserEventMonitor(Class<? extends Contract> newClass, Lookup activeLookup) {
+    void rebindUserEventMonitor(Class<? extends Block<?, ?>> newClass, Lookup activeLookup) {
         rebindUserEventMonitor(0, newClass, activeLookup);
     }
 
     void rebindUserEventMonitor(long descriptorId,
-                                Class<? extends Contract> newClass,
+                                Class<? extends Block<?, ?>> newClass,
                                 Lookup activeLookup) {
-        if (Objects.equals(newClass, monitoredContractClass)
-                && descriptorId == monitoredContractDescriptorId
+        if (Objects.equals(newClass, monitoredBlockClass)
+                && descriptorId == monitoredBlockDescriptorId
                 && activeLookup == monitoredLookup) {
             return;
         }
@@ -301,8 +303,8 @@ public class AgentRuntime {
             }
         }
         userEventMonitorRegistrations.clear();
-        monitoredContractClass = newClass;
-        monitoredContractDescriptorId = descriptorId;
+        monitoredBlockClass = newClass;
+        monitoredBlockDescriptorId = descriptorId;
         monitoredLookup = activeLookup;
         if (activeLookup == null) {
             return;
@@ -366,7 +368,7 @@ public class AgentRuntime {
                 PendingAction confirmed = pendingConfirm;
                 pendingConfirm = null;
                 DispatchResult result = dispatcher.dispatchDirect(
-                    confirmed.action(), confirmed.payload(), activeContract());
+                    confirmed.action(), confirmed.payload(), activeBlock());
                 handleDispatchResult(result);
                 return;
             }
@@ -400,7 +402,7 @@ public class AgentRuntime {
 
         AbortToken token = new AbortToken();
         this.currentToken = token;
-        final Contract initialContract = activeContract();
+        final BlockRuntime initialBlock = activeBlock();
         feedback.send("<em>Thinking...</em>");
         final long startTime = System.currentTimeMillis();
 
@@ -409,7 +411,7 @@ public class AgentRuntime {
                 () -> String.format("AgentRuntime@%x loop START [label=%s]",
                                     System.identityHashCode(this), diagnosticLabel));
             try {
-                runLoop(text, initialContract, token, startTime);
+                runLoop(text, initialBlock, token, startTime);
             } catch (Throwable t) {
                 logger.log(System.Logger.Level.ERROR, "Loop crashed", t);
                 feedback.send("Internal error: " + t.getClass().getSimpleName()
@@ -497,14 +499,14 @@ public class AgentRuntime {
             installSession(a.session());
             feedback.send("Agent access approved.");
             if (queued != null) {
-                startLoopFromApproval(queued, queuedText, activeContract());
+                startLoopFromApproval(queued, queuedText, activeBlock());
             }
         } else {
             feedback.send("Agent session could not be established.");
         }
     }
 
-    private void startLoopFromApproval(AgentResult queued, String userText, Contract capturedContract) {
+    private void startLoopFromApproval(AgentResult queued, String userText, BlockRuntime capturedBlock) {
         // The original submit's loop has already returned (after queueing),
         // so {@code running} should be false. Defensive guard for unexpected state.
         if (!running.compareAndSet(false, true)) {
@@ -516,7 +518,7 @@ public class AgentRuntime {
         final long startTime = System.currentTimeMillis();
         Thread.startVirtualThread(() -> {
             try {
-                runLoop(userText, capturedContract, token, startTime, queued);
+                runLoop(userText, capturedBlock, token, startTime, queued);
             } catch (Throwable t) {
                 logger.log(System.Logger.Level.ERROR, "Post-approval loop failed", t);
                 feedback.send("Internal error: " + t.getClass().getSimpleName());
@@ -551,8 +553,8 @@ public class AgentRuntime {
      * The queue and counters are reset on each invocation so the runtime is
      * reusable across submits. Package-private to allow direct unit testing.
      */
-    void runLoop(String userText, Contract initialContract, AbortToken token, long startTime) {
-        runLoop(userText, initialContract, token, startTime, null);
+    void runLoop(String userText, BlockRuntime initialBlock, AbortToken token, long startTime) {
+        runLoop(userText, initialBlock, token, startTime, null);
     }
 
     /**
@@ -561,13 +563,13 @@ public class AgentRuntime {
      * calling the LLM — used by the post-approval path so a queued
      * {@code PlanResult} actually iterates to completion.
      */
-    void runLoop(String userText, Contract initialContract, AbortToken token,
+    void runLoop(String userText, BlockRuntime initialBlock, AbortToken token,
                  long startTime, AgentResult kickstart) {
         int step = 0;
         boolean hasRun = false;
         boolean followupAllowed = false;
         boolean followupConsumed = false;
-        Contract capturedContract = initialContract;
+        BlockRuntime capturedBlock = initialBlock;
         this.planQueue = new ArrayDeque<>();
         this.planStepsConsumed = 0;
         this.planStepsEnqueuedTotal = 0;
@@ -593,7 +595,7 @@ public class AgentRuntime {
                 result = pendingKickstart;
                 pendingKickstart = null;
                 fromQueue = false;
-                capturedContract = activeContract();
+                capturedBlock = activeBlock();
             } else {
                 String prompt;
                 if (!planQueue.isEmpty()) {
@@ -615,8 +617,8 @@ public class AgentRuntime {
                 }
 
                 AgentContext agentContext = buildAgentContext();
-                ContractProfile profile = agentContext.contractProfile();
-                capturedContract = activeContract();
+                BlockProfile profile = agentContext.blockProfile();
+                capturedBlock = activeBlock();
 
                 final String promptForLambda = prompt;
                 try {
@@ -649,7 +651,7 @@ public class AgentRuntime {
             agentDispatchActive = true;
             boolean continuable;
             try {
-                continuable = evaluateAndDispatch(result, capturedContract, userText);
+                continuable = evaluateAndDispatch(result, capturedBlock, userText);
             } finally {
                 lastDispatchEndMillis = System.currentTimeMillis();
                 agentDispatchActive = false;
@@ -689,7 +691,7 @@ public class AgentRuntime {
     /**
      * @return true if the result is a navigation or an action declared with
      *         {@link DispatchEffect#SCENE_CHANGE} — i.e. an iteration that
-     *         alters the routed contract and may warrant a follow-up reaction.
+     *         alters the routed block and may warrant a follow-up reaction.
      */
     private static boolean changesSceneFor(AgentResult result) {
         if (result instanceof AgentResult.NavigateResult) return true;
@@ -706,14 +708,14 @@ public class AgentRuntime {
      * terminal state (text reply, plan, blocked, awaiting confirm, awaiting
      * approval, denied).
      */
-    private boolean evaluateAndDispatch(AgentResult result, Contract capturedContract, String userText) {
+    private boolean evaluateAndDispatch(AgentResult result, BlockRuntime capturedBlock, String userText) {
         Authorization current = (agentSession != null && agentSession.isValid())
                 ? authorization.delegated(agentSession.grant())
                 : authorization;
         AccessDecision decision = current.evaluate(attrsFor(result));
 
         if (decision instanceof AccessDecision.Allow) {
-            return executeStep(result, capturedContract);
+            return executeStep(result, capturedBlock);
         }
         if (agentSession != null && agentSession.isValid()) {
             String reason = (decision instanceof AccessDecision.Deny d) ? d.reason() : "denied";
@@ -727,13 +729,13 @@ public class AgentRuntime {
         return switch (spawn) {
             case SpawnResult.Approved a -> {
                 installSession(a.session());
-                yield executeStep(result, capturedContract);
+                yield executeStep(result, capturedBlock);
             }
             case SpawnResult.RequiresApproval _ -> {
                 this.queuedResult = result;
                 this.queuedUserText = userText;
                 lookup.publish(EventKeys.SHOW, new ActionBindings.ShowPayload(
-                        approvalContractClass,
+                        approvalBlockClass,
                         Map.of("scope", request.scope().name(),
                                "controlMode", request.controlMode().name(),
                                "reason", describe(result))));
@@ -751,7 +753,7 @@ public class AgentRuntime {
      * Dispatch one LLM result. Returns {@code true} if the loop may proceed
      * to a next iteration, {@code false} otherwise.
      */
-    private boolean executeStep(AgentResult result, Contract capturedContract) {
+    private boolean executeStep(AgentResult result, BlockRuntime capturedBlock) {
         final ActionGate capturedGate = gate;
         switch (result) {
             case AgentResult.TextReply reply -> {
@@ -759,18 +761,18 @@ public class AgentRuntime {
                 return false;
             }
             case AgentResult.NavigateResult nav -> {
-                if (isRoutedBy(currentScene, nav.targetContract())) {
-                    feedback.send("Already on " + nav.targetContract().getSimpleName());
+                if (isRoutedBy(currentScene, nav.targetBlock())) {
+                    feedback.send("Already on " + nav.targetBlock().getSimpleName());
                     return true;
                 }
-                armSceneSettle(nav.targetContract());
-                dispatcher.dispatchNavigate(nav.targetContract(), lookup);
+                armSceneSettle(nav.targetBlock());
+                dispatcher.dispatchNavigate(nav.targetBlock(), lookup);
                 feedback.send("Navigating...");
                 Scene settled = awaitSceneSettle();
                 if (settled == null) {
                     return false;
                 }
-                if (!isRoutedBy(settled, nav.targetContract())) {
+                if (!isRoutedBy(settled, nav.targetBlock())) {
                     feedback.send("Loop interrupted: unexpected navigation target.");
                     return false;
                 }
@@ -779,7 +781,7 @@ public class AgentRuntime {
             case AgentResult.ActionResult actionResult -> {
                 DispatchResult dr = dispatcher.dispatch(
                     actionResult.action(), actionResult.payload(),
-                    capturedContract, lookup, capturedGate);
+                    capturedBlock, lookup, capturedGate);
                 return handleDispatchResultForLoop(dr);
             }
             case AgentResult.PlanResult plan -> {
@@ -807,7 +809,7 @@ public class AgentRuntime {
      * For actions declared as {@link DispatchEffect#SCENE_CHANGE}, the runtime
      * arms {@link #sceneSettleFuture} before dispatch and waits for it to
      * complete after the dispatcher's processed-fence — so the next iteration
-     * sees a rebuilt scene with its live primary contract mounted. The wait
+     * sees a rebuilt scene with its live primary block mounted. The wait
      * only happens when more plan steps remain (single-shot dispatches don't
      * need the next context). A timeout means the scene didn't become ready as
      * declared; treated as a hard error.
@@ -891,7 +893,7 @@ public class AgentRuntime {
             case AgentResult.NavigateResult nav -> b
                 .put(AttributeKeys.ACTION_NAME, "navigate")
                 .put(AttributeKeys.ACTION_TYPE, "navigate")
-                .put(AttributeKeys.RESOURCE_CONTRACT_CLASS, nav.targetContract().getName()).build();
+                .put(AttributeKeys.RESOURCE_BLOCK_CLASS, nav.targetBlock().getName()).build();
             case AgentResult.ActionResult ar -> b
                 .put(AttributeKeys.ACTION_NAME, ar.action().action())
                 .put(AttributeKeys.ACTION_TYPE, "execute").build();
@@ -905,7 +907,7 @@ public class AgentRuntime {
         return switch (result) {
             case AgentResult.TextReply _ -> "Reply to user";
             case AgentResult.NavigateResult nav ->
-                    "Navigate to " + nav.targetContract().getSimpleName();
+                    "Navigate to " + nav.targetBlock().getSimpleName();
             case AgentResult.ActionResult ar ->
                     "Execute action: " + ar.action().action();
             case AgentResult.PlanResult plan ->
@@ -938,9 +940,9 @@ public class AgentRuntime {
 
     /**
      * Boolean variant: true if {@link #sceneSettleFuture} completed after the
-     * next routed descriptor's live primary contract mounted, false on timeout.
+     * next routed descriptor's live primary block mounted, false on timeout.
      * Used by the dispatch-effect gate where the caller only needs to know
-     * "the next primary contract is ready."
+     * "the next primary block is ready."
      */
     private boolean awaitSceneSettled() {
         CompletableFuture<Scene> future = sceneSettleFuture;
@@ -963,21 +965,21 @@ public class AgentRuntime {
         if (sceneSettleFuture == completedFuture) {
             sceneSettleFuture = null;
             sceneSettlePreviousDescriptorId = 0;
-            sceneSettleTargetContractClass = null;
+            sceneSettleTargetBlockClass = null;
         }
     }
 
     private AgentContext buildAgentContext() {
-        return AgentContext.forScope(AgentContext.Scope.APP, activeContract(), structure, actionFilter, lookup);
+        return AgentContext.forScope(AgentContext.Scope.APP, activeBlock(), structure, actionFilter, lookup);
     }
 
-    private Contract activeContract() {
-        return activeContract;
+    private BlockRuntime activeBlock() {
+        return activeBlock;
     }
 
-    private boolean isRoutedBy(Scene scene, Class<? extends Contract> contractClass) {
-        return scene != null && scene.routedContractClass() != null
-                && contractClass.isAssignableFrom(scene.routedContractClass());
+    private boolean isRoutedBy(Scene scene, Class<? extends Block<?, ?>> blockClass) {
+        return scene != null && scene.routedBlockClass() != null
+                && blockClass.isAssignableFrom(scene.routedBlockClass());
     }
 
     private static String abbreviate(String s) {

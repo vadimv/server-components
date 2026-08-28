@@ -16,15 +16,15 @@ class DashboardGridTests {
 
     @Test
     void renders_grid_items_with_declared_placement_styles() {
-        DashboardLayout layout = DashboardDsl.dashboard()
+        DashboardDefinition definition = DashboardDsl.dashboard("test", "Test dashboard")
                 .columns(12)
                 .rowHeightPx(96)
                 .gap("1rem")
-                .place(new TestDashboardWidget("alpha"), DashboardDsl.at(1, 1).span(6, 3))
-                .place(new TestDashboardWidget("beta"), DashboardDsl.at(7, 1).span(6, 2))
+                .place(new TestWidgetDefinition("alpha"), DashboardDsl.at(1, 1).span(6, 3))
+                .place(new TestWidgetDefinition("beta"), DashboardDsl.at(7, 1).span(6, 2))
                 .build();
 
-        Document document = render(new DashboardGrid(layout));
+        Document document = render(new DashboardGrid(definition, TestDashboardRuntime.customWidgets()));
 
         Element grid = document.selectFirst(".dashboard-grid");
         assertNotNull(grid);

@@ -1,15 +1,15 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractMetadata;
-import rsp.compositions.contract.PayloadSchema;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockMetadata;
+import rsp.compositions.block.PayloadSchema;
 
 
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.component.Lookup;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.Block;
 
 import java.util.List;
 import java.util.Map;
@@ -18,99 +18,108 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AgentContextTests {
 
-    private static final ContractAction CREATE = new ContractAction("create",
+    private static final BlockAction CREATE = new BlockAction("create",
         new EventKey.VoidKey("test.create"), "Create item");
-    private static final ContractAction PAGE = new ContractAction("page",
+    private static final BlockAction PAGE = new BlockAction("page",
         new EventKey.SimpleKey<>("test.page", Integer.class), "Navigate to page",
         new PayloadSchema.IntegerValue("page"));
-    private static final ContractAction SELECT_ALL = new ContractAction("select_all",
+    private static final BlockAction SELECT_ALL = new BlockAction("select_all",
         new EventKey.VoidKey("test.selectAll"), "Select all");
 
-    private static final List<ContractAction> ACTIONS = List.of(CREATE, PAGE, SELECT_ALL);
+    private static final List<BlockAction> ACTIONS = List.of(CREATE, PAGE, SELECT_ALL);
 
     private static final StructureNode STRUCTURE = new StructureNode("Admin", "Administration panel",
         List.of(new StructureNode("Posts", "Blog posts", List.of(), List.of())),
         List.of());
 
-    static class StubAgentContract implements Contract {
-        private final Lookup lookup;
-
-        StubAgentContract(Lookup lookup) { this.lookup = lookup; }
+    static class StubAgentBlock extends LookupBlock {
+        StubAgentBlock(Lookup lookup) { super(lookup); }
 
         @Override
-        public Lookup lookup() { return lookup; }
-
-        @Override
-        public ContractMetadata contractMetadata() {
-            return new ContractMetadata("Posts", "Paginated data list", null,
+        public BlockMetadata blockMetadata() {
+            return new BlockMetadata("Posts", "Paginated data list", null,
                 Map.of("page", 1, "items", List.of()));
         }
 
         @Override
-        public List<ContractAction> agentActions() { return ACTIONS; }
+        public List<BlockAction> agentActions() { return ACTIONS; }
 
         @Override
         public String title() { return "Posts"; }
     }
 
-    static class StubPlainContract implements Contract {
-        private final Lookup lookup;
-
-        StubPlainContract(Lookup lookup) { this.lookup = lookup; }
-
-        @Override
-        public Lookup lookup() { return lookup; }
+    static class StubPlainBlock extends LookupBlock {
+        StubPlainBlock(Lookup lookup) { super(lookup); }
 
         @Override
         public String title() { return "Plain"; }
     }
 
-    // --- Contract metadata ---
+    abstract static class LookupBlock extends Block<Object, Object> {
+        private final Lookup lookup;
+
+        LookupBlock(Lookup lookup) { this.lookup = lookup; }
+
+        @Override
+        public Lookup lookup() { return lookup; }
+
+        @Override
+        public rsp.component.ComponentStateSupplier<Object> initStateSupplier() {
+            return (_, _) -> new Object();
+        }
+
+        @Override
+        public rsp.component.ComponentView<Object, Object> componentView() {
+            return _ -> _ -> rsp.dsl.Html.text("");
+        }
+    }
+
+    // --- BlockRuntime metadata ---
 
     @Test
-    void contract_scope_provides_contract_metadata() {
+    void block_scope_provides_block_metadata() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
-        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.CONTRACT,
-            contract, STRUCTURE, null, lookup);
+        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.BLOCK,
+            block, STRUCTURE, null, lookup);
 
-        ContractMetadata metadata = ctx.contractMetadata();
+        BlockMetadata metadata = ctx.blockMetadata();
         assertNotNull(metadata);
         assertEquals("Posts", metadata.title());
     }
 
     @Test
-    void contract_scope_hides_app_description() {
+    void block_scope_hides_app_description() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
-        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.CONTRACT,
-            contract, STRUCTURE, null, lookup);
+        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.BLOCK,
+            block, STRUCTURE, null, lookup);
 
         assertNull(ctx.appDescription());
     }
 
     @Test
-    void contract_scope_hides_framework_description() {
+    void block_scope_hides_framework_description() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
-        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.CONTRACT,
-            contract, STRUCTURE, null, lookup);
+        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.BLOCK,
+            block, STRUCTURE, null, lookup);
 
         assertNull(ctx.frameworkDescription());
     }
 
     @Test
-    void contract_scope_returns_all_actions_without_filter() {
+    void block_scope_returns_all_actions_without_filter() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
-        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.CONTRACT,
-            contract, STRUCTURE, null, lookup);
+        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.BLOCK,
+            block, STRUCTURE, null, lookup);
 
-        assertEquals(3, ctx.contractActions().size());
+        assertEquals(3, ctx.blockActions().size());
     }
 
     // --- Scope: APP ---
@@ -118,12 +127,12 @@ class AgentContextTests {
     @Test
     void app_scope_provides_both_metadata_and_app_description() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, null, lookup);
+            block, STRUCTURE, null, lookup);
 
-        assertNotNull(ctx.contractMetadata());
+        assertNotNull(ctx.blockMetadata());
         assertNotNull(ctx.appDescription());
         assertTrue(ctx.appDescription().contains("Admin"));
     }
@@ -131,10 +140,10 @@ class AgentContextTests {
     @Test
     void app_scope_hides_framework_description() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, null, lookup);
+            block, STRUCTURE, null, lookup);
 
         assertNull(ctx.frameworkDescription());
     }
@@ -144,12 +153,12 @@ class AgentContextTests {
     @Test
     void framework_scope_provides_all_layers() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.FRAMEWORK,
-            contract, STRUCTURE, null, lookup);
+            block, STRUCTURE, null, lookup);
 
-        assertNotNull(ctx.contractMetadata());
+        assertNotNull(ctx.blockMetadata());
         assertNotNull(ctx.appDescription());
         assertNotNull(ctx.frameworkDescription());
         assertTrue(ctx.frameworkDescription().contains("List view"));
@@ -158,15 +167,15 @@ class AgentContextTests {
     // --- Filtering ---
 
     @Test
-    void filter_applied_to_contract_actions() {
+    void filter_applied_to_block_actions() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
         ReadOnlyFilter filter = new ReadOnlyFilter();
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, filter, lookup);
+            block, STRUCTURE, filter, lookup);
 
-        List<ContractAction> actions = ctx.contractActions();
+        List<BlockAction> actions = ctx.blockActions();
         assertEquals(2, actions.size());
         assertTrue(actions.stream().anyMatch(a -> "page".equals(a.action())));
         assertTrue(actions.stream().anyMatch(a -> "select_all".equals(a.action())));
@@ -174,81 +183,81 @@ class AgentContextTests {
     }
 
     @Test
-    void contractProfile_uses_filtered_actions() {
+    void blockProfile_uses_filtered_actions() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
         ReadOnlyFilter filter = new ReadOnlyFilter();
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, filter, lookup);
+            block, STRUCTURE, filter, lookup);
 
-        ContractProfile profile = ctx.contractProfile();
+        BlockProfile profile = ctx.blockProfile();
         assertNotNull(profile.metadata());
         assertEquals(2, profile.actions().size());
-        assertEquals(StubAgentContract.class, profile.contractClass());
+        assertEquals(StubAgentBlock.class, profile.blockClass());
     }
 
     @Test
-    void contractProfile_without_filter_returns_all_actions() {
+    void blockProfile_without_filter_returns_all_actions() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, null, lookup);
+            block, STRUCTURE, null, lookup);
 
-        ContractProfile profile = ctx.contractProfile();
+        BlockProfile profile = ctx.blockProfile();
         assertEquals(3, profile.actions().size());
     }
 
-    // --- Null contract ---
+    // --- Null block ---
 
     @Test
-    void null_contract_returns_empty_actions() {
+    void null_block_returns_empty_actions() {
         TestLookup lookup = new TestLookup();
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
             null, STRUCTURE, null, lookup);
 
-        assertTrue(ctx.contractActions().isEmpty());
-        assertNull(ctx.contractMetadata());
+        assertTrue(ctx.blockActions().isEmpty());
+        assertNull(ctx.blockMetadata());
     }
 
     @Test
-    void null_contract_profile_has_null_metadata() {
+    void null_block_profile_has_null_metadata() {
         TestLookup lookup = new TestLookup();
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
             null, STRUCTURE, null, lookup);
 
-        ContractProfile profile = ctx.contractProfile();
+        BlockProfile profile = ctx.blockProfile();
         assertNull(profile.metadata());
         assertTrue(profile.actions().isEmpty());
     }
 
-    // --- Contract without metadata ---
+    // --- BlockRuntime without metadata ---
 
     @Test
-    void plain_contract_returns_null_metadata() {
+    void plain_block_returns_null_metadata() {
         TestLookup lookup = new TestLookup();
-        StubPlainContract contract = new StubPlainContract(lookup);
+        StubPlainBlock block = new StubPlainBlock(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, null, lookup);
+            block, STRUCTURE, null, lookup);
 
-        assertNull(ctx.contractMetadata());
+        assertNull(ctx.blockMetadata());
     }
 
     // --- Structured metadata ---
 
     @Test
-    void contractMetadata_returns_structured_data() {
+    void blockMetadata_returns_structured_data() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
-        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.CONTRACT,
-            contract, STRUCTURE, null, lookup);
+        AgentContext ctx = AgentContext.forScope(AgentContext.Scope.BLOCK,
+            block, STRUCTURE, null, lookup);
 
-        ContractMetadata metadata = ctx.contractMetadata();
+        BlockMetadata metadata = ctx.blockMetadata();
         assertNotNull(metadata);
         assertEquals("Posts", metadata.title());
         assertEquals("Paginated data list", metadata.description());
@@ -256,14 +265,14 @@ class AgentContextTests {
     }
 
     @Test
-    void contractProfile_includes_metadata() {
+    void blockProfile_includes_metadata() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, null, lookup);
+            block, STRUCTURE, null, lookup);
 
-        ContractProfile profile = ctx.contractProfile();
+        BlockProfile profile = ctx.blockProfile();
         assertNotNull(profile.metadata());
         assertEquals("Posts", profile.metadata().title());
     }
@@ -273,13 +282,13 @@ class AgentContextTests {
     @Test
     void accessors_return_construction_values() {
         TestLookup lookup = new TestLookup();
-        StubAgentContract contract = new StubAgentContract(lookup);
+        StubAgentBlock block = new StubAgentBlock(lookup);
 
         AgentContext ctx = AgentContext.forScope(AgentContext.Scope.APP,
-            contract, STRUCTURE, null, lookup);
+            block, STRUCTURE, null, lookup);
 
         assertEquals(AgentContext.Scope.APP, ctx.scope());
-        assertSame(contract, ctx.activeContract());
+        assertSame(block, ctx.activeBlock());
         assertSame(STRUCTURE, ctx.structureTree());
     }
 }

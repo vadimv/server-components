@@ -3,7 +3,7 @@ package rsp.compositions.schema;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
-import rsp.compositions.contract.ContractNodeComponent;
+import rsp.compositions.block.Block;
 import rsp.compositions.routing.Router;
 import rsp.pbt.Gen;
 import rsp.pbt.Property;
@@ -20,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class CompositionsPropertyTests {
 
-    // Test contract for Router tests
-    static class TestContract extends ContractNodeComponent<String, Object> {
+    // Test block for Router tests
+    static class TestBlock extends Block<String, Object> {
         @Override public ComponentStateSupplier<String> initStateSupplier() { return (_, _) -> "ready"; }
         @Override public ComponentView<String, Object> componentView() { return _ -> _ -> null; }
 
@@ -39,7 +39,7 @@ class CompositionsPropertyTests {
     @Test
     void any_path_with_correct_segment_count_matches_param_route() {
         Property.forAll(Gen.alpha(1, 20)).check(segment -> {
-            final Router router = new Router().route("/a/:b", TestContract.class);
+            final Router router = new Router().route("/a/:b", TestBlock.class);
             final Path path = Path.of("/a/" + segment);
 
             assertTrue(router.match(path).isPresent(),
@@ -50,7 +50,7 @@ class CompositionsPropertyTests {
     @Test
     void multi_segment_param_route_matches_any_values() {
         Property.forAll(Gen.alpha(1, 20), Gen.alpha(1, 20)).check((postId, commentId) -> {
-            final Router router = new Router().route("/posts/:postId/comments/:commentId", TestContract.class);
+            final Router router = new Router().route("/posts/:postId/comments/:commentId", TestBlock.class);
             final Path path = Path.of("/posts/" + postId + "/comments/" + commentId);
 
             assertTrue(router.match(path).isPresent(),
@@ -61,7 +61,7 @@ class CompositionsPropertyTests {
     @Test
     void wrong_segment_count_never_matches() {
         Property.forAll(Gen.alpha(1, 10)).check(extra -> {
-            final Router router = new Router().route("/posts/:id", TestContract.class);
+            final Router router = new Router().route("/posts/:id", TestBlock.class);
 
             // Too few segments
             assertFalse(router.match(Path.of("/posts")).isPresent(),
@@ -79,7 +79,7 @@ class CompositionsPropertyTests {
         Property.forAll(Gen.alpha(1, 20)).check(different -> {
             Property.assume(!different.equals("posts"));
 
-            final Router router = new Router().route("/posts", TestContract.class);
+            final Router router = new Router().route("/posts", TestBlock.class);
 
             assertTrue(router.match(Path.of("/posts")).isPresent(), "Exact path should match");
             assertFalse(router.match(Path.of("/" + different)).isPresent(),

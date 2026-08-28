@@ -62,7 +62,7 @@ Add `compositions` for routed admin applications:
 </dependency>
 ```
 
-Optional features are separate artifacts: `ai-agent`, `agent-ui`, `dashboard`,
+Optional features are separate artifacts: `ai-agent`, `agent-ui`, `telemetry`, `dashboard`,
 and `ui-shell`. See the [module map](reference/module-map.md) before adding them.
 
 The repository currently documents source and locally installed snapshot use.

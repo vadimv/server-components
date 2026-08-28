@@ -34,8 +34,8 @@ class SpawnTests {
     @Test
     void spawnRequest_carries_values() {
         SpawnRequest request = new SpawnRequest(
-            AgentContext.Scope.CONTRACT, ControlMode.AUTOPLAY, "testing");
-        assertEquals(AgentContext.Scope.CONTRACT, request.scope());
+            AgentContext.Scope.BLOCK, ControlMode.AUTOPLAY, "testing");
+        assertEquals(AgentContext.Scope.BLOCK, request.scope());
         assertEquals(ControlMode.AUTOPLAY, request.controlMode());
         assertEquals("testing", request.purpose());
     }

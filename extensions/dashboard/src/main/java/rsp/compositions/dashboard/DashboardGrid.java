@@ -7,41 +7,43 @@ import rsp.dsl.Definition;
 
 import static rsp.dsl.Html.*;
 
-public class DashboardGrid extends Component<DashboardLayout, Object> {
+public class DashboardGrid extends Component<DashboardDefinition, Object> {
 
-    private final DashboardLayout layout;
+    private final DashboardDefinition definition;
+    private final DashboardRuntime runtime;
 
-    public DashboardGrid(final DashboardLayout layout) {
-        this.layout = layout == null ? DashboardDsl.dashboard().build() : layout;
+    public DashboardGrid(DashboardDefinition definition, DashboardRuntime runtime) {
+        this.definition = java.util.Objects.requireNonNull(definition, "definition");
+        this.runtime = java.util.Objects.requireNonNull(runtime, "runtime");
     }
 
     @Override
-    public ComponentStateSupplier<DashboardLayout> initStateSupplier() {
-        return (_, _) -> layout;
+    public ComponentStateSupplier<DashboardDefinition> initStateSupplier() {
+        return (_, _) -> definition;
     }
 
     @Override
-    public ComponentView<DashboardLayout, Object> componentView() {
+    public ComponentView<DashboardDefinition, Object> componentView() {
         return _ -> state -> div(
                 attr("class", "dashboard-grid"),
-                attr("style", gridStyle(state)),
-                of(state.placements().stream().map(DashboardGrid::renderPlacement))
+                attr("style", gridStyle(state.grid())),
+                of(state.widgets().stream().map(this::renderPlacement))
         );
     }
 
-    private static Definition renderPlacement(final WidgetPlacement placement) {
+    private Definition renderPlacement(PlacedWidget placement) {
         return div(
                 attr("class", "dashboard-grid-item"),
                 attr("data-widget-id", placement.widget().id()),
                 attr("style", placementStyle(placement.area())),
-                placement.widget().component()
+                runtime.renderers().render(placement.widget(), runtime)
         );
     }
 
-    private static String gridStyle(final DashboardLayout layout) {
-        return "--dashboard-columns: " + layout.columns()
-                + "; --dashboard-row-height: " + layout.rowHeightPx() + "px"
-                + "; --dashboard-gap: " + layout.gap();
+    private static String gridStyle(GridDefinition grid) {
+        return "--dashboard-columns: " + grid.columns()
+                + "; --dashboard-row-height: " + grid.rowHeightPx() + "px"
+                + "; --dashboard-gap: " + grid.gap();
     }
 
     private static String placementStyle(final GridArea area) {

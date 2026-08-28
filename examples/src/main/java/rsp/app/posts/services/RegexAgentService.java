@@ -1,11 +1,12 @@
 package rsp.app.posts.services;
 
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.Block;
+
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockActionPayload;
 import rsp.compositions.agent.AgentService;
-import rsp.compositions.agent.ContractProfile;
+import rsp.compositions.agent.BlockProfile;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
 import rsp.util.json.JsonDataType;
 
 import java.util.*;
@@ -51,7 +52,7 @@ public class RegexAgentService extends AgentService {
 
     @Override
     public AgentResult handlePrompt(String prompt,
-                                    ContractProfile profile,
+                                    BlockProfile profile,
                                     StructureNode structureTree) {
         // Detect compound commands (e.g. "show comments and go to page 2")
         List<String> parts = Arrays.stream(prompt.split("\\b(?:and then|then|and)\\b"))
@@ -62,7 +63,7 @@ public class RegexAgentService extends AgentService {
             return new AgentResult.PlanResult(parts, "Executing " + parts.size() + " steps");
         }
 
-        // Step 2 of update flow: we're waiting for the edit contract to be active
+        // Step 2 of update flow: we're waiting for the edit block to be active
         if (state instanceof AgentState.PendingSave pending) {
             state = new AgentState.Idle();
             return handlePendingSave(pending.modification(), profile);
@@ -79,7 +80,7 @@ public class RegexAgentService extends AgentService {
         // Select all rows
         m = SELECT_ALL_PATTERN.matcher(prompt);
         if (m.find()) {
-            return findActionResult("select_all", ContractActionPayload.EMPTY, profile);
+            return findActionResult("select_all", BlockActionPayload.EMPTY, profile);
         }
 
         // Edit selected item
@@ -104,7 +105,7 @@ public class RegexAgentService extends AgentService {
         m = PAGE_PATTERN.matcher(prompt);
         if (m.find()) {
             int page = Integer.parseInt(m.group(1));
-            return findActionResult("page", ContractActionPayload.of(page), profile);
+            return findActionResult("page", BlockActionPayload.of(page), profile);
         }
 
         // Navigation: show posts
@@ -136,7 +137,7 @@ public class RegexAgentService extends AgentService {
     }
 
     /**
-     * Reset the agent's internal state (e.g., after navigation changes the active contract).
+     * Reset the agent's internal state (e.g., after navigation changes the active block).
      */
     public void reset() {
         state = new AgentState.Idle();
@@ -144,8 +145,8 @@ public class RegexAgentService extends AgentService {
 
     // --- Action lookup helper ---
 
-    private AgentResult findActionResult(String actionName, ContractActionPayload payload, ContractProfile profile) {
-        for (ContractAction action : profile.actions()) {
+    private AgentResult findActionResult(String actionName, BlockActionPayload payload, BlockProfile profile) {
+        for (BlockAction action : profile.actions()) {
             if (action.action().equals(actionName)) {
                 return new AgentResult.ActionResult(action, payload);
             }
@@ -155,13 +156,13 @@ public class RegexAgentService extends AgentService {
 
     // --- Delete by name ---
 
-    private AgentResult handleDelete(String name, ContractProfile profile) {
+    private AgentResult handleDelete(String name, BlockProfile profile) {
         List<Map<String, Object>> items = extractItems(profile);
         for (Map<String, Object> item : items) {
             if (matchesName(item, name)) {
                 Object id = item.get("id");
                 if (id != null) {
-                    ContractActionPayload payload = new ContractActionPayload(
+                    BlockActionPayload payload = new BlockActionPayload(
                         new JsonDataType.Array(new JsonDataType.String(String.valueOf(id))));
                     return findActionResult("delete", payload, profile);
                 }
@@ -182,17 +183,17 @@ public class RegexAgentService extends AgentService {
 
     // --- Edit selected ---
 
-    private AgentResult handleEditSelected(ContractProfile profile) {
+    private AgentResult handleEditSelected(BlockProfile profile) {
         if (!profile.isList()) {
-            return new AgentResult.TextReply("No list contract active — nothing selected.");
+            return new AgentResult.TextReply("No list block active — nothing selected.");
         }
-        return findActionResult("edit", ContractActionPayload.EMPTY, profile);
+        return findActionResult("edit", BlockActionPayload.EMPTY, profile);
     }
 
     // --- Search/filter ---
 
     private AgentResult handleSearch(String field, String operator, String value,
-                                     ContractProfile profile) {
+                                     BlockProfile profile) {
         List<Map<String, Object>> items = extractItems(profile);
         List<Map<String, Object>> matches = new ArrayList<>();
 
@@ -244,20 +245,20 @@ public class RegexAgentService extends AgentService {
 
     // --- Update (two-step) ---
 
-    private AgentResult handleUpdate(String id, String modification, ContractProfile profile) {
+    private AgentResult handleUpdate(String id, String modification, BlockProfile profile) {
         state = new AgentState.PendingSave(modification);
-        return findActionResult("edit", ContractActionPayload.of(id), profile);
+        return findActionResult("edit", BlockActionPayload.of(id), profile);
     }
 
-    private AgentResult handlePendingSave(String modification, ContractProfile profile) {
+    private AgentResult handlePendingSave(String modification, BlockProfile profile) {
         if (!profile.isEdit() && !profile.isForm()) {
             return new AgentResult.TextReply(
-                "Expected edit form to be active, but current contract is not a form.");
+                "Expected edit form to be active, but current block is not a form.");
         }
 
         Map<String, Object> fieldValues = new LinkedHashMap<>(extractEntity(profile));
         if (fieldValues.isEmpty()) {
-            return new AgentResult.TextReply("Cannot read entity from the active contract.");
+            return new AgentResult.TextReply("Cannot read entity from the active block.");
         }
 
         String targetField = findTextFieldForModification(fieldValues);
@@ -286,25 +287,25 @@ public class RegexAgentService extends AgentService {
     // --- Navigation ---
 
     private AgentResult handleNavigate(String target, StructureNode structureTree) {
-        Class<? extends Contract> contractClass = findContractByLabel(target.trim(), structureTree);
-        if (contractClass != null) {
-            return new AgentResult.NavigateResult(contractClass);
+        Class<? extends Block<?, ?>> blockClass = findBlockByLabel(target.trim(), structureTree);
+        if (blockClass != null) {
+            return new AgentResult.NavigateResult(blockClass);
         }
-        return new AgentResult.TextReply("No contract found matching '" + target + "'.");
+        return new AgentResult.TextReply("No block found matching '" + target + "'.");
     }
 
     @SuppressWarnings("unchecked")
-    private Class<? extends Contract> findContractByLabel(String label, StructureNode node) {
+    private Class<? extends Block<?, ?>> findBlockByLabel(String label, StructureNode node) {
         if (node.label() != null && node.label().equalsIgnoreCase(label)) {
-            if (!node.contracts().isEmpty()) {
-                Class<?> cls = node.contracts().iterator().next();
-                if (Contract.class.isAssignableFrom(cls)) {
-                    return (Class<? extends Contract>) cls;
+            if (!node.blocks().isEmpty()) {
+                Class<?> cls = node.blocks().iterator().next();
+                if (Block.class.isAssignableFrom(cls)) {
+                    return (Class<? extends Block<?, ?>>) cls;
                 }
             }
         }
         for (StructureNode child : node.children()) {
-            Class<? extends Contract> found = findContractByLabel(label, child);
+            Class<? extends Block<?, ?>> found = findBlockByLabel(label, child);
             if (found != null) return found;
         }
         return null;
@@ -313,7 +314,7 @@ public class RegexAgentService extends AgentService {
     // --- Metadata extraction helpers ---
 
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> extractItems(ContractProfile profile) {
+    private List<Map<String, Object>> extractItems(BlockProfile profile) {
         if (profile.metadata() != null
                 && profile.metadata().state().get("items") instanceof List<?> list) {
             return (List<Map<String, Object>>) list;
@@ -322,7 +323,7 @@ public class RegexAgentService extends AgentService {
     }
 
     @SuppressWarnings("unchecked")
-    private Map<String, Object> extractEntity(ContractProfile profile) {
+    private Map<String, Object> extractEntity(BlockProfile profile) {
         if (profile.metadata() != null
                 && profile.metadata().state().get("entity") instanceof Map<?, ?> map) {
             return (Map<String, Object>) map;
@@ -340,12 +341,12 @@ public class RegexAgentService extends AgentService {
 
     // --- Java value to AgentPayload conversion ---
 
-    private static ContractActionPayload toAgentPayload(Map<String, Object> map) {
+    private static BlockActionPayload toAgentPayload(Map<String, Object> map) {
         Map<String, JsonDataType> entries = new LinkedHashMap<>();
         for (Map.Entry<String, Object> e : map.entrySet()) {
             entries.put(e.getKey(), toJsonDataType(e.getValue()));
         }
-        return new ContractActionPayload(new JsonDataType.Object(entries));
+        return new BlockActionPayload(new JsonDataType.Object(entries));
     }
 
     private static JsonDataType toJsonDataType(Object value) {

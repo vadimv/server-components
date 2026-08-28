@@ -1,8 +1,8 @@
 package rsp.app.posts.services;
 
 import rsp.component.Lookup;
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockActionPayload;
 import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.ActionGate;
 
@@ -11,7 +11,7 @@ import rsp.compositions.agent.ActionGate;
  */
 public class AllowAllGate implements ActionGate {
     @Override
-    public GateResult evaluate(ContractAction action, ContractActionPayload payload, Lookup lookup) {
+    public GateResult evaluate(BlockAction action, BlockActionPayload payload, Lookup lookup) {
         return new GateResult.Allow(action, payload);
     }
 }

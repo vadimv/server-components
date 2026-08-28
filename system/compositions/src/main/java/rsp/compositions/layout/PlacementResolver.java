@@ -1,8 +1,10 @@
 package rsp.compositions.layout;
 
+import rsp.compositions.block.Block;
+
 import rsp.compositions.composition.Group;
-import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.Scene;
+import rsp.compositions.block.BlockRuntime;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -19,24 +21,24 @@ public final class PlacementResolver {
     private PlacementResolver() {}
 
     public static PlacementDecision resolve(
-            Class<? extends Contract> contractClass,
+            Class<? extends Block<?, ?>> blockClass,
             Scene scene,
-            Map<? extends Class<? extends Contract>, Placement> placements,
+            Map<? extends Class<? extends BlockRuntime>, Placement> placements,
             GroupPlacementPolicy groupPlacementPolicy,
-            Group contracts) {
-        Objects.requireNonNull(contractClass, "contractClass");
+            Group blocks) {
+        Objects.requireNonNull(blockClass, "blockClass");
         Objects.requireNonNull(placements, "placements");
         Objects.requireNonNull(groupPlacementPolicy, "groupPlacementPolicy");
 
-        RuleMatch match = findBestRule(contractClass, placements);
+        RuleMatch match = findBestRule(blockClass, placements);
         if (match != null) {
-            return PlacementDecision.layoutPlacement(match.placement(), match.contractType());
+            return PlacementDecision.layoutPlacement(match.placement(), match.blockType());
         }
 
         return switch (groupPlacementPolicy) {
             case ALL_INLINE -> PlacementDecision.groupPolicy(Placement.INLINE.primary());
             case FIRST_IN_SCENE_INLINE_OTHERS_MODAL -> firstInScene(scene);
-            case FIRST_IN_GROUP_INLINE_OTHERS_MODAL -> firstInGroup(contractClass, scene, contracts);
+            case FIRST_IN_GROUP_INLINE_OTHERS_MODAL -> firstInGroup(blockClass, scene, blocks);
             case ALL_MODAL -> PlacementDecision.groupPolicy(Placement.MODAL);
         };
     }
@@ -50,26 +52,26 @@ public final class PlacementResolver {
 
     /**
      * Group-aware inline policy is intentionally conservative for unknown
-     * contracts. Only targets that can be found in a labeled composition group
+     * blocks. Only targets that can be found in a labeled composition group
      * are eligible for inferred inline placement; system overlays and other
      * unbound or unlabeled targets stay modal unless an explicit layout rule
      * matched first.
      */
-    private static PlacementDecision firstInGroup(Class<? extends Contract> targetClass,
+    private static PlacementDecision firstInGroup(Class<? extends Block<?, ?>> targetClass,
                                                   Scene scene,
-                                                  Group contracts) {
-        if (contracts == null) {
+                                                  Group blocks) {
+        if (blocks == null) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
-        Optional<Group> targetGroup = contracts.placementGroupFor(targetClass);
+        Optional<Group> targetGroup = blocks.placementGroupFor(targetClass);
         if (targetGroup.isEmpty()) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
         if (scene == null || scene.routedDescriptor() == null) {
             return PlacementDecision.groupPolicy(Placement.INLINE.primary());
         }
-        Class<? extends Contract> routedClass = scene.routedDescriptor().contractClass();
-        Optional<Group> routedGroup = contracts.placementGroupFor(routedClass);
+        Class<? extends Block<?, ?>> routedClass = scene.routedDescriptor().blockClass();
+        Optional<Group> routedGroup = blocks.placementGroupFor(routedClass);
         if (routedGroup.isEmpty()) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
@@ -80,15 +82,15 @@ public final class PlacementResolver {
     }
 
     private static RuleMatch findBestRule(
-            Class<? extends Contract> contractClass,
-            Map<? extends Class<? extends Contract>, Placement> placements) {
+            Class<? extends Block<?, ?>> blockClass,
+            Map<? extends Class<? extends BlockRuntime>, Placement> placements) {
         RuleMatch best = null;
-        for (Map.Entry<? extends Class<? extends Contract>, Placement> entry : placements.entrySet()) {
-            Class<? extends Contract> ruleType = entry.getKey();
-            if (!ruleType.isAssignableFrom(contractClass)) {
+        for (Map.Entry<? extends Class<? extends BlockRuntime>, Placement> entry : placements.entrySet()) {
+            Class<? extends BlockRuntime> ruleType = entry.getKey();
+            if (!ruleType.isAssignableFrom(blockClass)) {
                 continue;
             }
-            int distance = inheritanceDistance(contractClass, ruleType);
+            int distance = inheritanceDistance(blockClass, ruleType);
             if (best == null || distance < best.distance()) {
                 best = new RuleMatch(ruleType, entry.getValue(), distance);
             }
@@ -123,7 +125,7 @@ public final class PlacementResolver {
         return Integer.MAX_VALUE;
     }
 
-    private record RuleMatch(Class<? extends Contract> contractType,
+    private record RuleMatch(Class<? extends BlockRuntime> blockType,
                              Placement placement,
                              int distance) {}
 

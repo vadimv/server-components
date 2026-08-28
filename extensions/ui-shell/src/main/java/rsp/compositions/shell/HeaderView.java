@@ -10,7 +10,7 @@ import static rsp.dsl.Html.*;
 /**
  * HeaderView - Renders a horizontal stripe showing the active category name and auth status.
  * <p>
- * Receives auth data from {@link HeaderContract}'s local state cache.
+ * Receives auth data from {@link HeaderBlock}'s local state cache.
  * When authenticated, shows username and a "Sign out" button (if the auth provider supports it).
  */
 public class HeaderView implements ComponentView<HeaderView.HeaderViewState, HeaderView.SignOutRequested> {

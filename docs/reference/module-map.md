@@ -12,7 +12,7 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `js-client` | Browser bridge sources and packaged client bundle | none | Usually transitive through `http` |
 | `authorization` | ABAC policies, attributes, and delegation grants | none | Direct for custom policies |
 | `schema` | Field, validation, widget, and list-column metadata | none | Direct for schema-driven UI |
-| `compositions` | Routing, contracts, layouts, authentication, and default list/form UI | `core`, `authorization`, `schema` | Direct for routed admin applications |
+| `compositions` | Routing, blocks, layouts, authentication, and default list/form UI | `core`, `authorization`, `schema` | Direct for routed admin applications |
 | `http` | Embedded HTTP/1.1 and WebSocket server | `core`; `js-client` at runtime | Direct for the built-in server |
 
 ## Optional Extensions
@@ -20,9 +20,10 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | Artifact | Purpose | Direct project dependencies |
 | --- | --- | --- |
 | `ai-agent` | Agent runtime, model services, action dispatch, policies, and delegation | `core`, `authorization`, `schema`, `compositions` |
-| `agent-ui` | Prompt and delegation-approval contracts and views | `core`, `compositions`, `authorization`, `ai-agent` |
-| `dashboard` | Dashboard model, DSL, grid, widgets, contract, and view | `core`, `compositions` |
-| `ui-shell` | Explorer and header contracts and views | `core`, `compositions` |
+| `agent-ui` | Prompt and delegation-approval blocks and views | `core`, `compositions`, `authorization`, `ai-agent` |
+| `telemetry` | Typed keys, timestamped samples, quality, subscriptions, registries, and command boundaries | none |
+| `dashboard` | Immutable dashboard/widget definitions, telemetry DSL, renderer registry, block, and view | `core`, `compositions`, `telemetry` |
+| `ui-shell` | Explorer and header blocks and views | `core`, `compositions` |
 
 ## Test Harnesses And Examples
 

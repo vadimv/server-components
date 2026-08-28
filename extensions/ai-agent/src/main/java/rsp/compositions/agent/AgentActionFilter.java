@@ -1,6 +1,6 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractAction;
+import rsp.compositions.block.BlockAction;
 
 import rsp.component.Lookup;
 
@@ -22,9 +22,9 @@ public interface AgentActionFilter {
     /**
      * Filter the list of actions visible to the agent.
      *
-     * @param actions the full list of declared actions from the contract
+     * @param actions the full list of declared actions from the block
      * @param context the current context (for role checks, user attributes, etc.)
      * @return the filtered list of actions the agent should see
      */
-    List<ContractAction> filter(List<ContractAction> actions, Lookup context);
+    List<BlockAction> filter(List<BlockAction> actions, Lookup context);
 }

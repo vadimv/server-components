@@ -53,16 +53,17 @@ class DashboardSmokeIT {
                 "Should navigate to /dashboard, but URL is: " + page.url());
         assertThat(primaryScope(page).locator("h1")).containsText("Dashboard");
         assertThat(primaryScope(page).locator(".dashboard-grid")).isVisible();
-        assertThat(primaryScope(page).locator(".comments-rate-widget")).isVisible();
-        assertThat(primaryScope(page).locator(".comments-rate-chart")).isVisible();
-        assertThat(primaryScope(page).locator(".comments-rate-line")).isVisible();
-        assertThat(primaryScope(page).locator(".dashboard-widget-value")).isVisible();
-        assertThat(primaryScope(page).locator(".dashboard-widget-unit")).containsText("comments/sec");
-        assertTrue((Boolean) primaryScope(page).locator(".comments-rate-line").evaluate("""
-                line => line.namespaceURI === 'http://www.w3.org/2000/svg'
-                        && line.getAttribute('d').trim().split(/\\s+/).length >= 2
-                        && line.getBBox().width > 0
-                        && line.getBBox().height >= 0
+        final Locator commentsRate = primaryScope(page)
+                .locator(".dashboard-grid-item[data-widget-id='comments-rate']");
+        assertThat(commentsRate.locator(".trend-widget")).isVisible();
+        assertThat(commentsRate.locator(".telemetry-trend-chart")).isVisible();
+        assertThat(commentsRate.locator(".dashboard-widget-value")).isVisible();
+        assertThat(commentsRate.locator(".dashboard-widget-unit")).containsText("comments/sec");
+        assertTrue((Boolean) commentsRate.locator(".telemetry-trend-chart path").evaluate("""
+                path => path.namespaceURI === 'http://www.w3.org/2000/svg'
+                        && path.getAttribute('d').trim().split(/\\s+/).length >= 2
+                        && path.getBBox().width > 0
+                        && path.getBBox().height >= 0
                 """));
     }
 

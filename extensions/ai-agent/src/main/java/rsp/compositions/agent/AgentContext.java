@@ -1,11 +1,11 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractMetadata;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockMetadata;
 
 import rsp.component.Lookup;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.BlockRuntime;
 
 import java.util.List;
 import java.util.Objects;
@@ -13,38 +13,38 @@ import java.util.Objects;
 /**
  * Runtime materialisation of agent scope.
  * <p>
- * Assembles description + actions per layer (framework, app, contract),
+ * Assembles description + actions per layer (framework, app, block),
  * applies {@link AgentActionFilter}, and provides a unified view for the agent.
  * <p>
  * Scope determines which layers are populated (additive):
  * <ul>
- *   <li>{@code CONTRACT} — active contract only</li>
- *   <li>{@code APP} — structure tree + active contract</li>
+ *   <li>{@code BLOCK} — active block only</li>
+ *   <li>{@code APP} — structure tree + active block</li>
  *   <li>{@code FRAMEWORK} — all levels + framework capabilities</li>
  * </ul>
  * <p>
  * Usage:
  * <pre>{@code
- * AgentContext ctx = AgentContext.forScope(Scope.APP, activeContract, structureTree, filter, lookup);
- * ContractProfile profile = ctx.contractProfile(); // pre-filtered
+ * AgentContext ctx = AgentContext.forScope(Scope.APP, activeBlock, structureTree, filter, lookup);
+ * BlockProfile profile = ctx.blockProfile(); // pre-filtered
  * agentService.handlePrompt(text, profile, ctx.structureTree());
  * }</pre>
  */
 public class AgentContext {
 
-    public enum Scope { CONTRACT, APP, FRAMEWORK }
+    public enum Scope { BLOCK, APP, FRAMEWORK }
 
     private final Scope scope;
-    private final Contract activeContract;
+    private final BlockRuntime activeBlock;
     private final StructureNode structureTree;
     private final AgentActionFilter filter;
     private final Lookup lookup;
 
-    private AgentContext(Scope scope, Contract activeContract,
+    private AgentContext(Scope scope, BlockRuntime activeBlock,
                          StructureNode structureTree, AgentActionFilter filter,
                          Lookup lookup) {
         this.scope = Objects.requireNonNull(scope);
-        this.activeContract = activeContract;
+        this.activeBlock = activeBlock;
         this.structureTree = structureTree;
         this.filter = filter;
         this.lookup = Objects.requireNonNull(lookup);
@@ -54,35 +54,35 @@ public class AgentContext {
      * Create an AgentContext for the given scope.
      *
      * @param scope          the agent's scope level
-     * @param activeContract the currently active contract (nullable)
-     * @param structureTree  the app's navigation structure (nullable for CONTRACT scope)
+     * @param activeBlock the currently active block (nullable)
+     * @param structureTree  the app's navigation structure (nullable for BLOCK scope)
      * @param filter         action filter (nullable = no filtering)
      * @param lookup         the current context
      */
-    public static AgentContext forScope(Scope scope, Contract activeContract,
+    public static AgentContext forScope(Scope scope, BlockRuntime activeBlock,
                                         StructureNode structureTree,
                                         AgentActionFilter filter, Lookup lookup) {
-        return new AgentContext(scope, activeContract, structureTree, filter, lookup);
+        return new AgentContext(scope, activeBlock, structureTree, filter, lookup);
     }
 
-    // --- Contract layer ---
+    // --- BlockRuntime layer ---
 
     /**
-     * Structured metadata from the active contract.
+     * Structured metadata from the active block.
      *
-     * @return metadata, or null if contract doesn't expose metadata
+     * @return metadata, or null if block doesn't expose metadata
      */
-    public ContractMetadata contractMetadata() {
-        if (activeContract == null) return null;
-        return activeContract.contractMetadata();
+    public BlockMetadata blockMetadata() {
+        if (activeBlock == null) return null;
+        return activeBlock.blockMetadata();
     }
 
     /**
-     * Actions available on the active contract, with filter applied.
+     * Actions available on the active block, with filter applied.
      */
-    public List<ContractAction> contractActions() {
-        if (activeContract == null) return List.of();
-        return applyFilter(activeContract.agentActions());
+    public List<BlockAction> blockActions() {
+        if (activeBlock == null) return List.of();
+        return applyFilter(activeBlock.agentActions());
     }
 
     // --- App layer ---
@@ -93,7 +93,7 @@ public class AgentContext {
      * @return structure tree rendered as text, or null if not in scope
      */
     public String appDescription() {
-        if (scope == Scope.CONTRACT) return null;
+        if (scope == Scope.BLOCK) return null;
         if (structureTree == null) return null;
         return structureTree.agentDescription();
     }
@@ -101,7 +101,7 @@ public class AgentContext {
     // --- Framework layer ---
 
     /**
-     * Framework-level description of contract types and their general capabilities.
+     * Framework-level description of block types and their general capabilities.
      *
      * @return framework description, or null if not in scope
      */
@@ -113,28 +113,28 @@ public class AgentContext {
     // --- Composite accessors ---
 
     /**
-     * Build a {@link ContractProfile} with filtered actions, for use by {@link AgentService}.
+     * Build a {@link BlockProfile} with filtered actions, for use by {@link AgentService}.
      */
-    public ContractProfile contractProfile() {
-        if (activeContract == null) {
-            return ContractProfile.of(null);
+    public BlockProfile blockProfile() {
+        if (activeBlock == null) {
+            return BlockProfile.of(null);
         }
-        ContractMetadata metadata = contractMetadata();
-        List<ContractAction> filteredActions = contractActions();
-        return new ContractProfile(metadata, filteredActions, activeContract.getClass());
+        BlockMetadata metadata = blockMetadata();
+        List<BlockAction> filteredActions = blockActions();
+        return new BlockProfile(metadata, filteredActions, activeBlock.getClass());
     }
 
     public Scope scope() { return scope; }
-    public Contract activeContract() { return activeContract; }
+    public BlockRuntime activeBlock() { return activeBlock; }
     public StructureNode structureTree() { return structureTree; }
 
-    private List<ContractAction> applyFilter(List<ContractAction> actions) {
+    private List<BlockAction> applyFilter(List<BlockAction> actions) {
         if (filter == null) return actions;
         return filter.filter(actions, lookup);
     }
 
     private static final String FRAMEWORK_DESCRIPTION =
-        "Contract types:\n" +
+        "Block types:\n" +
         "  List view — paginated data list. Supports: create, edit, delete, page, select_all.\n" +
         "  Edit view — form for editing an existing entity. Supports: save, cancel, delete.\n" +
         "  Create view — form for creating a new entity. Supports: save, cancel.";

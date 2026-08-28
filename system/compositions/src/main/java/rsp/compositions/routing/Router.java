@@ -1,6 +1,7 @@
 package rsp.compositions.routing;
 
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.Block;
+
 import rsp.server.Path;
 
 import java.util.LinkedHashMap;
@@ -8,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Router - Maps URL paths to contract component classes.
+ * Router - Maps URL paths to block component classes.
  * <p>
  * Supports both exact routes and path parameter routes:
  * <ul>
@@ -22,20 +23,20 @@ public class Router {
     /**
      * Result of matching a route.
      *
-     * @param contractClass The contract component class for this route
+     * @param blockClass The block component class for this route
      * @param pattern The route pattern (e.g., "/posts/:id")
      */
-    public record RouteMatch(Class<? extends Contract> contractClass, String pattern) {}
+    public record RouteMatch(Class<? extends Block<?, ?>> blockClass, String pattern) {}
 
     /**
      * Register a route pattern.
      *
      * @param path The path pattern (e.g., "/posts" or "/posts/:id")
-     * @param contractClass The contract component class to use for this route
+     * @param blockClass The block component class to use for this route
      * @return this Router for chaining
      */
-    public Router route(String path, Class<? extends Contract> contractClass) {
-        routes.put(path, new RoutePattern(path, contractClass));
+    public Router route(String path, Class<? extends Block<?, ?>> blockClass) {
+        routes.put(path, new RoutePattern(path, blockClass));
         return this;
     }
 
@@ -43,13 +44,13 @@ public class Router {
      * Match an incoming URL path to a registered route.
      *
      * @param path The incoming URL path (e.g., Path of "/posts/123")
-     * @return The matching route details (contract class and pattern), or empty if no match
+     * @return The matching route details (block class and pattern), or empty if no match
      */
     public Optional<RouteMatch> match(Path path) {
         // Try routes in registration order (LinkedHashMap preserves order)
         for (RoutePattern pattern : routes.values()) {
             if (pattern.matches(path)) {
-                return Optional.of(new RouteMatch(pattern.contractClass(), pattern.pattern()));
+                return Optional.of(new RouteMatch(pattern.blockClass(), pattern.pattern()));
             }
         }
 
@@ -57,28 +58,28 @@ public class Router {
     }
 
     /**
-     * Check if a contract class has a registered route.
+     * Check if a block class has a registered route.
      *
-     * @param contractClass The contract class to check
-     * @return true if a route is registered for this contract
+     * @param blockClass The block class to check
+     * @return true if a route is registered for this block
      */
-    public boolean hasRoute(Class<? extends Contract> contractClass) {
+    public boolean hasRoute(Class<? extends Block<?, ?>> blockClass) {
         return routes.values().stream()
-                .anyMatch(p -> p.contractClass().equals(contractClass));
+                .anyMatch(p -> p.blockClass().equals(blockClass));
     }
 
     /**
-     * Find the route pattern for a given contract class.
+     * Find the route pattern for a given block class.
      * <p>
-     * This enables framework-driven navigation: contracts emit intent (ACTION_SUCCESS),
+     * This enables framework-driven navigation: blocks emit intent (ACTION_SUCCESS),
      * framework derives the route from composition configuration.
      *
-     * @param contractClass The contract class to find
+     * @param blockClass The block class to find
      * @return The route pattern (e.g., "/posts"), or empty if not found
      */
-    public Optional<String> findRoutePattern(Class<? extends Contract> contractClass) {
+    public Optional<String> findRoutePattern(Class<? extends Block<?, ?>> blockClass) {
         for (RoutePattern pattern : routes.values()) {
-            if (pattern.contractClass().equals(contractClass)) {
+            if (pattern.blockClass().equals(blockClass)) {
                 return Optional.of(pattern.pattern());
             }
         }
@@ -89,8 +90,8 @@ public class Router {
      * Find the parent route for a given pattern.
      * <p>
      * For example, "/posts/:id" has parent "/posts".
-     * This is useful when an OVERLAY contract is routed directly -
-     * we need to find the PRIMARY contract to use as the base.
+     * This is useful when an OVERLAY block is routed directly -
+     * we need to find the PRIMARY block to use as the base.
      *
      * @param pattern The route pattern (e.g., "/posts/:id")
      * @return The parent route match, or empty if no parent route exists
@@ -110,7 +111,7 @@ public class Router {
         // Look for a route with this parent pattern
         RoutePattern parentRoute = routes.get(parentPattern);
         if (parentRoute != null) {
-            return Optional.of(new RouteMatch(parentRoute.contractClass(), parentRoute.pattern()));
+            return Optional.of(new RouteMatch(parentRoute.blockClass(), parentRoute.pattern()));
         }
 
         return Optional.empty();
@@ -140,7 +141,7 @@ public class Router {
     /**
      * A route pattern that can match exact paths or paths with parameters.
      */
-    private record RoutePattern(String pattern, Class<? extends Contract> contractClass) {
+    private record RoutePattern(String pattern, Class<? extends Block<?, ?>> blockClass) {
 
         /**
          * Check if this pattern matches the given path.

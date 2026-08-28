@@ -2,7 +2,7 @@ package rsp.compositions.application;
 
 import rsp.component.*;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.block.ContextKeys;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.routing.UrlSyncComponent;
 import rsp.server.http.HttpRequest;
@@ -39,7 +39,7 @@ public class AppComponent extends Component<AppComponent.AppComponentState, Obje
     /**
      * Enrich context with application-level objects.
      * This is where constructor injection stops and pure context propagation begins.
-     * Note: Router and Contracts are inside each Composition, not at app level.
+     * Note: Router and Blocks are inside each Composition, not at app level.
      */
     @Override
     public BiFunction<ComponentContext, AppComponentState, ComponentContext> subComponentsContext() {

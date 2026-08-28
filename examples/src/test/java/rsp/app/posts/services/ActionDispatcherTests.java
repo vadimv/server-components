@@ -3,16 +3,17 @@ package rsp.app.posts.services;
 import org.junit.jupiter.api.Test;
 import rsp.app.posts.components.TestLookup;
 import rsp.component.Lookup;
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockActionPayload;
 import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.ActionDispatcher;
 import rsp.compositions.agent.ActionDispatcher.DispatchResult;
 import rsp.compositions.agent.ActionGate;
-import rsp.compositions.contract.PayloadSchema;
-import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.Contract;
-import rsp.compositions.contract.ListContractEvents;
+import rsp.compositions.block.PayloadSchema;
+import rsp.compositions.block.EventKeys;
+import rsp.compositions.block.BlockRuntime;
+import rsp.compositions.block.Block;
+import rsp.compositions.block.ListBlockEvents;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -24,28 +25,28 @@ class ActionDispatcherTests {
     private final ActionDispatcher dispatcher = new ActionDispatcher();
     private final ActionGate allowAll = new AllowAllGate();
 
-    // Declared actions for the stub contract
-    private static final ContractAction CREATE_ACTION = new ContractAction("create",
-        ListContractEvents.CREATE_ELEMENT_REQUESTED, "Open create form");
-    private static final ContractAction EDIT_ACTION = new ContractAction("edit",
-        ListContractEvents.EDIT_ELEMENT_REQUESTED, "Open edit form",
+    // Declared actions for the stub block
+    private static final BlockAction CREATE_ACTION = new BlockAction("create",
+        ListBlockEvents.CREATE_ELEMENT_REQUESTED, "Open create form");
+    private static final BlockAction EDIT_ACTION = new BlockAction("edit",
+        ListBlockEvents.EDIT_ELEMENT_REQUESTED, "Open edit form",
         new PayloadSchema.StringValue("row ID"));
-    private static final ContractAction DELETE_ACTION = new ContractAction("delete",
-        ListContractEvents.BULK_DELETE_REQUESTED, "Delete items",
+    private static final BlockAction DELETE_ACTION = new BlockAction("delete",
+        ListBlockEvents.BULK_DELETE_REQUESTED, "Delete items",
         new PayloadSchema.StringSet("row IDs"));
-    private static final ContractAction PAGE_ACTION = new ContractAction("page",
-        ListContractEvents.PAGE_CHANGE_REQUESTED, "Navigate to page",
+    private static final BlockAction PAGE_ACTION = new BlockAction("page",
+        ListBlockEvents.PAGE_CHANGE_REQUESTED, "Navigate to page",
         new PayloadSchema.IntegerValue("page number"));
-    private static final ContractAction SELECT_ALL_ACTION = new ContractAction("select_all",
-        ListContractEvents.SELECT_ALL_REQUESTED, "Select all rows");
+    private static final BlockAction SELECT_ALL_ACTION = new BlockAction("select_all",
+        ListBlockEvents.SELECT_ALL_REQUESTED, "Select all rows");
 
     /**
-     * Stub contract that declares standard list actions for testing.
+     * Stub block that declares standard list actions for testing.
      */
-    static class StubListContract implements Contract {
+    static class StubListBlock extends Block<Object, Object> {
         private final Lookup lookup;
 
-        StubListContract(Lookup lookup) {
+        StubListBlock(Lookup lookup) {
             this.lookup = lookup;
         }
 
@@ -55,7 +56,17 @@ class ActionDispatcherTests {
         }
 
         @Override
-        public List<ContractAction> agentActions() {
+        public rsp.component.ComponentStateSupplier<Object> initStateSupplier() {
+            return (_, _) -> new Object();
+        }
+
+        @Override
+        public rsp.component.ComponentView<Object, Object> componentView() {
+            return _ -> _ -> rsp.dsl.Html.text("");
+        }
+
+        @Override
+        public List<BlockAction> agentActions() {
             return List.of(CREATE_ACTION, EDIT_ACTION, DELETE_ACTION, PAGE_ACTION, SELECT_ALL_ACTION);
         }
 
@@ -67,7 +78,7 @@ class ActionDispatcherTests {
     void navigate_publishes_set_primary() {
         TestLookup lookup = new TestLookup();
 
-        dispatcher.dispatchNavigate(StubListContract.class, lookup);
+        dispatcher.dispatchNavigate(StubListBlock.class, lookup);
 
         assertTrue(lookup.wasPublished(EventKeys.SET_PRIMARY));
     }
@@ -75,71 +86,71 @@ class ActionDispatcherTests {
     @Test
     void page_publishes_page_change_requested() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
 
-        DispatchResult result = dispatcher.dispatch(PAGE_ACTION, ContractActionPayload.of(3), contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(PAGE_ACTION, BlockActionPayload.of(3), block, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListContractEvents.PAGE_CHANGE_REQUESTED));
-        assertEquals(3, (int) lookup.getLastPublishedPayload(ListContractEvents.PAGE_CHANGE_REQUESTED));
+        assertTrue(lookup.wasPublished(ListBlockEvents.PAGE_CHANGE_REQUESTED));
+        assertEquals(3, (int) lookup.getLastPublishedPayload(ListBlockEvents.PAGE_CHANGE_REQUESTED));
     }
 
     @Test
     void select_all_publishes_event() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
 
-        DispatchResult result = dispatcher.dispatch(SELECT_ALL_ACTION, ContractActionPayload.EMPTY, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(SELECT_ALL_ACTION, BlockActionPayload.EMPTY, block, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListContractEvents.SELECT_ALL_REQUESTED));
+        assertTrue(lookup.wasPublished(ListBlockEvents.SELECT_ALL_REQUESTED));
     }
 
     @Test
     void edit_with_payload_publishes_edit_element_requested() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
 
-        DispatchResult result = dispatcher.dispatch(EDIT_ACTION, ContractActionPayload.of("42"), contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(EDIT_ACTION, BlockActionPayload.of("42"), block, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListContractEvents.EDIT_ELEMENT_REQUESTED));
-        assertEquals("42", lookup.getLastPublishedPayload(ListContractEvents.EDIT_ELEMENT_REQUESTED));
+        assertTrue(lookup.wasPublished(ListBlockEvents.EDIT_ELEMENT_REQUESTED));
+        assertEquals("42", lookup.getLastPublishedPayload(ListBlockEvents.EDIT_ELEMENT_REQUESTED));
     }
 
     @Test
     void create_publishes_create_element_requested() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
 
-        DispatchResult result = dispatcher.dispatch(CREATE_ACTION, ContractActionPayload.EMPTY, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(CREATE_ACTION, BlockActionPayload.EMPTY, block, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListContractEvents.CREATE_ELEMENT_REQUESTED));
+        assertTrue(lookup.wasPublished(ListBlockEvents.CREATE_ELEMENT_REQUESTED));
     }
 
     @Test
     void delete_publishes_bulk_delete_requested() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
 
-        ContractActionPayload deletePayload = new ContractActionPayload(
+        BlockActionPayload deletePayload = new BlockActionPayload(
             new JsonDataType.Array(new JsonDataType.String("1")));
-        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, deletePayload, contract, lookup, allowAll);
+        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, deletePayload, block, lookup, allowAll);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListContractEvents.BULK_DELETE_REQUESTED));
+        assertTrue(lookup.wasPublished(ListBlockEvents.BULK_DELETE_REQUESTED));
     }
 
     @Test
     void block_gate_returns_blocked() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
         ActionGate blockGate = (a, p, l) -> new GateResult.Block("Not allowed");
 
-        ContractActionPayload deletePayload = new ContractActionPayload(
+        BlockActionPayload deletePayload = new BlockActionPayload(
             new JsonDataType.Array(new JsonDataType.String("1")));
-        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, deletePayload, contract, lookup, blockGate);
+        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, deletePayload, block, lookup, blockGate);
 
         assertInstanceOf(DispatchResult.Blocked.class, result);
         assertEquals("Not allowed", ((DispatchResult.Blocked) result).reason());
@@ -149,12 +160,12 @@ class ActionDispatcherTests {
     @Test
     void confirm_gate_returns_awaiting_confirmation() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
         ActionGate confirmGate = (a, p, l) -> new GateResult.Confirm("Sure?", a, p);
 
-        ContractActionPayload deletePayload = new ContractActionPayload(
+        BlockActionPayload deletePayload = new BlockActionPayload(
             new JsonDataType.Array(new JsonDataType.String("1")));
-        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, deletePayload, contract, lookup, confirmGate);
+        DispatchResult result = dispatcher.dispatch(DELETE_ACTION, deletePayload, block, lookup, confirmGate);
 
         assertInstanceOf(DispatchResult.AwaitingConfirmation.class, result);
         assertEquals("Sure?", ((DispatchResult.AwaitingConfirmation) result).question());
@@ -164,11 +175,11 @@ class ActionDispatcherTests {
     @Test
     void dispatchDirect_bypasses_gate() {
         TestLookup lookup = new TestLookup();
-        StubListContract contract = new StubListContract(lookup);
+        StubListBlock block = new StubListBlock(lookup);
 
-        DispatchResult result = dispatcher.dispatchDirect(SELECT_ALL_ACTION, ContractActionPayload.EMPTY, contract);
+        DispatchResult result = dispatcher.dispatchDirect(SELECT_ALL_ACTION, BlockActionPayload.EMPTY, block);
 
         assertInstanceOf(DispatchResult.Dispatched.class, result);
-        assertTrue(lookup.wasPublished(ListContractEvents.SELECT_ALL_REQUESTED));
+        assertTrue(lookup.wasPublished(ListBlockEvents.SELECT_ALL_REQUESTED));
     }
 }

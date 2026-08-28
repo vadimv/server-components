@@ -1,15 +1,16 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractMetadata;
-import rsp.compositions.contract.PayloadSchema;
+import rsp.compositions.block.Block;
+
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockMetadata;
+import rsp.compositions.block.PayloadSchema;
 
 
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -24,21 +25,21 @@ class AgentServiceUtilsTests {
     private static final EventKey.SimpleKey<Integer> PAGE_KEY =
         new EventKey.SimpleKey<>("test.page", Integer.class);
 
-    private static final List<ContractAction> ACTIONS = List.of(
-        new ContractAction("create", CREATE_KEY, "Create item"),
-        new ContractAction("page", PAGE_KEY, "Go to page",
+    private static final List<BlockAction> ACTIONS = List.of(
+        new BlockAction("create", CREATE_KEY, "Create item"),
+        new BlockAction("page", PAGE_KEY, "Go to page",
             new PayloadSchema.IntegerValue("page number"))
     );
 
     private static final StructureNode TREE = new StructureNode("Root", null,
-        List.of(new StructureNode("Posts", null, List.of(), List.of(StubContract.class))),
+        List.of(new StructureNode("Posts", null, List.of(), List.of(StubBlock.class))),
         List.of());
 
     // --- buildToolDefinitions ---
 
     @Test
     void buildToolDefinitions_includes_actions_and_builtins() {
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         List<ToolDefinition> tools = AgentServiceUtils.buildToolDefinitions(profile, TREE);
 
         // 2 actions + navigate + plan + text_reply
@@ -52,7 +53,7 @@ class AgentServiceUtilsTests {
 
     @Test
     void buildToolDefinitions_without_tree_omits_navigate() {
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         List<ToolDefinition> tools = AgentServiceUtils.buildToolDefinitions(profile, null);
 
         assertEquals(4, tools.size());
@@ -72,8 +73,8 @@ class AgentServiceUtilsTests {
 
     @Test
     void findAction_returns_matching_action() {
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
-        ContractAction found = AgentServiceUtils.findAction("page", profile);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
+        BlockAction found = AgentServiceUtils.findAction("page", profile);
 
         assertNotNull(found);
         assertEquals("page", found.action());
@@ -81,37 +82,37 @@ class AgentServiceUtilsTests {
 
     @Test
     void findAction_returns_null_for_unknown() {
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         assertNull(AgentServiceUtils.findAction("unknown", profile));
     }
 
-    // --- resolveTargetContract ---
+    // --- resolveTargetBlock ---
 
     @Test
-    void resolveTargetContract_exact_match() {
-        Class<? extends Contract> result =
-            AgentServiceUtils.resolveTargetContract("StubContract", TREE);
-        assertEquals(StubContract.class, result);
+    void resolveTargetBlock_exact_match() {
+        Class<? extends Block<?, ?>> result =
+            AgentServiceUtils.resolveTargetBlock("StubBlock", TREE);
+        assertEquals(StubBlock.class, result);
     }
 
     @Test
-    void resolveTargetContract_fuzzy_match() {
-        Class<? extends Contract> result =
-            AgentServiceUtils.resolveTargetContract("Stub", TREE);
-        assertEquals(StubContract.class, result);
+    void resolveTargetBlock_fuzzy_match() {
+        Class<? extends Block<?, ?>> result =
+            AgentServiceUtils.resolveTargetBlock("Stub", TREE);
+        assertEquals(StubBlock.class, result);
     }
 
     @Test
-    void resolveTargetContract_label_match() {
-        Class<? extends Contract> result =
-            AgentServiceUtils.resolveTargetContract("Posts", TREE);
-        assertEquals(StubContract.class, result);
+    void resolveTargetBlock_label_match() {
+        Class<? extends Block<?, ?>> result =
+            AgentServiceUtils.resolveTargetBlock("Posts", TREE);
+        assertEquals(StubBlock.class, result);
     }
 
     @Test
-    void resolveTargetContract_returns_null_for_blank() {
-        assertNull(AgentServiceUtils.resolveTargetContract("", TREE));
-        assertNull(AgentServiceUtils.resolveTargetContract(null, TREE));
+    void resolveTargetBlock_returns_null_for_blank() {
+        assertNull(AgentServiceUtils.resolveTargetBlock("", TREE));
+        assertNull(AgentServiceUtils.resolveTargetBlock(null, TREE));
     }
 
     // --- toAgentResult ---
@@ -125,7 +126,7 @@ class AgentServiceUtilsTests {
                 new JsonDataType.String("step 2")),
             "message", new JsonDataType.String("summary")));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toAgentResult(output, profile, TREE);
 
         assertTrue(result.isPresent());
@@ -141,7 +142,7 @@ class AgentServiceUtilsTests {
             "type", new JsonDataType.String("text"),
             "message", new JsonDataType.String("Hello!")));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toAgentResult(output, profile, TREE);
 
         assertTrue(result.isPresent());
@@ -156,7 +157,7 @@ class AgentServiceUtilsTests {
             "action", new JsonDataType.String("page"),
             "payload", JsonDataType.Number.of(3)));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toAgentResult(output, profile, TREE);
 
         assertTrue(result.isPresent());
@@ -170,15 +171,15 @@ class AgentServiceUtilsTests {
         JsonDataType.Object output = jsonObject(Map.of(
             "type", new JsonDataType.String("intent"),
             "action", new JsonDataType.String("navigate"),
-            "targetContract", new JsonDataType.String("StubContract")));
+            "targetBlock", new JsonDataType.String("StubBlock")));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toAgentResult(output, profile, TREE);
 
         assertTrue(result.isPresent());
         assertInstanceOf(AgentResult.NavigateResult.class, result.get());
-        assertEquals(StubContract.class,
-            ((AgentResult.NavigateResult) result.get()).targetContract());
+        assertEquals(StubBlock.class,
+            ((AgentResult.NavigateResult) result.get()).targetBlock());
     }
 
     // --- toolUseToAgentResult ---
@@ -191,7 +192,7 @@ class AgentServiceUtilsTests {
                 new JsonDataType.String("select all")),
             "message", new JsonDataType.String("Will do")));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toolUseToAgentResult("plan", input, profile, TREE);
 
         assertTrue(result.isPresent());
@@ -206,7 +207,7 @@ class AgentServiceUtilsTests {
         JsonDataType.Object input = jsonObject(Map.of(
             "message", new JsonDataType.String("Hi there!")));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toolUseToAgentResult("text_reply", input, profile, TREE);
 
         assertTrue(result.isPresent());
@@ -217,14 +218,14 @@ class AgentServiceUtilsTests {
     @Test
     void toolUseToAgentResult_navigate_tool() {
         JsonDataType.Object input = jsonObject(Map.of(
-            "targetContract", new JsonDataType.String("StubContract")));
+            "targetBlock", new JsonDataType.String("StubBlock")));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toolUseToAgentResult("navigate", input, profile, TREE);
 
         assertTrue(result.isPresent());
         assertInstanceOf(AgentResult.NavigateResult.class, result.get());
-        assertEquals(StubContract.class, ((AgentResult.NavigateResult) result.get()).targetContract());
+        assertEquals(StubBlock.class, ((AgentResult.NavigateResult) result.get()).targetBlock());
     }
 
     @Test
@@ -232,7 +233,7 @@ class AgentServiceUtilsTests {
         JsonDataType.Object input = jsonObject(Map.of(
             "payload", JsonDataType.Number.of(3)));
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toolUseToAgentResult("page", input, profile, TREE);
 
         assertTrue(result.isPresent());
@@ -250,12 +251,12 @@ class AgentServiceUtilsTests {
         EventKey.SimpleKey<Map<String, Object>> setFieldKey =
             new EventKey.SimpleKey<>("test.set_field",
                 (Class<Map<String, Object>>) (Class<?>) Map.class);
-        ContractAction setField = new ContractAction("set_field", setFieldKey,
+        BlockAction setField = new BlockAction("set_field", setFieldKey,
             "Set a single form field value",
             new PayloadSchema.ObjectValue(List.of(
                 new PayloadSchema.Property("name", "string", true, "field name"),
                 new PayloadSchema.Property("value", "string", true, "field value"))));
-        ContractProfile profile = new ContractProfile(null, List.of(setField), StubContract.class);
+        BlockProfile profile = new BlockProfile(null, List.of(setField), StubBlock.class);
 
         // LLM emits the structured fields at the TOP LEVEL of the tool input.
         JsonDataType.Object input = jsonObject(Map.of(
@@ -283,7 +284,7 @@ class AgentServiceUtilsTests {
     void toolUseToAgentResult_unknown_tool_returns_text_reply() {
         JsonDataType.Object input = jsonObject(Map.of());
 
-        ContractProfile profile = new ContractProfile(null, ACTIONS, StubContract.class);
+        BlockProfile profile = new BlockProfile(null, ACTIONS, StubBlock.class);
         Optional<AgentResult> result = AgentServiceUtils.toolUseToAgentResult("unknown", input, profile, TREE);
 
         assertTrue(result.isPresent());
@@ -294,9 +295,9 @@ class AgentServiceUtilsTests {
 
     @Test
     void describeState_with_items() {
-        ContractMetadata meta = new ContractMetadata("Posts", "List", null,
+        BlockMetadata meta = new BlockMetadata("Posts", "List", null,
             Map.of("items", List.of(Map.of("id", 1, "title", "Hello"))));
-        ContractProfile profile = new ContractProfile(meta, List.of(), StubContract.class);
+        BlockProfile profile = new BlockProfile(meta, List.of(), StubBlock.class);
 
         String desc = AgentServiceUtils.describeState(profile);
         assertTrue(desc.contains("id=1"));
@@ -305,7 +306,7 @@ class AgentServiceUtilsTests {
 
     @Test
     void describeState_with_no_metadata_returns_empty() {
-        ContractProfile profile = new ContractProfile(null, List.of(), StubContract.class);
+        BlockProfile profile = new BlockProfile(null, List.of(), StubBlock.class);
         assertEquals("", AgentServiceUtils.describeState(profile));
     }
 
@@ -315,7 +316,7 @@ class AgentServiceUtilsTests {
         return new JsonDataType.Object(entries);
     }
 
-    static abstract class StubContract implements Contract {
+    static abstract class StubBlock extends Block<Object, Object> {
         @Override public rsp.component.Lookup lookup() { return null; }
         @Override public String title() { return "Stub"; }
     }

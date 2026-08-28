@@ -1,20 +1,21 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.Block;
+
+import rsp.compositions.block.BlockActionPayload;
 
 
-import rsp.compositions.contract.ContractAction;
+import rsp.compositions.block.BlockAction;
 
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
 
 import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * Base agent service — defines result types and the prompt-handling contract.
+ * Base agent service — defines result types and the prompt-handling block.
  * <p>
- * The framework provides context (contract metadata, declared actions, structure tree)
+ * The framework provides context (block metadata, declared actions, structure tree)
  * but does not parse prompts. Parsing is the responsibility of app-level implementations
  * (LLM-based or regex demo substitutes).
  * <p>
@@ -26,10 +27,10 @@ public class AgentService {
      * Result of processing a prompt.
      */
     public sealed interface AgentResult {
-        /** A contract action to be dispatched via ActionDispatcher. */
-        record ActionResult(ContractAction action, ContractActionPayload payload) implements AgentResult {}
-        /** A navigation request to switch the active contract. */
-        record NavigateResult(Class<? extends Contract> targetContract) implements AgentResult {}
+        /** A block action to be dispatched via ActionDispatcher. */
+        record ActionResult(BlockAction action, BlockActionPayload payload) implements AgentResult {}
+        /** A navigation request to switch the active block. */
+        record NavigateResult(Class<? extends Block<?, ?>> targetBlock) implements AgentResult {}
         /** A text reply to show the user (no framework event). */
         record TextReply(String message) implements AgentResult {}
         /** A multi-step plan: each step is a natural-language intent to be executed sequentially. */
@@ -37,18 +38,18 @@ public class AgentService {
     }
 
     /**
-     * Process a user prompt against the active contract's profile and structure tree.
+     * Process a user prompt against the active block's profile and structure tree.
      * <p>
      * Default implementation returns a text reply. Subclasses override to provide
      * actual prompt parsing (LLM-based or regex).
      *
      * @param prompt        the user's natural-language input
-     * @param profile       the active contract's profile (metadata + actions)
+     * @param profile       the active block's profile (metadata + actions)
      * @param structureTree the navigation structure
      * @return the result (action, navigation, or text reply)
      */
     public AgentResult handlePrompt(String prompt,
-                                    ContractProfile profile,
+                                    BlockProfile profile,
                                     StructureNode structureTree) {
         return new AgentResult.TextReply("Not implemented");
     }
@@ -59,13 +60,13 @@ public class AgentService {
      * Subclasses (e.g., LLM-based services) override this for progressive token delivery.
      *
      * @param prompt           the user's natural-language input
-     * @param profile          the active contract's profile
+     * @param profile          the active block's profile
      * @param structureTree    the navigation structure
      * @param onPartialContent called with accumulated content as tokens arrive
      * @return the result (action, navigation, or text reply)
      */
     public AgentResult handlePrompt(String prompt,
-                                    ContractProfile profile,
+                                    BlockProfile profile,
                                     StructureNode structureTree,
                                     Consumer<String> onPartialContent) {
         return handlePrompt(prompt, profile, structureTree);
@@ -78,7 +79,7 @@ public class AgentService {
      * at streaming boundaries and abort the underlying HTTP call when cancelled.
      *
      * @param prompt           the user's natural-language input
-     * @param profile          the active contract's profile
+     * @param profile          the active block's profile
      * @param structureTree    the navigation structure
      * @param onPartialContent called with accumulated content as tokens arrive
      * @param abortToken       cancellation signal — implementations may poll
@@ -86,7 +87,7 @@ public class AgentService {
      * @return the result (action, navigation, or text reply)
      */
     public AgentResult handlePrompt(String prompt,
-                                    ContractProfile profile,
+                                    BlockProfile profile,
                                     StructureNode structureTree,
                                     Consumer<String> onPartialContent,
                                     AbortToken abortToken) {

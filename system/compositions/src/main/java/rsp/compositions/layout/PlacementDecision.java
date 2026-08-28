@@ -1,21 +1,23 @@
 package rsp.compositions.layout;
 
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.Block;
+
+import rsp.compositions.block.BlockRuntime;
 
 import java.util.Objects;
 
 /**
- * Effective placement decision for a contract.
+ * Effective placement decision for a block.
  *
  * @param placement the chosen placement
  * @param userOverridable whether future user preferences may override it
  * @param source where the decision came from
- * @param matchedContractType the contract type/rule that matched, if any
+ * @param matchedBlockType the block type/rule that matched, if any
  */
 public record PlacementDecision(Placement placement,
                                 boolean userOverridable,
                                 PlacementDecisionSource source,
-                                Class<? extends Contract> matchedContractType) {
+                                Class<? extends BlockRuntime> matchedBlockType) {
     public PlacementDecision {
         Objects.requireNonNull(placement, "placement");
         Objects.requireNonNull(source, "source");
@@ -30,12 +32,12 @@ public record PlacementDecision(Placement placement,
     }
 
     public static PlacementDecision layoutPlacement(Placement placement,
-                                                    Class<? extends Contract> matchedContractType) {
+                                                    Class<? extends BlockRuntime> matchedBlockType) {
         return new PlacementDecision(
                 placement,
                 true,
                 PlacementDecisionSource.LAYOUT_PLACEMENT,
-                matchedContractType);
+                matchedBlockType);
     }
 
     public static PlacementDecision groupPolicy(Placement placement) {

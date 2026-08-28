@@ -3,7 +3,7 @@ package rsp.compositions.authorization;
 /**
  * Well-known attribute keys for ABAC policy evaluation.
  * <p>
- * Organized by namespace. Contracts provide {@code resource.*} and {@code action.*};
+ * Organized by namespace. Blocks provide {@code resource.*} and {@code action.*};
  * auth/session/runtime layers provide {@code subject.*}, {@code context.*}, and {@code grant.*}.
  */
 public final class AttributeKeys {
@@ -16,7 +16,7 @@ public final class AttributeKeys {
 
     // --- resource.* (what is targeted) ---
     public static final String RESOURCE_KIND = "resource.kind";
-    public static final String RESOURCE_CONTRACT_CLASS = "resource.contract_class";
+    public static final String RESOURCE_BLOCK_CLASS = "resource.block_class";
     public static final String RESOURCE_ENTITY_TYPE = "resource.entity_type";
     public static final String RESOURCE_ENTITY_ID = "resource.entity_id";
     public static final String RESOURCE_DOMAIN = "resource.domain";

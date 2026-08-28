@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 
 /**
- * Test implementation of {@link Lookup} for unit testing contracts and components.
+ * Test implementation of {@link Lookup} for unit testing blocks and components.
  *
  * <p>Features:</p>
  * <ul>

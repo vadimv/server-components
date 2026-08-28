@@ -5,7 +5,7 @@ import rsp.compositions.schema.DataSchema;
 import java.util.List;
 import java.util.Map;
 
-/** State and intents shared by form contract components and edit views. */
+/** State and intents shared by form block components and edit views. */
 public final class EditView {
     private EditView() {
     }

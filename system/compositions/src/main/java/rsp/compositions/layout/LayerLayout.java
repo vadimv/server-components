@@ -1,8 +1,9 @@
 package rsp.compositions.layout;
 
+import rsp.compositions.block.Block;
+
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.Contract;
 import rsp.dsl.Definition;
 
 /**
@@ -18,12 +19,12 @@ public interface LayerLayout {
     /**
      * Resolve and render the layer content with appropriate visual structure.
      *
-     * @param content       the resolved UI component for the contract
-     * @param contractClass the contract class (for event targeting, e.g., HIDE)
+     * @param content       the resolved UI component for the block
+     * @param blockClass the block class (for event targeting, e.g., HIDE)
      * @param lookup        for event publishing
      * @return the rendered layer definition
      */
     Definition resolve(Component<?, ?> content,
-                       Class<? extends Contract> contractClass,
+                       Class<? extends Block<?, ?>> blockClass,
                        Lookup lookup);
 }

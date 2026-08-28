@@ -13,7 +13,7 @@ import static rsp.dsl.Html.*;
 
 public class PromptView implements ComponentView<PromptView.PromptViewState, PromptView.PromptIntent> {
 
-    public record PromptViewState(List<PromptContract.Message> messages,
+    public record PromptViewState(List<PromptBlock.Message> messages,
                                   String activeCategory,
                                   long nextOptimisticId) {
         public PromptViewState {
@@ -21,35 +21,35 @@ public class PromptView implements ComponentView<PromptView.PromptViewState, Pro
             activeCategory = activeCategory != null ? activeCategory : "";
         }
 
-        public PromptViewState(List<PromptContract.Message> messages) {
+        public PromptViewState(List<PromptBlock.Message> messages) {
             this(messages, "", 0);
         }
 
-        public PromptViewState(List<PromptContract.Message> messages, String activeCategory) {
+        public PromptViewState(List<PromptBlock.Message> messages, String activeCategory) {
             this(messages, activeCategory, 0);
         }
 
-        public PromptViewState withMessage(PromptContract.Message message) {
+        public PromptViewState withMessage(PromptBlock.Message message) {
             // Idempotent: skip if message already present (by ID)
             if (messages.stream().anyMatch(m -> m.id() == message.id())) {
                 return this;
             }
-            List<PromptContract.Message> updated = new ArrayList<>(messages);
+            List<PromptBlock.Message> updated = new ArrayList<>(messages);
             updated.add(message);
             return new PromptViewState(updated, activeCategory, nextOptimisticId);
         }
 
         public PromptViewState withOptimisticMessage(String text) {
             final long optimisticId = nextOptimisticId - 1;
-            return withMessage(new PromptContract.Message(optimisticId, text, true))
+            return withMessage(new PromptBlock.Message(optimisticId, text, true))
                     .withNextOptimisticId(optimisticId);
         }
 
         public PromptViewState withLastSystemMessageUpdated(String text) {
-            List<PromptContract.Message> updated = new ArrayList<>(messages);
+            List<PromptBlock.Message> updated = new ArrayList<>(messages);
             for (int i = updated.size() - 1; i >= 0; i--) {
                 if (!updated.get(i).fromUser()) {
-                    updated.set(i, new PromptContract.Message(updated.get(i).id(), text, false));
+                    updated.set(i, new PromptBlock.Message(updated.get(i).id(), text, false));
                     break;
                 }
             }

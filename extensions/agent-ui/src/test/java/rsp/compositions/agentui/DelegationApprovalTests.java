@@ -17,7 +17,7 @@ import rsp.compositions.authorization.Attributes;
 import rsp.compositions.authorization.Authorization;
 import rsp.compositions.authorization.DelegationGrant;
 import rsp.compositions.authorization.ExamplePolicies;
-import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.block.ContextKeys;
 
 import java.util.Map;
 
@@ -213,28 +213,28 @@ class DelegationApprovalTests {
         assertTrue(reason.contains("mode=AUTOPLAY"));
     }
 
-    // --- DelegationApprovalContract ---
+    // --- DelegationApprovalBlock ---
 
     @Test
-    void contract_initializes_approval_state_from_show_data() {
-        DelegationApprovalContract contract = new DelegationApprovalContract(new InMemoryDelegationStore());
+    void block_initializes_approval_state_from_show_data() {
+        DelegationApprovalBlock block = new DelegationApprovalBlock(new InMemoryDelegationStore());
         rsp.component.ComponentContext context = new rsp.component.ComponentContext()
                 .with(ContextKeys.SHOW_DATA,
                         Map.of("scope", "APP", "controlMode", "ASSIST", "reason", "testing"));
 
-        DelegationApprovalView.ApprovalViewState state = contract.initStateSupplier().getState(null, context);
+        DelegationApprovalView.ApprovalViewState state = block.initStateSupplier().getState(null, context);
 
         assertEquals("APP", state.scope());
         assertEquals("ASSIST", state.controlMode());
         assertEquals("testing", state.reason());
-        assertEquals("Agent Delegation Approval", contract.title());
+        assertEquals("Agent Delegation Approval", block.title());
     }
 
     @Test
-    void contract_defaults_approval_state_without_show_data() {
-        DelegationApprovalContract contract = new DelegationApprovalContract(new InMemoryDelegationStore());
+    void block_defaults_approval_state_without_show_data() {
+        DelegationApprovalBlock block = new DelegationApprovalBlock(new InMemoryDelegationStore());
 
-        DelegationApprovalView.ApprovalViewState state = contract.initStateSupplier()
+        DelegationApprovalView.ApprovalViewState state = block.initStateSupplier()
                 .getState(null, new rsp.component.ComponentContext());
 
         assertEquals("APP", state.scope());

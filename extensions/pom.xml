@@ -15,6 +15,7 @@
     <modules>
         <module>ai-agent</module>
         <module>agent-ui</module>
+        <module>telemetry</module>
         <module>dashboard</module>
         <module>ui-shell</module>
     </modules>

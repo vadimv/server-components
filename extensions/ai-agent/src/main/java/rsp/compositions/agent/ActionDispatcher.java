@@ -1,21 +1,23 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.Block;
+
+import rsp.compositions.block.BlockActionPayload;
 
 
 import rsp.component.EventKey;
 import rsp.component.Lookup;
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.EventKeys;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.EventKeys;
+import rsp.compositions.block.BlockRuntime;
 
 import java.util.concurrent.CompletableFuture;
 
 /**
  * The only component with publish access — translates allowed actions into framework events.
  * <p>
- * The dispatcher receives an {@link ContractAction} directly (no lookup by name needed)
- * and publishes the associated {@link EventKey} on the contract's lookup.
+ * The dispatcher receives an {@link BlockAction} directly (no lookup by name needed)
+ * and publishes the associated {@link EventKey} on the block's lookup.
  * <p>
  * Navigation is handled separately via {@link #dispatchNavigate}.
  */
@@ -48,11 +50,11 @@ public class ActionDispatcher {
      * Result of a dispatch attempt.
      */
     public sealed interface DispatchResult {
-        record Dispatched(ContractAction action,
-                          ContractActionPayload payload,
+        record Dispatched(BlockAction action,
+                          BlockActionPayload payload,
                           CompletableFuture<Void> processed) implements DispatchResult {}
         record Blocked(String reason) implements DispatchResult {}
-        record AwaitingConfirmation(String question, ContractAction action, ContractActionPayload payload) implements DispatchResult {}
+        record AwaitingConfirmation(String question, BlockAction action, BlockActionPayload payload) implements DispatchResult {}
         record PayloadError(String action, String message) implements DispatchResult {}
     }
 
@@ -61,18 +63,18 @@ public class ActionDispatcher {
      *
      * @param action  the agent action to dispatch
      * @param payload the agent payload
-     * @param contract the active contract
+     * @param block the active block
      * @param lookup  the current context (for gate evaluation)
      * @param gate    the rule engine
      * @return the dispatch result
      */
-    public DispatchResult dispatch(ContractAction action, ContractActionPayload payload,
-                                   Contract contract, Lookup lookup, ActionGate gate) {
+    public DispatchResult dispatch(BlockAction action, BlockActionPayload payload,
+                                   BlockRuntime block, Lookup lookup, ActionGate gate) {
         AGENT_DISPATCH.set(Boolean.TRUE);
         try {
             GateResult result = gate.evaluate(action, payload, lookup);
             return switch (result) {
-                case GateResult.Allow a -> publishEvent(a.action(), a.payload(), contract);
+                case GateResult.Allow a -> publishEvent(a.action(), a.payload(), block);
                 case GateResult.Block b -> new DispatchResult.Blocked(b.reason());
                 case GateResult.Confirm c -> new DispatchResult.AwaitingConfirmation(c.question(), c.action(), c.payload());
             };
@@ -85,37 +87,37 @@ public class ActionDispatcher {
      * Dispatch an action directly (no gate evaluation).
      * Used after confirmation has been received.
      */
-    public DispatchResult dispatchDirect(ContractAction action, ContractActionPayload payload, Contract contract) {
+    public DispatchResult dispatchDirect(BlockAction action, BlockActionPayload payload, BlockRuntime block) {
         AGENT_DISPATCH.set(Boolean.TRUE);
         try {
-            return publishEvent(action, payload, contract);
+            return publishEvent(action, payload, block);
         } finally {
             AGENT_DISPATCH.set(Boolean.FALSE);
         }
     }
 
     /**
-     * Dispatch a navigation event to switch the active contract.
+     * Dispatch a navigation event to switch the active block.
      *
-     * @param targetContract the contract class to navigate to
+     * @param targetBlock the block class to navigate to
      * @param lookup         the current context (for event publishing)
      */
-    public void dispatchNavigate(Class<? extends Contract> targetContract, Lookup lookup) {
+    public void dispatchNavigate(Class<? extends Block<?, ?>> targetBlock, Lookup lookup) {
         AGENT_DISPATCH.set(Boolean.TRUE);
         try {
-            lookup.publish(EventKeys.SET_PRIMARY, targetContract);
+            lookup.publish(EventKeys.SET_PRIMARY, targetBlock);
         } finally {
             AGENT_DISPATCH.set(Boolean.FALSE);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private DispatchResult publishEvent(ContractAction action, ContractActionPayload payload, Contract contract) {
-        Lookup contractLookup = contract.lookup();
+    private DispatchResult publishEvent(BlockAction action, BlockActionPayload payload, BlockRuntime block) {
+        Lookup blockLookup = block.lookup();
         EventKey<?> key = action.eventKey();
 
         if (key instanceof EventKey.VoidKey vk) {
-            contractLookup.publish(vk);
+            blockLookup.publish(vk);
         } else if (key instanceof EventKey.SimpleKey<?> sk) {
             Object parsed;
             try {
@@ -123,12 +125,12 @@ public class ActionDispatcher {
             } catch (IllegalArgumentException e) {
                 return new DispatchResult.PayloadError(action.action(), e.getMessage());
             }
-            contractLookup.publish((EventKey.SimpleKey) sk, parsed);
+            blockLookup.publish((EventKey.SimpleKey) sk, parsed);
         }
 
         // Enqueue a fence task after the action event — completes after the handler runs
         CompletableFuture<Void> processed = new CompletableFuture<>();
-        contractLookup.enqueueTask(() -> processed.complete(null));
+        blockLookup.enqueueTask(() -> processed.complete(null));
         return new DispatchResult.Dispatched(action, payload, processed);
     }
 }

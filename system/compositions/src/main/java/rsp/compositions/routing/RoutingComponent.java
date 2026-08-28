@@ -1,13 +1,14 @@
 package rsp.compositions.routing;
 
+import rsp.compositions.block.Block;
+
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.auth.AuthComponent;
-import rsp.compositions.contract.ContextKeys;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.ContextKeys;
 import rsp.server.Path;
 import rsp.server.http.NotFoundException;
 
@@ -17,12 +18,12 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 
 /**
- * RoutingComponent - Matches URL path to contract component classes by iterating Compositions.
+ * RoutingComponent - Matches URL path to block component classes by iterating Compositions.
  * <p>
  * This component:
  * 1. Reads url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
  * 2. Iterates Compositions in order, trying each one's Router
- * 3. First matching route wins - enriches context with route.composition, route.contractClass, route.path, route.pattern
+ * 3. First matching route wins - enriches context with route.composition, route.blockClass, route.path, route.pattern
  * 4. Renders AuthComponent
  * <p>
  * Position in component chain: AppComponent → UrlSyncComponent → RoutingComponent → AuthComponent → SceneComponent
@@ -31,11 +32,11 @@ import java.util.function.BiFunction;
  * allowing for better separation of concerns and testability.
  * <p>
  * Runtime identity is keyed by URL path, not by the full URL. The path answers
- * "which route/contract/composition is active?" and therefore changing it must
+ * "which route/block/composition is active?" and therefore changing it must
  * force a fresh route match. Query parameters and fragments answer "what state
  * does the current route have?" (pagination, sorting, filters, anchors), so
  * changing them should flow through context without recreating the route shell
- * or stable layout companions such as prompt/sidebar contracts.
+ * or stable layout companions such as prompt/sidebar blocks.
  */
 public class RoutingComponent extends Component<RoutingComponent.RoutingComponentState, Object> {
 
@@ -78,7 +79,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
                 if (match.isPresent()) {
                     Router.RouteMatch routeMatch = match.get();
                     return new RoutingComponentState(composition,
-                                                     routeMatch.contractClass(),
+                                                     routeMatch.blockClass(),
                                                      path.toString(),
                                                      routeMatch.pattern());
                 }
@@ -96,7 +97,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
     public BiFunction<ComponentContext, RoutingComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> context
                 .with(ContextKeys.ROUTE_COMPOSITION, state.composition())
-                .with(ContextKeys.ROUTE_CONTRACT_CLASS, state.contractClass())
+                .with(ContextKeys.ROUTE_BLOCK_CLASS, state.blockClass())
                 .with(ContextKeys.ROUTE_PATH, state.path())
                 .with(ContextKeys.ROUTE_PATTERN, state.pattern());
     }
@@ -113,13 +114,13 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
 
     public record RoutingComponentState(
             Composition composition,
-            Class<? extends Contract> contractClass,
+            Class<? extends Block<?, ?>> blockClass,
             String path,
             String pattern
     ) {
         public RoutingComponentState {
             Objects.requireNonNull(composition, "composition");
-            Objects.requireNonNull(contractClass, "contractClass");
+            Objects.requireNonNull(blockClass, "blockClass");
             Objects.requireNonNull(path, "path");
             Objects.requireNonNull(pattern, "pattern");
         }

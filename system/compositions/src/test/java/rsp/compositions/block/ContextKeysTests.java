@@ -1,0 +1,170 @@
+package rsp.compositions.block;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import rsp.component.ComponentStateSupplier;
+import rsp.component.ComponentView;
+import rsp.compositions.application.TestLookup;
+import rsp.component.ContextKey;
+import rsp.compositions.routing.Router;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Tests for ContextKeys registry and key behavior.
+ */
+class ContextKeysTests {
+    @Nested
+    class KeyUniquenessTests {
+
+        @Test
+        void class_key_and_string_key_with_same_name_are_distinct() {
+            final TestLookup lookup = new TestLookup()
+                    .withData(String.class, "class-based-value")
+                    .withData(new ContextKey.StringKey<>("java.lang.String", String.class), "string-based-value");
+
+            assertEquals("class-based-value", lookup.get(String.class));
+            assertEquals("string-based-value", lookup.get(new ContextKey.StringKey<>("java.lang.String", String.class)));
+        }
+
+        @Test
+        void dynamic_key_extensions_are_distinct() {
+            final ContextKey.DynamicKey<String> base = ContextKeys.URL_QUERY;
+
+            final TestLookup lookup = new TestLookup()
+                    .withData(base.with("p"), "1")
+                    .withData(base.with("sort"), "asc")
+                    .withData(base.with("filter"), "active");
+
+            assertEquals("1", lookup.get(base.with("p")));
+            assertEquals("asc", lookup.get(base.with("sort")));
+            assertEquals("active", lookup.get(base.with("filter")));
+        }
+
+        @Test
+        void different_dynamic_keys_with_same_extension_are_distinct() {
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.URL_QUERY.with("id"), "query-id")
+                    .withData(ContextKeys.URL_PATH.with("id"), "path-id");
+
+            assertEquals("query-id", lookup.get(ContextKeys.URL_QUERY.with("id")));
+            assertEquals("path-id", lookup.get(ContextKeys.URL_PATH.with("id")));
+        }
+    }
+
+    @Nested
+    class DynamicKeyBuilderTests {
+
+        @Test
+        void with_appends_extension_with_dot() {
+            final ContextKey.DynamicKey<String> base = new ContextKey.DynamicKey<>("url.query", String.class);
+
+            final ContextKey.DynamicKey<String> extended = base.with("page");
+
+            assertEquals("url.query.page", extended.baseKey());
+        }
+
+        @Test
+        void with_preserves_type() {
+            final ContextKey.DynamicKey<String> base = new ContextKey.DynamicKey<>("url.query", String.class);
+
+            final ContextKey.DynamicKey<String> extended = base.with("page");
+
+            assertEquals(String.class, extended.type());
+        }
+
+        @Test
+        void with_can_be_chained() {
+            final ContextKey.DynamicKey<String> base = new ContextKey.DynamicKey<>("config", String.class);
+
+            final ContextKey.DynamicKey<String> extended = base.with("database").with("host");
+
+            assertEquals("config.database.host", extended.baseKey());
+        }
+
+        @Test
+        void url_query_base_key_is_correct() {
+            assertEquals("url.query", ContextKeys.URL_QUERY.baseKey());
+            assertEquals(String.class, ContextKeys.URL_QUERY.type());
+        }
+
+        @Test
+        void url_path_base_key_is_correct() {
+            assertEquals("url.path", ContextKeys.URL_PATH.baseKey());
+            assertEquals(String.class, ContextKeys.URL_PATH.type());
+        }
+    }
+
+    @Nested
+    class TypeConsistencyTests {
+
+        @Test
+        void router_key_has_correct_type() {
+            assertEquals(Router.class, ContextKeys.ROUTER.type());
+            assertEquals(Router.class, ContextKeys.ROUTER.clazz());
+        }
+
+        @Test
+        void is_active_block_key_has_correct_type() {
+            assertEquals(Boolean.class, ContextKeys.IS_ACTIVE_BLOCK.type());
+        }
+
+        @Test
+        void route_pattern_key_has_correct_type() {
+            assertEquals(String.class, ContextKeys.ROUTE_PATTERN.type());
+        }
+
+        @Test
+        void auth_roles_key_has_correct_type() {
+            assertEquals(String[].class, ContextKeys.AUTH_ROLES.type());
+        }
+    }
+
+    @Nested
+    class ContextIntegrationTests {
+
+        @Test
+        void can_store_and_retrieve_router() {
+            final Router router = new Router().route("/posts", TestBlock.class);
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.ROUTER, router);
+
+            assertSame(router, lookup.get(ContextKeys.ROUTER));
+        }
+
+        @Test
+        void can_store_and_retrieve_is_active_block() {
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.IS_ACTIVE_BLOCK, true);
+
+            assertEquals(true, lookup.get(ContextKeys.IS_ACTIVE_BLOCK));
+        }
+
+        @Test
+        void can_store_and_retrieve_route_pattern() {
+            final TestLookup lookup = new TestLookup()
+                    .withData(ContextKeys.ROUTE_PATTERN, "/posts/:id");
+
+            assertEquals("/posts/:id", lookup.get(ContextKeys.ROUTE_PATTERN));
+        }
+
+    }
+
+    // Test fixtures
+    static class TestBlock extends Block<String, Object> {
+        @Override
+        public ComponentStateSupplier<String> initStateSupplier() {
+            return (_, _) -> "ready";
+        }
+
+        @Override
+        public ComponentView<String, Object> componentView() {
+            return _ -> _ -> null;
+        }
+
+        @Override
+        public String title() {
+            return "Test";
+        }
+    }
+}

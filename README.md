@@ -9,7 +9,7 @@ the browser receives initial HTML and small DOM updates over WebSocket.
 - plain Java with constructor injection and no annotation-driven lifecycle;
 - typed component state, intents, context, and events;
 - no third-party runtime dependencies in the framework modules;
-- optional compositions, schema, authorization, dashboard, and agent modules.
+- optional compositions, schema, authorization, telemetry, dashboard, and agent modules.
 
 ## Smallest Interactive Application
 

@@ -6,7 +6,7 @@ engine. A policy receives one immutable `Attributes` value and returns either
 
 Authorization is distinct from authentication:
 
-- `system/compositions` contains login providers and contract-mount access
+- `system/compositions` contains login providers and block-mount access
   strategies.
 - `system/authorization` evaluates subject, resource, action, control, context,
   and delegation attributes.
@@ -85,8 +85,8 @@ confirmation is handled by agent gate and approval adapters, not by
 
 ## Integration Boundaries
 
-- Contract mounting calls `Contract.isAuthorized(Lookup)` before exposing a
-  contract's state or view; see [compositions](compositions.md).
+- Block mounting calls `BlockRuntime.isAuthorized(Lookup)` before exposing a
+  block's state or view; see [compositions](compositions.md).
 - Agent action filtering and approval use the same authorization data; see
   [AI agent integration](agent-integration.md).
 - The complete runnable wiring is in

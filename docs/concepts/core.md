@@ -299,7 +299,7 @@ public void onAfterRendered(State state,
 }
 ```
 
-Higher-level modules such as `compositions` build routing, contracts, layouts,
+Higher-level modules such as `compositions` build routing, blocks, layouts,
 and admin workflows on top of these lower-level primitives.
 
 ## DOM Events

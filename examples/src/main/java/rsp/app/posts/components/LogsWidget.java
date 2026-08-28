@@ -1,25 +1,25 @@
 package rsp.app.posts.components;
 
 import rsp.app.posts.services.LogEntry;
-import rsp.app.posts.services.LogStreamService;
-import rsp.compositions.dashboard.DashboardWidget;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
+import rsp.compositions.dashboard.DashboardRuntime;
+import rsp.compositions.dashboard.WidgetRenderer;
+import rsp.telemetry.Subscription;
+import rsp.telemetry.TelemetrySample;
+import rsp.telemetry.TelemetrySeries;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static rsp.dsl.Html.*;
 
-public class LogsWidget extends Component<LogsWidget.State, Object>
-        implements DashboardWidget {
+public class LogsWidget extends Component<LogsWidget.State, Object> {
 
     private static final DateTimeFormatter TIME_FORMATTER =
             DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
@@ -100,64 +100,30 @@ public class LogsWidget extends Component<LogsWidget.State, Object>
             })();
             """;
 
-    private final List<LogEntry> staticEntries;
-    private final LogStreamService streamService;
-    private final String description;
-    private final String periodLabel;
-    private final Map<ComponentCompositeKey, Runnable> subscriptions = new ConcurrentHashMap<>();
+    private final LogsDefinition definition;
+    private final TelemetrySeries<LogEntry> source;
+    private final java.util.Map<ComponentCompositeKey, Subscription> subscriptions =
+            new ConcurrentHashMap<>();
 
-    public LogsWidget(final List<LogEntry> staticEntries) {
-        this(staticEntries, null, "Static log entries", "Sample");
+    public LogsWidget(LogsDefinition definition, DashboardRuntime runtime) {
+        super(definition.id());
+        this.definition = java.util.Objects.requireNonNull(definition, "definition");
+        this.source = java.util.Objects.requireNonNull(runtime, "runtime")
+                .telemetry().resolveSeries(definition.series());
     }
 
-    private LogsWidget(final List<LogEntry> staticEntries,
-                       final LogStreamService streamService,
-                       final String description,
-                       final String periodLabel) {
-        this.staticEntries = staticEntries == null ? List.of() : List.copyOf(staticEntries);
-        this.streamService = streamService;
-        this.description = description;
-        this.periodLabel = periodLabel;
-    }
+    public static WidgetRenderer<LogsDefinition> renderer() {
+        return new WidgetRenderer<>() {
+            @Override
+            public Class<LogsDefinition> definitionType() {
+                return LogsDefinition.class;
+            }
 
-    public static LogsWidget live(final LogStreamService streamService) {
-        return new LogsWidget(List.of(),
-                Objects.requireNonNull(streamService),
-                "Live application log stream",
-                "Live stream");
-    }
-
-    @Override
-    public String id() {
-        return "logs";
-    }
-
-    @Override
-    public String title() {
-        return "Logs";
-    }
-
-    @Override
-    public String description() {
-        return description;
-    }
-
-    @Override
-    public String kind() {
-        return "log-stream";
-    }
-
-    @Override
-    public Component<?, ?> component() {
-        return this;
-    }
-
-    @Override
-    public Map<String, Object> metadataState() {
-        State state = State.from(currentEntries());
-        return Map.of("entryCount", state.entries().size(),
-                "live", streamService != null,
-                "window", periodLabel);
+            @Override
+            public Component<?, ?> render(LogsDefinition definition, DashboardRuntime runtime) {
+                return new LogsWidget(definition, runtime);
+            }
+        };
     }
 
     public record State(List<LogEntry> entries, boolean empty) {
@@ -173,7 +139,7 @@ public class LogsWidget extends Component<LogsWidget.State, Object>
 
     @Override
     public ComponentStateSupplier<State> initStateSupplier() {
-        return (_, _) -> State.from(currentEntries());
+        return (_, _) -> State.from(entries(source.snapshot()));
     }
 
     @Override
@@ -181,14 +147,11 @@ public class LogsWidget extends Component<LogsWidget.State, Object>
         return _ -> state -> div(attr("class", "dashboard-widget logs-widget"),
                 div(attr("class", "dashboard-widget-header logs-widget-header"),
                         div(attr("class", "dashboard-widget-title"),
-                                h2(title()),
-                                p(periodLabel)
+                                h2(definition.title()),
+                                p("Live stream")
                         ),
                         div(attr("class", "logs-widget-meta"),
-                                span(attr("class", streamService == null
-                                                ? "logs-status logs-status-static"
-                                                : "logs-status logs-status-live"),
-                                        text(streamService == null ? "Sample" : "Live")),
+                                span(attr("class", "logs-status logs-status-live"), text("Live")),
                                 span(attr("class", "logs-meta-item"), text(entryCountLabel(state.entries().size()))),
                                 span(attr("class", "logs-meta-item"), text(lastEntryLabel(state.entries())))
                         )
@@ -198,9 +161,7 @@ public class LogsWidget extends Component<LogsWidget.State, Object>
                                 ? div(attr("class", "logs-empty"), text("No log entries yet"))
                                 : of(state.entries().stream().map(LogsWidget::logRow))
                 ),
-                streamService != null
-                        ? script(text(LOGS_CLIENT_SCRIPT))
-                        : text("")
+                script(text(LOGS_CLIENT_SCRIPT))
         );
     }
 
@@ -208,27 +169,20 @@ public class LogsWidget extends Component<LogsWidget.State, Object>
     public void onMounted(final ComponentCompositeKey componentId,
                           final State state,
                           final StateUpdater<State> stateUpdate) {
-        if (streamService == null) {
-            return;
-        }
         subscriptions.computeIfAbsent(componentId, _ ->
-                streamService.subscribe(entries ->
-                        stateUpdate.setState(State.from(entries))));
+                source.subscribe(samples -> stateUpdate.setState(State.from(entries(samples)))));
     }
 
     @Override
     public void onUnmounted(final ComponentCompositeKey componentId, final State state) {
-        Runnable unsubscribe = subscriptions.remove(componentId);
-        if (unsubscribe != null) {
-            unsubscribe.run();
+        Subscription subscription = subscriptions.remove(componentId);
+        if (subscription != null) {
+            subscription.close();
         }
     }
 
-    private List<LogEntry> currentEntries() {
-        if (streamService == null) {
-            return staticEntries;
-        }
-        return streamService.snapshot();
+    private static List<LogEntry> entries(List<TelemetrySample<LogEntry>> samples) {
+        return samples.stream().map(TelemetrySample::value).toList();
     }
 
     private static rsp.dsl.Definition logRow(final LogEntry entry) {

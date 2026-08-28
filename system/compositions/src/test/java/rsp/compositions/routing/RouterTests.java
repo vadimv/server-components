@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
-import rsp.compositions.contract.ContractNodeComponent;
+import rsp.compositions.block.Block;
 import rsp.server.Path;
 
 import java.util.Optional;
@@ -16,8 +16,8 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 public class RouterTests {
 
-    // Minimal test contract for testing Router
-    static class TestContract extends ContractNodeComponent<String, Object> {
+    // Minimal test block for testing Router
+    static class TestBlock extends Block<String, Object> {
         @Override public ComponentStateSupplier<String> initStateSupplier() { return (_, _) -> "ready"; }
         @Override public ComponentView<String, Object> componentView() { return _ -> _ -> null; }
 
@@ -28,7 +28,7 @@ public class RouterTests {
 
     }
 
-    static class AnotherTestContract extends TestContract {
+    static class AnotherTestBlock extends TestBlock {
 
         @Override
         public String title() {
@@ -43,19 +43,19 @@ public class RouterTests {
         @Test
         void exact_route_matches_exact_path() {
             final Router router = new Router()
-                    .route("/posts", TestContract.class);
+                    .route("/posts", TestBlock.class);
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/posts"));
 
             assertTrue(match.isPresent());
-            assertEquals(TestContract.class, match.get().contractClass());
+            assertEquals(TestBlock.class, match.get().blockClass());
             assertEquals("/posts", match.get().pattern());
         }
 
         @Test
         void exact_route_does_not_match_different_path() {
             final Router router = new Router()
-                    .route("/posts", TestContract.class);
+                    .route("/posts", TestBlock.class);
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/users"));
 
@@ -65,7 +65,7 @@ public class RouterTests {
         @Test
         void exact_route_does_not_match_path_with_extra_segments() {
             final Router router = new Router()
-                    .route("/posts", TestContract.class);
+                    .route("/posts", TestBlock.class);
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/123"));
 
@@ -75,7 +75,7 @@ public class RouterTests {
         @Test
         void exact_route_does_not_match_path_with_fewer_segments() {
             final Router router = new Router()
-                    .route("/admin/posts", TestContract.class);
+                    .route("/admin/posts", TestBlock.class);
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/admin"));
 
@@ -89,7 +89,7 @@ public class RouterTests {
         @Test
         void param_route_matches_any_value_in_param_position() {
             final Router router = new Router()
-                    .route("/posts/:id", TestContract.class);
+                    .route("/posts/:id", TestBlock.class);
 
             assertTrue(router.match(Path.of("/posts/123")).isPresent());
             assertTrue(router.match(Path.of("/posts/abc")).isPresent());
@@ -99,7 +99,7 @@ public class RouterTests {
         @Test
         void param_route_does_not_match_wrong_segment_count() {
             final Router router = new Router()
-                    .route("/posts/:id", TestContract.class);
+                    .route("/posts/:id", TestBlock.class);
 
             assertFalse(router.match(Path.of("/posts")).isPresent());
             assertFalse(router.match(Path.of("/posts/123/comments")).isPresent());
@@ -108,7 +108,7 @@ public class RouterTests {
         @Test
         void param_route_matches_multiple_params() {
             final Router router = new Router()
-                    .route("/posts/:postId/comments/:commentId", TestContract.class);
+                    .route("/posts/:postId/comments/:commentId", TestBlock.class);
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/42/comments/7"));
 
@@ -119,7 +119,7 @@ public class RouterTests {
         @Test
         void param_route_requires_exact_non_param_segments() {
             final Router router = new Router()
-                    .route("/posts/:id", TestContract.class);
+                    .route("/posts/:id", TestBlock.class);
 
             assertFalse(router.match(Path.of("/users/123")).isPresent());
         }
@@ -132,26 +132,26 @@ public class RouterTests {
         void duplicate_routes_last_registration_wins() {
             // Router uses a Map internally, so duplicate paths overwrite
             final Router router = new Router()
-                    .route("/posts", TestContract.class)
-                    .route("/posts", AnotherTestContract.class);  // Same path, different contract
+                    .route("/posts", TestBlock.class)
+                    .route("/posts", AnotherTestBlock.class);  // Same path, different block
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/posts"));
 
             assertTrue(match.isPresent());
-            assertEquals(AnotherTestContract.class, match.get().contractClass());  // Last registered wins
+            assertEquals(AnotherTestBlock.class, match.get().blockClass());  // Last registered wins
         }
 
         @Test
         void exact_route_before_param_route_matches_exact() {
             // Critical: "/posts/new" must be registered before "/posts/:id"
             final Router router = new Router()
-                    .route("/posts/new", TestContract.class)
-                    .route("/posts/:id", AnotherTestContract.class);
+                    .route("/posts/new", TestBlock.class)
+                    .route("/posts/:id", AnotherTestBlock.class);
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/new"));
 
             assertTrue(match.isPresent());
-            assertEquals(TestContract.class, match.get().contractClass());
+            assertEquals(TestBlock.class, match.get().blockClass());
             assertEquals("/posts/new", match.get().pattern());
         }
 
@@ -159,14 +159,14 @@ public class RouterTests {
         void param_route_before_exact_route_matches_param() {
             // Wrong order: param route registered first will match "new" as an ID
             final Router router = new Router()
-                    .route("/posts/:id", AnotherTestContract.class)
-                    .route("/posts/new", TestContract.class);
+                    .route("/posts/:id", AnotherTestBlock.class)
+                    .route("/posts/new", TestBlock.class);
 
             final Optional<Router.RouteMatch> match = router.match(Path.of("/posts/new"));
 
             assertTrue(match.isPresent());
             // Param route wins because it was registered first
-            assertEquals(AnotherTestContract.class, match.get().contractClass());
+            assertEquals(AnotherTestBlock.class, match.get().blockClass());
             assertEquals("/posts/:id", match.get().pattern());
         }
     }
@@ -184,7 +184,7 @@ public class RouterTests {
         @Test
         void root_path_can_be_matched() {
             final Router router = new Router()
-                    .route("/", TestContract.class);
+                    .route("/", TestBlock.class);
 
             assertTrue(router.match(Path.of("/")).isPresent());
         }
@@ -192,11 +192,11 @@ public class RouterTests {
         @Test
         void multiple_routes_correctly_distinguished() {
             final Router router = new Router()
-                    .route("/posts", TestContract.class)
-                    .route("/users", AnotherTestContract.class);
+                    .route("/posts", TestBlock.class)
+                    .route("/users", AnotherTestBlock.class);
 
-            assertEquals(TestContract.class, router.match(Path.of("/posts")).get().contractClass());
-            assertEquals(AnotherTestContract.class, router.match(Path.of("/users")).get().contractClass());
+            assertEquals(TestBlock.class, router.match(Path.of("/posts")).get().blockClass());
+            assertEquals(AnotherTestBlock.class, router.match(Path.of("/users")).get().blockClass());
         }
     }
 }

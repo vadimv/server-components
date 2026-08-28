@@ -1,8 +1,8 @@
 package rsp.app.posts;
 
 import rsp.app.posts.components.*;
-import rsp.compositions.shell.ExplorerContract;
-import rsp.compositions.shell.HeaderContract;
+import rsp.compositions.shell.ExplorerBlock;
+import rsp.compositions.shell.HeaderBlock;
 import rsp.app.posts.services.CommentService;
 import rsp.app.posts.services.PostService;
 import rsp.compositions.application.App;
@@ -31,38 +31,38 @@ class AuthTestApps {
         final CommentService commentService = new CommentService();
 
         final Router router = new Router()
-                .route("/posts", PostsListContract.class)
-                .route("/posts/:id", PostEditContract.class)
-                .route("/comments", CommentsListContract.class)
-                .route("/comments/:id", CommentEditContract.class);
+                .route("/posts", PostsListBlock.class)
+                .route("/posts/:id", PostEditBlock.class)
+                .route("/comments", CommentsListBlock.class)
+                .route("/comments/:id", CommentEditBlock.class);
 
-        final Group mainContracts = new Group("Admin")
+        final Group mainBlocks = new Group("Admin")
                 .add(new Group("Posts")
-                        .bind(PostsListContract.class, () -> new PostsListContract(postService, new DefaultListView()))
-                        .bind(PostCreateContract.class, () -> new PostCreateContract(postService, new DefaultEditView()))
-                        .bind(PostEditContract.class, () -> new PostEditContract(postService, new DefaultEditView())))
+                        .bind(PostsListBlock.class, () -> new PostsListBlock(postService, new DefaultListView()))
+                        .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultEditView()))
+                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultEditView())))
                 .add(new Group("Comments")
-                        .bind(CommentsListContract.class, () -> new CommentsListContract(commentService, new DefaultListView()))
-                        .bind(CommentCreateContract.class, () -> new CommentCreateContract(commentService, new DefaultEditView()))
-                        .bind(CommentEditContract.class, () -> new CommentEditContract(commentService, new DefaultEditView())));
+                        .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
+                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultEditView()))
+                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultEditView())));
 
-        final Group systemContracts = new Group()
-                .bind(ExplorerContract.class, () -> new ExplorerContract(mainContracts.structureTree()))
-                .bind(HeaderContract.class, HeaderContract::new);
+        final Group systemBlocks = new Group()
+                .bind(ExplorerBlock.class, () -> new ExplorerBlock(mainBlocks.structureTree()))
+                .bind(HeaderBlock.class, HeaderBlock::new);
 
         final DefaultLayout layout = new DefaultLayout()
-                .leftSidebar(ExplorerContract.class)
-                .header(HeaderContract.class);
+                .leftSidebar(ExplorerBlock.class)
+                .header(HeaderBlock.class);
 
-        return new Composition(router, layout, mainContracts, systemContracts);
+        return new Composition(router, layout, mainBlocks, systemBlocks);
     }
 
     static WebServer simpleAuth(int port) {
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
 
-        final Router authRouter = new Router().route("/auth/login", LoginContract.class);
+        final Router authRouter = new Router().route("/auth/login", LoginBlock.class);
         final Group authGroup = new Group()
-                .bind(LoginContract.class, () -> new LoginContract(authProvider));
+                .bind(LoginBlock.class, () -> new LoginBlock(authProvider));
         final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
 
         final Services services = new Services()

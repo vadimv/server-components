@@ -2,7 +2,7 @@ package rsp.compositions.auth;
 
 import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
-import rsp.compositions.contract.ContextKeys;
+import rsp.compositions.block.ContextKeys;
 import rsp.dsl.Definition;
 import rsp.page.events.RemoteCommand;
 import rsp.server.http.HttpRequest;

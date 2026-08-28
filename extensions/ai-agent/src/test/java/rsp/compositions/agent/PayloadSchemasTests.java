@@ -1,10 +1,10 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractActionPayload;
-import rsp.compositions.contract.PayloadSchemas;
+import rsp.compositions.block.BlockActionPayload;
+import rsp.compositions.block.PayloadSchemas;
 
 
-import rsp.compositions.contract.PayloadSchema;
+import rsp.compositions.block.PayloadSchema;
 
 
 import org.junit.jupiter.api.Test;
@@ -22,25 +22,25 @@ class PayloadSchemasTests {
     @Test
     void none_parser_unwraps_value() {
         var parser = PayloadSchemas.toParser(new PayloadSchema.None());
-        assertEquals("hello", parser.apply(ContractActionPayload.of("hello")));
+        assertEquals("hello", parser.apply(BlockActionPayload.of("hello")));
     }
 
     @Test
     void string_parser_returns_string() {
         var parser = PayloadSchemas.toParser(new PayloadSchema.StringValue("id"));
-        assertEquals("42", parser.apply(ContractActionPayload.of("42")));
+        assertEquals("42", parser.apply(BlockActionPayload.of("42")));
     }
 
     @Test
     void integer_parser_returns_integer() {
         var parser = PayloadSchemas.toParser(new PayloadSchema.IntegerValue("page"));
-        assertEquals(3, parser.apply(ContractActionPayload.of(3)));
+        assertEquals(3, parser.apply(BlockActionPayload.of(3)));
     }
 
     @Test
     void stringSet_parser_wraps_single_string() {
         var parser = PayloadSchemas.toParser(new PayloadSchema.StringSet("ids"));
-        assertEquals(Set.of("1"), parser.apply(ContractActionPayload.of("1")));
+        assertEquals(Set.of("1"), parser.apply(BlockActionPayload.of("1")));
     }
 
     // --- describe ---

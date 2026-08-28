@@ -47,12 +47,13 @@ Or from your IDE, by running the `main` method of the entry-point class.
 - Entry point: [CrudApp.java](../examples/src/main/java/rsp/app/posts/CrudApp.java)
 - URL: <http://localhost:8085>
 - Demonstrates the end-to-end `compositions` stack:
-  - **Routing** — `Router` mapping `/posts`, `/posts/new`, `/posts/:id`, `/comments`, `/comments/:id` to contracts.
-  - **Contracts + views** — direct state-owning list ([PostsListContract](../examples/src/main/java/rsp/app/posts/components/PostsListContract.java), [CommentsListContract](../examples/src/main/java/rsp/app/posts/components/CommentsListContract.java)) and edit/create form components ([PostEditContract](../examples/src/main/java/rsp/app/posts/components/PostEditContract.java), [PostCreateContract](../examples/src/main/java/rsp/app/posts/components/PostCreateContract.java), [CommentEditContract](../examples/src/main/java/rsp/app/posts/components/CommentEditContract.java), [CommentCreateContract](../examples/src/main/java/rsp/app/posts/components/CommentCreateContract.java)). `DefaultListView` and `DefaultEditView` render their state and dispatch typed intents.
-  - **Groups** — nested `Group("Admin") → Group("Posts") / Group("Comments")`; the tree drives the [ExplorerContract](../extensions/ui-shell/src/main/java/rsp/compositions/shell/ExplorerContract.java) sidebar menu.
+  - **Routing** — `Router` mapping `/posts`, `/posts/new`, `/posts/:id`, `/comments`, `/comments/:id` to blocks.
+  - **Blocks + views** — direct state-owning list ([PostsListBlock](../examples/src/main/java/rsp/app/posts/components/PostsListBlock.java), [CommentsListBlock](../examples/src/main/java/rsp/app/posts/components/CommentsListBlock.java)) and edit/create form components ([PostEditBlock](../examples/src/main/java/rsp/app/posts/components/PostEditBlock.java), [PostCreateBlock](../examples/src/main/java/rsp/app/posts/components/PostCreateBlock.java), [CommentEditBlock](../examples/src/main/java/rsp/app/posts/components/CommentEditBlock.java), [CommentCreateBlock](../examples/src/main/java/rsp/app/posts/components/CommentCreateBlock.java)). `DefaultListView` and `DefaultEditView` render their state and dispatch typed intents.
+  - **Groups** — nested `Group("Admin") → Group("Posts") / Group("Comments")`; the tree drives the [ExplorerBlock](../extensions/ui-shell/src/main/java/rsp/compositions/shell/ExplorerBlock.java) sidebar menu.
+  - **Telemetry dashboard** — [DemoDashboards](../examples/src/main/java/rsp/app/posts/components/DemoDashboards.java) declares an immutable trend and log panel, while [DemoTelemetry](../examples/src/main/java/rsp/app/posts/components/DemoTelemetry.java) adapts the live services separately.
   - **Layout** — `DefaultLayout` with left sidebar (Explorer), right sidebar (Prompt), header, and a placement policy mapping forms inline and approvals to modals.
-  - **Auth** — a separate `Composition` for `/auth/login` using `SimpleAuthProvider` + `LoginContract`; `AuthComponent` redirects anonymous requests.
-  - **AI agent** — [PromptContract](../extensions/agent-ui/src/main/java/rsp/compositions/agentui/PromptContract.java) talks to an `AgentService`, selectable via `-Dai.agent=regex|claude|ollama`. Backed by ABAC authorization (`AccessPolicy`, `Authorization`) and human-in-the-loop approvals via `ApprovalSpawner` + `DelegationApprovalContract`.
+  - **Auth** — a separate `Composition` for `/auth/login` using `SimpleAuthProvider` + `LoginBlock`; `AuthComponent` redirects anonymous requests.
+  - **AI agent** — [PromptBlock](../extensions/agent-ui/src/main/java/rsp/compositions/agentui/PromptBlock.java) talks to an `AgentService`, selectable via `-Dai.agent=regex|claude|ollama`. Backed by ABAC authorization (`AccessPolicy`, `Authorization`) and human-in-the-loop approvals via `ApprovalSpawner` + `DelegationApprovalBlock`.
   - **Domain** — [PostService](../examples/src/main/java/rsp/app/posts/services/PostService.java), [CommentService](../examples/src/main/java/rsp/app/posts/services/CommentService.java), [RegexAgentService](../examples/src/main/java/rsp/app/posts/services/RegexAgentService.java), entities in [entities/](../examples/src/main/java/rsp/app/posts/entities/).
 
   Selecting the agent backend:
@@ -81,7 +82,7 @@ Or from your IDE, by running the `main` method of the entry-point class.
 | Persistent state across unmount (`StoredStateComponent`) |         |           |            |      |    +     |         |
 | Conditional rendering (`when(...)`)                      |         |           |     +      |  +   |    +     |    +    |
 | Static resources (`StaticResources`)                     |         |           |            |  +   |    +     |    +    |
-| Routing (`Router` + contracts)                           |         |           |            |      |          |    +    |
+| Routing (`Router` + blocks)                           |         |           |            |      |          |    +    |
 | Layout + composition + groups                            |         |           |            |      |          |    +    |
 | Auth composition                                         |         |           |            |      |          |    +    |
 | AI agent + ABAC + HITL approval                          |         |           |            |      |          |    +    |

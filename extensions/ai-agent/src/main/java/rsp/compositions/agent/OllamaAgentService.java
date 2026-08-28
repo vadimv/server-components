@@ -27,7 +27,7 @@ import java.util.function.Consumer;
  * This eliminates the need for a constrained JSON {@code format} schema and the
  * fragility of parsing unstructured text.
  *
- * <p>Shared logic (tool building, action lookup, contract resolution) is
+ * <p>Shared logic (tool building, action lookup, block resolution) is
  * delegated to {@link AgentServiceUtils}.
  */
 public final class OllamaAgentService extends AgentService {
@@ -56,7 +56,7 @@ public final class OllamaAgentService extends AgentService {
      * Called by plan executor for each individual step.
      */
     @Override
-    public AgentResult handlePrompt(String prompt, ContractProfile profile, StructureNode structureTree) {
+    public AgentResult handlePrompt(String prompt, BlockProfile profile, StructureNode structureTree) {
         return doHandlePrompt(prompt,
             AgentServiceUtils.buildToolDefinitions(profile, structureTree),
             AgentServiceUtils.buildExecutionPrompt(profile, structureTree),
@@ -68,7 +68,7 @@ public final class OllamaAgentService extends AgentService {
      * Called for the initial user prompt to classify as plan or greeting.
      */
     @Override
-    public AgentResult handlePrompt(String prompt, ContractProfile profile,
+    public AgentResult handlePrompt(String prompt, BlockProfile profile,
                                     StructureNode structureTree,
                                     Consumer<String> onPartialContent) {
         return doHandlePrompt(prompt,
@@ -79,7 +79,7 @@ public final class OllamaAgentService extends AgentService {
 
     private AgentResult doHandlePrompt(String prompt, List<ToolDefinition> tools,
                                         String systemPrompt,
-                                        ContractProfile profile, StructureNode structureTree,
+                                        BlockProfile profile, StructureNode structureTree,
                                         Consumer<String> onPartialContent) {
         try {
             Optional<AgentResult> parsed = streamRequest(prompt, tools, systemPrompt,
@@ -102,7 +102,7 @@ public final class OllamaAgentService extends AgentService {
      */
     private Optional<AgentResult> streamRequest(String prompt, List<ToolDefinition> tools,
                                                  String systemPrompt,
-                                                 ContractProfile profile, StructureNode structureTree,
+                                                 BlockProfile profile, StructureNode structureTree,
                                                  Consumer<String> onPartialContent)
             throws IOException, InterruptedException {
         String requestBody = buildStreamingRequest(prompt, systemPrompt, tools);

@@ -1,53 +1,28 @@
 package rsp.app.posts;
 
-import rsp.app.posts.components.CommentCreateContract;
-import rsp.app.posts.components.CommentEditContract;
-import rsp.app.posts.components.CommentsListContract;
-import rsp.app.posts.components.DemoDashboards;
-import rsp.compositions.dashboard.DashboardContract;
-import rsp.compositions.dashboard.DashboardView;
-import rsp.compositions.shell.ExplorerContract;
-import rsp.compositions.shell.ExplorerView;
-import rsp.app.posts.components.PostCreateContract;
-import rsp.app.posts.components.PostEditContract;
-import rsp.compositions.shell.HeaderContract;
-import rsp.compositions.shell.HeaderView;
-import rsp.compositions.agentui.PromptContract;
-import rsp.compositions.agentui.PromptView;
-import rsp.app.posts.components.PostsListContract;
-import rsp.app.posts.services.CommentService;
-import rsp.app.posts.services.CommentRateStreamService;
-import rsp.app.posts.services.LogStreamService;
-import rsp.compositions.agent.ClaudeAgentService;
-import rsp.compositions.agent.OllamaAgentService;
-import rsp.app.posts.services.PostService;
+import rsp.app.posts.components.*;
+import rsp.app.posts.services.*;
+import rsp.compositions.agent.*;
+import rsp.compositions.agentui.DelegationApprovalBlock;
+import rsp.compositions.agentui.PromptBlock;
 import rsp.compositions.agentui.PromptService;
-import rsp.app.posts.services.RegexAgentService;
-import rsp.compositions.agent.AgentService;
-import rsp.compositions.agent.AgentSpawner;
-import rsp.compositions.agent.ApprovalSpawner;
-import rsp.compositions.agentui.DelegationApprovalContract;
-import rsp.compositions.agentui.DelegationApprovalView;
-import rsp.compositions.agent.DelegationStore;
-import rsp.compositions.agent.InMemoryDelegationStore;
-import rsp.compositions.agent.ActionDispatcher;
-import rsp.compositions.agent.PolicySpawner;
-import rsp.compositions.authorization.AccessPolicy;
-import rsp.compositions.authorization.Attributes;
-import rsp.compositions.authorization.CompositePolicy;
-import rsp.compositions.authorization.ExamplePolicies;
-import rsp.compositions.authorization.Authorization;
 import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
-import rsp.compositions.auth.*;
+import rsp.compositions.auth.AuthComponent;
+import rsp.compositions.auth.LoginBlock;
+import rsp.compositions.auth.SimpleAuthProvider;
+import rsp.compositions.authorization.*;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
-import rsp.compositions.contract.FormContractComponent;
+import rsp.compositions.block.FormBlock;
+import rsp.compositions.dashboard.DashboardBlock;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.GroupPlacementPolicy;
 import rsp.compositions.layout.Placement;
 import rsp.compositions.routing.Router;
+import rsp.compositions.shell.ExplorerBlock;
+import rsp.compositions.shell.HeaderBlock;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
@@ -81,7 +56,7 @@ public class CrudApp {
 
     /**
      * Assembles the application and starts the web server. The body is structured as a sequence of small stages so
-     * the wiring can be read top-to-bottom: routes, services, agent permissions, contract groups,
+     * the wiring can be read top-to-bottom: routes, services, agent permissions, block groups,
      * layout, then the login composition.
      *
      * @param blockCurrentThread when {@code true} the call blocks on {@code server.join()} so the
@@ -91,19 +66,19 @@ public class CrudApp {
         final Config config = new Config()
                 .with(System.getProperties());
 
-        // URL to contract mapping. Literal segments ("/posts/new") must precede parameter
+        // URL to block mapping. Literal segments ("/posts/new") must precede parameter
         // routes ("/posts/:id") or "/posts/new" would be treated as id "new".
         final Router router = new Router()
-                .route("/dashboard", DashboardContract.class)
-                .route("/posts", PostsListContract.class)
-                .route("/", PostsListContract.class)
-                .route("/posts/new", PostCreateContract.class)
-                .route("/posts/:id", PostEditContract.class)
-                .route("/comments", CommentsListContract.class)
-                .route("/comments/new", CommentCreateContract.class)
-                .route("/comments/:id", CommentEditContract.class);
+                .route("/dashboard", DashboardBlock.class)
+                .route("/posts", PostsListBlock.class)
+                .route("/", PostsListBlock.class)
+                .route("/posts/new", PostCreateBlock.class)
+                .route("/posts/:id", PostEditBlock.class)
+                .route("/comments", CommentsListBlock.class)
+                .route("/comments/new", CommentCreateBlock.class)
+                .route("/comments/:id", CommentEditBlock.class);
 
-        // Application services. They are passed into contract constructors below so contracts
+        // Application services. They are passed into block constructors below so blocks
         // remain free of static singletons and easy to swap in tests.
         final PostService postService = new PostService();
         final CommentService commentService = new CommentService();
@@ -113,7 +88,9 @@ public class CrudApp {
         commentRateStreamService.start();
         final LogStreamService logStreamService = new LogStreamService();
         logStreamService.start();
-        final var dashboardModel = DemoDashboards.live(commentRateStreamService, logStreamService);
+        final var dashboardDefinition = DemoDashboards.definition();
+        final var dashboardRuntime = DemoDashboards.runtime(
+                DemoTelemetry.registry(commentRateStreamService, logStreamService));
 
         // Agent permissions. The policy says which agent actions are allowed. When an action needs
         // user consent, the prompt asks this spawner for an agent session. Approval decisions are
@@ -125,54 +102,55 @@ public class CrudApp {
         final DelegationStore delegationStore = new InMemoryDelegationStore();
         final AgentSpawner spawner = new ApprovalSpawner(new PolicySpawner(authorization), delegationStore);
 
-        // A contract is the logic behind a UI fragment: it owns state, actions, and the data schema.
-        // A view renders that contract.
+        // A block is the logic behind a UI fragment: it owns state, actions, and the data schema.
+        // A view renders that block.
         // The nested group names become the sidebar menu.
-        final Group mainContracts = new Group("Admin").description("Administration panel")
+        final Group mainBlocks = new Group("Admin").description("Administration panel")
                 .add(new Group("Dashboard").description("Live dashboard widgets for the admin overview")
-                        .bind(DashboardContract.class, () -> new DashboardContract(dashboardModel)))
+                        .bind(DashboardBlock.class,
+                                () -> new DashboardBlock(dashboardDefinition, dashboardRuntime)))
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
-                        .bind(PostsListContract.class, () -> new PostsListContract(postService, new DefaultListView()))
-                        .bind(PostCreateContract.class, () -> new PostCreateContract(postService, new DefaultEditView()))
-                        .bind(PostEditContract.class, () -> new PostEditContract(postService, new DefaultEditView())))
+                        .bind(PostsListBlock.class, () -> new PostsListBlock(postService, new DefaultListView()))
+                        .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultEditView()))
+                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultEditView())))
                 .add(new Group("Comments").description("User comments for the posts")
-                        .bind(CommentsListContract.class, () -> new CommentsListContract(commentService, new DefaultListView()))
-                        .bind(CommentCreateContract.class, () -> new CommentCreateContract(commentService, new DefaultEditView()))
-                        .bind(CommentEditContract.class, () -> new CommentEditContract(commentService, new DefaultEditView())));
+                        .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
+                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultEditView()))
+                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultEditView())));
 
         // These views support the page but are not menu items. Explorer builds the sidebar from
-        // mainContracts; Prompt lets the user talk to the agent; Header shows the session;
+        // mainBlocks; Prompt lets the user talk to the agent; Header shows the session;
         // DelegationApproval appears only when consent is needed.
-        final Group systemContracts = new Group()
-                .bind(ExplorerContract.class, () -> new ExplorerContract(mainContracts.structureTree()))
-                .bind(PromptContract.class, () -> new PromptContract(promptService, agentService, actionDispatcher, authorization, spawner, mainContracts.structureTree()))
-                .bind(HeaderContract.class, HeaderContract::new)
-                .bind(DelegationApprovalContract.class, () -> new DelegationApprovalContract(delegationStore));
+        final Group systemBlocks = new Group()
+                .bind(ExplorerBlock.class, () -> new ExplorerBlock(mainBlocks.structureTree()))
+                .bind(PromptBlock.class, () -> new PromptBlock(promptService, agentService, actionDispatcher, authorization, spawner, mainBlocks.structureTree()))
+                .bind(HeaderBlock.class, HeaderBlock::new)
+                .bind(DelegationApprovalBlock.class, () -> new DelegationApprovalBlock(delegationStore));
 
-        // Layout chooses where each contract appears. The sidebars and header are always visible.
+        // Layout chooses where each block appears. The sidebars and header are always visible.
         // Forms replace the main content; approval is always a modal.
         final DefaultLayout layout = new DefaultLayout()
-                .leftSidebar(ExplorerContract.class)
-                .rightSidebar(PromptContract.class)
-                .header(HeaderContract.class)
+                .leftSidebar(ExplorerBlock.class)
+                .rightSidebar(PromptBlock.class)
+                .header(HeaderBlock.class)
                 .groupPlacementPolicy(GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL)
-                .placement(FormContractComponent.class, Placement.INLINE.primary())
-                .placement(DelegationApprovalContract.class, Placement.MODAL);
+                .placement(FormBlock.class, Placement.INLINE.primary())
+                .placement(DelegationApprovalBlock.class, Placement.MODAL);
 
         // This is the posts feature package: routes decide which page is active, layout decides
-        // where it appears, and both user-facing and support contract groups are available to the scene.
-        final Composition postsComposition = new Composition(router, layout, mainContracts, systemContracts);
+        // where it appears, and both user-facing and support block groups are available to the scene.
+        final Composition postsComposition = new Composition(router, layout, mainBlocks, systemBlocks);
 
         // Login lives in its own composition. The auth provider redirects anonymous users to
         // /auth/login, which keeps login code out of the posts composition.
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
         final Router authRouter = new Router()
-                .route("/auth/login", LoginContract.class);
+                .route("/auth/login", LoginBlock.class);
         final Group authGroup = new Group()
-                .bind(LoginContract.class, () -> new LoginContract(authProvider));
+                .bind(LoginBlock.class, () -> new LoginBlock(authProvider));
         final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
 
-        // App-wide services available to any contract. The auth provider is stored here so
+        // App-wide services available to any block. The auth provider is stored here so
         // AuthComponent can find it on every request.
         final Services services = new Services()
                 .service(AuthComponent.AuthProvider.class, authProvider);

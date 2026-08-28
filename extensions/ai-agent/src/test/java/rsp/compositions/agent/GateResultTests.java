@@ -1,9 +1,9 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.BlockActionPayload;
 
 
-import rsp.compositions.contract.ContractAction;
+import rsp.compositions.block.BlockAction;
 
 
 import org.junit.jupiter.api.Test;
@@ -13,12 +13,12 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GateResultTests {
 
-    private static final ContractAction TEST_ACTION =
-        new ContractAction("delete", new EventKey.VoidKey("test.delete"), "Delete items");
+    private static final BlockAction TEST_ACTION =
+        new BlockAction("delete", new EventKey.VoidKey("test.delete"), "Delete items");
 
     @Test
     void allow_carries_action_and_payload() {
-        ContractActionPayload payload = ContractActionPayload.of("payload-value");
+        BlockActionPayload payload = BlockActionPayload.of("payload-value");
         GateResult result = new GateResult.Allow(TEST_ACTION, payload);
         assertInstanceOf(GateResult.Allow.class, result);
         assertEquals(TEST_ACTION, ((GateResult.Allow) result).action());
@@ -34,16 +34,16 @@ class GateResultTests {
 
     @Test
     void confirm_carries_question_action_and_payload() {
-        GateResult result = new GateResult.Confirm("Are you sure?", TEST_ACTION, ContractActionPayload.EMPTY);
+        GateResult result = new GateResult.Confirm("Are you sure?", TEST_ACTION, BlockActionPayload.EMPTY);
         assertInstanceOf(GateResult.Confirm.class, result);
         assertEquals("Are you sure?", ((GateResult.Confirm) result).question());
         assertEquals(TEST_ACTION, ((GateResult.Confirm) result).action());
-        assertEquals(ContractActionPayload.EMPTY, ((GateResult.Confirm) result).payload());
+        assertEquals(BlockActionPayload.EMPTY, ((GateResult.Confirm) result).payload());
     }
 
     @Test
     void exhaustive_switch() {
-        GateResult result = new GateResult.Allow(TEST_ACTION, ContractActionPayload.EMPTY);
+        GateResult result = new GateResult.Allow(TEST_ACTION, BlockActionPayload.EMPTY);
         String outcome = switch (result) {
             case GateResult.Allow a -> "allow";
             case GateResult.Block b -> "block";

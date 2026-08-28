@@ -29,7 +29,7 @@ import static rsp.dsl.Html.*;
  *   <li>"delete.requested" - User confirmed delete action (payload: empty map)</li>
  * </ul>
  * <p>
- * The view only collects browser input and dispatches it to its contract.
+ * The view only collects browser input and dispatches it to its block.
  */
 public class DefaultEditView implements ComponentView<EditView.EditViewState, EditView.EditIntent> {
 

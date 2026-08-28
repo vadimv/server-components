@@ -9,19 +9,19 @@ import java.util.Objects;
 /**
  * Composition - Declares a feature domain's view placements and routes.
  * <p>
- * Each composition groups related views by declaring their contract factories and routes
+ * Each composition groups related views by declaring their block factories and routes
  * through {@link Group}s. Lifecycle is derived automatically:
  * <ul>
- *   <li>Routed contracts (matched by Router) are eagerly instantiated</li>
- *   <li>Contracts required by the Layout are eagerly instantiated (companions)</li>
- *   <li>All other contracts are stored as lazy factories (for on-demand SHOW events)</li>
+ *   <li>Routed blocks (matched by Router) are eagerly instantiated</li>
+ *   <li>Blocks required by the Layout are eagerly instantiated (companions)</li>
+ *   <li>All other blocks are stored as lazy factories (for on-demand SHOW events)</li>
  * </ul>
  * <p>
  * Route resolution iterates Compositions in order - the first matching route wins.
  */
 public class Composition {
     private final Router router;
-    private final Group contracts;
+    private final Group blocks;
     private final Layout layout;
     private final Services services;
 
@@ -31,7 +31,7 @@ public class Composition {
      *
      * @param router The router for this composition's routes
      * @param layout The layout strategy for visual arrangement
-     * @param groups One or more groups holding contract and view factories
+     * @param groups One or more groups holding block and view factories
      */
     public Composition(Router router, Layout layout, Group... groups) {
         this(router, layout, null, groups);
@@ -43,7 +43,7 @@ public class Composition {
      * @param router   The router for this composition's routes
      * @param layout   The layout strategy for visual arrangement
      * @param services Composition-level services (nullable)
-     * @param groups   One or more groups holding contract and view factories
+     * @param groups   One or more groups holding block and view factories
      */
     public Composition(Router router, Layout layout, Services services, Group... groups) {
         Objects.requireNonNull(router, "router cannot be null");
@@ -55,13 +55,13 @@ public class Composition {
         this.layout = layout;
         this.services = services;
         if (groups.length == 1) {
-            this.contracts = groups[0];
+            this.blocks = groups[0];
         } else {
             Group merged = new Group();
             for (Group group : groups) {
                 merged.add(group);
             }
-            this.contracts = merged;
+            this.blocks = merged;
         }
     }
 
@@ -73,10 +73,10 @@ public class Composition {
     }
 
     /**
-     * The group holding contract factories and view factories for this composition.
+     * The group holding block factories and view factories for this composition.
      */
-    public Group contracts() {
-        return contracts;
+    public Group blocks() {
+        return blocks;
     }
 
     /**

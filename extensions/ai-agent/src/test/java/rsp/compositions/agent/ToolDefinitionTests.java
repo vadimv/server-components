@@ -1,13 +1,13 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.PayloadSchema;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.Block;
+import rsp.compositions.block.PayloadSchema;
 
 
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
 
 import java.util.List;
 
@@ -17,7 +17,7 @@ class ToolDefinitionTests {
 
     @Test
     void fromAction_produces_valid_tool_definition() {
-        ContractAction action = new ContractAction("page",
+        BlockAction action = new BlockAction("page",
             new EventKey.SimpleKey<>("test.page", Integer.class),
             "Navigate to a page number",
             new PayloadSchema.IntegerValue("page number (1-based)"));
@@ -32,7 +32,7 @@ class ToolDefinitionTests {
 
     @Test
     void fromAction_void_action_has_empty_properties() {
-        ContractAction action = new ContractAction("select_all",
+        BlockAction action = new BlockAction("select_all",
             new EventKey.VoidKey("test.selectAll"),
             "Select all rows");
 
@@ -43,19 +43,19 @@ class ToolDefinitionTests {
     }
 
     @Test
-    void navigateTool_includes_contract_names_as_enum() {
+    void navigateTool_includes_block_names_as_enum() {
         StructureNode tree = new StructureNode("Root", null,
             List.of(
-                new StructureNode("Posts", null, List.of(), List.of(StubListContract.class)),
-                new StructureNode("Comments", null, List.of(), List.of(StubEditContract.class))
+                new StructureNode("Posts", null, List.of(), List.of(StubListBlock.class)),
+                new StructureNode("Comments", null, List.of(), List.of(StubEditBlock.class))
             ),
             List.of());
 
         ToolDefinition tool = ToolDefinition.navigateTool(tree);
 
         assertEquals("navigate", tool.name());
-        assertTrue(tool.inputSchema().contains("StubListContract"));
-        assertTrue(tool.inputSchema().contains("StubEditContract"));
+        assertTrue(tool.inputSchema().contains("StubListBlock"));
+        assertTrue(tool.inputSchema().contains("StubEditBlock"));
         assertTrue(tool.inputSchema().contains("\"enum\""));
     }
 
@@ -80,7 +80,7 @@ class ToolDefinitionTests {
 
     @Test
     void toAnthropicJson_uses_input_schema() {
-        ContractAction action = new ContractAction("create",
+        BlockAction action = new BlockAction("create",
             new EventKey.VoidKey("test.create"), "Create item");
 
         ToolDefinition tool = ToolDefinition.fromAction(action);
@@ -94,7 +94,7 @@ class ToolDefinitionTests {
 
     @Test
     void toOpenAiJson_uses_parameters() {
-        ContractAction action = new ContractAction("create",
+        BlockAction action = new BlockAction("create",
             new EventKey.VoidKey("test.create"), "Create item");
 
         ToolDefinition tool = ToolDefinition.fromAction(action);
@@ -108,12 +108,12 @@ class ToolDefinitionTests {
 
     // --- Stubs ---
 
-    static abstract class StubListContract implements Contract {
+    static abstract class StubListBlock extends Block<Object, Object> {
         @Override public rsp.component.Lookup lookup() { return null; }
         @Override public String title() { return "List"; }
     }
 
-    static abstract class StubEditContract implements Contract {
+    static abstract class StubEditBlock extends Block<Object, Object> {
         @Override public rsp.component.Lookup lookup() { return null; }
         @Override public String title() { return "Edit"; }
     }

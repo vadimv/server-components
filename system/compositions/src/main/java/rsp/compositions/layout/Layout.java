@@ -1,8 +1,9 @@
 package rsp.compositions.layout;
 
+import rsp.compositions.block.Block;
+
 import rsp.component.Lookup;
-import rsp.compositions.contract.Scene;
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.Scene;
 import rsp.dsl.Definition;
 
 import java.util.Set;
@@ -10,11 +11,11 @@ import java.util.Set;
 /**
  * Strategy interface for resolving and rendering Scene content in a visual layout.
  * <p>
- * Each implementation owns the full pipeline: extracting contracts from Scene,
+ * Each implementation owns the full pipeline: extracting blocks from Scene,
  * resolving them to UI components, and rendering the visual structure.
  * <p>
- * Layouts also declare which non-routed contracts they need eagerly instantiated
- * (companions) via {@link #requiredContracts()}.
+ * Layouts also declare which non-routed blocks they need eagerly instantiated
+ * (companions) via {@link #requiredBlocks()}.
  * <p>
  * Examples: sidebar layout, dashboard grid, IDE panel layout.
  *
@@ -22,28 +23,28 @@ import java.util.Set;
  */
 public interface Layout {
     /**
-     * Declare which contracts this layout needs eagerly instantiated (companions).
+     * Declare which blocks this layout needs eagerly instantiated (companions).
      * <p>
-     * The framework instantiates these alongside the routed contract during scene building.
-     * Contracts not listed here and not matched by the Router are stored as lazy factories.
+     * The framework instantiates these alongside the routed block during scene building.
+     * Blocks not listed here and not matched by the Router are stored as lazy factories.
      *
-     * @return set of contract classes this layout requires
+     * @return set of block classes this layout requires
      */
-    default Set<Class<? extends Contract>> requiredContracts() {
+    default Set<Class<? extends Block<?, ?>>> requiredBlocks() {
         return Set.of();
     }
 
     /**
-     * Resolve the effective placement for a contract shown on demand.
+     * Resolve the effective placement for a block shown on demand.
      * <p>
      * The default preserves the historical behavior: {@code SHOW} opens a
      * modal/layer unless a concrete layout overrides this method.
      *
-     * @param contractClass the contract class being shown
+     * @param blockClass the block class being shown
      * @param scene the active scene
      * @return the effective placement decision
      */
-    default PlacementDecision resolvePlacement(Class<? extends Contract> contractClass,
+    default PlacementDecision resolvePlacement(Class<? extends Block<?, ?>> blockClass,
                                                Scene scene) {
         return PlacementDecision.frameworkDefault();
     }
@@ -51,7 +52,7 @@ public interface Layout {
     /**
      * Resolve and render the scene content.
      *
-     * @param scene  the scene containing contracts, Contracts, and layout data
+     * @param scene  the scene containing blocks, Blocks, and layout data
      * @param lookup for event publishing (e.g., overlay close)
      * @return the rendered layout definition
      */

@@ -1,12 +1,13 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.PayloadSchemas;
+import rsp.compositions.block.Block;
+
+import rsp.compositions.block.PayloadSchemas;
 
 
-import rsp.compositions.contract.ContractAction;
+import rsp.compositions.block.BlockAction;
 
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +27,9 @@ import java.util.List;
 public record ToolDefinition(String name, String description, String inputSchema) {
 
     /**
-     * Creates a tool definition from a contract's declared action.
+     * Creates a tool definition from a block's declared action.
      */
-    public static ToolDefinition fromAction(ContractAction action) {
+    public static ToolDefinition fromAction(BlockAction action) {
         return new ToolDefinition(
             action.action(),
             action.description(),
@@ -37,22 +38,22 @@ public record ToolDefinition(String name, String description, String inputSchema
     }
 
     /**
-     * Creates the "navigate" tool with an enum of available contract targets.
+     * Creates the "navigate" tool with an enum of available block targets.
      */
     public static ToolDefinition navigateTool(StructureNode tree) {
-        List<String> contractNames = new ArrayList<>();
-        collectContractNames(tree, contractNames);
+        List<String> blockNames = new ArrayList<>();
+        collectBlockNames(tree, blockNames);
 
         StringBuilder enumValues = new StringBuilder();
-        for (int i = 0; i < contractNames.size(); i++) {
+        for (int i = 0; i < blockNames.size(); i++) {
             if (i > 0) enumValues.append(",");
-            enumValues.append("\"").append(contractNames.get(i)).append("\"");
+            enumValues.append("\"").append(blockNames.get(i)).append("\"");
         }
 
         String schema = "{\"type\":\"object\",\"properties\":{"
-            + "\"targetContract\":{\"type\":\"string\",\"enum\":[" + enumValues + "],"
-            + "\"description\":\"Target contract class name\"}"
-            + "},\"required\":[\"targetContract\"]}";
+            + "\"targetBlock\":{\"type\":\"string\",\"enum\":[" + enumValues + "],"
+            + "\"description\":\"Target block class name\"}"
+            + "},\"required\":[\"targetBlock\"]}";
 
         return new ToolDefinition("navigate", "Navigate to a different page", schema);
     }
@@ -100,13 +101,13 @@ public record ToolDefinition(String name, String description, String inputSchema
             + "\"parameters\":" + inputSchema + "}}";
     }
 
-    private static void collectContractNames(StructureNode node, List<String> names) {
+    private static void collectBlockNames(StructureNode node, List<String> names) {
         if (node == null) return;
-        for (Class<? extends Contract> contract : node.contracts()) {
-            names.add(contract.getSimpleName());
+        for (Class<? extends Block<?, ?>> block : node.blocks()) {
+            names.add(block.getSimpleName());
         }
         for (StructureNode child : node.children()) {
-            collectContractNames(child, names);
+            collectBlockNames(child, names);
         }
     }
 

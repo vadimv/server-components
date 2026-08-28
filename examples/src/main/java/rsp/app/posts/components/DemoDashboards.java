@@ -1,31 +1,48 @@
 package rsp.app.posts.components;
 
-import rsp.app.posts.services.CommentRateStreamService;
-import rsp.app.posts.services.LogStreamService;
-import rsp.compositions.dashboard.DashboardDsl;
-import rsp.compositions.dashboard.DashboardModel;
+import rsp.compositions.dashboard.DashboardDefinition;
+import rsp.compositions.dashboard.DashboardRuntime;
+import rsp.compositions.dashboard.WidgetRendererRegistry;
+import rsp.telemetry.TelemetryRegistry;
 
-import java.util.List;
+import java.time.Duration;
+
+import static rsp.compositions.dashboard.DashboardDsl.at;
+import static rsp.compositions.dashboard.DashboardDsl.dashboard;
+import static rsp.compositions.dashboard.DashboardDsl.trend;
 
 /**
- * App-specific dashboard compositions for the posts example. Assembles concrete widgets
- * ({@link CommentsRateGraphWidget}, {@link LogsWidget}) into a {@link DashboardModel} using
- * the generic {@code rsp.compositions.dashboard} grid DSL.
+ * App-specific immutable dashboard definition and runtime renderer wiring.
  */
 public final class DemoDashboards {
 
     private DemoDashboards() {}
 
-    public static DashboardModel live(final CommentRateStreamService commentRateStreamService,
-                                      final LogStreamService logStreamService) {
-        return new DashboardModel(DashboardDsl.dashboard()
+    public static DashboardDefinition definition() {
+        return dashboard("admin-overview", "Dashboard")
                 .columns(12)
                 .rowHeightPx(96)
                 .gap("1.5rem")
-                .place(CommentsRateGraphWidget.live(commentRateStreamService),
-                        DashboardDsl.at(1, 1).span(6, 3))
-                .place(LogsWidget.live(logStreamService),
-                        DashboardDsl.at(1, 4).span(10, 3))
-                .build());
+                .place(trend("comments-rate")
+                                .title("Comments rate")
+                                .description("Live comments per second stream")
+                                .series(DemoTelemetry.COMMENTS_RATE)
+                                .window(Duration.ofSeconds(30))
+                                .decimals(0),
+                        at(1, 1).span(6, 3))
+                .place(new LogsDefinition("logs", "Logs", "Live application log stream",
+                                DemoTelemetry.LOG_ENTRIES),
+                        at(1, 4).span(10, 3))
+                .build();
+    }
+
+    public static DashboardRuntime runtime(TelemetryRegistry telemetry) {
+        return new DashboardRuntime(
+                telemetry,
+                WidgetRendererRegistry.builder()
+                        .registerDefaults()
+                        .register(LogsWidget.renderer())
+                        .build(),
+                java.time.Clock.systemUTC());
     }
 }

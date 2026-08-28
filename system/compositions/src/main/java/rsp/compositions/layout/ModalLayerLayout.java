@@ -1,40 +1,41 @@
 package rsp.compositions.layout;
 
+import rsp.compositions.block.Block;
+
 import rsp.component.Lookup;
 import rsp.component.definitions.Component;
-import rsp.compositions.contract.Contract;
 import rsp.dom.XmlNs;
 import rsp.dsl.Definition;
 import rsp.dsl.PlainTag;
 
-import static rsp.compositions.contract.EventKeys.HIDE;
+import static rsp.compositions.block.EventKeys.HIDE;
 import static rsp.dsl.Html.*;
 
 /**
  * Modal overlay layout: backdrop + centered content with a close (X) button.
  * <p>
  * Both clicking the backdrop and clicking the close button publish a HIDE
- * event for the contract.
+ * event for the block.
  */
 public final class ModalLayerLayout implements LayerLayout {
     @Override
     public Definition resolve(Component<?, ?> content,
-                              Class<? extends Contract> contractClass,
+                              Class<? extends Block<?, ?>> blockClass,
                               Lookup lookup) {
         return div(attr("class", "modal-overlay"),
                 div(attr("class", "modal-backdrop"),
-                        on("click", _ -> lookup.publish(HIDE, contractClass))),
+                        on("click", _ -> lookup.publish(HIDE, blockClass))),
                 div(attr("class", "modal-content"),
-                        closeButton(contractClass, lookup),
+                        closeButton(blockClass, lookup),
                         content));
     }
 
-    private static Definition closeButton(Class<? extends Contract> contractClass, Lookup lookup) {
+    private static Definition closeButton(Class<? extends Block<?, ?>> blockClass, Lookup lookup) {
         return button(
                 attr("type", "button"),
                 attr("class", "modal-close"),
                 attr("aria-label", "Close"),
-                on("click", _ -> lookup.publish(HIDE, contractClass)),
+                on("click", _ -> lookup.publish(HIDE, blockClass)),
                 xIcon());
     }
 

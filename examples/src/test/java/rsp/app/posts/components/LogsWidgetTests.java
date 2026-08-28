@@ -8,6 +8,11 @@ import rsp.app.posts.services.LogStreamService;
 import rsp.component.ComponentContext;
 import rsp.component.TreeBuilder;
 import rsp.component.definitions.Component;
+import rsp.compositions.dashboard.DashboardRuntime;
+import rsp.telemetry.MapTelemetryRegistry;
+import rsp.telemetry.Subscription;
+import rsp.telemetry.TelemetrySample;
+import rsp.telemetry.TelemetrySeries;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 
@@ -15,8 +20,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,7 +32,7 @@ class LogsWidgetTests {
 
     @Test
     void renders_static_entries_with_severity_classes() {
-        Document document = render(new LogsWidget(List.of(
+        Document document = render(widget(List.of(
                 new LogEntry(1, CLOCK.instant(), LogEntry.Level.INFO, "Logrem ipsum.. 1"),
                 new LogEntry(2, CLOCK.instant(), LogEntry.Level.WARN, "Logrem ipsum.. 2"),
                 new LogEntry(3, CLOCK.instant(), LogEntry.Level.ERROR, "Logrem ipsum.. 3")
@@ -44,7 +49,7 @@ class LogsWidgetTests {
 
     @Test
     void renders_messages_in_chronological_order() {
-        Document document = render(new LogsWidget(List.of(
+        Document document = render(widget(List.of(
                 new LogEntry(1, CLOCK.instant(), LogEntry.Level.INFO, "Logrem ipsum.. 1"),
                 new LogEntry(2, CLOCK.instant(), LogEntry.Level.INFO, "Logrem ipsum.. 2"),
                 new LogEntry(3, CLOCK.instant(), LogEntry.Level.INFO, "Logrem ipsum.. 3")
@@ -59,7 +64,7 @@ class LogsWidgetTests {
 
     @Test
     void renders_empty_state_when_no_entries() {
-        Document document = render(new LogsWidget(List.of()));
+        Document document = render(widget(List.of()));
 
         assertTrue(document.select(".logs-row").isEmpty());
         assertTrue(document.text().contains("No log entries yet"));
@@ -70,23 +75,24 @@ class LogsWidgetTests {
         LogStreamService service = new LogStreamService(5, CLOCK, new Random(0L));
         service.emitNextEntry();
         service.emitNextEntry();
-        LogsWidget widget = LogsWidget.live(service);
+        LogsWidget widget = new LogsWidget(definition(),
+                DemoDashboards.runtime(DemoTelemetry.registry(
+                        new rsp.app.posts.services.CommentRateStreamService(List.of(1), 1, CLOCK),
+                        service)));
 
         Document document = render(widget);
-        Map<String, Object> metadata = widget.metadataState();
 
         assertEquals(2, document.select(".logs-row").size());
         assertTrue(document.text().contains("Lorem ipsum dolor sit amet, consectetur adipiscing elit. 1"));
         assertTrue(document.text().contains("Lorem ipsum dolor sit amet, consectetur adipiscing elit. 2"));
         assertTrue(document.select(".logs-status-live").text().contains("Live"));
         assertTrue(document.text().contains("2 events"));
-        assertEquals(true, metadata.get("live"));
-        assertEquals(2, metadata.get("entryCount"));
+        assertEquals("application.logs", definition().metadata().get("series"));
     }
 
     @Test
     void each_row_has_timestamp_level_and_message_columns() {
-        Document document = render(new LogsWidget(List.of(
+        Document document = render(widget(List.of(
                 new LogEntry(1, CLOCK.instant(), LogEntry.Level.INFO, "Logrem ipsum.. 1")
         )));
 
@@ -98,7 +104,7 @@ class LogsWidgetTests {
 
     @Test
     void live_widget_includes_client_connection_status_sync() {
-        LogsWidget widget = LogsWidget.live(new LogStreamService(5, CLOCK, new Random(0L)));
+        LogsWidget widget = widget(List.of());
 
         Document document = render(widget);
         String script = document.select("script").html();
@@ -117,5 +123,30 @@ class LogsWidgetTests {
                 _ -> {});
         component.render(treeBuilder);
         return Jsoup.parseBodyFragment(treeBuilder.html());
+    }
+
+    private static LogsDefinition definition() {
+        return new LogsDefinition("logs", "Logs", "Live application log stream",
+                DemoTelemetry.LOG_ENTRIES);
+    }
+
+    private static LogsWidget widget(List<LogEntry> entries) {
+        TelemetrySeries<LogEntry> source = new TelemetrySeries<>() {
+            @Override
+            public List<TelemetrySample<LogEntry>> snapshot() {
+                return entries.stream()
+                        .map(entry -> TelemetrySample.good(entry, entry.timestamp()))
+                        .toList();
+            }
+
+            @Override
+            public Subscription subscribe(Consumer<List<TelemetrySample<LogEntry>>> subscriber) {
+                return Subscription.none();
+            }
+        };
+        DashboardRuntime runtime = DemoDashboards.runtime(MapTelemetryRegistry.builder()
+                .bindSeries(DemoTelemetry.LOG_ENTRIES, source)
+                .build());
+        return new LogsWidget(definition(), runtime);
     }
 }

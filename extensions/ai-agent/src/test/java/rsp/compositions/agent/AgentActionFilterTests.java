@@ -1,7 +1,7 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.PayloadSchema;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.PayloadSchema;
 
 
 import org.junit.jupiter.api.Test;
@@ -14,26 +14,26 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AgentActionFilterTests {
 
-    private static final ContractAction CREATE = new ContractAction("create",
+    private static final BlockAction CREATE = new BlockAction("create",
         new EventKey.VoidKey("test.create"), "Create item");
-    private static final ContractAction EDIT = new ContractAction("edit",
+    private static final BlockAction EDIT = new BlockAction("edit",
         new EventKey.SimpleKey<>("test.edit", String.class), "Edit item",
         new PayloadSchema.StringValue("id"));
-    private static final ContractAction DELETE = new ContractAction("delete",
+    private static final BlockAction DELETE = new BlockAction("delete",
         new EventKey.SimpleKey<>("test.delete", Set.class), "Delete items",
         new PayloadSchema.StringSet("ids"));
-    private static final ContractAction PAGE = new ContractAction("page",
+    private static final BlockAction PAGE = new BlockAction("page",
         new EventKey.SimpleKey<>("test.page", Integer.class), "Navigate to page",
         new PayloadSchema.IntegerValue("page"));
-    private static final ContractAction SELECT_ALL = new ContractAction("select_all",
+    private static final BlockAction SELECT_ALL = new BlockAction("select_all",
         new EventKey.VoidKey("test.selectAll"), "Select all");
 
-    private static final List<ContractAction> ALL_ACTIONS = List.of(CREATE, EDIT, DELETE, PAGE, SELECT_ALL);
+    private static final List<BlockAction> ALL_ACTIONS = List.of(CREATE, EDIT, DELETE, PAGE, SELECT_ALL);
 
     @Test
     void readOnlyFilter_keeps_only_page_and_select_all() {
         ReadOnlyFilter filter = new ReadOnlyFilter();
-        List<ContractAction> filtered = filter.filter(ALL_ACTIONS, new TestLookup());
+        List<BlockAction> filtered = filter.filter(ALL_ACTIONS, new TestLookup());
 
         assertEquals(2, filtered.size());
         assertTrue(filtered.stream().anyMatch(a -> "page".equals(a.action())));
@@ -43,7 +43,7 @@ class AgentActionFilterTests {
     @Test
     void readOnlyFilter_removes_mutating_actions() {
         ReadOnlyFilter filter = new ReadOnlyFilter();
-        List<ContractAction> filtered = filter.filter(ALL_ACTIONS, new TestLookup());
+        List<BlockAction> filtered = filter.filter(ALL_ACTIONS, new TestLookup());
 
         assertFalse(filtered.stream().anyMatch(a -> "create".equals(a.action())));
         assertFalse(filtered.stream().anyMatch(a -> "edit".equals(a.action())));
@@ -53,7 +53,7 @@ class AgentActionFilterTests {
     @Test
     void readOnlyFilter_handles_empty_list() {
         ReadOnlyFilter filter = new ReadOnlyFilter();
-        List<ContractAction> filtered = filter.filter(List.of(), new TestLookup());
+        List<BlockAction> filtered = filter.filter(List.of(), new TestLookup());
 
         assertTrue(filtered.isEmpty());
     }
@@ -61,7 +61,7 @@ class AgentActionFilterTests {
     @Test
     void readOnlyFilter_handles_list_with_no_matching_actions() {
         ReadOnlyFilter filter = new ReadOnlyFilter();
-        List<ContractAction> filtered = filter.filter(List.of(CREATE, DELETE), new TestLookup());
+        List<BlockAction> filtered = filter.filter(List.of(CREATE, DELETE), new TestLookup());
 
         assertTrue(filtered.isEmpty());
     }
@@ -72,7 +72,7 @@ class AgentActionFilterTests {
             .filter(a -> !"delete".equals(a.action()))
             .toList();
 
-        List<ContractAction> filtered = noDeleteFilter.filter(ALL_ACTIONS, new TestLookup());
+        List<BlockAction> filtered = noDeleteFilter.filter(ALL_ACTIONS, new TestLookup());
 
         assertEquals(4, filtered.size());
         assertFalse(filtered.stream().anyMatch(a -> "delete".equals(a.action())));

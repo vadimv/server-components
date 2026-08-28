@@ -3,8 +3,8 @@ package rsp.app.posts.services;
 import org.junit.jupiter.api.Test;
 import rsp.app.posts.components.TestLookup;
 import rsp.component.EventKey;
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockActionPayload;
 import rsp.compositions.agent.GateResult;
 import rsp.compositions.agent.ActionGate;
 
@@ -14,13 +14,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class IntentGateTests {
 
-    private static final ContractAction TEST_ACTION = new ContractAction("test",
+    private static final BlockAction TEST_ACTION = new BlockAction("test",
         new EventKey.VoidKey("test.action"), "Test action");
 
     @Test
     void allowAllGate_always_allows() {
         AllowAllGate gate = new AllowAllGate();
-        GateResult result = gate.evaluate(TEST_ACTION, ContractActionPayload.EMPTY, new TestLookup());
+        GateResult result = gate.evaluate(TEST_ACTION, BlockActionPayload.EMPTY, new TestLookup());
 
         assertInstanceOf(GateResult.Allow.class, result);
         assertEquals(TEST_ACTION, ((GateResult.Allow) result).action());
@@ -33,7 +33,7 @@ class IntentGateTests {
         ActionGate neverReached = (a, p, l) -> { throw new AssertionError("Should not be called"); };
 
         CompositeGate composite = new CompositeGate(List.of(allowGate, blockGate, neverReached));
-        GateResult result = composite.evaluate(TEST_ACTION, ContractActionPayload.EMPTY, new TestLookup());
+        GateResult result = composite.evaluate(TEST_ACTION, BlockActionPayload.EMPTY, new TestLookup());
 
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Denied", ((GateResult.Block) result).reason());
@@ -45,7 +45,7 @@ class IntentGateTests {
         ActionGate confirmGate = (a, p, l) -> new GateResult.Confirm("Sure?", a, p);
 
         CompositeGate composite = new CompositeGate(List.of(allowGate, confirmGate));
-        GateResult result = composite.evaluate(TEST_ACTION, ContractActionPayload.EMPTY, new TestLookup());
+        GateResult result = composite.evaluate(TEST_ACTION, BlockActionPayload.EMPTY, new TestLookup());
 
         assertInstanceOf(GateResult.Confirm.class, result);
     }
@@ -56,7 +56,7 @@ class IntentGateTests {
         ActionGate allow2 = (a, p, l) -> new GateResult.Allow(a, p);
 
         CompositeGate composite = new CompositeGate(List.of(allow1, allow2));
-        GateResult result = composite.evaluate(TEST_ACTION, ContractActionPayload.EMPTY, new TestLookup());
+        GateResult result = composite.evaluate(TEST_ACTION, BlockActionPayload.EMPTY, new TestLookup());
 
         assertInstanceOf(GateResult.Allow.class, result);
     }
@@ -64,7 +64,7 @@ class IntentGateTests {
     @Test
     void compositeGate_empty_rules_allows() {
         CompositeGate composite = new CompositeGate(List.of());
-        GateResult result = composite.evaluate(TEST_ACTION, ContractActionPayload.EMPTY, new TestLookup());
+        GateResult result = composite.evaluate(TEST_ACTION, BlockActionPayload.EMPTY, new TestLookup());
 
         assertInstanceOf(GateResult.Allow.class, result);
     }

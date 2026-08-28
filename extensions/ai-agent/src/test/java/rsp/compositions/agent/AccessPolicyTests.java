@@ -1,9 +1,9 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.BlockActionPayload;
 
 
-import rsp.compositions.contract.ContractAction;
+import rsp.compositions.block.BlockAction;
 
 
 import org.junit.jupiter.api.Test;
@@ -284,10 +284,10 @@ class AccessPolicyTests {
         Authorization auth = new Authorization(readOnly, Attributes.empty());
         PolicyActionFilter filter = new PolicyActionFilter(auth);
 
-        ContractAction pageAction = new ContractAction("page", DUMMY_KEY, "Go to page");
-        ContractAction deleteAction = new ContractAction("delete", DUMMY_KEY, "Delete items");
+        BlockAction pageAction = new BlockAction("page", DUMMY_KEY, "Go to page");
+        BlockAction deleteAction = new BlockAction("delete", DUMMY_KEY, "Delete items");
 
-        List<ContractAction> result = filter.filter(List.of(pageAction, deleteAction), null);
+        List<BlockAction> result = filter.filter(List.of(pageAction, deleteAction), null);
         assertEquals(1, result.size());
         assertEquals("page", result.getFirst().action());
     }
@@ -296,8 +296,8 @@ class AccessPolicyTests {
     void policyActionFilter_allow_all_passes_everything() {
         Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
         PolicyActionFilter filter = new PolicyActionFilter(auth);
-        ContractAction a1 = new ContractAction("page", DUMMY_KEY, "page");
-        ContractAction a2 = new ContractAction("delete", DUMMY_KEY, "delete");
+        BlockAction a1 = new BlockAction("page", DUMMY_KEY, "page");
+        BlockAction a2 = new BlockAction("delete", DUMMY_KEY, "delete");
         assertEquals(2, filter.filter(List.of(a1, a2), null).size());
     }
 
@@ -305,7 +305,7 @@ class AccessPolicyTests {
     void policyActionFilter_deny_all_filters_everything() {
         Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
         PolicyActionFilter filter = new PolicyActionFilter(auth);
-        ContractAction a1 = new ContractAction("page", DUMMY_KEY, "page");
+        BlockAction a1 = new BlockAction("page", DUMMY_KEY, "page");
         assertEquals(0, filter.filter(List.of(a1), null).size());
     }
 
@@ -315,8 +315,8 @@ class AccessPolicyTests {
     void policyGate_allow_maps_to_gateResult_allow() {
         Authorization auth = new Authorization(ExamplePolicies.allowAll(), Attributes.empty());
         PolicyGate gate = new PolicyGate(auth);
-        ContractAction action = new ContractAction("navigate", DUMMY_KEY, "Navigate");
-        GateResult result = gate.evaluate(action, ContractActionPayload.EMPTY, null);
+        BlockAction action = new BlockAction("navigate", DUMMY_KEY, "Navigate");
+        GateResult result = gate.evaluate(action, BlockActionPayload.EMPTY, null);
         assertInstanceOf(GateResult.Allow.class, result);
         assertEquals(action, ((GateResult.Allow) result).action());
     }
@@ -325,8 +325,8 @@ class AccessPolicyTests {
     void policyGate_deny_maps_to_gateResult_block() {
         Authorization auth = new Authorization(ExamplePolicies.denyAll(), Attributes.empty());
         PolicyGate gate = new PolicyGate(auth);
-        ContractAction action = new ContractAction("delete", DUMMY_KEY, "Delete");
-        GateResult result = gate.evaluate(action, ContractActionPayload.EMPTY, null);
+        BlockAction action = new BlockAction("delete", DUMMY_KEY, "Delete");
+        GateResult result = gate.evaluate(action, BlockActionPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Denied by policy", ((GateResult.Block) result).reason());
     }
@@ -340,8 +340,8 @@ class AccessPolicyTests {
             Instant.now().minusSeconds(7200), Instant.now().minusSeconds(3600));
         Authorization agentAuth = auth.delegated(expiredGrant);
         PolicyGate gate = new PolicyGate(agentAuth);
-        ContractAction navAction = new ContractAction("navigate", DUMMY_KEY, "Navigate");
-        GateResult result = gate.evaluate(navAction, ContractActionPayload.EMPTY, null);
+        BlockAction navAction = new BlockAction("navigate", DUMMY_KEY, "Navigate");
+        GateResult result = gate.evaluate(navAction, BlockActionPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, result);
         assertEquals("Grant expired", ((GateResult.Block) result).reason());
     }
@@ -473,13 +473,13 @@ class AccessPolicyTests {
             "g1", Attributes.empty(), Instant.now(), null);
         Authorization agentAuth = auth.delegated(validGrant);
         PolicyGate gate = new PolicyGate(agentAuth);
-        ContractAction deleteAction = new ContractAction("delete", DUMMY_KEY, "Delete");
-        GateResult gateResult = gate.evaluate(deleteAction, ContractActionPayload.EMPTY, null);
+        BlockAction deleteAction = new BlockAction("delete", DUMMY_KEY, "Delete");
+        GateResult gateResult = gate.evaluate(deleteAction, BlockActionPayload.EMPTY, null);
         assertInstanceOf(GateResult.Block.class, gateResult);
 
         // Filter with valid grant: deny all when not authenticated
         PolicyActionFilter filter = new PolicyActionFilter(agentAuth);
-        ContractAction action = new ContractAction("page", DUMMY_KEY, "page");
+        BlockAction action = new BlockAction("page", DUMMY_KEY, "page");
         assertEquals(0, filter.filter(List.of(action), null).size());
     }
 

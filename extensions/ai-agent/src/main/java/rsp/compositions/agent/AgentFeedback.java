@@ -2,9 +2,9 @@ package rsp.compositions.agent;
 
 /**
  * UI sink for runtime status updates. The runtime emits messages
- * and the embedding contract decides how to render them.
+ * and the embedding block decides how to render them.
  * <p>
- * Phase 1A keeps the contract intentionally minimal: callers pass
+ * Phase 1A keeps the block intentionally minimal: callers pass
  * already-formatted strings. Future phases may introduce semantic
  * events (replies vs progress vs blocks) when richer separation
  * across surfaces is required.

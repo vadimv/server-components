@@ -5,14 +5,14 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.agent.*;
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.ContractActionPayload;
-import rsp.compositions.contract.ContractMetadata;
-import rsp.compositions.contract.PayloadParsers;
-import rsp.compositions.contract.PayloadSchema;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.BlockActionPayload;
+import rsp.compositions.block.BlockMetadata;
+import rsp.compositions.block.PayloadParsers;
+import rsp.compositions.block.PayloadSchema;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.EditContractComponent;
-import rsp.compositions.contract.ListContractComponent;
+import rsp.compositions.block.EditBlock;
+import rsp.compositions.block.ListBlock;
 
 import java.util.List;
 import java.util.Map;
@@ -39,19 +39,19 @@ class RegexAgentServiceTests {
     private static final EventKey.SimpleKey<Map<String, Object>> SAVE_KEY =
         new EventKey.SimpleKey<>("test.save", (Class<Map<String, Object>>) (Class<?>) Map.class);
 
-    private static final List<ContractAction> LIST_ACTIONS = List.of(
-        new ContractAction("create", CREATE_KEY, "Create item"),
-        new ContractAction("delete", DELETE_KEY, "Delete items",
+    private static final List<BlockAction> LIST_ACTIONS = List.of(
+        new BlockAction("create", CREATE_KEY, "Create item"),
+        new BlockAction("delete", DELETE_KEY, "Delete items",
             new PayloadSchema.StringSet("IDs")),
-        new ContractAction("edit", EDIT_KEY, "Edit item",
+        new BlockAction("edit", EDIT_KEY, "Edit item",
             new PayloadSchema.StringValue("id")),
-        new ContractAction("page", PAGE_KEY, "Go to page",
+        new BlockAction("page", PAGE_KEY, "Go to page",
             new PayloadSchema.IntegerValue("page number")),
-        new ContractAction("select_all", SELECT_ALL_KEY, "Select all")
+        new BlockAction("select_all", SELECT_ALL_KEY, "Select all")
     );
 
-    private static final List<ContractAction> EDIT_ACTIONS = List.of(
-        new ContractAction("save", SAVE_KEY, "Save entity",
+    private static final List<BlockAction> EDIT_ACTIONS = List.of(
+        new BlockAction("save", SAVE_KEY, "Save entity",
             new PayloadSchema.ObjectValue(List.of()))
     );
 
@@ -69,24 +69,24 @@ class RegexAgentServiceTests {
         Map.of("id", 3, "title", "Post Title 3", "content", "Test")
     );
 
-    private ContractProfile listProfileWithItems(List<Map<String, Object>> items) {
-        ContractMetadata metadata = new ContractMetadata("Posts", "Paginated data list", null,
+    private BlockProfile listProfileWithItems(List<Map<String, Object>> items) {
+        BlockMetadata metadata = new BlockMetadata("Posts", "Paginated data list", null,
             Map.of("page", 1, "pageSize", 10, "sort", "asc", "items", items));
-        return new ContractProfile(metadata, LIST_ACTIONS, MockListContract.class);
+        return new BlockProfile(metadata, LIST_ACTIONS, MockListBlock.class);
     }
 
-    private ContractProfile editProfileWithEntity(Map<String, Object> entity) {
-        ContractMetadata metadata = new ContractMetadata("Posts", "Form for editing an existing entity", null,
+    private BlockProfile editProfileWithEntity(Map<String, Object> entity) {
+        BlockMetadata metadata = new BlockMetadata("Posts", "Form for editing an existing entity", null,
             Map.of("entity", entity));
-        return new ContractProfile(metadata, EDIT_ACTIONS, MockEditContract.class);
+        return new BlockProfile(metadata, EDIT_ACTIONS, MockEditBlock.class);
     }
 
     // Marker classes for isList()/isEdit() checks
-    static abstract class MockListContract extends ListContractComponent<Object> {
-        MockListContract() { super(null); }
+    static abstract class MockListBlock extends ListBlock<Object> {
+        MockListBlock() { super(null); }
     }
-    static abstract class MockEditContract extends EditContractComponent<Object> {
-        MockEditContract() { super(null); }
+    static abstract class MockEditBlock extends EditBlock<Object> {
+        MockEditBlock() { super(null); }
     }
 
     @Nested
@@ -94,7 +94,7 @@ class RegexAgentServiceTests {
 
         @Test
         void deletes_by_exact_title() {
-            ContractProfile profile = listProfileWithItems(TEST_ITEMS);
+            BlockProfile profile = listProfileWithItems(TEST_ITEMS);
             AgentService.AgentResult result = agent.handlePrompt(
                 "delete 'Post Title 1'", profile, emptyTree);
 
@@ -107,7 +107,7 @@ class RegexAgentServiceTests {
 
         @Test
         void deletes_by_title_with_double_quotes() {
-            ContractProfile profile = listProfileWithItems(TEST_ITEMS);
+            BlockProfile profile = listProfileWithItems(TEST_ITEMS);
             AgentService.AgentResult result = agent.handlePrompt(
                 "delete \"Post Title 2\"", profile, emptyTree);
 
@@ -118,7 +118,7 @@ class RegexAgentServiceTests {
 
         @Test
         void deletes_by_title_without_quotes() {
-            ContractProfile profile = listProfileWithItems(TEST_ITEMS);
+            BlockProfile profile = listProfileWithItems(TEST_ITEMS);
             AgentService.AgentResult result = agent.handlePrompt(
                 "delete Post Title 1", profile, emptyTree);
 
@@ -130,7 +130,7 @@ class RegexAgentServiceTests {
 
         @Test
         void returns_text_reply_when_not_found() {
-            ContractProfile profile = listProfileWithItems(TEST_ITEMS);
+            BlockProfile profile = listProfileWithItems(TEST_ITEMS);
             AgentService.AgentResult result = agent.handlePrompt(
                 "delete 'Nonexistent'", profile, emptyTree);
 
@@ -145,7 +145,7 @@ class RegexAgentServiceTests {
 
         @Test
         void searches_with_less_than() {
-            ContractProfile profile = listProfileWithItems(TEST_ITEMS);
+            BlockProfile profile = listProfileWithItems(TEST_ITEMS);
             AgentService.AgentResult result = agent.handlePrompt(
                 "search all posts with id < 2", profile, emptyTree);
 
@@ -157,7 +157,7 @@ class RegexAgentServiceTests {
 
         @Test
         void searches_with_greater_than() {
-            ContractProfile profile = listProfileWithItems(TEST_ITEMS);
+            BlockProfile profile = listProfileWithItems(TEST_ITEMS);
             AgentService.AgentResult result = agent.handlePrompt(
                 "search all posts with id > 1", profile, emptyTree);
 
@@ -168,7 +168,7 @@ class RegexAgentServiceTests {
 
         @Test
         void returns_no_matches_message() {
-            ContractProfile profile = listProfileWithItems(TEST_ITEMS);
+            BlockProfile profile = listProfileWithItems(TEST_ITEMS);
             AgentService.AgentResult result = agent.handlePrompt(
                 "search all posts with id > 100", profile, emptyTree);
 
@@ -191,24 +191,24 @@ class RegexAgentServiceTests {
 
         @Test
         void step1_emits_edit_action() {
-            ContractProfile profile = listProfileWithItems(SINGLE_ITEM);
+            BlockProfile profile = listProfileWithItems(SINGLE_ITEM);
             AgentService.AgentResult result = agent.handlePrompt(
                 "update post 2 adding 'test'", profile, emptyTree);
 
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("edit", ar.action().action());
-            assertEquals(ContractActionPayload.of("2"), ar.payload());
+            assertEquals(BlockActionPayload.of("2"), ar.payload());
         }
 
         @Test
         void step2_emits_save_action_with_modified_content() {
             // Step 1: trigger update
-            ContractProfile listP = listProfileWithItems(SINGLE_ITEM);
+            BlockProfile listP = listProfileWithItems(SINGLE_ITEM);
             agent.handlePrompt("update post 2 adding 'test'", listP, emptyTree);
 
-            // Step 2: agent is called again with the edit contract now active
-            ContractProfile editP = editProfileWithEntity(EDIT_ENTITY);
+            // Step 2: agent is called again with the edit block now active
+            BlockProfile editP = editProfileWithEntity(EDIT_ENTITY);
             AgentService.AgentResult result = agent.handlePrompt(
                 "", editP, emptyTree);  // empty prompt — agent continues from state
 
@@ -232,22 +232,22 @@ class RegexAgentServiceTests {
             StructureNode tree = new StructureNode("Root", null,
                 List.of(
                     new StructureNode("Posts", "Blog posts",
-                        List.of(), List.of(MockListContract.class))
+                        List.of(), List.of(MockListBlock.class))
                 ),
                 List.of());
 
-            ContractProfile profile = listProfileWithItems(List.of());
+            BlockProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "show Posts", profile, tree);
 
             assertInstanceOf(AgentService.AgentResult.NavigateResult.class, result);
-            assertEquals(MockListContract.class,
-                ((AgentService.AgentResult.NavigateResult) result).targetContract());
+            assertEquals(MockListBlock.class,
+                ((AgentService.AgentResult.NavigateResult) result).targetBlock());
         }
 
         @Test
         void returns_text_reply_when_no_match() {
-            ContractProfile profile = listProfileWithItems(List.of());
+            BlockProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "show Unknown", profile, emptyTree);
 
@@ -260,26 +260,26 @@ class RegexAgentServiceTests {
 
         @Test
         void parses_page_command() {
-            ContractProfile profile = listProfileWithItems(List.of());
+            BlockProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "go to page 3", profile, emptyTree);
 
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("page", ar.action().action());
-            assertEquals(ContractActionPayload.of(3), ar.payload());
+            assertEquals(BlockActionPayload.of(3), ar.payload());
         }
 
         @Test
         void parses_short_page_command() {
-            ContractProfile profile = listProfileWithItems(List.of());
+            BlockProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "page 5", profile, emptyTree);
 
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("page", ar.action().action());
-            assertEquals(ContractActionPayload.of(5), ar.payload());
+            assertEquals(BlockActionPayload.of(5), ar.payload());
         }
     }
 
@@ -288,7 +288,7 @@ class RegexAgentServiceTests {
 
         @Test
         void emits_select_all_action() {
-            ContractProfile profile = listProfileWithItems(List.of());
+            BlockProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "select all", profile, emptyTree);
 
@@ -303,20 +303,20 @@ class RegexAgentServiceTests {
 
         @Test
         void returns_edit_action_with_empty_payload() {
-            ContractProfile profile = listProfileWithItems(List.of());
+            BlockProfile profile = listProfileWithItems(List.of());
             AgentService.AgentResult result = agent.handlePrompt(
                 "edit selected", profile, emptyTree);
 
             assertInstanceOf(AgentService.AgentResult.ActionResult.class, result);
             AgentService.AgentResult.ActionResult ar = (AgentService.AgentResult.ActionResult) result;
             assertEquals("edit", ar.action().action());
-            assertEquals(ContractActionPayload.EMPTY, ar.payload());
+            assertEquals(BlockActionPayload.EMPTY, ar.payload());
         }
     }
 
     @Test
     void unrecognized_prompt_returns_text_reply() {
-        ContractProfile profile = listProfileWithItems(List.of());
+        BlockProfile profile = listProfileWithItems(List.of());
         AgentService.AgentResult result = agent.handlePrompt(
             "do something weird", profile, emptyTree);
 

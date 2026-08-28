@@ -11,7 +11,7 @@ are short signposts for people browsing the source tree.
   admin UI.
 - [Core runtime](concepts/core.md): components, state, rendering, events, and
   browser commands.
-- [Compositions](concepts/compositions.md): routing, contracts, layouts, schema,
+- [Compositions](concepts/compositions.md): routing, blocks, layouts, schema,
   authorization, and agent-aware applications.
 
 ## Concepts
@@ -19,6 +19,7 @@ are short signposts for people browsing the source tree.
 - [Authorization](concepts/authorization.md)
 - [Schema-driven UI](concepts/schema.md)
 - [AI agent integration](concepts/agent-integration.md)
+- [Telemetry dashboards](concepts/telemetry-dashboards.md)
 
 ## Guides
 
@@ -30,4 +31,3 @@ are short signposts for people browsing the source tree.
 - [Module map](reference/module-map.md)
 - [HTTP server](reference/http-server.md)
 - [API and Javadocs](reference/api.md)
-

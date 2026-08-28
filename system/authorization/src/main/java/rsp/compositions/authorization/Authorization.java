@@ -11,8 +11,8 @@ import java.util.Set;
  * <p>
  * Use {@link #delegated(DelegationGrant)} to derive a scoped authorization
  * for a deputy (agent, scheduler, service) acting under a delegation grant.
- * Use {@link #scoped(Set)} for contract-issued entitlements where
- * the contract itself is the authority.
+ * Use {@link #scoped(Set)} for block-issued entitlements where
+ * the block itself is the authority.
  */
 public final class Authorization {
     private final AccessPolicy policy;
@@ -47,9 +47,9 @@ public final class Authorization {
     /**
      * Derive a scoped authorization with specific action entitlements.
      * <p>
-     * Used when a contract (trusted code) spawns a background task
+     * Used when a block (trusted code) spawns a background task
      * and wants to limit what actions the task can perform.
-     * No user approval needed — the contract is the authority.
+     * No user approval needed — the block is the authority.
      */
     public Authorization scoped(Set<String> entitlements) {
         Objects.requireNonNull(entitlements);

@@ -2,7 +2,7 @@ package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
 import rsp.component.IntentDispatcher;
-import rsp.compositions.contract.ListView;
+import rsp.compositions.block.ListView;
 import rsp.dsl.Definition;
 
 import java.time.LocalDate;
@@ -18,7 +18,7 @@ import static rsp.dsl.Html.*;
  * Supports any number of columns and types.
  * Includes pagination and sorting interactivity.
  * <p>
- * Create/Edit actions trigger events that open overlay contracts via SHOW events.
+ * Create/Edit actions trigger events that open overlay blocks via SHOW events.
  */
 public class DefaultListView implements ComponentView<ListView.ListViewState, ListView.ListIntent> {
 
@@ -163,7 +163,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
 
     /**
      * Render the Create button.
-     * Emits abstract ACTION("create") event - contract translates to SHOW via actionBindings().
+     * Emits abstract ACTION("create") event - block translates to SHOW via actionBindings().
      */
     private Definition renderCreateButton(IntentDispatcher<ListView.ListIntent> intents) {
         return button(
@@ -176,7 +176,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
     /**
      * Render Edit button/link for a row.
      * <p>
-     * Behavior depends on edit contract's route configuration:
+     * Behavior depends on edit block's route configuration:
      * <ul>
      *   <li>Primary-like (no parent route) + has route → navigate via link (full page edit)</li>
      *   <li>Overlay-like (has parent route) or no route → event (SHOW-based overlay)</li>

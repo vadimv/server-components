@@ -3,8 +3,7 @@ package rsp.compositions.composition;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
-import rsp.compositions.contract.BoundContractComponent;
-import rsp.compositions.contract.ContractNodeComponent;
+import rsp.compositions.block.Block;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
 
@@ -16,71 +15,69 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** Tests the direct contract-component bindings held by a composition. */
+/** Tests the direct block-component bindings held by a composition. */
 class CompositionTests {
 
     @Test
-    void direct_bindings_are_resolved_as_fresh_contract_components() {
-        Group group = new Group().bind(ListContract.class, ListContract::new);
+    void direct_bindings_are_resolved_as_fresh_block_components() {
+        Group group = new Group().bind(ListBlock.class, ListBlock::new);
 
-        assertTrue(group.hasBinding(ListContract.class));
-        assertTrue(group.resolveComponent(ListContract.class) instanceof ListContract);
-        assertTrue(group.resolveComponent(ListContract.class) instanceof ListContract);
-        BoundContractComponent bound = group.resolveBoundComponent(ListContract.class);
-        assertTrue(bound.component() instanceof ListContract);
-        assertSame(bound.component(), bound.contract());
+        assertTrue(group.hasBinding(ListBlock.class));
+        assertTrue(group.resolveBlock(ListBlock.class) instanceof ListBlock);
+        assertTrue(group.resolveBlock(ListBlock.class) instanceof ListBlock);
+        assertTrue(group.resolveBlock(ListBlock.class) instanceof ListBlock);
     }
 
     @Test
-    void composition_keeps_routes_and_all_bound_contract_classes() {
+    void composition_keeps_routes_and_all_bound_block_classes() {
         Router router = new Router()
-                .route("/items", ListContract.class)
-                .route("/items/:id", EditContract.class);
+                .route("/items", ListBlock.class)
+                .route("/items/:id", EditBlock.class);
         Group group = new Group()
-                .bind(ListContract.class, ListContract::new)
-                .bind(CreateContract.class, CreateContract::new)
-                .bind(EditContract.class, EditContract::new);
+                .bind(ListBlock.class, ListBlock::new)
+                .bind(CreateBlock.class, CreateBlock::new)
+                .bind(EditBlock.class, EditBlock::new);
 
         Composition composition = new Composition(router, new DefaultLayout(), group);
 
         assertSame(router, composition.router());
-        assertEquals(3, composition.contracts().contractClasses().size());
-        assertTrue(composition.contracts().hasBinding(ListContract.class));
-        assertFalse(composition.contracts().hasBinding(UnknownContract.class));
+        assertEquals(3, composition.blocks().blockClasses().size());
+        assertTrue(composition.blocks().hasBinding(ListBlock.class));
+        assertFalse(composition.blocks().hasBinding(UnknownBlock.class));
         assertThrows(UnsupportedOperationException.class,
-                () -> composition.contracts().contractClasses().add(null));
+                () -> composition.blocks().blockClasses().add(null));
     }
 
     @Test
     void nested_groups_expose_structure_paths_and_placement_ownership() {
         Group posts = new Group("Posts")
                 .description("Blog posts")
-                .bind(ListContract.class, ListContract::new);
+                .bind(ListBlock.class, ListBlock::new);
         Group comments = new Group("Comments")
                 .description("User comments")
-                .bind(CreateContract.class, CreateContract::new);
+                .bind(CreateBlock.class, CreateBlock::new);
         Group root = new Group("Admin").add(posts).add(comments);
 
         StructureNode tree = root.structureTree();
 
-        assertEquals(List.of("Admin", "Posts"), root.groupPathFor(ListContract.class).orElseThrow());
-        assertEquals(List.of("Admin", "Comments"), root.groupPathFor(CreateContract.class).orElseThrow());
-        assertSame(posts, root.placementGroupFor(ListContract.class).orElseThrow());
-        assertEquals("Posts", tree.labelFor(ListContract.class));
+        assertEquals(List.of("Admin", "Posts"), root.groupPathFor(ListBlock.class).orElseThrow());
+        assertEquals(List.of("Admin", "Comments"), root.groupPathFor(CreateBlock.class).orElseThrow());
+        assertSame(posts, root.placementGroupFor(ListBlock.class).orElseThrow());
+        assertEquals("Posts", tree.labelFor(ListBlock.class));
         assertTrue(tree.agentDescription().contains("Blog posts"));
         assertTrue(tree.agentDescription().contains("User comments"));
     }
 
     @Test
     void merged_groups_keep_bindings_from_each_group() {
-        Group main = new Group("Main").bind(ListContract.class, ListContract::new);
-        Group system = new Group().bind(CreateContract.class, CreateContract::new);
+        Group main = new Group("Main").bind(ListBlock.class, ListBlock::new);
+        Group system = new Group().bind(CreateBlock.class, CreateBlock::new);
 
         Composition composition = new Composition(new Router(), new DefaultLayout(), main, system);
 
-        assertEquals(2, composition.contracts().contractClasses().size());
-        assertTrue(composition.contracts().hasBinding(ListContract.class));
-        assertTrue(composition.contracts().hasBinding(CreateContract.class));
+        assertEquals(2, composition.blocks().blockClasses().size());
+        assertTrue(composition.blocks().hasBinding(ListBlock.class));
+        assertTrue(composition.blocks().hasBinding(CreateBlock.class));
     }
 
     @Test
@@ -91,7 +88,7 @@ class CompositionTests {
         assertThrows(IllegalArgumentException.class, () -> new Composition(new Router(), new DefaultLayout()));
     }
 
-    static class TestContract extends ContractNodeComponent<String, Object> {
+    static class TestBlock extends Block<String, Object> {
         @Override
         public ComponentStateSupplier<String> initStateSupplier() {
             return (_, _) -> "ready";
@@ -108,8 +105,8 @@ class CompositionTests {
         }
     }
 
-    static class ListContract extends TestContract {}
-    static class CreateContract extends TestContract {}
-    static class EditContract extends TestContract {}
-    static class UnknownContract extends TestContract {}
+    static class ListBlock extends TestBlock {}
+    static class CreateBlock extends TestBlock {}
+    static class EditBlock extends TestBlock {}
+    static class UnknownBlock extends TestBlock {}
 }

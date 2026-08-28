@@ -14,25 +14,27 @@ import static org.junit.jupiter.api.Assertions.*;
 class DashboardViewTests {
 
     @Test
-    void contract_initializes_its_local_dashboard_state() {
-        DashboardModel model = new DashboardModel(DashboardDsl.dashboard()
-                .place(new TestDashboardWidget("only"), DashboardDsl.at(1, 1).span(6, 3))
-                .build());
-        DashboardContract contract = new DashboardContract(model);
-        DashboardView.DashboardState state = contract.initStateSupplier().getState(null, new ComponentContext());
+    void block_initializes_its_local_dashboard_state() {
+        DashboardDefinition definition = DashboardDsl.dashboard("dashboard", "Dashboard")
+                .place(new TestWidgetDefinition("only"), DashboardDsl.at(1, 1).span(6, 3))
+                .build();
+        DashboardBlock block = new DashboardBlock(definition, TestDashboardRuntime.customWidgets());
+        DashboardView.DashboardState state = block.initStateSupplier().getState(null, new ComponentContext());
 
-        assertEquals("Dashboard", contract.title());
-        assertSame(model, state.model());
-        assertFalse(state.model().layout().placements().isEmpty());
+        assertEquals("Dashboard", block.title());
+        assertSame(definition, state.definition());
+        assertFalse(state.definition().widgets().isEmpty());
     }
 
     @Test
     void renders_grid_with_one_graph_widget() {
-        DashboardModel model = new DashboardModel(DashboardDsl.dashboard()
-                .place(new TestDashboardWidget("single"), DashboardDsl.at(1, 1).span(6, 3))
-                .build());
+        DashboardDefinition definition = DashboardDsl.dashboard("dashboard", "Dashboard")
+                .place(new TestWidgetDefinition("single"), DashboardDsl.at(1, 1).span(6, 3))
+                .build();
 
-        Document document = render(new DashboardContract(model), new ComponentContext());
+        Document document = render(
+                new DashboardBlock(definition, TestDashboardRuntime.customWidgets()),
+                new ComponentContext());
 
         assertEquals(1, document.select(".dashboard-grid").size());
         assertEquals(1, document.select(".dashboard-grid-item").size());

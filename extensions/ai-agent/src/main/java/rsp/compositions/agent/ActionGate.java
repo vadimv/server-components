@@ -1,16 +1,16 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.BlockActionPayload;
 
 
-import rsp.compositions.contract.ContractAction;
+import rsp.compositions.block.BlockAction;
 
 import rsp.component.Lookup;
 
 /**
  * Rule engine interface between agent actions and event dispatch.
  * <p>
- * The agent never publishes events directly. It selects an {@link ContractAction},
+ * The agent never publishes events directly. It selects an {@link BlockAction},
  * and the gate decides whether to allow, block, or request confirmation.
  * <p>
  * Implementations can check roles, enforce policies, or require confirmation
@@ -26,5 +26,5 @@ public interface ActionGate {
      * @param lookup  the current context (for role checks, etc.)
      * @return the gate decision
      */
-    GateResult evaluate(ContractAction action, ContractActionPayload payload, Lookup lookup);
+    GateResult evaluate(BlockAction action, BlockActionPayload payload, Lookup lookup);
 }

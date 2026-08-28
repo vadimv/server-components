@@ -2,8 +2,8 @@ package rsp.compositions.shell;
 
 import rsp.component.ComponentView;
 import rsp.component.IntentDispatcher;
-import rsp.compositions.contract.NavigationEntry;
-import rsp.compositions.contract.NavigationNode;
+import rsp.compositions.block.NavigationEntry;
+import rsp.compositions.block.NavigationNode;
 import rsp.dsl.Definition;
 
 import java.util.List;
@@ -14,25 +14,25 @@ import static rsp.dsl.Html.*;
 /**
  * ExplorerView - Renders the Explorer navigation menu as a tree.
  * <p>
- * Renders the navigation tree and active category supplied by its contract,
+ * Renders the navigation tree and active category supplied by its block,
  * with SPA-style navigation on routable leaves.
  * <p>
- * Bind the contract in a composition group:
+ * Bind the block in a composition group:
  * <pre>{@code
- * group.bind(ExplorerContract.class, () -> new ExplorerContract(structure))
+ * group.bind(ExplorerBlock.class, () -> new ExplorerBlock(structure))
  * }</pre>
  */
-public class ExplorerView implements ComponentView<ExplorerView.ExplorerViewState, ExplorerView.OpenContract> {
+public class ExplorerView implements ComponentView<ExplorerView.ExplorerViewState, ExplorerView.OpenBlock> {
 
     public record ExplorerViewState(
             NavigationNode tree,
             String activeCategoryKey
     ) {}
 
-    public record OpenContract(NavigationEntry entry) {}
+    public record OpenBlock(NavigationEntry entry) {}
 
     @Override
-    public rsp.component.View<ExplorerViewState> resolve(IntentDispatcher<OpenContract> intents) {
+    public rsp.component.View<ExplorerViewState> resolve(IntentDispatcher<OpenBlock> intents) {
         return state -> {
             NavigationNode root = state.tree();
             List<NavigationNode> topLevel = root == null
@@ -51,7 +51,7 @@ public class ExplorerView implements ComponentView<ExplorerView.ExplorerViewStat
 
     private Definition renderNode(NavigationNode node,
                                   String activeCategoryKey,
-                                  IntentDispatcher<OpenContract> intents) {
+                                  IntentDispatcher<OpenBlock> intents) {
         NavigationEntry entry = node.entry();
         boolean isActive = entry != null && Objects.equals(entry.categoryKey(), activeCategoryKey);
         boolean hasChildren = !node.children().isEmpty();
@@ -63,7 +63,7 @@ public class ExplorerView implements ComponentView<ExplorerView.ExplorerViewStat
         Definition labelPart = entry != null
                 ? a(
                         attr("href", entry.route()),
-                        on("click", true, ctx -> intents.dispatch(new OpenContract(entry))),
+                        on("click", true, ctx -> intents.dispatch(new OpenBlock(entry))),
                         text(node.label())
                   )
                 : div(attr("class", "explorer-group-label"), text(node.label()));

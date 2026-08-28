@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  * {@code tool_use} content blocks instead of free-text JSON. This eliminates
  * parsing fragility (prose-prefixed JSON, markdown fences, schema mismatches).
  *
- * <p>Shared logic (tool building, action lookup, contract resolution) is
+ * <p>Shared logic (tool building, action lookup, block resolution) is
  * delegated to {@link AgentServiceUtils}.
  */
 public final class ClaudeAgentService extends AgentService {
@@ -60,7 +60,7 @@ public final class ClaudeAgentService extends AgentService {
      * subsequent iterations.
      */
     @Override
-    public AgentResult handlePrompt(String prompt, ContractProfile profile, StructureNode structureTree) {
+    public AgentResult handlePrompt(String prompt, BlockProfile profile, StructureNode structureTree) {
         return doHandlePrompt(prompt,
             AgentServiceUtils.buildToolDefinitions(profile, structureTree),
             AgentServiceUtils.buildExecutionPrompt(profile, structureTree),
@@ -68,13 +68,13 @@ public final class ClaudeAgentService extends AgentService {
     }
 
     /**
-     * Streaming variant of {@link #handlePrompt(String, ContractProfile, StructureNode)}.
+     * Streaming variant of {@link #handlePrompt(String, BlockProfile, StructureNode)}.
      * Same full tool set; the {@code onPartialContent} consumer receives
      * accumulated text for "Thinking…" progress feedback.
      */
     @Override
     public AgentResult handlePrompt(String prompt,
-                                    ContractProfile profile,
+                                    BlockProfile profile,
                                     StructureNode structureTree,
                                     Consumer<String> onPartialContent) {
         return doHandlePrompt(prompt,
@@ -85,7 +85,7 @@ public final class ClaudeAgentService extends AgentService {
 
     private AgentResult doHandlePrompt(String prompt, List<ToolDefinition> tools,
                                        String systemPrompt,
-                                       ContractProfile profile, StructureNode structureTree,
+                                       BlockProfile profile, StructureNode structureTree,
                                        Consumer<String> onPartialContent) {
         try {
             Optional<AgentResult> parsed = streamRequest(prompt, tools, systemPrompt,
@@ -108,7 +108,7 @@ public final class ClaudeAgentService extends AgentService {
      */
     private Optional<AgentResult> streamRequest(String prompt, List<ToolDefinition> tools,
                                                  String systemPrompt,
-                                                 ContractProfile profile, StructureNode structureTree,
+                                                 BlockProfile profile, StructureNode structureTree,
                                                  Consumer<String> onPartialContent)
             throws IOException, InterruptedException {
         String requestBody = buildStreamingRequest(prompt, systemPrompt, tools);
@@ -227,7 +227,7 @@ public final class ClaudeAgentService extends AgentService {
      * Parses accumulated tool input JSON and delegates to the shared converter.
      */
     private Optional<AgentResult> toolUseToAgentResult(String toolName, String inputJson,
-                                                        ContractProfile profile,
+                                                        BlockProfile profile,
                                                         StructureNode structureTree) {
         try {
             JsonDataType parsed = JsonUtils.parse(inputJson.isBlank() ? "{}" : inputJson);

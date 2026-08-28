@@ -1,6 +1,6 @@
 package rsp.compositions.composition;
 
-import rsp.compositions.contract.Contract;
+import rsp.compositions.block.Block;
 
 import java.util.List;
 import java.util.Objects;
@@ -8,36 +8,36 @@ import java.util.Objects;
 /**
  * Lightweight metadata tree node extracted from {@link Group}.
  * <p>
- * Contains only labels and contract classes — no factories or views.
- * Used by navigation components (ExplorerContract), AI agents (PromptContract),
+ * Contains only labels and block classes — no factories or views.
+ * Used by navigation components (ExplorerBlock), AI agents (PromptBlock),
  * and other consumers that need the application's structural metadata.
  *
  * @param label       The display label for this node (nullable for unlabeled root groups)
  * @param description A natural-language description of this node's purpose (nullable)
  * @param children    Child structure nodes
- * @param contracts   Contract classes directly bound at this level
+ * @param blocks      Block classes directly bound at this level
  */
 public record StructureNode(String label,
                             String description,
                             List<StructureNode> children,
-                            List<Class<? extends Contract>> contracts) {
+                            List<Class<? extends Block<?, ?>>> blocks) {
     public StructureNode {
         Objects.requireNonNull(children, "children");
-        Objects.requireNonNull(contracts, "contracts");
+        Objects.requireNonNull(blocks, "blocks");
     }
 
     /**
-     * Check if a contract class exists anywhere in this subtree.
+     * Check if a block class exists anywhere in this subtree.
      *
-     * @param contractClass The contract class to search for
+     * @param blockClass The block class to search for
      * @return true if found at this level or in any descendant
      */
-    public boolean contains(Class<? extends Contract> contractClass) {
-        if (contracts.contains(contractClass)) {
+    public boolean contains(Class<? extends Block<?, ?>> blockClass) {
+        if (blocks.contains(blockClass)) {
             return true;
         }
         for (StructureNode child : children) {
-            if (child.contains(contractClass)) {
+            if (child.contains(blockClass)) {
                 return true;
             }
         }
@@ -45,18 +45,18 @@ public record StructureNode(String label,
     }
 
     /**
-     * Find the label of the node that contains the given contract class.
+     * Find the label of the node that contains the given block class.
      * Searches this node first, then children depth-first.
      *
-     * @param contractClass The contract class to search for
+     * @param blockClass The block class to search for
      * @return the label of the containing node, or null if not found
      */
-    public String labelFor(Class<? extends Contract> contractClass) {
-        if (contracts.contains(contractClass)) {
+    public String labelFor(Class<? extends Block<?, ?>> blockClass) {
+        if (blocks.contains(blockClass)) {
             return label;
         }
         for (StructureNode child : children) {
-            String found = child.labelFor(contractClass);
+            String found = child.labelFor(blockClass);
             if (found != null) {
                 return found;
             }
@@ -83,11 +83,11 @@ public record StructureNode(String label,
             if (description != null) {
                 sb.append(" — ").append(description);
             }
-            if (!contracts.isEmpty()) {
+            if (!blocks.isEmpty()) {
                 sb.append(" [");
-                for (int i = 0; i < contracts.size(); i++) {
+                for (int i = 0; i < blocks.size(); i++) {
                     if (i > 0) sb.append(", ");
-                    sb.append(contracts.get(i).getSimpleName());
+                    sb.append(blocks.get(i).getSimpleName());
                 }
                 sb.append("]");
             }

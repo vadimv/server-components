@@ -1,14 +1,15 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.contract.ContractActionPayload;
+import rsp.compositions.block.Block;
+
+import rsp.compositions.block.BlockActionPayload;
 
 
-import rsp.compositions.contract.ContractAction;
-import rsp.compositions.contract.PayloadSchema;
+import rsp.compositions.block.BlockAction;
+import rsp.compositions.block.PayloadSchema;
 
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
-import rsp.compositions.contract.Contract;
 import rsp.util.json.JsonDataType;
 
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ import java.util.Optional;
  * Shared utilities for {@link AgentService} implementations.
  * <p>
  * Extracts common logic: tool definition building, JSON-to-AgentResult conversion,
- * action lookup, contract resolution, and state description.
+ * action lookup, block resolution, and state description.
  */
 public final class AgentServiceUtils {
 
@@ -30,13 +31,13 @@ public final class AgentServiceUtils {
     // ===== Tool Definitions =====
 
     /**
-     * Builds the full set of tool definitions from a contract profile and structure tree.
+     * Builds the full set of tool definitions from a block profile and structure tree.
      * Includes action tools, navigate, plan, and text_reply.
      */
-    public static List<ToolDefinition> buildToolDefinitions(ContractProfile profile,
+    public static List<ToolDefinition> buildToolDefinitions(BlockProfile profile,
                                                              StructureNode structureTree) {
         List<ToolDefinition> tools = new ArrayList<>();
-        for (ContractAction action : profile.actions()) {
+        for (BlockAction action : profile.actions()) {
             tools.add(ToolDefinition.fromAction(action));
         }
         if (structureTree != null) {
@@ -54,7 +55,7 @@ public final class AgentServiceUtils {
      * Shared by services that use prompt-based (non-tool-use) JSON responses.
      */
     public static Optional<AgentResult> toAgentResult(JsonDataType.Object output,
-                                                       ContractProfile profile,
+                                                       BlockProfile profile,
                                                        StructureNode structureTree) {
         String type = getString(output.value("type")).orElse("").toLowerCase(Locale.ROOT);
         String action = getString(output.value("action")).orElse("");
@@ -83,9 +84,9 @@ public final class AgentServiceUtils {
                 message.isBlank() ? "I don't understand." : message));
         }
 
-        // Infer navigate if no action but targetContract is set
-        String targetContract = getString(output.value("targetContract")).orElse("");
-        if (action.isBlank() && !targetContract.isBlank()) {
+        // Infer navigate if no action but targetBlock is set
+        String targetBlock = getString(output.value("targetBlock")).orElse("");
+        if (action.isBlank() && !targetBlock.isBlank()) {
             action = "navigate";
         }
 
@@ -102,23 +103,23 @@ public final class AgentServiceUtils {
         if (rawJson instanceof JsonDataType.Array arr && arr.size() == 1) {
             rawJson = arr.get(0);
         }
-        ContractActionPayload payload = ContractActionPayload.ofNullable(rawJson);
+        BlockActionPayload payload = BlockActionPayload.ofNullable(rawJson);
 
         if ("navigate".equals(action)) {
-            if (targetContract.isBlank()
+            if (targetBlock.isBlank()
                     && payload.value() instanceof JsonDataType.String s && !s.value().isBlank()) {
-                targetContract = s.value();
+                targetBlock = s.value();
             }
-            Class<? extends Contract> target = resolveTargetContract(targetContract, structureTree);
+            Class<? extends Block<?, ?>> target = resolveTargetBlock(targetBlock, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
-                    "I couldn't resolve navigation target: " + targetContract));
+                    "I couldn't resolve navigation target: " + targetBlock));
             }
             return Optional.of(new AgentResult.NavigateResult(target));
         }
 
-        // Look up the matching ContractAction from the contract's declared actions
-        ContractAction matchedAction = findAction(action, profile);
+        // Look up the matching BlockAction from the block's declared actions
+        BlockAction matchedAction = findAction(action, profile);
         if (matchedAction == null) {
             return Optional.of(new AgentResult.TextReply("Action not declared: " + action));
         }
@@ -130,7 +131,7 @@ public final class AgentServiceUtils {
     /**
      * Checks whether the action name is allowed in the given profile.
      */
-    public static boolean isAllowedAction(String action, ContractProfile profile) {
+    public static boolean isAllowedAction(String action, BlockProfile profile) {
         if ("navigate".equals(action)) {
             return true;
         }
@@ -140,8 +141,8 @@ public final class AgentServiceUtils {
     /**
      * Finds an action by name in the profile's declared actions.
      */
-    public static ContractAction findAction(String actionName, ContractProfile profile) {
-        for (ContractAction candidate : profile.actions()) {
+    public static BlockAction findAction(String actionName, BlockProfile profile) {
+        for (BlockAction candidate : profile.actions()) {
             if (candidate.action().equals(actionName)) {
                 return candidate;
             }
@@ -149,41 +150,41 @@ public final class AgentServiceUtils {
         return null;
     }
 
-    // ===== Contract Resolution =====
+    // ===== Block Resolution =====
 
     /**
-     * Resolves a contract class from a target name string by searching the structure tree.
+     * Resolves a block class from a target name string by searching the structure tree.
      */
-    public static Class<? extends Contract> resolveTargetContract(String targetName,
+    public static Class<? extends Block<?, ?>> resolveTargetBlock(String targetName,
                                                                        StructureNode node) {
         if (targetName == null || targetName.isBlank() || node == null) {
             return null;
         }
-        return findContractByName(targetName.trim(), node);
+        return findBlockByName(targetName.trim(), node);
     }
 
-    private static Class<? extends Contract> findContractByName(String name, StructureNode node) {
+    private static Class<? extends Block<?, ?>> findBlockByName(String name, StructureNode node) {
         // Exact match on class name
-        for (Class<? extends Contract> contract : node.contracts()) {
-            if (contract.getSimpleName().equalsIgnoreCase(name)
-                || contract.getName().equalsIgnoreCase(name)) {
-                return contract;
+        for (Class<? extends Block<?, ?>> block : node.blocks()) {
+            if (block.getSimpleName().equalsIgnoreCase(name)
+                || block.getName().equalsIgnoreCase(name)) {
+                return block;
             }
         }
         // Fuzzy match: class name contains the search term
-        for (Class<? extends Contract> contract : node.contracts()) {
-            if (contract.getSimpleName().toLowerCase(Locale.ROOT)
+        for (Class<? extends Block<?, ?>> block : node.blocks()) {
+            if (block.getSimpleName().toLowerCase(Locale.ROOT)
                     .contains(name.toLowerCase(Locale.ROOT))) {
-                return contract;
+                return block;
             }
         }
         // Match by node label
         if (node.label() != null && node.label().equalsIgnoreCase(name)
-                && !node.contracts().isEmpty()) {
-            return node.contracts().get(0);
+                && !node.blocks().isEmpty()) {
+            return node.blocks().get(0);
         }
         for (StructureNode child : node.children()) {
-            Class<? extends Contract> found = findContractByName(name, child);
+            Class<? extends Block<?, ?>> found = findBlockByName(name, child);
             if (found != null) {
                 return found;
             }
@@ -194,11 +195,11 @@ public final class AgentServiceUtils {
     // ===== State Description =====
 
     /**
-     * Describes the current contract state for inclusion in system prompts.
+     * Describes the current block state for inclusion in system prompts.
      * Returns an empty string if no state is available.
      */
     @SuppressWarnings("unchecked")
-    public static String describeState(ContractProfile profile) {
+    public static String describeState(BlockProfile profile) {
         if (profile.metadata() == null) return "";
 
         StringBuilder sb = new StringBuilder();
@@ -274,8 +275,8 @@ public final class AgentServiceUtils {
      * Builds a system prompt for the classification phase.
      * The model sees only plan and text_reply tools and must route accordingly.
      */
-    public static String buildClassificationPrompt(ContractProfile profile, StructureNode structureTree) {
-        String contractDesc = profile.metadata() != null
+    public static String buildClassificationPrompt(BlockProfile profile, StructureNode structureTree) {
+        String blockDesc = profile.metadata() != null
             ? profile.metadata().title() + " — " + profile.metadata().description()
             : "";
 
@@ -296,7 +297,7 @@ public final class AgentServiceUtils {
 
             Current page: %s
             App pages: %s
-            %s""".formatted(contractDesc, structure, stateDesc);
+            %s""".formatted(blockDesc, structure, stateDesc);
     }
 
     /**
@@ -309,8 +310,8 @@ public final class AgentServiceUtils {
      * popped from the queue also land here, so the same prompt must work
      * for both initial requests and per-step execution.
      */
-    public static String buildExecutionPrompt(ContractProfile profile, StructureNode structureTree) {
-        String contractDesc = profile.metadata() != null
+    public static String buildExecutionPrompt(BlockProfile profile, StructureNode structureTree) {
+        String blockDesc = profile.metadata() != null
             ? profile.metadata().title() + " — " + profile.metadata().description()
             : "";
 
@@ -368,7 +369,7 @@ public final class AgentServiceUtils {
                 interpret.
 
             RULE 2 — SINGLE-ACTION SHORTCUTS (use only when RULE 1 does NOT apply):
-              * "show posts", "go to comments" -> navigate tool with the exact contract class name from App pages
+              * "show posts", "go to comments" -> navigate tool with the exact block class name from App pages
               * "page 3", "goto page 2", "go to page N" -> page tool with the number as payload
               * "select all", "select all items", "select everything" -> select_all tool (no payload) — NEVER use page for these
               * "delete selected", "delete all selected" -> delete_selected tool (no payload)
@@ -385,7 +386,7 @@ public final class AgentServiceUtils {
 
             Current page: %s
             App pages: %s
-            %s""".formatted(contractDesc, structure, stateDesc);
+            %s""".formatted(blockDesc, structure, stateDesc);
     }
 
     // ===== Tool Use → AgentResult =====
@@ -396,7 +397,7 @@ public final class AgentServiceUtils {
      */
     public static Optional<AgentResult> toolUseToAgentResult(String toolName,
                                                                JsonDataType.Object input,
-                                                               ContractProfile profile,
+                                                               BlockProfile profile,
                                                                StructureNode structureTree) {
         if ("plan".equals(toolName)) {
             JsonDataType stepsNode = input.value("steps");
@@ -421,17 +422,17 @@ public final class AgentServiceUtils {
         }
 
         if ("navigate".equals(toolName)) {
-            String targetContract = getString(input.value("targetContract")).orElse("");
-            Class<? extends Contract> target = resolveTargetContract(targetContract, structureTree);
+            String targetBlock = getString(input.value("targetBlock")).orElse("");
+            Class<? extends Block<?, ?>> target = resolveTargetBlock(targetBlock, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
-                    "I couldn't resolve navigation target: " + targetContract));
+                    "I couldn't resolve navigation target: " + targetBlock));
             }
             return Optional.of(new AgentResult.NavigateResult(target));
         }
 
         // Action tools — look up by name
-        ContractAction matchedAction = findAction(toolName, profile);
+        BlockAction matchedAction = findAction(toolName, profile);
         if (matchedAction == null) {
             return Optional.of(new AgentResult.TextReply("Action not declared: " + toolName));
         }
@@ -443,7 +444,7 @@ public final class AgentServiceUtils {
         JsonDataType rawPayload = (matchedAction.schema() instanceof PayloadSchema.ObjectValue)
                 ? input
                 : input.value("payload");
-        ContractActionPayload payload = ContractActionPayload.ofNullable(rawPayload);
+        BlockActionPayload payload = BlockActionPayload.ofNullable(rawPayload);
         return Optional.of(new AgentResult.ActionResult(matchedAction, payload));
     }
 

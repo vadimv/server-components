@@ -14,7 +14,7 @@ import java.util.Properties;
  *
  * <p>Config is an immutable {@code String → String} map loaded from Java {@link Properties}
  * and merged by priority. Properties are auto-mapped to the Context namespace
- * so they can be consumed by contracts via {@code Lookup} typed accessors.</p>
+ * so they can be consumed by blocks via {@code Lookup} typed accessors.</p>
  *
  * <p><strong>Merge rule:</strong> "last writer wins" — chain {@code .with()} from most general
  * to most specific. Later values override earlier ones for the same key.</p>
@@ -28,7 +28,7 @@ import java.util.Properties;
  *
  * <p><strong>Context integration:</strong> Use {@link #applyTo(ComponentContext)} to inject
  * all properties into a {@link ComponentContext} as {@code StringKey<String>} entries.
- * Contracts then read them via {@code Lookup} typed accessors
+ * Blocks then read them via {@code Lookup} typed accessors
  * (e.g., {@code lookup.getInt("list.defaultPageSize", 10)}).</p>
  */
 public final class Config {
