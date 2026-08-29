@@ -24,15 +24,17 @@ HTTP request
   -> ComponentView<S, I>
 ```
 
-`RoutingComponent` maps a path to a `Block<?, ?>` class. `SceneComponent` keeps
-the current descriptors, placement, return target, and effective URL. It does
-not create a separate block runtime or hold a live block instance.
+`RoutingComponent` maps a path to a block key, then resolves that key through
+the composition's groups to a `BlockTarget` containing both the binding key and
+its `Block<?, ?>` class. `SceneComponent` keeps the current descriptors,
+placement, return target, and effective URL. It does not create a separate
+block runtime or hold a live block instance.
 `DirectBlockHost` supplies descriptor context and mounts the bound block
 component directly in the tree.
 
 This gives one state owner per UI fragment:
 
-- **Group**: assembly, navigation hierarchy, and factories for blocks.
+- **Group**: assembly, navigation hierarchy, and keyed factories for blocks.
 - **Block**: the state-owning component and behavior boundary.
 - **View**: rendering and typed intent dispatch.
 - **Scene**: descriptors, placement, and URL-level navigation state.
@@ -54,11 +56,26 @@ Compositions are considered in order; the first router that matches the path
 wins.
 
 ```java
+Object postsKey = new Object();
+
 Router router = new Router()
-        .route("/posts", PostsListBlock.class)
+        .route("/posts", postsKey)
         .route("/posts/new", PostCreateBlock.class)
         .route("/posts/:id", PostEditBlock.class);
 ```
+
+Every route target is a non-null object key. The class overload remains the
+compact form: `route(path, PostsListBlock.class)` uses `PostsListBlock.class`
+as both key and type identity. A custom key separates binding identity from
+Java type, so the same block class can be configured more than once. Reuse the
+same key (or an equal key) in the router, group, layout, and block events. A
+plain `new Object()` is an identity token; enums, strings, or value objects can
+provide more readable diagnostics when appropriate.
+
+`Router.match(...)` exposes the selected identity through
+`RouteMatch.blockKey()`. Its `blockClass()` accessor is compatibility-only and
+throws for a custom-keyed route; resolve the key through `Group.target(key)`
+when both the key and configured class are needed.
 
 Route patterns remain the source of truth for primary navigation, inline form
 returns, and address-bar updates.
@@ -147,19 +164,36 @@ intent handlers, and `lookup()` for context reads, events, and watches.
 
 ## Binding Blocks
 
-`Group` binds a block class to a supplier of a fresh component instance.
-Groups also form the navigation and agent structure tree.
+`Group` binds a key and block class to a supplier of a fresh component
+instance. The class is retained as the typed second parameter even when a
+custom key is used. Groups also form the navigation and agent structure tree.
 
 ```java
+Object postsKey = new Object();
+
 Group main = new Group("Admin").description("Administration panel")
         .add(new Group("Posts").description("Blog posts")
-                .bind(PostsListBlock.class,
+                .bind(postsKey, PostsListBlock.class,
                         () -> new PostsListBlock(postService, new DefaultListView()))
                 .bind(PostCreateBlock.class,
                         () -> new PostCreateBlock(postService, new DefaultEditView()))
                 .bind(PostEditBlock.class,
                         () -> new PostEditBlock(postService, new DefaultEditView())));
 ```
+
+The two-parameter form is shorthand for the three-parameter form with
+`blockKey == blockClass`:
+
+```java
+group.bind(PostCreateBlock.class, factory);
+// Equivalent to:
+group.bind(PostCreateBlock.class, PostCreateBlock.class, factory);
+```
+
+Use `blockTargets()` when binding identity matters. It returns each
+`BlockTarget(key, blockClass)` and therefore preserves multiple bindings of the
+same class. `blockClasses()` remains a compatibility/type-oriented view and
+deduplicates repeated classes.
 
 The supplier creates a new definition when a descriptor mounts. The mounted
 `ComponentSegment` owns durable state for that instance. Constructor injection
@@ -175,26 +209,59 @@ Group support = new Group()
         .bind(PromptBlock.class, () -> new PromptBlock(/* dependencies */));
 ```
 
+### Composition Validation And Sealing
+
+Constructing a `Composition` validates the complete configuration before any
+request is served:
+
+- Block keys must be unique across all nested and merged groups. Key equality
+  follows normal `Map` semantics (`equals` and `hashCode`).
+- Every route key must have a group binding.
+- Every companion key required by the layout must have a group binding.
+
+After successful validation, the router and every group in the composition are
+sealed. Later calls to `route`, `bind`, `add`, or `description` fail instead of
+silently changing a running composition. If construction fails validation, the
+inputs remain mutable so the configuration can be corrected.
+
 ## Scene And Layout
 
-`Scene` stores block descriptors, not block behavior. A descriptor names
-the target class, instance ID, and optional show data. The component tree owns
-the mounted block, while scene handlers resolve semantic events such as
-`SHOW`, `HIDE`, `SET_PRIMARY`, and `ACTION_SUCCESS` into descriptor and URL
-transitions.
+`Scene` stores block descriptors, not block behavior. A descriptor names the
+binding key, target class, instance ID, and optional show data. The key is the
+runtime identity; the class supplies Java type information and class-based
+placement rules. The component tree owns the mounted block, while scene
+handlers resolve semantic events such as `SHOW`, `HIDE`, `SET_PRIMARY`, and
+`ACTION_SUCCESS` by key into descriptor and URL transitions. A mounted block
+can read its configured identity with `blockKey()`.
 
 `Layout` determines where descriptors mount. `DefaultLayout` can keep header
 and sidebar blocks mounted while the primary block changes and can place
 forms inline or in a modal layer.
 
 ```java
+Object explorerKey = new Object();
+
+Group support = new Group()
+        .bind(explorerKey, ExplorerBlock.class,
+                () -> new ExplorerBlock(main.structureTree()))
+        .bind(PromptBlock.class, () -> new PromptBlock(/* dependencies */))
+        .bind(HeaderBlock.class, HeaderBlock::new);
+
 DefaultLayout layout = new DefaultLayout()
-        .leftSidebar(ExplorerBlock.class)
+        .leftSidebar(explorerKey)
         .rightSidebar(PromptBlock.class)
         .header(HeaderBlock.class)
         .placement(FormBlock.class, Placement.INLINE.primary())
         .placement(DelegationApprovalBlock.class, Placement.MODAL);
 ```
+
+The fixed `leftSidebar`, `rightSidebar`, and `header` slots accept either a
+custom key or a block class. Their keys are reported through
+`requiredBlockKeys()` and validated when the composition is constructed.
+Placement rules remain type-based:
+`placement(Class<? extends BlockRuntime>, Placement)` applies to every keyed
+binding assignable to that type. Custom layouts can use
+`resolvePlacement(BlockTarget, Scene)` when both key and class are relevant.
 
 For query-only transitions such as pagination and sorting, a reusable list
 block updates its own cache and publishes the corresponding scene query
@@ -245,8 +312,10 @@ block-level decision before any view or state is exposed.
 Blocks expose agent-facing capabilities through `blockMetadata()` and
 `agentActions()`. The agent runtime receives the mounted primary `BlockRuntime`
 through `PRIMARY_BLOCK_MOUNTED`; it does not read a live block from
-`Scene`. `BlockProfile` recognizes the direct list, form, and edit component
-bases and uses their declared action vocabulary to create typed event dispatch.
+`Scene`. Navigation preserves the selected `BlockTarget`, so two explorer
+entries backed by the same class still navigate to their distinct keys.
+`BlockProfile` recognizes the direct list, form, and edit component bases and
+uses their declared action vocabulary to create typed event dispatch.
 
 See [AI agent integration](agent-integration.md) for the current
 agent flow and [CrudApp](../../examples/src/main/java/rsp/app/posts/CrudApp.java)
@@ -256,7 +325,9 @@ for complete wiring.
 
 Test views as adapters by supplying an `IntentDispatcher`. Test blocks as
 components by mounting their segment, dispatching typed intents, and checking
-the resulting state or events. The compositions suite includes direct-host,
+the resulting state or events. For custom keys, cover routing and events by key
+rather than identifying a target only by class. The compositions suite includes
+duplicate/unbound-key validation, same-class/different-key scenes, direct-host,
 scene, routing, context-watch, and list cache refresh regressions.
 
 Run it with:
