@@ -1,6 +1,7 @@
 package rsp.compositions.agent;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import rsp.compositions.block.BlockActionPayload;
 
@@ -110,7 +111,7 @@ public final class AgentServiceUtils {
                     && payload.value() instanceof JsonDataType.String s && !s.value().isBlank()) {
                 targetBlock = s.value();
             }
-            Class<? extends Block<?, ?>> target = resolveTargetBlock(targetBlock, structureTree);
+            BlockTarget target = resolveTarget(targetBlock, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
                     "I couldn't resolve navigation target: " + targetBlock));
@@ -157,34 +158,42 @@ public final class AgentServiceUtils {
      */
     public static Class<? extends Block<?, ?>> resolveTargetBlock(String targetName,
                                                                        StructureNode node) {
+        BlockTarget target = resolveTarget(targetName, node);
+        return target == null ? null : target.blockClass();
+    }
+
+    /** Resolve a configured target, preserving its binding key. */
+    public static BlockTarget resolveTarget(String targetName, StructureNode node) {
         if (targetName == null || targetName.isBlank() || node == null) {
             return null;
         }
-        return findBlockByName(targetName.trim(), node);
+        return findTargetByName(targetName.trim(), node);
     }
 
-    private static Class<? extends Block<?, ?>> findBlockByName(String name, StructureNode node) {
+    private static BlockTarget findTargetByName(String name, StructureNode node) {
         // Exact match on class name
-        for (Class<? extends Block<?, ?>> block : node.blocks()) {
+        for (BlockTarget target : node.blockTargets()) {
+            Class<? extends Block<?, ?>> block = target.blockClass();
             if (block.getSimpleName().equalsIgnoreCase(name)
                 || block.getName().equalsIgnoreCase(name)) {
-                return block;
+                return target;
             }
         }
         // Fuzzy match: class name contains the search term
-        for (Class<? extends Block<?, ?>> block : node.blocks()) {
+        for (BlockTarget target : node.blockTargets()) {
+            Class<? extends Block<?, ?>> block = target.blockClass();
             if (block.getSimpleName().toLowerCase(Locale.ROOT)
                     .contains(name.toLowerCase(Locale.ROOT))) {
-                return block;
+                return target;
             }
         }
         // Match by node label
         if (node.label() != null && node.label().equalsIgnoreCase(name)
-                && !node.blocks().isEmpty()) {
-            return node.blocks().get(0);
+                && !node.blockTargets().isEmpty()) {
+            return node.blockTargets().get(0);
         }
         for (StructureNode child : node.children()) {
-            Class<? extends Block<?, ?>> found = findBlockByName(name, child);
+            BlockTarget found = findTargetByName(name, child);
             if (found != null) {
                 return found;
             }
@@ -423,7 +432,7 @@ public final class AgentServiceUtils {
 
         if ("navigate".equals(toolName)) {
             String targetBlock = getString(input.value("targetBlock")).orElse("");
-            Class<? extends Block<?, ?>> target = resolveTargetBlock(targetBlock, structureTree);
+            BlockTarget target = resolveTarget(targetBlock, structureTree);
             if (target == null) {
                 return Optional.of(new AgentResult.TextReply(
                     "I couldn't resolve navigation target: " + targetBlock));

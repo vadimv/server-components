@@ -1,6 +1,7 @@
 package rsp.compositions.routing;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
@@ -78,8 +79,10 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
                 Optional<Router.RouteMatch> match = composition.router().match(path);
                 if (match.isPresent()) {
                     Router.RouteMatch routeMatch = match.get();
+                    BlockTarget target = composition.blocks().target(routeMatch.blockKey());
                     return new RoutingComponentState(composition,
-                                                     routeMatch.blockClass(),
+                                                     target.key(),
+                                                     target.blockClass(),
                                                      path.toString(),
                                                      routeMatch.pattern());
                 }
@@ -97,6 +100,7 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
     public BiFunction<ComponentContext, RoutingComponentState, ComponentContext> subComponentsContext() {
         return (context, state) -> context
                 .with(ContextKeys.ROUTE_COMPOSITION, state.composition())
+                .with(ContextKeys.ROUTE_BLOCK_KEY, state.blockKey())
                 .with(ContextKeys.ROUTE_BLOCK_CLASS, state.blockClass())
                 .with(ContextKeys.ROUTE_PATH, state.path())
                 .with(ContextKeys.ROUTE_PATTERN, state.pattern());
@@ -114,12 +118,21 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
 
     public record RoutingComponentState(
             Composition composition,
+            Object blockKey,
             Class<? extends Block<?, ?>> blockClass,
             String path,
             String pattern
     ) {
+        public RoutingComponentState(Composition composition,
+                                     Class<? extends Block<?, ?>> blockClass,
+                                     String path,
+                                     String pattern) {
+            this(composition, blockClass, blockClass, path, pattern);
+        }
+
         public RoutingComponentState {
             Objects.requireNonNull(composition, "composition");
+            Objects.requireNonNull(blockKey, "blockKey");
             Objects.requireNonNull(blockClass, "blockClass");
             Objects.requireNonNull(path, "path");
             Objects.requireNonNull(pattern, "pattern");

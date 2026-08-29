@@ -85,13 +85,15 @@ public final class SceneContextEnricher {
         }
 
         Class<? extends Block<?, ?>> blockClass = scene.routedDescriptor().blockClass();
+        Object blockKey = scene.routedDescriptor().blockKey();
         next = next
                 .with(ContextKeys.ROUTE_COMPOSITION, composition)
+                .with(ContextKeys.ROUTE_BLOCK_KEY, blockKey)
                 .with(ContextKeys.ROUTE_BLOCK_CLASS, blockClass)
                 .with(ContextKeys.ROUTE_PATH, effectiveUrl.path().toString());
 
         if (composition.router() != null) {
-            Optional<String> routePattern = composition.router().findRoutePattern(blockClass);
+            Optional<String> routePattern = composition.router().findRoutePattern(blockKey);
             if (routePattern.isPresent()) {
                 next = next.with(ContextKeys.ROUTE_PATTERN, routePattern.get());
             }
@@ -106,24 +108,24 @@ public final class SceneContextEnricher {
      */
     private ComponentContext enrichEditInfo(ComponentContext context, Composition composition, Router router) {
         // Find the edit block class in the composition.
-        Class<? extends Block<?, ?>> editBlockClass = null;
-        for (Class<? extends Block<?, ?>> cls : composition.blocks().blockClasses()) {
-            if (EditBlock.class.isAssignableFrom(cls)) {
-                editBlockClass = cls;
+        BlockTarget editTarget = null;
+        for (BlockTarget target : composition.blocks().blockTargets()) {
+            if (EditBlock.class.isAssignableFrom(target.blockClass())) {
+                editTarget = target;
                 break;
             }
         }
 
-        if (editBlockClass == null) {
+        if (editTarget == null) {
             return context; // No edit block in this composition
         }
 
         // Check if edit block has a route
-        boolean hasRoute = router != null && router.hasRoute(editBlockClass);
+        boolean hasRoute = router != null && router.hasRoute(editTarget.key());
         context = context.with(ContextKeys.EDIT_HAS_ROUTE, hasRoute);
 
         if (hasRoute && router != null) {
-            Optional<String> editRouteOpt = router.findRoutePattern(editBlockClass);
+            Optional<String> editRouteOpt = router.findRoutePattern(editTarget.key());
             if (editRouteOpt.isPresent()) {
                 context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editRouteOpt.get());
                 // Overlay-like if route has a parent (e.g., /posts/:id has parent /posts)

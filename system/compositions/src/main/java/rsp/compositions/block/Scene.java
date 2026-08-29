@@ -19,8 +19,8 @@ import java.util.Objects;
  * the lifetime of its rendered branch.
  */
 public record Scene(BlockDescriptor routedDescriptor,
-                    Map<Class<? extends Block<?, ?>>, BlockDescriptor> companionDescriptors,
-                    Map<Class<? extends Block<?, ?>>, BlockDescriptor> preActivatedDescriptors,
+                    Map<Object, BlockDescriptor> companionDescriptors,
+                    Map<Object, BlockDescriptor> preActivatedDescriptors,
                     Composition composition,
                     long timestamp,
                     AutoOpen autoOpen,
@@ -34,18 +34,34 @@ public record Scene(BlockDescriptor routedDescriptor,
         pageTitle = pageTitle == null || pageTitle.isBlank() ? "App" : pageTitle;
     }
 
-    public record AutoOpen(Class<? extends Block<?, ?>> blockClass, String routePattern) {
+    public record AutoOpen(Object blockKey,
+                           Class<? extends Block<?, ?>> blockClass,
+                           String routePattern) {
+        public AutoOpen(Class<? extends Block<?, ?>> blockClass, String routePattern) {
+            this(blockClass, blockClass, routePattern);
+        }
+
         public AutoOpen {
+            Objects.requireNonNull(blockKey, "blockKey");
             Objects.requireNonNull(blockClass, "blockClass");
             Objects.requireNonNull(routePattern, "routePattern");
         }
     }
 
-    public record InlineReturnTarget(Class<? extends Block<?, ?>> blockClass,
+    public record InlineReturnTarget(Object blockKey,
+                                     Class<? extends Block<?, ?>> blockClass,
                                      String route,
                                      Query query,
                                      Fragment fragment) {
+        public InlineReturnTarget(Class<? extends Block<?, ?>> blockClass,
+                                  String route,
+                                  Query query,
+                                  Fragment fragment) {
+            this(blockClass, blockClass, route, query, fragment);
+        }
+
         public InlineReturnTarget {
+            Objects.requireNonNull(blockKey, "blockKey");
             Objects.requireNonNull(blockClass, "blockClass");
             Objects.requireNonNull(route, "route");
             Objects.requireNonNull(query, "query");
@@ -61,12 +77,16 @@ public record Scene(BlockDescriptor routedDescriptor,
         return routedDescriptor == null ? null : routedDescriptor.blockClass();
     }
 
-    public BlockDescriptor companionDescriptor(Class<? extends Block<?, ?>> blockClass) {
-        return companionDescriptors.get(blockClass);
+    public Object routedBlockKey() {
+        return routedDescriptor == null ? null : routedDescriptor.blockKey();
     }
 
-    public BlockDescriptor preActivatedDescriptor(Class<? extends Block<?, ?>> blockClass) {
-        return preActivatedDescriptors.get(blockClass);
+    public BlockDescriptor companionDescriptor(Object blockKey) {
+        return companionDescriptors.get(blockKey);
+    }
+
+    public BlockDescriptor preActivatedDescriptor(Object blockKey) {
+        return preActivatedDescriptors.get(blockKey);
     }
 
     public boolean hasPreActivatedBlocks() {
@@ -74,7 +94,11 @@ public record Scene(BlockDescriptor routedDescriptor,
     }
 
     public boolean isRouted(Class<? extends Block<?, ?>> blockClass) {
-        return routedDescriptor != null && routedDescriptor.blockClass().equals(blockClass);
+        return isRouted((Object) blockClass);
+    }
+
+    public boolean isRouted(Object blockKey) {
+        return routedDescriptor != null && routedDescriptor.blockKey().equals(blockKey);
     }
 
     public Scene withRoutedDescriptor(BlockDescriptor descriptor) {
@@ -103,15 +127,15 @@ public record Scene(BlockDescriptor routedDescriptor,
     }
 
     public static Scene of(BlockDescriptor routedDescriptor,
-                           Map<Class<? extends Block<?, ?>>, BlockDescriptor> companionDescriptors,
+                           Map<Object, BlockDescriptor> companionDescriptors,
                            Composition composition) {
         return new Scene(routedDescriptor, companionDescriptors, Map.of(), composition,
                 System.currentTimeMillis(), null, "App", null, null);
     }
 
     public static Scene withAutoOpen(BlockDescriptor routedDescriptor,
-                                     Map<Class<? extends Block<?, ?>>, BlockDescriptor> companionDescriptors,
-                                     Map<Class<? extends Block<?, ?>>, BlockDescriptor> preActivatedDescriptors,
+                                     Map<Object, BlockDescriptor> companionDescriptors,
+                                     Map<Object, BlockDescriptor> preActivatedDescriptors,
                                      Composition composition,
                                      AutoOpen autoOpen) {
         return new Scene(routedDescriptor, companionDescriptors, preActivatedDescriptors,

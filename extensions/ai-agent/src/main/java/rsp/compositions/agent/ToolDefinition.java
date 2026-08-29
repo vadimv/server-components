@@ -1,7 +1,5 @@
 package rsp.compositions.agent;
 
-import rsp.compositions.block.Block;
-
 import rsp.compositions.block.PayloadSchemas;
 
 
@@ -10,7 +8,9 @@ import rsp.compositions.block.BlockAction;
 import rsp.compositions.composition.StructureNode;
 
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Provider-neutral tool definition for LLM tool use APIs.
@@ -41,18 +41,19 @@ public record ToolDefinition(String name, String description, String inputSchema
      * Creates the "navigate" tool with an enum of available block targets.
      */
     public static ToolDefinition navigateTool(StructureNode tree) {
-        List<String> blockNames = new ArrayList<>();
-        collectBlockNames(tree, blockNames);
+        Set<String> targetNames = new LinkedHashSet<>();
+        collectTargetNames(tree, targetNames);
+        List<String> blockNames = new ArrayList<>(targetNames);
 
         StringBuilder enumValues = new StringBuilder();
         for (int i = 0; i < blockNames.size(); i++) {
             if (i > 0) enumValues.append(",");
-            enumValues.append("\"").append(blockNames.get(i)).append("\"");
+            enumValues.append("\"").append(escapeJson(blockNames.get(i))).append("\"");
         }
 
         String schema = "{\"type\":\"object\",\"properties\":{"
             + "\"targetBlock\":{\"type\":\"string\",\"enum\":[" + enumValues + "],"
-            + "\"description\":\"Target block class name\"}"
+            + "\"description\":\"Target block class or group label\"}"
             + "},\"required\":[\"targetBlock\"]}";
 
         return new ToolDefinition("navigate", "Navigate to a different page", schema);
@@ -101,13 +102,16 @@ public record ToolDefinition(String name, String description, String inputSchema
             + "\"parameters\":" + inputSchema + "}}";
     }
 
-    private static void collectBlockNames(StructureNode node, List<String> names) {
+    private static void collectTargetNames(StructureNode node, Set<String> names) {
         if (node == null) return;
-        for (Class<? extends Block<?, ?>> block : node.blocks()) {
-            names.add(block.getSimpleName());
+        if (node.label() != null && !node.blockTargets().isEmpty()) {
+            names.add(node.label());
+        }
+        for (var target : node.blockTargets()) {
+            names.add(target.blockClass().getSimpleName());
         }
         for (StructureNode child : node.children()) {
-            collectBlockNames(child, names);
+            collectTargetNames(child, names);
         }
     }
 

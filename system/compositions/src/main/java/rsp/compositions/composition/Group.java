@@ -1,6 +1,7 @@
 package rsp.compositions.composition;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -20,7 +21,8 @@ public class Group {
     private final String label;
     private String description;
     private final List<Group> children;
-    private final Map<Class<? extends Block<?, ?>>, Supplier<? extends Block<?, ?>>> blocks;
+    private final Map<Object, Binding<?>> blocks;
+    private boolean sealed;
 
     /**
      * Create an unlabeled group (e.g., for system/infrastructure blocks).
@@ -48,6 +50,7 @@ public class Group {
      * @return this for chaining
      */
     public Group description(String description) {
+        ensureMutable();
         this.description = description;
         return this;
     }
@@ -64,9 +67,29 @@ public class Group {
      */
     public <S, I, B extends Block<S, I>> Group bind(Class<B> blockClass,
                                                     Supplier<? extends B> blockFactory) {
+        return bind(blockClass, blockClass, blockFactory);
+    }
+
+    /**
+     * Bind a block under an application-defined key.
+     *
+     * @param blockKey binding identity used by routing and navigation
+     * @param blockClass concrete block component class
+     * @param blockFactory factory producing a fresh block component
+     * @return this for chaining
+     */
+    public <S, I, B extends Block<S, I>> Group bind(Object blockKey,
+                                                    Class<B> blockClass,
+                                                    Supplier<? extends B> blockFactory) {
+        ensureMutable();
+        Objects.requireNonNull(blockKey, "blockKey");
         Objects.requireNonNull(blockClass, "blockClass");
         Objects.requireNonNull(blockFactory, "blockFactory");
-        blocks.put(blockClass, blockFactory);
+        if (blocks.containsKey(blockKey)) {
+            throw new IllegalArgumentException("Duplicate block key in group " + displayName()
+                    + ": " + blockKey);
+        }
+        blocks.put(blockKey, new Binding<>(new BlockTarget(blockKey, blockClass), blockClass, blockFactory));
         return this;
     }
 
@@ -77,6 +100,7 @@ public class Group {
      * @return this for chaining
      */
     public Group add(Group child) {
+        ensureMutable();
         Objects.requireNonNull(child, "child");
         children.add(child);
         return this;
@@ -90,17 +114,43 @@ public class Group {
      * @throws IllegalStateException if the block has no direct component binding
      */
     public Block<?, ?> resolveBlock(Class<? extends Block<?, ?>> blockClass) {
-        Supplier<? extends Block<?, ?>> factory = findBlockFactory(blockClass);
-        if (factory == null) {
+        return resolveBlock((Object) blockClass);
+    }
+
+    /** Resolve a fresh block instance by its configured key. */
+    public Block<?, ?> resolveBlock(Object blockKey) {
+        Binding<?> binding = findBinding(Objects.requireNonNull(blockKey, "blockKey"));
+        if (binding == null) {
             throw new IllegalStateException(
-                    "No block bound for block class: " + blockClass.getName());
+                    "No block bound for key: " + blockKey);
         }
-        return factory.get();
+        return binding.create();
     }
 
     /** Returns whether this group tree contains a binding for the block. */
     public boolean hasBinding(Class<? extends Block<?, ?>> blockClass) {
-        return findBlockFactory(blockClass) != null;
+        return hasBinding((Object) blockClass);
+    }
+
+    /** Returns whether this group tree contains a binding for the key. */
+    public boolean hasBinding(Object blockKey) {
+        return blockKey != null && findBinding(blockKey) != null;
+    }
+
+    /** Return the configured key/class pair, failing when the key is unknown. */
+    public BlockTarget target(Object blockKey) {
+        Binding<?> binding = findBinding(Objects.requireNonNull(blockKey, "blockKey"));
+        if (binding == null) {
+            throw new IllegalStateException("No block bound for key: " + blockKey);
+        }
+        return binding.target();
+    }
+
+    /** All configured targets in insertion and group traversal order. */
+    public Set<BlockTarget> blockTargets() {
+        LinkedHashMap<Object, BlockTarget> result = new LinkedHashMap<>();
+        collectTargets(result, new ArrayList<>());
+        return Collections.unmodifiableSet(new LinkedHashSet<>(result.values()));
     }
 
     /**
@@ -110,9 +160,9 @@ public class Group {
      * @return unmodifiable set of block classes
      */
     public Set<Class<? extends Block<?, ?>>> blockClasses() {
-        Set<Class<? extends Block<?, ?>>> result = new LinkedHashSet<>(blocks.keySet());
-        for (Group child : children) {
-            result.addAll(child.blockClasses());
+        Set<Class<? extends Block<?, ?>>> result = new LinkedHashSet<>();
+        for (BlockTarget target : blockTargets()) {
+            result.add(target.blockClass());
         }
         return Collections.unmodifiableSet(result);
     }
@@ -128,8 +178,13 @@ public class Group {
      * @return the owning labeled path, or empty if the block is not bound
      */
     public Optional<List<String>> groupPathFor(Class<? extends Block<?, ?>> blockClass) {
-        Objects.requireNonNull(blockClass, "blockClass");
-        return groupPathFor(blockClass, List.of());
+        return groupPathFor((Object) blockClass);
+    }
+
+    /** Returns the labeled owning path for a configured block key. */
+    public Optional<List<String>> groupPathFor(Object blockKey) {
+        Objects.requireNonNull(blockKey, "blockKey");
+        return groupPathFor(blockKey, List.of());
     }
 
     /**
@@ -147,8 +202,13 @@ public class Group {
      *         owned by an unlabeled group
      */
     public Optional<Group> placementGroupFor(Class<? extends Block<?, ?>> blockClass) {
-        Objects.requireNonNull(blockClass, "blockClass");
-        return placementGroupForInternal(blockClass);
+        return placementGroupFor((Object) blockClass);
+    }
+
+    /** Returns the labeled owning group for a configured block key. */
+    public Optional<Group> placementGroupFor(Object blockKey) {
+        Objects.requireNonNull(blockKey, "blockKey");
+        return placementGroupForInternal(blockKey);
     }
 
     /**
@@ -165,21 +225,30 @@ public class Group {
         return new StructureNode(label,
                 description,
                 List.copyOf(childNodes),
-                blockClassesInThisGroup());
+                blockClassesInThisGroup(),
+                blockTargetsInThisGroup());
     }
 
-    private Optional<List<String>> groupPathFor(Class<? extends Block<?, ?>> blockClass,
+    void validateUniqueKeys() {
+        collectTargets(new LinkedHashMap<>(), new ArrayList<>());
+    }
+
+    void seal() {
+        sealRecursively();
+    }
+
+    private Optional<List<String>> groupPathFor(Object blockKey,
                                                 List<String> parentPath) {
         List<String> currentPath = parentPath;
         if (label != null) {
             currentPath = new ArrayList<>(parentPath);
             currentPath.add(label);
         }
-        if (containsBlock(blockClass)) {
+        if (containsBlock(blockKey)) {
             return Optional.of(List.copyOf(currentPath));
         }
         for (Group child : children) {
-            Optional<List<String>> childPath = child.groupPathFor(blockClass, currentPath);
+            Optional<List<String>> childPath = child.groupPathFor(blockKey, currentPath);
             if (childPath.isPresent()) {
                 return childPath;
             }
@@ -187,12 +256,12 @@ public class Group {
         return Optional.empty();
     }
 
-    private Optional<Group> placementGroupForInternal(Class<? extends Block<?, ?>> blockClass) {
-        if (containsBlock(blockClass)) {
+    private Optional<Group> placementGroupForInternal(Object blockKey) {
+        if (containsBlock(blockKey)) {
             return label != null ? Optional.of(this) : Optional.empty();
         }
         for (Group child : children) {
-            Optional<Group> childGroup = child.placementGroupForInternal(blockClass);
+            Optional<Group> childGroup = child.placementGroupForInternal(blockKey);
             if (childGroup.isPresent()) {
                 return childGroup;
             }
@@ -200,25 +269,85 @@ public class Group {
         return Optional.empty();
     }
 
-    private Supplier<? extends Block<?, ?>> findBlockFactory(Class<? extends Block<?, ?>> blockClass) {
-        Supplier<? extends Block<?, ?>> factory = blocks.get(blockClass);
-        if (factory != null) {
-            return factory;
+    private Binding<?> findBinding(Object blockKey) {
+        Binding<?> binding = blocks.get(blockKey);
+        if (binding != null) {
+            return binding;
         }
         for (Group child : children) {
-            factory = child.findBlockFactory(blockClass);
-            if (factory != null) {
-                return factory;
+            binding = child.findBinding(blockKey);
+            if (binding != null) {
+                return binding;
             }
         }
         return null;
     }
 
-    private boolean containsBlock(Class<? extends Block<?, ?>> blockClass) {
-        return blocks.containsKey(blockClass);
+    private boolean containsBlock(Object blockKey) {
+        return blocks.containsKey(blockKey);
     }
 
     private List<Class<? extends Block<?, ?>>> blockClassesInThisGroup() {
-        return List.copyOf(blocks.keySet());
+        List<Class<? extends Block<?, ?>>> result = new ArrayList<>();
+        for (Binding<?> binding : blocks.values()) {
+            result.add(binding.target().blockClass());
+        }
+        return List.copyOf(result);
+    }
+
+    private List<BlockTarget> blockTargetsInThisGroup() {
+        return blocks.values().stream().map(Binding::target).toList();
+    }
+
+    private void collectTargets(Map<Object, BlockTarget> result, List<String> parentPath) {
+        List<String> path = parentPath;
+        if (label != null) {
+            path = new ArrayList<>(parentPath);
+            path.add(label);
+        }
+        for (Binding<?> binding : blocks.values()) {
+            BlockTarget previous = result.putIfAbsent(binding.target().key(), binding.target());
+            if (previous != null) {
+                throw new IllegalArgumentException("Duplicate block key across group tree at "
+                        + (path.isEmpty() ? "<root>" : String.join(" / ", path))
+                        + ": " + binding.target().key());
+            }
+        }
+        for (Group child : children) {
+            child.collectTargets(result, path);
+        }
+    }
+
+    private void sealRecursively() {
+        sealed = true;
+        children.forEach(Group::sealRecursively);
+    }
+
+    private void ensureMutable() {
+        if (sealed) {
+            throw new IllegalStateException("Group is sealed by a Composition and cannot be modified");
+        }
+    }
+
+    private String displayName() {
+        return label == null ? "<unlabeled>" : "'" + label + "'";
+    }
+
+    private record Binding<B extends Block<?, ?>>(BlockTarget target,
+                                                   Class<B> blockClass,
+                                                   Supplier<? extends B> factory) {
+        private Binding {
+            Objects.requireNonNull(target, "target");
+            Objects.requireNonNull(blockClass, "blockClass");
+            Objects.requireNonNull(factory, "factory");
+        }
+
+        private B create() {
+            B block = factory.get();
+            if (block == null) {
+                throw new IllegalStateException("Block factory returned null for key: " + target.key());
+            }
+            return blockClass.cast(block);
+        }
     }
 }

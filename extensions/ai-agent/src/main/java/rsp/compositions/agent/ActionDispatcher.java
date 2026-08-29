@@ -103,6 +103,11 @@ public class ActionDispatcher {
      * @param lookup         the current context (for event publishing)
      */
     public void dispatchNavigate(Class<? extends Block<?, ?>> targetBlock, Lookup lookup) {
+        dispatchNavigate((Object) targetBlock, lookup);
+    }
+
+    /** Dispatch navigation to a configured block binding key. */
+    public void dispatchNavigate(Object targetBlock, Lookup lookup) {
         AGENT_DISPATCH.set(Boolean.TRUE);
         try {
             lookup.publish(EventKeys.SET_PRIMARY, targetBlock);

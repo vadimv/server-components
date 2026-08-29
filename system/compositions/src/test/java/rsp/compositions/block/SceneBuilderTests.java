@@ -83,6 +83,29 @@ class SceneBuilderTests {
         assertFalse(scene.hasPreActivatedBlocks());
     }
 
+    @Test
+    void object_keys_distinguish_parent_and_child_using_the_same_block_class() {
+        Object listKey = new Object();
+        Object editKey = new Object();
+        DefaultLayout layout = new DefaultLayout();
+        Group group = new Group("Posts")
+                .bind(listKey, ListBlock.class, ListBlock::new)
+                .bind(editKey, ListBlock.class, ListBlock::new);
+        Composition composition = new Composition(new Router()
+                .route("/posts", listKey)
+                .route("/posts/:id", editKey), layout, group);
+
+        Scene scene = new SceneBuilder(composition, group.target(editKey), "/posts/:id", layout)
+                .buildScene(testContext());
+
+        assertEquals(listKey, scene.routedBlockKey());
+        assertEquals(ListBlock.class, scene.routedBlockClass());
+        assertNotNull(scene.autoOpen());
+        assertEquals(editKey, scene.autoOpen().blockKey());
+        assertEquals(ListBlock.class, scene.autoOpen().blockClass());
+        assertNotNull(scene.preActivatedDescriptor(editKey));
+    }
+
     private Composition compositionWith(DefaultLayout layout) {
         Group group = new Group("Posts")
                 .bind(ListBlock.class, ListBlock::new)

@@ -63,6 +63,7 @@ public class Composition {
             }
             this.blocks = merged;
         }
+        validateAndSeal();
     }
 
     /**
@@ -91,5 +92,22 @@ public class Composition {
      */
     public Services services() {
         return services;
+    }
+
+    private void validateAndSeal() {
+        blocks.validateUniqueKeys();
+        for (var route : router.routeTargets().entrySet()) {
+            if (!blocks.hasBinding(route.getValue())) {
+                throw new IllegalArgumentException("Route '" + route.getKey()
+                        + "' targets unbound block key: " + route.getValue());
+            }
+        }
+        for (Object required : layout.requiredBlockKeys()) {
+            if (!blocks.hasBinding(required)) {
+                throw new IllegalArgumentException("Layout requires unbound block key: " + required);
+            }
+        }
+        blocks.seal();
+        router.seal();
     }
 }

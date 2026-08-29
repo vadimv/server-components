@@ -8,6 +8,7 @@ import rsp.compositions.block.BlockDescriptor;
 import rsp.compositions.block.DirectBlockHost;
 import rsp.compositions.block.Scene;
 import rsp.compositions.block.BlockRuntime;
+import rsp.compositions.block.BlockTarget;
 import rsp.dsl.Definition;
 
 import java.util.ArrayList;
@@ -40,9 +41,9 @@ import static rsp.dsl.Html.*;
 public final class DefaultLayout implements Layout {
     private final System.Logger logger = System.getLogger(getClass().getName());
 
-    private final Class<? extends Block<?, ?>> leftSidebarClass;
-    private final Class<? extends Block<?, ?>> rightSidebarClass;
-    private final Class<? extends Block<?, ?>> headerClass;
+    private final Object leftSidebarKey;
+    private final Object rightSidebarKey;
+    private final Object headerKey;
     private final Map<Class<? extends BlockRuntime>, Placement> placements;
     private final GroupPlacementPolicy groupPlacementPolicy;
 
@@ -50,30 +51,42 @@ public final class DefaultLayout implements Layout {
         this(null, null, null, Map.of(), GroupPlacementPolicy.ALL_MODAL);
     }
 
-    private DefaultLayout(Class<? extends Block<?, ?>> leftSidebarClass,
-                          Class<? extends Block<?, ?>> rightSidebarClass,
-                          Class<? extends Block<?, ?>> headerClass,
+    private DefaultLayout(Object leftSidebarKey,
+                          Object rightSidebarKey,
+                          Object headerKey,
                           Map<Class<? extends BlockRuntime>, Placement> placements,
                           GroupPlacementPolicy groupPlacementPolicy) {
-        this.leftSidebarClass = leftSidebarClass;
-        this.rightSidebarClass = rightSidebarClass;
-        this.headerClass = headerClass;
+        this.leftSidebarKey = leftSidebarKey;
+        this.rightSidebarKey = rightSidebarKey;
+        this.headerKey = headerKey;
         this.placements = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(placements));
         this.groupPlacementPolicy = Objects.requireNonNull(groupPlacementPolicy, "groupPlacementPolicy");
     }
 
     public DefaultLayout leftSidebar(Class<? extends Block<?, ?>> blockClass) {
-        return new DefaultLayout(blockClass, rightSidebarClass, headerClass,
+        return leftSidebar((Object) blockClass);
+    }
+
+    public DefaultLayout leftSidebar(Object blockKey) {
+        return new DefaultLayout(Objects.requireNonNull(blockKey, "blockKey"), rightSidebarKey, headerKey,
                 placements, groupPlacementPolicy);
     }
 
     public DefaultLayout rightSidebar(Class<? extends Block<?, ?>> blockClass) {
-        return new DefaultLayout(leftSidebarClass, blockClass, headerClass,
+        return rightSidebar((Object) blockClass);
+    }
+
+    public DefaultLayout rightSidebar(Object blockKey) {
+        return new DefaultLayout(leftSidebarKey, Objects.requireNonNull(blockKey, "blockKey"), headerKey,
                 placements, groupPlacementPolicy);
     }
 
     public DefaultLayout header(Class<? extends Block<?, ?>> blockClass) {
-        return new DefaultLayout(leftSidebarClass, rightSidebarClass, blockClass,
+        return header((Object) blockClass);
+    }
+
+    public DefaultLayout header(Object blockKey) {
+        return new DefaultLayout(leftSidebarKey, rightSidebarKey, Objects.requireNonNull(blockKey, "blockKey"),
                 placements, groupPlacementPolicy);
     }
 
@@ -90,28 +103,42 @@ public final class DefaultLayout implements Layout {
         Objects.requireNonNull(placement, "placement");
         Map<Class<? extends BlockRuntime>, Placement> updated = new LinkedHashMap<>(placements);
         updated.put(blockType, placement);
-        return new DefaultLayout(leftSidebarClass, rightSidebarClass, headerClass,
+        return new DefaultLayout(leftSidebarKey, rightSidebarKey, headerKey,
                 updated, groupPlacementPolicy);
     }
 
     public DefaultLayout groupPlacementPolicy(GroupPlacementPolicy policy) {
-        return new DefaultLayout(leftSidebarClass, rightSidebarClass, headerClass,
+        return new DefaultLayout(leftSidebarKey, rightSidebarKey, headerKey,
                 placements, Objects.requireNonNull(policy, "policy"));
     }
 
     @Override
     public PlacementDecision resolvePlacement(Class<? extends Block<?, ?>> blockClass,
                                               Scene scene) {
-        return PlacementResolver.resolve(blockClass, scene, placements, groupPlacementPolicy,
+        return resolvePlacement(new BlockTarget(blockClass, blockClass), scene);
+    }
+
+    @Override
+    public PlacementDecision resolvePlacement(BlockTarget target, Scene scene) {
+        return PlacementResolver.resolve(target, scene, placements, groupPlacementPolicy,
                 scene != null ? scene.blocks() : null);
     }
 
     @Override
     public Set<Class<? extends Block<?, ?>>> requiredBlocks() {
         Set<Class<? extends Block<?, ?>>> required = new HashSet<>();
-        if (leftSidebarClass != null) required.add(leftSidebarClass);
-        if (rightSidebarClass != null) required.add(rightSidebarClass);
-        if (headerClass != null) required.add(headerClass);
+        if (leftSidebarKey instanceof Class<?> cls) required.add(asBlockClass(cls));
+        if (rightSidebarKey instanceof Class<?> cls) required.add(asBlockClass(cls));
+        if (headerKey instanceof Class<?> cls) required.add(asBlockClass(cls));
+        return Set.copyOf(required);
+    }
+
+    @Override
+    public Set<Object> requiredBlockKeys() {
+        Set<Object> required = new HashSet<>();
+        if (leftSidebarKey != null) required.add(leftSidebarKey);
+        if (rightSidebarKey != null) required.add(rightSidebarKey);
+        if (headerKey != null) required.add(headerKey);
         return Set.copyOf(required);
     }
 
@@ -126,9 +153,9 @@ public final class DefaultLayout implements Layout {
         }
 
         // Resolve companion blocks to UI components
-        Component<?, ?> leftSidebar = resolveCompanion(scene, leftSidebarClass);
-        Component<?, ?> rightSidebar = resolveCompanion(scene, rightSidebarClass);
-        Component<?, ?> header = resolveCompanion(scene, headerClass);
+        Component<?, ?> leftSidebar = resolveCompanion(scene, leftSidebarKey);
+        Component<?, ?> rightSidebar = resolveCompanion(scene, rightSidebarKey);
+        Component<?, ?> header = resolveCompanion(scene, headerKey);
 
         // Build layout: [header?] then container with [left-sidebar?] [primary] [right-sidebar?]
         List<Definition> wrapper = new ArrayList<>();
@@ -155,14 +182,19 @@ public final class DefaultLayout implements Layout {
         return div(wrapper.toArray(Definition[]::new));
     }
 
-    private Component<?, ?> resolveCompanion(Scene scene, Class<? extends Block<?, ?>> blockClass) {
-        if (blockClass == null) return null;
-        BlockDescriptor descriptor = scene.companionDescriptor(blockClass);
+    private Component<?, ?> resolveCompanion(Scene scene, Object blockKey) {
+        if (blockKey == null) return null;
+        BlockDescriptor descriptor = scene.companionDescriptor(blockKey);
         if (descriptor == null) return null;
         return resolveDescriptor(scene, descriptor);
     }
 
     private Component<?, ?> resolveDescriptor(Scene scene, BlockDescriptor descriptor) {
-        return new DirectBlockHost(descriptor, scene.blocks().resolveBlock(descriptor.blockClass()));
+        return new DirectBlockHost(descriptor, scene.blocks().resolveBlock(descriptor.blockKey()));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Class<? extends Block<?, ?>> asBlockClass(Class<?> type) {
+        return (Class<? extends Block<?, ?>>) type;
     }
 }

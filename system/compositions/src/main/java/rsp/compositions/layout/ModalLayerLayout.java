@@ -22,20 +22,28 @@ public final class ModalLayerLayout implements LayerLayout {
     public Definition resolve(Component<?, ?> content,
                               Class<? extends Block<?, ?>> blockClass,
                               Lookup lookup) {
+        return resolve(content, blockClass, blockClass, lookup);
+    }
+
+    @Override
+    public Definition resolve(Component<?, ?> content,
+                              Object blockKey,
+                              Class<? extends Block<?, ?>> blockClass,
+                              Lookup lookup) {
         return div(attr("class", "modal-overlay"),
                 div(attr("class", "modal-backdrop"),
-                        on("click", _ -> lookup.publish(HIDE, blockClass))),
+                        on("click", _ -> lookup.publish(HIDE, blockKey))),
                 div(attr("class", "modal-content"),
-                        closeButton(blockClass, lookup),
+                        closeButton(blockKey, lookup),
                         content));
     }
 
-    private static Definition closeButton(Class<? extends Block<?, ?>> blockClass, Lookup lookup) {
+    private static Definition closeButton(Object blockKey, Lookup lookup) {
         return button(
                 attr("type", "button"),
                 attr("class", "modal-close"),
                 attr("aria-label", "Close"),
-                on("click", _ -> lookup.publish(HIDE, blockClass)),
+                on("click", _ -> lookup.publish(HIDE, blockKey)),
                 xIcon());
     }
 

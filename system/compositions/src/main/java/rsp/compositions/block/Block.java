@@ -42,6 +42,11 @@ public abstract class Block<S, I> extends Component<S, I> implements BlockRuntim
         return (Class<? extends Block<?, ?>>) getClass();
     }
 
+    /** Returns this mounted block's configured binding key. */
+    public final Object blockKey() {
+        return lookup().getRequired(ContextKeys.BLOCK_KEY);
+    }
+
     @Override
     public Lookup lookup() {
         if (lookup == null) {

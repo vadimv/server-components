@@ -1,6 +1,7 @@
 package rsp.compositions.agent;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import rsp.compositions.block.BlockActionPayload;
 
@@ -10,6 +11,7 @@ import rsp.compositions.block.BlockAction;
 import rsp.compositions.composition.StructureNode;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -30,7 +32,23 @@ public class AgentService {
         /** A block action to be dispatched via ActionDispatcher. */
         record ActionResult(BlockAction action, BlockActionPayload payload) implements AgentResult {}
         /** A navigation request to switch the active block. */
-        record NavigateResult(Class<? extends Block<?, ?>> targetBlock) implements AgentResult {}
+        record NavigateResult(BlockTarget target) implements AgentResult {
+            public NavigateResult {
+                Objects.requireNonNull(target, "target");
+            }
+
+            public NavigateResult(Class<? extends Block<?, ?>> targetBlock) {
+                this(new BlockTarget(targetBlock, targetBlock));
+            }
+
+            public Class<? extends Block<?, ?>> targetBlock() {
+                return target.blockClass();
+            }
+
+            public Object targetKey() {
+                return target.key();
+            }
+        }
         /** A text reply to show the user (no framework event). */
         record TextReply(String message) implements AgentResult {}
         /** A multi-step plan: each step is a natural-language intent to be executed sequentially. */

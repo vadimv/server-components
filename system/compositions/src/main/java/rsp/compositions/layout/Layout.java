@@ -1,6 +1,7 @@
 package rsp.compositions.layout;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import rsp.component.Lookup;
 import rsp.compositions.block.Scene;
@@ -34,6 +35,11 @@ public interface Layout {
         return Set.of();
     }
 
+    /** Binding keys required as persistent layout companions. */
+    default Set<Object> requiredBlockKeys() {
+        return Set.copyOf(requiredBlocks());
+    }
+
     /**
      * Resolve the effective placement for a block shown on demand.
      * <p>
@@ -47,6 +53,11 @@ public interface Layout {
     default PlacementDecision resolvePlacement(Class<? extends Block<?, ?>> blockClass,
                                                Scene scene) {
         return PlacementDecision.frameworkDefault();
+    }
+
+    /** Resolve placement with both binding identity and Java type available. */
+    default PlacementDecision resolvePlacement(BlockTarget target, Scene scene) {
+        return resolvePlacement(target.blockClass(), scene);
     }
 
     /**

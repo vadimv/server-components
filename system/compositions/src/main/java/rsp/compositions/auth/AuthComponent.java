@@ -69,6 +69,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
             // Pass through — create SceneComponent from routing context
             return new SceneComponent(state.path(),
                                       state.composition(),
+                                      state.blockKey(),
                                       state.blockClass(),
                                       state.pattern(),
                                       state.composition().layout());
@@ -91,6 +92,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
                 authResult.roles(),
                 authProvider,
                 context.getRequired(ContextKeys.ROUTE_COMPOSITION),
+                context.getRequired(ContextKeys.ROUTE_BLOCK_KEY),
                 context.getRequired(ContextKeys.ROUTE_BLOCK_CLASS),
                 context.getRequired(ContextKeys.ROUTE_PATH),
                 context.getRequired(ContextKeys.ROUTE_PATTERN),
@@ -102,6 +104,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
                                      String[] roles,
                                      AuthProvider authProvider,
                                      Composition composition,
+                                     Object blockKey,
                                      Class<? extends Block<?, ?>> blockClass,
                                      String path,
                                      String pattern,
@@ -109,6 +112,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
         public AuthComponentState {
             roles = roles != null ? roles.clone() : new String[0];
             Objects.requireNonNull(composition, "composition");
+            Objects.requireNonNull(blockKey, "blockKey");
             Objects.requireNonNull(blockClass, "blockClass");
             Objects.requireNonNull(path, "path");
             Objects.requireNonNull(pattern, "pattern");

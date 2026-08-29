@@ -26,6 +26,23 @@ class CompositionTests {
         assertTrue(group.resolveBlock(ListBlock.class) instanceof ListBlock);
         assertTrue(group.resolveBlock(ListBlock.class) instanceof ListBlock);
         assertTrue(group.resolveBlock(ListBlock.class) instanceof ListBlock);
+        assertSame(ListBlock.class, group.target(ListBlock.class).key());
+    }
+
+    @Test
+    void object_keys_can_bind_the_same_block_class_with_distinct_factories() {
+        Object postsKey = new Object();
+        Object archivedPostsKey = new Object();
+        Group group = new Group("Posts")
+                .bind(postsKey, KeyedBlock.class, () -> new KeyedBlock("Current"))
+                .bind(archivedPostsKey, KeyedBlock.class, () -> new KeyedBlock("Archived"));
+
+        assertSame(postsKey, group.target(postsKey).key());
+        assertEquals(KeyedBlock.class, group.target(postsKey).blockClass());
+        assertEquals("Current", group.resolveBlock(postsKey).title());
+        assertEquals("Archived", group.resolveBlock(archivedPostsKey).title());
+        assertEquals(2, group.blockTargets().size());
+        assertEquals(1, group.blockClasses().size());
     }
 
     @Test
@@ -88,6 +105,70 @@ class CompositionTests {
         assertThrows(IllegalArgumentException.class, () -> new Composition(new Router(), new DefaultLayout()));
     }
 
+    @Test
+    void composition_rejects_an_unbound_route_without_sealing_inputs() {
+        Object postsKey = new Object();
+        Router router = new Router().route("/posts", postsKey);
+        Group group = new Group("Posts");
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+                () -> new Composition(router, new DefaultLayout(), group));
+
+        assertTrue(error.getMessage().contains("/posts"));
+        group.bind(postsKey, ListBlock.class, ListBlock::new);
+        Composition composition = new Composition(router, new DefaultLayout(), group);
+        assertSame(postsKey, composition.router().match(rsp.server.Path.of("/posts"))
+                .orElseThrow().blockKey());
+    }
+
+    @Test
+    void composition_rejects_an_unbound_layout_key_without_sealing_the_group() {
+        Object explorerKey = new Object();
+        Group group = new Group();
+        DefaultLayout layout = new DefaultLayout().leftSidebar(explorerKey);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> new Composition(new Router(), layout, group));
+
+        group.bind(explorerKey, ListBlock.class, ListBlock::new);
+        assertEquals(1, new Composition(new Router(), layout, group).blocks().blockTargets().size());
+    }
+
+    @Test
+    void duplicate_equal_keys_are_rejected_locally_and_across_groups() {
+        Object first = new String("posts");
+        Object equal = new String("posts");
+        Group local = new Group().bind(first, ListBlock.class, ListBlock::new);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> local.bind(equal, EditBlock.class, EditBlock::new));
+
+        Group root = new Group("Root")
+                .add(new Group("One").bind(first, ListBlock.class, ListBlock::new))
+                .add(new Group("Two").bind(equal, EditBlock.class, EditBlock::new));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Composition(new Router(), new DefaultLayout(), root));
+    }
+
+    @Test
+    void successful_composition_seals_router_and_all_groups() {
+        Object postsKey = new Object();
+        Router router = new Router().route("/posts", postsKey);
+        Group child = new Group("Posts").bind(postsKey, ListBlock.class, ListBlock::new);
+        Group root = new Group("Root").add(child);
+
+        new Composition(router, new DefaultLayout(), root);
+
+        assertThrows(IllegalStateException.class,
+                () -> router.route("/other", postsKey));
+        assertThrows(IllegalStateException.class,
+                () -> root.add(new Group("Other")));
+        assertThrows(IllegalStateException.class,
+                () -> child.description("Changed"));
+        assertThrows(IllegalStateException.class,
+                () -> child.bind(new Object(), EditBlock.class, EditBlock::new));
+    }
+
     static class TestBlock extends Block<String, Object> {
         @Override
         public ComponentStateSupplier<String> initStateSupplier() {
@@ -109,4 +190,17 @@ class CompositionTests {
     static class CreateBlock extends TestBlock {}
     static class EditBlock extends TestBlock {}
     static class UnknownBlock extends TestBlock {}
+
+    static class KeyedBlock extends TestBlock {
+        private final String title;
+
+        KeyedBlock(String title) {
+            this.title = title;
+        }
+
+        @Override
+        public String title() {
+            return title;
+        }
+    }
 }

@@ -5,6 +5,7 @@ import rsp.compositions.block.Block;
 import rsp.compositions.composition.Group;
 import rsp.compositions.block.Scene;
 import rsp.compositions.block.BlockRuntime;
+import rsp.compositions.block.BlockTarget;
 
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -26,6 +27,18 @@ public final class PlacementResolver {
             Map<? extends Class<? extends BlockRuntime>, Placement> placements,
             GroupPlacementPolicy groupPlacementPolicy,
             Group blocks) {
+        return resolve(new BlockTarget(blockClass, blockClass), scene, placements,
+                groupPlacementPolicy, blocks);
+    }
+
+    public static PlacementDecision resolve(
+            BlockTarget target,
+            Scene scene,
+            Map<? extends Class<? extends BlockRuntime>, Placement> placements,
+            GroupPlacementPolicy groupPlacementPolicy,
+            Group blocks) {
+        Objects.requireNonNull(target, "target");
+        Class<? extends Block<?, ?>> blockClass = target.blockClass();
         Objects.requireNonNull(blockClass, "blockClass");
         Objects.requireNonNull(placements, "placements");
         Objects.requireNonNull(groupPlacementPolicy, "groupPlacementPolicy");
@@ -38,7 +51,7 @@ public final class PlacementResolver {
         return switch (groupPlacementPolicy) {
             case ALL_INLINE -> PlacementDecision.groupPolicy(Placement.INLINE.primary());
             case FIRST_IN_SCENE_INLINE_OTHERS_MODAL -> firstInScene(scene);
-            case FIRST_IN_GROUP_INLINE_OTHERS_MODAL -> firstInGroup(blockClass, scene, blocks);
+            case FIRST_IN_GROUP_INLINE_OTHERS_MODAL -> firstInGroup(target, scene, blocks);
             case ALL_MODAL -> PlacementDecision.groupPolicy(Placement.MODAL);
         };
     }
@@ -57,21 +70,21 @@ public final class PlacementResolver {
      * unbound or unlabeled targets stay modal unless an explicit layout rule
      * matched first.
      */
-    private static PlacementDecision firstInGroup(Class<? extends Block<?, ?>> targetClass,
+    private static PlacementDecision firstInGroup(BlockTarget target,
                                                   Scene scene,
                                                   Group blocks) {
         if (blocks == null) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
-        Optional<Group> targetGroup = blocks.placementGroupFor(targetClass);
+        Optional<Group> targetGroup = blocks.placementGroupFor(target.key());
         if (targetGroup.isEmpty()) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }
         if (scene == null || scene.routedDescriptor() == null) {
             return PlacementDecision.groupPolicy(Placement.INLINE.primary());
         }
-        Class<? extends Block<?, ?>> routedClass = scene.routedDescriptor().blockClass();
-        Optional<Group> routedGroup = blocks.placementGroupFor(routedClass);
+        Object routedKey = scene.routedDescriptor().blockKey();
+        Optional<Group> routedGroup = blocks.placementGroupFor(routedKey);
         if (routedGroup.isEmpty()) {
             return PlacementDecision.groupPolicy(Placement.MODAL);
         }

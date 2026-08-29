@@ -117,7 +117,7 @@ public abstract class FormBlock<T>
     }
 
     protected final void publishSuccess() {
-        lookup().publish(EventKeys.ACTION_SUCCESS, new EventKeys.ActionResult(blockClass()));
+        lookup().publish(EventKeys.ACTION_SUCCESS, new EventKeys.ActionResult(blockKey()));
     }
 
     private EditView.EditViewState initialState(ComponentContext context) {

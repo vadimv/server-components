@@ -48,12 +48,13 @@ final class SceneNavigator {
         if (composition == null || composition.router() == null) {
             return null;
         }
+        Object prevKey = state.routedDescriptor().blockKey();
         Class<? extends Block<?, ?>> prevClass = state.routedDescriptor().blockClass();
-        String prevRoute = composition.router().findRoutePattern(prevClass).orElse(null);
+        String prevRoute = composition.router().findRoutePattern(prevKey).orElse(null);
         if (prevRoute == null) {
             return null;
         }
-        return new Scene.InlineReturnTarget(prevClass, prevRoute,
+        return new Scene.InlineReturnTarget(prevKey, prevClass, prevRoute,
                 captureQuery(state), captureFragment(state));
     }
 
@@ -62,13 +63,13 @@ final class SceneNavigator {
      * downstream scene context should expose.
      */
     RelativeUrl pushInlineUrl(Scene state,
-                              Class<? extends Block<?, ?>> blockClass,
+                              Object blockKey,
                               Map<String, Object> showData) {
         Composition composition = state.composition();
         if (composition == null || composition.router() == null) {
             return null;
         }
-        String pattern = composition.router().findRoutePattern(blockClass).orElse(null);
+        String pattern = composition.router().findRoutePattern(blockKey).orElse(null);
         if (pattern == null) {
             return null;
         }
@@ -85,13 +86,13 @@ final class SceneNavigator {
      * SET_PRIMARY intentionally clears query and fragment state because it
      * switches to a different primary block class.
      */
-    RelativeUrl pushPrimaryUrl(Scene state, Class<? extends Block<?, ?>> blockClass) {
+    RelativeUrl pushPrimaryUrl(Scene state, Object blockKey) {
         Composition composition = state.composition();
         if (composition == null || composition.router() == null) {
             return null;
         }
         String route = composition.router()
-                .findRoutePattern(blockClass)
+                .findRoutePattern(blockKey)
                 .orElse(null);
         if (route == null) {
             return null;

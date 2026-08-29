@@ -68,10 +68,11 @@ public class CrudApp {
 
         // URL to block mapping. Literal segments ("/posts/new") must precede parameter
         // routes ("/posts/:id") or "/posts/new" would be treated as id "new".
+        final Object postsKey = new Object();
         final Router router = new Router()
                 .route("/dashboard", DashboardBlock.class)
-                .route("/posts", PostsListBlock.class)
-                .route("/", PostsListBlock.class)
+                .route("/posts", postsKey)
+                .route("/", postsKey)
                 .route("/posts/new", PostCreateBlock.class)
                 .route("/posts/:id", PostEditBlock.class)
                 .route("/comments", CommentsListBlock.class)
@@ -110,7 +111,8 @@ public class CrudApp {
                         .bind(DashboardBlock.class,
                                 () -> new DashboardBlock(dashboardDefinition, dashboardRuntime)))
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
-                        .bind(PostsListBlock.class, () -> new PostsListBlock(postService, new DefaultListView()))
+                        .bind(postsKey, PostsListBlock.class,
+                                () -> new PostsListBlock(postService, new DefaultListView()))
                         .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultEditView()))
                         .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultEditView())))
                 .add(new Group("Comments").description("User comments for the posts")

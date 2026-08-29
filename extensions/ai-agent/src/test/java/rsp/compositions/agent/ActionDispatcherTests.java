@@ -171,6 +171,23 @@ class ActionDispatcherTests {
         assertEquals(List.of("test.direct"), published);
     }
 
+    @Test
+    void dispatch_navigate_publishes_the_configured_block_key() {
+        final Object postsKey = new Object();
+        final List<Object> published = new ArrayList<>();
+        final Lookup lookup = new StubLookup() {
+            @Override
+            public <T> void publish(EventKey<T> key, T payload) {
+                published.add(payload);
+            }
+        };
+
+        dispatcher.dispatchNavigate(postsKey, lookup);
+
+        assertEquals(1, published.size());
+        assertSame(postsKey, published.getFirst());
+    }
+
     // --- Stubs ---
 
     /** Minimal block stub with a test-controlled active lookup. */

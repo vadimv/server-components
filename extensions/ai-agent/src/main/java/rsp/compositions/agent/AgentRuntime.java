@@ -1,6 +1,7 @@
 package rsp.compositions.agent;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import rsp.component.EventKey;
 import rsp.component.Lookup;
@@ -124,6 +125,7 @@ public class AgentRuntime {
     private volatile long activeBlockDescriptorId;
     private volatile CompletableFuture<Scene> sceneSettleFuture;
     private volatile long sceneSettlePreviousDescriptorId;
+    private volatile Object sceneSettleTargetKey;
     private volatile Class<? extends Block<?, ?>> sceneSettleTargetBlockClass;
 
     // Loop lifecycle: at most one loop runs at a time.
@@ -236,8 +238,15 @@ public class AgentRuntime {
     }
 
     CompletableFuture<Scene> armSceneSettle(Class<? extends Block<?, ?>> targetBlockClass) {
+        return armSceneSettleTarget(targetBlockClass == null
+                ? null
+                : new BlockTarget(targetBlockClass, targetBlockClass));
+    }
+
+    private CompletableFuture<Scene> armSceneSettleTarget(BlockTarget target) {
         sceneSettlePreviousDescriptorId = routedDescriptorId(currentScene);
-        sceneSettleTargetBlockClass = targetBlockClass;
+        sceneSettleTargetKey = target == null ? null : target.key();
+        sceneSettleTargetBlockClass = target == null ? null : target.blockClass();
         sceneSettleFuture = new CompletableFuture<>();
         completeSceneSettleIfReady();
         return sceneSettleFuture;
@@ -257,6 +266,10 @@ public class AgentRuntime {
             return;
         }
         if (scene.routedDescriptor().instanceId() != activeBlockDescriptorId) {
+            return;
+        }
+        if (sceneSettleTargetKey != null
+                && !sceneSettleTargetKey.equals(scene.routedBlockKey())) {
             return;
         }
         if (sceneSettleTargetBlockClass != null
@@ -761,18 +774,18 @@ public class AgentRuntime {
                 return false;
             }
             case AgentResult.NavigateResult nav -> {
-                if (isRoutedBy(currentScene, nav.targetBlock())) {
+                if (isRoutedBy(currentScene, nav.target())) {
                     feedback.send("Already on " + nav.targetBlock().getSimpleName());
                     return true;
                 }
-                armSceneSettle(nav.targetBlock());
-                dispatcher.dispatchNavigate(nav.targetBlock(), lookup);
+                armSceneSettleTarget(nav.target());
+                dispatcher.dispatchNavigate(nav.targetKey(), lookup);
                 feedback.send("Navigating...");
                 Scene settled = awaitSceneSettle();
                 if (settled == null) {
                     return false;
                 }
-                if (!isRoutedBy(settled, nav.targetBlock())) {
+                if (!isRoutedBy(settled, nav.target())) {
                     feedback.send("Loop interrupted: unexpected navigation target.");
                     return false;
                 }
@@ -965,6 +978,7 @@ public class AgentRuntime {
         if (sceneSettleFuture == completedFuture) {
             sceneSettleFuture = null;
             sceneSettlePreviousDescriptorId = 0;
+            sceneSettleTargetKey = null;
             sceneSettleTargetBlockClass = null;
         }
     }
@@ -980,6 +994,11 @@ public class AgentRuntime {
     private boolean isRoutedBy(Scene scene, Class<? extends Block<?, ?>> blockClass) {
         return scene != null && scene.routedBlockClass() != null
                 && blockClass.isAssignableFrom(scene.routedBlockClass());
+    }
+
+    private boolean isRoutedBy(Scene scene, BlockTarget target) {
+        return scene != null && scene.routedBlockKey() != null
+                && scene.routedBlockKey().equals(target.key());
     }
 
     private static String abbreviate(String s) {

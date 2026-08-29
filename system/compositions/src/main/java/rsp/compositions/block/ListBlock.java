@@ -247,7 +247,7 @@ public abstract class ListBlock<T>
     private void handleBulkDelete(Set<String> selectedIds) {
         int deletedCount = bulkDelete(selectedIds);
         if (deletedCount > 0) {
-            lookup().publish(ACTION_SUCCESS, new EventKeys.ActionResult(blockClass()));
+            lookup().publish(ACTION_SUCCESS, new EventKeys.ActionResult(blockKey()));
         } else {
             onBulkDeleteFailure(selectedIds);
         }

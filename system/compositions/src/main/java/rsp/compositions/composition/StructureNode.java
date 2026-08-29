@@ -1,6 +1,7 @@
 package rsp.compositions.composition;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import java.util.List;
 import java.util.Objects;
@@ -8,7 +9,7 @@ import java.util.Objects;
 /**
  * Lightweight metadata tree node extracted from {@link Group}.
  * <p>
- * Contains only labels and block classes — no factories or views.
+ * Contains only labels and block targets — no factories or views.
  * Used by navigation components (ExplorerBlock), AI agents (PromptBlock),
  * and other consumers that need the application's structural metadata.
  *
@@ -16,14 +17,25 @@ import java.util.Objects;
  * @param description A natural-language description of this node's purpose (nullable)
  * @param children    Child structure nodes
  * @param blocks      Block classes directly bound at this level
+ * @param blockTargets Configured key/class pairs directly bound at this level
  */
 public record StructureNode(String label,
                             String description,
                             List<StructureNode> children,
-                            List<Class<? extends Block<?, ?>>> blocks) {
+                            List<Class<? extends Block<?, ?>>> blocks,
+                            List<BlockTarget> blockTargets) {
+    public StructureNode(String label,
+                         String description,
+                         List<StructureNode> children,
+                         List<Class<? extends Block<?, ?>>> blocks) {
+        this(label, description, children, blocks,
+                blocks.stream().map(blockClass -> new BlockTarget(blockClass, blockClass)).toList());
+    }
+
     public StructureNode {
         Objects.requireNonNull(children, "children");
         Objects.requireNonNull(blocks, "blocks");
+        Objects.requireNonNull(blockTargets, "blockTargets");
     }
 
     /**
@@ -33,11 +45,16 @@ public record StructureNode(String label,
      * @return true if found at this level or in any descendant
      */
     public boolean contains(Class<? extends Block<?, ?>> blockClass) {
-        if (blocks.contains(blockClass)) {
+        return contains((Object) blockClass);
+    }
+
+    /** Check if a binding key exists anywhere in this subtree. */
+    public boolean contains(Object blockKey) {
+        if (blockTargets.stream().anyMatch(target -> target.key().equals(blockKey))) {
             return true;
         }
         for (StructureNode child : children) {
-            if (child.contains(blockClass)) {
+            if (child.contains(blockKey)) {
                 return true;
             }
         }
@@ -52,11 +69,16 @@ public record StructureNode(String label,
      * @return the label of the containing node, or null if not found
      */
     public String labelFor(Class<? extends Block<?, ?>> blockClass) {
-        if (blocks.contains(blockClass)) {
+        return labelFor((Object) blockClass);
+    }
+
+    /** Find the label of the node containing the binding key. */
+    public String labelFor(Object blockKey) {
+        if (blockTargets.stream().anyMatch(target -> target.key().equals(blockKey))) {
             return label;
         }
         for (StructureNode child : children) {
-            String found = child.labelFor(blockClass);
+            String found = child.labelFor(blockKey);
             if (found != null) {
                 return found;
             }

@@ -68,6 +68,10 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("route.blockClass",
                     (Class<Class<? extends Block<?, ?>>>) (Class<?>) Class.class);
 
+    /** Configured binding key for the current route. */
+    public static final ContextKey.StringKey<Object> ROUTE_BLOCK_KEY =
+            new ContextKey.StringKey<>("route.blockKey", Object.class);
+
     /**
      * The URL path matched by the router.
      * Type: String
@@ -161,6 +165,10 @@ public final class ContextKeys {
     public static final ContextKey.StringKey<Class<? extends Block<?, ?>>> BLOCK_CLASS =
             new ContextKey.StringKey<>("block.class",
                     (Class<Class<? extends Block<?, ?>>>) (Class<?>) Class.class);
+
+    /** Configured binding key for the active block instance. */
+    public static final ContextKey.StringKey<Object> BLOCK_KEY =
+            new ContextKey.StringKey<>("block.key", Object.class);
 
     /**
      * The authenticated user object.

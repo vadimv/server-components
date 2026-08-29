@@ -86,6 +86,7 @@ public final class DirectBlockHost extends Component<BlockDescriptor, Object> {
 
     private ComponentContext enrich(ComponentContext context) {
         ComponentContext result = context
+                .with(ContextKeys.BLOCK_KEY, descriptor.blockKey())
                 .with(ContextKeys.BLOCK_CLASS, descriptor.blockClass())
                 .with(ContextKeys.IS_ACTIVE_BLOCK, true);
         if (!descriptor.showData().isEmpty()) {

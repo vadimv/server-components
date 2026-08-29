@@ -1,6 +1,7 @@
 package rsp.compositions.agent;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import rsp.compositions.block.BlockAction;
 import rsp.compositions.block.BlockMetadata;
@@ -107,6 +108,21 @@ class AgentServiceUtilsTests {
         Class<? extends Block<?, ?>> result =
             AgentServiceUtils.resolveTargetBlock("Posts", TREE);
         assertEquals(StubBlock.class, result);
+    }
+
+    @Test
+    void resolveTarget_preserves_the_binding_key() {
+        Object postsKey = new Object();
+        StructureNode keyedTree = new StructureNode("Posts", null, List.of(),
+                List.of(StubBlock.class),
+                List.of(new BlockTarget(postsKey, StubBlock.class)));
+
+        BlockTarget result = AgentServiceUtils.resolveTarget("Posts", keyedTree);
+
+        assertNotNull(result);
+        assertSame(postsKey, result.key());
+        assertEquals(StubBlock.class, result.blockClass());
+        assertTrue(ToolDefinition.navigateTool(keyedTree).inputSchema().contains("Posts"));
     }
 
     @Test

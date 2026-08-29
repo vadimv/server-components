@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /** Scene events select direct block descriptors; hosts create the components later. */
 class SceneEventHandlerTests {
@@ -73,6 +74,32 @@ class SceneEventHandlerTests {
         subscriber.fire(EventKeys.SET_PRIMARY.name(), CommentsBlock.class);
 
         assertEquals(CommentsBlock.class, stateUpdate.current().routedDescriptor().blockClass());
+    }
+
+    @Test
+    void set_primary_distinguishes_object_keys_bound_to_the_same_block_class() {
+        Object postsKey = new Object();
+        Object archivedKey = new Object();
+        DefaultLayout layout = new DefaultLayout()
+                .placement(ListBlock.class, Placement.INLINE.primary());
+        Group group = new Group("Posts")
+                .bind(postsKey, ListBlock.class, ListBlock::new)
+                .bind(archivedKey, ListBlock.class, ListBlock::new);
+        Composition composition = new Composition(new Router()
+                .route("/posts", postsKey)
+                .route("/archive", archivedKey), layout, group);
+        Scene initial = Scene.of(
+                BlockDescriptor.forBlock(postsKey, ListBlock.class, Map.of()),
+                Map.of(), composition);
+        RecordingSubscriber subscriber = new RecordingSubscriber();
+        RecordingStateUpdater stateUpdate = new RecordingStateUpdater(initial);
+
+        new SceneEventHandler(savedContext()).registerHandlers(
+                initial, subscriber, NO_OP_COMMANDS, stateUpdate);
+        subscriber.fire(EventKeys.SET_PRIMARY.name(), archivedKey);
+
+        assertSame(archivedKey, stateUpdate.current().routedDescriptor().blockKey());
+        assertEquals(ListBlock.class, stateUpdate.current().routedDescriptor().blockClass());
     }
 
     @Test

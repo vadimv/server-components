@@ -31,84 +31,90 @@ class DashboardSmokeIT {
 
     @AfterAll
     public static void shutdown() throws Exception {
-        server.stop();
-        Thread.sleep(2000);
+        try {
+            server.stop();
+            Thread.sleep(2000);
+        } finally {
+            playwright.close();
+        }
     }
 
     @ParameterizedTest
     @MethodSource("browserTypes")
     void should_render_dashboard_from_explorer_navigation(final BrowserType browserType) throws Exception {
-        final Browser browser = browserType.launch();
-        final BrowserContext context = browser.newContext();
-        final Page page = context.newPage();
+        try (Browser browser = browserType.launch();
+             BrowserContext context = browser.newContext()) {
+            final Page page = context.newPage();
 
-        login(page);
+            login(page);
 
-        Locator dashboardLink = page.locator(".explorer-item > a:has-text(\"Dashboard\")");
-        assertThat(dashboardLink).isVisible();
-        dashboardLink.click();
-        page.waitForURL(url -> url.contains("/dashboard"), new Page.WaitForURLOptions().setTimeout(5000));
+            Locator dashboardLink = page.locator(".explorer-item > a:has-text(\"Dashboard\")");
+            assertThat(dashboardLink).isVisible();
+            dashboardLink.click();
+            page.waitForURL(url -> url.contains("/dashboard"), new Page.WaitForURLOptions().setTimeout(5000));
 
-        assertTrue(page.url().contains("/dashboard"),
-                "Should navigate to /dashboard, but URL is: " + page.url());
-        assertThat(primaryScope(page).locator("h1")).containsText("Dashboard");
-        assertThat(primaryScope(page).locator(".dashboard-grid")).isVisible();
-        final Locator commentsRate = primaryScope(page)
-                .locator(".dashboard-grid-item[data-widget-id='comments-rate']");
-        assertThat(commentsRate.locator(".trend-widget")).isVisible();
-        assertThat(commentsRate.locator(".telemetry-trend-chart")).isVisible();
-        assertThat(commentsRate.locator(".dashboard-widget-value")).isVisible();
-        assertThat(commentsRate.locator(".dashboard-widget-unit")).containsText("comments/sec");
-        assertTrue((Boolean) commentsRate.locator(".telemetry-trend-chart path").evaluate("""
-                path => path.namespaceURI === 'http://www.w3.org/2000/svg'
-                        && path.getAttribute('d').trim().split(/\\s+/).length >= 2
-                        && path.getBBox().width > 0
-                        && path.getBBox().height >= 0
-                """));
+            assertTrue(page.url().contains("/dashboard"),
+                    "Should navigate to /dashboard, but URL is: " + page.url());
+            assertThat(primaryScope(page).locator("h1")).containsText("Dashboard");
+            assertThat(primaryScope(page).locator(".dashboard-grid")).isVisible();
+            final Locator commentsRate = primaryScope(page)
+                    .locator(".dashboard-grid-item[data-widget-id='comments-rate']");
+            assertThat(commentsRate.locator(".trend-widget")).isVisible();
+            assertThat(commentsRate.locator(".telemetry-trend-chart")).isVisible();
+            assertThat(commentsRate.locator(".dashboard-widget-value")).isVisible();
+            assertThat(commentsRate.locator(".dashboard-widget-unit")).containsText("comments/sec");
+            assertTrue((Boolean) commentsRate.locator(".telemetry-trend-chart path").evaluate("""
+                    path => path.namespaceURI === 'http://www.w3.org/2000/svg'
+                            && path.getAttribute('d').trim().split(/\\s+/).length >= 2
+                            && path.getBBox().width > 0
+                            && path.getBBox().height >= 0
+                    """));
+        }
     }
 
     @ParameterizedTest
     @MethodSource("browserTypes")
     void should_preserve_keyed_log_row_identity_across_rotation(final BrowserType browserType) throws Exception {
-        final Browser browser = browserType.launch();
-        final BrowserContext context = browser.newContext();
-        final Page page = context.newPage();
+        try (Browser browser = browserType.launch();
+             BrowserContext context = browser.newContext()) {
+            final Page page = context.newPage();
 
-        login(page);
-        page.locator(".explorer-item > a:has-text(\"Dashboard\")").click();
-        page.waitForURL(url -> url.contains("/dashboard"), new Page.WaitForURLOptions().setTimeout(5000));
+            login(page);
+            page.locator(".explorer-item > a:has-text(\"Dashboard\")").click();
+            page.waitForURL(url -> url.contains("/dashboard"), new Page.WaitForURLOptions().setTimeout(5000));
 
-        final Locator rows = primaryScope(page).locator(".logs-row");
-        assertThat(rows.first()).isVisible();
+            final Locator rows = primaryScope(page).locator(".logs-row");
+            assertThat(rows.first()).isVisible();
 
-        // Tag the newest (bottom) row's DOM node and remember the message it shows.
-        final Locator lastRow = rows.last();
-        final String taggedMessage = (String) lastRow.evaluate("""
-                el => { el.__keyedProbe = 'KEYED'; return el.querySelector('.logs-msg').textContent; }
-                """);
+            // Tag the newest (bottom) row's DOM node and remember the message it shows.
+            final Locator lastRow = rows.last();
+            final String taggedMessage = (String) lastRow.evaluate("""
+                    el => { el.__keyedProbe = 'KEYED'; return el.querySelector('.logs-msg').textContent; }
+                    """);
 
-        // Wait until a new line is appended (the bottom message changes), i.e. one rotation happened.
-        assertThat(primaryScope(page).locator(".logs-row").last().locator(".logs-msg"))
-                .not().hasText(taggedMessage,
-                        new com.microsoft.playwright.assertions.LocatorAssertions.HasTextOptions().setTimeout(15000));
+            // Wait until a new line is appended (the bottom message changes), i.e. one rotation happened.
+            assertThat(primaryScope(page).locator(".logs-row").last().locator(".logs-msg"))
+                    .not().hasText(taggedMessage,
+                            new com.microsoft.playwright.assertions.LocatorAssertions.HasTextOptions().setTimeout(15000));
 
-        // The row still showing the tagged message must be the SAME DOM node we tagged.
-        // Under positional diffing the message would have been rewritten into a different node,
-        // so the node carrying it would not have our probe.
-        final Object probe = primaryScope(page).locator(".logs-row").evaluateAll("""
-                (els, msg) => {
-                    const row = els.find(e => e.querySelector('.logs-msg').textContent === msg);
-                    return row ? (row.__keyedProbe || 'NO_PROBE') : 'ROW_GONE';
-                }
-                """, taggedMessage);
-        assertEquals("KEYED", probe,
-                "keyed row identity not preserved across rotation (probe=" + probe + ", msg=" + taggedMessage + ")");
+            // The row still showing the tagged message must be the SAME DOM node we tagged.
+            // Under positional diffing the message would have been rewritten into a different node,
+            // so the node carrying it would not have our probe.
+            final Object probe = primaryScope(page).locator(".logs-row").evaluateAll("""
+                    (els, msg) => {
+                        const row = els.find(e => e.querySelector('.logs-msg').textContent === msg);
+                        return row ? (row.__keyedProbe || 'NO_PROBE') : 'ROW_GONE';
+                    }
+                    """, taggedMessage);
+            assertEquals("KEYED", probe,
+                    "keyed row identity not preserved across rotation (probe=" + probe + ", msg=" + taggedMessage + ")");
 
-        // And it should have scrolled up: no longer the bottom row.
-        final String bottomMessageNow = primaryScope(page).locator(".logs-row").last()
-                .locator(".logs-msg").textContent();
-        assertNotEquals(taggedMessage, bottomMessageNow,
-                "tagged row should have moved up after a new line was appended");
+            // And it should have scrolled up: no longer the bottom row.
+            final String bottomMessageNow = primaryScope(page).locator(".logs-row").last()
+                    .locator(".logs-msg").textContent();
+            assertNotEquals(taggedMessage, bottomMessageNow,
+                    "tagged row should have moved up after a new line was appended");
+        }
     }
 
     private static Stream<BrowserType> browserTypes() {

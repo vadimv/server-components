@@ -46,8 +46,8 @@ public final class SceneEventHandler {
             handleShow(state, payload, stateUpdate, commandsEnqueue);
         }, false);
 
-        subscriber.addEventHandler(SET_PRIMARY, (eventName, blockClass) -> {
-            handleSetPrimary(state, blockClass, stateUpdate, commandsEnqueue);
+        subscriber.addEventHandler(SET_PRIMARY, (eventName, blockKey) -> {
+            handleSetPrimary(state, blockKey, stateUpdate, commandsEnqueue);
         }, false);
 
         // ACTION_SUCCESS handler: refresh routed block in place
@@ -71,8 +71,12 @@ public final class SceneEventHandler {
                             ShowPayload payload,
                             StateUpdater<Scene> stateUpdate,
                             CommandsEnqueue commandsEnqueue) {
-        Class<? extends Block<?, ?>> blockClass = payload.blockClass();
-        PlacementDecision decision = state.composition().layout().resolvePlacement(blockClass, state);
+        Object blockKey = payload.blockKey();
+        if (!state.blocks().hasBinding(blockKey)) {
+            return;
+        }
+        PlacementDecision decision = state.composition().layout()
+                .resolvePlacement(state.blocks().target(blockKey), state);
 
         if (decision.placement().isInline()) {
             handleShowInline(state, payload, stateUpdate, commandsEnqueue);
@@ -87,9 +91,9 @@ public final class SceneEventHandler {
                                   ShowPayload payload,
                                   StateUpdater<Scene> stateUpdate,
                                   CommandsEnqueue commandsEnqueue) {
-        Class<? extends Block<?, ?>> blockClass = payload.blockClass();
+        Object blockKey = payload.blockKey();
 
-        if (state.isRouted(blockClass)) {
+        if (state.isRouted(blockKey)) {
             return;
         }
 
@@ -99,7 +103,7 @@ public final class SceneEventHandler {
         final SceneNavigator navigator = new SceneNavigator(savedContext, commandsEnqueue);
         final Scene.InlineReturnTarget returnTarget = navigator.captureInlineReturnTarget(state);
 
-        BlockDescriptor descriptor = describeBlock(state, blockClass, payload.data());
+        BlockDescriptor descriptor = describeBlock(state, blockKey, payload.data());
         if (descriptor == null) {
             return;
         }
@@ -107,7 +111,7 @@ public final class SceneEventHandler {
         // Update the URL bar to reflect the now-routed inline block (e.g. /comments/3).
         // The Router's pattern is the source of truth for URL shape; we substitute path
         // parameters from the SHOW payload data and preserve the current query state.
-        RelativeUrl targetUrl = navigator.pushInlineUrl(state, blockClass, payload.data());
+        RelativeUrl targetUrl = navigator.pushInlineUrl(state, blockKey, payload.data());
 
         stateUpdate.applyStateTransformation(s -> {
             Scene next = s.withRoutedDescriptor(descriptor);
@@ -137,7 +141,7 @@ public final class SceneEventHandler {
         boolean isPrimary = routed != null && routed.instanceId() == update.descriptorId();
         BlockDescriptor autoOpen = state.autoOpen() == null
                 ? null
-                : state.preActivatedDescriptor(state.autoOpen().blockClass());
+                : state.preActivatedDescriptor(state.autoOpen().blockKey());
         boolean isAutoOpenOverlay = autoOpen != null && autoOpen.instanceId() == update.descriptorId();
         if ((!isPrimary && !isAutoOpenOverlay) || state.pageTitle().equals(update.title())) {
             return;
@@ -167,13 +171,13 @@ public final class SceneEventHandler {
             return;
         }
 
-        Class<? extends Block<?, ?>> targetClass = match.get().blockClass();
-        if (state.isRouted(targetClass)) {
+        Object targetKey = match.get().blockKey();
+        if (state.isRouted(targetKey)) {
             stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(targetUrl));
             return;
         }
 
-        BlockDescriptor descriptor = describeBlockForUrl(state, targetClass);
+        BlockDescriptor descriptor = describeBlockForUrl(state, targetKey);
         if (descriptor == null) {
             return;
         }
@@ -187,16 +191,15 @@ public final class SceneEventHandler {
     /**
      * Handle SET_PRIMARY event: replace the routed block.
      */
-    @SuppressWarnings("unchecked")
-    private void handleSetPrimary(Scene state, Class blockClass,
+    private void handleSetPrimary(Scene state, Object blockKey,
                                   StateUpdater<Scene> stateUpdate,
                                   CommandsEnqueue commandsEnqueue) {
         // Check if already the routed block
-        if (state.routedDescriptor() != null && state.routedDescriptor().blockClass().equals(blockClass)) {
+        if (state.isRouted(blockKey)) {
             return;
         }
 
-        BlockDescriptor descriptor = describeBlock(state, blockClass, Map.of());
+        BlockDescriptor descriptor = describeBlock(state, blockKey, Map.of());
         if (descriptor == null) {
             return;
         }
@@ -204,9 +207,8 @@ public final class SceneEventHandler {
         // Update URL to reflect the new routed block's route.
         // SET_PRIMARY is a fresh primary-block selection, so the navigator
         // uses an empty query and fragment for the target URL.
-        Class<? extends Block<?, ?>> typedBlockClass = (Class<? extends Block<?, ?>>) blockClass;
         RelativeUrl targetUrl = new SceneNavigator(savedContext, commandsEnqueue)
-                .pushPrimaryUrl(state, typedBlockClass);
+                .pushPrimaryUrl(state, blockKey);
 
         // SET_PRIMARY is a fresh navigation — clear any pending inline return target
         // so a subsequent ACTION_SUCCESS does not bounce the user back to a stale view.
@@ -220,31 +222,29 @@ public final class SceneEventHandler {
     /**
      * Resolve a fresh descriptor for a block that will mount in the tree.
      */
-    @SuppressWarnings("unchecked")
-    private BlockDescriptor describeBlock(Scene state, Class blockClass) {
-        return describeBlock(state, blockClass, Map.of());
+    private BlockDescriptor describeBlock(Scene state, Object blockKey) {
+        return describeBlock(state, blockKey, Map.of());
     }
 
     /**
      * Select a fresh component-owned block descriptor.
      */
-    @SuppressWarnings("unchecked")
-    private BlockDescriptor describeBlock(Scene state, Class blockClass,
+    private BlockDescriptor describeBlock(Scene state, Object blockKey,
                                                   Map<String, Object> showData) {
         Composition composition = state.composition();
-        if (composition == null || !composition.blocks().hasBinding(blockClass)) {
+        if (composition == null || !composition.blocks().hasBinding(blockKey)) {
             return null;
         }
-        return BlockDescriptor.forBlock(blockClass, showData);
+        return BlockDescriptor.forTarget(composition.blocks().target(blockKey), showData);
     }
 
     private BlockDescriptor describeBlockForUrl(Scene state,
-                                                       Class<? extends Block<?, ?>> blockClass) {
+                                                 Object blockKey) {
         if (state.composition() == null
-                || !state.composition().blocks().hasBinding(blockClass)) {
+                || !state.composition().blocks().hasBinding(blockKey)) {
             return null;
         }
-        return BlockDescriptor.forBlock(blockClass, Map.of());
+        return BlockDescriptor.forTarget(state.composition().blocks().target(blockKey), Map.of());
     }
 
     /**
@@ -263,24 +263,21 @@ public final class SceneEventHandler {
                                      ActionResult result,
                                      CommandsEnqueue commandsEnqueue,
                                      StateUpdater<Scene> stateUpdate) {
-        Class<? extends Block<?, ?>> blockClass = result.blockClass();
-        if (blockClass == null) {
-            return;
-        }
+        Object blockKey = result.blockKey();
         if (state.routedDescriptor() == null) {
             return;
         }
 
         Scene.InlineReturnTarget returnTarget = state.inlineReturnTarget();
         if (returnTarget != null
-                && state.routedDescriptor().blockClass().equals(blockClass)) {
+                && state.routedDescriptor().blockKey().equals(blockKey)) {
             restoreInlineReturn(state, returnTarget, commandsEnqueue, stateUpdate);
             return;
         }
 
         // In-place refresh — same block class, preserve query state.
-        Class routedClass = state.routedDescriptor().blockClass();
-        BlockDescriptor refreshed = describeBlock(state, routedClass);
+        Object routedKey = state.routedDescriptor().blockKey();
+        BlockDescriptor refreshed = describeBlock(state, routedKey);
         if (refreshed != null) {
             stateUpdate.applyStateTransformation(s -> s.withRoutedDescriptor(refreshed));
         }
@@ -290,7 +287,7 @@ public final class SceneEventHandler {
                                      Scene.InlineReturnTarget target,
                                      CommandsEnqueue commandsEnqueue,
                                      StateUpdater<Scene> stateUpdate) {
-        BlockDescriptor restored = describeBlock(state, target.blockClass());
+        BlockDescriptor restored = describeBlock(state, target.blockKey());
         if (restored == null) {
             return;
         }

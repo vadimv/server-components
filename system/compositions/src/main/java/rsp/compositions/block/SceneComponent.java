@@ -45,7 +45,8 @@ public class SceneComponent extends Component<Scene, Object> {
                           Composition composition,
                           Class<? extends Block<?, ?>> blockClass,
                           String routePattern) {
-        this(componentType, composition, blockClass, routePattern, new DefaultLayout(), new ModalLayerLayout());
+        this(componentType, composition, blockClass, blockClass, routePattern,
+                new DefaultLayout(), new ModalLayerLayout());
     }
 
     public SceneComponent(Object componentType,
@@ -53,11 +54,12 @@ public class SceneComponent extends Component<Scene, Object> {
                           Class<? extends Block<?, ?>> blockClass,
                           String routePattern,
                           Layout layout) {
-        this(componentType, composition, blockClass, routePattern, layout, new ModalLayerLayout());
+        this(componentType, composition, blockClass, blockClass, routePattern, layout, new ModalLayerLayout());
     }
 
     public SceneComponent(Object componentType,
                           Composition composition,
+                          Object blockKey,
                           Class<? extends Block<?, ?>> blockClass,
                           String routePattern,
                           Layout layout,
@@ -67,9 +69,30 @@ public class SceneComponent extends Component<Scene, Object> {
         Objects.requireNonNull(blockClass, "blockClass");
         Objects.requireNonNull(routePattern, "routePattern");
         this.layout = Objects.requireNonNull(layout, "layout");
-        this.sceneBuilder = new SceneBuilder(composition, blockClass, routePattern, layout);
+        this.sceneBuilder = new SceneBuilder(composition,
+                new BlockTarget(Objects.requireNonNull(blockKey, "blockKey"), blockClass),
+                routePattern, layout);
         this.contextEnricher = new SceneContextEnricher(routePattern);
         this.layerLayout = Objects.requireNonNull(layerLayout, "layerLayout");
+    }
+
+    public SceneComponent(Object componentType,
+                          Composition composition,
+                          Object blockKey,
+                          Class<? extends Block<?, ?>> blockClass,
+                          String routePattern,
+                          Layout layout) {
+        this(componentType, composition, blockKey, blockClass, routePattern, layout,
+                new ModalLayerLayout());
+    }
+
+    public SceneComponent(Object componentType,
+                          Composition composition,
+                          Class<? extends Block<?, ?>> blockClass,
+                          String routePattern,
+                          Layout layout,
+                          LayerLayout layerLayout) {
+        this(componentType, composition, blockClass, blockClass, routePattern, layout, layerLayout);
     }
 
     @Override

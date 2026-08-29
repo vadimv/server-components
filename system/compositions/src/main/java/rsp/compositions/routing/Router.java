@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * Router - Maps URL paths to block component classes.
+ * Router - Maps URL paths to block keys.
  * <p>
  * Supports both exact routes and path parameter routes:
  * <ul>
@@ -19,24 +19,49 @@ import java.util.Optional;
  */
 public class Router {
     private final Map<String, RoutePattern> routes = new LinkedHashMap<>();
+    private boolean sealed;
 
     /**
      * Result of matching a route.
      *
-     * @param blockClass The block component class for this route
+     * @param blockKey The configured block key for this route
      * @param pattern The route pattern (e.g., "/posts/:id")
      */
-    public record RouteMatch(Class<? extends Block<?, ?>> blockClass, String pattern) {}
+    public record RouteMatch(Object blockKey, String pattern) {
+        public RouteMatch {
+            java.util.Objects.requireNonNull(blockKey, "blockKey");
+            java.util.Objects.requireNonNull(pattern, "pattern");
+        }
+
+        /** Compatibility accessor for class-keyed routes. */
+        @SuppressWarnings("unchecked")
+        public Class<? extends Block<?, ?>> blockClass() {
+            if (!(blockKey instanceof Class<?> type) || !Block.class.isAssignableFrom(type)) {
+                throw new IllegalStateException("Route target is not class-keyed: " + blockKey);
+            }
+            return (Class<? extends Block<?, ?>>) type;
+        }
+    }
 
     /**
      * Register a route pattern.
      *
      * @param path The path pattern (e.g., "/posts" or "/posts/:id")
-     * @param blockClass The block component class to use for this route
+     * @param blockClass The block component class, also used as the route key
      * @return this Router for chaining
      */
     public Router route(String path, Class<? extends Block<?, ?>> blockClass) {
-        routes.put(path, new RoutePattern(path, blockClass));
+        return route(path, (Object) blockClass);
+    }
+
+    /** Register a path targeting an application-defined block key. */
+    public Router route(String path, Object blockKey) {
+        if (sealed) {
+            throw new IllegalStateException("Router is sealed by a Composition and cannot be modified");
+        }
+        java.util.Objects.requireNonNull(path, "path");
+        java.util.Objects.requireNonNull(blockKey, "blockKey");
+        routes.put(path, new RoutePattern(path, blockKey));
         return this;
     }
 
@@ -44,13 +69,13 @@ public class Router {
      * Match an incoming URL path to a registered route.
      *
      * @param path The incoming URL path (e.g., Path of "/posts/123")
-     * @return The matching route details (block class and pattern), or empty if no match
+     * @return The matching route details (block key and pattern), or empty if no match
      */
     public Optional<RouteMatch> match(Path path) {
         // Try routes in registration order (LinkedHashMap preserves order)
         for (RoutePattern pattern : routes.values()) {
             if (pattern.matches(path)) {
-                return Optional.of(new RouteMatch(pattern.blockClass(), pattern.pattern()));
+                return Optional.of(new RouteMatch(pattern.blockKey(), pattern.pattern()));
             }
         }
 
@@ -64,8 +89,12 @@ public class Router {
      * @return true if a route is registered for this block
      */
     public boolean hasRoute(Class<? extends Block<?, ?>> blockClass) {
+        return hasRoute((Object) blockClass);
+    }
+
+    public boolean hasRoute(Object blockKey) {
         return routes.values().stream()
-                .anyMatch(p -> p.blockClass().equals(blockClass));
+                .anyMatch(p -> p.blockKey().equals(blockKey));
     }
 
     /**
@@ -78,8 +107,12 @@ public class Router {
      * @return The route pattern (e.g., "/posts"), or empty if not found
      */
     public Optional<String> findRoutePattern(Class<? extends Block<?, ?>> blockClass) {
+        return findRoutePattern((Object) blockClass);
+    }
+
+    public Optional<String> findRoutePattern(Object blockKey) {
         for (RoutePattern pattern : routes.values()) {
-            if (pattern.blockClass().equals(blockClass)) {
+            if (pattern.blockKey().equals(blockKey)) {
                 return Optional.of(pattern.pattern());
             }
         }
@@ -111,7 +144,7 @@ public class Router {
         // Look for a route with this parent pattern
         RoutePattern parentRoute = routes.get(parentPattern);
         if (parentRoute != null) {
-            return Optional.of(new RouteMatch(parentRoute.blockClass(), parentRoute.pattern()));
+            return Optional.of(new RouteMatch(parentRoute.blockKey(), parentRoute.pattern()));
         }
 
         return Optional.empty();
@@ -141,7 +174,19 @@ public class Router {
     /**
      * A route pattern that can match exact paths or paths with parameters.
      */
-    private record RoutePattern(String pattern, Class<? extends Block<?, ?>> blockClass) {
+    /** Return route targets for composition validation. */
+    public Map<String, Object> routeTargets() {
+        Map<String, Object> result = new LinkedHashMap<>();
+        routes.forEach((path, route) -> result.put(path, route.blockKey()));
+        return java.util.Collections.unmodifiableMap(result);
+    }
+
+    /** Prevent further mutation after composition validation. */
+    public void seal() {
+        sealed = true;
+    }
+
+    private record RoutePattern(String pattern, Object blockKey) {
 
         /**
          * Check if this pattern matches the given path.

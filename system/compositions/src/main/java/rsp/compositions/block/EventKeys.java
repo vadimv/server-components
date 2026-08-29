@@ -36,8 +36,8 @@ public final class EventKeys {
     public static final EventKey.SimpleKey<ShowPayload> SHOW_LAYER =
             new EventKey.SimpleKey<>("show.layer", ShowPayload.class);
 
-    public static final EventKey.SimpleKey<Class> SET_PRIMARY =
-            new EventKey.SimpleKey<>("setPrimary", Class.class);
+    public static final EventKey.SimpleKey<Object> SET_PRIMARY =
+            new EventKey.SimpleKey<>("setPrimary", Object.class);
 
 
     /**
@@ -50,10 +50,8 @@ public final class EventKeys {
      * Unlike CLOSE_OVERLAY which is generic, HIDE always specifies which
      * block to close. This supports multiple overlays being shown.
      */
-    @SuppressWarnings("unchecked")
-    public static final EventKey.SimpleKey<Class<? extends Block<?, ?>>> HIDE =
-            new EventKey.SimpleKey<>("hide",
-                    (Class<Class<? extends Block<?, ?>>>) (Class<?>) Class.class);
+    public static final EventKey.SimpleKey<Object> HIDE =
+            new EventKey.SimpleKey<>("hide", Object.class);
 
 
     /**
@@ -128,7 +126,7 @@ public final class EventKeys {
     /**
      * Action succeeded (data event).
      * Emitted by: form block components after successful operations
-     * Payload: ActionResult containing block class
+     * Payload: ActionResult containing the configured block key
      * <p>
      * This is a data event — blocks decide their own post-action behavior.
      * The framework does not impose auto-close or auto-navigate heuristics.
@@ -140,10 +138,21 @@ public final class EventKeys {
     /**
      * Action result payload.
      *
-     * @param blockClass The class of the block that performed the action
+     * @param blockKey The configured key of the block that performed the action
      */
-    public record ActionResult(
-        Class<? extends Block<?, ?>> blockClass
-    ) {}
+    public record ActionResult(Object blockKey) {
+        public ActionResult {
+            Objects.requireNonNull(blockKey, "blockKey");
+        }
+
+        /** Compatibility accessor for class-keyed results. */
+        @SuppressWarnings("unchecked")
+        public Class<? extends Block<?, ?>> blockClass() {
+            if (!(blockKey instanceof Class<?> type) || !Block.class.isAssignableFrom(type)) {
+                throw new IllegalStateException("Action result is not class-keyed: " + blockKey);
+            }
+            return (Class<? extends Block<?, ?>>) type;
+        }
+    }
 
 }

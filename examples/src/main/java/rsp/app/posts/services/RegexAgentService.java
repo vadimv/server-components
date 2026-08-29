@@ -1,6 +1,7 @@
 package rsp.app.posts.services;
 
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 
 import rsp.compositions.block.BlockAction;
 import rsp.compositions.block.BlockActionPayload;
@@ -287,25 +288,22 @@ public class RegexAgentService extends AgentService {
     // --- Navigation ---
 
     private AgentResult handleNavigate(String target, StructureNode structureTree) {
-        Class<? extends Block<?, ?>> blockClass = findBlockByLabel(target.trim(), structureTree);
-        if (blockClass != null) {
-            return new AgentResult.NavigateResult(blockClass);
+        BlockTarget blockTarget = findBlockByLabel(target.trim(), structureTree);
+        if (blockTarget != null) {
+            return new AgentResult.NavigateResult(blockTarget);
         }
         return new AgentResult.TextReply("No block found matching '" + target + "'.");
     }
 
     @SuppressWarnings("unchecked")
-    private Class<? extends Block<?, ?>> findBlockByLabel(String label, StructureNode node) {
+    private BlockTarget findBlockByLabel(String label, StructureNode node) {
         if (node.label() != null && node.label().equalsIgnoreCase(label)) {
-            if (!node.blocks().isEmpty()) {
-                Class<?> cls = node.blocks().iterator().next();
-                if (Block.class.isAssignableFrom(cls)) {
-                    return (Class<? extends Block<?, ?>>) cls;
-                }
+            if (!node.blockTargets().isEmpty()) {
+                return node.blockTargets().getFirst();
             }
         }
         for (StructureNode child : node.children()) {
-            Class<? extends Block<?, ?>> found = findBlockByLabel(label, child);
+            BlockTarget found = findBlockByLabel(label, child);
             if (found != null) return found;
         }
         return null;

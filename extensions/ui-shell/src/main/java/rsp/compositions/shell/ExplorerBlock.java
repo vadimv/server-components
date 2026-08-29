@@ -7,6 +7,7 @@ import rsp.component.StateUpdater;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.StructureNode;
 import rsp.compositions.block.Block;
+import rsp.compositions.block.BlockTarget;
 import rsp.compositions.block.NavigationEntry;
 import rsp.compositions.block.NavigationNode;
 
@@ -68,7 +69,7 @@ public class ExplorerBlock extends Block<ExplorerView.ExplorerViewState, Explore
     protected void onIntent(ExplorerView.OpenBlock intent,
                             ExplorerView.ExplorerViewState state,
                             StateUpdater<ExplorerView.ExplorerViewState> stateUpdater) {
-        lookup().publish(SET_PRIMARY, intent.entry().blockClass());
+        lookup().publish(SET_PRIMARY, intent.entry().blockKey());
     }
 
     private String categoryFor(rsp.component.ComponentContext context) {
@@ -78,7 +79,7 @@ public class ExplorerBlock extends Block<ExplorerView.ExplorerViewState, Explore
     private String categoryFor(rsp.compositions.block.Scene scene) {
         return scene == null || scene.routedDescriptor() == null
                 ? null
-                : structure.labelFor(scene.routedDescriptor().blockClass());
+                : structure.labelFor(scene.routedDescriptor().blockKey());
     }
 
     private static NavigationNode buildNavigationTree(List<Composition> compositions,
@@ -93,10 +94,11 @@ public class ExplorerBlock extends Block<ExplorerView.ExplorerViewState, Explore
 
         NavigationEntry entry = null;
         if (node.label() != null && compositions != null) {
-            for (Class<? extends Block<?, ?>> blockClass : node.blocks()) {
-                Optional<String> routeOpt = findRoute(compositions, blockClass);
+            for (BlockTarget target : node.blockTargets()) {
+                Optional<String> routeOpt = findRoute(compositions, target.key());
                 if (routeOpt.isPresent() && !routeOpt.get().contains(":")) {
-                    entry = new NavigationEntry(node.label(), node.label(), blockClass, routeOpt.get());
+                    entry = new NavigationEntry(node.label(), node.label(), target.key(),
+                            target.blockClass(), routeOpt.get());
                     break;
                 }
             }
@@ -110,9 +112,9 @@ public class ExplorerBlock extends Block<ExplorerView.ExplorerViewState, Explore
     }
 
     private static Optional<String> findRoute(List<Composition> compositions,
-                                              Class<? extends Block<?, ?>> blockClass) {
+                                              Object blockKey) {
         for (Composition comp : compositions) {
-            Optional<String> route = comp.router().findRoutePattern(blockClass);
+            Optional<String> route = comp.router().findRoutePattern(blockKey);
             if (route.isPresent()) {
                 return route;
             }

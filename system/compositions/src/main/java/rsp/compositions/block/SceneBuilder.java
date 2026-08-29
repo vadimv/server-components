@@ -39,7 +39,7 @@ import java.util.Set;
 public final class SceneBuilder {
 
     private final Composition composition;
-    private final Class<? extends Block<?, ?>> blockClass;
+    private final BlockTarget target;
     private final String routePattern;
     private final Layout layout;
 
@@ -47,8 +47,22 @@ public final class SceneBuilder {
                         Class<? extends Block<?, ?>> blockClass,
                         String routePattern,
                         Layout layout) {
+        this(composition, composition.blocks().target(blockClass), routePattern, layout);
+    }
+
+    public SceneBuilder(Composition composition,
+                        BlockTarget target,
+                        String routePattern,
+                        Layout layout) {
         this.composition = Objects.requireNonNull(composition, "composition");
-        this.blockClass = Objects.requireNonNull(blockClass, "blockClass");
+        BlockTarget requestedTarget = Objects.requireNonNull(target, "target");
+        BlockTarget configuredTarget = composition.blocks().target(requestedTarget.key());
+        if (!configuredTarget.blockClass().equals(requestedTarget.blockClass())) {
+            throw new IllegalArgumentException("Block key " + requestedTarget.key()
+                    + " is bound to " + configuredTarget.blockClass().getName()
+                    + ", not " + requestedTarget.blockClass().getName());
+        }
+        this.target = configuredTarget;
         this.routePattern = Objects.requireNonNull(routePattern, "routePattern");
         this.layout = Objects.requireNonNull(layout, "layout");
     }
@@ -62,8 +76,8 @@ public final class SceneBuilder {
         Group blocks = composition.blocks();
 
         // Verify block is registered
-        if (!blocks.hasBinding(this.blockClass)) {
-            throw new IllegalStateException("Block not found in composition: " + this.blockClass.getName());
+        if (!blocks.hasBinding(target.key())) {
+            throw new IllegalStateException("Block not found in composition: " + target.key());
         }
 
         // Check if this block has a parent route → potentially overlay-like.
@@ -72,7 +86,7 @@ public final class SceneBuilder {
         Optional<Router.RouteMatch> parentRoute = composition.router().findParentRoute(routePattern);
 
         Scene scene;
-        if (parentRoute.isPresent() && resolvesToModal(this.blockClass)) {
+        if (parentRoute.isPresent() && resolvesToModal(target)) {
             scene = buildAutoOpenScene(parentRoute.get());
         } else {
             scene = buildStandardScene();
@@ -83,7 +97,8 @@ public final class SceneBuilder {
             // the form in place and Save/Cancel would appear to do nothing.
             if (parentRoute.isPresent()) {
                 Scene.InlineReturnTarget rt = new Scene.InlineReturnTarget(
-                        parentRoute.get().blockClass(),
+                        parentRoute.get().blockKey(),
+                        blocks.target(parentRoute.get().blockKey()).blockClass(),
                         parentRoute.get().pattern(),
                         captureQuery(context),
                         captureFragment(context));
@@ -121,9 +136,9 @@ public final class SceneBuilder {
      * Build scene for standard primary block (no parent route).
      */
     private Scene buildStandardScene() {
-        BlockDescriptor routedDescriptor = BlockDescriptor.forBlock(this.blockClass, Map.of());
+        BlockDescriptor routedDescriptor = BlockDescriptor.forTarget(target, Map.of());
 
-        Map<Class<? extends Block<?, ?>>, BlockDescriptor> companionDescriptors = describeCompanions();
+        Map<Object, BlockDescriptor> companionDescriptors = describeCompanions();
 
         return Scene.of(routedDescriptor, companionDescriptors, composition);
     }
@@ -135,43 +150,43 @@ public final class SceneBuilder {
     private Scene buildAutoOpenScene(Router.RouteMatch parentRoute) {
         Group blocks = composition.blocks();
 
-        if (!blocks.hasBinding(this.blockClass)) {
-            throw new IllegalStateException("Overlay block not found: " + this.blockClass.getName());
+        if (!blocks.hasBinding(target.key())) {
+            throw new IllegalStateException("Overlay block not found: " + target.key());
         }
 
         // Select the parent block as the routed descriptor
-        Class<? extends Block<?, ?>> parentClass = parentRoute.blockClass();
-        if (!blocks.hasBinding(parentClass)) {
+        Object parentKey = parentRoute.blockKey();
+        if (!blocks.hasBinding(parentKey)) {
             throw new IllegalStateException(
-                    "Parent block not found in composition: " + parentClass.getName());
+                    "Parent block not found in composition: " + parentKey);
         }
+        BlockTarget parentTarget = blocks.target(parentKey);
 
-        BlockDescriptor parentDescriptor = BlockDescriptor.forBlock(parentClass, Map.of());
+        BlockDescriptor parentDescriptor = BlockDescriptor.forTarget(parentTarget, Map.of());
 
-        Map<Class<? extends Block<?, ?>>, BlockDescriptor> companionDescriptors = describeCompanions();
+        Map<Object, BlockDescriptor> companionDescriptors = describeCompanions();
 
         // The live overlay runtime is created by LayerComponent.
-        BlockDescriptor overlayDescriptor = BlockDescriptor.forBlock(this.blockClass, Map.of());
-        Map<Class<? extends Block<?, ?>>, BlockDescriptor> preActivated = new LinkedHashMap<>();
-        preActivated.put(this.blockClass, overlayDescriptor);
+        BlockDescriptor overlayDescriptor = BlockDescriptor.forTarget(target, Map.of());
+        Map<Object, BlockDescriptor> preActivated = new LinkedHashMap<>();
+        preActivated.put(target.key(), overlayDescriptor);
 
         return Scene.withAutoOpen(parentDescriptor, companionDescriptors, preActivated, composition,
-                new Scene.AutoOpen(this.blockClass, routePattern));
+                new Scene.AutoOpen(target.key(), target.blockClass(), routePattern));
     }
 
     /**
      * Describe companion blocks declared by the Layout.
      */
-    private Map<Class<? extends Block<?, ?>>, BlockDescriptor> describeCompanions() {
-        Set<Class<? extends Block<?, ?>>> requiredByLayout = layout.requiredBlocks();
+    private Map<Object, BlockDescriptor> describeCompanions() {
+        Set<Object> requiredByLayout = layout.requiredBlockKeys();
         Group blocks = composition.blocks();
-        Map<Class<? extends Block<?, ?>>, BlockDescriptor> companions = new LinkedHashMap<>();
+        Map<Object, BlockDescriptor> companions = new LinkedHashMap<>();
 
-        for (Class<? extends Block<?, ?>> cls : blocks.blockClasses()) {
-            if (requiredByLayout.contains(cls)) {
-                if (blocks.hasBinding(cls)) {
-                    companions.put(cls, BlockDescriptor.forBlock(cls, Map.of()));
-                }
+        for (Object key : requiredByLayout) {
+            if (blocks.hasBinding(key)) {
+                BlockTarget companion = blocks.target(key);
+                companions.put(companion.key(), BlockDescriptor.forTarget(companion, Map.of()));
             }
         }
 
@@ -185,8 +200,8 @@ public final class SceneBuilder {
      * resolver tolerates null and treats this as a "no routed descriptor yet" hint
      * (the first-in-* policies return INLINE in that case).
      */
-    private boolean resolvesToModal(Class<? extends Block<?, ?>> blockClass) {
-        PlacementDecision decision = layout.resolvePlacement(blockClass, null);
+    private boolean resolvesToModal(BlockTarget blockTarget) {
+        PlacementDecision decision = layout.resolvePlacement(blockTarget, null);
         return decision.placement().isModal();
     }
 

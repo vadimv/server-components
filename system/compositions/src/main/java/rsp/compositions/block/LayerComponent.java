@@ -84,12 +84,13 @@ public class LayerComponent extends Component<LayerComponent.LayerState, Object>
             if (scene == null) {
                 return div();
             }
+            Object blockKey = state.descriptor().blockKey();
             Class<? extends Block<?, ?>> blockClass = state.descriptor().blockClass();
             Component<?, ?> bounded = new DirectBlockHost(
-                    state.descriptor(), scene.blocks().resolveBlock(blockClass), true);
+                    state.descriptor(), scene.blocks().resolveBlock(blockKey), true);
             Lookup lookup = LookupFactory.create(context);
             return div(
-                    layout.resolve(bounded, blockClass, lookup),
+                    layout.resolve(bounded, blockKey, blockClass, lookup),
                     new LayerComponent(layout, level + 1));
         };
     }
@@ -130,7 +131,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState, Object>
     private void handleShow(LayerState state, ShowPayload payload,
                             StateUpdater<LayerState> stateUpdate,
                             CommandsEnqueue commandsEnqueue) {
-        Class<? extends Block<?, ?>> blockClass = payload.blockClass();
+        Object blockKey = payload.blockKey();
         var data = payload.data();
 
         // Already active? Let the child layer handle the new SHOW_LAYER.
@@ -143,17 +144,17 @@ public class LayerComponent extends Component<LayerComponent.LayerState, Object>
         Scene scene = context.get(ContextKeys.SCENE);
         if (scene == null) return;
 
-        if (!scene.blocks().hasBinding(blockClass)) return;
+        if (!scene.blocks().hasBinding(blockKey)) return;
 
-        BlockDescriptor descriptor = BlockDescriptor.forBlock(blockClass, data);
+        BlockDescriptor descriptor = BlockDescriptor.forTarget(scene.blocks().target(blockKey), data);
 
         stateUpdate.applyStateTransformation(s -> new LayerState(descriptor));
     }
 
     private void handleHide(LayerState state,
-                            Class<? extends Block<?, ?>> blockClass,
+                            Object blockKey,
                             StateUpdater<LayerState> stateUpdate) {
-        if (!state.isActive() || !state.descriptor().blockClass().equals(blockClass)) {
+        if (!state.isActive() || !state.descriptor().blockKey().equals(blockKey)) {
             return;
         }
         stateUpdate.applyStateTransformation(s -> LayerState.EMPTY);
@@ -164,15 +165,14 @@ public class LayerComponent extends Component<LayerComponent.LayerState, Object>
                                      CommandsEnqueue commandsEnqueue) {
         if (!state.isActive()) return;
 
-        Class<? extends Block<?, ?>> blockClass = result.blockClass();
-        if (blockClass == null) return;
-        if (!state.descriptor().blockClass().equals(blockClass)) return;
+        Object blockKey = result.blockKey();
+        if (!state.descriptor().blockKey().equals(blockKey)) return;
 
         // Check for auto-open case (URL-routed overlay)
         ComponentContext context = activeContext();
         Scene scene = context.get(ContextKeys.SCENE);
         if (scene != null && scene.autoOpen() != null
-                && scene.autoOpen().blockClass().equals(blockClass)) {
+                && scene.autoOpen().blockKey().equals(blockKey)) {
             Lookup lookup = LookupFactory.create(context, commandsEnqueue);
             RelativeUrl parentUrl = RouteUtils.buildParentRoute(scene.autoOpen().routePattern(), lookup);
             lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
@@ -182,7 +182,7 @@ public class LayerComponent extends Component<LayerComponent.LayerState, Object>
 
         // Normal case: publish HIDE
         Lookup lookup = LookupFactory.create(context, commandsEnqueue);
-        lookup.publish(HIDE, blockClass);
+        lookup.publish(HIDE, blockKey);
     }
 
     private ComponentContext activeContext() {

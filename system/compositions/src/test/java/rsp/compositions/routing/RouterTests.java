@@ -53,6 +53,19 @@ public class RouterTests {
         }
 
         @Test
+        void exact_route_preserves_an_application_defined_block_key() {
+            Object postsKey = new Object();
+            Router router = new Router().route("/posts", postsKey);
+
+            Router.RouteMatch match = router.match(Path.of("/posts")).orElseThrow();
+
+            assertSame(postsKey, match.blockKey());
+            assertTrue(router.hasRoute(postsKey));
+            assertEquals("/posts", router.findRoutePattern(postsKey).orElseThrow());
+            assertThrows(IllegalStateException.class, match::blockClass);
+        }
+
+        @Test
         void exact_route_does_not_match_different_path() {
             final Router router = new Router()
                     .route("/posts", TestBlock.class);
