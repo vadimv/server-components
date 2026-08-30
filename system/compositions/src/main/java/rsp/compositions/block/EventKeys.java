@@ -4,6 +4,8 @@ import rsp.component.EventKey;
 import rsp.component.definitions.ContextStateComponent;
 
 import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import static rsp.compositions.block.ActionBindings.*;
 
@@ -57,7 +59,7 @@ public final class EventKeys {
     /**
      * State updated event for any context parameter.
      * Dynamic key: "stateUpdated.*" for "stateUpdated.p", "stateUpdated.sort", etc.
-     * Emitted by: DefaultListView (pagination, sorting)
+     * Emitted by: blocks synchronizing context outside a scene-local URL
      * Handled by: AddressBarSyncComponent, AutoAddressBarSyncComponent
      * Payload: ContextStateComponent.ContextValue.StringValue
      */
@@ -74,6 +76,14 @@ public final class EventKeys {
      */
     public static final EventKey.SimpleKey<SceneQueryUpdate> SCENE_QUERY_UPDATED =
             new EventKey.SimpleKey<>("scene.query.updated", SceneQueryUpdate.class);
+
+    /**
+     * Applies related query changes in one history entry. Empty values remove parameters.
+     * This avoids intermediate URL states when a grid resets its page while changing
+     * search, filters, sort, or page size.
+     */
+    public static final EventKey.SimpleKey<SceneQueryUpdates> SCENE_QUERY_UPDATED_BATCH =
+            new EventKey.SimpleKey<>("scene.query.updated.batch", SceneQueryUpdates.class);
 
     /**
      * Reports the title produced by a mounted block runtime. Scene state uses
@@ -101,6 +111,14 @@ public final class EventKeys {
         public SceneQueryUpdate {
             Objects.requireNonNull(name, "name");
             Objects.requireNonNull(value, "value");
+        }
+    }
+
+    /** Query parameter changes to apply as one scene and browser-history transition. */
+    public record SceneQueryUpdates(Map<String, String> values) {
+        public SceneQueryUpdates {
+            Objects.requireNonNull(values, "values");
+            values = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(values));
         }
     }
 

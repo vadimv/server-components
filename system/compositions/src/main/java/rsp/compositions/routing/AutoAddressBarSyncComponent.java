@@ -19,12 +19,13 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
  * address bar.
  *
  * <p><b>URL to Context Mapping:</b></p>
- * <p>For URL: {@code /posts/123?p=2&sort=desc#top}, the context will contain:</p>
+ * <p>For URL: {@code /posts/123?p=2&sort=title&dir=desc#top}, the context will contain:</p>
  * <ul>
  *   <li>{@code "url.path.0"} → {@code "posts"}</li>
  *   <li>{@code "url.path.1"} → {@code "123"}</li>
  *   <li>{@code "url.query.p"} → {@code "2"}</li>
- *   <li>{@code "url.query.sort"} → {@code "desc"}</li>
+ *   <li>{@code "url.query.sort"} → {@code "title"}</li>
+ *   <li>{@code "url.query.dir"} → {@code "desc"}</li>
  *   <li>{@code "url.fragment"} → {@code "top"}</li>
  * </ul>
  *
@@ -44,9 +45,9 @@ import static rsp.component.definitions.ContextStateComponent.STATE_UPDATED_EVEN
  * // Component emits event to change sorting
  * commandsEnqueue.accept(new ComponentEventNotification(
  *     "stateUpdated.sort",
- *     new StringValue("desc")
+ *     new StringValue("title")
  * ));
- * // → URL automatically updates: /posts?p=3&sort=desc
+ * // → URL automatically updates: /posts?p=3&sort=title
  * }</pre>
  *
  * <p>The wildcard pattern {@code "stateUpdated.*"} matches ANY query parameter event,
@@ -295,7 +296,7 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
     }
 
     private static RelativeUrl updateQueryParameter(RelativeUrl oldUrl, String paramName, String newValue) {
-        Map<String, String> params = new HashMap<>();
+        Map<String, String> params = new LinkedHashMap<>();
 
         // Copy existing parameters
         for (Query.Parameter param : oldUrl.query().parameters()) {
@@ -303,7 +304,11 @@ public abstract class AutoAddressBarSyncComponent extends AddressBarSyncComponen
         }
 
         // Update the changed parameter
-        params.put(paramName, newValue);
+        if (newValue == null || newValue.isBlank()) {
+            params.remove(paramName);
+        } else {
+            params.put(paramName, newValue);
+        }
 
         // Build new query
         Query newQuery = new Query(params.entrySet().stream()

@@ -38,9 +38,13 @@ DataSchema schema = DataSchema.builder()
             .placeholder("Enter a title")
         .field("content", FieldType.TEXT)
             .widget(Widget.TEXTAREA)
+        .column("id")
+            .sortable()
         .column("title")
             .sortable()
+            .filterable()
             .width("40%")
+            .formatter(value -> value.toString().trim())
         .build()
         .withSelectable(true);
 ```
@@ -73,16 +77,24 @@ validation.
 
 ## Lists And Forms
 
-- `listColumns()` returns visible fields in explicitly configured column order,
-  or all visible fields when no columns are configured.
+- `listColumns()` returns fields in explicitly configured column order, or all
+  visible fields when no columns are configured. Explicit configuration opts a
+  field into the list even when its form widget is hidden, which lets an ID be
+  hidden by default in forms but visible in a grid. A field explicitly marked
+  `.hidden()` remains excluded.
 - Column settings control sortability, filterability, width, alignment, and
-  formatting metadata.
+  formatting. The default grid turns only sortable columns into controls and
+  only filterable columns into filter inputs.
 - `withSelectable(true)` enables row-selection state used by bulk list actions.
-- `FormBlock` uses a schema for initial values, rendering, and
-  validation.
-- `ListBlock` can derive a record schema and customize it through
-  `customizeSchema(...)`.
+- `renameColumn`, `hideColumn`, and `reorderColumns` preserve the remaining
+  column configuration and selectable flag.
+- `FormBlock` uses a schema for initial values, rendering, and validation.
+- `ListBlock` requires a stable `listSchema()` so headers, filters, and column
+  behavior remain available for empty and failed result pages. Record-derived
+  schemas remain useful for simpler custom views, but a reusable grid should
+  declare its list columns explicitly.
 
 See the real schemas in
-[PostCreateBlock.java](../../examples/src/main/java/rsp/app/posts/components/PostCreateBlock.java)
-and the surrounding [compositions model](compositions.md).
+[PostsListBlock.java](../../examples/src/main/java/rsp/app/posts/components/PostsListBlock.java),
+the [data-grid guide](../guides/data-grid.md), and the surrounding
+[compositions model](compositions.md).

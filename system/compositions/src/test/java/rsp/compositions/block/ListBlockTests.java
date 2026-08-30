@@ -9,6 +9,7 @@ import rsp.component.ComponentView;
 import rsp.component.StateUpdater;
 import rsp.component.TreeBuilder;
 import rsp.component.definitions.Component;
+import rsp.compositions.schema.DataSchema;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
@@ -48,6 +49,39 @@ class ListBlockTests {
         assertEquals(2, block.lastUpdatedState.page());
         assertEquals("desc", block.lastUpdatedState.sort());
         assertEquals("page-2", block.lastUpdatedState.rows().getFirst().get("id"));
+    }
+
+    @Test
+    void initial_out_of_range_page_is_clamped_using_the_exact_total() {
+        TestListBlock block = new TestListBlock();
+
+        render(new Parent(block, new ParentState("99", "asc")));
+
+        assertEquals(3, block.initialState.page());
+        assertEquals(30, block.initialState.totalItems());
+        assertEquals("page-3", block.initialState.rows().getFirst().get("id"));
+    }
+
+    @Test
+    void criteria_and_page_size_changes_reset_the_page_and_clear_selection() {
+        TestListBlock block = new TestListBlock();
+        Harness harness = render(new Parent(block, new ParentState("2", "asc")));
+        ComponentSegment<ListView.ListViewState> segment = listSegment(harness.root());
+
+        segment.dispatch(new ListView.SelectionChanged(java.util.Set.of("page-2")));
+        harness.commands().runTasks();
+        segment.dispatch(new ListView.QueryRequested(" needle ", java.util.Map.of("unknown", "ignored")));
+        harness.commands().runTasks();
+
+        assertEquals(1, block.lastUpdatedState.page());
+        assertEquals("needle", block.lastUpdatedState.query().search());
+        assertTrue(block.lastUpdatedState.query().filters().isEmpty());
+        assertTrue(block.lastUpdatedState.selectedIds().isEmpty());
+
+        segment.dispatch(new ListView.PageSizeRequested(25));
+        harness.commands().runTasks();
+        assertEquals(25, block.lastUpdatedState.pageSize());
+        assertEquals(1, block.lastUpdatedState.page());
     }
 
     @SuppressWarnings("unchecked")
@@ -110,9 +144,10 @@ class ListBlockTests {
 
     private static final class TestListBlock extends ListBlock<TestItem> {
         private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
-        private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
+        private static final DataSchema SCHEMA = DataSchema.fromRecordClass(TestItem.class);
 
         private ListView.ListViewState lastUpdatedState;
+        private ListView.ListViewState initialState;
 
         private TestListBlock() {
             super(_ -> _ -> div());
@@ -124,13 +159,17 @@ class ListBlockTests {
         }
 
         @Override
-        protected String sort(rsp.component.Lookup lookup) {
-            return SORT.resolve(lookup);
+        protected DataSchema listSchema() {
+            return SCHEMA;
         }
 
         @Override
-        protected List<TestItem> items(int page, int pageSize, String sort) {
-            return List.of(new TestItem("page-" + page, sort));
+        protected ListPage<TestItem> items(ListQuery query) {
+            if (query.page() > 3) {
+                return new ListPage<>(List.of(), 30);
+            }
+            return new ListPage<>(List.of(new TestItem("page-" + query.page(),
+                    query.sort().direction().queryValue())), 30);
         }
 
         @Override
@@ -146,6 +185,13 @@ class ListBlockTests {
         @Override
         public String title() {
             return "Items";
+        }
+
+        @Override
+        protected void onBlockMounted(ListView.ListViewState state,
+                                      StateUpdater<ListView.ListViewState> stateUpdater) {
+            initialState = state;
+            super.onBlockMounted(state, stateUpdater);
         }
 
         @Override

@@ -44,7 +44,8 @@ public interface BlockRuntime {
 ```
 
 `blockMetadata()` is structured, current state for reasoning. A list
-block includes its schema, page, sort, and visible items; a form block
+block includes its schema, page, page size, exact total, sort, search, filters,
+and visible items; a form block
 includes its schema and current entity; a custom block can expose any
 domain-relevant state.
 
@@ -117,11 +118,14 @@ component tree, and then announces the new primary block. For an action
 whose `DispatchEffect` changes the scene, the runtime waits for that scene to
 settle before the next plan step reads a new profile.
 
-List pagination and sorting are block-local cache changes coordinated with
-scene query state. The current list component updates its own state immediately
-and watches URL context for browser back/forward, while the scene maintains the
-effective URL. The agent therefore sees the same page and sort that the user
-sees.
+List pagination, sorting, searching, and filtering are block-local cache
+changes coordinated with scene query state. The current list component updates
+its own state immediately and watches URL context for browser back/forward,
+while the scene maintains the effective URL. The agent profile exposes the
+same query and exact total that the user sees. The standard action vocabulary
+currently changes pages and selection/CRUD state; applications that want an
+agent to change search or filters must declare an additional typed action
+rather than allowing arbitrary query writes.
 
 ## Prompt Lifecycle
 

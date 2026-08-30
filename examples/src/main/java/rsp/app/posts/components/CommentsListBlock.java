@@ -5,19 +5,32 @@ import rsp.compositions.block.Block;
 import rsp.app.posts.entities.Comment;
 import rsp.app.posts.services.CommentService;
 import rsp.component.ComponentView;
-import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldType;
+import rsp.compositions.schema.TextAlign;
 import rsp.compositions.block.ListBlock;
+import rsp.compositions.block.DeleteResult;
+import rsp.compositions.block.ListPage;
+import rsp.compositions.block.ListQuery;
 import rsp.compositions.block.ListView;
 import rsp.compositions.block.QueryParam;
+import rsp.compositions.block.SortDirection;
+import rsp.compositions.block.SortSpec;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 public class CommentsListBlock extends ListBlock<Comment> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
-    private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
+    private static final DataSchema SCHEMA = DataSchema.builder()
+            .field("id", FieldType.ID).label("ID")
+            .field("text", FieldType.TEXT).label("Comment")
+            .field("postId", FieldType.ID).label("Post ID")
+            .column("id").sortable().width("6rem").align(TextAlign.RIGHT)
+            .column("text").sortable().filterable().width("auto")
+            .column("postId").sortable().filterable().width("8rem").align(TextAlign.RIGHT)
+            .build()
+            .withSelectable(true);
 
     private final CommentService commentService;
 
@@ -38,23 +51,23 @@ public class CommentsListBlock extends ListBlock<Comment> {
     }
 
     @Override
-    protected String sort(Lookup lookup) {
-        return SORT.resolve(lookup);
+    protected DataSchema listSchema() {
+        return SCHEMA;
     }
 
     @Override
-    protected List<Comment> items(int page, int pageSize, String sort) {
-        return commentService.findAll(page, pageSize, sort);
+    protected SortSpec defaultSort() {
+        return new SortSpec("text", SortDirection.ASC);
     }
 
     @Override
-    protected DataSchema customizeSchema(DataSchema schema) {
-        return schema.withSelectable(true);
+    protected ListPage<Comment> items(ListQuery query) {
+        return commentService.findAll(query);
     }
 
     @Override
-    protected int bulkDelete(Set<String> ids) {
-        return commentService.bulkDelete(ids);
+    protected DeleteResult bulkDelete(Set<String> ids) {
+        return commentService.deleteAll(ids);
     }
 
     @Override

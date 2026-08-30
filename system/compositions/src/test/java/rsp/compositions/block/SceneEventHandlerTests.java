@@ -15,9 +15,12 @@ import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Placement;
 import rsp.compositions.routing.Router;
+import rsp.server.Path;
+import rsp.server.http.Fragment;
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 import rsp.server.http.Query;
+import rsp.server.http.RelativeUrl;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -113,6 +116,25 @@ class SceneEventHandlerTests {
                 new EventKeys.SceneTitleUpdate(initial.routedDescriptor().instanceId(), "Posts"));
 
         assertEquals("Posts", stateUpdate.current().pageTitle());
+    }
+
+    @Test
+    void batch_query_update_replaces_and_removes_values_atomically() {
+        Scene initial = scene(ListBlock.class).withEffectiveUrl(new RelativeUrl(
+                Path.of("/posts"), Query.of("p=3&size=10&sort=title&dir=asc&q=old"), Fragment.EMPTY));
+        RecordingSubscriber subscriber = new RecordingSubscriber();
+        RecordingStateUpdater stateUpdate = new RecordingStateUpdater(initial);
+
+        new SceneEventHandler(savedContext()).registerHandlers(initial, subscriber, NO_OP_COMMANDS, stateUpdate);
+        subscriber.fire(EventKeys.SCENE_QUERY_UPDATED_BATCH.name(), new EventKeys.SceneQueryUpdates(
+                Map.of("p", "", "size", "25", "sort", "id", "dir", "desc", "q", "")));
+
+        Query query = stateUpdate.current().effectiveUrl().query();
+        assertNull(query.parameterValue("p"));
+        assertNull(query.parameterValue("q"));
+        assertEquals("25", query.parameterValue("size"));
+        assertEquals("id", query.parameterValue("sort"));
+        assertEquals("desc", query.parameterValue("dir"));
     }
 
     private Scene scene(Class<? extends Block<?, ?>> routed) {

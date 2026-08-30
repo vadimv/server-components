@@ -94,7 +94,15 @@ constructor and receives the view it will render through the same constructor.
 ```java
 public final class PostsListBlock extends ListBlock<Post> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
-    private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
+    private static final DataSchema SCHEMA = DataSchema.builder()
+            .field("id", FieldType.ID)
+            .field("title", FieldType.STRING)
+            .field("content", FieldType.TEXT)
+            .column("id").sortable().width("6rem")
+            .column("title").sortable().filterable().width("30%")
+            .column("content").filterable().width("auto")
+            .build()
+            .withSelectable(true);
 
     private final PostService posts;
 
@@ -105,18 +113,22 @@ public final class PostsListBlock extends ListBlock<Post> {
     }
 
     @Override protected QueryParam<Integer> pageQueryParam() { return PAGE; }
-    @Override protected String sort(Lookup lookup) { return SORT.resolve(lookup); }
-    @Override protected List<Post> items(int page, int pageSize, String sort) {
-        return posts.findAll(page, pageSize, sort);
+    @Override protected DataSchema listSchema() { return SCHEMA; }
+    @Override protected SortSpec defaultSort() {
+        return new SortSpec("title", SortDirection.ASC);
     }
+    @Override protected ListPage<Post> items(ListQuery query) { return posts.findAll(query); }
+    @Override protected DeleteResult bulkDelete(Set<String> ids) { return posts.deleteAll(ids); }
     @Override public String title() { return "Posts"; }
 }
 ```
 
 The built-in bases cover common admin workflows:
 
-- `ListBlock<T>` owns rows, schema, page, sort, selection, list
-  actions, and query-driven cache refreshes.
+- `ListBlock<T>` owns stable schema, validated query state, exact result totals,
+  selection, CRUD capabilities, feedback messages, and URL-synchronized cache
+  refreshes. Search, filters, sort, page, and page size travel together in a
+  `ListQuery`; the loader returns a `ListPage<T>`.
 - `FormBlock<T>` owns field values, validation, save, cancel, and
   form agent actions.
 - `EditBlock<T>` adds path/show-data ID resolution and delete.
@@ -263,11 +275,19 @@ Placement rules remain type-based:
 binding assignable to that type. Custom layouts can use
 `resolvePlacement(BlockTarget, Scene)` when both key and class are relevant.
 
-For query-only transitions such as pagination and sorting, a reusable list
-block updates its own cache and publishes the corresponding scene query
-change. The scene updates its effective URL without recreating stable
-companions. Browser back/forward produces fresh context; blocks that depend
-on changing context watch the relevant keys.
+For query-only transitions such as search, filtering, pagination, page size,
+and sorting, a reusable list block updates its own cache and publishes all
+related query changes as one scene update. The scene creates one browser
+history entry and updates its effective URL without recreating stable
+companions. Browser back/forward produces fresh context; blocks watch all grid
+query keys and reload from that context. Edit links carry the full grid query
+in `fromQuery`, so save or cancel returns to the same result set.
+
+The standard grid URL contract is `p`, `size`, `sort`, `dir`, `q`, and
+`filter.<field>`. Invalid pages and page sizes are bounded, sort fields are
+restricted to sortable schema columns, filter fields are restricted to
+filterable columns, and an out-of-range page is clamped after loading the exact
+total. See the [data-grid guide](../guides/data-grid.md).
 
 ## Context, Lookup, And Watches
 

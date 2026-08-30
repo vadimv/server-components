@@ -49,6 +49,7 @@ class PostsSmokeIT {
         login(page);
         validateListView(page);
         validatePagination(page);
+        validateGridQuerying(page);
         validateEditPreservesPagination(page);
         validateDirectCreateRoute(page);
         validateCreatePost(page);
@@ -139,13 +140,12 @@ class PostsSmokeIT {
     }
 
     private void validateEditPreservesPagination(final Page page) throws InterruptedException {
-        System.out.println("Testing: Edit preserves pagination (Cancel + Save on ?p=2)");
+        System.out.println("Testing: Edit preserves the complete grid query");
 
-        // Land directly on page 2 via URL, matching the original bug repro.
-        page.navigate(BASE_URL + "/posts?p=2");
+        String expectedQuery = "p=2&size=10&sort=id&dir=desc&q=Post&filter.title=Title";
+        page.navigate(BASE_URL + "/posts?" + expectedQuery);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-        assertTrue(page.url().contains("p=2"),
-                  "Precondition: URL should be on p=2, got: " + page.url());
+        assertGridQuery(page, expectedQuery);
         assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
 
         // --- Cancel path ---
@@ -155,8 +155,7 @@ class PostsSmokeIT {
         cancelForm(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
-        assertTrue(page.url().contains("p=2"),
-                  "URL should still be on p=2 after Cancel, got: " + page.url());
+        assertGridQuery(page, expectedQuery);
         assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
 
         // --- Save path ---
@@ -169,11 +168,63 @@ class PostsSmokeIT {
         saveForm(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
-        assertTrue(page.url().contains("p=2"),
-                  "URL should still be on p=2 after Save, got: " + page.url());
+        assertGridQuery(page, expectedQuery);
         assertThat(primaryScope(page).locator("span:has-text(\"Page 2\")").first()).isVisible();
 
         System.out.println("✓ Edit preserves pagination validated successfully");
+    }
+
+    private void validateGridQuerying(final Page page) throws InterruptedException {
+        System.out.println("Testing: Grid sorting, search, filters, totals, and page size");
+
+        navigateToPostsList(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+
+        Locator scope = primaryScope(page);
+        assertEquals(2, scope.locator(".grid-sort-button").count(),
+                "Only ID and Title should be sortable");
+
+        scope.locator("th:has-text(\"ID\") .grid-sort-button").click();
+        page.waitForURL(url -> url.contains("sort=id") && url.contains("dir=asc"));
+        assertEquals("1", scope.locator("tbody tr").first().locator("td").nth(1).textContent().trim());
+
+        scope.locator("th:has-text(\"ID\") .grid-sort-button").click();
+        page.waitForURL(url -> url.contains("sort=id") && url.contains("dir=desc"));
+        assertEquals("25", scope.locator("tbody tr").first().locator("td").nth(1).textContent().trim());
+
+        scope.locator(".grid-search-field input").fill("Post Title 25");
+        scope.locator(".grid-query button[type=submit]").click();
+        page.waitForURL(url -> url.contains("q="));
+        assertEquals(1, scope.locator("tbody tr").count());
+        assertTrue(primaryTableText(page).contains("Post Title 25"));
+        assertTrue(scope.locator(".pagination-summary").first().textContent().contains("1–1 of 1"));
+
+        scope.locator(".grid-clear-button").click();
+        page.waitForURL(url -> !url.contains("q="));
+        scope.locator("input[name=\"filter.title\"]").fill("Title 2");
+        scope.locator(".grid-query button[type=submit]").click();
+        page.waitForURL(url -> url.contains("filter.title="));
+        Locator filteredRows = scope.locator("tbody tr");
+        assertTrue(filteredRows.count() > 1);
+        for (int i = 0; i < filteredRows.count(); i++) {
+            assertTrue(filteredRows.nth(i).locator("td").nth(2).textContent().contains("Title 2"));
+        }
+
+        scope.locator(".grid-clear-button").click();
+        page.waitForURL(url -> !url.contains("filter.title="));
+        scope.locator(".page-size-control select").first().selectOption("25");
+        page.waitForURL(url -> url.contains("size=25"));
+        assertEquals(25, scope.locator("tbody tr").count());
+        assertTrue(scope.locator("button:has-text(\"Next →\")").first().isDisabled());
+
+        System.out.println("✓ Grid querying validated successfully");
+    }
+
+    private static void assertGridQuery(Page page, String expectedQuery) {
+        for (String parameter : expectedQuery.split("&")) {
+            assertTrue(page.url().contains(parameter),
+                    () -> "Expected query parameter '" + parameter + "' in " + page.url());
+        }
     }
 
     private void validateDirectCreateRoute(final Page page) throws InterruptedException {

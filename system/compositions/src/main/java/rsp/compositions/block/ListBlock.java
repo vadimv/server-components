@@ -3,42 +3,54 @@ package rsp.compositions.block;
 import rsp.component.ComponentContext;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
+import rsp.component.Lookup;
 import rsp.component.StateUpdater;
 import rsp.component.definitions.ContextStateComponent;
+import rsp.compositions.schema.ColumnConfig;
 import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldDef;
 
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static rsp.compositions.block.ActionBindings.ShowPayload;
-import static rsp.compositions.block.EventKeys.ACTION_SUCCESS;
-import static rsp.compositions.block.EventKeys.SCENE_QUERY_UPDATED;
+import static rsp.compositions.block.EventKeys.SCENE_QUERY_UPDATED_BATCH;
 import static rsp.compositions.block.EventKeys.SHOW;
 import static rsp.compositions.block.ListView.BulkDeleteConfirmed;
 import static rsp.compositions.block.ListView.CreateRequested;
+import static rsp.compositions.block.ListView.DeleteConfirmed;
+import static rsp.compositions.block.ListView.DismissMessage;
 import static rsp.compositions.block.ListView.EditRequested;
 import static rsp.compositions.block.ListView.ListIntent;
 import static rsp.compositions.block.ListView.ListViewState;
 import static rsp.compositions.block.ListView.PageRequested;
+import static rsp.compositions.block.ListView.PageSizeRequested;
+import static rsp.compositions.block.ListView.QueryRequested;
 import static rsp.compositions.block.ListView.SelectionChanged;
 import static rsp.compositions.block.ListView.SortRequested;
 
 /**
- * Intent-driven base for a paginated list block.
+ * Intent-driven base for a schema-backed, queryable data list.
  *
- * <p>This component owns list cache updates, agent commands, navigation, and
- * deletion effects. Its supplied {@link ComponentView} receives only state and
- * an intent dispatcher.</p>
+ * <p>The schema is independent of loaded rows, so empty result pages retain
+ * their headers and behavior. Loaders receive one validated {@link ListQuery}
+ * and return both rows and a total through {@link ListPage}.</p>
  *
  * @param <T> domain item type
  */
-public abstract class ListBlock<T>
-        extends Block<ListViewState, ListIntent> {
-
+public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
     public static final String CONFIG_DEFAULT_PAGE_SIZE = "list.defaultPageSize";
+    public static final String QUERY_PAGE_SIZE = "size";
+    public static final String QUERY_SORT_FIELD = "sort";
+    public static final String QUERY_SORT_DIRECTION = "dir";
+    public static final String QUERY_SEARCH = "q";
+    public static final String QUERY_FILTER_PREFIX = "filter.";
+
     private static final int DEFAULT_PAGE_SIZE_FALLBACK = 10;
-    private static final String SORT_QUERY_PARAM = "sort";
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final ComponentView<ListViewState, ListIntent> view;
 
@@ -46,19 +58,51 @@ public abstract class ListBlock<T>
         this.view = java.util.Objects.requireNonNull(view, "view");
     }
 
+    /** Query parameter used for this list's one-based page number. */
     protected abstract QueryParam<Integer> pageQueryParam();
 
-    protected abstract String sort(rsp.component.Lookup lookup);
+    /** Stable schema used even when a query returns no rows. */
+    protected abstract DataSchema listSchema();
 
-    protected abstract List<T> items(int page, int pageSize, String sort);
+    /** Load one page and the exact total number of matching rows. */
+    protected abstract ListPage<T> items(ListQuery query);
 
-    protected DataSchema customizeSchema(DataSchema schema) {
-        return schema;
-    }
-
+    /** Block opened by the create action. */
     protected abstract Class<? extends Block<?, ?>> createElementBlock();
 
+    /** Block opened by an edit action. */
     protected abstract Class<? extends Block<?, ?>> editElementBlock();
+
+    /** Initial sort; by default, the first sortable column in the schema. */
+    protected SortSpec defaultSort() {
+        DataSchema schema = listSchema();
+        return schema.listColumns().stream()
+                .filter(field -> schema.columnConfig(field.name()).sortable())
+                .findFirst()
+                .or(() -> schema.listColumns().stream().findFirst())
+                .map(field -> new SortSpec(field.name(), SortDirection.ASC))
+                .orElse(null);
+    }
+
+    /** Schema field used as the stable row identity. */
+    protected String rowKey() {
+        return "id";
+    }
+
+    /** Whether the view and intent boundary permit creation. */
+    protected boolean canCreate() {
+        return true;
+    }
+
+    /** Whether the view and intent boundary permit editing. */
+    protected boolean canEdit() {
+        return true;
+    }
+
+    /** Whether the view and intent boundary permit deletion. */
+    protected boolean canDelete() {
+        return true;
+    }
 
     @Override
     public final ComponentStateSupplier<ListViewState> initStateSupplier() {
@@ -72,34 +116,33 @@ public abstract class ListBlock<T>
 
     @Override
     protected void onBlockMounted(ListViewState state, StateUpdater<ListViewState> stateUpdate) {
-        // List components are reusable across query-only URL changes. Keep the
-        // component-owned cache aligned when browser history changes externally.
-        watch(ContextKeys.URL_QUERY.with(pageQueryParam().name),
-                (_, _) -> refreshFromContext(stateUpdate));
-        watch(ContextKeys.URL_QUERY.with(SORT_QUERY_PARAM),
-                (_, _) -> refreshFromContext(stateUpdate));
+        watch(ContextKeys.URL_QUERY.with(pageQueryParam().name), (_, _) -> refreshFromContext(stateUpdate));
+        watch(ContextKeys.URL_QUERY.with(QUERY_PAGE_SIZE), (_, _) -> refreshFromContext(stateUpdate));
+        watch(ContextKeys.URL_QUERY.with(QUERY_SORT_FIELD), (_, _) -> refreshFromContext(stateUpdate));
+        watch(ContextKeys.URL_QUERY.with(QUERY_SORT_DIRECTION), (_, _) -> refreshFromContext(stateUpdate));
+        watch(ContextKeys.URL_QUERY.with(QUERY_SEARCH), (_, _) -> refreshFromContext(stateUpdate));
+        for (FieldDef field : filterableColumns(state.schema())) {
+            watch(ContextKeys.URL_QUERY.with(QUERY_FILTER_PREFIX + field.name()),
+                    (_, _) -> refreshFromContext(stateUpdate));
+        }
 
-        subscribe(ListBlockEvents.CREATE_ELEMENT_REQUESTED,
-                () -> lookup().publish(SHOW, new ShowPayload(createElementBlock(), Map.of())));
+        subscribe(ListBlockEvents.CREATE_ELEMENT_REQUESTED, () -> {
+            if (canCreate()) {
+                lookup().publish(SHOW, new ShowPayload(createElementBlock(), Map.of()));
+            }
+        });
 
-        subscribe(ListBlockEvents.EDIT_ELEMENT_REQUESTED,
-                (_, rowId) -> lookup().publish(SHOW, new ShowPayload(editElementBlock(), Map.of("id", rowId))));
+        subscribe(ListBlockEvents.EDIT_ELEMENT_REQUESTED, (_, rowId) -> {
+            if (canEdit()) {
+                lookup().publish(SHOW, new ShowPayload(editElementBlock(), Map.of("id", rowId)));
+            }
+        });
 
         subscribe(ListBlockEvents.BULK_DELETE_REQUESTED,
-                (_, selectedIds) -> stateUpdate.applyStateTransformation(current -> {
-                    handleBulkDelete(selectedIds);
-                    ListViewState cleared = current.clearSelection();
-                    publishSelection(cleared.selectedIds());
-                    return cleared;
-                }));
+                (_, selectedIds) -> stateUpdate.applyStateTransformation(current -> deleteAndReload(current, selectedIds)));
 
         subscribe(ListBlockEvents.PAGE_CHANGE_REQUESTED,
-                (_, page) -> stateUpdate.applyStateTransformation(current -> {
-                    ListViewState updated = reload(current, page, current.sort(), Set.of());
-                    publishSelection(updated.selectedIds());
-                    publishPageChange(page);
-                    return updated;
-                }));
+                (_, page) -> stateUpdate.applyStateTransformation(current -> changePage(current, page, true)));
 
         subscribe(ListBlockEvents.SELECT_ALL_REQUESTED, () -> stateUpdate.applyStateTransformation(current -> {
             ListViewState selected = current.selectAll();
@@ -108,19 +151,16 @@ public abstract class ListBlock<T>
         }));
 
         subscribe(ListBlockEvents.EDIT_SELECTED_REQUESTED, () -> stateUpdate.applyStateTransformation(current -> {
-            if (!current.selectedIds().isEmpty()) {
+            if (canEdit() && !current.selectedIds().isEmpty()) {
                 lookup().publish(SHOW, new ShowPayload(editElementBlock(),
                         Map.of("id", current.selectedIds().iterator().next())));
             }
             return current;
         }));
 
-        subscribe(ListBlockEvents.DELETE_SELECTED_REQUESTED, () -> stateUpdate.applyStateTransformation(current -> {
-            if (!current.selectedIds().isEmpty()) {
-                handleBulkDelete(current.selectedIds());
-            }
-            return current;
-        }));
+        subscribe(ListBlockEvents.DELETE_SELECTED_REQUESTED,
+                () -> stateUpdate.applyStateTransformation(current ->
+                        current.selectedIds().isEmpty() ? current : deleteAndReload(current, current.selectedIds())));
     }
 
     @Override
@@ -130,22 +170,44 @@ public abstract class ListBlock<T>
             stateUpdater.setState(updated);
             publishSelection(updated.selectedIds());
         } else if (intent instanceof BulkDeleteConfirmed bulkDelete) {
-            handleBulkDelete(bulkDelete.selectedIds());
-            ListViewState cleared = state.clearSelection();
-            stateUpdater.setState(cleared);
-            publishSelection(cleared.selectedIds());
+            stateUpdater.setState(deleteAndReload(state, bulkDelete.selectedIds()));
+        } else if (intent instanceof DeleteConfirmed delete) {
+            stateUpdater.setState(deleteAndReload(state, Set.of(delete.rowId())));
         } else if (intent instanceof PageRequested pageRequested) {
-            ListViewState updated = reload(state, pageRequested.page(), state.sort(), Set.of());
-            stateUpdater.setState(updated);
-            publishSelection(updated.selectedIds());
-            publishPageChange(pageRequested.page());
+            stateUpdater.setState(changePage(state, pageRequested.page(), true));
+        } else if (intent instanceof PageSizeRequested pageSizeRequested) {
+            int pageSize = normalizePageSize(pageSizeRequested.pageSize(), state.pageSize());
+            ListQuery query = state.query().withPageSize(pageSize);
+            stateUpdater.setState(reload(state, query, Set.of(), "", false));
+            publishSelection(Set.of());
+            publishQueryChanges(Map.of(pageQueryParam().name, "", QUERY_PAGE_SIZE, String.valueOf(pageSize)));
         } else if (intent instanceof SortRequested sortRequested) {
-            stateUpdater.setState(reload(state, state.page(), sortRequested.sort(), state.selectedIds()));
-            publishQueryChange(SORT_QUERY_PARAM, sortRequested.sort());
+            SortSpec requested = sortRequested.sort();
+            if (ListView.isLegacySortField(requested.field())) {
+                SortSpec current = state.query().sort() == null ? defaultSort() : state.query().sort();
+                requested = current == null ? null : new SortSpec(current.field(), requested.direction());
+            }
+            SortSpec sort = normalizeSort(requested, state.schema());
+            ListQuery query = state.query().withSort(sort);
+            stateUpdater.setState(reload(state, query, Set.of(), "", false));
+            publishSelection(Set.of());
+            publishSortQuery(query);
+        } else if (intent instanceof QueryRequested requested) {
+            Map<String, String> filters = normalizeFilters(requested.filters(), state.schema());
+            ListQuery query = state.query().withCriteria(requested.search(), filters);
+            stateUpdater.setState(reload(state, query, Set.of(), "", false));
+            publishSelection(Set.of());
+            publishCriteriaQuery(state.schema(), query);
         } else if (intent == CreateRequested.INSTANCE) {
-            lookup().publish(SHOW, new ShowPayload(createElementBlock(), Map.of()));
+            if (canCreate()) {
+                lookup().publish(SHOW, new ShowPayload(createElementBlock(), Map.of()));
+            }
         } else if (intent instanceof EditRequested editRequested) {
-            lookup().publish(SHOW, new ShowPayload(editElementBlock(), Map.of("id", editRequested.rowId())));
+            if (canEdit()) {
+                lookup().publish(SHOW, new ShowPayload(editElementBlock(), Map.of("id", editRequested.rowId())));
+            }
+        } else if (intent == DismissMessage.INSTANCE) {
+            stateUpdater.setState(state.withMessage("", false));
         }
     }
 
@@ -171,16 +233,20 @@ public abstract class ListBlock<T>
 
     @Override
     public BlockMetadata blockMetadata() {
-        int page = pageQueryParam().resolve(lookup());
-        String sort = sort(lookup());
-        List<T> items = items(page, lookup().getInt(CONFIG_DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_FALLBACK), sort);
-        DataSchema schema = schema(items);
-        return new BlockMetadata(title(), "Paginated data list", schema,
-                Map.of("page", page, "pageSize", lookup().getInt(CONFIG_DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_FALLBACK),
-                        "sort", sort, "items", schema.toMapList(items)));
+        DataSchema schema = listSchema();
+        ListQuery query = resolveQuery(lookup(), schema);
+        ListPage<T> page = items(query);
+        return new BlockMetadata(title(), "Queryable data list", schema,
+                Map.of("page", query.page(), "pageSize", query.pageSize(), "totalItems", page.totalItems(),
+                        "sort", query.sort() == null ? "" : query.sort(), "search", query.search(),
+                        "filters", query.filters(), "items", schema.toMapList(page.items())));
     }
 
-    protected int bulkDelete(Set<String> ids) {
+    /**
+     * Delete the requested IDs. The result must report every requested ID in
+     * exactly one of its outcome sets.
+     */
+    protected DeleteResult bulkDelete(Set<String> ids) {
         throw new UnsupportedOperationException("Bulk delete not implemented. Override bulkDelete() in your block.");
     }
 
@@ -188,74 +254,300 @@ public abstract class ListBlock<T>
     }
 
     private ListViewState initialState(ComponentContext context) {
-        rsp.component.Lookup lookup = LookupFactory.create(context);
-        int page = pageQueryParam().resolve(lookup);
-        String sort = sort(lookup);
-        int pageSize = lookup.getInt(CONFIG_DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_FALLBACK);
-        List<T> items = items(page, pageSize, sort);
-        DataSchema schema = schema(items);
-        List<Map<String, Object>> rows = items.isEmpty() ? List.of() : schema.toMapList(items);
-        return new ListViewState(rows, schema, page, sort, modulePath(context), Set.of(), title(), editTarget(context));
+        Lookup initialLookup = LookupFactory.create(context);
+        DataSchema schema = listSchema();
+        validateSchema(schema);
+        validateDefaultSort(schema, defaultSort());
+        if (schema.field(rowKey()) == null) {
+            throw new IllegalStateException("Row key is not present in list schema: " + rowKey());
+        }
+        ListQuery query = resolveQuery(initialLookup, schema);
+        return load(null, schema, query, Set.of(), title(), modulePath(context), editTarget(context), "", false);
     }
 
-    private DataSchema schema(List<T> items) {
-        if (items.isEmpty()) {
-            return customizeSchema(new DataSchema(List.of()));
+    private ListViewState changePage(ListViewState state, int requestedPage, boolean publish) {
+        int maxPage = Math.max(1, state.totalPages());
+        int page = Math.max(1, Math.min(requestedPage, maxPage));
+        ListQuery query = state.query().withPage(page);
+        ListViewState updated = reload(state, query, Set.of(), "", false);
+        publishSelection(updated.selectedIds());
+        if (publish) {
+            publishQueryChanges(Map.of(pageQueryParam().name, page == 1 ? "" : String.valueOf(page)));
         }
-        return customizeSchema(DataSchema.fromFirstItem(items.getFirst()));
+        return updated;
+    }
+
+    private ListViewState deleteAndReload(ListViewState state, Set<String> requestedIds) {
+        if (!canDelete() || requestedIds == null || requestedIds.isEmpty()) {
+            return state;
+        }
+        try {
+            DeleteResult result = bulkDelete(Set.copyOf(requestedIds));
+            validateDeleteResult(requestedIds, result);
+            if (!result.failedIds().isEmpty()) {
+                onBulkDeleteFailure(result.failedIds());
+            }
+            String message;
+            boolean error;
+            if (result.deletedIds().isEmpty()) {
+                message = "No items were deleted.";
+                error = true;
+            } else if (result.failedIds().isEmpty()) {
+                message = result.deletedIds().size() == 1
+                        ? "1 item deleted."
+                        : result.deletedIds().size() + " items deleted.";
+                error = false;
+            } else {
+                message = result.deletedIds().size() + " deleted; " + result.failedIds().size() + " failed.";
+                error = true;
+            }
+            ListViewState reloaded = reload(state, state.query(), Set.of(), message, error);
+            if (reloaded.rows().isEmpty() && reloaded.page() > 1) {
+                int page = Math.max(1, reloaded.totalPages());
+                reloaded = reload(reloaded, reloaded.query().withPage(page), Set.of(), message, error);
+                publishQueryChanges(Map.of(pageQueryParam().name, page == 1 ? "" : String.valueOf(page)));
+            }
+            publishSelection(Set.of());
+            return reloaded;
+        } catch (RuntimeException failure) {
+            return state.withMessage("Delete failed: " + safeMessage(failure), true);
+        }
+    }
+
+    private void refreshFromContext(StateUpdater<ListViewState> stateUpdater) {
+        stateUpdater.applyStateTransformation(current -> {
+            ListQuery query = resolveQuery(lookup(), current.schema());
+            boolean queryChanged = !current.query().equals(query);
+            Set<String> selected = queryChanged ? Set.of() : current.selectedIds();
+            ListViewState updated = reload(current, query, selected, current.message(), current.error());
+            if (queryChanged) {
+                publishSelection(Set.of());
+            }
+            return updated;
+        });
+    }
+
+    private ListViewState reload(ListViewState current,
+                                 ListQuery query,
+                                 Set<String> selectedIds,
+                                 String message,
+                                 boolean error) {
+        return load(current, current.schema(), query, selectedIds, current.title(), current.modulePath(),
+                current.editTarget(), message, error);
+    }
+
+    private ListViewState load(ListViewState current,
+                               DataSchema schema,
+                               ListQuery query,
+                               Set<String> selectedIds,
+                               String title,
+                               String modulePath,
+                               ListView.EditTarget editTarget,
+                               String message,
+                               boolean error) {
+        ListCapabilities capabilities = current == null
+                ? new ListCapabilities(rowKey(), canCreate(), canEdit(), canDelete())
+                : current.capabilities();
+        try {
+            ListPage<T> page = items(query);
+            validatePage(query, page);
+            int totalPages = page.totalPages(query.pageSize());
+            if (totalPages > 0 && query.page() > totalPages) {
+                query = query.withPage(totalPages);
+                page = items(query);
+                validatePage(query, page);
+            }
+            List<Map<String, Object>> rows = schema.toMapList(page.items());
+            validateRowKeys(rows, capabilities.rowKey());
+            return new ListViewState(rows, schema, query, page.totalItems(), modulePath, selectedIds,
+                    title, editTarget, capabilities, message, error);
+        } catch (RuntimeException failure) {
+            long previousTotal = current == null ? 0 : current.totalItems();
+            return new ListViewState(List.of(), schema, query, previousTotal, modulePath, Set.of(), title,
+                    editTarget, capabilities, "Could not load items: " + safeMessage(failure), true);
+        }
+    }
+
+    private ListQuery resolveQuery(Lookup source, DataSchema schema) {
+        int configuredPageSize = source.getInt(CONFIG_DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_FALLBACK);
+        int page = safeInteger(source.get(ContextKeys.URL_QUERY.with(pageQueryParam().name)), 1);
+        int pageSize = normalizePageSize(
+                safeInteger(source.get(ContextKeys.URL_QUERY.with(QUERY_PAGE_SIZE)), configuredPageSize),
+                configuredPageSize);
+        String sortValue = stringValue(source.get(ContextKeys.URL_QUERY.with(QUERY_SORT_FIELD)));
+        String directionValue = stringValue(source.get(ContextKeys.URL_QUERY.with(QUERY_SORT_DIRECTION)));
+        SortSpec fallback = defaultSort();
+        SortDirection direction = SortDirection.parse(directionValue,
+                fallback == null ? SortDirection.ASC : fallback.direction());
+        String sortField = sortValue;
+        if ("asc".equalsIgnoreCase(sortValue) || "desc".equalsIgnoreCase(sortValue)) {
+            direction = SortDirection.parse(sortValue, direction);
+            sortField = fallback == null ? "" : fallback.field();
+        }
+        SortSpec requested = sortField == null || sortField.isBlank() ? fallback : new SortSpec(sortField, direction);
+        SortSpec sort = normalizeSort(requested, schema);
+        String search = stringValue(source.get(ContextKeys.URL_QUERY.with(QUERY_SEARCH)));
+        Map<String, String> filters = new LinkedHashMap<>();
+        for (FieldDef field : filterableColumns(schema)) {
+            String value = stringValue(source.get(ContextKeys.URL_QUERY.with(QUERY_FILTER_PREFIX + field.name())));
+            if (value != null && !value.isBlank()) {
+                filters.put(field.name(), value);
+            }
+        }
+        return new ListQuery(Math.max(1, page), pageSize, sort, search, filters);
+    }
+
+    private SortSpec normalizeSort(SortSpec requested, DataSchema schema) {
+        SortSpec fallback = defaultSort();
+        if (requested == null || schema.field(requested.field()) == null) {
+            return fallback;
+        }
+        ColumnConfig config = schema.columnConfig(requested.field());
+        if (!config.sortable() && (fallback == null || !fallback.field().equals(requested.field()))) {
+            return fallback;
+        }
+        return requested;
+    }
+
+    private static Map<String, String> normalizeFilters(Map<String, String> requested, DataSchema schema) {
+        if (requested == null || requested.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> result = new LinkedHashMap<>();
+        for (FieldDef field : filterableColumns(schema)) {
+            String value = requested.get(field.name());
+            if (value != null && !value.isBlank()) {
+                result.put(field.name(), value.trim());
+            }
+        }
+        return result;
+    }
+
+    private void publishSortQuery(ListQuery query) {
+        Map<String, String> updates = new LinkedHashMap<>();
+        updates.put(pageQueryParam().name, "");
+        updates.put(QUERY_SORT_FIELD, query.sort() == null ? "" : query.sort().field());
+        updates.put(QUERY_SORT_DIRECTION, query.sort() == null ? "" : query.sort().direction().queryValue());
+        publishQueryChanges(updates);
+    }
+
+    private void publishCriteriaQuery(DataSchema schema, ListQuery query) {
+        Map<String, String> updates = new LinkedHashMap<>();
+        updates.put(pageQueryParam().name, "");
+        updates.put(QUERY_SEARCH, query.search());
+        for (FieldDef field : filterableColumns(schema)) {
+            updates.put(QUERY_FILTER_PREFIX + field.name(), query.filters().getOrDefault(field.name(), ""));
+        }
+        publishQueryChanges(updates);
+    }
+
+    private void publishQueryChanges(Map<String, String> updates) {
+        Scene scene = lookup().get(ContextKeys.SCENE);
+        if (scene != null && scene.effectiveUrl() != null) {
+            lookup().publish(SCENE_QUERY_UPDATED_BATCH, new EventKeys.SceneQueryUpdates(updates));
+            return;
+        }
+        updates.forEach((name, value) -> lookup().publish(EventKeys.STATE_UPDATED.with(name),
+                new ContextStateComponent.ContextValue.StringValue(value)));
     }
 
     private void publishSelection(Set<String> selectedIds) {
         lookup().publish(ListBlockEvents.SELECTION_CHANGED, new ListBlockEvents.SelectedItems(selectedIds));
     }
 
-    private void publishPageChange(int page) {
-        publishQueryChange(pageQueryParam().name, String.valueOf(page));
-    }
-
-    private void publishQueryChange(String name, String value) {
-        Scene scene = lookup().get(ContextKeys.SCENE);
-        if (scene != null && scene.effectiveUrl() != null) {
-            lookup().publish(SCENE_QUERY_UPDATED, new EventKeys.SceneQueryUpdate(name, value));
-            return;
-        }
-        lookup().publish(EventKeys.STATE_UPDATED.with(name),
-                new ContextStateComponent.ContextValue.StringValue(value));
-    }
-
-    private void refreshFromContext(StateUpdater<ListViewState> stateUpdater) {
-        stateUpdater.applyStateTransformation(current -> {
-            int page = pageQueryParam().resolve(lookup());
-            String sort = sort(lookup());
-            Set<String> selectedIds = page == current.page() ? current.selectedIds() : Set.of();
-            return reload(current, page, sort, selectedIds);
-        });
-    }
-
-    private ListViewState reload(ListViewState current,
-                                 int page,
-                                 String sort,
-                                 Set<String> selectedIds) {
-        int pageSize = lookup().getInt(CONFIG_DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_FALLBACK);
-        List<T> pageItems = items(page, pageSize, sort);
-        DataSchema schema = schema(pageItems);
-        List<Map<String, Object>> rows = pageItems.isEmpty() ? List.of() : schema.toMapList(pageItems);
-        return new ListViewState(rows, schema, page, sort, current.modulePath(), selectedIds,
-                current.title(), current.editTarget());
-    }
-
-    private void handleBulkDelete(Set<String> selectedIds) {
-        int deletedCount = bulkDelete(selectedIds);
-        if (deletedCount > 0) {
-            lookup().publish(ACTION_SUCCESS, new EventKeys.ActionResult(blockKey()));
-        } else {
-            onBulkDeleteFailure(selectedIds);
-        }
-    }
-
     private static ListViewState withSelection(ListViewState state, Set<String> selectedIds) {
-        return new ListViewState(state.rows(), state.schema(), state.page(), state.sort(), state.modulePath(),
-                selectedIds, state.title(), state.editTarget());
+        return new ListViewState(state.rows(), state.schema(), state.query(), state.totalItems(), state.modulePath(),
+                selectedIds, state.title(), state.editTarget(), state.capabilities(), state.message(), state.error());
+    }
+
+    private static void validateSchema(DataSchema schema) {
+        if (schema == null) {
+            throw new IllegalStateException("listSchema() cannot return null");
+        }
+        Set<String> fields = new LinkedHashSet<>();
+        for (FieldDef field : schema.fields()) {
+            if (!fields.add(field.name())) {
+                throw new IllegalStateException("Duplicate schema field: " + field.name());
+            }
+        }
+    }
+
+    private static void validateDefaultSort(DataSchema schema, SortSpec sort) {
+        if (sort != null && schema.field(sort.field()) == null) {
+            throw new IllegalStateException("Default sort field is not present in list schema: " + sort.field());
+        }
+    }
+
+    private static void validatePage(ListQuery query, ListPage<?> page) {
+        if (page == null) {
+            throw new IllegalStateException("items() cannot return null");
+        }
+        long offset = (long) (query.page() - 1) * query.pageSize();
+        if (!page.items().isEmpty() && offset + page.items().size() > page.totalItems()) {
+            throw new IllegalStateException("Page rows exceed the exact totalItems boundary");
+        }
+    }
+
+    private static void validateDeleteResult(Set<String> requestedIds, DeleteResult result) {
+        if (result == null) {
+            throw new IllegalStateException("bulkDelete() cannot return null");
+        }
+        Set<String> reported = new LinkedHashSet<>(result.deletedIds());
+        reported.addAll(result.failedIds());
+        if (!reported.equals(Set.copyOf(requestedIds))) {
+            throw new IllegalStateException("DeleteResult must report every requested ID and no others");
+        }
+    }
+
+    private static void validateRowKeys(List<Map<String, Object>> rows, String rowKey) {
+        Set<String> ids = new LinkedHashSet<>();
+        for (Map<String, Object> row : rows) {
+            Object value = row.get(rowKey);
+            if (value == null || String.valueOf(value).isBlank()) {
+                throw new IllegalStateException("Missing row key '" + rowKey + "'");
+            }
+            if (!ids.add(String.valueOf(value))) {
+                throw new IllegalStateException("Duplicate row key '" + value + "'");
+            }
+        }
+    }
+
+    private static List<FieldDef> filterableColumns(DataSchema schema) {
+        return schema.listColumns().stream()
+                .filter(field -> schema.columnConfig(field.name()).filterable())
+                .toList();
+    }
+
+    private static int safeInteger(Object value, int fallback) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String string) {
+            try {
+                return Integer.parseInt(string);
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        if (value instanceof List<?> list && !list.isEmpty()) {
+            return safeInteger(list.getFirst(), fallback);
+        }
+        return fallback;
+    }
+
+    private static String stringValue(Object value) {
+        if (value instanceof String string) {
+            return string;
+        }
+        if (value instanceof List<?> list && !list.isEmpty() && list.getFirst() instanceof String string) {
+            return string;
+        }
+        return "";
+    }
+
+    private static int normalizePageSize(int pageSize, int fallback) {
+        int safeFallback = Math.max(1, Math.min(fallback, MAX_PAGE_SIZE));
+        return pageSize < 1 || pageSize > MAX_PAGE_SIZE ? safeFallback : pageSize;
     }
 
     private static String modulePath(ComponentContext context) {
@@ -272,5 +564,11 @@ public abstract class ListBlock<T>
         Boolean opensAsOverlay = context.get(ContextKeys.EDIT_OPENS_AS_OVERLAY);
         String routePattern = context.get(ContextKeys.EDIT_ROUTE_PATTERN);
         return new ListView.EditTarget(Boolean.TRUE.equals(hasRoute), Boolean.TRUE.equals(opensAsOverlay), routePattern);
+    }
+
+    private static String safeMessage(RuntimeException failure) {
+        return failure.getMessage() == null || failure.getMessage().isBlank()
+                ? failure.getClass().getSimpleName()
+                : failure.getMessage();
     }
 }

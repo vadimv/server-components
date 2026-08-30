@@ -106,6 +106,22 @@ class ListViewTests {
         }
 
         @Test
+        void partial_selection_is_reported() {
+            ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items", Set.of("1"));
+
+            assertTrue(state.isPartiallySelected());
+            assertFalse(state.isAllSelected());
+        }
+
+        @Test
+        void missing_row_identity_never_counts_as_all_selected() {
+            ListViewState state = new ListViewState(List.of(Map.of("title", "No id")), SCHEMA,
+                    1, "asc", "/items", Set.of());
+
+            assertFalse(state.isAllSelected());
+        }
+
+        @Test
         void selections_preserved_across_state_changes() {
             ListViewState state = new ListViewState(ROWS, SCHEMA, 1, "asc", "/items",
                 Set.of("1", "2"));

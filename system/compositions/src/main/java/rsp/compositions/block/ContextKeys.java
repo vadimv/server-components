@@ -271,8 +271,11 @@ public final class ContextKeys {
      * <p>Examples:</p>
      * <ul>
      *   <li>{@code URL_QUERY.with("p")} - page number from ?p=3</li>
-     *   <li>{@code URL_QUERY.with("sort")} - sort direction from ?sort=asc</li>
-     *   <li>{@code URL_QUERY.with("fromP")} - return page from ?fromP=2</li>
+     *   <li>{@code URL_QUERY.with("sort")} - sort field from ?sort=title</li>
+     *   <li>{@code URL_QUERY.with("dir")} - sort direction from ?dir=asc</li>
+     *   <li>{@code URL_QUERY.with("q")} - search text from ?q=hello</li>
+     *   <li>{@code URL_QUERY.with("filter.title")} - column filter</li>
+     *   <li>{@code URL_QUERY.with("fromQuery")} - encoded list query to restore after editing</li>
      * </ul>
      */
     public static final ContextKey.DynamicKey<String> URL_QUERY =

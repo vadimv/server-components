@@ -117,6 +117,15 @@ final class SceneNavigator {
         return updatedUrl;
     }
 
+    RelativeUrl pushSceneQueryUpdates(RelativeUrl currentUrl, EventKeys.SceneQueryUpdates updates) {
+        if (currentUrl == null) {
+            return null;
+        }
+        RelativeUrl updatedUrl = withQueryParameters(currentUrl, updates.values());
+        pushUrlOnly(updatedUrl);
+        return updatedUrl;
+    }
+
     private void pushUrlOnly(RelativeUrl url) {
         Lookup lookup = LookupFactory.create(savedContext, commandsEnqueue);
         lookup.publish(AutoAddressBarSyncComponent.SET_PATH,
@@ -170,19 +179,24 @@ final class SceneNavigator {
     }
 
     private static RelativeUrl withQueryParameter(RelativeUrl url, String name, String value) {
-        List<Query.Parameter> parameters = new ArrayList<>(url.query().parameters().size() + 1);
-        boolean replaced = false;
+        return withQueryParameters(url, Map.of(name, value));
+    }
+
+    private static RelativeUrl withQueryParameters(RelativeUrl url, Map<String, String> updates) {
+        Map<String, String> values = new java.util.LinkedHashMap<>();
         for (Query.Parameter parameter : url.query().parameters()) {
-            if (parameter.name().equals(name)) {
-                parameters.add(new Query.Parameter(name, value));
-                replaced = true;
+            values.put(parameter.name(), parameter.value());
+        }
+        updates.forEach((name, value) -> {
+            if (value == null || value.isBlank()) {
+                values.remove(name);
             } else {
-                parameters.add(parameter);
+                values.put(name, value);
             }
-        }
-        if (!replaced) {
-            parameters.add(new Query.Parameter(name, value));
-        }
+        });
+        List<Query.Parameter> parameters = values.entrySet().stream()
+                .map(entry -> new Query.Parameter(entry.getKey(), entry.getValue()))
+                .toList();
         return new RelativeUrl(url.path(), new Query(parameters), url.fragment());
     }
 }

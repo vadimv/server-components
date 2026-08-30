@@ -59,6 +59,10 @@ public final class SceneEventHandler {
             handleSceneQueryUpdated(state, update, commandsEnqueue, stateUpdate);
         }, false);
 
+        subscriber.addEventHandler(EventKeys.SCENE_QUERY_UPDATED_BATCH, (eventName, update) -> {
+            handleSceneQueryUpdates(state, update, commandsEnqueue, stateUpdate);
+        }, false);
+
         subscriber.addEventHandler(SCENE_TITLE_UPDATED, (eventName, update) -> {
             handleSceneTitleUpdated(state, update, stateUpdate);
         }, false);
@@ -132,6 +136,17 @@ public final class SceneEventHandler {
             return;
         }
         stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(updatedUrl));
+    }
+
+    private void handleSceneQueryUpdates(Scene state,
+                                         EventKeys.SceneQueryUpdates updates,
+                                         CommandsEnqueue commandsEnqueue,
+                                         StateUpdater<Scene> stateUpdate) {
+        RelativeUrl updatedUrl = new SceneNavigator(savedContext, commandsEnqueue)
+                .pushSceneQueryUpdates(state.effectiveUrl(), updates);
+        if (updatedUrl != null) {
+            stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(updatedUrl));
+        }
     }
 
     private void handleSceneTitleUpdated(Scene state,

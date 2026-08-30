@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -514,6 +515,16 @@ public class SchemaDslTests {
         }
 
         @Test
+        void column_with_formatter() {
+            DataSchema schema = DataSchema.builder()
+                .field("amount", FieldType.DECIMAL)
+                .column("amount").formatter(value -> "$" + value)
+                .build();
+
+            assertEquals("$12", schema.columnConfig("amount").formatter().apply(12));
+        }
+
+        @Test
         void transition_from_field_to_column_and_back() {
             DataSchema schema = DataSchema.builder()
                 .field("id", FieldType.ID).hidden()
@@ -634,6 +645,64 @@ public class SchemaDslTests {
 
             assertTrue(schema.selectable());
             assertEquals(2, schema.fields().size());
+        }
+    }
+
+    @Nested
+    class CustomizationPreservationTests {
+
+        private DataSchema configuredSchema() {
+            return DataSchema.builder()
+                    .field("id", FieldType.ID)
+                    .field("title", FieldType.STRING).required()
+                    .column("id").sortable()
+                    .column("title").sortable().filterable()
+                    .build()
+                    .withSelectable(true);
+        }
+
+        @Test
+        void rename_preserves_field_rules_column_config_and_selection() {
+            DataSchema renamed = configuredSchema().renameColumn("title", "Headline");
+
+            assertEquals("Headline", renamed.field("title").displayName());
+            assertFalse(renamed.field("title").validators().isEmpty());
+            assertTrue(renamed.columnConfig("title").filterable());
+            assertTrue(renamed.selectable());
+        }
+
+        @Test
+        void hide_and_reorder_preserve_remaining_metadata() {
+            DataSchema hidden = configuredSchema().hideColumn("id");
+            assertNull(hidden.field("id"));
+            assertTrue(hidden.columnConfig("title").filterable());
+            assertTrue(hidden.selectable());
+
+            DataSchema reordered = configuredSchema().reorderColumns("title", "id");
+            assertEquals(List.of("title", "id"), reordered.listColumns().stream().map(FieldDef::name).toList());
+            assertTrue(reordered.field("title").isRequired());
+            assertTrue(reordered.selectable());
+        }
+
+        @Test
+        void explicit_column_includes_a_field_with_a_hidden_form_widget() {
+            DataSchema schema = configuredSchema();
+
+            assertEquals(List.of("id", "title"),
+                    schema.listColumns().stream().map(FieldDef::name).toList());
+        }
+
+        @Test
+        void column_config_must_reference_and_match_a_schema_field() {
+            FieldDef title = DataSchema.builder()
+                    .field("title", FieldType.STRING)
+                    .build()
+                    .field("title");
+
+            assertThrows(IllegalArgumentException.class, () -> DataSchema.fromFields(
+                    List.of(title), Map.of("missing", new ColumnConfig("missing"))));
+            assertThrows(IllegalArgumentException.class, () -> DataSchema.fromFields(
+                    List.of(title), Map.of("title", new ColumnConfig("other"))));
         }
     }
 }

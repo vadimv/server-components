@@ -5,19 +5,32 @@ import rsp.compositions.block.Block;
 import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
 import rsp.component.ComponentView;
-import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldType;
+import rsp.compositions.schema.TextAlign;
 import rsp.compositions.block.ListBlock;
+import rsp.compositions.block.DeleteResult;
+import rsp.compositions.block.ListPage;
+import rsp.compositions.block.ListQuery;
 import rsp.compositions.block.ListView;
 import rsp.compositions.block.QueryParam;
+import rsp.compositions.block.SortDirection;
+import rsp.compositions.block.SortSpec;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
 public class PostsListBlock extends ListBlock<Post> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
-    private static final QueryParam<String> SORT = new QueryParam<>("sort", String.class, "asc");
+    private static final DataSchema SCHEMA = DataSchema.builder()
+            .field("id", FieldType.ID).label("ID")
+            .field("title", FieldType.STRING).label("Title")
+            .field("content", FieldType.TEXT).label("Content")
+            .column("id").sortable().width("6rem").align(TextAlign.RIGHT)
+            .column("title").sortable().filterable().width("30%")
+            .column("content").filterable().width("auto")
+            .build()
+            .withSelectable(true);
 
     private final PostService postService;
 
@@ -38,24 +51,23 @@ public class PostsListBlock extends ListBlock<Post> {
     }
 
     @Override
-    protected String sort(Lookup lookup) {
-        return SORT.resolve(lookup);
+    protected DataSchema listSchema() {
+        return SCHEMA;
     }
 
     @Override
-    protected List<Post> items(int page, int pageSize, String sort) {
-        return postService.findAll(page, pageSize, sort);
+    protected SortSpec defaultSort() {
+        return new SortSpec("title", SortDirection.ASC);
     }
 
     @Override
-    protected DataSchema customizeSchema(DataSchema schema) {
-        // Enable row selection for bulk operations
-        return schema.withSelectable(true);
+    protected ListPage<Post> items(ListQuery query) {
+        return postService.findAll(query);
     }
 
     @Override
-    protected int bulkDelete(Set<String> ids) {
-        return postService.bulkDelete(ids);
+    protected DeleteResult bulkDelete(Set<String> ids) {
+        return postService.deleteAll(ids);
     }
 
     @Override

@@ -23,6 +23,7 @@ are short signposts for people browsing the source tree.
 
 ## Guides
 
+- [Schema-driven data grids](guides/data-grid.md)
 - [Testing](guides/testing.md)
 - [Mutation testing](guides/mutation-testing.md)
 

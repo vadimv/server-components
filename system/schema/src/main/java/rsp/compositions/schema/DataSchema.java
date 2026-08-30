@@ -38,6 +38,23 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
     public DataSchema {
         columns = columns != null ? List.copyOf(columns) : List.of();
         fields = fields != null ? List.copyOf(fields) : List.of();
+        java.util.Set<String> fieldNames = fields.stream()
+                .map(FieldDef::name)
+                .collect(java.util.stream.Collectors.toSet());
+        if (columnConfigs != null) {
+            for (Map.Entry<String, ColumnConfig> entry : columnConfigs.entrySet()) {
+                String configuredField = entry.getKey();
+                if (!fieldNames.contains(configuredField)) {
+                    throw new IllegalArgumentException("Column config references unknown field: " + configuredField);
+                }
+                ColumnConfig config = java.util.Objects.requireNonNull(entry.getValue(),
+                        "Column config cannot be null: " + configuredField);
+                if (!configuredField.equals(config.fieldName())) {
+                    throw new IllegalArgumentException("Column config key does not match fieldName: "
+                            + configuredField + " != " + config.fieldName());
+                }
+            }
+        }
         // Use LinkedHashMap to preserve insertion order for listColumns()
         columnConfigs = columnConfigs != null
             ? Collections.unmodifiableMap(new LinkedHashMap<>(columnConfigs))
@@ -245,7 +262,13 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
                 ? new ColumnDef(col.name(), newDisplayName, col.type())
                 : col)
             .toList();
-        return new DataSchema(newColumns);
+        List<FieldDef> newFields = fields.stream()
+            .map(field -> field.name().equals(columnName)
+                ? new FieldDef(field.name(), newDisplayName, field.type(), field.fieldType(),
+                    field.widget(), field.validators(), field.options())
+                : field)
+            .toList();
+        return new DataSchema(newColumns, newFields, columnConfigs, selectable);
     }
 
     /**
@@ -255,7 +278,12 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
         List<ColumnDef> newColumns = columns.stream()
             .filter(col -> !col.name().equals(columnName))
             .toList();
-        return new DataSchema(newColumns);
+        List<FieldDef> newFields = fields.stream()
+            .filter(field -> !field.name().equals(columnName))
+            .toList();
+        Map<String, ColumnConfig> newConfigs = new LinkedHashMap<>(columnConfigs);
+        newConfigs.remove(columnName);
+        return new DataSchema(newColumns, newFields, newConfigs, selectable);
     }
 
     /**
@@ -285,7 +313,22 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
             }
         }
 
-        return new DataSchema(newColumns);
+        Map<String, FieldDef> fieldMap = new LinkedHashMap<>();
+        for (FieldDef field : fields) {
+            fieldMap.put(field.name(), field);
+        }
+        List<FieldDef> newFields = newColumns.stream()
+            .map(column -> fieldMap.get(column.name()))
+            .filter(java.util.Objects::nonNull)
+            .toList();
+        Map<String, ColumnConfig> newConfigs = new LinkedHashMap<>();
+        for (ColumnDef column : newColumns) {
+            ColumnConfig config = columnConfigs.get(column.name());
+            if (config != null) {
+                newConfigs.put(column.name(), config);
+            }
+        }
+        return new DataSchema(newColumns, newFields, newConfigs, selectable);
     }
 
     // ========== Field Access ==========
@@ -330,8 +373,10 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
     /**
      * Get fields for list display, respecting explicit column ordering.
      * <p>
-     * If column configs are defined, returns fields in the order columns were defined,
-     * filtering out hidden fields. Otherwise, returns all visible fields.
+     * If column configs are defined, returns fields in the order columns were defined.
+     * An explicit column config opts a field into the list even when its default form
+     * widget is hidden (IDs are the common case). Fields explicitly marked hidden
+     * remain excluded. Otherwise, returns all visible fields.
      *
      * @return List of FieldDefs for list columns
      */
@@ -339,7 +384,7 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
         if (!columnConfigs.isEmpty()) {
             return columnConfigs.keySet().stream()
                 .map(this::field)
-                .filter(f -> f != null && !f.isHidden())
+                .filter(field -> field != null && !field.options().hidden())
                 .toList();
         }
         return visibleFields();

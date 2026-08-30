@@ -2,6 +2,10 @@ package rsp.app.posts.services;
 
 import rsp.app.posts.entities.Comment;
 import rsp.component.ContextKey;
+import rsp.compositions.block.DeleteResult;
+import rsp.compositions.block.ListPage;
+import rsp.compositions.block.ListQuery;
+import rsp.compositions.block.SortDirection;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -30,16 +34,21 @@ public class CommentService {
     }
 
     public List<Comment> findAll(final int page, final int pageSize, final String sort) {
-        Comparator<Comment> comparator = Comparator.comparing(Comment::text);
-        if ("desc".equalsIgnoreCase(sort)) {
-            comparator = comparator.reversed();
-        }
+        return findAll(new ListQuery(Math.max(1, page), pageSize,
+                new rsp.compositions.block.SortSpec("text",
+                        SortDirection.parse(sort, SortDirection.ASC)), "", Map.of())).items();
+    }
 
-        return comments.values().stream()
-                .sorted(comparator)
-                .skip((long) (page - 1) * pageSize)
-                .limit(pageSize)
+    public ListPage<Comment> findAll(final ListQuery query) {
+        List<Comment> matching = comments.values().stream()
+                .filter(comment -> matchesSearch(comment, query.search()))
+                .filter(comment -> matchesFilters(comment, query.filters()))
+                .sorted(comparator(query))
                 .collect(Collectors.toList());
+        long requestedOffset = (long) (query.page() - 1) * query.pageSize();
+        int from = (int) Math.min(requestedOffset, matching.size());
+        int to = Math.min(from + query.pageSize(), matching.size());
+        return new ListPage<>(matching.subList(from, to), matching.size());
     }
 
     public Optional<Comment> find(final String id) {
@@ -72,12 +81,59 @@ public class CommentService {
      * @return Number of comments successfully deleted
      */
     public int bulkDelete(final Set<String> ids) {
-        int deleted = 0;
+        return deleteAll(ids).deletedIds().size();
+    }
+
+    public DeleteResult deleteAll(final Set<String> ids) {
+        Set<String> deleted = new LinkedHashSet<>();
+        Set<String> failed = new LinkedHashSet<>();
         for (String id : ids) {
             if (comments.remove(id) != null) {
-                deleted++;
+                deleted.add(id);
+            } else {
+                failed.add(id);
             }
         }
-        return deleted;
+        return new DeleteResult(deleted, failed);
+    }
+
+    private Comparator<Comment> comparator(ListQuery query) {
+        String field = query.sort() == null ? "text" : query.sort().field();
+        Comparator<Comment> comparator = switch (field) {
+            case "id" -> Comparator.comparingInt(comment -> numericId(comment.id()));
+            case "text" -> Comparator.comparing(Comment::text, String.CASE_INSENSITIVE_ORDER);
+            case "postId" -> Comparator.comparingInt(comment -> numericId(comment.postId()));
+            default -> throw new IllegalArgumentException("Unsupported comment sort field: " + field);
+        };
+        if (query.sort() != null && query.sort().direction() == SortDirection.DESC) {
+            comparator = comparator.reversed();
+        }
+        return comparator.thenComparing(Comment::id, String.CASE_INSENSITIVE_ORDER);
+    }
+
+    private static boolean matchesSearch(Comment comment, String search) {
+        if (search == null || search.isBlank()) return true;
+        String needle = search.toLowerCase(Locale.ROOT);
+        return comment.id().toLowerCase(Locale.ROOT).contains(needle)
+                || comment.text().toLowerCase(Locale.ROOT).contains(needle)
+                || comment.postId().toLowerCase(Locale.ROOT).contains(needle);
+    }
+
+    private static boolean matchesFilters(Comment comment, Map<String, String> filters) {
+        return contains(comment.text(), filters.get("text"))
+                && contains(comment.postId(), filters.get("postId"));
+    }
+
+    private static boolean contains(String value, String filter) {
+        return filter == null || filter.isBlank()
+                || value.toLowerCase(Locale.ROOT).contains(filter.toLowerCase(Locale.ROOT));
+    }
+
+    private static int numericId(String id) {
+        try {
+            return Integer.parseInt(id);
+        } catch (NumberFormatException ignored) {
+            return Integer.MAX_VALUE;
+        }
     }
 }

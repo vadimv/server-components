@@ -1,5 +1,7 @@
 package rsp.compositions.schema;
 
+import java.util.function.Function;
+
 /**
  * Fluent builder for column configuration.
  * <p>
@@ -26,6 +28,7 @@ public class ColumnBuilder {
     private boolean filterable = false;
     private String width = null;
     private TextAlign align = TextAlign.LEFT;
+    private Function<Object, String> formatter;
 
     ColumnBuilder(SchemaBuilder schemaBuilder, String fieldName) {
         this.schemaBuilder = schemaBuilder;
@@ -65,6 +68,15 @@ public class ColumnBuilder {
      */
     public ColumnBuilder align(TextAlign align) {
         this.align = align;
+        return this;
+    }
+
+    /**
+     * Set a display-only formatter for values in this column.
+     * Sorting and filtering continue to use the underlying value.
+     */
+    public ColumnBuilder formatter(Function<Object, String> formatter) {
+        this.formatter = formatter;
         return this;
     }
 
@@ -117,6 +129,6 @@ public class ColumnBuilder {
      */
     private void finishColumn() {
         schemaBuilder.addColumnConfig(fieldName,
-            new ColumnConfig(fieldName, sortable, filterable, width, align, null));
+            new ColumnConfig(fieldName, sortable, filterable, width, align, formatter));
     }
 }

@@ -27,7 +27,8 @@ public class RouteUtils {
      * <ul>
      *   <li>{@code "/posts/:id" → "/posts"}</li>
      *   <li>{@code "/posts/new" → "/posts"}</li>
-     *   <li>{@code "/posts/:id" with fromP=3 → "/posts?p=3"}</li>
+     *   <li>{@code "/posts/:id" with fromQuery=p%3D3%26sort%3Dtitle →
+     *       "/posts?p=3&sort=title"}</li>
      * </ul>
      *
      * @param routePattern The route pattern (e.g., "/posts/:id")
@@ -72,14 +73,19 @@ public class RouteUtils {
     }
 
     /**
-     * Build query by restoring from* parameters to original names.
+     * Build the parent query from an encoded {@code fromQuery} value.
      * <p>
-     * Convention: fromP → p, fromSort → sort
+     * The older conventions {@code fromP → p} and {@code fromSort → sort}
+     * remain as a fallback for existing links.
      *
      * @param lookup Lookup for reading query parameters
      * @return Query with restored parameters (may be empty)
      */
     private static Query buildRestoredQuery(Lookup lookup) {
+        String fromQuery = lookup.get(ContextKeys.URL_QUERY.with("fromQuery"));
+        if (fromQuery != null && !fromQuery.isBlank()) {
+            return Query.of(fromQuery);
+        }
         List<Query.Parameter> params = new ArrayList<>();
 
         String fromP = lookup.get(ContextKeys.URL_QUERY.with("fromP"));

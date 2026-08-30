@@ -2,6 +2,10 @@ package rsp.app.posts.services;
 
 import rsp.app.posts.entities.Post;
 import rsp.component.ContextKey;
+import rsp.compositions.block.DeleteResult;
+import rsp.compositions.block.ListPage;
+import rsp.compositions.block.ListQuery;
+import rsp.compositions.block.SortDirection;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,16 +33,22 @@ public class PostService {
     }
 
     public List<Post> findAll(final int page, final int pageSize, final String sort) {
-        Comparator<Post> comparator = Comparator.comparing(Post::title);
-        if ("desc".equalsIgnoreCase(sort)) {
-            comparator = comparator.reversed();
-        }
+        return findAll(new ListQuery(Math.max(1, page), pageSize,
+                new rsp.compositions.block.SortSpec("title",
+                        SortDirection.parse(sort, SortDirection.ASC)), "", Map.of())).items();
+    }
 
-        return posts.values().stream()
+    public ListPage<Post> findAll(final ListQuery query) {
+        Comparator<Post> comparator = comparator(query);
+        List<Post> matching = posts.values().stream()
+                .filter(post -> matchesSearch(post, query.search()))
+                .filter(post -> matchesFilters(post, query.filters()))
                 .sorted(comparator)
-                .skip((long) (page - 1) * pageSize)
-                .limit(pageSize)
                 .collect(Collectors.toList());
+        long requestedOffset = (long) (query.page() - 1) * query.pageSize();
+        int from = (int) Math.min(requestedOffset, matching.size());
+        int to = Math.min(from + query.pageSize(), matching.size());
+        return new ListPage<>(matching.subList(from, to), matching.size());
     }
 
     public Optional<Post> find(final String id) {
@@ -65,12 +75,6 @@ public class PostService {
     }
 
     /**
-     * Delete multiple posts by their IDs.
-     *
-     * @param ids Set of post IDs to delete
-     * @return Number of posts successfully deleted
-     */
-    /**
      * Find a post by its title (case-insensitive).
      *
      * @param title the title to search for
@@ -83,12 +87,59 @@ public class PostService {
     }
 
     public int bulkDelete(final Set<String> ids) {
-        int deleted = 0;
+        return deleteAll(ids).deletedIds().size();
+    }
+
+    public DeleteResult deleteAll(final Set<String> ids) {
+        Set<String> deleted = new LinkedHashSet<>();
+        Set<String> failed = new LinkedHashSet<>();
         for (String id : ids) {
             if (posts.remove(id) != null) {
-                deleted++;
+                deleted.add(id);
+            } else {
+                failed.add(id);
             }
         }
-        return deleted;
+        return new DeleteResult(deleted, failed);
+    }
+
+    private Comparator<Post> comparator(ListQuery query) {
+        String field = query.sort() == null ? "title" : query.sort().field();
+        Comparator<Post> comparator = switch (field) {
+            case "id" -> Comparator.comparingInt(post -> numericId(post.id()));
+            case "title" -> Comparator.comparing(Post::title, String.CASE_INSENSITIVE_ORDER);
+            case "content" -> Comparator.comparing(Post::content, String.CASE_INSENSITIVE_ORDER);
+            default -> throw new IllegalArgumentException("Unsupported post sort field: " + field);
+        };
+        if (query.sort() != null && query.sort().direction() == SortDirection.DESC) {
+            comparator = comparator.reversed();
+        }
+        return comparator.thenComparing(Post::id, String.CASE_INSENSITIVE_ORDER);
+    }
+
+    private static boolean matchesSearch(Post post, String search) {
+        if (search == null || search.isBlank()) return true;
+        String needle = search.toLowerCase(Locale.ROOT);
+        return post.id().toLowerCase(Locale.ROOT).contains(needle)
+                || post.title().toLowerCase(Locale.ROOT).contains(needle)
+                || post.content().toLowerCase(Locale.ROOT).contains(needle);
+    }
+
+    private static boolean matchesFilters(Post post, Map<String, String> filters) {
+        return contains(post.title(), filters.get("title"))
+                && contains(post.content(), filters.get("content"));
+    }
+
+    private static boolean contains(String value, String filter) {
+        return filter == null || filter.isBlank()
+                || value.toLowerCase(Locale.ROOT).contains(filter.toLowerCase(Locale.ROOT));
+    }
+
+    private static int numericId(String id) {
+        try {
+            return Integer.parseInt(id);
+        } catch (NumberFormatException ignored) {
+            return Integer.MAX_VALUE;
+        }
     }
 }

@@ -140,6 +140,17 @@ class AutoAddressBarSyncComponentTests {
 
             assertEquals("/posts?p=4", h.stateUpdate.state().toString());
         }
+
+        @Test
+        void blank_query_update_removes_the_parameter() {
+            Harness h = harnessOn("/posts?p=2&sort=title");
+
+            h.subscriber.emitComponentEvent(
+                "stateUpdated.p",
+                new ContextStateComponent.ContextValue.StringValue(""));
+
+            assertEquals("/posts?sort=title", h.stateUpdate.state().toString());
+        }
     }
 
     // --- Test harness ------------------------------------------------------
