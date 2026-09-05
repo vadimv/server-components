@@ -52,6 +52,8 @@ class PostsSmokeIT {
         validateGridQuerying(page);
         validateEditPreservesPagination(page);
         validateDirectCreateRoute(page);
+        validateNativeFormValidation(page);
+        validateUnavailableEdit(page);
         validateCreatePost(page);
         validateEditPost(page);
         validateCancel(page);
@@ -265,8 +267,8 @@ class PostsSmokeIT {
         final String testContent = "Test Post Content created by automated test";
         fillPostForm(page, testTitle, testContent);
 
-        // Save the form
-        saveForm(page);
+        // A semantic form submits from Enter in a single-line field.
+        formScope(page).locator("[name=title]").press("Enter");
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Verify redirected back to list
@@ -297,6 +299,40 @@ class PostsSmokeIT {
         System.out.println("✓ Create post validated successfully");
     }
 
+    private void validateNativeFormValidation(final Page page) throws InterruptedException {
+        System.out.println("Testing: Native form validation and protected fields");
+
+        page.navigate(BASE_URL + "/posts/new");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        Locator form = formScope(page).locator("form.data-form");
+        assertThat(form).isVisible();
+        assertEquals(0, form.locator("[name=id]").count(), "Hidden IDs must not be submitted by the form");
+
+        saveForm(page);
+        assertTrue(page.url().contains("/posts/new"));
+        assertTrue((Boolean) form.locator("[name=title]")
+                .evaluate("element => element.matches(':invalid')"));
+
+        cancelForm(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        assertFalse(page.url().contains("/posts/new"));
+        System.out.println("✓ Native form validation validated successfully");
+    }
+
+    private void validateUnavailableEdit(final Page page) throws InterruptedException {
+        System.out.println("Testing: Missing edit entity");
+
+        page.navigate(BASE_URL + "/posts/999999");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        assertThat(formScope(page).locator(".form-message-error")).containsText("not found");
+        assertEquals(0, formScope(page).locator("form").count());
+
+        cancelForm(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        assertFalse(page.url().contains("999999"));
+        System.out.println("✓ Missing edit entity validated successfully");
+    }
+
     private void validateEditPost(final Page page) throws InterruptedException {
         System.out.println("Testing: Edit Post");
 
@@ -311,8 +347,8 @@ class PostsSmokeIT {
         assertFormVisible(page, "Edit Post");
 
         // Verify current values are loaded
-        assertThat(formScope(page).locator("#title")).not().isEmpty();
-        assertThat(formScope(page).locator("#content")).not().isEmpty();
+        assertThat(formScope(page).locator("[name=title]")).not().isEmpty();
+        assertThat(formScope(page).locator("[name=content]")).not().isEmpty();
 
         // Modify the post
         final String updatedTitle = "Updated Post Title " + System.currentTimeMillis();
@@ -362,9 +398,12 @@ class PostsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Partially fill form
-        page.fill("#title", "This should be cancelled");
+        page.fill("[name=title]", "This should be cancelled");
+        formScope(page).locator("[name=title]").blur();
+        waitFor(100);
 
         // Cancel
+        acceptDiscardDialog(page);
         cancelForm(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
@@ -379,12 +418,15 @@ class PostsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Get original title
-        String originalTitle = page.inputValue("#title");
+        String originalTitle = page.inputValue("[name=title]");
 
         // Modify
-        page.fill("#title", "Modified but cancelled");
+        page.fill("[name=title]", "Modified but cancelled");
+        formScope(page).locator("[name=title]").blur();
+        waitFor(100);
 
         // Cancel
+        acceptDiscardDialog(page);
         cancelForm(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
@@ -503,8 +545,8 @@ class PostsSmokeIT {
     }
 
     private void fillPostForm(final Page page, final String title, final String content) {
-        page.fill("#title", title);
-        page.fill("#content", content);
+        page.fill("[name=title]", title);
+        page.fill("[name=content]", content);
     }
 
     private void saveForm(final Page page) {
@@ -513,6 +555,13 @@ class PostsSmokeIT {
 
     private void cancelForm(final Page page) {
         formScope(page).locator("button.cancel-button").click();
+    }
+
+    private void acceptDiscardDialog(final Page page) {
+        page.onceDialog(dialog -> {
+            assertTrue(dialog.message().toLowerCase().contains("discard"));
+            dialog.accept();
+        });
     }
 
     private void deletePost(final Page page) {

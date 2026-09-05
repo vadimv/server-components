@@ -27,6 +27,18 @@ public abstract class EditBlock<T> extends FormBlock<T> {
 
     protected abstract boolean delete(String id);
 
+    /** Compatibility adapter for existing boolean delete implementations. */
+    protected FormMutationResult deleteResult(String id) {
+        return delete(id)
+                ? FormMutationResult.saved(id, "Deleted successfully.")
+                : FormMutationResult.notFound("The item no longer exists.");
+    }
+
+    @Override
+    protected boolean canDelete() {
+        return true;
+    }
+
     protected final String resolveId() {
         return resolveId(lookup());
     }
@@ -40,7 +52,8 @@ public abstract class EditBlock<T> extends FormBlock<T> {
     protected void onBlockMounted(EditView.EditViewState state,
                                      StateUpdater<EditView.EditViewState> stateUpdate) {
         super.onBlockMounted(state, stateUpdate);
-        subscribe(EditBlockEvents.DELETE_REQUESTED, () -> deleteCurrent());
+        subscribe(EditBlockEvents.DELETE_REQUESTED,
+                () -> deleteCurrent(stateUpdate));
     }
 
     @Override
@@ -49,15 +62,17 @@ public abstract class EditBlock<T> extends FormBlock<T> {
                             StateUpdater<EditView.EditViewState> stateUpdater) {
         super.onIntent(intent, state, stateUpdater);
         if (intent == EditView.DeleteConfirmed.INSTANCE) {
-            deleteCurrent();
+            deleteCurrent(stateUpdater);
         }
     }
 
     @Override
     public List<BlockAction> agentActions() {
         List<BlockAction> actions = new ArrayList<>(super.agentActions());
-        actions.add(new BlockAction("delete", EditBlockEvents.DELETE_REQUESTED,
-                "Delete the current entity", DispatchEffect.SCENE_CHANGE));
+        if (currentCapabilities().canDelete()) {
+            actions.add(new BlockAction("delete", EditBlockEvents.DELETE_REQUESTED,
+                    "Delete the current entity", DispatchEffect.SCENE_CHANGE));
+        }
         return List.copyOf(actions);
     }
 
@@ -69,9 +84,35 @@ public abstract class EditBlock<T> extends FormBlock<T> {
         return resolveIdFromPath(lookup);
     }
 
-    private void deleteCurrent() {
-        if (delete(resolveId())) {
-            publishSuccess();
-        }
+    private void deleteCurrent(StateUpdater<EditView.EditViewState> stateUpdater) {
+        stateUpdater.applyStateTransformation(current -> {
+            if (!beginMutation()) return current;
+            try {
+                if (!current.capabilities().canDelete() || current.isBusy()
+                        || !current.status().canRenderFields()) {
+                    return current;
+                }
+                EditView.EditViewState deleting = copyState(current, current.fieldValues(), current.isDirty(),
+                        FormStatus.DELETING, current.validationErrors(), "Deleting…", false);
+                String id = resolveId();
+                if (id == null || id.isBlank()) {
+                    return copyState(deleting, deleting.fieldValues(), deleting.isDirty(), FormStatus.NOT_FOUND,
+                            Map.of(), "The item identifier is missing.", true);
+                }
+                try {
+                    FormMutationResult result = java.util.Objects.requireNonNull(deleteResult(id), "deleteResult");
+                    if (result.succeeded()) {
+                        publishSuccess();
+                        return deleting;
+                    }
+                    return stateForResult(deleting, result, "The item could not be deleted.");
+                } catch (RuntimeException exception) {
+                    return copyState(deleting, deleting.fieldValues(), deleting.isDirty(), FormStatus.FAILED,
+                            Map.of(), "The item could not be deleted.", true);
+                }
+            } finally {
+                endMutation();
+            }
+        });
     }
 }

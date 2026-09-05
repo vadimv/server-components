@@ -3,6 +3,7 @@ package rsp.app.posts.services;
 import rsp.app.posts.entities.Post;
 import rsp.component.ContextKey;
 import rsp.compositions.block.DeleteResult;
+import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.block.ListPage;
 import rsp.compositions.block.ListQuery;
 import rsp.compositions.block.SortDirection;
@@ -10,6 +11,7 @@ import rsp.compositions.block.SortDirection;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PostService {
@@ -24,6 +26,7 @@ public class PostService {
 
     private final Map<String, Post> posts = new ConcurrentHashMap<>();
     private final AtomicInteger idGenerator = new AtomicInteger(1);
+    private volatile Consumer<String> deleteListener = _ -> { };
 
     public PostService() {
         // Pre-populate with dummy data
@@ -55,23 +58,53 @@ public class PostService {
         return Optional.ofNullable(posts.get(id));
     }
 
+    public boolean exists(final String id) {
+        return id != null && posts.containsKey(id);
+    }
+
+    /** Register demo-domain cleanup performed after a post is deleted. */
+    public PostService onDelete(Consumer<String> listener) {
+        this.deleteListener = Objects.requireNonNull(listener, "listener");
+        return this;
+    }
+
     public String create(final Post post) {
+        FormMutationResult result = createResult(post);
+        if (!result.succeeded()) throw new IllegalArgumentException(result.message());
+        return result.entityId();
+    }
+
+    public FormMutationResult createResult(final Post post) {
+        FormMutationResult invalid = validate(post);
+        if (invalid != null) return invalid;
         String id = String.valueOf(idGenerator.getAndIncrement());
-        Post newPost = new Post(id, post.title(), post.content());
+        Post newPost = new Post(id, post.title(), Objects.requireNonNullElse(post.content(), ""));
         posts.put(id, newPost);
-        return id;
+        return FormMutationResult.saved(id, "Post created.");
     }
 
     public boolean update(final String id, final Post post) {
-        if (posts.containsKey(id)) {
-            posts.put(id, new Post(id, post.title(), post.content()));
-            return true;
-        }
-        return false;
+        return updateResult(id, post).succeeded();
+    }
+
+    public FormMutationResult updateResult(final String id, final Post post) {
+        if (!exists(id)) return FormMutationResult.notFound("The post no longer exists.");
+        FormMutationResult invalid = validate(post);
+        if (invalid != null) return invalid;
+        posts.put(id, new Post(id, post.title(), Objects.requireNonNullElse(post.content(), "")));
+        return FormMutationResult.saved(id, "Post updated.");
     }
 
     public boolean delete(final String id) {
-        return posts.remove(id) != null;
+        if (id == null || posts.remove(id) == null) return false;
+        deleteListener.accept(id);
+        return true;
+    }
+
+    public FormMutationResult deleteResult(final String id) {
+        return delete(id)
+                ? FormMutationResult.saved(id, "Post deleted.")
+                : FormMutationResult.notFound("The post no longer exists.");
     }
 
     /**
@@ -94,7 +127,7 @@ public class PostService {
         Set<String> deleted = new LinkedHashSet<>();
         Set<String> failed = new LinkedHashSet<>();
         for (String id : ids) {
-            if (posts.remove(id) != null) {
+            if (delete(id)) {
                 deleted.add(id);
             } else {
                 failed.add(id);
@@ -141,5 +174,21 @@ public class PostService {
         } catch (NumberFormatException ignored) {
             return Integer.MAX_VALUE;
         }
+    }
+
+    private static FormMutationResult validate(Post post) {
+        Map<String, List<String>> errors = new LinkedHashMap<>();
+        if (post == null) {
+            return FormMutationResult.failure("Post data is required.");
+        }
+        if (post.title() == null || post.title().isBlank()) {
+            errors.put("title", List.of("Title is required"));
+        } else if (post.title().length() > 200) {
+            errors.put("title", List.of("Title must be at most 200 characters"));
+        }
+        if (post.content() != null && post.content().length() > 10_000) {
+            errors.put("content", List.of("Content must be at most 10000 characters"));
+        }
+        return errors.isEmpty() ? null : FormMutationResult.invalid(errors);
     }
 }

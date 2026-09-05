@@ -4,9 +4,8 @@ import rsp.app.posts.entities.Comment;
 import rsp.app.posts.services.CommentService;
 import rsp.component.ComponentView;
 import rsp.compositions.block.FormBlock;
+import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.schema.FieldType;
-import rsp.compositions.schema.Widget;
 import rsp.compositions.ui.EditView;
 
 import java.util.Map;
@@ -32,17 +31,7 @@ public class CommentCreateBlock extends FormBlock<Comment> {
 
     @Override
     public DataSchema schema() {
-        return DataSchema.builder()
-            .field("text", FieldType.TEXT)
-                .label("Comment Text")
-                .required()
-                .widget(Widget.TEXTAREA)
-                .placeholder("Enter comment...")
-            .field("postId", FieldType.STRING)
-                .label("Post ID")
-                .required()
-                .placeholder("Post ID this comment belongs to")
-            .build();
+        return CrudSchemas.COMMENTS;
     }
 
     @Override
@@ -52,11 +41,15 @@ public class CommentCreateBlock extends FormBlock<Comment> {
 
     @Override
     public boolean save(Map<String, Object> fieldValues) {
-        String text = (String) fieldValues.get("text");
-        String postId = (String) fieldValues.get("postId");
+        return commentService.createResult(comment(fieldValues)).succeeded();
+    }
 
-        Comment comment = new Comment(null, text, postId);
-        commentService.create(comment);
-        return true;
+    @Override
+    protected FormMutationResult saveResult(Map<String, Object> fieldValues) {
+        return commentService.createResult(comment(fieldValues));
+    }
+
+    private Comment comment(Map<String, Object> values) {
+        return new Comment(null, (String) values.get("text"), (String) values.get("postId"));
     }
 }

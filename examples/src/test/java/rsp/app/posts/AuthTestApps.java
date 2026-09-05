@@ -13,7 +13,7 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.routing.Router;
-import rsp.compositions.ui.DefaultEditView;
+import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
 import rsp.server.StaticResources;
@@ -28,7 +28,8 @@ class AuthTestApps {
 
     static Composition postsComposition() {
         final PostService postService = new PostService();
-        final CommentService commentService = new CommentService();
+        final CommentService commentService = new CommentService(postService::exists);
+        postService.onDelete(commentService::deleteByPostId);
 
         final Router router = new Router()
                 .route("/posts", PostsListBlock.class)
@@ -39,12 +40,12 @@ class AuthTestApps {
         final Group mainBlocks = new Group("Admin")
                 .add(new Group("Posts")
                         .bind(PostsListBlock.class, () -> new PostsListBlock(postService, new DefaultListView()))
-                        .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultEditView()))
-                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultEditView())))
+                        .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultFormView()))
+                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultFormView())))
                 .add(new Group("Comments")
                         .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
-                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultEditView()))
-                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultEditView())));
+                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultFormView()))
+                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultFormView())));
 
         final Group systemBlocks = new Group()
                 .bind(ExplorerBlock.class, () -> new ExplorerBlock(mainBlocks.structureTree()))

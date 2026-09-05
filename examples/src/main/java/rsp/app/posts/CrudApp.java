@@ -23,7 +23,7 @@ import rsp.compositions.layout.Placement;
 import rsp.compositions.routing.Router;
 import rsp.compositions.shell.ExplorerBlock;
 import rsp.compositions.shell.HeaderBlock;
-import rsp.compositions.ui.DefaultEditView;
+import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
 import rsp.server.StaticResources;
@@ -82,7 +82,8 @@ public class CrudApp {
         // Application services. They are passed into block constructors below so blocks
         // remain free of static singletons and easy to swap in tests.
         final PostService postService = new PostService();
-        final CommentService commentService = new CommentService();
+        final CommentService commentService = new CommentService(postService::exists);
+        postService.onDelete(commentService::deleteByPostId);
         final PromptService promptService = new PromptService();
         promptService.startTicking();
         final CommentRateStreamService commentRateStreamService = new CommentRateStreamService();
@@ -113,12 +114,12 @@ public class CrudApp {
                 .add(new Group("Posts").description("Blog posts with create, edit, delete, and search")
                         .bind(postsKey, PostsListBlock.class,
                                 () -> new PostsListBlock(postService, new DefaultListView()))
-                        .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultEditView()))
-                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultEditView())))
+                        .bind(PostCreateBlock.class, () -> new PostCreateBlock(postService, new DefaultFormView()))
+                        .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultFormView())))
                 .add(new Group("Comments").description("User comments for the posts")
                         .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
-                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultEditView()))
-                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultEditView())));
+                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultFormView()))
+                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultFormView())));
 
         // These views support the page but are not menu items. Explorer builds the sidebar from
         // mainBlocks; Prompt lets the user talk to the agent; Header shows the session;

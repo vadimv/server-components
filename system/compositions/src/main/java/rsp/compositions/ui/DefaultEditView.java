@@ -2,343 +2,346 @@ package rsp.compositions.ui;
 
 import rsp.component.ComponentView;
 import rsp.component.IntentDispatcher;
+import rsp.compositions.block.FormStatus;
+import rsp.compositions.block.FormValueCodec;
 import rsp.compositions.schema.FieldDef;
+import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 import rsp.dsl.Definition;
 import rsp.ref.ElementRef;
 import rsp.util.json.JsonDataType;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static rsp.compositions.ui.FormField.formField;
+import static rsp.compositions.ui.FormField.renderErrors;
 import static rsp.dsl.Html.*;
 
-/**
- * DefaultEditView - Adaptive form view implementation.
- * <p>
- * Renders form fields for ANY entity based on schema metadata.
- * Supports both legacy ColumnDef and new FieldDef with widgets and validators.
- * <p>
- * Dispatches intents:
- * <ul>
- *   <li>"form.submitted" - Form data collected and ready for processing (payload: field values map)</li>
- *   <li>"delete.requested" - User confirmed delete action (payload: empty map)</li>
- * </ul>
- * <p>
- * The view only collects browser input and dispatches it to its block.
- */
+/** Accessible schema-driven create/edit form view for {@link rsp.compositions.block.FormBlock}. */
 public class DefaultEditView implements ComponentView<EditView.EditViewState, EditView.EditIntent> {
 
     @Override
     public rsp.component.View<EditView.EditViewState> resolve(IntentDispatcher<EditView.EditIntent> intents) {
         return state -> {
-            // Get fields - prefer FieldDef for enhanced rendering
-            final List<FieldDef> fields = state.schema().fields();
-
-            // Create element refs for all fields
-            final Map<String, ElementRef> fieldRefs = new HashMap<>();
-            for (FieldDef field : fields) {
-                fieldRefs.put(field.name(), createElementRef());
-            }
-
+            List<FieldDef> fields = state.schema().fields();
+            Map<String, FieldBinding> bindings = createBindings(fields);
+            String titleId = state.formId() + "-title";
             return div(
-                h1(text(state.title())),
-
-                form(
-                    // Render fields dynamically based on schema
-                    of(fields.stream()
-                        .map(field -> renderField(
-                            field,
-                            state.fieldValues().get(field.name()),
-                            fieldRefs.get(field.name()),
-                            state.errorsFor(field.name())
-                        ))
-                    ),
-
-                    // Action buttons
-                    div(attr("class", "form-actions"),
-                        button(
-                            attr("type", "button"),
-                            attr("class", "save-button"),
-                            text("Save"),
-                            on("click", ctx -> {
-                                // Collect field values from input elements asynchronously
-                                Map<String, java.util.concurrent.CompletableFuture<Object>> futureValues = new HashMap<>();
-
-                                for (FieldDef field : fields) {
-                                    String fieldName = field.name();
-                                    ElementRef ref = fieldRefs.get(fieldName);
-
-                                    // Get property value asynchronously
-                                    // For checkboxes, read "checked" property; for other inputs, read "value"
-                                    String property = (field.widget() == Widget.CHECKBOX) ? "checked" : "value";
-
-                                    futureValues.put(
-                                        fieldName,
-                                        ctx.propertiesByRef(ref).get(property)
-                                            .thenApply(json -> convertJsonValue(json, field.type()))
-                                    );
-                                }
-
-                                // Wait for all values to be collected, then validate and send action
-                                java.util.concurrent.CompletableFuture.allOf(
-                                    futureValues.values().toArray(new java.util.concurrent.CompletableFuture[0])
-                                ).thenRun(() -> {
-                                    Map<String, Object> collectedValues = new HashMap<>();
-                                    futureValues.forEach((name, future) -> {
-                                        try {
-                                            collectedValues.put(name, future.get());
-                                        } catch (Exception e) {
-                                            // Use default value on error
-                                            FieldDef fld = state.schema().field(name);
-                                            if (fld != null) {
-                                                collectedValues.put(name, getDefaultValue(fld.type()));
-                                            }
-                                        }
-                                    });
-
-                                    intents.dispatch(new EditView.FormValuesCollected(collectedValues));
-                                });
-                            })
-                        ),
-                        renderCancelButton(intents),
-
-                        // Delete button - only shown in edit mode (not create mode)
-                        state.isCreateMode() ? of() : button(
-                            attr("type", "button"),
-                            attr("class", "btn-delete btn-danger"),
-                            text("Delete"),
-                            on("click", ctx -> {
-                                // Client-side confirmation before delete
-                                ctx.evalJs("confirm('Are you sure you want to delete this item?')")
-                                    .thenAccept(result -> {
-                                        if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
-                                            intents.dispatch(EditView.DeleteConfirmed.INSTANCE);
-                                        }
-                                    });
-                            })
-                        )
-                    )
-                )
-            );
+                    attr("class", "data-form edit-form"),
+                    attr("data-form-mode", state.mode().name().toLowerCase(java.util.Locale.ROOT)),
+                    state.isBusy() ? attr("aria-busy", "true") : of(),
+                    h1(attr("id", titleId), text(state.title())),
+                    renderMessage(state, intents),
+                    state.status().canRenderFields()
+                            ? renderForm(state, fields, bindings, titleId, intents)
+                            : renderUnavailableActions(state, intents));
         };
     }
 
-    /**
-     * Render the Cancel button.
-     * <p>
-     * Emits ACTION_SUCCESS(CANCEL) - framework derives behavior from composition config.
-     * This follows the CountersMainComponent pattern: views emit INTENT, framework handles navigation.
-     * <ul>
-     *   <li>OVERLAY → framework emits HIDE + REFRESH_LIST</li>
-     *   <li>PRIMARY → framework navigates to list route (derived from Router)</li>
-     * </ul>
-     */
-    private Definition renderCancelButton(IntentDispatcher<EditView.EditIntent> intents) {
-        return button(
-            attr("type", "button"),
-            attr("class", "cancel-button"),
-            text("Cancel"),
-            on("click", ctx -> intents.dispatch(EditView.CancelRequested.INSTANCE))
-        );
+    private Definition renderForm(EditView.EditViewState state,
+                                  List<FieldDef> fields,
+                                  Map<String, FieldBinding> bindings,
+                                  String titleId,
+                                  IntentDispatcher<EditView.EditIntent> intents) {
+        return form(
+                attr("id", state.formId()),
+                attr("aria-labelledby", titleId),
+                renderErrorSummary(state),
+                of(fields.stream().map(field -> renderField(
+                        state, field, state.fieldValues().get(field.name()), bindings.get(field.name()),
+                        state.errorsFor(field.name()), intents))),
+                renderActions(state, intents),
+                on("submit", true, context -> dispatchForm(context, fields, bindings, intents)));
     }
 
-    /**
-     * Render a form field based on FieldDef, current value, and validation errors.
-     */
-    private Definition renderField(FieldDef field, Object currentValue, ElementRef fieldRef, List<String> errors) {
-        // Hidden fields render as hidden input (not wrapped in form-field div)
-        if (field.isHidden()) {
-            return renderHiddenInput(field, currentValue, fieldRef);
+    private Definition renderMessage(EditView.EditViewState state,
+                                     IntentDispatcher<EditView.EditIntent> intents) {
+        if (state.message().isBlank()) return of();
+        boolean alert = state.error() || state.status() == FormStatus.NOT_FOUND
+                || state.status() == FormStatus.LOAD_FAILED;
+        return div(
+                attr("class", alert ? "form-message form-message-error" : "form-message form-message-success"),
+                attr("role", alert ? "alert" : "status"),
+                span(text(state.message())),
+                state.status().canRenderFields() && !state.isBusy()
+                        ? button(attr("type", "button"), attr("class", "form-message-dismiss"),
+                                attr("aria-label", "Dismiss message"), text("×"),
+                                on("click", _ -> intents.dispatch(EditView.DismissMessage.INSTANCE)))
+                        : of());
+    }
+
+    private Definition renderErrorSummary(EditView.EditViewState state) {
+        if (!state.hasErrors()) return of();
+        List<Definition> entries = new ArrayList<>();
+        state.validationErrors().forEach((fieldName, errors) -> {
+            FieldDef field = state.schema().field(fieldName);
+            String inputId = field == null ? null : errorTargetId(state, field);
+            for (String error : errors) {
+                entries.add(li(inputId == null ? text(error) : a(attr("href", "#" + inputId), text(error))));
+            }
+        });
+        return div(
+                attr("class", "form-error-summary"),
+                attr("role", "alert"),
+                attr("aria-labelledby", state.formId() + "-error-title"),
+                h2(attr("id", state.formId() + "-error-title"), text("Please correct the form")),
+                ul(of(entries.stream())));
+    }
+
+    private Definition renderField(EditView.EditViewState state,
+                                   FieldDef field,
+                                   Object currentValue,
+                                   FieldBinding binding,
+                                   List<String> errors,
+                                   IntentDispatcher<EditView.EditIntent> intents) {
+        if (field.isHidden()) return of();
+        String inputId = inputId(state, field);
+        String errorId = inputId + "-errors";
+        if (field.widget() == Widget.RADIO) {
+            return renderRadioGroup(state, field, currentValue, binding, errors, inputId, errorId, intents);
         }
-
-        // Use FormField component for consistent rendering with error messages
-        Definition input = renderInput(field, currentValue, fieldRef);
-        return formField(field, input, errors);
+        Definition input = renderInput(state, field, currentValue, binding.primary(), errors,
+                inputId, errorId, intents);
+        return formField(field, input, errors, inputId, errorId);
     }
 
-    /**
-     * Render hidden input for hidden fields.
-     */
-    private Definition renderHiddenInput(FieldDef field, Object currentValue, ElementRef fieldRef) {
-        String valueStr = currentValue != null ? currentValue.toString() : "";
-        return input(
-            attr("type", "hidden"),
-            attr("id", field.name()),
-            attr("name", field.name()),
-            prop("value", valueStr),
-            ref(fieldRef)
-        );
+    private Definition renderRadioGroup(EditView.EditViewState state,
+                                        FieldDef field,
+                                        Object currentValue,
+                                        FieldBinding binding,
+                                        List<String> errors,
+                                        String inputId,
+                                        String errorId,
+                                        IntentDispatcher<EditView.EditIntent> intents) {
+        boolean hasErrors = !errors.isEmpty();
+        List<String> options = options(field);
+        return fieldset(
+                attr("class", "form-field form-radio-group"
+                        + (field.isRequired() ? " required" : "")
+                        + (hasErrors ? " has-error" : "")),
+                hasErrors ? attr("aria-describedby", errorId) : of(),
+                legend(text(field.displayName()),
+                        field.isRequired() ? span(attr("class", "required-marker"),
+                                attr("aria-hidden", "true"), text(" *")) : of(),
+                        field.isRequired() ? span(attr("class", "sr-only"), text(" (required)")) : of()),
+                of(options.stream().map(option -> {
+                    ElementRef optionRef = binding.radioRefs().get(option);
+                    String optionId = inputId + "-" + safeId(option);
+                    return label(attr("class", "form-radio-option"), attr("for", optionId),
+                            input(attr("type", "radio"), attr("id", optionId), attr("name", field.name()),
+                                    attr("value", option), ref(optionRef),
+                                    option.equals(FormValueCodec.formatForInput(currentValue))
+                                            ? attr("checked", "checked") : of(),
+                                    field.isRequired() ? attr("required", "required") : of(),
+                                    field.isReadOnly() || state.isBusy() ? attr("disabled", "disabled") : of(),
+                                    hasErrors ? attr("aria-invalid", "true") : of(),
+                                    hasErrors ? attr("aria-describedby", errorId) : of(),
+                                    on("change", _ -> intents.dispatch(new EditView.FieldChanged(field.name(), option)))),
+                            text(option));
+                })),
+                renderErrors(errors, errorId));
     }
 
-    /**
-     * Render appropriate input element based on Widget type.
-     */
-    private Definition renderInput(FieldDef field, Object currentValue, ElementRef fieldRef) {
-        String valueStr = currentValue != null ? currentValue.toString() : "";
-
-        // Get HTML5 validation attributes from validators
-        Map<String, String> validationAttrs = field.htmlValidationAttributes();
+    private Definition renderInput(EditView.EditViewState state,
+                                   FieldDef field,
+                                   Object currentValue,
+                                   ElementRef fieldRef,
+                                   List<String> errors,
+                                   String inputId,
+                                   String errorId,
+                                   IntentDispatcher<EditView.EditIntent> intents) {
+        String value = FormValueCodec.formatForInput(currentValue);
+        Map<String, String> validation = field.htmlValidationAttributes();
+        boolean disabled = field.isReadOnly() || state.isBusy();
+        Definition common = of(
+                attr("id", inputId), attr("name", field.name()), ref(fieldRef),
+                disabled ? attr(field.widget() == Widget.CHECKBOX || field.widget() == Widget.SELECT
+                        ? "disabled" : "readonly", disabled ? "disabled" : "readonly") : of(),
+                errors.isEmpty() ? of() : attr("aria-invalid", "true"),
+                errors.isEmpty() ? of() : attr("aria-describedby", errorId));
+        Definition changed = on("change", context -> readRawProperty(context, fieldRef,
+                field.widget() == Widget.CHECKBOX ? "checked" : "value")
+                .thenAccept(raw -> intents.dispatch(new EditView.FieldChanged(field.name(), raw))));
 
         return switch (field.widget()) {
             case CHECKBOX -> input(
-                attr("type", "checkbox"),
-                attr("id", field.name()),
-                attr("name", field.name()),
-                currentValue != null && (Boolean) currentValue ? attr("checked") : of(),
-                field.isReadOnly() ? attr("disabled") : of(),
-                ref(fieldRef)
-            );
-
+                    attr("type", "checkbox"), common,
+                    Boolean.TRUE.equals(currentValue) ? attr("checked", "checked") : of(),
+                    renderValidationAttrs(validation, null), changed);
             case TEXTAREA -> textarea(
-                attr("id", field.name()),
-                attr("name", field.name()),
-                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
-                field.isReadOnly() ? attr("readonly") : of(),
-                renderValidationAttrs(validationAttrs),
-                text(valueStr),
-                ref(fieldRef)
-            );
-
+                    common, placeholder(field), renderValidationAttrs(validation, null),
+                    attr("rows", field.fieldType() == FieldType.TEXT ? "8" : "4"), text(value), changed);
             case SELECT -> select(
-                attr("id", field.name()),
-                attr("name", field.name()),
-                field.isReadOnly() ? attr("disabled") : of(),
-                // Empty option for non-required fields
-                !field.isRequired() ? option(attr("value", ""), text("-- Select --")) : of(),
-                of(field.options().enumOptions().stream()
-                    .map(opt -> option(
-                        attr("value", opt),
-                        opt.equals(valueStr) ? attr("selected") : of(),
-                        text(opt)
-                    ))
-                ),
-                ref(fieldRef)
-            );
-
+                    common, renderValidationAttrs(validation, null),
+                    !field.isRequired() ? option(attr("value", ""), text("-- Select --")) : of(),
+                    of(options(field).stream().map(option -> option(
+                            attr("value", option), option.equals(value) ? attr("selected", "selected") : of(),
+                            text(option)))), changed);
             case PASSWORD -> input(
-                attr("type", "password"),
-                attr("id", field.name()),
-                attr("name", field.name()),
-                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
-                field.isReadOnly() ? attr("readonly") : of(),
-                renderValidationAttrs(validationAttrs),
-                ref(fieldRef)
-            );
-
+                    attr("type", "password"), common, placeholder(field),
+                    attr("autocomplete", state.isCreateMode() ? "new-password" : "current-password"),
+                    renderValidationAttrs(validation, "type"), changed);
             case DATE_PICKER -> input(
-                attr("type", field.type() == LocalDateTime.class ? "datetime-local" : "date"),
-                attr("id", field.name()),
-                attr("name", field.name()),
-                prop("value", valueStr),
-                field.isReadOnly() ? attr("readonly") : of(),
-                ref(fieldRef)
-            );
-
+                    attr("type", field.fieldType() == FieldType.DATETIME ? "datetime-local" : "date"),
+                    common, prop("value", value), renderValidationAttrs(validation, "type"), changed);
             case NUMBER -> input(
-                attr("type", "number"),
-                attr("id", field.name()),
-                attr("name", field.name()),
-                prop("value", valueStr),
-                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
-                field.isReadOnly() ? attr("readonly") : of(),
-                renderValidationAttrs(validationAttrs),
-                ref(fieldRef)
-            );
-
-            case HIDDEN -> renderHiddenInput(field, currentValue, fieldRef);
-
-            default -> input(  // TEXT, RADIO (fallback to text)
-                attr("type", "text"),
-                attr("id", field.name()),
-                attr("name", field.name()),
-                prop("value", valueStr),
-                field.options().placeholder() != null ? attr("placeholder", field.options().placeholder()) : of(),
-                field.isReadOnly() ? attr("readonly") : of(),
-                renderValidationAttrs(validationAttrs),
-                ref(fieldRef)
-            );
+                    attr("type", "number"), common, prop("value", value), placeholder(field),
+                    attr("step", field.fieldType() == FieldType.INTEGER ? "1" : "any"),
+                    renderValidationAttrs(validation, "type"), changed);
+            case HIDDEN -> of();
+            default -> input(
+                    attr("type", validation.getOrDefault("type", "text")), common, prop("value", value),
+                    placeholder(field), renderValidationAttrs(validation, "type"), changed);
         };
     }
 
-    /**
-     * Render HTML5 validation attributes.
-     */
-    private Definition renderValidationAttrs(Map<String, String> attrs) {
-        if (attrs.isEmpty()) {
-            return of();
+    private Definition renderActions(EditView.EditViewState state,
+                                     IntentDispatcher<EditView.EditIntent> intents) {
+        return div(attr("class", "form-actions"),
+                state.capabilities().canSave()
+                        ? button(attr("type", "submit"), attr("class", "save-button"),
+                                state.isBusy() ? attr("disabled", "disabled") : of(),
+                                text(state.status() == FormStatus.SUBMITTING ? "Saving…" : "Save"))
+                        : of(),
+                state.capabilities().canCancel() ? renderCancelButton(state, intents) : of(),
+                state.capabilities().canDelete()
+                        ? button(attr("type", "button"), attr("class", "btn-delete btn-danger"),
+                                state.isBusy() ? attr("disabled", "disabled") : of(), text("Delete"),
+                                on("click", context -> context.evalJs(
+                                                "confirm('Are you sure you want to delete this item?')")
+                                        .thenAccept(result -> {
+                                            if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
+                                                intents.dispatch(EditView.DeleteConfirmed.INSTANCE);
+                                            }
+                                        })))
+                        : of());
+    }
+
+    private Definition renderUnavailableActions(EditView.EditViewState state,
+                                                IntentDispatcher<EditView.EditIntent> intents) {
+        return state.capabilities().canCancel()
+                ? div(attr("class", "form-actions"), renderCancelButton(state, intents))
+                : of();
+    }
+
+    private Definition renderCancelButton(EditView.EditViewState state,
+                                          IntentDispatcher<EditView.EditIntent> intents) {
+        return button(attr("type", "button"), attr("class", "cancel-button"),
+                state.isBusy() ? attr("disabled", "disabled") : of(), text("Cancel"),
+                on("click", context -> {
+                    if (!state.isDirty()) {
+                        intents.dispatch(EditView.CancelRequested.INSTANCE);
+                        return;
+                    }
+                    context.evalJs("confirm('Discard your unsaved changes?')").thenAccept(result -> {
+                        if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
+                            intents.dispatch(EditView.CancelRequested.INSTANCE);
+                        }
+                    });
+                }));
+    }
+
+    private void dispatchForm(rsp.page.EventContext context,
+                              List<FieldDef> fields,
+                              Map<String, FieldBinding> bindings,
+                              IntentDispatcher<EditView.EditIntent> intents) {
+        Map<String, CompletableFuture<Object>> futures = new LinkedHashMap<>();
+        for (FieldDef field : fields) {
+            if (field.isHidden() || field.isReadOnly()) continue;
+            FieldBinding binding = bindings.get(field.name());
+            futures.put(field.name(), field.widget() == Widget.RADIO
+                    ? readRadioValue(context, binding)
+                    : readRawProperty(context, binding.primary(),
+                            field.widget() == Widget.CHECKBOX ? "checked" : "value"));
         }
+        CompletableFuture.allOf(futures.values().toArray(CompletableFuture[]::new)).thenRun(() -> {
+            Map<String, Object> values = new LinkedHashMap<>();
+            futures.forEach((name, future) -> values.put(name, future.join()));
+            intents.dispatch(new EditView.FormValuesCollected(values));
+        });
+    }
+
+    private CompletableFuture<Object> readRadioValue(rsp.page.EventContext context, FieldBinding binding) {
+        Map<String, CompletableFuture<Object>> checks = new LinkedHashMap<>();
+        binding.radioRefs().forEach((option, ref) -> checks.put(option, readRawProperty(context, ref, "checked")));
+        return CompletableFuture.allOf(checks.values().toArray(CompletableFuture[]::new)).thenApply(_ ->
+                checks.entrySet().stream()
+                        .filter(entry -> Boolean.TRUE.equals(entry.getValue().join()))
+                        .map(Map.Entry::getKey)
+                        .findFirst()
+                        .orElse(""));
+    }
+
+    private CompletableFuture<Object> readRawProperty(rsp.page.EventContext context,
+                                                       ElementRef ref,
+                                                       String property) {
+        return context.propertiesByRef(ref).get(property)
+                .handle((json, error) -> error == null ? rawJsonValue(json) : FormValueCodec.Unavailable.INSTANCE);
+    }
+
+    private Object rawJsonValue(JsonDataType json) {
+        if (json instanceof JsonDataType.String string) return string.value();
+        if (json instanceof JsonDataType.Boolean bool) return bool.value();
+        return json == null ? FormValueCodec.Unavailable.INSTANCE : json.toString();
+    }
+
+    private Map<String, FieldBinding> createBindings(List<FieldDef> fields) {
+        Map<String, FieldBinding> bindings = new LinkedHashMap<>();
+        for (FieldDef field : fields) {
+            Map<String, ElementRef> radios = new LinkedHashMap<>();
+            if (field.widget() == Widget.RADIO) {
+                options(field).forEach(option -> radios.put(option, createElementRef()));
+            }
+            bindings.put(field.name(), new FieldBinding(createElementRef(), radios));
+        }
+        return bindings;
+    }
+
+    private List<String> options(FieldDef field) {
+        if (!field.options().enumOptions().isEmpty()) return field.options().enumOptions();
+        if (field.type().isEnum()) {
+            return java.util.Arrays.stream(field.type().getEnumConstants())
+                    .map(value -> ((Enum<?>) value).name())
+                    .toList();
+        }
+        return List.of();
+    }
+
+    private Definition renderValidationAttrs(Map<String, String> attrs, String excluded) {
         return of(attrs.entrySet().stream()
-            .map(e -> attr(e.getKey(), e.getValue()))
-        );
+                .filter(entry -> excluded == null || !excluded.equals(entry.getKey()))
+                .map(entry -> attr(entry.getKey(), entry.getValue())));
     }
 
-    /**
-     * Convert JSON value from input to the appropriate type.
-     */
-    private Object convertJsonValue(JsonDataType json, Class<?> targetType) {
-        // Handle boolean checkboxes specially
-        if (targetType == Boolean.class || targetType == boolean.class) {
-            if (json instanceof JsonDataType.Boolean bool) {
-                return bool.value();
-            }
-            // Checkbox values can also come as strings "true"/"false" or be missing
-            if (json instanceof JsonDataType.String str) {
-                return Boolean.parseBoolean(str.value());
-            }
-            return false;
-        }
-
-        // For other types, extract string value and convert
-        String stringValue = null;
-        if (json instanceof JsonDataType.String str) {
-            stringValue = str.value();
-        } else if (json != null) {
-            stringValue = json.toString();
-        }
-
-        return convertValue(stringValue, targetType);
+    private Definition placeholder(FieldDef field) {
+        return field.options().placeholder() == null
+                ? of()
+                : attr("placeholder", field.options().placeholder());
     }
 
-    /**
-     * Convert string value from input to the appropriate type.
-     */
-    private Object convertValue(String stringValue, Class<?> targetType) {
-        if (stringValue == null || stringValue.isEmpty()) {
-            return getDefaultValue(targetType);
-        }
-
-        try {
-            if (targetType == String.class) return stringValue;
-            if (targetType == Integer.class || targetType == int.class) return Integer.parseInt(stringValue);
-            if (targetType == Long.class || targetType == long.class) return Long.parseLong(stringValue);
-            if (targetType == Double.class || targetType == double.class) return Double.parseDouble(stringValue);
-            if (targetType == Float.class || targetType == float.class) return Float.parseFloat(stringValue);
-            if (targetType == Boolean.class || targetType == boolean.class) return Boolean.parseBoolean(stringValue);
-            if (targetType == LocalDate.class) return LocalDate.parse(stringValue);
-            if (targetType == LocalDateTime.class) return LocalDateTime.parse(stringValue);
-        } catch (Exception e) {
-            // Return default value on parse error
-            return getDefaultValue(targetType);
-        }
-
-        return stringValue;
+    private String inputId(EditView.EditViewState state, FieldDef field) {
+        return state.formId() + "-" + safeId(field.name());
     }
 
-    /**
-     * Get default value for a type.
-     */
-    private Object getDefaultValue(Class<?> type) {
-        if (type == String.class) return "";
-        if (type == Integer.class || type == int.class) return 0;
-        if (type == Long.class || type == long.class) return 0L;
-        if (type == Double.class || type == double.class) return 0.0;
-        if (type == Float.class || type == float.class) return 0.0f;
-        if (type == Boolean.class || type == boolean.class) return false;
-        return null;
+    private String errorTargetId(EditView.EditViewState state, FieldDef field) {
+        String inputId = inputId(state, field);
+        List<String> options = options(field);
+        return field.widget() == Widget.RADIO && !options.isEmpty()
+                ? inputId + "-" + safeId(options.getFirst())
+                : inputId;
+    }
+
+    private String safeId(String value) {
+        return value.replaceAll("[^A-Za-z0-9_-]", "-");
+    }
+
+    private record FieldBinding(ElementRef primary, Map<String, ElementRef> radioRefs) {
+        private FieldBinding {
+            radioRefs = Map.copyOf(radioRefs);
+        }
     }
 }

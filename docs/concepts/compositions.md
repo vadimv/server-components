@@ -129,13 +129,18 @@ The built-in bases cover common admin workflows:
   selection, CRUD capabilities, feedback messages, and URL-synchronized cache
   refreshes. Search, filters, sort, page, and page size travel together in a
   `ListQuery`; the loader returns a `ListPage<T>`.
-- `FormBlock<T>` owns field values, validation, save, cancel, and
-  form agent actions.
-- `EditBlock<T>` adds path/show-data ID resolution and delete.
+- `FormBlock<T>` owns a typed dirty draft, editable-field whitelisting,
+  validation, capabilities, busy state, typed persistence feedback, cancel,
+  and form agent actions.
+- `EditBlock<T>` adds path/show-data ID resolution, not-found handling, and a
+  typed delete outcome.
 
-`DefaultListView` and `DefaultEditView` are `ComponentView` adapters, not
+`DefaultListView` and `DefaultFormView` are `ComponentView` adapters, not
 components and not state owners. They are reusable because they render the
 state shape supplied by the block and dispatch `ListIntent` or `EditIntent`.
+`DefaultEditView` remains the compatibility name for the form view. See the
+[data-grid](../guides/data-grid.md) and
+[data-forms](../guides/data-forms.md) guides for their full contracts.
 
 ## Views And Intents
 

@@ -162,7 +162,8 @@ Cover the contract at three levels:
    from edit with the full query restored.
 
 The Posts and Comments services and blocks in CrudApp are the executable
-reference implementation.
+reference implementation. Their list and form blocks share one schema; see the
+[create/edit forms guide](data-forms.md) for that side of the workflow.
 
 ## Migrating An Existing List Block
 

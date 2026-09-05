@@ -52,13 +52,14 @@ class PostCreateBlockTests {
     class SchemaTests {
 
         @Test
-        void schema_has_title_and_content_fields() {
+        void schema_is_shared_with_the_grid_and_hides_the_server_owned_id_in_forms() {
             final PostCreateBlock block = new PostCreateBlock(postService, new DefaultEditView());
 
             final var schema = block.schema();
 
-            // Should have title and content (no id field for create)
-            assertEquals(2, schema.columns().size());
+            assertSame(CrudSchemas.POSTS, schema);
+            assertEquals(3, schema.columns().size());
+            assertTrue(schema.field("id").isHidden());
             assertTrue(schema.columns().stream().anyMatch(c -> c.name().equals("title")));
             assertTrue(schema.columns().stream().anyMatch(c -> c.name().equals("content")));
         }

@@ -38,18 +38,29 @@ public final class FormField {
      * @return The complete form field definition
      */
     public static Definition formField(FieldDef field, Definition input, List<String> errors) {
+        return formField(field, input, errors, field.name(), field.name() + "-errors");
+    }
+
+    /** Render a field with instance-unique input and error identifiers. */
+    public static Definition formField(FieldDef field,
+                                       Definition input,
+                                       List<String> errors,
+                                       String inputId,
+                                       String errorId) {
         boolean hasErrors = errors != null && !errors.isEmpty();
 
         return div(attr("class", "form-field"
                         + (field.isRequired() ? " required" : "")
                         + (hasErrors ? " has-error" : "")),
             label(
-                attr("for", field.name()),
+                attr("for", inputId),
                 text(field.displayName()),
-                field.isRequired() ? span(attr("class", "required-marker"), text(" *")) : of()
+                field.isRequired() ? span(attr("class", "required-marker"),
+                        attr("aria-hidden", "true"), text(" *")) : of(),
+                field.isRequired() ? span(attr("class", "sr-only"), text(" (required)")) : of()
             ),
             input,
-            renderErrors(errors)
+            renderErrors(errors, errorId)
         );
     }
 
@@ -63,10 +74,16 @@ public final class FormField {
      * @return Definition containing error message elements, or empty if no errors
      */
     public static Definition renderErrors(List<String> errors) {
+        return renderErrors(errors, null);
+    }
+
+    /** Render validation errors with an optional ID for {@code aria-describedby}. */
+    public static Definition renderErrors(List<String> errors, String errorId) {
         if (errors == null || errors.isEmpty()) {
             return of();
         }
         return div(attr("class", "field-errors"),
+            errorId == null ? of() : attr("id", errorId),
             of(errors.stream().map(err ->
                 span(attr("class", "field-error"), text(err))
             ))

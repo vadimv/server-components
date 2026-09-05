@@ -49,6 +49,7 @@ class CommentsSmokeIT {
         login(page);
         validateListView(page);
         validatePagination(page);
+        validateRelationshipValidation(page);
         validateCreateComment(page);
         validateEditComment(page);
         validateCancel(page);
@@ -151,7 +152,7 @@ class CommentsSmokeIT {
 
         // Fill the form
         final String testText = "Test Comment " + System.currentTimeMillis();
-        final String testPostId = "999";
+        final String testPostId = "1";
         fillCommentForm(page, testText, testPostId);
 
         // Save the form
@@ -200,12 +201,12 @@ class CommentsSmokeIT {
         assertFormVisible(page, "Edit Comment");
 
         // Verify current values are loaded
-        assertThat(formScope(page).locator("#text")).not().isEmpty();
-        assertThat(formScope(page).locator("#postId")).not().isEmpty();
+        assertThat(formScope(page).locator("[name=text]")).not().isEmpty();
+        assertThat(formScope(page).locator("[name=postId]")).not().isEmpty();
 
         // Modify the comment
         final String updatedText = "Updated Comment Text " + System.currentTimeMillis();
-        final String updatedPostId = "888";
+        final String updatedPostId = "2";
         fillCommentForm(page, updatedText, updatedPostId);
 
         // Save changes
@@ -251,9 +252,12 @@ class CommentsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Partially fill form
-        page.fill("#text", "This should be cancelled");
+        page.fill("[name=text]", "This should be cancelled");
+        formScope(page).locator("[name=text]").blur();
+        waitFor(100);
 
         // Cancel
+        acceptDiscardDialog(page);
         cancelForm(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
@@ -268,12 +272,15 @@ class CommentsSmokeIT {
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Get original text
-        String originalText = page.inputValue("#text");
+        String originalText = page.inputValue("[name=text]");
 
         // Modify
-        page.fill("#text", "Modified but cancelled");
+        page.fill("[name=text]", "Modified but cancelled");
+        formScope(page).locator("[name=text]").blur();
+        waitFor(100);
 
         // Cancel
+        acceptDiscardDialog(page);
         cancelForm(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
@@ -392,16 +399,42 @@ class CommentsSmokeIT {
     }
 
     private void fillCommentForm(final Page page, final String text, final String postId) {
-        page.fill("#text", text);
-        page.fill("#postId", postId);
+        page.fill("[name=text]", text);
+        page.fill("[name=postId]", postId);
     }
 
     private void saveForm(final Page page) {
         formScope(page).locator("button:has-text(\"Save\")").click();
     }
 
+    private void validateRelationshipValidation(final Page page) throws InterruptedException {
+        System.out.println("Testing: Comment relationship validation");
+
+        page.navigate(BASE_URL + "/comments/new");
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        fillCommentForm(page, "Orphan comment", "999999");
+        saveForm(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+
+        assertTrue(page.url().contains("/comments/new"));
+        assertThat(formScope(page).locator("[name=postId]")).hasAttribute("aria-invalid", "true");
+        assertThat(formScope(page).locator(".field-errors")).containsText("does not exist");
+
+        acceptDiscardDialog(page);
+        cancelForm(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        System.out.println("✓ Comment relationship validation validated successfully");
+    }
+
     private void cancelForm(final Page page) {
         formScope(page).locator("button.cancel-button").click();
+    }
+
+    private void acceptDiscardDialog(final Page page) {
+        page.onceDialog(dialog -> {
+            assertTrue(dialog.message().toLowerCase().contains("discard"));
+            dialog.accept();
+        });
     }
 
     private void deleteComment(final Page page) {

@@ -6,9 +6,8 @@ import rsp.component.ComponentView;
 import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.block.EditBlock;
+import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.block.PathParam;
-import rsp.compositions.schema.FieldType;
-import rsp.compositions.schema.Widget;
 import rsp.compositions.ui.EditView;
 
 import java.util.Map;
@@ -53,19 +52,7 @@ public class PostEditBlock extends EditBlock<Post> {
 
     @Override
     public DataSchema schema() {
-        return DataSchema.builder()
-            .field("id", FieldType.ID)
-                .hidden()
-            .field("title", FieldType.STRING)
-                .label("Post Title")
-                .required()
-                .maxLength(200)
-                .placeholder("Enter post title...")
-            .field("content", FieldType.TEXT)
-                .label("Content")
-                .widget(Widget.TEXTAREA)
-                .placeholder("Write your post content here...")
-            .build();
+        return CrudSchemas.POSTS;
     }
 
     @Override
@@ -74,11 +61,14 @@ public class PostEditBlock extends EditBlock<Post> {
         if (id == null || id.isEmpty()) {
             return false; // Cannot save without ID
         }
-        String title = (String) fieldValues.get("title");
-        String content = (String) fieldValues.get("content");
+        return postService.updateResult(id, post(id, fieldValues)).succeeded();
+    }
 
-        Post post = new Post(id, title, content);
-        return postService.update(id, post);
+    @Override
+    protected FormMutationResult saveResult(Map<String, Object> fieldValues) {
+        String id = resolveId();
+        if (id == null || id.isBlank()) return FormMutationResult.notFound("The post ID is missing.");
+        return postService.updateResult(id, post(id, fieldValues));
     }
 
     @Override
@@ -87,5 +77,14 @@ public class PostEditBlock extends EditBlock<Post> {
             return false;
         }
         return postService.delete(id);
+    }
+
+    @Override
+    protected FormMutationResult deleteResult(String id) {
+        return postService.deleteResult(id);
+    }
+
+    private Post post(String id, Map<String, Object> values) {
+        return new Post(id, (String) values.get("title"), (String) values.get("content"));
     }
 }

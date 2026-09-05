@@ -3,6 +3,7 @@ package rsp.app.posts.services;
 import rsp.app.posts.entities.Comment;
 import rsp.component.ContextKey;
 import rsp.compositions.block.DeleteResult;
+import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.block.ListPage;
 import rsp.compositions.block.ListQuery;
 import rsp.compositions.block.SortDirection;
@@ -10,6 +11,7 @@ import rsp.compositions.block.SortDirection;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class CommentService {
@@ -23,8 +25,14 @@ public class CommentService {
 
     private final Map<String, Comment> comments = new ConcurrentHashMap<>();
     private final AtomicInteger idGenerator = new AtomicInteger(1);
+    private final Predicate<String> postExists;
 
     public CommentService() {
+        this(_ -> true);
+    }
+
+    public CommentService(Predicate<String> postExists) {
+        this.postExists = Objects.requireNonNull(postExists, "postExists");
         // Pre-populate with stub data: 3 comments for first 5 posts
         for (int postId = 1; postId <= 5; postId++) {
             for (int c = 1; c <= 3; c++) {
@@ -56,22 +64,51 @@ public class CommentService {
     }
 
     public String create(final Comment comment) {
+        FormMutationResult result = createResult(comment);
+        if (!result.succeeded()) throw new IllegalArgumentException(result.message());
+        return result.entityId();
+    }
+
+    public FormMutationResult createResult(final Comment comment) {
+        FormMutationResult invalid = validate(comment);
+        if (invalid != null) return invalid;
         String id = String.valueOf(idGenerator.getAndIncrement());
         Comment newComment = new Comment(id, comment.text(), comment.postId());
         comments.put(id, newComment);
-        return id;
+        return FormMutationResult.saved(id, "Comment created.");
     }
 
     public boolean update(final String id, final Comment comment) {
-        if (comments.containsKey(id)) {
-            comments.put(id, new Comment(id, comment.text(), comment.postId()));
-            return true;
+        return updateResult(id, comment).succeeded();
+    }
+
+    public FormMutationResult updateResult(final String id, final Comment comment) {
+        if (id == null || !comments.containsKey(id)) {
+            return FormMutationResult.notFound("The comment no longer exists.");
         }
-        return false;
+        FormMutationResult invalid = validate(comment);
+        if (invalid != null) return invalid;
+        comments.put(id, new Comment(id, comment.text(), comment.postId()));
+        return FormMutationResult.saved(id, "Comment updated.");
     }
 
     public boolean delete(final String id) {
         return comments.remove(id) != null;
+    }
+
+    public FormMutationResult deleteResult(final String id) {
+        return delete(id)
+                ? FormMutationResult.saved(id, "Comment deleted.")
+                : FormMutationResult.notFound("The comment no longer exists.");
+    }
+
+    /** Delete comments owned by a deleted post; used by the demo's cascade policy. */
+    public int deleteByPostId(String postId) {
+        int deleted = 0;
+        for (Comment comment : List.copyOf(comments.values())) {
+            if (Objects.equals(postId, comment.postId()) && delete(comment.id())) deleted++;
+        }
+        return deleted;
     }
 
     /**
@@ -135,5 +172,24 @@ public class CommentService {
         } catch (NumberFormatException ignored) {
             return Integer.MAX_VALUE;
         }
+    }
+
+    private FormMutationResult validate(Comment comment) {
+        Map<String, List<String>> errors = new LinkedHashMap<>();
+        if (comment == null) return FormMutationResult.failure("Comment data is required.");
+        if (comment.text() == null || comment.text().isBlank()) {
+            errors.put("text", List.of("Comment is required"));
+        } else if (comment.text().length() > 1_000) {
+            errors.put("text", List.of("Comment must be at most 1000 characters"));
+        }
+        String postId = comment.postId();
+        if (postId == null || postId.isBlank()) {
+            errors.put("postId", List.of("Post ID is required"));
+        } else if (!postId.matches("[1-9][0-9]*")) {
+            errors.put("postId", List.of("Post ID must be a positive integer"));
+        } else if (!postExists.test(postId)) {
+            errors.put("postId", List.of("Post " + postId + " does not exist"));
+        }
+        return errors.isEmpty() ? null : FormMutationResult.invalid(errors);
     }
 }

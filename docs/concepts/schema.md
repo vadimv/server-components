@@ -75,6 +75,13 @@ Validators also expose compatible HTML validation attributes, allowing the
 default form view to provide browser feedback without replacing server-side
 validation.
 
+At the form boundary, `FormValueCodec` converts untrusted browser or agent
+values to the field's declared Java type. It supports strings, numeric types,
+booleans, dates, date-times, and enums. Blank optional reference values become
+`null`; invalid values produce field errors and are never silently replaced by
+a default. Configured defaults pass through the same conversion during form
+initialization.
+
 ## Lists And Forms
 
 - `listColumns()` returns fields in explicitly configured column order, or all
@@ -88,7 +95,9 @@ validation.
 - `withSelectable(true)` enables row-selection state used by bulk list actions.
 - `renameColumn`, `hideColumn`, and `reorderColumns` preserve the remaining
   column configuration and selectable flag.
-- `FormBlock` uses a schema for initial values, rendering, and validation.
+- `FormBlock` uses a schema for typed initial values, editable-field
+  whitelisting, rendering, and validation. Hidden and read-only fields retain
+  their server-owned values when a browser or agent submits a payload.
 - `ListBlock` requires a stable `listSchema()` so headers, filters, and column
   behavior remain available for empty and failed result pages. Record-derived
   schemas remain useful for simpler custom views, but a reusable grid should
@@ -96,5 +105,6 @@ validation.
 
 See the real schemas in
 [PostsListBlock.java](../../examples/src/main/java/rsp/app/posts/components/PostsListBlock.java),
-the [data-grid guide](../guides/data-grid.md), and the surrounding
+the [data-grid guide](../guides/data-grid.md), the
+[data-forms guide](../guides/data-forms.md), and the surrounding
 [compositions model](compositions.md).

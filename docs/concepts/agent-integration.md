@@ -45,8 +45,9 @@ public interface BlockRuntime {
 
 `blockMetadata()` is structured, current state for reasoning. A list
 block includes its schema, page, page size, exact total, sort, search, filters,
-and visible items; a form block
-includes its schema and current entity; a custom block can expose any
+and visible items; a form block includes its schema, effective capabilities,
+status, dirty flag, validation feedback, and current draft (excluding
+password values), plus its loaded entity when applicable; a custom block can expose any
 domain-relevant state.
 
 `agentActions()` is the declarative action vocabulary. A `BlockAction`
@@ -58,8 +59,8 @@ The built-in direct bases expose the standard admin actions:
 | BlockRuntime base              | Typical actions                                                                      |
 |----------------------------|--------------------------------------------------------------------------------------|
 | `ListBlock<T>` | `create`, `edit`, `edit_selected`, `delete`, `delete_selected`, `page`, `select_all` |
-| `FormBlock<T>` | `set_field`, `save`, `cancel`                                                        |
-| `EditBlock<T>` | form actions plus `delete`                                                           |
+| `FormBlock<T>` | permitted actions among `set_field`, `save`, and `cancel`                            |
+| `EditBlock<T>` | permitted form actions plus `delete`                                                 |
 
 `BlockProfile.of(block)` combines the live metadata and declared actions.
 It identifies these bases with `ListBlock`,

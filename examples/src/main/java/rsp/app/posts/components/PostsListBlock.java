@@ -6,8 +6,6 @@ import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
 import rsp.component.ComponentView;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.schema.FieldType;
-import rsp.compositions.schema.TextAlign;
 import rsp.compositions.block.ListBlock;
 import rsp.compositions.block.DeleteResult;
 import rsp.compositions.block.ListPage;
@@ -22,15 +20,6 @@ import java.util.Set;
 
 public class PostsListBlock extends ListBlock<Post> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
-    private static final DataSchema SCHEMA = DataSchema.builder()
-            .field("id", FieldType.ID).label("ID")
-            .field("title", FieldType.STRING).label("Title")
-            .field("content", FieldType.TEXT).label("Content")
-            .column("id").sortable().width("6rem").align(TextAlign.RIGHT)
-            .column("title").sortable().filterable().width("30%")
-            .column("content").filterable().width("auto")
-            .build()
-            .withSelectable(true);
 
     private final PostService postService;
 
@@ -52,7 +41,7 @@ public class PostsListBlock extends ListBlock<Post> {
 
     @Override
     protected DataSchema listSchema() {
-        return SCHEMA;
+        return CrudSchemas.POSTS;
     }
 
     @Override

@@ -42,3 +42,24 @@ capability methods, `bulkDelete(Set<String>)`, and the create/edit block types.
 `items(ListQuery)` must apply the query consistently and return the exact total
 before pagination. For the behavioral contract and a complete example, see
 [Schema-driven data grids](../guides/data-grid.md).
+
+## Data-form API
+
+| Type | Responsibility |
+| --- | --- |
+| `FormBlock<T>` | Initialize and own a typed draft; whitelist fields; validate, save, cancel, and expose agent actions |
+| `EditBlock<T>` | Resolve/load an entity and add typed single-entity delete behavior |
+| `EditView.EditViewState` | Render-ready draft, mode, capabilities, status, errors, message, dirty flag, and return route |
+| `FormMode` / `FormStatus` | Explicit create/edit mode and ready/busy/unavailable/failure lifecycle |
+| `FormCapabilities` | Save, delete, and cancel availability shared by handlers and views |
+| `FormMutationResult` | Success, invalid, not-found, conflict, or failure outcome with field errors |
+| `FormValueCodec` | Strict conversion between browser/agent values and schema-declared Java types |
+| `DefaultFormView` | Semantic accessible form, schema widgets, validation summary, feedback, and guarded actions |
+| `DataSchema` / `FieldDef` | Field type, widget, defaults, editability, validation, labels, and input hints |
+
+The principal extension points are `schema()`/`formSchema()`, `isCreateMode()`,
+`item(...)`, `saveResult(...)`, `validate(...)`, the three capability methods,
+and, on `EditBlock`, ID resolution plus `deleteResult(...)`. Boolean `save` and
+`delete` methods remain compatibility hooks for existing blocks. For the
+behavioral contract and complete example, see
+[Schema-driven create and edit forms](../guides/data-forms.md).

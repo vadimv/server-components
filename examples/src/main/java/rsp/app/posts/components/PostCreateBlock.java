@@ -4,9 +4,8 @@ import rsp.app.posts.entities.Post;
 import rsp.app.posts.services.PostService;
 import rsp.component.ComponentView;
 import rsp.compositions.block.FormBlock;
+import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.schema.FieldType;
-import rsp.compositions.schema.Widget;
 import rsp.compositions.ui.EditView;
 
 import java.util.Map;
@@ -42,18 +41,7 @@ public class PostCreateBlock extends FormBlock<Post> {
 
     @Override
     public DataSchema schema() {
-        // Create form schema - no ID field needed
-        return DataSchema.builder()
-            .field("title", FieldType.STRING)
-                .label("Post Title")
-                .required()
-                .maxLength(200)
-                .placeholder("Enter post title...")
-            .field("content", FieldType.TEXT)
-                .label("Content")
-                .widget(Widget.TEXTAREA)
-                .placeholder("Write your post content here...")
-            .build();
+        return CrudSchemas.POSTS;
     }
 
     @Override
@@ -63,12 +51,15 @@ public class PostCreateBlock extends FormBlock<Post> {
 
     @Override
     public boolean save(Map<String, Object> fieldValues) {
-        String title = (String) fieldValues.get("title");
-        String content = (String) fieldValues.get("content");
+        return postService.createResult(post(fieldValues)).succeeded();
+    }
 
-        // Create new post with null ID (service will assign)
-        Post post = new Post(null, title, content);
-        postService.create(post);
-        return true;
+    @Override
+    protected FormMutationResult saveResult(Map<String, Object> fieldValues) {
+        return postService.createResult(post(fieldValues));
+    }
+
+    private Post post(Map<String, Object> fieldValues) {
+        return new Post(null, (String) fieldValues.get("title"), (String) fieldValues.get("content"));
     }
 }

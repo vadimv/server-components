@@ -6,8 +6,6 @@ import rsp.app.posts.entities.Comment;
 import rsp.app.posts.services.CommentService;
 import rsp.component.ComponentView;
 import rsp.compositions.schema.DataSchema;
-import rsp.compositions.schema.FieldType;
-import rsp.compositions.schema.TextAlign;
 import rsp.compositions.block.ListBlock;
 import rsp.compositions.block.DeleteResult;
 import rsp.compositions.block.ListPage;
@@ -22,15 +20,6 @@ import java.util.Set;
 
 public class CommentsListBlock extends ListBlock<Comment> {
     private static final QueryParam<Integer> PAGE = new QueryParam<>("p", Integer.class, 1);
-    private static final DataSchema SCHEMA = DataSchema.builder()
-            .field("id", FieldType.ID).label("ID")
-            .field("text", FieldType.TEXT).label("Comment")
-            .field("postId", FieldType.ID).label("Post ID")
-            .column("id").sortable().width("6rem").align(TextAlign.RIGHT)
-            .column("text").sortable().filterable().width("auto")
-            .column("postId").sortable().filterable().width("8rem").align(TextAlign.RIGHT)
-            .build()
-            .withSelectable(true);
 
     private final CommentService commentService;
 
@@ -52,7 +41,7 @@ public class CommentsListBlock extends ListBlock<Comment> {
 
     @Override
     protected DataSchema listSchema() {
-        return SCHEMA;
+        return CrudSchemas.COMMENTS;
     }
 
     @Override

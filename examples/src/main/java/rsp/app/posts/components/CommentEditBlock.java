@@ -6,9 +6,8 @@ import rsp.component.ComponentView;
 import rsp.component.Lookup;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.block.EditBlock;
+import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.block.PathParam;
-import rsp.compositions.schema.FieldType;
-import rsp.compositions.schema.Widget;
 import rsp.compositions.ui.EditView;
 
 import java.util.Map;
@@ -48,17 +47,7 @@ public class CommentEditBlock extends EditBlock<Comment> {
 
     @Override
     public DataSchema schema() {
-        return DataSchema.builder()
-            .field("id", FieldType.ID)
-                .hidden()
-            .field("text", FieldType.TEXT)
-                .label("Comment Text")
-                .required()
-                .widget(Widget.TEXTAREA)
-            .field("postId", FieldType.STRING)
-                .label("Post ID")
-                .required()
-            .build();
+        return CrudSchemas.COMMENTS;
     }
 
     @Override
@@ -67,11 +56,14 @@ public class CommentEditBlock extends EditBlock<Comment> {
         if (id == null || id.isEmpty()) {
             return false;
         }
-        String text = (String) fieldValues.get("text");
-        String postId = (String) fieldValues.get("postId");
+        return commentService.updateResult(id, comment(id, fieldValues)).succeeded();
+    }
 
-        Comment comment = new Comment(id, text, postId);
-        return commentService.update(id, comment);
+    @Override
+    protected FormMutationResult saveResult(Map<String, Object> fieldValues) {
+        String id = resolveId();
+        if (id == null || id.isBlank()) return FormMutationResult.notFound("The comment ID is missing.");
+        return commentService.updateResult(id, comment(id, fieldValues));
     }
 
     @Override
@@ -80,5 +72,14 @@ public class CommentEditBlock extends EditBlock<Comment> {
             return false;
         }
         return commentService.delete(id);
+    }
+
+    @Override
+    protected FormMutationResult deleteResult(String id) {
+        return commentService.deleteResult(id);
+    }
+
+    private Comment comment(String id, Map<String, Object> values) {
+        return new Comment(id, (String) values.get("text"), (String) values.get("postId"));
     }
 }
