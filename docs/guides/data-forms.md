@@ -122,6 +122,12 @@ confirmation when the rendered draft is dirty. Saving and deleting enter busy
 states, disable controls, and ignore duplicate mutations until navigation or a
 rendered failure completes.
 
+Delete and dirty-cancel confirmations use the shared `ConfirmationDialog`.
+It renders a native `<dialog>` with an accessible title and description, a `method="dialog"` action form, and
+initial focus on the non-destructive Cancel button. Escape closes without
+dispatching an intent. Confirmation dialogs are siblings of the data form, so
+their action forms never produce invalid nested-form markup.
+
 ## Widgets And Accessibility
 
 The default view supports text, password, textarea, number, checkbox, select,
@@ -160,8 +166,8 @@ Cover forms at three levels:
 1. Contract tests: defaults, nulls, type conversion, immutable errors, and
    result statuses.
 2. Block/view tests: field whitelisting, validation, not-found/load failures,
-   capabilities, duplicate mutation protection, semantic markup, widgets, and
-   accessibility relationships.
+   capabilities, duplicate mutation protection, semantic markup, native
+   confirmation dialogs, widgets, and accessibility relationships.
 3. Service/browser tests: field and relationship failures, create/edit/delete,
    dirty cancel, Enter submission, unavailable routes, cascade policy, and
    return to the complete originating grid query.

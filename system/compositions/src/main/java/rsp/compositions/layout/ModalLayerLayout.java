@@ -12,10 +12,11 @@ import static rsp.compositions.block.EventKeys.HIDE;
 import static rsp.dsl.Html.*;
 
 /**
- * Modal overlay layout: backdrop + centered content with a close (X) button.
+ * Native modal dialog layout: backdrop + centered content with a close (X) button.
  * <p>
- * Both clicking the backdrop and clicking the close button publish a HIDE
- * event for the block.
+ * Escape, clicking the backdrop, and clicking the close button publish a HIDE
+ * event for the block. The client promotes dialogs marked with
+ * {@code data-rsp-auto-modal} into the top layer after their listeners arrive.
  */
 public final class ModalLayerLayout implements LayerLayout {
     @Override
@@ -30,7 +31,11 @@ public final class ModalLayerLayout implements LayerLayout {
                               Object blockKey,
                               Class<? extends Block<?, ?>> blockClass,
                               Lookup lookup) {
-        return div(attr("class", "modal-overlay"),
+        return dialog(
+                attr("class", "modal-overlay"),
+                attr("data-rsp-auto-modal", "true"),
+                attr("aria-label", dialogLabel(blockClass)),
+                on("cancel", _ -> lookup.publish(HIDE, blockKey)),
                 div(attr("class", "modal-backdrop"),
                         on("click", _ -> lookup.publish(HIDE, blockKey))),
                 div(attr("class", "modal-content"),
@@ -39,12 +44,21 @@ public final class ModalLayerLayout implements LayerLayout {
     }
 
     private static Definition closeButton(Object blockKey, Lookup lookup) {
-        return button(
-                attr("type", "button"),
-                attr("class", "modal-close"),
-                attr("aria-label", "Close"),
-                on("click", _ -> lookup.publish(HIDE, blockKey)),
-                xIcon());
+        return form(
+                attr("method", "dialog"),
+                attr("class", "modal-close-form"),
+                button(
+                        attr("type", "submit"),
+                        attr("class", "modal-close"),
+                        attr("aria-label", "Close"),
+                        on("click", _ -> lookup.publish(HIDE, blockKey)),
+                        xIcon()));
+    }
+
+    private static String dialogLabel(Class<? extends Block<?, ?>> blockClass) {
+        String name = blockClass.getSimpleName().replaceFirst("Block$", "");
+        String readable = name.replaceAll("(?<=[a-z0-9])(?=[A-Z])", " ");
+        return readable.isBlank() ? "Dialog" : readable;
     }
 
     private static Definition xIcon() {

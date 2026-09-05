@@ -19,7 +19,7 @@ public class DelegationApprovalView implements ComponentView<DelegationApprovalV
     @Override
     public rsp.component.View<ApprovalViewState> resolve(IntentDispatcher<Decision> intents) {
         return state -> div(attr("class", "approval-dialog"),
-                div(attr("class", "approval-header"),
+                h2(attr("class", "approval-header"),
                         text("Agent Delegation Request")),
                 div(attr("class", "approval-body"),
                         div(attr("class", "approval-field"),
@@ -35,10 +35,11 @@ public class DelegationApprovalView implements ComponentView<DelegationApprovalV
                                 : div()
                 ),
                 div(attr("class", "approval-actions"),
-                        button(attr("class", "btn btn-approve"),
+                        button(attr("type", "button"), attr("class", "btn btn-approve"),
                                 text("Approve"),
                                 on("click", ctx -> intents.dispatch(new Decision(true)))),
-                        button(attr("class", "btn btn-deny"),
+                        button(attr("type", "button"), attr("class", "btn btn-deny"),
+                                attr("autofocus", "autofocus"),
                                 text("Deny"),
                                 on("click", ctx -> intents.dispatch(new Decision(false))))
                 )

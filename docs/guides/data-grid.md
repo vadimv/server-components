@@ -136,6 +136,20 @@ reporting unrelated IDs. The block then reloads the current query, clears
 selection, and moves to the preceding valid page when deletion empties the last
 page.
 
+Row and bulk delete controls open an accessible native `<dialog>` through the
+reusable `ConfirmationDialog` renderer. The dialog names the affected row or
+selected count, puts initial focus on Cancel, closes on Escape, and dispatches
+the delete intent only from its explicit confirmation button. The selected ID
+set is copied when the dialog is rendered, so a later selection change cannot
+silently alter the confirmed operation.
+
+After confirmation, the list enters `ListStatus.DELETING`. The grid exposes
+`aria-busy`, disables query, navigation, selection, and CRUD controls, and
+ignores duplicate mutations until the reload finishes. Capability checks are
+also repeated at the block boundary; hiding a button is never the authorization
+mechanism. Agent actions do not open a browser dialog, but use the same
+capability and in-flight guards before reaching `bulkDelete`.
+
 ## Accessibility And Responsive Layout
 
 `DefaultListView` supplies a caption, scoped column headers, `aria-sort`, named
@@ -156,10 +170,12 @@ Cover the contract at three levels:
 1. Service tests: every allowed sort direction, search/filter combinations,
    exact totals, stable page boundaries, and partial delete results.
 2. View tests: schema column order, sort metadata, formatters, empty/error
-   states, action capabilities, and correctly disabled pagination.
+   states, action capabilities, native dialog labeling, and correctly disabled
+   pagination and busy-state controls.
 3. Mounted block or browser tests: URL synchronization, back/forward, query
-   reset to page 1, selection clearing, out-of-range page clamping, and return
-   from edit with the full query restored.
+   reset to page 1, selection clearing, out-of-range page clamping, dialog
+   cancel/confirm paths, duplicate-delete suppression, and return from edit
+   with the full query restored.
 
 The Posts and Comments services and blocks in CrudApp are the executable
 reference implementation. Their list and form blocks share one schema; see the

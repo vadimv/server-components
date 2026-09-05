@@ -30,6 +30,10 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
             List<FieldDef> fields = state.schema().fields();
             Map<String, FieldBinding> bindings = createBindings(fields);
             String titleId = state.formId() + "-title";
+            ElementRef deleteDialogRef = state.capabilities().canDelete()
+                    && state.status().canRenderFields() ? createElementRef() : null;
+            ElementRef discardDialogRef = state.capabilities().canCancel()
+                    && state.isDirty() ? createElementRef() : null;
             return div(
                     attr("class", "data-form edit-form"),
                     attr("data-form-mode", state.mode().name().toLowerCase(java.util.Locale.ROOT)),
@@ -37,8 +41,10 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                     h1(attr("id", titleId), text(state.title())),
                     renderMessage(state, intents),
                     state.status().canRenderFields()
-                            ? renderForm(state, fields, bindings, titleId, intents)
-                            : renderUnavailableActions(state, intents));
+                            ? renderForm(state, fields, bindings, titleId,
+                                    deleteDialogRef, discardDialogRef, intents)
+                            : renderUnavailableActions(state, discardDialogRef, intents),
+                    renderConfirmations(state, deleteDialogRef, discardDialogRef, intents));
         };
     }
 
@@ -46,6 +52,8 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                                   List<FieldDef> fields,
                                   Map<String, FieldBinding> bindings,
                                   String titleId,
+                                  ElementRef deleteDialogRef,
+                                  ElementRef discardDialogRef,
                                   IntentDispatcher<EditView.EditIntent> intents) {
         return form(
                 attr("id", state.formId()),
@@ -54,7 +62,7 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                 of(fields.stream().map(field -> renderField(
                         state, field, state.fieldValues().get(field.name()), bindings.get(field.name()),
                         state.errorsFor(field.name()), intents))),
-                renderActions(state, intents),
+                renderActions(state, deleteDialogRef, discardDialogRef, intents),
                 on("submit", true, context -> dispatchForm(context, fields, bindings, intents)));
     }
 
@@ -200,6 +208,8 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
     }
 
     private Definition renderActions(EditView.EditViewState state,
+                                     ElementRef deleteDialogRef,
+                                     ElementRef discardDialogRef,
                                      IntentDispatcher<EditView.EditIntent> intents) {
         return div(attr("class", "form-actions"),
                 state.capabilities().canSave()
@@ -207,28 +217,26 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                                 state.isBusy() ? attr("disabled", "disabled") : of(),
                                 text(state.status() == FormStatus.SUBMITTING ? "Saving…" : "Save"))
                         : of(),
-                state.capabilities().canCancel() ? renderCancelButton(state, intents) : of(),
+                state.capabilities().canCancel()
+                        ? renderCancelButton(state, discardDialogRef, intents) : of(),
                 state.capabilities().canDelete()
                         ? button(attr("type", "button"), attr("class", "btn-delete btn-danger"),
                                 state.isBusy() ? attr("disabled", "disabled") : of(), text("Delete"),
-                                on("click", context -> context.evalJs(
-                                                "confirm('Are you sure you want to delete this item?')")
-                                        .thenAccept(result -> {
-                                            if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
-                                                intents.dispatch(EditView.DeleteConfirmed.INSTANCE);
-                                            }
-                                        })))
+                                on("click", context -> context.showModal(deleteDialogRef)))
                         : of());
     }
 
     private Definition renderUnavailableActions(EditView.EditViewState state,
+                                                ElementRef discardDialogRef,
                                                 IntentDispatcher<EditView.EditIntent> intents) {
         return state.capabilities().canCancel()
-                ? div(attr("class", "form-actions"), renderCancelButton(state, intents))
+                ? div(attr("class", "form-actions"),
+                        renderCancelButton(state, discardDialogRef, intents))
                 : of();
     }
 
     private Definition renderCancelButton(EditView.EditViewState state,
+                                          ElementRef discardDialogRef,
                                           IntentDispatcher<EditView.EditIntent> intents) {
         return button(attr("type", "button"), attr("class", "cancel-button"),
                 state.isBusy() ? attr("disabled", "disabled") : of(), text("Cancel"),
@@ -237,12 +245,29 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                         intents.dispatch(EditView.CancelRequested.INSTANCE);
                         return;
                     }
-                    context.evalJs("confirm('Discard your unsaved changes?')").thenAccept(result -> {
-                        if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
-                            intents.dispatch(EditView.CancelRequested.INSTANCE);
-                        }
-                    });
+                    context.showModal(discardDialogRef);
                 }));
+    }
+
+    private Definition renderConfirmations(EditView.EditViewState state,
+                                           ElementRef deleteDialogRef,
+                                           ElementRef discardDialogRef,
+                                           IntentDispatcher<EditView.EditIntent> intents) {
+        return of(
+                deleteDialogRef == null ? of() : ConfirmationDialog.render(
+                        state.formId() + ":delete", deleteDialogRef,
+                        ConfirmationDialog.Spec.danger(
+                                "Delete this item?",
+                                "This action cannot be undone.",
+                                "Delete item"),
+                        intents, EditView.DeleteConfirmed.INSTANCE),
+                discardDialogRef == null ? of() : ConfirmationDialog.render(
+                        state.formId() + ":discard", discardDialogRef,
+                        ConfirmationDialog.Spec.warning(
+                                "Discard unsaved changes?",
+                                "Your changes will be lost.",
+                                "Discard changes"),
+                        intents, EditView.CancelRequested.INSTANCE));
     }
 
     private void dispatchForm(rsp.page.EventContext context,

@@ -36,7 +36,8 @@ const MessageType = {
     LIST_FILES: 12,
     UPLOAD_FILE: 13,
     REST_FORM: 14,
-    FORGET_EVENT: 15
+    FORGET_EVENT: 15,
+    SHOW_MODAL: 16
 }
 
 var protocolDebugEnabled = window.localStorage.getItem(ProtocolDebugEnabledKey) === 'true';
@@ -90,7 +91,10 @@ export class Bridge {
     switch (pCode) {
       case MessageType.SET_RENDER_NUM: k.setRenderNum.apply(k, commands); break;
       case MessageType.CLEAN_ROOT: k.cleanRoot.apply(k, commands); break;
-      case MessageType.LISTEN_EVENT: k.listenEvent(commands); break;
+      case MessageType.LISTEN_EVENT:
+        k.listenEvent(commands);
+        k.openAutoModalDialogs();
+        break;
       case MessageType.EXTRACT_PROPERTY: k.extractProperty.apply(k, commands); break;
       case MessageType.MODIFY_DOM: k.modifyDom(commands); break;
       case MessageType.FOCUS: k.focus.apply(k, commands); break;
@@ -104,6 +108,7 @@ export class Bridge {
       case MessageType.UPLOAD_FILE: k.uploadFile.apply(k, commands); break;
       case MessageType.REST_FORM: k.resetForm.apply(k, commands); break;
       case MessageType.FORGET_EVENT: k.forgetEvent.apply(k, commands); break;
+      case MessageType.SHOW_MODAL: k.showModal.apply(k, commands); break;
       default: console.error(`Procedure ${pCode} is undefined`);
     }
   }

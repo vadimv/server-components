@@ -14,6 +14,7 @@ public sealed interface Command permits
         RemoteCommand.ModifyDom,
         RemoteCommand.PushHistory,
         RemoteCommand.SetHref,
+        RemoteCommand.ShowModal,
         RemoteCommand.SetRenderNum,
         SessionCustomEvent,
         ShutdownSessionCommand {

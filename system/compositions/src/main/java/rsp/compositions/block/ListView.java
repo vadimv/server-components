@@ -86,7 +86,8 @@ public final class ListView {
                                 EditTarget editTarget,
                                 ListCapabilities capabilities,
                                 String message,
-                                boolean error) {
+                                boolean error,
+                                ListStatus status) {
         public ListViewState {
             rows = rows == null ? List.of() : List.copyOf(rows);
             schema = schema == null ? new DataSchema(List.of()) : schema;
@@ -103,6 +104,23 @@ public final class ListView {
             editTarget = editTarget == null ? EditTarget.overlay() : editTarget;
             capabilities = capabilities == null ? ListCapabilities.crud() : capabilities;
             message = message == null ? "" : message;
+            status = status == null ? ListStatus.READY : status;
+        }
+
+        /** Compatibility constructor retained for state producers written before operation status was exposed. */
+        public ListViewState(List<Map<String, Object>> rows,
+                             DataSchema schema,
+                             ListQuery query,
+                             long totalItems,
+                             String modulePath,
+                             Set<String> selectedIds,
+                             String title,
+                             EditTarget editTarget,
+                             ListCapabilities capabilities,
+                             String message,
+                             boolean error) {
+            this(rows, schema, query, totalItems, modulePath, selectedIds, title, editTarget,
+                    capabilities, message, error, ListStatus.READY);
         }
 
         /** Compatibility constructor retained for existing custom list views. */
@@ -148,6 +166,10 @@ public final class ListView {
 
         public boolean hasPrevious() {
             return query.page() > 1;
+        }
+
+        public boolean isBusy() {
+            return status.isBusy();
         }
 
         public boolean hasNext() {
@@ -200,12 +222,22 @@ public final class ListView {
 
         public ListViewState withMessage(String value, boolean isError) {
             return new ListViewState(rows, schema, query, totalItems, modulePath, selectedIds, title,
-                    editTarget, capabilities, value, isError);
+                    editTarget, capabilities, value, isError, status);
+        }
+
+        public ListViewState withStatus(ListStatus value, String statusMessage) {
+            return new ListViewState(rows, schema, query, totalItems, modulePath, selectedIds, title,
+                    editTarget, capabilities, statusMessage, false, value);
+        }
+
+        public ListViewState withStatus(ListStatus value) {
+            return new ListViewState(rows, schema, query, totalItems, modulePath, selectedIds, title,
+                    editTarget, capabilities, message, error, value);
         }
 
         private ListViewState withSelection(Set<String> value) {
             return new ListViewState(rows, schema, query, totalItems, modulePath, value, title,
-                    editTarget, capabilities, message, error);
+                    editTarget, capabilities, message, error, status);
         }
 
         private List<String> rowIds() {

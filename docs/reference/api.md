@@ -30,10 +30,12 @@ The reusable grid API is split deliberately:
 | `ListBlock<T>` | Own state, normalize URL input, reload data, handle intents and mutations |
 | `ListQuery` | Validated page, page size, `SortSpec`, search text, and column filters |
 | `ListPage<T>` | Immutable result rows plus the exact matching total |
-| `ListView.ListViewState` | Render-ready rows, schema, query, totals, selection, capabilities, and feedback |
+| `ListView.ListViewState` | Render-ready rows, schema, query, totals, selection, capabilities, feedback, and operation status |
 | `ListCapabilities` | Row-key field and create/edit/delete availability |
+| `ListStatus` | Ready/deleting lifecycle used for busy UI and duplicate-mutation suppression |
 | `DeleteResult` | Successfully deleted and failed IDs for complete or partial outcomes |
 | `DefaultListView` | Schema-driven HTML table, query controls, pagination, selection, and CRUD controls |
+| `ConfirmationDialog` | Accessible native confirmation markup that dispatches a typed intent only on confirmation |
 | `DataSchema` / `ColumnConfig` | Column order, label, sort/filter flags, width, alignment, formatter, and selection metadata |
 
 The stable extension points on `ListBlock<T>` are `pageQueryParam()`,
@@ -63,3 +65,14 @@ and, on `EditBlock`, ID resolution plus `deleteResult(...)`. Boolean `save` and
 `delete` methods remain compatibility hooks for existing blocks. For the
 behavioral contract and complete example, see
 [Schema-driven create and edit forms](../guides/data-forms.md).
+
+## Native Dialog API
+
+`EventContext.showModal(ElementRef)` is the typed server-to-browser operation
+for opening a rendered `<dialog>` with `HTMLDialogElement.showModal()`. It
+replaces raw `evalJs("confirm(...)")` usage and keeps element resolution in the
+existing `ElementRef`/`NodeId` protocol. `ConfirmationDialog` builds on it for
+local confirmations. `ModalLayerLayout` marks routed layer dialogs for
+automatic promotion into the browser top layer after their event listeners are
+registered, preserving Escape, focus containment, backdrop dismissal, and
+server-side `HIDE` handling.

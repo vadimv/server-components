@@ -357,7 +357,10 @@ button:hover,
     border-color: var(--accent-hover);
 }
 
-button:disabled {
+button:disabled,
+button:disabled:hover,
+.create-button:disabled,
+.create-button:disabled:hover {
     background-color: var(--surface-muted);
     border-color: var(--border);
     color: var(--text-subtle);
@@ -381,6 +384,15 @@ td button:hover,
 td .edit-button:hover {
     background-color: var(--surface-raised);
     border-color: var(--border-strong);
+}
+
+td button:disabled,
+td button:disabled:hover,
+.edit-link[aria-disabled="true"] {
+    background-color: var(--surface-muted);
+    border-color: var(--border);
+    color: var(--text-subtle);
+    cursor: not-allowed;
 }
 
 .pagination-top button,
@@ -518,6 +530,16 @@ td .edit-button:hover {
 .btn-danger:hover {
     background-color: var(--danger-hover);
     border-color: var(--danger-hover);
+}
+
+.btn-delete:disabled,
+.btn-delete:disabled:hover,
+.btn-danger:disabled,
+.btn-danger:disabled:hover {
+    background-color: var(--surface-muted);
+    border-color: var(--border);
+    color: var(--text-subtle);
+    cursor: not-allowed;
 }
 
 /* Ghost delete inside row */
@@ -1202,37 +1224,50 @@ h1 {
 }
 
 .modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+}
+
+.modal-overlay[open] {
+    display: grid;
+    place-items: center;
+}
+
+.modal-overlay::backdrop,
+.confirmation-dialog::backdrop {
     background: var(--backdrop);
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .modal-backdrop {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
 }
 
 .modal-content {
     position: relative;
     z-index: 1;
+    box-sizing: border-box;
     background: var(--surface);
     padding: 2rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     max-width: 500px;
-    width: 90%;
-    max-height: 90%;
+    width: calc(100% - 2rem);
+    max-height: calc(100dvh - 2rem);
     overflow-y: auto;
     box-shadow: var(--shadow-elevated);
+}
+
+.modal-close-form {
+    margin: 0;
 }
 
 .modal-close {
@@ -1260,6 +1295,59 @@ h1 {
 
 .modal-close-icon {
     display: block;
+}
+
+/* ========== Confirmation Dialog ========== */
+.confirmation-dialog {
+    box-sizing: border-box;
+    width: min(28rem, calc(100% - 2rem));
+    max-width: 28rem;
+    max-height: calc(100dvh - 2rem);
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-elevated);
+    overflow-y: auto;
+}
+
+.confirmation-dialog-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    line-height: 1.3;
+}
+
+.confirmation-dialog-message {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.confirmation-dialog-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.confirmation-dialog-cancel {
+    border-color: var(--border);
+    background: var(--surface-muted);
+    color: var(--text);
+}
+
+.confirmation-dialog-confirm-danger,
+.confirmation-dialog-confirm-warning {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: white;
+}
+
+.confirmation-dialog-confirm-danger:hover,
+.confirmation-dialog-confirm-warning:hover {
+    border-color: var(--danger-hover);
+    background: var(--danger-hover);
 }
 
 /* ========== Right Sidebar ========== */
@@ -1403,13 +1491,14 @@ h1 {
 /* ========== Delegation Approval Dialog ========== */
 .approval-dialog {
     padding: 1.5rem;
-    min-width: 400px;
+    min-width: min(25rem, 100%);
+    box-sizing: border-box;
 }
 
 .approval-header {
     font-size: 1.25rem;
     font-weight: 600;
-    margin-bottom: 1rem;
+    margin: 0 0 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border);
     color: var(--text);
@@ -1430,6 +1519,7 @@ h1 {
 
 .approval-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     justify-content: flex-end;
 }

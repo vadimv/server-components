@@ -56,6 +56,12 @@ public interface RemoteOut {
     void pushHistory(String path);
 
     /**
+     * Opens a native HTML dialog as a modal on the client-side.
+     * @param nodeId the dialog element, must not be null
+     */
+    void showModal(NodeId nodeId);
+
+    /**
      * Evaluates JavaScript on the client-side.
      * @param descriptor the descriptor of the request
      * @param js the JavaScript to evaluate, must not be null

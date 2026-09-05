@@ -112,6 +112,25 @@ class DefaultEditViewTests {
         assertTrue(document.selectFirst(".btn-delete").hasAttr("disabled"));
     }
 
+    @Test
+    void renders_delete_and_dirty_cancel_as_accessible_native_dialogs() {
+        EditView.EditViewState dirty = new EditView.EditViewState(values("Changed"), SCHEMA, true,
+                "/items", FormMode.EDIT, Map.of(), "Edit", FormCapabilities.edit(),
+                FormStatus.READY, "", false, "form-test");
+        Document document = render(dirty);
+
+        assertEquals(2, document.select("dialog.confirmation-dialog[role=alertdialog]").size());
+        Element discard = document.selectFirst(
+                "dialog:has(.confirmation-dialog-title:contains(Discard unsaved changes))");
+        assertNotNull(discard);
+        assertNotNull(document.getElementById(discard.attr("aria-labelledby")));
+        assertNotNull(document.getElementById(discard.attr("aria-describedby")));
+        assertEquals("dialog", discard.selectFirst("form").attr("method"));
+        assertTrue(discard.selectFirst(".confirmation-dialog-cancel").hasAttr("autofocus"));
+        assertEquals(1, document.select(".data-form > form").size(),
+                "confirmation forms must not be nested inside the edit form");
+    }
+
     private static EditView.EditViewState state(Map<String, Object> values) {
         return new EditView.EditViewState(values, SCHEMA, false, "/items", FormMode.EDIT, Map.of(),
                 "Edit", FormCapabilities.edit(), FormStatus.READY, "", false, "form-test");

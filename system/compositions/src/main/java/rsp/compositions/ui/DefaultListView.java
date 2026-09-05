@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static rsp.dsl.Html.*;
@@ -41,6 +42,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
 
             return div(
                     attr("class", "data-grid"),
+                    state.isBusy() ? attr("aria-busy", "true") : of(),
                     h1(text(state.title())),
                     renderMessage(state, intents),
                     renderActions(state, intents),
@@ -87,8 +89,9 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                         attr("type", "button"),
                         attr("class", "grid-message-dismiss"),
                         attr("aria-label", "Dismiss message"),
+                        state.isBusy() ? attr("disabled", "disabled") : of(),
                         text("×"),
-                        on("click", _ -> intents.dispatch(ListView.DismissMessage.INSTANCE)))
+                        state.isBusy() ? of() : on("click", _ -> intents.dispatch(ListView.DismissMessage.INSTANCE)))
         );
     }
 
@@ -103,8 +106,10 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                         ? button(
                                 attr("type", "button"),
                                 attr("class", "create-button"),
+                                state.isBusy() ? attr("disabled", "disabled") : of(),
                                 text("Create New"),
-                                on("click", _ -> intents.dispatch(ListView.CreateRequested.INSTANCE)))
+                                state.isBusy() ? of()
+                                        : on("click", _ -> intents.dispatch(ListView.CreateRequested.INSTANCE)))
                         : of(),
                 showBulkDelete ? renderBulkDeleteButton(state, intents) : of()
         );
@@ -130,6 +135,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                 attr("type", "search"),
                                 attr("name", "q"),
                                 attr("value", state.query().search()),
+                                state.isBusy() ? attr("disabled", "disabled") : of(),
                                 attr("placeholder", "Search all columns"))
                 ),
                 of(filterable.stream().map(field -> div(
@@ -140,18 +146,23 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                         attr("type", "search"),
                                         attr("name", "filter." + field.name()),
                                         attr("value", state.query().filters().getOrDefault(field.name(), "")),
+                                        state.isBusy() ? attr("disabled", "disabled") : of(),
                                         attr("placeholder", "Filter " + field.displayName())))
                 ))),
                 div(
                         attr("class", "grid-query-actions"),
-                        button(attr("type", "submit"), text("Apply")),
+                        button(attr("type", "submit"),
+                                state.isBusy() ? attr("disabled", "disabled") : of(), text("Apply")),
                         button(
                                 attr("type", "button"),
                                 attr("class", "grid-clear-button"),
+                                state.isBusy() ? attr("disabled", "disabled") : of(),
                                 text("Clear"),
-                                on("click", _ -> intents.dispatch(new ListView.QueryRequested("", Map.of()))))
+                                state.isBusy() ? of()
+                                        : on("click", _ -> intents.dispatch(new ListView.QueryRequested("", Map.of()))))
                 ),
-                on("submit", true, context -> dispatchQuery(context, searchRef, filterRefs, intents))
+                state.isBusy() ? of()
+                        : on("submit", true, context -> dispatchQuery(context, searchRef, filterRefs, intents))
         );
     }
 
@@ -190,8 +201,9 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                         attr("aria-label", "Select all rows on this page"),
                         attr("aria-checked", selectionState),
                         attr("data-selection-state", selectionState),
+                        state.isBusy() ? attr("disabled", "disabled") : of(),
                         state.isAllSelected() ? attr("checked", "checked") : of(),
-                        on("click", _ -> {
+                        state.isBusy() ? of() : on("click", _ -> {
                             ListView.ListViewState updated = state.isAllSelected()
                                     ? state.clearSelection()
                                     : state.selectAll();
@@ -214,12 +226,13 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
             content = button(
                     attr("type", "button"),
                     attr("class", "grid-sort-button"),
+                    state.isBusy() ? attr("disabled", "disabled") : of(),
                     text(field.displayName()),
                     span(
                             attr("class", "grid-sort-indicator"),
                             attr("aria-hidden", "true"),
                             text(activeColumn ? active.direction() == SortDirection.ASC ? " ↑" : " ↓" : "")),
-                    on("click", _ -> intents.dispatch(
+                    state.isBusy() ? of() : on("click", _ -> intents.dispatch(
                             new ListView.SortRequested(new SortSpec(field.name(), next)))));
         } else {
             content = text(field.displayName());
@@ -248,8 +261,9 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                 input(
                                         attr("type", "checkbox"),
                                         attr("aria-label", "Select row " + rowId),
+                                        state.isBusy() ? attr("disabled", "disabled") : of(),
                                         state.isSelected(rowId) ? attr("checked", "checked") : of(),
-                                        on("click", _ -> {
+                                        state.isBusy() ? of() : on("click", _ -> {
                                             ListView.ListViewState updated = state.toggleSelection(rowId);
                                             intents.dispatch(new ListView.SelectionChanged(updated.selectedIds()));
                                         })))
@@ -265,10 +279,10 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                 hasRowActions ? td(
                         attr("class", "grid-row-actions"),
                         state.capabilities().canEdit()
-                                ? renderEditButton(rowId, currentQueryParams, state.editTarget(), intents)
+                                ? renderEditButton(rowId, currentQueryParams, state.editTarget(), state.isBusy(), intents)
                                 : of(),
                         state.capabilities().canDelete()
-                                ? renderDeleteButton(rowId, intents)
+                                ? renderDeleteButton(state.modulePath(), rowId, state.isBusy(), intents)
                                 : of()) : of()
         );
     }
@@ -289,51 +303,67 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
     private Definition renderBulkDeleteButton(ListView.ListViewState state,
                                               IntentDispatcher<ListView.ListIntent> intents) {
         int count = state.selectedIds().size();
-        return button(
-                attr("type", "button"),
-                attr("class", "btn-delete btn-danger"),
-                text("Delete Selected (" + count + ")"),
-                on("click", context -> context.evalJs(
-                                "confirm('Are you sure you want to delete " + count + " items?')")
-                        .thenAccept(result -> {
-                            if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
-                                intents.dispatch(new ListView.BulkDeleteConfirmed(state.selectedIds()));
-                            }
-                        }))
-        );
+        ElementRef dialogRef = createElementRef();
+        Set<String> selectedIds = Set.copyOf(state.selectedIds());
+        return of(
+                button(
+                        attr("type", "button"),
+                        attr("class", "btn-delete btn-danger"),
+                        state.isBusy() ? attr("disabled", "disabled") : of(),
+                        text("Delete Selected (" + count + ")"),
+                        state.isBusy() ? of() : on("click", context -> context.showModal(dialogRef))),
+                ConfirmationDialog.render(
+                        state.modulePath() + ":bulk-delete", dialogRef,
+                        ConfirmationDialog.Spec.danger(
+                                "Delete selected items?",
+                                "This will permanently delete " + count + " selected "
+                                        + (count == 1 ? "item." : "items."),
+                                count == 1 ? "Delete item" : "Delete " + count + " items"),
+                        intents, new ListView.BulkDeleteConfirmed(selectedIds)));
     }
 
     private Definition renderEditButton(String rowId,
                                         String queryParams,
                                         ListView.EditTarget editTarget,
+                                        boolean disabled,
                                         IntentDispatcher<ListView.ListIntent> intents) {
         if (editTarget.hasRoute() && !editTarget.opensAsOverlay()) {
             String editUrl = editTarget.routePattern().replace(":id", rowId);
             if (!queryParams.isEmpty()) editUrl += "?" + queryParams;
-            return a(attr("href", editUrl), attr("class", "edit-button edit-link"),
+            return a(disabled ? of() : attr("href", editUrl), attr("class", "edit-button edit-link"),
+                    disabled ? attr("aria-disabled", "true") : of(),
+                    disabled ? attr("tabindex", "-1") : of(),
                     attr("aria-label", "Edit row " + rowId), text("Edit"));
         }
         return button(
                 attr("type", "button"),
                 attr("class", "edit-button"),
                 attr("aria-label", "Edit row " + rowId),
+                disabled ? attr("disabled", "disabled") : of(),
                 text("Edit"),
-                on("click", _ -> intents.dispatch(new ListView.EditRequested(rowId))));
+                disabled ? of() : on("click", _ -> intents.dispatch(new ListView.EditRequested(rowId))));
     }
 
-    private Definition renderDeleteButton(String rowId, IntentDispatcher<ListView.ListIntent> intents) {
-        return button(
-                attr("type", "button"),
-                attr("class", "btn-delete grid-row-delete"),
-                attr("aria-label", "Delete row " + rowId),
-                text("Delete"),
-                on("click", context -> context.evalJs("confirm('Are you sure you want to delete this item?')")
-                        .thenAccept(result -> {
-                            if (result instanceof JsonDataType.Boolean confirmed && confirmed.value()) {
-                                intents.dispatch(new ListView.DeleteConfirmed(rowId));
-                            }
-                        }))
-        );
+    private Definition renderDeleteButton(String modulePath,
+                                          String rowId,
+                                          boolean disabled,
+                                          IntentDispatcher<ListView.ListIntent> intents) {
+        ElementRef dialogRef = createElementRef();
+        return of(
+                button(
+                        attr("type", "button"),
+                        attr("class", "btn-delete grid-row-delete"),
+                        attr("aria-label", "Delete row " + rowId),
+                        disabled ? attr("disabled", "disabled") : of(),
+                        text("Delete"),
+                        disabled ? of() : on("click", context -> context.showModal(dialogRef))),
+                ConfirmationDialog.render(
+                        modulePath + ":row-delete:" + rowId, dialogRef,
+                        ConfirmationDialog.Spec.danger(
+                                "Delete this item?",
+                                "Item " + rowId + " will be permanently deleted.",
+                                "Delete item"),
+                        intents, new ListView.DeleteConfirmed(rowId)));
     }
 
     private Definition renderPagination(String position,
@@ -358,22 +388,23 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                 + " of " + state.totalItems())),
                 div(
                         attr("class", "pagination-buttons"),
-                        pageButton("First", 1, !state.hasPrevious(), intents),
-                        pageButton("← Previous", state.page() - 1, !state.hasPrevious(), intents),
+                        pageButton("First", 1, state.isBusy() || !state.hasPrevious(), intents),
+                        pageButton("← Previous", state.page() - 1, state.isBusy() || !state.hasPrevious(), intents),
                         span(attr("class", "pagination-page"), text("Page " + displayedPage + " of " + Math.max(1, totalPages))),
-                        pageButton("Next →", state.page() + 1, !state.hasNext(), intents),
-                        pageButton("Last", Math.max(1, totalPages), !state.hasNext(), intents)),
+                        pageButton("Next →", state.page() + 1, state.isBusy() || !state.hasNext(), intents),
+                        pageButton("Last", Math.max(1, totalPages), state.isBusy() || !state.hasNext(), intents)),
                 label(
                         attr("class", "page-size-control"),
                         text("Rows per page"),
                         select(
                                 ref(sizeRef),
                                 attr("aria-label", "Rows per page"),
+                                state.isBusy() ? attr("disabled", "disabled") : of(),
                                 of(pageSizes.stream().map(size -> option(
                                         attr("value", String.valueOf(size)),
                                         size == state.pageSize() ? attr("selected", "selected") : of(),
                                         text(String.valueOf(size))))),
-                                on("change", context -> stringProperty(context, sizeRef).thenAccept(value -> {
+                                state.isBusy() ? of() : on("change", context -> stringProperty(context, sizeRef).thenAccept(value -> {
                                     try {
                                         intents.dispatch(new ListView.PageSizeRequested(Integer.parseInt(value)));
                                     } catch (NumberFormatException ignored) {

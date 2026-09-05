@@ -38,6 +38,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     private static final int UPLOAD_FILE = 13; // (id, descriptor, fileName)
     private static final int REST_FORM = 14; // (id)
     private static final int FORGET_EVENT = 15; // (type, id)
+    private static final int SHOW_MODAL = 16; // (id)
 
     // MODIFY_DOM commands
     private static final int  CREATE = 0; // (id, childId, xmlNs, tag)
@@ -141,6 +142,12 @@ public final class RemotePageMessageEncoder implements RemoteOut {
         Objects.requireNonNull(path);
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(escape(path))));
         messagesOut.accept(message);
+    }
+
+    @Override
+    public void showModal(final NodeId nodeId) {
+        Objects.requireNonNull(nodeId);
+        messagesOut.accept(addSquareBrackets(joinString(SHOW_MODAL, quote(nodeId))));
     }
 
     private String modifyDomMessageBody(final DomChange domChange) {

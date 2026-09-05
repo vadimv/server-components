@@ -17,8 +17,10 @@ import rsp.page.events.GenericTaskEvent;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.dsl.Html.div;
 
@@ -82,6 +84,44 @@ class ListBlockTests {
         harness.commands().runTasks();
         assertEquals(25, block.lastUpdatedState.pageSize());
         assertEquals(1, block.lastUpdatedState.page());
+    }
+
+    @Test
+    void confirmed_delete_exposes_busy_state_and_suppresses_duplicate_requests() {
+        TestListBlock block = new TestListBlock();
+        Harness harness = render(new Parent(block, new ParentState("1", "asc")));
+        ComponentSegment<ListView.ListViewState> segment = listSegment(harness.root());
+
+        segment.dispatch(new ListView.DeleteConfirmed("page-1"));
+        segment.dispatch(new ListView.DeleteConfirmed("page-1"));
+        harness.commands().runNextTask();
+        harness.commands().runNextTask();
+        harness.commands().runNextTask();
+
+        assertEquals(ListStatus.DELETING, block.lastUpdatedState.status());
+        assertEquals("Deleting 1 item…", block.lastUpdatedState.message());
+        assertEquals(0, block.bulkDeleteCalls);
+
+        harness.commands().runTasks();
+
+        assertEquals(1, block.bulkDeleteCalls);
+        assertEquals(Set.of("page-1"), block.lastDeletedIds);
+        assertEquals(ListStatus.READY, block.lastUpdatedState.status());
+        assertEquals("1 item deleted.", block.lastUpdatedState.message());
+    }
+
+    @Test
+    void agent_actions_match_configured_crud_capabilities() {
+        TestListBlock readOnly = new TestListBlock(false, false, false);
+        List<String> names = readOnly.agentActions().stream().map(BlockAction::action).toList();
+
+        assertFalse(names.contains("create"));
+        assertFalse(names.contains("edit"));
+        assertFalse(names.contains("edit_selected"));
+        assertFalse(names.contains("delete"));
+        assertFalse(names.contains("delete_selected"));
+        assertTrue(names.contains("page"));
+        assertTrue(names.contains("select_all"));
     }
 
     @SuppressWarnings("unchecked")
@@ -148,9 +188,21 @@ class ListBlockTests {
 
         private ListView.ListViewState lastUpdatedState;
         private ListView.ListViewState initialState;
+        private final boolean createAllowed;
+        private final boolean editAllowed;
+        private final boolean deleteAllowed;
+        private int bulkDeleteCalls;
+        private Set<String> lastDeletedIds = Set.of();
 
         private TestListBlock() {
+            this(true, true, true);
+        }
+
+        private TestListBlock(boolean createAllowed, boolean editAllowed, boolean deleteAllowed) {
             super(_ -> _ -> div());
+            this.createAllowed = createAllowed;
+            this.editAllowed = editAllowed;
+            this.deleteAllowed = deleteAllowed;
         }
 
         @Override
@@ -180,6 +232,28 @@ class ListBlockTests {
         @Override
         protected Class<? extends Block<?, ?>> editElementBlock() {
             return TestListBlock.class;
+        }
+
+        @Override
+        protected boolean canCreate() {
+            return createAllowed;
+        }
+
+        @Override
+        protected boolean canEdit() {
+            return editAllowed;
+        }
+
+        @Override
+        protected boolean canDelete() {
+            return deleteAllowed;
+        }
+
+        @Override
+        protected DeleteResult bulkDelete(Set<String> ids) {
+            bulkDeleteCalls++;
+            lastDeletedIds = Set.copyOf(ids);
+            return DeleteResult.allDeleted(ids);
         }
 
         @Override
@@ -222,6 +296,17 @@ class ListBlockTests {
                     taskEvent.task().run();
                 }
             }
+        }
+
+        private void runNextTask() {
+            while (nextCommand < commands.size()) {
+                Command command = commands.get(nextCommand++);
+                if (command instanceof GenericTaskEvent taskEvent) {
+                    taskEvent.task().run();
+                    return;
+                }
+            }
+            throw new AssertionError("No queued task available");
         }
     }
 }
