@@ -58,7 +58,7 @@ The built-in direct bases expose the standard admin actions:
 
 | BlockRuntime base              | Typical actions                                                                      |
 |----------------------------|--------------------------------------------------------------------------------------|
-| `ListBlock<T>` | `create`, `edit`, `edit_selected`, `delete`, `delete_selected`, `page`, `select_all` |
+| `ListBlock<T>` | permitted CRUD actions plus `page` and `select_all`                                |
 | `FormBlock<T>` | permitted actions among `set_field`, `save`, and `cancel`                            |
 | `EditBlock<T>` | permitted form actions plus `delete`                                                 |
 
@@ -66,6 +66,11 @@ The built-in direct bases expose the standard admin actions:
 It identifies these bases with `ListBlock`,
 `FormBlock`, and `EditBlock`; there is no parallel
 block/view hierarchy to infer.
+
+Browser confirmation dialogs are presentation safeguards, not agent protocol
+steps. An agent delete dispatches the declared typed event directly; effective
+capabilities and the block's in-flight mutation guard still apply before the
+service is called.
 
 ## Defining An Agent Action
 

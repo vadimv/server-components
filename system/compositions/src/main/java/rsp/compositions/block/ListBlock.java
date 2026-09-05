@@ -15,6 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static rsp.compositions.block.ActionBindings.ShowPayload;
 import static rsp.compositions.block.EventKeys.SCENE_QUERY_UPDATED_BATCH;
@@ -53,6 +54,7 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ComponentView<ListViewState, ListIntent> view;
+    private final AtomicBoolean deleteInFlight = new AtomicBoolean();
 
     protected ListBlock(ComponentView<ListViewState, ListIntent> view) {
         this.view = java.util.Objects.requireNonNull(view, "view");
@@ -127,31 +129,41 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
         }
 
         subscribe(ListBlockEvents.CREATE_ELEMENT_REQUESTED, () -> {
-            if (canCreate()) {
+            if (canCreate() && !deleteInFlight.get()) {
                 lookup().publish(SHOW, new ShowPayload(createElementBlock(), Map.of()));
             }
         });
 
         subscribe(ListBlockEvents.EDIT_ELEMENT_REQUESTED, (_, rowId) -> {
-            if (canEdit()) {
+            if (canEdit() && !deleteInFlight.get()) {
                 lookup().publish(SHOW, new ShowPayload(editElementBlock(), Map.of("id", rowId)));
             }
         });
 
         subscribe(ListBlockEvents.BULK_DELETE_REQUESTED,
-                (_, selectedIds) -> stateUpdate.applyStateTransformation(current -> deleteAndReload(current, selectedIds)));
+                (_, selectedIds) -> stateUpdate.applyStateTransformation(current -> {
+                    requestDelete(current, selectedIds, stateUpdate);
+                    return current;
+                }));
 
-        subscribe(ListBlockEvents.PAGE_CHANGE_REQUESTED,
-                (_, page) -> stateUpdate.applyStateTransformation(current -> changePage(current, page, true)));
+        subscribe(ListBlockEvents.PAGE_CHANGE_REQUESTED, (_, page) -> {
+            if (!deleteInFlight.get()) {
+                stateUpdate.applyStateTransformation(current ->
+                        current.isBusy() ? current : changePage(current, page, true));
+            }
+        });
 
         subscribe(ListBlockEvents.SELECT_ALL_REQUESTED, () -> stateUpdate.applyStateTransformation(current -> {
+            if (current.isBusy() || deleteInFlight.get()) {
+                return current;
+            }
             ListViewState selected = current.selectAll();
             publishSelection(selected.selectedIds());
             return selected;
         }));
 
         subscribe(ListBlockEvents.EDIT_SELECTED_REQUESTED, () -> stateUpdate.applyStateTransformation(current -> {
-            if (canEdit() && !current.selectedIds().isEmpty()) {
+            if (canEdit() && !current.isBusy() && !deleteInFlight.get() && !current.selectedIds().isEmpty()) {
                 lookup().publish(SHOW, new ShowPayload(editElementBlock(),
                         Map.of("id", current.selectedIds().iterator().next())));
             }
@@ -159,20 +171,25 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
         }));
 
         subscribe(ListBlockEvents.DELETE_SELECTED_REQUESTED,
-                () -> stateUpdate.applyStateTransformation(current ->
-                        current.selectedIds().isEmpty() ? current : deleteAndReload(current, current.selectedIds())));
+                () -> stateUpdate.applyStateTransformation(current -> {
+                    requestDelete(current, current.selectedIds(), stateUpdate);
+                    return current;
+                }));
     }
 
     @Override
     protected void onIntent(ListIntent intent, ListViewState state, StateUpdater<ListViewState> stateUpdater) {
+        if (state.isBusy()) {
+            return;
+        }
         if (intent instanceof SelectionChanged selection) {
             ListViewState updated = withSelection(state, selection.selectedIds());
             stateUpdater.setState(updated);
             publishSelection(updated.selectedIds());
         } else if (intent instanceof BulkDeleteConfirmed bulkDelete) {
-            stateUpdater.setState(deleteAndReload(state, bulkDelete.selectedIds()));
+            requestDelete(state, bulkDelete.selectedIds(), stateUpdater);
         } else if (intent instanceof DeleteConfirmed delete) {
-            stateUpdater.setState(deleteAndReload(state, Set.of(delete.rowId())));
+            requestDelete(state, Set.of(delete.rowId()), stateUpdater);
         } else if (intent instanceof PageRequested pageRequested) {
             stateUpdater.setState(changePage(state, pageRequested.page(), true));
         } else if (intent instanceof PageSizeRequested pageSizeRequested) {
@@ -213,22 +230,29 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
 
     @Override
     public List<BlockAction> agentActions() {
-        return List.of(
-                new BlockAction("create", ListBlockEvents.CREATE_ELEMENT_REQUESTED,
-                        "Open create form for a new item", DispatchEffect.SCENE_CHANGE),
-                new BlockAction("edit", ListBlockEvents.EDIT_ELEMENT_REQUESTED,
-                        "Open edit form for an item", new PayloadSchema.StringValue("row ID"),
-                        DispatchEffect.SCENE_CHANGE),
-                new BlockAction("edit_selected", ListBlockEvents.EDIT_SELECTED_REQUESTED,
-                        "Open edit form for the first selected row", DispatchEffect.SCENE_CHANGE),
-                new BlockAction("delete", ListBlockEvents.BULK_DELETE_REQUESTED,
-                        "Delete items by their IDs", new PayloadSchema.StringSet("row IDs to delete")),
-                new BlockAction("delete_selected", ListBlockEvents.DELETE_SELECTED_REQUESTED,
-                        "Delete all currently selected rows"),
-                new BlockAction("page", ListBlockEvents.PAGE_CHANGE_REQUESTED,
-                        "Navigate to a page number", new PayloadSchema.IntegerValue("page number (1-based)")),
-                new BlockAction("select_all", ListBlockEvents.SELECT_ALL_REQUESTED,
-                        "Select all rows on the current page"));
+        List<BlockAction> actions = new java.util.ArrayList<>();
+        if (canCreate()) {
+            actions.add(new BlockAction("create", ListBlockEvents.CREATE_ELEMENT_REQUESTED,
+                    "Open create form for a new item", DispatchEffect.SCENE_CHANGE));
+        }
+        if (canEdit()) {
+            actions.add(new BlockAction("edit", ListBlockEvents.EDIT_ELEMENT_REQUESTED,
+                    "Open edit form for an item", new PayloadSchema.StringValue("row ID"),
+                    DispatchEffect.SCENE_CHANGE));
+            actions.add(new BlockAction("edit_selected", ListBlockEvents.EDIT_SELECTED_REQUESTED,
+                    "Open edit form for the first selected row", DispatchEffect.SCENE_CHANGE));
+        }
+        if (canDelete()) {
+            actions.add(new BlockAction("delete", ListBlockEvents.BULK_DELETE_REQUESTED,
+                    "Delete items by their IDs", new PayloadSchema.StringSet("row IDs to delete")));
+            actions.add(new BlockAction("delete_selected", ListBlockEvents.DELETE_SELECTED_REQUESTED,
+                    "Delete all currently selected rows"));
+        }
+        actions.add(new BlockAction("page", ListBlockEvents.PAGE_CHANGE_REQUESTED,
+                "Navigate to a page number", new PayloadSchema.IntegerValue("page number (1-based)")));
+        actions.add(new BlockAction("select_all", ListBlockEvents.SELECT_ALL_REQUESTED,
+                "Select all rows on the current page"));
+        return List.copyOf(actions);
     }
 
     @Override
@@ -278,7 +302,7 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
     }
 
     private ListViewState deleteAndReload(ListViewState state, Set<String> requestedIds) {
-        if (!canDelete() || requestedIds == null || requestedIds.isEmpty()) {
+        if (!canDelete() || !state.capabilities().canDelete() || requestedIds == null || requestedIds.isEmpty()) {
             return state;
         }
         try {
@@ -314,8 +338,40 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
         }
     }
 
+    private void requestDelete(ListViewState state,
+                               Set<String> requestedIds,
+                               StateUpdater<ListViewState> stateUpdater) {
+        if (state.isBusy() || !canDelete() || !state.capabilities().canDelete()
+                || requestedIds == null || requestedIds.isEmpty()) {
+            return;
+        }
+        Set<String> ids = Set.copyOf(requestedIds);
+        if (!deleteInFlight.compareAndSet(false, true)) {
+            return;
+        }
+        String pendingMessage = ids.size() == 1
+                ? "Deleting 1 item…"
+                : "Deleting " + ids.size() + " items…";
+        ListViewState deleting = state.withStatus(ListStatus.DELETING, pendingMessage);
+        stateUpdater.setState(deleting);
+        // One extra queue turn lets the busy-state DOM commands reach the client
+        // before a synchronous repository implementation starts doing work.
+        lookup().enqueueTask(() -> lookup().enqueueTask(() -> {
+            try {
+                stateUpdater.setState(deleteAndReload(deleting, ids).withStatus(ListStatus.READY));
+                lookup().enqueueTask(() -> deleteInFlight.set(false));
+            } catch (RuntimeException | Error failure) {
+                deleteInFlight.set(false);
+                throw failure;
+            }
+        }));
+    }
+
     private void refreshFromContext(StateUpdater<ListViewState> stateUpdater) {
         stateUpdater.applyStateTransformation(current -> {
+            if (current.isBusy()) {
+                return current;
+            }
             ListQuery query = resolveQuery(lookup(), current.schema());
             boolean queryChanged = !current.query().equals(query);
             Set<String> selected = queryChanged ? Set.of() : current.selectedIds();
@@ -457,7 +513,8 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
 
     private static ListViewState withSelection(ListViewState state, Set<String> selectedIds) {
         return new ListViewState(state.rows(), state.schema(), state.query(), state.totalItems(), state.modulePath(),
-                selectedIds, state.title(), state.editTarget(), state.capabilities(), state.message(), state.error());
+                selectedIds, state.title(), state.editTarget(), state.capabilities(), state.message(), state.error(),
+                state.status());
     }
 
     private static void validateSchema(DataSchema schema) {

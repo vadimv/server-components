@@ -257,8 +257,8 @@ class CommentsSmokeIT {
         waitFor(100);
 
         // Cancel
-        acceptDiscardDialog(page);
         cancelForm(page);
+        acceptDiscardDialog(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Verify back on list
@@ -280,8 +280,8 @@ class CommentsSmokeIT {
         waitFor(100);
 
         // Cancel
-        acceptDiscardDialog(page);
         cancelForm(page);
+        acceptDiscardDialog(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Verify back on list
@@ -307,14 +307,6 @@ class CommentsSmokeIT {
         // Click Edit on last comment
         lastRow.locator(".edit-button").click();
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-
-        // Setup dialog handler before clicking delete
-        page.onDialog(dialog -> {
-            System.out.println("Dialog message: " + dialog.message());
-            assertTrue(dialog.message().toLowerCase().contains("sure") ||
-                      dialog.message().toLowerCase().contains("delete"));
-            dialog.accept();
-        });
 
         // Click Delete button
         deleteComment(page);
@@ -358,8 +350,9 @@ class CommentsSmokeIT {
                 .locator("button.btn-delete.btn-danger:has-text(\"Delete Selected\")");
         assertThat(bulkDeleteButton).isVisible();
 
-        // Click bulk delete (dialog handler from previous test should still be active)
+        // Click bulk delete and confirm in the native modal.
         bulkDeleteButton.click();
+        confirmDialog(page, "delete selected");
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
 
         // Verify deleted comments are gone by checking exact matches in text cells
@@ -420,8 +413,8 @@ class CommentsSmokeIT {
         assertThat(formScope(page).locator("[name=postId]")).hasAttribute("aria-invalid", "true");
         assertThat(formScope(page).locator(".field-errors")).containsText("does not exist");
 
-        acceptDiscardDialog(page);
         cancelForm(page);
+        acceptDiscardDialog(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
         System.out.println("✓ Comment relationship validation validated successfully");
     }
@@ -431,15 +424,20 @@ class CommentsSmokeIT {
     }
 
     private void acceptDiscardDialog(final Page page) {
-        page.onceDialog(dialog -> {
-            assertTrue(dialog.message().toLowerCase().contains("discard"));
-            dialog.accept();
-        });
+        confirmDialog(page, "discard");
     }
 
     private void deleteComment(final Page page) {
         Locator deleteButton = formScope(page).locator("button.btn-delete.btn-danger");
         deleteButton.click();
+        confirmDialog(page, "delete");
+    }
+
+    private void confirmDialog(final Page page, final String expectedText) {
+        Locator dialog = page.locator("dialog.confirmation-dialog[open]");
+        assertThat(dialog).isVisible();
+        assertTrue(dialog.textContent().toLowerCase().contains(expectedText.toLowerCase()));
+        dialog.locator("button.confirmation-dialog-confirm").click();
     }
 
     private void assertOnCommentsList(final Page page) {

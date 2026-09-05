@@ -151,7 +151,8 @@ public final class LivePageSession implements Consumer<Command> {
                                 this::createPropertiesHandle,
                                 eventObject,
                                 (targetNodeId, customEvent) -> reactor.accept(new SessionCustomEvent(targetNodeId, customEvent)),
-                                this::setHref);
+                                this::setHref,
+                                this::showModal);
     }
 
     private PropertiesHandle createPropertiesHandle(final Ref ref) {
@@ -182,5 +183,14 @@ public final class LivePageSession implements Consumer<Command> {
     private void setHref(final String path) {
         Objects.requireNonNull(path);
         this.accept(new RemoteCommand.SetHref(path));
+    }
+
+    private void showModal(final rsp.ref.ElementRef ref) {
+        Objects.requireNonNull(ref);
+        final NodeId nodeId = resolveRef(ref);
+        if (nodeId == null) {
+            throw new IllegalStateException("Dialog ref not found: " + ref);
+        }
+        this.accept(new RemoteCommand.ShowModal(nodeId));
     }
 }

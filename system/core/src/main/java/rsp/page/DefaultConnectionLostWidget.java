@@ -94,6 +94,11 @@ public final class DefaultConnectionLostWidget {
         }
 
         @Override
+        public void showModal(NodeId nodeId) {
+            // no-op
+        }
+
+        @Override
         public void evalJs(int descriptor, String js) {
             // no-op
         }

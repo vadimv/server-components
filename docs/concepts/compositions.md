@@ -255,6 +255,12 @@ can read its configured identity with `blockKey()`.
 and sidebar blocks mounted while the primary block changes and can place
 forms inline or in a modal layer.
 
+`ModalLayerLayout` renders a native `<dialog>` and promotes it to the browser
+top layer after live event registration. Escape, the close button, and the
+backdrop all publish `HIDE`; browser-managed modal focus and inert background
+behavior therefore apply to routed forms and delegation approvals as well as
+small confirmation dialogs.
+
 ```java
 Object explorerKey = new Object();
 

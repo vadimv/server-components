@@ -134,6 +134,13 @@ class RemotePageMessageEncoderTests {
     }
 
     @Test
+    void should_show_native_modal_dialog() {
+        final MessagesConsumer c = new MessagesConsumer();
+        create(c).showModal(NodeId.of("1_2_3"));
+        assertEquals("[16,\"1_2_3\"]", c.result);
+    }
+
+    @Test
     void should_escape_quotes_in_attr_value() {
         final MessagesConsumer c = new MessagesConsumer();
         create(c).modifyDom(List.of(new DefaultDomChangesContext.SetAttr(

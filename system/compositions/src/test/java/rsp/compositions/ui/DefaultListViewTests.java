@@ -2,12 +2,14 @@ package rsp.compositions.ui;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
 import rsp.component.TreeBuilder;
 import rsp.component.definitions.LocalStateComponent;
 import rsp.compositions.block.ListCapabilities;
 import rsp.compositions.block.ListQuery;
+import rsp.compositions.block.ListStatus;
 import rsp.compositions.block.ListView;
 import rsp.compositions.block.SortDirection;
 import rsp.compositions.block.SortSpec;
@@ -102,6 +104,38 @@ class DefaultListViewTests {
         assertTrue(restored.contains("dir=desc"));
         assertTrue(restored.contains("q=hello+world"));
         assertTrue(restored.contains("filter.title=draft"));
+    }
+
+    @Test
+    void renders_accessible_native_confirmation_dialogs() {
+        ListView.ListViewState state = new ListView.ListViewState(
+                List.of(Map.of("id", "7", "title", "Draft")), SCHEMA,
+                new ListQuery(1, 10, new SortSpec("title", SortDirection.ASC), "", Map.of()),
+                1, "/items", Set.of("7"), "Items", ListView.EditTarget.overlay(),
+                ListCapabilities.crud(), "", false);
+        Document document = render(state);
+
+        assertEquals(2, document.select("dialog.confirmation-dialog[role=alertdialog]").size());
+        Element bulk = document.selectFirst("dialog:has(.confirmation-dialog-title:contains(Delete selected items))");
+        assertNotNull(bulk);
+        assertNotNull(document.getElementById(bulk.attr("aria-labelledby")));
+        assertNotNull(document.getElementById(bulk.attr("aria-describedby")));
+        assertEquals("dialog", bulk.selectFirst("form").attr("method"));
+        assertTrue(bulk.selectFirst(".confirmation-dialog-cancel").hasAttr("autofocus"));
+    }
+
+    @Test
+    void deleting_state_marks_grid_busy_and_disables_mutating_controls() {
+        ListView.ListViewState deleting = state(List.of(Map.of("id", "1", "title", "One")), 1)
+                .withStatus(ListStatus.DELETING, "Deleting 1 item…");
+        Document document = render(deleting);
+
+        assertEquals("true", document.selectFirst(".data-grid").attr("aria-busy"));
+        assertTrue(document.selectFirst(".create-button").hasAttr("disabled"));
+        assertTrue(document.selectFirst(".grid-sort-button").hasAttr("disabled"));
+        assertTrue(document.selectFirst(".grid-row-delete").hasAttr("disabled"));
+        assertTrue(document.selectFirst("button.edit-button").hasAttr("disabled"));
+        assertTrue(document.selectFirst(".grid-query input").hasAttr("disabled"));
     }
 
     private static ListView.ListViewState state(List<Map<String, Object>> rows, long total) {

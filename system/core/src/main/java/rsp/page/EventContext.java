@@ -22,6 +22,7 @@ public final class EventContext {
     private final JsonDataType.Object eventObject;
     private final EventDispatcher eventsDispatcher;
     private final Consumer<String> setHref;
+    private final Consumer<ElementRef> showModal;
 
     /**
      * Creates a new instance of an event's context.
@@ -36,12 +37,27 @@ public final class EventContext {
                         final JsonDataType.Object eventObject,
                         final EventDispatcher eventsDispatcher,
                         final Consumer<String> setHref) {
+        this(nodeId, jsEvaluation, propertiesHandleLookup, eventObject, eventsDispatcher, setHref,
+                _ -> { throw new UnsupportedOperationException("Native dialogs are not available in this context"); });
+    }
+
+    /**
+     * Creates an event context with native-dialog support.
+     */
+    public EventContext(final NodeId nodeId,
+                        final Function<String, CompletableFuture<JsonDataType>> jsEvaluation,
+                        final Function<Ref, PropertiesHandle> propertiesHandleLookup,
+                        final JsonDataType.Object eventObject,
+                        final EventDispatcher eventsDispatcher,
+                        final Consumer<String> setHref,
+                        final Consumer<ElementRef> showModal) {
         this.nodeId = Objects.requireNonNull(nodeId);
         this.propertiesHandleLookup = Objects.requireNonNull(propertiesHandleLookup);
         this.jsEvaluation = Objects.requireNonNull(jsEvaluation);
         this.eventObject = Objects.requireNonNull(eventObject);
         this.eventsDispatcher = Objects.requireNonNull(eventsDispatcher);
         this.setHref = Objects.requireNonNull(setHref);
+        this.showModal = Objects.requireNonNull(showModal);
     }
 
     /**
@@ -83,6 +99,11 @@ public final class EventContext {
     public void setHref(final String href) {
         Objects.requireNonNull(href);
         setHref.accept(href);
+    }
+
+    /** Opens the referenced native HTML {@code dialog} as a modal. */
+    public void showModal(final ElementRef dialogRef) {
+        showModal.accept(Objects.requireNonNull(dialogRef));
     }
 
     public void dispatchEvent(CustomEvent customEvent) {

@@ -51,6 +51,11 @@ public class TestCollectingRemoteOut implements RemoteOut {
     }
 
     @Override
+    public void showModal(final NodeId nodeId) {
+        commands.add(new ShowModalMessage(nodeId));
+    }
+
+    @Override
     public void evalJs(final int descriptor, final String js) {
         commands.add(new EvalJsMessage(descriptor, js));
     }
@@ -60,6 +65,9 @@ public class TestCollectingRemoteOut implements RemoteOut {
     }
 
     public sealed interface Message {}
+
+    public record ShowModalMessage(NodeId nodeId) implements Message {
+    }
 
     public record SetRenderNumOutMessage(int renderNum) implements Message {
     }

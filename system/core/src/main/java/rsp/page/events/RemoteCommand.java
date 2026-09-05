@@ -67,6 +67,17 @@ public sealed interface RemoteCommand {
         }
     }
 
+    record ShowModal(NodeId nodeId) implements RemoteCommand, Command {
+        public ShowModal {
+            java.util.Objects.requireNonNull(nodeId, "nodeId");
+        }
+
+        @Override
+        public void accept(RemoteOut remoteOut) {
+            remoteOut.showModal(nodeId);
+        }
+    }
+
     record EvalJs(int descriptor, String js) implements RemoteCommand, Command {
         @Override
         public void accept(RemoteOut remoteOut) {

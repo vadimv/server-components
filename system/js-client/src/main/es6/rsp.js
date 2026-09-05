@@ -412,6 +412,30 @@ export class RSP {
    /**
     * @param {string} id
     */
+  showModal(id) {
+    var element = this.els[id];
+    if (!(element instanceof HTMLDialogElement)) {
+      console.error(`Element ${id} is not a dialog`);
+      return;
+    }
+    if (!element.open) {
+      element.showModal();
+    }
+  }
+
+  /** Open server-rendered layer dialogs after their event listeners are registered. */
+  openAutoModalDialogs() {
+    this.root.querySelectorAll('dialog[data-rsp-auto-modal]').forEach((element) => {
+      if (!element.open && element.dataset.rspModalOpened !== 'true') {
+        element.dataset.rspModalOpened = 'true';
+        element.showModal();
+      }
+    });
+  }
+
+   /**
+    * @param {string} id
+    */
   element(id) {
     return this.els[id];
   }
