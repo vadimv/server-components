@@ -138,6 +138,35 @@ class DefaultListViewTests {
         assertTrue(document.selectFirst(".grid-query input").hasAttr("disabled"));
     }
 
+    @Test
+    void related_list_column_renders_encoded_filter_links_and_respects_busy_state() {
+        ListView.RelatedListColumn related = new ListView.RelatedListColumn(
+                "comments", "Comments", "id", "/comments", "postId", "View comments");
+        ListView.ListViewState state = new ListView.ListViewState(
+                List.of(Map.of("id", "a b&c", "title", "One")), SCHEMA,
+                new ListQuery(1, 10, new SortSpec("title", SortDirection.ASC), "", Map.of()),
+                1, "/items", Set.of(), "Items", ListView.EditTarget.overlay(),
+                ListCapabilities.crud(), "", false, ListStatus.READY, List.of(related));
+
+        Document document = render(state);
+        Element link = document.selectFirst("a.grid-related-link");
+
+        assertEquals("Comments", document.selectFirst("th.grid-related-column").text());
+        assertEquals("/comments?filter.postId=a+b%26c", link.attr("href"));
+        assertEquals("View comments for row a b&c", link.attr("aria-label"));
+
+        Document busy = render(state.withStatus(ListStatus.DELETING));
+        Element disabled = busy.selectFirst("a.grid-related-link");
+        assertFalse(disabled.hasAttr("href"));
+        assertEquals("true", disabled.attr("aria-disabled"));
+
+        ListView.ListViewState empty = new ListView.ListViewState(
+                List.of(), SCHEMA, state.query(), 0, "/items", Set.of(), "Items",
+                ListView.EditTarget.overlay(), ListCapabilities.crud(), "", false,
+                ListStatus.READY, List.of(related));
+        assertEquals("5", render(empty).selectFirst("td.grid-empty").attr("colspan"));
+    }
+
     private static ListView.ListViewState state(List<Map<String, Object>> rows, long total) {
         return new ListView.ListViewState(rows, SCHEMA,
                 new ListQuery(1, 10, new SortSpec("title", SortDirection.ASC), "", Map.of()),

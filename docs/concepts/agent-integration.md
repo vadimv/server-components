@@ -47,8 +47,10 @@ public interface BlockRuntime {
 block includes its schema, page, page size, exact total, sort, search, filters,
 and visible items; a form block includes its schema, effective capabilities,
 status, dirty flag, validation feedback, and current draft (excluding
-password values), plus its loaded entity when applicable; a custom block can expose any
-domain-relevant state.
+password values), resolved reference resources and authorized ID/label choices,
+plus its loaded entity when applicable; a custom block can expose any
+domain-relevant state. Reference fields remain scalar IDs in action payloads;
+the same choice membership checks protect browser and agent submissions.
 
 `agentActions()` is the declarative action vocabulary. A `BlockAction`
 contains an action name, typed `EventKey`, human-readable description, payload

@@ -34,27 +34,32 @@ class CommentsSmokeIT {
 
     @AfterAll
     public static void shutdown() throws Exception {
-        server.stop();
+        try {
+            if (server != null) server.stop();
+        } finally {
+            playwright.close();
+        }
         Thread.sleep(2000);
     }
 
     @ParameterizedTest
     @MethodSource("browserTypes")
     void should_pass_comments_smoke_tests(final BrowserType browserType) throws Exception {
-        final Browser browser = browserType.launch();
-        final BrowserContext context = browser.newContext();
-        final Page page = context.newPage();
-        System.out.println("Browser type: " + browserType.name());
+        try (Browser browser = browserType.launch();
+             BrowserContext context = browser.newContext()) {
+            final Page page = context.newPage();
+            System.out.println("Browser type: " + browserType.name());
 
-        login(page);
-        validateListView(page);
-        validatePagination(page);
-        validateRelationshipValidation(page);
-        validateCreateComment(page);
-        validateEditComment(page);
-        validateCancel(page);
-        validateDeleteComment(page);
-        validateBulkDelete(page);
+            login(page);
+            validateListView(page);
+            validatePagination(page);
+            validateRelationshipSelector(page);
+            validateCreateComment(page);
+            validateEditComment(page);
+            validateCancel(page);
+            validateDeleteComment(page);
+            validateBulkDelete(page);
+        }
     }
 
     private static Stream<BrowserType> browserTypes() {
@@ -393,30 +398,29 @@ class CommentsSmokeIT {
 
     private void fillCommentForm(final Page page, final String text, final String postId) {
         page.fill("[name=text]", text);
-        page.fill("[name=postId]", postId);
+        page.selectOption("[name=postId]", postId);
     }
 
     private void saveForm(final Page page) {
         formScope(page).locator("button:has-text(\"Save\")").click();
     }
 
-    private void validateRelationshipValidation(final Page page) throws InterruptedException {
-        System.out.println("Testing: Comment relationship validation");
+    private void validateRelationshipSelector(final Page page) throws InterruptedException {
+        System.out.println("Testing: Comment relationship selector");
 
         page.navigate(BASE_URL + "/comments/new");
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-        fillCommentForm(page, "Orphan comment", "999999");
-        saveForm(page);
-        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-
-        assertTrue(page.url().contains("/comments/new"));
-        assertThat(formScope(page).locator("[name=postId]")).hasAttribute("aria-invalid", "true");
-        assertThat(formScope(page).locator(".field-errors")).containsText("does not exist");
+        Locator selector = formScope(page).locator("select[name=postId]");
+        assertThat(selector).isVisible();
+        assertTrue(selector.locator("option").count() > 1);
+        assertTrue(selector.locator("option").first().isDisabled());
+        selector.selectOption("1");
+        assertEquals("1", selector.inputValue());
 
         cancelForm(page);
         acceptDiscardDialog(page);
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-        System.out.println("✓ Comment relationship validation validated successfully");
+        System.out.println("✓ Comment relationship selector validated successfully");
     }
 
     private void cancelForm(final Page page) {
@@ -448,7 +452,7 @@ class CommentsSmokeIT {
     private void assertFormVisible(final Page page, final String expectedTitle) {
         Locator scope = formScope(page);
         assertThat(scope.locator("h1:has-text(\"" + expectedTitle + "\")")).isVisible();
-        assertThat(scope.locator("form")).isVisible();
+        assertThat(scope.locator(".data-form > form")).isVisible();
     }
 
     private void selectRowCheckbox(final Page page, final int rowIndex) {

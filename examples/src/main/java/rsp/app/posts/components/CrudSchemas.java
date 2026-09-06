@@ -3,7 +3,6 @@ package rsp.app.posts.components;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.TextAlign;
-import rsp.compositions.schema.Validators;
 import rsp.compositions.schema.Widget;
 
 /** Shared field metadata for the posts/comments grids and create/edit forms. */
@@ -38,10 +37,10 @@ public final class CrudSchemas {
                 .widget(Widget.TEXTAREA)
                 .placeholder("Enter comment…")
             .field("postId", FieldType.STRING)
-                .label("Post ID")
+                .label("Post")
                 .required()
-                .validate(Validators.pattern("[1-9][0-9]*"))
-                .placeholder("Post ID this comment belongs to")
+                .references("posts")
+                .placeholder("Select a post…")
             .column("id").sortable().width("6rem").align(TextAlign.RIGHT)
             .column("text").sortable().filterable().width("auto")
             .column("postId").sortable().filterable().width("8rem").align(TextAlign.RIGHT)

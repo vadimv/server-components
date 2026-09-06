@@ -164,10 +164,13 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                                    IntentDispatcher<EditView.EditIntent> intents) {
         String value = FormValueCodec.formatForInput(currentValue);
         Map<String, String> validation = field.htmlValidationAttributes();
-        boolean disabled = field.isReadOnly() || state.isBusy();
+        EditView.ChoiceSet choiceSet = state.choicesFor(field.name());
+        boolean disabled = field.isReadOnly() || state.isBusy()
+                || (field.widget() == Widget.REFERENCE_SELECT && !choiceSet.available());
         Definition common = of(
                 attr("id", inputId), attr("name", field.name()), ref(fieldRef),
                 disabled ? attr(field.widget() == Widget.CHECKBOX || field.widget() == Widget.SELECT
+                                || field.widget() == Widget.REFERENCE_SELECT
                         ? "disabled" : "readonly", disabled ? "disabled" : "readonly") : of(),
                 errors.isEmpty() ? of() : attr("aria-invalid", "true"),
                 errors.isEmpty() ? of() : attr("aria-describedby", errorId));
@@ -189,6 +192,9 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                     of(options(field).stream().map(option -> option(
                             attr("value", option), option.equals(value) ? attr("selected", "selected") : of(),
                             text(option)))), changed);
+            case REFERENCE_SELECT -> select(
+                    common, renderValidationAttrs(validation, null),
+                    renderReferenceOptions(field, value, choiceSet), changed);
             case PASSWORD -> input(
                     attr("type", "password"), common, placeholder(field),
                     attr("autocomplete", state.isCreateMode() ? "new-password" : "current-password"),
@@ -205,6 +211,26 @@ public class DefaultEditView implements ComponentView<EditView.EditViewState, Ed
                     attr("type", validation.getOrDefault("type", "text")), common, prop("value", value),
                     placeholder(field), renderValidationAttrs(validation, "type"), changed);
         };
+    }
+
+    private Definition renderReferenceOptions(FieldDef field,
+                                              String currentValue,
+                                              EditView.ChoiceSet choiceSet) {
+        String placeholder = field.options().placeholder() == null
+                ? "Select " + field.displayName().toLowerCase(java.util.Locale.ROOT) + "…"
+                : field.options().placeholder();
+        boolean hasCurrent = currentValue != null && !currentValue.isBlank();
+        boolean stale = hasCurrent && choiceSet.available() && !choiceSet.contains(currentValue);
+        return of(
+                option(attr("value", ""), attr("disabled", "disabled"),
+                        !hasCurrent ? attr("selected", "selected") : of(),
+                        text(choiceSet.available() ? placeholder : "Choices unavailable")),
+                stale ? option(attr("value", currentValue), attr("selected", "selected"),
+                        attr("disabled", "disabled"), text("Unavailable (" + currentValue + ")")) : of(),
+                of(choiceSet.choices().stream().map(choice -> option(
+                        attr("value", choice.value()),
+                        choice.value().equals(currentValue) ? attr("selected", "selected") : of(),
+                        text(choice.label())))));
     }
 
     private Definition renderActions(EditView.EditViewState state,

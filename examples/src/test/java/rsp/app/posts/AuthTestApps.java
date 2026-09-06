@@ -44,8 +44,8 @@ class AuthTestApps {
                         .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultFormView())))
                 .add(new Group("Comments")
                         .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
-                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultFormView()))
-                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultFormView())));
+                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, postService, new DefaultFormView()))
+                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, postService, new DefaultFormView())));
 
         final Group systemBlocks = new Group()
                 .bind(ExplorerBlock.class, () -> new ExplorerBlock(mainBlocks.structureTree()))

@@ -33,6 +33,12 @@ public enum Widget {
     SELECT,
 
     /**
+     * Dropdown whose submitted value references another resource while its
+     * visible label comes from a block-resolved choice set.
+     */
+    REFERENCE_SELECT,
+
+    /**
      * Radio button group for enumerated values.
      */
     RADIO,

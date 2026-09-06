@@ -8,6 +8,7 @@ import rsp.compositions.block.BlockActionPayload;
 
 import rsp.compositions.block.BlockAction;
 import rsp.compositions.block.PayloadSchema;
+import rsp.compositions.schema.FieldChoice;
 
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
@@ -227,6 +228,9 @@ public final class AgentServiceUtils {
                     sb.append("- ").append(f.name())
                       .append(" (").append(f.fieldType().name().toLowerCase(Locale.ROOT));
                     if (f.isRequired()) sb.append(", required");
+                    if (f.reference() != null) {
+                        sb.append(", references ").append(f.reference().resourceKey());
+                    }
                     sb.append(") — \"").append(f.displayName()).append("\"\n");
                 }
             }
@@ -257,9 +261,49 @@ public final class AgentServiceUtils {
                 }
                 sb.append("\n");
             }
+            appendReferenceChoices(sb, state.get("references"));
         }
 
         return sb.toString();
+    }
+
+    private static void appendReferenceChoices(StringBuilder target, Object referenceState) {
+        if (!(referenceState instanceof Map<?, ?> references) || references.isEmpty()) return;
+        target.append("\nReference choices (submit the ID before '='):\n");
+        references.forEach((fieldName, rawDescriptor) -> {
+            target.append("- ").append(fieldName);
+            if (!(rawDescriptor instanceof Map<?, ?> descriptor)) {
+                target.append(": unavailable\n");
+                return;
+            }
+            Object resource = descriptor.get("resource");
+            if (resource != null) target.append(" [").append(resource).append("]");
+            Object error = descriptor.get("error");
+            if (error != null) {
+                target.append(": unavailable (").append(error).append(")\n");
+                return;
+            }
+            target.append(": ");
+            if (descriptor.get("choices") instanceof List<?> choices && !choices.isEmpty()) {
+                for (int i = 0; i < choices.size(); i++) {
+                    if (i > 0) target.append("; ");
+                    appendChoice(target, choices.get(i));
+                }
+            } else {
+                target.append("none");
+            }
+            target.append("\n");
+        });
+    }
+
+    private static void appendChoice(StringBuilder target, Object rawChoice) {
+        if (rawChoice instanceof FieldChoice choice) {
+            target.append(choice.value()).append(" = \"").append(choice.label()).append('"');
+        } else if (rawChoice instanceof Map<?, ?> choice) {
+            target.append(choice.get("value")).append(" = \"").append(choice.get("label")).append('"');
+        } else {
+            target.append(rawChoice);
+        }
     }
 
     // ===== Classification Tools =====

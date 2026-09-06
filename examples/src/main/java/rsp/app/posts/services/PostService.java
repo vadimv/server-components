@@ -58,6 +58,14 @@ public class PostService {
         return Optional.ofNullable(posts.get(id));
     }
 
+    /** Return the bounded demo data set in deterministic label order for reference selectors. */
+    public List<Post> findAllForSelection() {
+        return posts.values().stream()
+                .sorted(Comparator.comparing(Post::title, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparingInt(post -> numericId(post.id())))
+                .toList();
+    }
+
     public boolean exists(final String id) {
         return id != null && posts.containsKey(id);
     }

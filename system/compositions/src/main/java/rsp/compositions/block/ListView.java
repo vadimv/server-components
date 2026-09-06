@@ -87,7 +87,8 @@ public final class ListView {
                                 ListCapabilities capabilities,
                                 String message,
                                 boolean error,
-                                ListStatus status) {
+                                ListStatus status,
+                                List<RelatedListColumn> relatedListColumns) {
         public ListViewState {
             rows = rows == null ? List.of() : List.copyOf(rows);
             schema = schema == null ? new DataSchema(List.of()) : schema;
@@ -105,6 +106,24 @@ public final class ListView {
             capabilities = capabilities == null ? ListCapabilities.crud() : capabilities;
             message = message == null ? "" : message;
             status = status == null ? ListStatus.READY : status;
+            relatedListColumns = relatedListColumns == null ? List.of() : List.copyOf(relatedListColumns);
+        }
+
+        /** Compatibility constructor retained for state producers without related-list columns. */
+        public ListViewState(List<Map<String, Object>> rows,
+                             DataSchema schema,
+                             ListQuery query,
+                             long totalItems,
+                             String modulePath,
+                             Set<String> selectedIds,
+                             String title,
+                             EditTarget editTarget,
+                             ListCapabilities capabilities,
+                             String message,
+                             boolean error,
+                             ListStatus status) {
+            this(rows, schema, query, totalItems, modulePath, selectedIds, title, editTarget,
+                    capabilities, message, error, status, List.of());
         }
 
         /** Compatibility constructor retained for state producers written before operation status was exposed. */
@@ -222,22 +241,22 @@ public final class ListView {
 
         public ListViewState withMessage(String value, boolean isError) {
             return new ListViewState(rows, schema, query, totalItems, modulePath, selectedIds, title,
-                    editTarget, capabilities, value, isError, status);
+                    editTarget, capabilities, value, isError, status, relatedListColumns);
         }
 
         public ListViewState withStatus(ListStatus value, String statusMessage) {
             return new ListViewState(rows, schema, query, totalItems, modulePath, selectedIds, title,
-                    editTarget, capabilities, statusMessage, false, value);
+                    editTarget, capabilities, statusMessage, false, value, relatedListColumns);
         }
 
         public ListViewState withStatus(ListStatus value) {
             return new ListViewState(rows, schema, query, totalItems, modulePath, selectedIds, title,
-                    editTarget, capabilities, message, error, value);
+                    editTarget, capabilities, message, error, value, relatedListColumns);
         }
 
         private ListViewState withSelection(Set<String> value) {
             return new ListViewState(rows, schema, query, totalItems, modulePath, value, title,
-                    editTarget, capabilities, message, error, status);
+                    editTarget, capabilities, message, error, status, relatedListColumns);
         }
 
         private List<String> rowIds() {
@@ -259,6 +278,29 @@ public final class ListView {
 
         public static EditTarget overlay() {
             return new EditTarget(false, true, "");
+        }
+    }
+
+    /** Route-resolved inverse relationship rendered by the default grid. */
+    public record RelatedListColumn(String key,
+                                    String label,
+                                    String sourceField,
+                                    String targetPath,
+                                    String filterField,
+                                    String linkLabel) {
+        public RelatedListColumn {
+            requireText(key, "key");
+            requireText(label, "label");
+            requireText(sourceField, "sourceField");
+            requireText(targetPath, "targetPath");
+            requireText(filterField, "filterField");
+            requireText(linkLabel, "linkLabel");
+        }
+
+        private static void requireText(String value, String name) {
+            if (value == null || value.isBlank()) {
+                throw new IllegalArgumentException(name + " is required");
+            }
         }
     }
 

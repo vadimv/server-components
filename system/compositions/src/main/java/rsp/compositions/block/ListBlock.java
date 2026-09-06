@@ -9,6 +9,7 @@ import rsp.component.definitions.ContextStateComponent;
 import rsp.compositions.schema.ColumnConfig;
 import rsp.compositions.schema.DataSchema;
 import rsp.compositions.schema.FieldDef;
+import rsp.compositions.composition.Composition;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -74,6 +75,11 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
 
     /** Block opened by an edit action. */
     protected abstract Class<? extends Block<?, ?>> editElementBlock();
+
+    /** Inverse relationship links appended as columns by the default grid. */
+    protected List<RelatedListLinkSpec> relatedListLinks() {
+        return List.of();
+    }
 
     /** Initial sort; by default, the first sortable column in the schema. */
     protected SortSpec defaultSort() {
@@ -260,10 +266,12 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
         DataSchema schema = listSchema();
         ListQuery query = resolveQuery(lookup(), schema);
         ListPage<T> page = items(query);
+        List<ListView.RelatedListColumn> relatedLists = resolveRelatedListColumns(lookup(), schema);
         return new BlockMetadata(title(), "Queryable data list", schema,
                 Map.of("page", query.page(), "pageSize", query.pageSize(), "totalItems", page.totalItems(),
                         "sort", query.sort() == null ? "" : query.sort(), "search", query.search(),
-                        "filters", query.filters(), "items", schema.toMapList(page.items())));
+                        "filters", query.filters(), "items", schema.toMapList(page.items()),
+                        "relatedLists", relatedLists));
     }
 
     /**
@@ -286,7 +294,9 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
             throw new IllegalStateException("Row key is not present in list schema: " + rowKey());
         }
         ListQuery query = resolveQuery(initialLookup, schema);
-        return load(null, schema, query, Set.of(), title(), modulePath(context), editTarget(context), "", false);
+        List<ListView.RelatedListColumn> relatedLists = resolveRelatedListColumns(initialLookup, schema);
+        return load(null, schema, query, Set.of(), title(), modulePath(context), editTarget(context),
+                relatedLists, "", false);
     }
 
     private ListViewState changePage(ListViewState state, int requestedPage, boolean publish) {
@@ -389,7 +399,7 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
                                  String message,
                                  boolean error) {
         return load(current, current.schema(), query, selectedIds, current.title(), current.modulePath(),
-                current.editTarget(), message, error);
+                current.editTarget(), current.relatedListColumns(), message, error);
     }
 
     private ListViewState load(ListViewState current,
@@ -399,6 +409,7 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
                                String title,
                                String modulePath,
                                ListView.EditTarget editTarget,
+                               List<ListView.RelatedListColumn> relatedListColumns,
                                String message,
                                boolean error) {
         ListCapabilities capabilities = current == null
@@ -416,11 +427,12 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
             List<Map<String, Object>> rows = schema.toMapList(page.items());
             validateRowKeys(rows, capabilities.rowKey());
             return new ListViewState(rows, schema, query, page.totalItems(), modulePath, selectedIds,
-                    title, editTarget, capabilities, message, error);
+                    title, editTarget, capabilities, message, error, ListStatus.READY, relatedListColumns);
         } catch (RuntimeException failure) {
             long previousTotal = current == null ? 0 : current.totalItems();
             return new ListViewState(List.of(), schema, query, previousTotal, modulePath, Set.of(), title,
-                    editTarget, capabilities, "Could not load items: " + safeMessage(failure), true);
+                    editTarget, capabilities, "Could not load items: " + safeMessage(failure), true,
+                    ListStatus.READY, relatedListColumns);
         }
     }
 
@@ -514,7 +526,38 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
     private static ListViewState withSelection(ListViewState state, Set<String> selectedIds) {
         return new ListViewState(state.rows(), state.schema(), state.query(), state.totalItems(), state.modulePath(),
                 selectedIds, state.title(), state.editTarget(), state.capabilities(), state.message(), state.error(),
-                state.status());
+                state.status(), state.relatedListColumns());
+    }
+
+    private List<ListView.RelatedListColumn> resolveRelatedListColumns(Lookup source, DataSchema schema) {
+        List<RelatedListLinkSpec> specs = List.copyOf(java.util.Objects.requireNonNull(
+                relatedListLinks(), "relatedListLinks"));
+        if (specs.isEmpty()) return List.of();
+        Composition composition = source.get(ContextKeys.ROUTE_COMPOSITION);
+        if (composition == null || composition.router() == null) {
+            throw new IllegalStateException("Related-list links require a routed composition");
+        }
+        Set<String> keys = new LinkedHashSet<>();
+        List<ListView.RelatedListColumn> resolved = new java.util.ArrayList<>();
+        for (RelatedListLinkSpec spec : specs) {
+            if (spec == null) throw new IllegalStateException("Related-list link cannot be null");
+            if (!keys.add(spec.key())) {
+                throw new IllegalStateException("Duplicate related-list column key: " + spec.key());
+            }
+            if (schema.field(spec.sourceField()) == null) {
+                throw new IllegalStateException("Related-list source field is not present in schema: "
+                        + spec.sourceField());
+            }
+            String targetPath = composition.router().findRoutePattern(spec.targetBlockKey())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Related-list target has no route: " + spec.targetBlockKey()));
+            if (targetPath.contains(":")) {
+                throw new IllegalStateException("Related-list target must be a collection route: " + targetPath);
+            }
+            resolved.add(new ListView.RelatedListColumn(spec.key(), spec.label(), spec.sourceField(),
+                    targetPath, spec.filterField(), spec.linkLabel()));
+        }
+        return List.copyOf(resolved);
     }
 
     private static void validateSchema(DataSchema schema) {

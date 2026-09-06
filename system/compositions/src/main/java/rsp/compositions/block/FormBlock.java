@@ -6,6 +6,7 @@ import rsp.component.ComponentView;
 import rsp.component.Lookup;
 import rsp.component.StateUpdater;
 import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldChoice;
 import rsp.compositions.schema.FieldDef;
 import rsp.compositions.schema.ValidationResult;
 import rsp.compositions.schema.Widget;
@@ -53,6 +54,14 @@ public abstract class FormBlock<T>
 
     protected T item(Lookup lookup) {
         return null;
+    }
+
+    /**
+     * Resolve the authorized value/label choices for a reference selector.
+     * Subclasses with reference fields must override this hook.
+     */
+    protected List<FieldChoice> fieldChoices(FieldDef field, Lookup lookup) {
+        throw new UnsupportedOperationException("No choice provider configured for field: " + field.name());
     }
 
     /** Compatibility persistence hook. Prefer overriding {@link #saveResult(Map)}. */
@@ -165,6 +174,20 @@ public abstract class FormBlock<T>
             state.put("dirty", mounted.isDirty());
             state.put("draft", valuesForMetadata(schema, mounted.fieldValues()));
             state.put("validationErrors", mounted.validationErrors());
+            if (!mounted.choiceSets().isEmpty()) {
+                Map<String, Object> references = new LinkedHashMap<>();
+                mounted.choiceSets().forEach((fieldName, choices) -> {
+                    FieldDef field = schema.field(fieldName);
+                    Map<String, Object> reference = new LinkedHashMap<>();
+                    if (field != null && field.reference() != null) {
+                        reference.put("resource", field.reference().resourceKey());
+                    }
+                    reference.put("choices", choices.choices());
+                    if (!choices.error().isBlank()) reference.put("error", choices.error());
+                    references.put(fieldName, java.util.Collections.unmodifiableMap(reference));
+                });
+                state.put("references", java.util.Collections.unmodifiableMap(references));
+            }
             if (!mounted.message().isBlank()) state.put("message", mounted.message());
         }
         try {
@@ -238,7 +261,7 @@ public abstract class FormBlock<T>
                                                       String message,
                                                       boolean error) {
         return remember(new EditView.EditViewState(values, state.schema(), dirty, state.listRoute(), state.mode(),
-                errors, state.title(), capabilities, status, message, error, state.formId()));
+                errors, state.title(), capabilities, status, message, error, state.formId(), state.choiceSets()));
     }
 
     /** Effective capabilities of the mounted form, or configured defaults before mounting. */
@@ -254,22 +277,26 @@ public abstract class FormBlock<T>
         FormCapabilities capabilities = formCapabilities();
         String route = listRoute(initialLookup);
         String formId = "form-" + Integer.toUnsignedString(System.identityHashCode(this));
+        Map<String, EditView.ChoiceSet> choiceSets = loadChoiceSets(schema, initialLookup);
         try {
             T entity = item(initialLookup);
             if (!mode.isCreate() && entity == null) {
                 return remember(new EditView.EditViewState(emptyFieldValues(schema), schema, false, route, mode, Map.of(),
                         title(), new FormCapabilities(false, false, capabilities.canCancel()), FormStatus.NOT_FOUND,
-                        "The requested item was not found.", true, formId));
+                        "The requested item was not found.", true, formId, choiceSets));
             }
             Map<String, Object> values = entity == null
                     ? emptyFieldValues(schema)
                     : valuesForSchema(schema, schema.toMap(entity));
-            return remember(new EditView.EditViewState(values, schema, false, route, mode, Map.of(), title(),
-                    capabilities, FormStatus.READY, "", false, formId));
+            Map<String, List<String>> choiceErrors = choiceErrors(schema, values, choiceSets);
+            return remember(new EditView.EditViewState(values, schema, false, route, mode, choiceErrors, title(),
+                    capabilities, FormStatus.READY,
+                    choiceErrors.isEmpty() ? "" : "Some selections need attention.",
+                    !choiceErrors.isEmpty(), formId, choiceSets));
         } catch (RuntimeException exception) {
             return remember(new EditView.EditViewState(emptyFieldValues(schema), schema, false, route, mode, Map.of(), title(),
                     new FormCapabilities(false, false, capabilities.canCancel()), FormStatus.LOAD_FAILED,
-                    safeMessage(exception, "The item could not be loaded."), true, formId));
+                    safeMessage(exception, "The item could not be loaded."), true, formId, choiceSets));
         }
     }
 
@@ -301,6 +328,8 @@ public abstract class FormBlock<T>
         NormalizedDraft normalized = normalizeDraft(state, submitted);
         ValidationResult validation = validate(normalized.values());
         Map<String, List<String>> errors = mergeErrors(normalized.errors(), validation.errors());
+        errors = mergeErrors(errors,
+                choiceErrors(state.schema(), normalized.values(), state.choiceSets()));
         if (!errors.isEmpty()) {
             return copyState(state, normalized.values(), true, FormStatus.READY, errors,
                     "Please correct the highlighted fields.", true);
@@ -316,7 +345,7 @@ public abstract class FormBlock<T>
                 return copyState(normalizedState, normalized.values(), false, FormStatus.SUBMITTING, Map.of(),
                         messageOr(result.message(), "Saved successfully."), false);
             }
-            return stateForResult(normalizedState, result, "The item could not be saved.");
+            return stateForResult(refreshChoiceSets(normalizedState), result, "The item could not be saved.");
         } catch (RuntimeException exception) {
             return copyState(normalizedState, normalized.values(), true, FormStatus.FAILED, Map.of(),
                     safeMessage(exception, "The item could not be saved."), true);
@@ -333,8 +362,9 @@ public abstract class FormBlock<T>
         }
         FormValueCodec.Conversion conversion = FormValueCodec.convert(field, rawValue);
         Map<String, List<String>> errors = new LinkedHashMap<>(state.validationErrors());
-        if (!conversion.valid()) {
-            errors.put(fieldName, List.of(conversion.error()));
+        String referenceError = conversion.valid() ? referenceSelectionError(state, field, conversion.value()) : "";
+        if (!conversion.valid() || !referenceError.isBlank()) {
+            errors.put(fieldName, List.of(conversion.valid() ? referenceError : conversion.error()));
             Map<String, Object> values = new LinkedHashMap<>(state.fieldValues());
             if (rawValue != FormValueCodec.Unavailable.INSTANCE) values.put(fieldName, rawValue);
             return copyState(state, values, true, FormStatus.READY, errors,
@@ -359,13 +389,15 @@ public abstract class FormBlock<T>
         for (FieldDef field : state.schema().fields()) {
             if (field.isHidden() || field.isReadOnly() || !submitted.containsKey(field.name())) continue;
             FormValueCodec.Conversion conversion = FormValueCodec.convert(field, submitted.get(field.name()));
-            if (conversion.valid()) {
+            String referenceError = conversion.valid()
+                    ? referenceSelectionError(state, field, conversion.value()) : "";
+            if (conversion.valid() && referenceError.isBlank()) {
                 values.put(field.name(), conversion.value());
             } else {
                 if (submitted.get(field.name()) != FormValueCodec.Unavailable.INSTANCE) {
                     values.put(field.name(), submitted.get(field.name()));
                 }
-                errors.put(field.name(), List.of(conversion.error()));
+                errors.put(field.name(), List.of(conversion.valid() ? referenceError : conversion.error()));
             }
         }
         return new NormalizedDraft(values, errors);
@@ -397,6 +429,70 @@ public abstract class FormBlock<T>
             }
         }
         return java.util.Collections.unmodifiableMap(values);
+    }
+
+    private Map<String, EditView.ChoiceSet> loadChoiceSets(DataSchema schema, Lookup source) {
+        Map<String, EditView.ChoiceSet> resolved = new LinkedHashMap<>();
+        for (FieldDef field : schema.fields()) {
+            if (field.widget() != Widget.REFERENCE_SELECT) continue;
+            try {
+                List<FieldChoice> choices = List.copyOf(java.util.Objects.requireNonNull(
+                        fieldChoices(field, source), "fieldChoices"));
+                java.util.Set<String> values = new java.util.LinkedHashSet<>();
+                for (FieldChoice choice : choices) {
+                    if (choice == null) {
+                        throw new IllegalStateException("Choice cannot be null for field: " + field.name());
+                    }
+                    if (!values.add(choice.value())) {
+                        throw new IllegalStateException("Duplicate choice value for field '"
+                                + field.name() + "': " + choice.value());
+                    }
+                }
+                resolved.put(field.name(), new EditView.ChoiceSet(choices, ""));
+            } catch (RuntimeException failure) {
+                resolved.put(field.name(), EditView.ChoiceSet.failed(
+                        "Choices for " + field.displayName() + " could not be loaded."));
+            }
+        }
+        return java.util.Collections.unmodifiableMap(resolved);
+    }
+
+    private EditView.EditViewState refreshChoiceSets(EditView.EditViewState state) {
+        Map<String, EditView.ChoiceSet> choices = loadChoiceSets(state.schema(), lookup());
+        return remember(new EditView.EditViewState(state.fieldValues(), state.schema(), state.isDirty(),
+                state.listRoute(), state.mode(), state.validationErrors(), state.title(), state.capabilities(),
+                state.status(), state.message(), state.error(), state.formId(), choices));
+    }
+
+    private static Map<String, List<String>> choiceErrors(DataSchema schema,
+                                                           Map<String, Object> values,
+                                                           Map<String, EditView.ChoiceSet> choiceSets) {
+        Map<String, List<String>> errors = new LinkedHashMap<>();
+        for (FieldDef field : schema.fields()) {
+            if (field.widget() != Widget.REFERENCE_SELECT) continue;
+            EditView.ChoiceSet choices = choiceSets.getOrDefault(field.name(), EditView.ChoiceSet.empty());
+            if (!choices.available()) {
+                errors.put(field.name(), List.of(choices.error()));
+                continue;
+            }
+            Object current = values.get(field.name());
+            String selected = current == null ? "" : FormValueCodec.formatForInput(current);
+            if (!selected.isBlank() && !choices.contains(selected)) {
+                errors.put(field.name(), List.of(field.displayName() + " selection is no longer available."));
+            }
+        }
+        return java.util.Collections.unmodifiableMap(errors);
+    }
+
+    private static String referenceSelectionError(EditView.EditViewState state,
+                                                  FieldDef field,
+                                                  Object value) {
+        if (field.widget() != Widget.REFERENCE_SELECT) return "";
+        EditView.ChoiceSet choices = state.choicesFor(field.name());
+        if (!choices.available()) return choices.error();
+        String selected = value == null ? "" : FormValueCodec.formatForInput(value);
+        if (selected.isBlank() || choices.contains(selected)) return "";
+        return field.displayName() + " must be one of the available choices.";
     }
 
     private EditView.EditViewState remember(EditView.EditViewState state) {

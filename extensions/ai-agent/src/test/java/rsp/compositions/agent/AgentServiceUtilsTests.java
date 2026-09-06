@@ -12,6 +12,9 @@ import org.junit.jupiter.api.Test;
 import rsp.component.EventKey;
 import rsp.compositions.agent.AgentService.AgentResult;
 import rsp.compositions.composition.StructureNode;
+import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldChoice;
+import rsp.compositions.schema.FieldType;
 import rsp.util.json.JsonDataType;
 
 import java.util.List;
@@ -318,6 +321,25 @@ class AgentServiceUtilsTests {
         String desc = AgentServiceUtils.describeState(profile);
         assertTrue(desc.contains("id=1"));
         assertTrue(desc.contains("title=Hello"));
+    }
+
+    @Test
+    void describeState_includes_reference_semantics_and_authorized_choices() {
+        DataSchema schema = DataSchema.builder()
+                .field("postId", FieldType.STRING).label("Post").required().references("posts")
+                .build();
+        BlockMetadata meta = new BlockMetadata("Comment", "Form", schema,
+                Map.of("references", Map.of("postId", Map.of(
+                        "resource", "posts",
+                        "choices", List.of(
+                                new FieldChoice("1", "First post"),
+                                new FieldChoice("2", "Second post"))))));
+
+        String desc = AgentServiceUtils.describeState(
+                new BlockProfile(meta, List.of(), StubBlock.class));
+
+        assertTrue(desc.contains("postId (string, required, references posts)"));
+        assertTrue(desc.contains("postId [posts]: 1 = \"First post\"; 2 = \"Second post\""));
     }
 
     @Test

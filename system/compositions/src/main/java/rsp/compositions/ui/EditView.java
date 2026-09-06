@@ -5,6 +5,7 @@ import rsp.compositions.block.FormCapabilities;
 import rsp.compositions.block.FormMode;
 import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.block.FormStatus;
+import rsp.compositions.schema.FieldChoice;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -58,7 +59,8 @@ public final class EditView {
                                 FormStatus status,
                                 String message,
                                 boolean error,
-                                String formId) {
+                                String formId,
+                                Map<String, ChoiceSet> choiceSets) {
         public EditViewState {
             fieldValues = immutableValues(fieldValues);
             schema = schema == null ? new DataSchema(List.of()) : schema;
@@ -72,6 +74,24 @@ public final class EditView {
             status = status == null ? FormStatus.READY : status;
             message = message == null ? "" : message;
             formId = formId == null || formId.isBlank() ? "data-form" : formId;
+            choiceSets = immutableChoiceSets(choiceSets);
+        }
+
+        /** Compatibility constructor retained for state producers without resolved field choices. */
+        public EditViewState(Map<String, Object> fieldValues,
+                             DataSchema schema,
+                             boolean isDirty,
+                             String listRoute,
+                             FormMode mode,
+                             Map<String, List<String>> validationErrors,
+                             String title,
+                             FormCapabilities capabilities,
+                             FormStatus status,
+                             String message,
+                             boolean error,
+                             String formId) {
+            this(fieldValues, schema, isDirty, listRoute, mode, validationErrors, title, capabilities,
+                    status, message, error, formId, Map.of());
         }
 
         public EditViewState(Map<String, Object> fieldValues, DataSchema schema, boolean isDirty,
@@ -139,12 +159,16 @@ public final class EditView {
 
         public EditViewState withMessage(String value, boolean isError) {
             return new EditViewState(fieldValues, schema, isDirty, listRoute, mode, validationErrors,
-                    title, capabilities, status, value, isError, formId);
+                    title, capabilities, status, value, isError, formId, choiceSets);
         }
 
         public EditViewState withStatus(FormStatus value) {
             return new EditViewState(fieldValues, schema, isDirty, listRoute, mode, validationErrors,
-                    title, capabilities, value, message, error, formId);
+                    title, capabilities, value, message, error, formId, choiceSets);
+        }
+
+        public ChoiceSet choicesFor(String fieldName) {
+            return choiceSets.getOrDefault(fieldName, ChoiceSet.empty());
         }
 
         private static Map<String, Object> immutableValues(Map<String, Object> source) {
@@ -158,6 +182,39 @@ public final class EditView {
             source.forEach((field, errors) -> copied.put(field,
                     errors == null ? List.of() : List.copyOf(errors)));
             return Collections.unmodifiableMap(copied);
+        }
+
+        private static Map<String, ChoiceSet> immutableChoiceSets(Map<String, ChoiceSet> source) {
+            if (source == null || source.isEmpty()) return Map.of();
+            Map<String, ChoiceSet> copied = new LinkedHashMap<>();
+            source.forEach((field, choices) -> copied.put(field,
+                    choices == null ? ChoiceSet.empty() : choices));
+            return Collections.unmodifiableMap(copied);
+        }
+    }
+
+    /** Resolved choices for one field, including a non-fatal provider error. */
+    public record ChoiceSet(List<FieldChoice> choices, String error) {
+        public ChoiceSet {
+            choices = choices == null ? List.of() : List.copyOf(choices);
+            error = error == null ? "" : error;
+        }
+
+        public static ChoiceSet empty() {
+            return new ChoiceSet(List.of(), "");
+        }
+
+        public static ChoiceSet failed(String message) {
+            return new ChoiceSet(List.of(), message == null || message.isBlank()
+                    ? "Choices could not be loaded." : message);
+        }
+
+        public boolean available() {
+            return error.isBlank();
+        }
+
+        public boolean contains(String value) {
+            return choices.stream().anyMatch(choice -> choice.value().equals(value));
         }
     }
 

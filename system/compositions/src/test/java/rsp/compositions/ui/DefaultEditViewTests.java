@@ -11,6 +11,7 @@ import rsp.compositions.block.FormCapabilities;
 import rsp.compositions.block.FormMode;
 import rsp.compositions.block.FormStatus;
 import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldChoice;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.Widget;
 import rsp.dom.TreePositionPath;
@@ -129,6 +130,54 @@ class DefaultEditViewTests {
         assertTrue(discard.selectFirst(".confirmation-dialog-cancel").hasAttr("autofocus"));
         assertEquals(1, document.select(".data-form > form").size(),
                 "confirmation forms must not be nested inside the edit form");
+    }
+
+    @Test
+    void reference_selector_keeps_ids_separate_from_labels_and_has_an_empty_prompt() {
+        DataSchema schema = DataSchema.builder()
+                .field("postId", FieldType.STRING).label("Post").required()
+                    .references("posts").placeholder("Select a post…")
+                .build();
+        EditView.EditViewState state = new EditView.EditViewState(
+                Map.of("postId", "2"), schema, false, "/items", FormMode.EDIT, Map.of(), "Edit",
+                FormCapabilities.edit(), FormStatus.READY, "", false, "form-reference",
+                Map.of("postId", new EditView.ChoiceSet(
+                        List.of(new FieldChoice("1", "Alpha"), new FieldChoice("2", "Beta")), "")));
+
+        Document document = render(state);
+        Element selector = document.selectFirst("select[name=postId]");
+
+        assertNotNull(selector);
+        assertTrue(selector.hasAttr("required"));
+        assertTrue(selector.selectFirst("option[value='']").hasAttr("disabled"));
+        assertEquals("Select a post…", selector.selectFirst("option[value='']").text());
+        assertEquals("Beta", selector.selectFirst("option[value='2'][selected]").text());
+    }
+
+    @Test
+    void reference_selector_surfaces_unavailable_and_failed_choice_states() {
+        DataSchema schema = DataSchema.builder()
+                .field("postId", FieldType.STRING).label("Post").references("posts")
+                .build();
+        EditView.EditViewState stale = new EditView.EditViewState(
+                Map.of("postId", "99"), schema, false, "/items", FormMode.EDIT,
+                Map.of("postId", List.of("Post selection is no longer available.")), "Edit",
+                FormCapabilities.edit(), FormStatus.READY, "", true, "form-reference",
+                Map.of("postId", new EditView.ChoiceSet(List.of(new FieldChoice("1", "Alpha")), "")));
+        Document staleDocument = render(stale);
+
+        assertEquals("Unavailable (99)", staleDocument.selectFirst("option[value='99'][selected]").text());
+        assertEquals("true", staleDocument.selectFirst("select[name=postId]").attr("aria-invalid"));
+
+        EditView.EditViewState failed = new EditView.EditViewState(
+                Map.of("postId", ""), schema, false, "/items", FormMode.CREATE,
+                Map.of("postId", List.of("Choices for Post could not be loaded.")), "Create",
+                FormCapabilities.create(), FormStatus.READY, "", true, "form-reference",
+                Map.of("postId", EditView.ChoiceSet.failed("Choices for Post could not be loaded.")));
+        Document failedDocument = render(failed);
+
+        assertTrue(failedDocument.selectFirst("select[name=postId]").hasAttr("disabled"));
+        assertEquals("Choices unavailable", failedDocument.selectFirst("option[selected]").text());
     }
 
     private static EditView.EditViewState state(Map<String, Object> values) {

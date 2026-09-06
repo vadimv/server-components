@@ -88,7 +88,10 @@ public final class PayloadSchemas {
                 field.name(),
                 fieldTypeToJsonSchemaType(field.fieldType()),
                 field.isRequired(),
-                field.displayName()
+                field.reference() == null
+                        ? field.displayName()
+                        : field.displayName() + " ID referencing resource '"
+                            + field.reference().resourceKey() + "'"
             ));
         }
         return new PayloadSchema.ObjectValue(properties);

@@ -2,14 +2,18 @@ package rsp.app.posts.components;
 
 import rsp.app.posts.entities.Comment;
 import rsp.app.posts.services.CommentService;
+import rsp.app.posts.services.PostService;
 import rsp.component.ComponentView;
 import rsp.component.Lookup;
-import rsp.compositions.schema.DataSchema;
 import rsp.compositions.block.EditBlock;
 import rsp.compositions.block.FormMutationResult;
 import rsp.compositions.block.PathParam;
+import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldChoice;
+import rsp.compositions.schema.FieldDef;
 import rsp.compositions.ui.EditView;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -20,11 +24,14 @@ public class CommentEditBlock extends EditBlock<Comment> {
     private static final PathParam<String> COMMENT_ID = new PathParam<>(1, String.class, null);
 
     private final CommentService commentService;
+    private final PostService postService;
 
     public CommentEditBlock(final CommentService commentService,
-                               ComponentView<EditView.EditViewState, EditView.EditIntent> view) {
+                            final PostService postService,
+                            ComponentView<EditView.EditViewState, EditView.EditIntent> view) {
         super(view);
         this.commentService = Objects.requireNonNull(commentService);
+        this.postService = Objects.requireNonNull(postService);
     }
 
     @Override
@@ -64,6 +71,14 @@ public class CommentEditBlock extends EditBlock<Comment> {
         String id = resolveId();
         if (id == null || id.isBlank()) return FormMutationResult.notFound("The comment ID is missing.");
         return commentService.updateResult(id, comment(id, fieldValues));
+    }
+
+    @Override
+    protected List<FieldChoice> fieldChoices(FieldDef field, Lookup lookup) {
+        if (!"postId".equals(field.name())) return super.fieldChoices(field, lookup);
+        return postService.findAllForSelection().stream()
+                .map(post -> new FieldChoice(post.id(), post.title()))
+                .toList();
     }
 
     @Override

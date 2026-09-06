@@ -12,6 +12,7 @@ import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.TextAlign;
 import rsp.dsl.Definition;
 import rsp.ref.ElementRef;
+import rsp.server.http.Query;
 import rsp.util.json.JsonDataType;
 
 import java.net.URLEncoder;
@@ -37,6 +38,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
         return state -> {
             boolean selectable = state.schema().selectable();
             List<FieldDef> columns = state.schema().listColumns();
+            List<ListView.RelatedListColumn> relatedColumns = state.relatedListColumns();
             boolean hasRowActions = state.capabilities().canEdit() || state.capabilities().canDelete();
             String currentQueryParams = buildReturnQuery(state.query());
 
@@ -57,6 +59,10 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                             tr(
                                                     selectable ? renderSelectAllHeader(state, intents) : of(),
                                                     of(columns.stream().map(field -> renderHeader(field, state, intents))),
+                                                    of(relatedColumns.stream().map(column -> th(
+                                                            attr("scope", "col"),
+                                                            attr("class", "grid-related-column"),
+                                                            text(column.label())))),
                                                     hasRowActions
                                                             ? th(attr("scope", "col"), attr("class", "grid-actions-column"), text("Actions"))
                                                             : of()
@@ -64,9 +70,10 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                     ),
                                     tbody(
                                             state.rows().isEmpty()
-                                                    ? renderEmptyRow(state, columns.size(), selectable, hasRowActions)
+                                                    ? renderEmptyRow(state, columns.size() + relatedColumns.size(),
+                                                            selectable, hasRowActions)
                                                     : of(state.rows().stream().map(row -> renderRow(
-                                                            row, columns, selectable, hasRowActions,
+                                                            row, columns, relatedColumns, selectable, hasRowActions,
                                                             currentQueryParams, state, intents)))
                                     )
                             )
@@ -248,6 +255,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
 
     private Definition renderRow(Map<String, Object> row,
                                  List<FieldDef> columns,
+                                 List<ListView.RelatedListColumn> relatedColumns,
                                  boolean selectable,
                                  boolean hasRowActions,
                                  String currentQueryParams,
@@ -276,6 +284,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                             config.width() == null ? of() : attr("style", "width: " + config.width() + ";"),
                             renderValue(row.get(field.name()), field, config));
                 })),
+                of(relatedColumns.stream().map(column -> renderRelatedListCell(row, rowId, column, state.isBusy()))),
                 hasRowActions ? td(
                         attr("class", "grid-row-actions"),
                         state.capabilities().canEdit()
@@ -285,6 +294,27 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                 ? renderDeleteButton(state.modulePath(), rowId, state.isBusy(), intents)
                                 : of()) : of()
         );
+    }
+
+    private Definition renderRelatedListCell(Map<String, Object> row,
+                                             String rowId,
+                                             ListView.RelatedListColumn column,
+                                             boolean disabled) {
+        Object source = row.get(column.sourceField());
+        if (source == null || String.valueOf(source).isBlank()) {
+            return td(attr("class", "grid-related-column"), text("—"));
+        }
+        String value = String.valueOf(source);
+        String href = column.targetPath() + new Query(List.of(
+                new Query.Parameter("filter." + column.filterField(), value)));
+        return td(
+                attr("class", "grid-related-column"),
+                a(disabled ? of() : attr("href", href),
+                        attr("class", "grid-related-link"),
+                        attr("aria-label", column.linkLabel() + " for row " + rowId),
+                        disabled ? attr("aria-disabled", "true") : of(),
+                        disabled ? attr("tabindex", "-1") : of(),
+                        text(column.linkLabel())));
     }
 
     private Definition renderEmptyRow(ListView.ListViewState state,

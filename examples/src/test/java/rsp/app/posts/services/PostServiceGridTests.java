@@ -76,6 +76,20 @@ class PostServiceGridTests {
         assertEquals(24, service.findAll(query(1, 100, "id", SortDirection.ASC, "", Map.of())).totalItems());
     }
 
+    @Test
+    void selection_items_are_complete_and_deterministically_sorted_by_label() {
+        PostService service = new PostService();
+
+        var choices = service.findAllForSelection();
+
+        assertEquals(25, choices.size());
+        assertEquals(25, choices.stream().map(Post::id).distinct().count());
+        for (int index = 1; index < choices.size(); index++) {
+            assertTrue(String.CASE_INSENSITIVE_ORDER.compare(
+                    choices.get(index - 1).title(), choices.get(index).title()) <= 0);
+        }
+    }
+
     private static ListQuery query(int page, int size, String field, SortDirection direction,
                                    String search, Map<String, String> filters) {
         return new ListQuery(page, size, new SortSpec(field, direction), search, filters);

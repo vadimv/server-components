@@ -24,7 +24,8 @@ public record FieldDef(
     FieldType fieldType,
     Widget widget,
     List<Validator> validators,
-    FieldOptions options
+    FieldOptions options,
+    ReferenceDef reference
 ) {
     public FieldDef {
         if (name == null || name.isBlank()) {
@@ -36,6 +37,20 @@ public record FieldDef(
         widget = widget != null ? widget : Widget.fromFieldType(fieldType);
         validators = validators != null ? List.copyOf(validators) : List.of();
         options = options != null ? options : FieldOptions.defaults();
+        if (widget == Widget.REFERENCE_SELECT && reference == null) {
+            throw new IllegalArgumentException("Reference selector field requires reference metadata: " + name);
+        }
+    }
+
+    /** Compatibility constructor for scalar fields declared before reference metadata was introduced. */
+    public FieldDef(String name,
+                    String displayName,
+                    Class<?> type,
+                    FieldType fieldType,
+                    Widget widget,
+                    List<Validator> validators,
+                    FieldOptions options) {
+        this(name, displayName, type, fieldType, widget, validators, options, null);
     }
 
     /**
@@ -56,7 +71,8 @@ public record FieldDef(
             fieldType,
             widget,
             List.of(),
-            FieldOptions.defaults()
+            FieldOptions.defaults(),
+            null
         );
     }
 

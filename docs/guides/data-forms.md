@@ -117,6 +117,41 @@ equally to browser and agent actions. Conversion failures remain visible as
 field errors; an invalid number or date is never replaced silently with zero or
 another default.
 
+## Reference Selectors
+
+Declare a scalar relationship with `references(resourceKey)`, then resolve its
+current authorized choices in the block. Choice values are stable foreign-key
+IDs; labels are what people see:
+
+```java
+public static final DataSchema COMMENTS = DataSchema.builder()
+        .field("postId", FieldType.STRING)
+            .label("Post")
+            .required()
+            .references("posts")
+            .placeholder("Select a post…")
+        .build();
+
+@Override
+protected List<FieldChoice> fieldChoices(FieldDef field, Lookup lookup) {
+    if (!"postId".equals(field.name())) return super.fieldChoices(field, lookup);
+    return posts.findAllForSelection().stream()
+            .map(post -> new FieldChoice(post.id(), post.title()))
+            .toList();
+}
+```
+
+`FormBlock` loads choices into immutable `EditViewState`, publishes them in
+block metadata for agents, and checks submitted values against the same set.
+The default view renders a native `<select>` with the field placeholder. It
+shows a stale saved ID as unavailable so an edit does not silently select a
+different record. Provider failures become field errors and disable the
+selector; duplicate IDs are rejected as an invalid provider result. Filter the
+provider by the current user's permissions, and keep the service-side
+relationship check as the final concurrency and integrity boundary. This
+native-select version is intended for bounded choice sets; large catalogs need
+an application-specific searchable or paged selector.
+
 `FieldChanged` updates the typed draft and marks it dirty. Cancel asks for
 confirmation when the rendered draft is dirty. Saving and deleting enter busy
 states, disable controls, and ignore duplicate mutations until navigation or a
@@ -131,9 +166,10 @@ their action forms never produce invalid nested-form markup.
 ## Widgets And Accessibility
 
 The default view supports text, password, textarea, number, checkbox, select,
-radio, date, and date-time controls. Enum choices come from configured options
-or the declared enum constants. Hidden fields are not rendered or submitted;
-read-only fields are displayed but protected from submission.
+reference select, radio, date, and date-time controls. Enum choices come from
+configured options or the declared enum constants; reference choices come from
+the owning block. Hidden fields are not rendered or submitted; read-only fields
+are displayed but protected from submission.
 
 Every control receives a form-scoped unique ID, an associated label, and
 schema-derived validation attributes. Required status has screen-reader text;
@@ -151,8 +187,8 @@ and narrow-screen behavior.
 Override `canSave()`, `canDelete()`, or `canCancel()` to remove an operation.
 The same effective capabilities gate UI intents, framework events, and declared
 agent actions. Runtime metadata includes form mode, status, dirty state,
-capabilities, validation errors, and the current draft; password values
-are excluded.
+capabilities, validation errors, the current draft, and resolved reference
+choices; password values are excluded.
 
 The standard agent actions are `set_field`, `save`, `cancel`, and, for edit
 forms, `delete`. `set_field` uses the same schema conversion and editability
@@ -167,7 +203,8 @@ Cover forms at three levels:
    result statuses.
 2. Block/view tests: field whitelisting, validation, not-found/load failures,
    capabilities, duplicate mutation protection, semantic markup, native
-   confirmation dialogs, widgets, and accessibility relationships.
+   confirmation dialogs, selector failures and stale values, widgets, and
+   accessibility relationships.
 3. Service/browser tests: field and relationship failures, create/edit/delete,
    dirty cancel, Enter submission, unavailable routes, cascade policy, and
    return to the complete originating grid query.

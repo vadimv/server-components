@@ -30,6 +30,7 @@ public class FieldBuilder {
     private String displayName;
     private Class<?> type;
     private Widget widget;
+    private ReferenceDef reference;
     private final List<Validator> validators = new ArrayList<>();
     private FieldOptions options = FieldOptions.defaults();
 
@@ -107,6 +108,23 @@ public class FieldBuilder {
      */
     public FieldBuilder widget(Widget widget) {
         this.widget = widget;
+        return this;
+    }
+
+    /**
+     * Declare that this scalar field references another resource and render it
+     * as a reference selector by default.
+     */
+    public FieldBuilder references(String resourceKey) {
+        this.reference = new ReferenceDef(resourceKey);
+        this.widget = Widget.REFERENCE_SELECT;
+        return this;
+    }
+
+    /** Declare reference metadata supplied by a reusable schema contract. */
+    public FieldBuilder references(ReferenceDef reference) {
+        this.reference = java.util.Objects.requireNonNull(reference, "reference");
+        this.widget = Widget.REFERENCE_SELECT;
         return this;
     }
 
@@ -205,7 +223,8 @@ public class FieldBuilder {
             fieldType,
             widget,
             validators,
-            options
+            options,
+            reference
         );
     }
 }

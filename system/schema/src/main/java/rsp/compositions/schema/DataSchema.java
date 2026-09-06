@@ -265,7 +265,7 @@ public record DataSchema(List<ColumnDef> columns, List<FieldDef> fields, Map<Str
         List<FieldDef> newFields = fields.stream()
             .map(field -> field.name().equals(columnName)
                 ? new FieldDef(field.name(), newDisplayName, field.type(), field.fieldType(),
-                    field.widget(), field.validators(), field.options())
+                    field.widget(), field.validators(), field.options(), field.reference())
                 : field)
             .toList();
         return new DataSchema(newColumns, newFields, columnConfigs, selectable);

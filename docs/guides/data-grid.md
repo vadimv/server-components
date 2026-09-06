@@ -121,6 +121,34 @@ encode the complete current query in `fromQuery`; the form's parent return
 restores it after save or cancel. The older `fromP` and `fromSort` parameters
 remain accepted for existing links.
 
+## Related-List Links
+
+An owning grid can append fixed relationship-navigation columns without putting
+action markup into scalar field formatters. Declare how a value in the current
+row becomes a filter on another routed list:
+
+```java
+@Override
+protected List<RelatedListLinkSpec> relatedListLinks() {
+    return List.of(RelatedListLinkSpec.to(
+            "comments", "Comments", "id", CommentsListBlock.class,
+            "postId", "View comments"));
+}
+```
+
+The block resolves the target key through the composition router. The default
+view appends a semantic column and generates a URL such as
+`/comments?filter.postId=42`, using the query encoder for arbitrary ID values.
+A missing source value renders an em dash, and links are removed from keyboard
+navigation while the grid is busy. Targets must be collection routes without
+path parameters and must expose the named field as a supported filter. Omit a
+spec when the current principal must not discover or navigate the relationship;
+the target block remains responsible for authorization.
+
+These first-version links intentionally do not query or display related counts.
+That avoids one query per row and keeps list loading under the ownership of the
+target block.
+
 ## Pagination, Empty Results, And Failures
 
 The exact total drives the visible range, page count, and disabled state of
@@ -170,8 +198,9 @@ Cover the contract at three levels:
 1. Service tests: every allowed sort direction, search/filter combinations,
    exact totals, stable page boundaries, and partial delete results.
 2. View tests: schema column order, sort metadata, formatters, empty/error
-   states, action capabilities, native dialog labeling, and correctly disabled
-   pagination and busy-state controls.
+   states, action capabilities, native dialog labeling, related-link encoding
+   and empty-table column spans, and correctly disabled pagination and
+   busy-state controls.
 3. Mounted block or browser tests: URL synchronization, back/forward, query
    reset to page 1, selection clearing, out-of-range page clamping, dialog
    cancel/confirm paths, duplicate-delete suppression, and return from edit

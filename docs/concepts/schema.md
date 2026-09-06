@@ -75,6 +75,25 @@ Validators also expose compatible HTML validation attributes, allowing the
 default form view to provide browser feedback without replacing server-side
 validation.
 
+A scalar foreign key can declare reference semantics independently of a
+repository or route. `references(...)` records the resource key and selects the
+reference widget:
+
+```java
+.field("postId", FieldType.STRING)
+    .label("Post")
+    .required()
+    .references("posts")
+    .placeholder("Select a post…")
+```
+
+The schema stores a `ReferenceDef`; the mounted form block supplies the
+authorized `FieldChoice` ID/label pairs. IDs remain the submitted values while
+labels are display-only. This separation lets the same schema describe data
+without depending on a service, and prevents a browser or agent from submitting
+an ID outside the block's current choice set. The persistence service must still
+enforce referential integrity because the target can change after choices load.
+
 At the form boundary, `FormValueCodec` converts untrusted browser or agent
 values to the field's declared Java type. It supports strings, numeric types,
 booleans, dates, date-times, and enums. Blank optional reference values become
@@ -98,6 +117,8 @@ initialization.
 - `FormBlock` uses a schema for typed initial values, editable-field
   whitelisting, rendering, and validation. Hidden and read-only fields retain
   their server-owned values when a browser or agent submits a payload.
+- Reference metadata is preserved by immutable schema transformations such as
+  `renameColumn`; choice data belongs to form state rather than `DataSchema`.
 - `ListBlock` requires a stable `listSchema()` so headers, filters, and column
   behavior remain available for empty and failed result pages. Record-derived
   schemas remain useful for simpler custom views, but a reusable grid should

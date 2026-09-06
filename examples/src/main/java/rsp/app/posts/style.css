@@ -260,8 +260,26 @@ th a:hover {
 
 .grid-actions-column,
 .grid-row-actions,
-.grid-select-column {
+.grid-select-column,
+.grid-related-column {
     white-space: nowrap;
+}
+
+.grid-related-link {
+    color: var(--text);
+    font-weight: 500;
+    text-underline-offset: 0.2em;
+}
+
+.grid-related-link:hover,
+.grid-related-link:focus-visible {
+    color: var(--accent-hover);
+}
+
+.grid-related-link[aria-disabled="true"] {
+    color: var(--text-subtle);
+    cursor: not-allowed;
+    text-decoration: none;
 }
 
 .grid-row-actions {

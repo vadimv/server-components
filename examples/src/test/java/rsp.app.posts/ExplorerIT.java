@@ -7,6 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import rsp.http.WebServer;
 
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
@@ -17,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * Tests navigation between Posts and Comments views via the Explorer sidebar.
  */
 @net.jcip.annotations.NotThreadSafe
-    class ExplorerIT {
+class ExplorerIT {
 
     private static final int PORT = 8085;
     private static final int EXPECTED_PAGE_INIT_TIME_MS = 300;
@@ -33,24 +34,29 @@ import static org.junit.jupiter.api.Assertions.*;
 
     @AfterAll
     public static void shutdown() throws Exception {
-        server.stop();
+        try {
+            if (server != null) server.stop();
+        } finally {
+            playwright.close();
+        }
         Thread.sleep(2000);
     }
 
     @ParameterizedTest
     @MethodSource("browserTypes")
     void should_pass_explorer_navigation_tests(final BrowserType browserType) throws Exception {
-        final Browser browser = browserType.launch();
-        final BrowserContext context = browser.newContext();
-        final Page page = context.newPage();
-        System.out.println("Browser type: " + browserType.name());
+        try (Browser browser = browserType.launch();
+             BrowserContext context = browser.newContext()) {
+            final Page page = context.newPage();
+            System.out.println("Browser type: " + browserType.name());
 
-        login(page);
-        validateExplorerVisible(page);
-        validateNavigationFromPostsToComments(page);
-        validateNavigationFromCommentsToPosts(page);
-        validateDirectUrlAccess(page);
-        validateActiveStateIndicator(page);
+            login(page);
+            validateExplorerVisible(page);
+            validateNavigationFromPostsToComments(page);
+            validateNavigationFromCommentsToPosts(page);
+            validateDirectUrlAccess(page);
+            validateActiveStateIndicator(page);
+        }
     }
 
     private static Stream<BrowserType> browserTypes() {
@@ -104,7 +110,6 @@ import static org.junit.jupiter.api.Assertions.*;
         assertThat(commentsLink).isVisible();
 
         // Wait for URL to change after clicking (SPA navigation)
-        String currentUrl = page.url();
         commentsLink.click();
 
         // Wait for URL to contain /comments (max 5 seconds)
@@ -187,24 +192,20 @@ import static org.junit.jupiter.api.Assertions.*;
         // ":has(> a:...)" with the direct-child combinator restricts the match to leaf items
         // (their <a> is a direct child) and excludes groups (their <a> is only transitively reachable).
         Locator postsMenuItem = page.locator(".explorer-item:has(> a:has-text(\"Posts\"))");
-        String postsClass = postsMenuItem.getAttribute("class");
-        assertTrue(postsClass != null && postsClass.contains("active"),
-                  "Posts menu item should have 'active' class when on Posts page. Class: " + postsClass);
+        Pattern activeClass = Pattern.compile("(^|\\s)active(\\s|$)");
+        assertThat(postsMenuItem).hasClass(activeClass);
 
         // Navigate to Comments
         page.locator(".explorer-item > a:has-text(\"Comments\")").click();
-        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.waitForURL(url -> url.contains("/comments"),
+                new Page.WaitForURLOptions().setTimeout(5000));
 
         // Verify Comments menu item is now active and Posts is not
         Locator commentsMenuItem = page.locator(".explorer-item:has(> a:has-text(\"Comments\"))");
-        String commentsClass = commentsMenuItem.getAttribute("class");
-        assertTrue(commentsClass != null && commentsClass.contains("active"),
-                  "Comments menu item should have 'active' class when on Comments page. Class: " + commentsClass);
+        assertThat(commentsMenuItem).hasClass(activeClass);
 
         // Verify Posts is no longer active
-        postsClass = postsMenuItem.getAttribute("class");
-        assertFalse(postsClass != null && postsClass.contains("active"),
-                   "Posts menu item should NOT have 'active' class when on Comments page. Class: " + postsClass);
+        assertThat(postsMenuItem).not().hasClass(activeClass);
 
         System.out.println("✓ Active state indicator validated successfully");
     }

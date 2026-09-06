@@ -11,6 +11,8 @@ import rsp.component.StateUpdater;
 import rsp.component.TreeBuilder;
 import rsp.component.definitions.Component;
 import rsp.compositions.schema.DataSchema;
+import rsp.compositions.schema.FieldChoice;
+import rsp.compositions.schema.FieldDef;
 import rsp.compositions.schema.FieldType;
 import rsp.compositions.ui.EditView;
 import rsp.dom.TreePositionPath;
@@ -186,6 +188,51 @@ class FormBlockTests {
         assertEquals(List.of("cancel"), block.agentActions().stream().map(BlockAction::action).toList());
     }
 
+    @Test
+    void reference_choices_are_state_owned_exposed_to_agents_and_enforced_at_the_boundary() {
+        TestReferenceBlock block = new TestReferenceBlock();
+        Harness harness = render(block, "/items/new", Map.of());
+
+        assertEquals(List.of("1", "2"), block.initialState.choicesFor("postId").choices().stream()
+                .map(FieldChoice::value).toList());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> references = (Map<String, Object>) block.blockMetadata().state().get("references");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> postReference = (Map<String, Object>) references.get("postId");
+        assertEquals("posts", postReference.get("resource"));
+        BlockAction save = block.agentActions().stream()
+                .filter(action -> action.action().equals("save"))
+                .findFirst().orElseThrow();
+        PayloadSchema.ObjectValue payload = (PayloadSchema.ObjectValue) save.schema();
+        assertTrue(payload.properties().stream()
+                .filter(property -> property.name().equals("postId"))
+                .anyMatch(property -> property.description().contains("resource 'posts'")));
+
+        ComponentSegment<EditView.EditViewState> segment = formSegment(harness.root());
+        segment.dispatch(new EditView.FormValuesCollected(Map.of("postId", "999")));
+        harness.commands().runTasks();
+
+        assertEquals(0, block.saveCalls);
+        assertTrue(block.lastState.errorsFor("postId").getFirst().contains("available choices"));
+    }
+
+    @Test
+    void reference_choice_provider_failure_is_a_field_error_and_blocks_submission_when_control_is_omitted() {
+        TestReferenceBlock block = new TestReferenceBlock();
+        block.failChoices = true;
+        Harness harness = render(block, "/items/new", Map.of());
+
+        assertFalse(block.initialState.choicesFor("postId").available());
+        assertTrue(block.initialState.hasErrors());
+
+        formSegment(harness.root()).dispatch(new EditView.FormValuesCollected(Map.of()));
+        harness.commands().runTasks();
+
+        assertEquals(0, block.saveCalls);
+        assertTrue(block.lastState.errorsFor("postId").stream()
+                .anyMatch(error -> error.contains("could not be loaded")));
+    }
+
     @SuppressWarnings("unchecked")
     private static ComponentSegment<EditView.EditViewState> formSegment(ComponentSegment<String> root) {
         return (ComponentSegment<EditView.EditViewState>) root.directChildren().getFirst();
@@ -284,6 +331,44 @@ class FormBlockTests {
         @Override protected FormMutationResult deleteResult(String id) {
             deleteCalls++;
             return deleteResult;
+        }
+        @Override protected void onBlockMounted(EditView.EditViewState state,
+                                                StateUpdater<EditView.EditViewState> updater) {
+            initialState = state;
+            super.onBlockMounted(state, updater);
+        }
+        @Override public void onUpdated(rsp.component.ComponentCompositeKey id,
+                                        EditView.EditViewState oldState,
+                                        EditView.EditViewState newState,
+                                        StateUpdater<EditView.EditViewState> updater) {
+            lastState = newState;
+        }
+    }
+
+    private static final class TestReferenceBlock extends FormBlock<String> {
+        private static final DataSchema SCHEMA = DataSchema.builder()
+                .field("postId", FieldType.STRING).label("Post").required().references("posts")
+                .build();
+        private EditView.EditViewState initialState;
+        private EditView.EditViewState lastState;
+        private boolean failChoices;
+        private int saveCalls;
+
+        private TestReferenceBlock() {
+            super(_ -> _ -> div());
+        }
+
+        @Override public String title() { return "Create reference"; }
+        @Override public DataSchema schema() { return SCHEMA; }
+        @Override protected boolean isCreateMode() { return true; }
+        @Override public boolean save(Map<String, Object> values) { return true; }
+        @Override protected FormMutationResult saveResult(Map<String, Object> values) {
+            saveCalls++;
+            return FormMutationResult.saved("1", "Saved.");
+        }
+        @Override protected List<FieldChoice> fieldChoices(FieldDef field, Lookup lookup) {
+            if (failChoices) throw new IllegalStateException("repository unavailable");
+            return List.of(new FieldChoice("1", "Alpha"), new FieldChoice("2", "Beta"));
         }
         @Override protected void onBlockMounted(EditView.EditViewState state,
                                                 StateUpdater<EditView.EditViewState> updater) {

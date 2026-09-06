@@ -34,31 +34,37 @@ class PostsSmokeIT {
 
     @AfterAll
     public static void shutdown() throws Exception {
-        server.stop();
+        try {
+            if (server != null) server.stop();
+        } finally {
+            playwright.close();
+        }
         Thread.sleep(2000);
     }
 
     @ParameterizedTest
     @MethodSource("browserTypes")
     void should_pass_posts_smoke_tests(final BrowserType browserType) throws Exception {
-        final Browser browser = browserType.launch();
-        final BrowserContext context = browser.newContext();
-        final Page page = context.newPage();
-        System.out.println("Browser type: " + browserType.name());
+        try (Browser browser = browserType.launch();
+             BrowserContext context = browser.newContext()) {
+            final Page page = context.newPage();
+            System.out.println("Browser type: " + browserType.name());
 
-        login(page);
-        validateListView(page);
-        validatePagination(page);
-        validateGridQuerying(page);
-        validateEditPreservesPagination(page);
-        validateDirectCreateRoute(page);
-        validateNativeFormValidation(page);
-        validateUnavailableEdit(page);
-        validateCreatePost(page);
-        validateEditPost(page);
-        validateCancel(page);
-        validateDeletePost(page);
-        validateBulkDelete(page);
+            login(page);
+            validateListView(page);
+            validateRelatedCommentsLink(page);
+            validatePagination(page);
+            validateGridQuerying(page);
+            validateEditPreservesPagination(page);
+            validateDirectCreateRoute(page);
+            validateNativeFormValidation(page);
+            validateUnavailableEdit(page);
+            validateCreatePost(page);
+            validateEditPost(page);
+            validateCancel(page);
+            validateDeletePost(page);
+            validateBulkDelete(page);
+        }
     }
 
     private static Stream<BrowserType> browserTypes() {
@@ -139,6 +145,26 @@ class PostsSmokeIT {
         }
 
         System.out.println("✓ Pagination validated successfully");
+    }
+
+    private void validateRelatedCommentsLink(final Page page) throws InterruptedException {
+        System.out.println("Testing: Related comments link");
+
+        navigateToPostsList(page);
+        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        Locator row = primaryScope(page).locator("tbody tr").first();
+        String postId = row.locator("td").nth(1).textContent().trim();
+        row.locator("a.grid-related-link").click();
+        page.waitForURL(url -> url.contains("/comments") && url.contains("filter.postId=" + postId),
+                new Page.WaitForURLOptions().setTimeout(5000));
+
+        assertThat(primaryScope(page).locator("h1")).containsText("Comments");
+        Locator rows = primaryScope(page).locator("tbody tr:not(:has(.grid-empty))");
+        for (int index = 0; index < rows.count(); index++) {
+            assertEquals(postId, rows.nth(index).locator("td").nth(3).textContent().trim());
+        }
+
+        System.out.println("✓ Related comments link validated successfully");
     }
 
     private void validateEditPreservesPagination(final Page page) throws InterruptedException {
@@ -304,7 +330,7 @@ class PostsSmokeIT {
 
         page.navigate(BASE_URL + "/posts/new");
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
-        Locator form = formScope(page).locator("form.data-form");
+        Locator form = formScope(page).locator(".data-form > form");
         assertThat(form).isVisible();
         assertEquals(0, form.locator("[name=id]").count(), "Hidden IDs must not be submitted by the form");
 
@@ -314,7 +340,8 @@ class PostsSmokeIT {
                 .evaluate("element => element.matches(':invalid')"));
 
         cancelForm(page);
-        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.waitForURL(url -> !url.contains("/posts/new"),
+                new Page.WaitForURLOptions().setTimeout(5000));
         assertFalse(page.url().contains("/posts/new"));
         System.out.println("✓ Native form validation validated successfully");
     }
@@ -325,10 +352,11 @@ class PostsSmokeIT {
         page.navigate(BASE_URL + "/posts/999999");
         waitFor(EXPECTED_PAGE_INIT_TIME_MS);
         assertThat(formScope(page).locator(".form-message-error")).containsText("not found");
-        assertEquals(0, formScope(page).locator("form").count());
+        assertEquals(0, formScope(page).locator(".data-form > form").count());
 
         cancelForm(page);
-        waitFor(EXPECTED_PAGE_INIT_TIME_MS);
+        page.waitForURL(url -> !url.contains("999999"),
+                new Page.WaitForURLOptions().setTimeout(5000));
         assertFalse(page.url().contains("999999"));
         System.out.println("✓ Missing edit entity validated successfully");
     }
@@ -581,7 +609,7 @@ class PostsSmokeIT {
         assertNoModalVisible(page);
         Locator scope = primaryScope(page);
         assertThat(scope.locator("h1:has-text(\"" + expectedTitle + "\")")).isVisible();
-        assertThat(scope.locator("form")).isVisible();
+        assertThat(scope.locator(".data-form > form")).isVisible();
     }
 
     private void assertNoModalVisible(final Page page) {

@@ -88,6 +88,31 @@ public class SchemaDslTests {
             assertEquals(Widget.DATE_PICKER, Widget.fromFieldType(FieldType.DATETIME));
             assertEquals(Widget.SELECT, Widget.fromFieldType(FieldType.ENUM));
         }
+
+        @Test
+        void reference_builder_sets_semantics_and_selector_widget() {
+            FieldDef field = DataSchema.builder()
+                    .field("postId", FieldType.STRING).references("posts")
+                    .build()
+                    .field("postId");
+
+            assertEquals(Widget.REFERENCE_SELECT, field.widget());
+            assertEquals("posts", field.reference().resourceKey());
+        }
+
+        @Test
+        void reference_selector_requires_reference_metadata() {
+            assertThrows(IllegalArgumentException.class, () -> new FieldDef(
+                    "postId", "Post", String.class, FieldType.STRING,
+                    Widget.REFERENCE_SELECT, List.of(), FieldOptions.defaults()));
+        }
+
+        @Test
+        void field_choice_requires_nonblank_value_and_label_data() {
+            assertEquals("Post one", new FieldChoice("1", "Post one").label());
+            assertThrows(IllegalArgumentException.class, () -> new FieldChoice("", "Post one"));
+            assertThrows(IllegalArgumentException.class, () -> new FieldChoice("1", ""));
+        }
     }
 
     @Nested

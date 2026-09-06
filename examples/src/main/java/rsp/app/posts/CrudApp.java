@@ -118,8 +118,8 @@ public class CrudApp {
                         .bind(PostEditBlock.class, () -> new PostEditBlock(postService, new DefaultFormView())))
                 .add(new Group("Comments").description("User comments for the posts")
                         .bind(CommentsListBlock.class, () -> new CommentsListBlock(commentService, new DefaultListView()))
-                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, new DefaultFormView()))
-                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, new DefaultFormView())));
+                        .bind(CommentCreateBlock.class, () -> new CommentCreateBlock(commentService, postService, new DefaultFormView()))
+                        .bind(CommentEditBlock.class, () -> new CommentEditBlock(commentService, postService, new DefaultFormView())));
 
         // These views support the page but are not menu items. Explorer builds the sidebar from
         // mainBlocks; Prompt lets the user talk to the agent; Header shows the session;

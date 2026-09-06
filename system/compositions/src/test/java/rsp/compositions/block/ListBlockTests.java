@@ -10,6 +10,10 @@ import rsp.component.StateUpdater;
 import rsp.component.TreeBuilder;
 import rsp.component.definitions.Component;
 import rsp.compositions.schema.DataSchema;
+import rsp.compositions.composition.Composition;
+import rsp.compositions.composition.Group;
+import rsp.compositions.layout.DefaultLayout;
+import rsp.compositions.routing.Router;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
@@ -25,6 +29,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static rsp.dsl.Html.div;
 
 class ListBlockTests {
+
+    private static final Composition TEST_COMPOSITION = new Composition(
+            new Router().route("/related", TestListBlock.class),
+            new DefaultLayout(),
+            new Group().bind(TestListBlock.class, TestListBlock::new));
 
     @Test
     void page_intent_reloads_the_component_owned_cache() {
@@ -124,6 +133,19 @@ class ListBlockTests {
         assertTrue(names.contains("select_all"));
     }
 
+    @Test
+    void related_list_specs_are_route_resolved_into_list_state() {
+        TestListBlock block = new TestListBlock(true, true, true, true);
+
+        render(new Parent(block, new ParentState("1", "asc")));
+
+        assertEquals(1, block.initialState.relatedListColumns().size());
+        ListView.RelatedListColumn related = block.initialState.relatedListColumns().getFirst();
+        assertEquals("/related", related.targetPath());
+        assertEquals("id", related.sourceField());
+        assertEquals("ownerId", related.filterField());
+    }
+
     @SuppressWarnings("unchecked")
     private static ComponentSegment<ListView.ListViewState> listSegment(ComponentSegment<ParentState> root) {
         return (ComponentSegment<ListView.ListViewState>) root.directChildren().getFirst();
@@ -173,7 +195,8 @@ class ListBlockTests {
             return (context, state) -> context
                     .with(ContextKeys.URL_QUERY.with("p"), state.page())
                     .with(ContextKeys.URL_QUERY.with("sort"), state.sort())
-                    .with(ContextKeys.ROUTE_PATH, "/items");
+                    .with(ContextKeys.ROUTE_PATH, "/items")
+                    .with(ContextKeys.ROUTE_COMPOSITION, TEST_COMPOSITION);
         }
 
         @Override
@@ -191,18 +214,24 @@ class ListBlockTests {
         private final boolean createAllowed;
         private final boolean editAllowed;
         private final boolean deleteAllowed;
+        private final boolean related;
         private int bulkDeleteCalls;
         private Set<String> lastDeletedIds = Set.of();
 
         private TestListBlock() {
-            this(true, true, true);
+            this(true, true, true, false);
         }
 
         private TestListBlock(boolean createAllowed, boolean editAllowed, boolean deleteAllowed) {
+            this(createAllowed, editAllowed, deleteAllowed, false);
+        }
+
+        private TestListBlock(boolean createAllowed, boolean editAllowed, boolean deleteAllowed, boolean related) {
             super(_ -> _ -> div());
             this.createAllowed = createAllowed;
             this.editAllowed = editAllowed;
             this.deleteAllowed = deleteAllowed;
+            this.related = related;
         }
 
         @Override
@@ -232,6 +261,14 @@ class ListBlockTests {
         @Override
         protected Class<? extends Block<?, ?>> editElementBlock() {
             return TestListBlock.class;
+        }
+
+        @Override
+        protected List<RelatedListLinkSpec> relatedListLinks() {
+            return related
+                    ? List.of(RelatedListLinkSpec.to("related", "Related", "id",
+                            TestListBlock.class, "ownerId", "View related"))
+                    : List.of();
         }
 
         @Override
