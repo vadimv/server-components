@@ -18,7 +18,8 @@ server.join();
 `start()` binds the socket and returns. `join()` blocks until the acceptor stops.
 Call `stop()` during application shutdown. It stops accepting connections,
 clears pages waiting for a WebSocket, sends close code `1001` to live sockets,
-waits for a bounded close handshake, and then force-closes remaining sockets.
+releases local live-page sessions, waits for a bounded close handshake, and then
+force-closes remaining sockets.
 
 Use port `0` in integration tests. After `start()`, `port()` returns the actual
 bound port:
@@ -32,6 +33,44 @@ int port = server.port();
 The default connection limit is `WebServer.DEFAULT_CONNECTION_LIMIT` (`50`).
 The advanced constructor accepts a positive custom limit and an `EventLoop`
 supplier for deterministic tests.
+
+## Local Session Resume
+
+A live page is retained in the server process when its WebSocket disconnects.
+The bundled browser client reconnects with the same device and session IDs,
+reports the last server message it applied, and receives any later messages in
+order. The component tree and event loop are not remounted during a successful
+resume.
+
+The defaults retain a detached page for 60 seconds and bound its unacknowledged
+message journal to 4,096 messages or 4 MiB, whichever is reached first. The
+most explicit constructor accepts different bounds:
+
+```java
+var resume = new LocalSessionResumeConfig(
+        Duration.ofMinutes(2),
+        8_192,
+        8L * 1024L * 1024L);
+
+var server = new WebServer(
+        8080,
+        app,
+        Optional.empty(),
+        Optional.empty(),
+        WebServer.DEFAULT_CONNECTION_LIMIT,
+        DefaultEventLoop::new,
+        resume);
+```
+
+Expiry is measured from a confirmed detachment. Failed reconnect attempts do
+not extend it; a completed resume cancels it. Explicit browser termination,
+protocol failure, journal overflow, and server shutdown release the page
+immediately. The browser blocks new UI interaction while detached rather than
+queueing potentially stale events.
+
+Resume is deliberately process-local. With more than one application node, the
+initial HTTP request, first WebSocket, and subsequent WebSocket reconnects must
+be routed to the same node. A reconnect routed elsewhere causes a page reload.
 
 ## Static Resources
 

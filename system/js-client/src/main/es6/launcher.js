@@ -20,15 +20,14 @@ import { ConnectionLostWidget, getDeviceId } from './utils.js';
 
 window['RSP'] = {
   'setProtocolDebugEnabled': setProtocolDebugEnabled,
-  'invokeCallback': () => console.log("RSP is not ready"),
-  'swapElementInRegistry': () => console.log("RSP is not ready"),
+  'invokeCallback': () => console.log('RSP is not ready'),
+  'swapElementInRegistry': () => console.log('RSP is not ready'),
   'connectionState': 'connecting'
 };
-var reconnect;
 
 function createRspConnectionEvent(type, state) {
   let event;
-  if (typeof Event === "function") {
+  if (typeof Event === 'function') {
     event = new Event(type);
   } else {
     event = document.createEvent('Event');
@@ -44,27 +43,12 @@ function setRspConnectionState(state) {
     document.body.setAttribute('data-rsp-connection', state);
   }
   document.dispatchEvent(createRspConnectionEvent('rsp:connection-state', state));
-  if (state === 'open') {
-    document.dispatchEvent(createRspConnectionEvent('rsp:connection-open', state));
-  } else if (state === 'closed') {
-    document.dispatchEvent(createRspConnectionEvent('rsp:connection-close', state));
-  } else if (state === 'connecting') {
-    document.dispatchEvent(createRspConnectionEvent('rsp:connection-connecting', state));
-  }
+  document.dispatchEvent(createRspConnectionEvent(`rsp:connection-${state}`, state));
 }
 
-// TODO
-//window.addEventListener("onbeforeunload", () => reconnect = false);
-window.onbeforeunload = function(event) {
-        console.log("onbeforeunload");
-        reconnect = false;
-}
-
-window.document.addEventListener("DOMContentLoaded", () => {
-
-  reconnect = true
-  setRspConnectionState('connecting');
-
+window.document.addEventListener('DOMContentLoaded', () => {
+  let reconnect = true;
+  let reloading = false;
   let config = window['kfg'];
   let clw = new ConnectionLostWidget(config['clw']);
   let connection = new Connection(
@@ -73,55 +57,59 @@ window.document.addEventListener("DOMContentLoaded", () => {
     config['r'],
     window.location
   );
+  // The bridge and its browser-side virtual DOM registry survive transient sockets.
+  let bridge = new Bridge(config, connection);
 
+  let reloadPage = () => {
+    if (reloading) return;
+    reloading = true;
+    reconnect = false;
+    bridge.suspend();
+    connection.disconnect(true);
+    setTimeout(() => window.location.reload(), 0);
+  };
+
+  window['RSP']['swapElementInRegistry'] = (a, b) => bridge._RSP.swapElementInRegistry(a, b);
+  window['RSP']['element'] = (id) => bridge._RSP.element(id);
+  window['RSP']['invokeCallback'] = (name, arg) => bridge._RSP.invokeCustomCallback(name, arg);
+  window['RSP']['reload'] = reloadPage;
   window['RSP']['disconnect'] = () => {
     reconnect = false;
-    connection.disconnect();
-  }
-
-  window['RSP']['connect'] = () => connection.connect();
-
-  connection.dispatcher.addEventListener('close', () => {
+    bridge.destroy();
+    connection.disconnect(true);
     setRspConnectionState('closed');
+  };
+  window['RSP']['connect'] = () => {
+    reconnect = true;
+    connection.connect();
+  };
+
+  connection.dispatcher.addEventListener('connecting', () => {
+    setRspConnectionState('connecting');
   });
 
   connection.dispatcher.addEventListener('open', () => {
-    setRspConnectionState('open');
+    bridge.resume();
     clw.hide();
-    let bridge = new Bridge(config, connection);
-    window['RSP']['swapElementInRegistry'] = (a, b) => bridge._RSP.swapElementInRegistry(a, b);
-    window['RSP']['element'] = (id) => bridge._RSP.element(id);
-    window['RSP']['invokeCallback'] = (name, arg) => bridge._RSP.invokeCustomCallback(name, arg);
-    window['RSP']['reload'] = () => {
-        console.log('Reload command');
-        reconnect = false;
-        connection.disconnect();
-        setTimeout(() => {
-            console.log("Reloading...");
-            window.location.reload();
-            }, 3000);
-    };
-
-    let closeHandler = (event) => {
-      bridge.destroy();
-      if (reconnect) {
-        clw.show();
-        connection.connect();
-      }
-/*      connection
-        .dispatcher
-        .removeEventListener('close', closeHandler);*/
-    };
-    connection
-      .dispatcher
-      .addEventListener('close', closeHandler);
+    setRspConnectionState('open');
   });
 
-/*  connection.dispatcher.addEventListener('close', () => {
+  connection.dispatcher.addEventListener('close', () => {
+    bridge.suspend();
+    setRspConnectionState('closed');
     if (reconnect) {
+      clw.show();
       connection.connect();
     }
-  });*/
+  });
 
+  connection.dispatcher.addEventListener('resume-rejected', () => reloadPage());
+
+  window.addEventListener('beforeunload', () => {
+    reconnect = false;
+    connection.disconnect(true);
+  });
+
+  setRspConnectionState('connecting');
   connection.connect();
 });

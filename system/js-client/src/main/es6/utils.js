@@ -32,6 +32,8 @@ export class ConnectionLostWidget {
   constructor(template) {
     /** @type {?Element} */
     this._element = null;
+    /** @type {?Element} */
+    this._previouslyFocused = null;
     this._template = template;
   }
 
@@ -40,20 +42,36 @@ export class ConnectionLostWidget {
     if (this._element !== null)
       return;
 
-    // Parse template
-    var element = document.createElement('div');
-    element.innerHTML = this._template;
-    element = element.children[0];
+    this._previouslyFocused = document.activeElement;
+
+    // A full-viewport blocker prevents events from getting ahead of the
+    // authoritative server state while the session is detached.
+    var blocker = document.createElement('div');
+    blocker.setAttribute('style', 'position:fixed;inset:0;z-index:2147483646;pointer-events:auto;cursor:wait;');
+    blocker.setAttribute('role', 'status');
+    blocker.setAttribute('aria-live', 'polite');
+    blocker.setAttribute('tabindex', '0');
+
+    var templateContainer = document.createElement('div');
+    templateContainer.innerHTML = this._template;
+    blocker.appendChild(templateContainer.children[0]);
 
     // Append to document body
-    document.body.appendChild(element);
-    this._element = element;
+    document.body.appendChild(blocker);
+    blocker.focus();
+    this._element = blocker;
   }
 
   hide() {
     if (this._element !== null) {
       document.body.removeChild(this._element);
       this._element = null;
+      if (this._previouslyFocused !== null
+          && document.documentElement.contains(this._previouslyFocused)
+          && this._previouslyFocused.focus) {
+        this._previouslyFocused.focus();
+      }
+      this._previouslyFocused = null;
     }
   }
 }

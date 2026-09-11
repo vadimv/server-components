@@ -167,7 +167,7 @@ class WebServerTests {
                     .buildAsync(webSocketUri(server, sessionId), new TestWebSocketListener(firstText, new CompletableFuture<>()))
                     .join();
 
-            assertEquals("[0,0]", firstText.get(2, TimeUnit.SECONDS));
+            assertEquals("[17,1,[0,0]]", firstText.get(2, TimeUnit.SECONDS));
             assertTrue(server.pagesStorage.isEmpty());
             webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "").join();
         } finally {
@@ -187,7 +187,7 @@ class WebServerTests {
                     .buildAsync(webSocketUri(server, sessionId), new TestWebSocketListener(firstText, pong))
                     .join();
 
-            assertEquals("[0,0]", firstText.get(2, TimeUnit.SECONDS));
+            assertEquals("[17,1,[0,0]]", firstText.get(2, TimeUnit.SECONDS));
             webSocket.sendPing(ByteBuffer.wrap("abc".getBytes(StandardCharsets.UTF_8))).join();
 
             assertEquals("abc", StandardCharsets.UTF_8.decode(pong.get(2, TimeUnit.SECONDS)).toString());
@@ -205,6 +205,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
+            sendClientText(socket, "[7,1,0]");
             readServerFrame(socket);
             awaitActiveWebSockets(server, 1);
 
@@ -232,6 +233,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
+            sendClientText(socket, "[7,1,0]");
             readServerFrame(socket);
             awaitActiveWebSockets(server, 1);
 
@@ -256,6 +258,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
+            sendClientText(socket, "[7,1,0]");
             readServerFrame(socket);
             awaitActiveWebSockets(server, 1);
 
@@ -280,6 +283,54 @@ class WebServerTests {
             server.stop();
 
             assertTrue(server.pagesStorage.isEmpty());
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void reconnect_resumes_the_same_local_page_session() throws Exception {
+        final WebServer server = started(new WebServer(0, _ -> page("resume")));
+        try {
+            client.send(get(server, "/resume"), BodyHandlers.ofString());
+            final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
+
+            try (Socket firstSocket = new Socket("localhost", server.port())) {
+                writeHandshake(firstSocket,
+                               server.port(),
+                               sessionId.deviceId(),
+                               sessionId.sessionId(),
+                               "dGhlIHNhbXBsZSBub25jZQ==");
+                assertTrue(readHttpHeaders(firstSocket).startsWith("HTTP/1.1 101 Switching Protocols"));
+                sendClientText(firstSocket, "[7,1,0]");
+                assertEquals("[17,1,[0,0]]", text(readServerFrame(firstSocket)));
+                assertEquals("[18,1]", text(readServerFrame(firstSocket)));
+                sendClientText(firstSocket, "[8,1]");
+                sendClientClose(firstSocket, WebSocketFrame.CLOSE_NORMAL, "");
+                assertEquals(WebSocketFrame.CLOSE_NORMAL, readCloseCode(firstSocket));
+            }
+
+            awaitActiveWebSockets(server, 0);
+            assertEquals(1, server.liveSessionCount());
+
+            try (Socket resumedSocket = new Socket("localhost", server.port())) {
+                writeHandshake(resumedSocket,
+                               server.port(),
+                               sessionId.deviceId(),
+                               sessionId.sessionId(),
+                               "dGhlIHNhbXBsZSBub25jZQ==");
+                assertTrue(readHttpHeaders(resumedSocket).startsWith("HTTP/1.1 101 Switching Protocols"));
+                sendClientText(resumedSocket, "[7,1,1]");
+                assertEquals("[18,1]", text(readServerFrame(resumedSocket)));
+                assertEquals(1, server.liveSessionCount());
+
+                sendClientText(resumedSocket, "[9]");
+                final RawServerFrame close = readFrameWithOpcode(resumedSocket, WebSocketFrame.OPCODE_CLOSE);
+                sendClientClosePayload(resumedSocket, close.payload);
+            }
+
+            awaitActiveWebSockets(server, 0);
+            assertEquals(0, server.liveSessionCount());
         } finally {
             server.stop();
         }
@@ -388,6 +439,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
+            sendClientText(socket, "[7,1,0]");
             readServerFrame(socket);
 
             socket.getOutputStream().write(maskedClientFrame(false, WebSocketFrame.OPCODE_TEXT, "[".getBytes(StandardCharsets.UTF_8)));
@@ -476,6 +528,25 @@ class WebServerTests {
 
     private static byte[] maskedClientFrame(final int opcode, final byte[] payload) {
         return maskedClientFrame(true, opcode, payload);
+    }
+
+    private static void sendClientText(final Socket socket, final String message) throws Exception {
+        socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_TEXT,
+                                                         message.getBytes(StandardCharsets.UTF_8)));
+        socket.getOutputStream().flush();
+    }
+
+    private static void sendClientClose(final Socket socket, final int code, final String reason) throws Exception {
+        sendClientClosePayload(socket, WebSocketFrame.closePayload(code, reason));
+    }
+
+    private static void sendClientClosePayload(final Socket socket, final byte[] payload) throws Exception {
+        socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_CLOSE, payload));
+        socket.getOutputStream().flush();
+    }
+
+    private static String text(final RawServerFrame frame) {
+        return new String(frame.payload, StandardCharsets.UTF_8);
     }
 
     private static byte[] maskedClientFrame(final boolean fin, final int opcode, final byte[] payload) {
@@ -587,6 +658,7 @@ class WebServerTests {
 
         @Override
         public void onOpen(final WebSocket webSocket) {
+            webSocket.sendText("[7,1,0]", true);
             webSocket.request(10);
         }
 

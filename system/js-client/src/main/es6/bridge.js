@@ -52,14 +52,10 @@ export class Bridge {
     this._RSP.registerRoot(document.documentElement);
     this._connection = connection;
     this._messageHandler = this._onMessage.bind(this);
+    this._intervalId = null;
+    this._heartbeatInterval = parseInt(config['heartbeatInterval'], 10);
 
     connection.dispatcher.addEventListener("message", this._messageHandler);
-
-    let interval = parseInt(config['heartbeatInterval'], 10);
-
-    if (interval > 0) {
-      this._intervalId = setInterval(() => this._onCallback(CallbackType.HEARTBEAT), interval);
-    }
   }
 
   /**
@@ -109,12 +105,29 @@ export class Bridge {
       case MessageType.REST_FORM: k.resetForm.apply(k, commands); break;
       case MessageType.FORGET_EVENT: k.forgetEvent.apply(k, commands); break;
       case MessageType.SHOW_MODAL: k.showModal.apply(k, commands); break;
-      default: console.error(`Procedure ${pCode} is undefined`);
+      default: throw new Error(`Procedure ${pCode} is undefined`);
+    }
+    if (event.sequence !== null && event.sequence !== undefined) {
+      this._connection.applied(event.sequence);
+    }
+  }
+
+  resume() {
+    if (this._heartbeatInterval > 0 && this._intervalId === null) {
+      this._intervalId = setInterval(() => this._onCallback(CallbackType.HEARTBEAT),
+                                     this._heartbeatInterval);
+    }
+  }
+
+  suspend() {
+    if (this._intervalId !== null) {
+      clearInterval(this._intervalId);
+      this._intervalId = null;
     }
   }
 
   destroy() {
-    clearInterval(this._intervalId);
+    this.suspend();
     this._connection.dispatcher.removeEventListener("message", this._messageHandler);
     this._RSP.destroy();
   }

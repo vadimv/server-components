@@ -69,6 +69,8 @@ public class WebServer {
     private final Optional<SslConfiguration> sslConfiguration;
     private final int connectionLimit;
     private final Supplier<EventLoop> eventLoopSupplier;
+    private final LocalSessionResumeConfig localSessionResumeConfig;
+    private final LocalSessionRegistry localSessionRegistry;
     private final Optional<StaticResourceHandler> staticResourceHandler;
     private final HttpHandler httpHandler;
     private final HttpRequestParser requestParser = new HttpRequestParser();
@@ -101,15 +103,46 @@ public class WebServer {
                      final Optional<SslConfiguration> sslConfiguration,
                      final int connectionLimit,
                      final Supplier<EventLoop> eventLoopSupplier) {
+        this(port,
+             rootComponentDefinition,
+             staticResources,
+             sslConfiguration,
+             connectionLimit,
+             eventLoopSupplier,
+             LocalSessionResumeConfig.defaults());
+    }
+
+    /**
+     * Creates a web server with explicit local-session resume bounds.
+     *
+     * @param port a web server's listening port
+     * @param rootComponentDefinition a root component's definition
+     * @param staticResources a setup object for an optional static resources handler
+     * @param sslConfiguration a TLS connection configuration or {@link Optional#empty()} for HTTP
+     * @param connectionLimit maximum number of concurrently handled HTTP connections
+     * @param eventLoopSupplier creates event loops for live page sessions
+     * @param localSessionResumeConfig same-process WebSocket resume bounds
+     */
+    public WebServer(final int port,
+                     final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
+                     final Optional<StaticResources> staticResources,
+                     final Optional<SslConfiguration> sslConfiguration,
+                     final int connectionLimit,
+                     final Supplier<EventLoop> eventLoopSupplier,
+                     final LocalSessionResumeConfig localSessionResumeConfig) {
         this.configuredPort = port;
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
         this.staticResources = Objects.requireNonNull(staticResources);
         this.sslConfiguration = Objects.requireNonNull(sslConfiguration);
         this.connectionLimit = requirePositiveConnectionLimit(connectionLimit);
         this.eventLoopSupplier = Objects.requireNonNull(eventLoopSupplier);
+        this.localSessionResumeConfig = Objects.requireNonNull(localSessionResumeConfig);
         this.connectionPermits = new Semaphore(this.connectionLimit);
         this.boundPort = port;
-        this.rspWebSocketEndpoint = new RspWebSocketEndpoint(pagesStorage, this.eventLoopSupplier);
+        this.localSessionRegistry = new LocalSessionRegistry(pagesStorage,
+                                                             this.eventLoopSupplier,
+                                                             this.localSessionResumeConfig);
+        this.rspWebSocketEndpoint = new RspWebSocketEndpoint(localSessionRegistry);
         this.staticResourceHandler = this.staticResources.map(sr -> new StaticResourceHandler(sr.resourcesBaseDir(),
                                                                                               sr.contextPath()));
         this.httpHandler = new HttpHandler(pagesStorage,
@@ -188,6 +221,7 @@ public class WebServer {
                 serverSocket = newServerSocket;
                 boundPort = newServerSocket.getLocalPort();
                 connectionExecutor = Executors.newVirtualThreadPerTaskExecutor();
+                localSessionRegistry.start();
                 running = true;
                 acceptorThread = Thread.startVirtualThread(this::acceptLoop);
             } catch (final IOException ex) {
@@ -222,7 +256,11 @@ public class WebServer {
         final Thread threadToInterrupt;
         final Set<WebSocketConnection> webSocketsToClose;
         synchronized (lifecycleLock) {
-            if (!running && serverSocket == null && connectionExecutor == null && activeWebSockets.isEmpty()) {
+            if (!running
+                && serverSocket == null
+                && connectionExecutor == null
+                && activeWebSockets.isEmpty()
+                && localSessionRegistry.size() == 0) {
                 return;
             }
             running = false;
@@ -250,6 +288,7 @@ public class WebServer {
             executorToClose.shutdown();
         }
         initiateWebSocketShutdown(webSocketsToClose);
+        localSessionRegistry.closeAll();
         awaitWebSocketsClosed(webSocketsToClose, WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS);
         forceCloseWebSockets(webSocketsToClose);
         awaitConnectionExecutor(executorToClose);
@@ -284,6 +323,10 @@ public class WebServer {
         return eventLoopSupplier;
     }
 
+    protected LocalSessionResumeConfig localSessionResumeConfig() {
+        return localSessionResumeConfig;
+    }
+
     protected Optional<StaticResourceHandler> staticResourceHandler() {
         return staticResourceHandler;
     }
@@ -294,6 +337,10 @@ public class WebServer {
 
     int activeWebSocketCount() {
         return activeWebSockets.size();
+    }
+
+    int liveSessionCount() {
+        return localSessionRegistry.size();
     }
 
     private void acceptLoop() {
