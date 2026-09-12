@@ -81,7 +81,7 @@ class ResumablePageSessionTests {
     }
 
     @Test
-    void replay_buffer_overflow_closes_the_page() {
+    void detached_replay_buffer_overflow_closes_the_page() {
         final Fixture fixture = new Fixture(new LocalSessionResumeConfig(Duration.ofSeconds(60), 1, 64 * 1024));
 
         fixture.commands.offer(new RemoteCommand.PushHistory("/overflow"));
@@ -89,6 +89,48 @@ class ResumablePageSessionTests {
 
         assertTrue(fixture.session.isClosed());
         assertEquals(1, fixture.closedCount.get());
+    }
+
+    @Test
+    void attached_session_uses_a_sliding_replay_window_instead_of_closing() {
+        final Fixture fixture = new Fixture(new LocalSessionResumeConfig(Duration.ofSeconds(60), 1, 64 * 1024));
+        final FakeTransport firstTransport = new FakeTransport();
+        final ResumablePageSession.AttachResult firstAttach = fixture.session.attach(firstTransport, 0);
+
+        fixture.commands.offer(new RemoteCommand.PushHistory("/delivered"));
+        fixture.eventLoop.runOneStep();
+
+        assertFalse(fixture.session.isClosed());
+        assertTrue(firstTransport.messages.contains("[17,2,[6,4,\"/delivered\"]]"));
+
+        fixture.session.detach(firstAttach.handle());
+        assertFalse(fixture.session.attach(new FakeTransport(), 0).accepted());
+
+        final FakeTransport resumedTransport = new FakeTransport();
+        final ResumablePageSession.AttachResult resumed = fixture.session.attach(resumedTransport, 1);
+
+        assertTrue(resumed.accepted());
+        assertEquals(List.of("[17,2,[6,4,\"/delivered\"]]", "[18,2]"), resumedTransport.messages);
+    }
+
+    @Test
+    void an_attached_frame_larger_than_the_byte_window_does_not_close_the_page() {
+        final Fixture fixture = new Fixture(new LocalSessionResumeConfig(Duration.ofSeconds(60), 32, 20));
+        final FakeTransport firstTransport = new FakeTransport();
+        final ResumablePageSession.AttachResult firstAttach = fixture.session.attach(firstTransport, 0);
+
+        fixture.commands.offer(new RemoteCommand.PushHistory("/larger-than-window"));
+        fixture.eventLoop.runOneStep();
+
+        assertFalse(fixture.session.isClosed());
+        assertTrue(firstTransport.messages.contains("[17,2,[6,4,\"/larger-than-window\"]]"));
+
+        fixture.session.detach(firstAttach.handle());
+        final FakeTransport resumedTransport = new FakeTransport();
+        final ResumablePageSession.AttachResult resumed = fixture.session.attach(resumedTransport, 2);
+
+        assertTrue(resumed.accepted());
+        assertEquals(List.of("[18,2]"), resumedTransport.messages);
     }
 
     private static final class Fixture {

@@ -43,6 +43,7 @@ final class ResumablePageSession {
     private long attachmentGeneration;
     private long nextSequence = 1;
     private long lastAcknowledgedSequence;
+    private long lastDiscardedSequence;
     private long bufferedBytes;
     private boolean closed;
 
@@ -79,6 +80,9 @@ final class ResumablePageSession {
                 return AttachResult.rejected("session-expired");
             }
             final long currentSequence = nextSequence - 1;
+            if (lastAppliedSequence < lastDiscardedSequence) {
+                return AttachResult.rejected("resume-window-exceeded");
+            }
             if (lastAppliedSequence < lastAcknowledgedSequence || lastAppliedSequence > currentSequence) {
                 return AttachResult.rejected("invalid-resume-position");
             }
@@ -186,10 +190,8 @@ final class ResumablePageSession {
             unacknowledgedFrames.addLast(new SequencedFrame(sequence, encodedMessage, encodedBytes));
             bufferedBytes += encodedBytes;
 
-            if (unacknowledgedFrames.size() > config.maxBufferedMessages()
-                || bufferedBytes > config.maxBufferedBytes()) {
-                overflow = true;
-            } else if (attachment != null) {
+            boolean delivered = false;
+            if (attachment != null) {
                 if (!attachment.transport().isOpen()) {
                     failedTransport = attachment.transport();
                     attachment = null;
@@ -197,6 +199,7 @@ final class ResumablePageSession {
                 } else {
                     try {
                         attachment.transport().sendText(encodedMessage);
+                        delivered = true;
                     } catch (final IOException ex) {
                         logger.log(DEBUG, "WebSocket write failed for " + sessionId, ex);
                         failedTransport = attachment.transport();
@@ -205,14 +208,35 @@ final class ResumablePageSession {
                     }
                 }
             }
+
+            if (replayBufferExceededLocked()) {
+                if (delivered) {
+                    trimReplayWindowLocked();
+                } else {
+                    overflow = true;
+                }
+            }
         }
 
         if (failedTransport != null) {
             failedTransport.closeSocket();
         }
         if (overflow) {
-            logger.log(WARNING, () -> "Local session replay buffer exceeded for " + sessionId);
+            logger.log(WARNING, () -> "Detached local session replay buffer exceeded for " + sessionId);
             close("resume-buffer-overflow");
+        }
+    }
+
+    private boolean replayBufferExceededLocked() {
+        return unacknowledgedFrames.size() > config.maxBufferedMessages()
+               || bufferedBytes > config.maxBufferedBytes();
+    }
+
+    private void trimReplayWindowLocked() {
+        while (!unacknowledgedFrames.isEmpty() && replayBufferExceededLocked()) {
+            final SequencedFrame discarded = unacknowledgedFrames.removeFirst();
+            bufferedBytes -= discarded.encodedBytes();
+            lastDiscardedSequence = discarded.sequence();
         }
     }
 

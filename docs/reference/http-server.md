@@ -63,8 +63,11 @@ var server = new WebServer(
 ```
 
 Expiry is measured from a confirmed detachment. Failed reconnect attempts do
-not extend it; a completed resume cancels it. Explicit browser termination,
-protocol failure, journal overflow, and server shutdown release the page
+not extend it; a completed resume cancels it. While connected, the journal is a
+sliding window: reaching a bound discards its oldest delivered copies without
+interrupting the page. Resume remains possible when the browser reports that it
+already applied that discarded prefix. A detached journal overflow, explicit
+browser termination, protocol failure, or server shutdown releases the page
 immediately. The browser blocks new UI interaction while detached rather than
 queueing potentially stale events.
 
