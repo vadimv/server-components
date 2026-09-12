@@ -6,12 +6,46 @@ import org.junit.jupiter.api.Test;
 import rsp.dom.*;
 import rsp.server.protocol.RemotePageMessageEncoder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RemotePageMessageEncoderTests {
+
+    @Test
+    void should_preserve_general_nested_batch_boundaries_and_command_order() {
+        final List<List<String>> batches = new ArrayList<>();
+        final RemotePageMessageEncoder encoder = RemotePageMessageEncoder.batched(batches::add);
+
+        encoder.batch(out -> {
+            out.pushHistory("/one");
+            out.batch(nested -> {
+                nested.forgetEvent("click", NodeId.of("1_1"));
+                nested.setHref("/two");
+            });
+        });
+
+        assertEquals(List.of(List.of(
+                "[6,4,\"/one\"]",
+                "[15,\"click\",\"1_1\"]",
+                "[6,0,\"/two\"]")), batches);
+    }
+
+    @Test
+    void should_not_emit_a_partially_encoded_batch() {
+        final List<List<String>> batches = new ArrayList<>();
+        final RemotePageMessageEncoder encoder = RemotePageMessageEncoder.batched(batches::add);
+
+        assertThrows(IllegalStateException.class, () -> encoder.batch(out -> {
+            out.pushHistory("/not-delivered");
+            throw new IllegalStateException("failed batch");
+        }));
+
+        assertEquals(List.of(), batches);
+    }
 
     @Test
     void should_set_render_num() {

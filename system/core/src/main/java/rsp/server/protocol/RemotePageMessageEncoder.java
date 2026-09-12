@@ -7,6 +7,7 @@ import rsp.dom.TreePositionPath;
 import rsp.dom.DefaultDomChangesContext.*;
 import rsp.server.RemoteOut;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -62,16 +63,59 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     private static final int  SEARCH_LOCATION_TYPE = 3;
     private static final int  PUSH_STATE_TYPE = 4;
 
-    private final Consumer<String> messagesOut;
+    private final BatchedMessagesConsumer messagesOut;
+    private int batchDepth;
+    private List<String> pendingBatch;
 
     public RemotePageMessageEncoder(final Consumer<String> messagesOut) {
+        Objects.requireNonNull(messagesOut);
+        this.messagesOut = messages -> messages.forEach(messagesOut);
+    }
+
+    private RemotePageMessageEncoder(final BatchedMessagesConsumer messagesOut) {
         this.messagesOut = Objects.requireNonNull(messagesOut);
+    }
+
+    /**
+     * Creates an encoder that preserves explicit {@link RemoteOut#batch(Consumer)}
+     * boundaries in its output.
+     *
+     * @param messagesOut consumer of an ordered, non-empty encoded message batch
+     * @return a batch-preserving encoder
+     */
+    public static RemotePageMessageEncoder batched(final Consumer<List<String>> messagesOut) {
+        Objects.requireNonNull(messagesOut);
+        return new RemotePageMessageEncoder(messagesOut::accept);
+    }
+
+    @Override
+    public void batch(final Consumer<RemoteOut> actions) {
+        Objects.requireNonNull(actions);
+        final boolean outermost = batchDepth == 0;
+        if (outermost) {
+            pendingBatch = new ArrayList<>();
+        }
+        batchDepth++;
+        boolean completed = false;
+        try {
+            actions.accept(this);
+            completed = true;
+        } finally {
+            batchDepth--;
+            if (outermost) {
+                final List<String> completedBatch = pendingBatch;
+                pendingBatch = null;
+                if (completed && !completedBatch.isEmpty()) {
+                    messagesOut.accept(List.copyOf(completedBatch));
+                }
+            }
+        }
     }
 
     @Override
     public void setRenderNum(final int renderNum) {
         final String message = addSquareBrackets(joinString(SET_RENDER_NUM, renderNum));
-        messagesOut.accept(message);
+        emit(message);
     }
 
     @Override
@@ -84,7 +128,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
                                                          quote(modifierString(e.modifier)))).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(LISTEN_EVENT,
                                                                 joinString(changes)));
-            messagesOut.accept(message);
+            emit(message);
         }
     }
 
@@ -95,7 +139,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
         final String message = addSquareBrackets(joinString(FORGET_EVENT,
                                                             quote(escape(eventType)),
                                                             quote(nodeId.toString())));
-        messagesOut.accept(message);
+        emit(message);
     }
 
     private static String modifierString(final DomEventEntry.Modifier eventModifier) {
@@ -116,7 +160,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
                                                             quote(descriptor),
                                                             quote(nodeId),
                                                             quote(escape(name))));
-        messagesOut.accept(message);
+        emit(message);
     }
 
     @Override
@@ -126,7 +170,7 @@ public final class RemotePageMessageEncoder implements RemoteOut {
             final String[] changes = domChanges.stream().map(this::modifyDomMessageBody).toArray(String[]::new);
             final String message = addSquareBrackets(joinString(MODIFY_DOM,
                                                                 joinString(changes)));
-            messagesOut.accept(message);
+            emit(message);
         }
     }
 
@@ -134,20 +178,20 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     public void setHref(final String path) {
         Objects.requireNonNull(path);
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, HREF_LOCATION_TYPE, quote(escape(path))));
-        messagesOut.accept(message);
+        emit(message);
     }
 
     @Override
     public void pushHistory(final String path) {
         Objects.requireNonNull(path);
         final String message = addSquareBrackets(joinString(CHANGE_PAGE_URL, PUSH_STATE_TYPE, quote(escape(path))));
-        messagesOut.accept(message);
+        emit(message);
     }
 
     @Override
     public void showModal(final NodeId nodeId) {
         Objects.requireNonNull(nodeId);
-        messagesOut.accept(addSquareBrackets(joinString(SHOW_MODAL, quote(nodeId))));
+        emit(addSquareBrackets(joinString(SHOW_MODAL, quote(nodeId))));
     }
 
     private String modifyDomMessageBody(final DomChange domChange) {
@@ -172,7 +216,15 @@ public final class RemotePageMessageEncoder implements RemoteOut {
     public void evalJs(final int descriptor, final String js) {
         Objects.requireNonNull(js);
         final String message = addSquareBrackets(joinString(EVAL_JS, descriptor, quote(escape(js))));
-        messagesOut.accept(message);
+        emit(message);
+    }
+
+    private void emit(final String message) {
+        if (batchDepth == 0) {
+            messagesOut.accept(List.of(message));
+        } else {
+            pendingBatch.add(message);
+        }
     }
 
     private String joinString(final String[] strings) {
@@ -189,5 +241,10 @@ public final class RemotePageMessageEncoder implements RemoteOut {
 
     private String addSquareBrackets(final String str) {
         return "["+ str + "]";
+    }
+
+    @FunctionalInterface
+    private interface BatchedMessagesConsumer {
+        void accept(List<String> messages);
     }
 }

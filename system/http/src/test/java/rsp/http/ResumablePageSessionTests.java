@@ -2,6 +2,7 @@ package rsp.http;
 
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
+import rsp.dom.NodeId;
 import rsp.page.EventLoop;
 import rsp.page.PageBuilder;
 import rsp.page.QualifiedSessionId;
@@ -44,6 +45,103 @@ class ResumablePageSessionTests {
         assertTrue(resumed.accepted());
         assertEquals(List.of("[17,2,[6,4,\"/after-detach\"]]", "[18,2]"), resumedTransport.messages);
         assertFalse(fixture.session.isClosed());
+    }
+
+    @Test
+    void general_remote_command_batch_is_sent_in_one_transport_frame() {
+        final Fixture fixture = new Fixture(CONFIG);
+        final FakeTransport transport = new FakeTransport();
+        fixture.session.attach(transport, 0);
+
+        fixture.commands.offer(new RemoteCommand.Batch(List.of(
+                new RemoteCommand.PushHistory("/one"),
+                new RemoteCommand.SetHref("/two"))));
+        fixture.eventLoop.runOneStep();
+
+        assertEquals(List.of(
+                "[17,1,[0,0]]",
+                "[18,1]",
+                "[20,2,[[6,4,\"/one\"],[6,0,\"/two\"]]]"), transport.messages);
+    }
+
+    @Test
+    void resume_from_the_middle_of_a_batch_replays_only_its_unapplied_suffix() throws Exception {
+        final Fixture fixture = new Fixture(CONFIG);
+        final FakeTransport firstTransport = new FakeTransport();
+        final ResumablePageSession.AttachResult firstAttach = fixture.session.attach(firstTransport, 0);
+        fixture.session.acknowledge(firstAttach.handle(), 1);
+
+        fixture.commands.offer(new RemoteCommand.Batch(List.of(
+                new RemoteCommand.PushHistory("/one"),
+                new RemoteCommand.PushHistory("/two"))));
+        fixture.eventLoop.runOneStep();
+        fixture.session.detach(firstAttach.handle());
+
+        final FakeTransport resumedTransport = new FakeTransport();
+        final ResumablePageSession.AttachResult resumed = fixture.session.attach(resumedTransport, 2);
+
+        assertTrue(resumed.accepted());
+        assertEquals(List.of("[17,3,[6,4,\"/two\"]]", "[18,3]"), resumedTransport.messages);
+    }
+
+    @Test
+    void large_logical_batches_are_split_at_the_transport_message_limit() {
+        final Fixture fixture = new Fixture(new LocalSessionResumeConfig(
+                Duration.ofSeconds(60), 512, 2L * 1024L * 1024L));
+        final FakeTransport transport = new FakeTransport();
+        fixture.session.attach(transport, 0);
+        final List<RemoteCommand> commands = new ArrayList<>();
+        final List<String> firstApplicationBatch = new ArrayList<>();
+        for (int i = 0; i <= ResumablePageSession.MAX_TRANSPORT_BATCH_MESSAGES; i++) {
+            commands.add(new RemoteCommand.PushHistory("/" + i));
+            if (i < ResumablePageSession.MAX_TRANSPORT_BATCH_MESSAGES) {
+                firstApplicationBatch.add("[6,4,\"/" + i + "\"]");
+            }
+        }
+
+        fixture.commands.offer(new RemoteCommand.Batch(commands));
+        fixture.eventLoop.runOneStep();
+
+        assertEquals(4, transport.messages.size());
+        assertEquals(RspTransportProtocol.frameBatch(2, firstApplicationBatch), transport.messages.get(2));
+        assertEquals("[17,130,[6,4,\"/128\"]]", transport.messages.get(3));
+    }
+
+    @Test
+    void large_logical_batches_are_split_at_the_transport_byte_limit() {
+        final Fixture fixture = new Fixture(new LocalSessionResumeConfig(
+                Duration.ofSeconds(60), 32, 2L * 1024L * 1024L));
+        final FakeTransport transport = new FakeTransport();
+        fixture.session.attach(transport, 0);
+        final String largePath = "/" + "x".repeat(ResumablePageSession.MAX_TRANSPORT_BATCH_BYTES / 2);
+
+        fixture.commands.offer(new RemoteCommand.Batch(List.of(
+                new RemoteCommand.PushHistory(largePath),
+                new RemoteCommand.PushHistory(largePath))));
+        fixture.eventLoop.runOneStep();
+
+        assertEquals(4, transport.messages.size());
+        assertTrue(transport.messages.get(2).startsWith("[17,2,[6,4,"));
+        assertTrue(transport.messages.get(3).startsWith("[17,3,[6,4,"));
+    }
+
+    @Test
+    void game_of_life_sized_listener_removal_batch_keeps_an_attached_session_alive() {
+        final Fixture fixture = new Fixture(CONFIG);
+        final FakeTransport transport = new FakeTransport();
+        fixture.session.attach(transport, 0);
+        final List<RemoteCommand> commands = new ArrayList<>();
+        for (int i = 0; i < 5_000; i++) {
+            commands.add(new RemoteCommand.ForgetEvent("click", NodeId.of("1_" + i)));
+        }
+
+        fixture.commands.offer(new RemoteCommand.Batch(commands));
+        fixture.eventLoop.runOneStep();
+
+        assertFalse(fixture.session.isClosed());
+        assertEquals(42, transport.messages.size(), "2 handshake frames plus 40 command batches");
+        assertTrue(transport.messages.subList(2, transport.messages.size()).stream()
+                           .allMatch(message -> message.startsWith("[20,")));
     }
 
     @Test

@@ -16,7 +16,9 @@
 
 const MIN_RECONNECT_TIMEOUT = 200;
 const MAX_RECONNECT_TIMEOUT = 5000;
-const RSP_TRANSPORT_VERSION = 1;
+const ACKNOWLEDGEMENT_MAX_DELAY_MS = 50;
+const ACKNOWLEDGEMENT_MAX_SEQUENCES = 256;
+const RSP_TRANSPORT_VERSION = 2;
 
 /** @enum {number} */
 const ClientControlType = {
@@ -29,7 +31,8 @@ const ClientControlType = {
 const ServerTransportType = {
   FRAME: 17,
   RESUME_ACCEPTED: 18,
-  RESUME_REJECTED: 19
+  RESUME_REJECTED: 19,
+  FRAME_BATCH: 20
 };
 
 /**
@@ -60,6 +63,9 @@ export class Connection {
     this._attempted = false;
     this._state = 'closed';
     this._lastAppliedSequence = 0;
+    this._lastAcknowledgedSequence = 0;
+    /** @type {?number} */
+    this._acknowledgementTimer = null;
     this._dispatcher = window.document.createDocumentFragment();
   }
 
@@ -107,6 +113,9 @@ export class Connection {
   _onRawOpen(webSocket, generation) {
     if (!this._isCurrent(webSocket, generation)) return;
     console.log('WebSocket opened; resuming page session');
+    this._cancelAcknowledgementTimer();
+    // RESUME itself cumulatively acknowledges this position on the new socket.
+    this._lastAcknowledgedSequence = this._lastAppliedSequence;
     this._state = 'handshaking';
     webSocket.send(JSON.stringify([
       ClientControlType.RESUME,
@@ -126,6 +135,7 @@ export class Connection {
   _onRawClose(webSocket, generation) {
     if (!this._isCurrent(webSocket, generation)) return;
     console.log('Connection closed');
+    this._cancelAcknowledgementTimer();
     this._webSocket = null;
     if (this._state === 'closed') return;
     this._state = 'closed';
@@ -152,6 +162,9 @@ export class Connection {
       case ServerTransportType.FRAME:
         this._onApplicationFrame(message);
         break;
+      case ServerTransportType.FRAME_BATCH:
+        this._onApplicationFrameBatch(message);
+        break;
       case ServerTransportType.RESUME_ACCEPTED:
         this._onResumeAccepted(message);
         break;
@@ -160,7 +173,7 @@ export class Connection {
         break;
       default:
         // Allows a server without the local session to issue the legacy reload command.
-        this._dispatchApplicationMessage(data, null);
+        this._dispatchApplicationMessages([message], null);
         break;
     }
   }
@@ -172,16 +185,38 @@ export class Connection {
       this._resumeRejected('invalid-server-frame');
       return;
     }
-    let sequence = message[1];
-    if (sequence <= this._lastAppliedSequence) {
-      this._sendAcknowledgement();
+    this._acceptApplicationFrames(message[1], [message[2]]);
+  }
+
+  /** @private */
+  _onApplicationFrameBatch(message) {
+    if (message.length !== 3 || !Number.isSafeInteger(message[1]) || message[1] < 1
+        || !(message[2] instanceof Array) || message[2].length === 0
+        || !message[2].every(command => command instanceof Array)) {
+      this._resumeRejected('invalid-server-frame-batch');
       return;
     }
-    if (sequence !== this._lastAppliedSequence + 1) {
+    let lastSequence = message[1] + message[2].length - 1;
+    if (!Number.isSafeInteger(lastSequence)) {
+      this._resumeRejected('invalid-server-frame-batch');
+      return;
+    }
+    this._acceptApplicationFrames(message[1], message[2]);
+  }
+
+  /** @private */
+  _acceptApplicationFrames(firstSequence, commands) {
+    let lastSequence = firstSequence + commands.length - 1;
+    if (lastSequence <= this._lastAppliedSequence) {
+      this._flushAcknowledgement(true);
+      return;
+    }
+    if (firstSequence > this._lastAppliedSequence + 1) {
       this._resumeRejected('server-frame-gap');
       return;
     }
-    this._dispatchApplicationMessage(JSON.stringify(message[2]), sequence);
+    let alreadyApplied = Math.max(0, this._lastAppliedSequence - firstSequence + 1);
+    this._dispatchApplicationMessages(commands.slice(alreadyApplied), firstSequence + alreadyApplied);
   }
 
   /** @private */
@@ -191,6 +226,7 @@ export class Connection {
       this._resumeRejected('incomplete-server-replay');
       return;
     }
+    this._flushAcknowledgement();
     this._state = 'open';
     this._attempted = true;
     this._reconnectTimeout = MIN_RECONNECT_TIMEOUT;
@@ -199,10 +235,12 @@ export class Connection {
   }
 
   /** @private */
-  _dispatchApplicationMessage(data, sequence) {
+  _dispatchApplicationMessages(commands, firstSequence) {
     let event = this._createEvent('message');
-    event.data = data;
-    event.sequence = sequence;
+    event.commands = commands;
+    event.firstSequence = firstSequence;
+    // Preserve the legacy event shape for unsequenced messages.
+    event.data = commands.length === 1 ? JSON.stringify(commands[0]) : null;
     this._dispatcher.dispatchEvent(event);
   }
 
@@ -220,25 +258,52 @@ export class Connection {
   }
 
   /**
-   * Called by the bridge only after it has successfully applied a sequenced command.
+   * Called by the bridge after it has successfully applied a contiguous command batch.
    * @param {number} sequence
    */
-  applied(sequence) {
-    if (!Number.isSafeInteger(sequence) || sequence !== this._lastAppliedSequence + 1) {
+  appliedThrough(sequence) {
+    if (!Number.isSafeInteger(sequence) || sequence < this._lastAppliedSequence + 1) {
       this._resumeRejected('invalid-applied-sequence');
       return;
     }
     this._lastAppliedSequence = sequence;
-    this._sendAcknowledgement();
+    if (this._lastAppliedSequence - this._lastAcknowledgedSequence
+        >= ACKNOWLEDGEMENT_MAX_SEQUENCES) {
+      this._flushAcknowledgement();
+    } else if (this._acknowledgementTimer === null) {
+      this._acknowledgementTimer = setTimeout(
+        () => this._flushAcknowledgement(),
+        ACKNOWLEDGEMENT_MAX_DELAY_MS
+      );
+    }
   }
 
-  /** @private */
-  _sendAcknowledgement() {
-    if (this._webSocket !== null && this._webSocket.readyState === WebSocket.OPEN) {
+  applicationFailed(error) {
+    console.error('Failed to apply server command batch', error);
+    this._resumeRejected('application-command-failed');
+  }
+
+  /**
+   * @param {boolean=} force
+   * @private
+   */
+  _flushAcknowledgement(force = false) {
+    this._cancelAcknowledgementTimer();
+    if (this._webSocket !== null && this._webSocket.readyState === WebSocket.OPEN
+        && (force || this._lastAppliedSequence > this._lastAcknowledgedSequence)) {
       this._webSocket.send(JSON.stringify([
         ClientControlType.ACKNOWLEDGE,
         this._lastAppliedSequence
       ]));
+      this._lastAcknowledgedSequence = this._lastAppliedSequence;
+    }
+  }
+
+  /** @private */
+  _cancelAcknowledgementTimer() {
+    if (this._acknowledgementTimer !== null) {
+      clearTimeout(this._acknowledgementTimer);
+      this._acknowledgementTimer = null;
     }
   }
 
@@ -268,6 +333,7 @@ export class Connection {
     }
     if (this._webSocket !== null) {
       if (terminal && this._webSocket.readyState === WebSocket.OPEN) {
+        this._flushAcknowledgement();
         this._webSocket.send(JSON.stringify([ClientControlType.TERMINATE]));
       }
       this._webSocket.close();

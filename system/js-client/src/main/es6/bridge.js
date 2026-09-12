@@ -80,8 +80,29 @@ export class Bridge {
 
   _onMessage(event) {
     if (protocolDebugEnabled)
-      console.log('->', event.data);
-    let commands = /** @type {Array} */ (JSON.parse(event.data));
+      console.log('->', event.commands);
+    let commandBatch = event.commands instanceof Array
+        ? event.commands
+        : [/** @type {Array} */ (JSON.parse(event.data))];
+    try {
+      for (let commands of commandBatch) {
+        this._applyCommand(commands);
+      }
+    } catch (error) {
+      this._connection.applicationFailed(error);
+      return;
+    }
+    if (event.firstSequence !== null && event.firstSequence !== undefined) {
+      this._connection.appliedThrough(event.firstSequence + commandBatch.length - 1);
+    }
+  }
+
+  /**
+   * @param {!Array} encodedCommand
+   * @private
+   */
+  _applyCommand(encodedCommand) {
+    let commands = encodedCommand.slice();
     let pCode = commands.shift();
     let k = this._RSP;
     switch (pCode) {
@@ -106,9 +127,6 @@ export class Bridge {
       case MessageType.FORGET_EVENT: k.forgetEvent.apply(k, commands); break;
       case MessageType.SHOW_MODAL: k.showModal.apply(k, commands); break;
       default: throw new Error(`Procedure ${pCode} is undefined`);
-    }
-    if (event.sequence !== null && event.sequence !== undefined) {
-      this._connection.applied(event.sequence);
     }
   }
 

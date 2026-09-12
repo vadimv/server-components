@@ -15,7 +15,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -28,6 +30,8 @@ import static java.lang.System.Logger.Level.WARNING;
 final class ResumablePageSession {
     private static final System.Logger logger = System.getLogger(ResumablePageSession.class.getName());
     private static final int CLOSE_REPLACED = 4000;
+    static final int MAX_TRANSPORT_BATCH_MESSAGES = 128;
+    static final int MAX_TRANSPORT_BATCH_BYTES = 64 * 1024;
 
     private final QualifiedSessionId sessionId;
     private final LocalSessionResumeConfig config;
@@ -59,7 +63,7 @@ final class ResumablePageSession {
         this.expiryScheduler = Objects.requireNonNull(expiryScheduler);
         this.onClosed = Objects.requireNonNull(onClosed);
 
-        final RemoteOut remoteOut = new RemotePageMessageEncoder(this::publish);
+        final RemoteOut remoteOut = RemotePageMessageEncoder.batched(this::publish);
         this.livePage = new LivePageSession(Objects.requireNonNull(eventLoop));
         this.decoder = new RemotePageMessageDecoder(JsonUtils.createParser(), livePage.eventsConsumer());
         livePage.eventsConsumer().accept(new InitSessionCommand(renderedPage.pageBuilder(),
@@ -94,9 +98,7 @@ final class ResumablePageSession {
             attachment = current;
 
             try {
-                for (final SequencedFrame frame : unacknowledgedFrames) {
-                    current.transport().sendText(frame.encodedMessage());
-                }
+                sendFrames(current.transport(), unacknowledgedFrames);
                 current.transport().sendText(RspTransportProtocol.resumeAccepted(currentSequence));
             } catch (final IOException ex) {
                 attachment = null;
@@ -176,19 +178,31 @@ final class ResumablePageSession {
         return closed;
     }
 
-    private void publish(final String applicationMessage) {
-        Objects.requireNonNull(applicationMessage);
+    private void publish(final List<String> applicationMessages) {
+        Objects.requireNonNull(applicationMessages);
+        if (applicationMessages.isEmpty()) {
+            return;
+        }
         Transport failedTransport = null;
         boolean overflow = false;
         synchronized (this) {
             if (closed) {
                 return;
             }
-            final long sequence = nextSequence++;
-            final String encodedMessage = RspTransportProtocol.frame(sequence, applicationMessage);
-            final int encodedBytes = encodedMessage.getBytes(StandardCharsets.UTF_8).length;
-            unacknowledgedFrames.addLast(new SequencedFrame(sequence, encodedMessage, encodedBytes));
-            bufferedBytes += encodedBytes;
+            final List<SequencedFrame> newFrames = new ArrayList<>(applicationMessages.size());
+            for (final String applicationMessage : applicationMessages) {
+                Objects.requireNonNull(applicationMessage);
+                final long sequence = nextSequence++;
+                final int applicationBytes = applicationMessage.getBytes(StandardCharsets.UTF_8).length;
+                final int encodedBytes = applicationBytes + 6 + decimalDigits(sequence);
+                final SequencedFrame frame = new SequencedFrame(sequence,
+                                                                 applicationMessage,
+                                                                 applicationBytes,
+                                                                 encodedBytes);
+                unacknowledgedFrames.addLast(frame);
+                newFrames.add(frame);
+                bufferedBytes += encodedBytes;
+            }
 
             boolean delivered = false;
             if (attachment != null) {
@@ -198,7 +212,7 @@ final class ResumablePageSession {
                     scheduleExpiryLocked();
                 } else {
                     try {
-                        attachment.transport().sendText(encodedMessage);
+                        sendFrames(attachment.transport(), newFrames);
                         delivered = true;
                     } catch (final IOException ex) {
                         logger.log(DEBUG, "WebSocket write failed for " + sessionId, ex);
@@ -225,6 +239,52 @@ final class ResumablePageSession {
             logger.log(WARNING, () -> "Detached local session replay buffer exceeded for " + sessionId);
             close("resume-buffer-overflow");
         }
+    }
+
+    private void sendFrames(final Transport transport,
+                            final Iterable<SequencedFrame> frames) throws IOException {
+        final List<SequencedFrame> batch = new ArrayList<>(MAX_TRANSPORT_BATCH_MESSAGES);
+        int applicationBytes = 0;
+        for (final SequencedFrame frame : frames) {
+            if (!batch.isEmpty()
+                && (batch.size() == MAX_TRANSPORT_BATCH_MESSAGES
+                    || batchEncodedBytes(batch.getFirst().sequence(),
+                                         applicationBytes + frame.applicationBytes(),
+                                         batch.size() + 1) > MAX_TRANSPORT_BATCH_BYTES)) {
+                sendBatch(transport, batch);
+                batch.clear();
+                applicationBytes = 0;
+            }
+            batch.add(frame);
+            applicationBytes += frame.applicationBytes();
+        }
+        if (!batch.isEmpty()) {
+            sendBatch(transport, batch);
+        }
+    }
+
+    private void sendBatch(final Transport transport,
+                           final List<SequencedFrame> batch) throws IOException {
+        if (batch.size() == 1) {
+            final SequencedFrame frame = batch.getFirst();
+            transport.sendText(RspTransportProtocol.frame(frame.sequence(), frame.applicationMessage()));
+            return;
+        }
+        transport.sendText(RspTransportProtocol.frameBatch(batch.getFirst().sequence(),
+                                                           batch.stream()
+                                                                   .map(SequencedFrame::applicationMessage)
+                                                                   .toList()));
+    }
+
+    private static int batchEncodedBytes(final long firstSequence,
+                                         final int applicationBytes,
+                                         final int messageCount) {
+        // [20,<firstSequence>,[<message>,...]]
+        return applicationBytes + messageCount - 1 + 8 + decimalDigits(firstSequence);
+    }
+
+    private static int decimalDigits(final long value) {
+        return Long.toString(value).length();
     }
 
     private boolean replayBufferExceededLocked() {
@@ -348,7 +408,10 @@ final class ResumablePageSession {
     private record Attachment(long generation, Transport transport) {
     }
 
-    private record SequencedFrame(long sequence, String encodedMessage, int encodedBytes) {
+    private record SequencedFrame(long sequence,
+                                  String applicationMessage,
+                                  int applicationBytes,
+                                  int encodedBytes) {
     }
 
     private record Termination(Attachment attachment) {

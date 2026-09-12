@@ -716,7 +716,10 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
             finishChildReconciliation();
             childReconciliationFinished = true;
 
-            commandsEnqueue.offer(new RemoteCommand.ModifyDom(domChangePerformer.changes));
+            final List<RemoteCommand> remoteCommands = new ArrayList<>();
+            if (!domChangePerformer.changes.isEmpty()) {
+                remoteCommands.add(new RemoteCommand.ModifyDom(domChangePerformer.changes));
+            }
 
             // Keep parent component's tag tree in sync with this component's latest root nodes
             updateParentTagTree(oldRootNodes);
@@ -727,7 +730,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
                 if (!newEvents.contains(event)
                     && event instanceof DomEventEntry domEventEntry
                     && !elementsToRemove.contains(domEventEntry.eventTarget.nodeId())) {
-                    commandsEnqueue.offer(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.nodeId()));
+                    remoteCommands.add(new RemoteCommand.ForgetEvent(event.eventName, domEventEntry.eventTarget.nodeId()));
                 }
             }
 
@@ -739,7 +742,10 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
                 }
             }
             if (!eventsToAdd.isEmpty()) {
-                commandsEnqueue.offer(new RemoteCommand.ListenEvent(eventsToAdd));
+                remoteCommands.add(new RemoteCommand.ListenEvent(eventsToAdd));
+            }
+            if (!remoteCommands.isEmpty()) {
+                commandsEnqueue.offer(new RemoteCommand.Batch(remoteCommands));
             }
 
             withCallbackOwner(this, () ->

@@ -7,6 +7,7 @@ public sealed interface Command permits
         ExtractPropertyResponseEvent,
         GenericTaskEvent,
         InitSessionCommand,
+        RemoteCommand.Batch,
         RemoteCommand.EvalJs,
         RemoteCommand.ExtractProperty,
         RemoteCommand.ForgetEvent,

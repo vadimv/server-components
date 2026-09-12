@@ -121,7 +121,12 @@ class KeyedDomInteractionTests {
 
         segment.setState("link");
 
-        final List<RemoteCommand.ListenEvent> listenCommands = commands.stream()
+        assertEquals(1, commands.size());
+        final RemoteCommand.Batch batch = assertInstanceOf(RemoteCommand.Batch.class, commands.getFirst());
+        assertEquals(2, batch.commands().size());
+        assertInstanceOf(RemoteCommand.ModifyDom.class, batch.commands().get(0));
+        assertInstanceOf(RemoteCommand.ListenEvent.class, batch.commands().get(1));
+        final List<RemoteCommand.ListenEvent> listenCommands = batch.commands().stream()
                 .filter(RemoteCommand.ListenEvent.class::isInstance)
                 .map(RemoteCommand.ListenEvent.class::cast)
                 .toList();

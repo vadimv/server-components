@@ -22,7 +22,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -87,7 +86,12 @@ class StoredStateComponentTests {
         runQueuedTask(commands);
 
         assertEquals(1, commands.list.size());
-        final var modifyDomOutMessage = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
+        final RemoteCommand.Batch removeBatch = assertInstanceOf(RemoteCommand.Batch.class, commands.list.getFirst());
+        final RemoteCommand.ModifyDom modifyDomOutMessage = removeBatch.commands().stream()
+                .filter(RemoteCommand.ModifyDom.class::isInstance)
+                .map(RemoteCommand.ModifyDom.class::cast)
+                .findFirst()
+                .orElseThrow();
         assertEquals(1, modifyDomOutMessage.domChanges().size());
         assertInstanceOf(DefaultDomChangesContext.Remove.class, modifyDomOutMessage.domChanges().getFirst());
 
@@ -98,7 +102,12 @@ class StoredStateComponentTests {
         clickEvent2.eventHandler.accept(clickEventContext);
         runQueuedTask(commands);
         assertEquals(1, commands.list.size());
-        final RemoteCommand.ModifyDom modifyDomOutMessage2 = findFirstListElementByType(RemoteCommand.ModifyDom.class, commands.list).orElseThrow();
+        final RemoteCommand.Batch addBatch = assertInstanceOf(RemoteCommand.Batch.class, commands.list.getFirst());
+        final RemoteCommand.ModifyDom modifyDomOutMessage2 = addBatch.commands().stream()
+                .filter(RemoteCommand.ModifyDom.class::isInstance)
+                .map(RemoteCommand.ModifyDom.class::cast)
+                .findFirst()
+                .orElseThrow();
         assertTrue(modifyDomOutMessage2.toString().contains("test-store-100"));
     }
 
@@ -107,12 +116,4 @@ class StoredStateComponentTests {
         commands.list.removeFirst();
     }
 
-    public static <U> Optional<U> findFirstListElementByType(final Class<U> modifyDomOutMessageClass, final List<?> list) {
-        for (int i = 0; i < list.size();i++) {
-            if (modifyDomOutMessageClass.isAssignableFrom(list.get(i).getClass())) {
-                return (Optional<U>) Optional.of(list.get(i));
-            }
-        }
-        return Optional.empty();
-    }
 }

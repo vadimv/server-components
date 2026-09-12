@@ -6,6 +6,7 @@ import rsp.dom.NodeId;
 import rsp.server.RemoteOut;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Commands to the client-side running in the browser.
@@ -17,6 +18,20 @@ public sealed interface RemoteCommand {
      * @param remoteOut
      */
     void accept(RemoteOut remoteOut);
+
+    /**
+     * An ordered, general-purpose group of remote commands.
+     */
+    record Batch(List<RemoteCommand> commands) implements RemoteCommand, Command {
+        public Batch {
+            commands = List.copyOf(Objects.requireNonNull(commands));
+        }
+
+        @Override
+        public void accept(final RemoteOut remoteOut) {
+            Objects.requireNonNull(remoteOut).batch(out -> commands.forEach(command -> command.accept(out)));
+        }
+    }
 
     record SetRenderNum(int renderNum) implements RemoteCommand, Command {
         @Override

@@ -131,6 +131,15 @@ fragmentation, close frames, and UTF-8 text. It responds to ping frames and caps
 an assembled inbound message at 256 KiB. The RSP application protocol currently
 uses WebSocket text messages; binary RSP messages are rejected as unsupported.
 
+Commands produced by one component update retain their order and are transported
+in general-purpose batches. Batches are split at 128 commands or 64 KiB; a
+single command larger than the byte limit is sent alone. Every embedded command
+still has its own contiguous sequence number, so reconnect can replay only the
+unapplied suffix of a batch. The browser acknowledges the highest successfully
+applied sequence cumulatively, flushing after 256 commands or 50 ms (and at
+resume/disconnect boundaries). This avoids a WebSocket frame and acknowledgement
+round trip for every event-listener removal or other small command.
+
 The JavaScript client's long-polling routes are not implemented by this server.
 
 ## TLS And Deployment Limits

@@ -5,6 +5,8 @@ import rsp.dom.NodeId;
 import rsp.dom.DefaultDomChangesContext;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Represents remote actions within an open live session.
@@ -13,6 +15,17 @@ import java.util.List;
  * @link ./src/main/es6/rsp.js
  * */
 public interface RemoteOut {
+
+    /**
+     * Executes an ordered group of remote actions as one delivery batch when the
+     * implementation supports batching. The default preserves the actions and
+     * their order without requiring existing implementations to buffer them.
+     *
+     * @param actions actions to invoke against this remote output
+     */
+    default void batch(final Consumer<RemoteOut> actions) {
+        Objects.requireNonNull(actions).accept(this);
+    }
 
     void setRenderNum(int renderNum);
 

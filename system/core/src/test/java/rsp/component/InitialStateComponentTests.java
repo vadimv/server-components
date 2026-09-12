@@ -73,8 +73,10 @@ class InitialStateComponentTests {
         runQueuedTask(commands);
 
         assertEquals(1, commands.list.size());
-        assertInstanceOf(RemoteCommand.ModifyDom.class, commands.list.get(0));
-        assertTrue(commands.list.get(0).toString().contains("test-link-101"));
+        final RemoteCommand.Batch batch = assertInstanceOf(RemoteCommand.Batch.class, commands.list.getFirst());
+        final RemoteCommand.ModifyDom modifyDom = assertInstanceOf(RemoteCommand.ModifyDom.class,
+                                                                    batch.commands().getFirst());
+        assertTrue(modifyDom.toString().contains("test-link-101"));
     }
 
     private static void runQueuedTask(final TestSessonEventsConsumer commands) {

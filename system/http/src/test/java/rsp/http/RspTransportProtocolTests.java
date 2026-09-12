@@ -2,6 +2,8 @@ package rsp.http;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,10 +12,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RspTransportProtocolTests {
     @Test
     void decodes_resume_and_acknowledgement_controls() throws Exception {
-        final var resume = RspTransportProtocol.decodeClientControl("[7,1,42]").orElseThrow();
+        final var resume = RspTransportProtocol.decodeClientControl("[7,2,42]").orElseThrow();
         final var acknowledge = RspTransportProtocol.decodeClientControl("[8,42]").orElseThrow();
 
-        assertEquals(new RspTransportProtocol.Resume(1, 42), resume);
+        assertEquals(new RspTransportProtocol.Resume(RspTransportProtocol.VERSION, 42), resume);
         assertEquals(new RspTransportProtocol.Acknowledge(42), acknowledge);
     }
 
@@ -34,6 +36,8 @@ class RspTransportProtocolTests {
     @Test
     void wraps_existing_application_json_without_reencoding_it() {
         assertEquals("[17,3,[4,[0,\"1\"]]]", RspTransportProtocol.frame(3, "[4,[0,\"1\"]]"));
+        assertEquals("[20,3,[[4,[0,\"1\"]],[6,4,\"/next\"]]]",
+                     RspTransportProtocol.frameBatch(3, List.of("[4,[0,\"1\"]]", "[6,4,\"/next\"]")));
         assertEquals("[18,3]", RspTransportProtocol.resumeAccepted(3));
         assertEquals("[19,\"gone\"]", RspTransportProtocol.resumeRejected("gone"));
     }

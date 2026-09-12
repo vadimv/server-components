@@ -205,7 +205,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
-            sendClientText(socket, "[7,1,0]");
+            sendClientText(socket, "[7,2,0]");
             readServerFrame(socket);
             awaitActiveWebSockets(server, 1);
 
@@ -233,7 +233,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
-            sendClientText(socket, "[7,1,0]");
+            sendClientText(socket, "[7,2,0]");
             readServerFrame(socket);
             awaitActiveWebSockets(server, 1);
 
@@ -258,7 +258,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
-            sendClientText(socket, "[7,1,0]");
+            sendClientText(socket, "[7,2,0]");
             readServerFrame(socket);
             awaitActiveWebSockets(server, 1);
 
@@ -302,7 +302,7 @@ class WebServerTests {
                                sessionId.sessionId(),
                                "dGhlIHNhbXBsZSBub25jZQ==");
                 assertTrue(readHttpHeaders(firstSocket).startsWith("HTTP/1.1 101 Switching Protocols"));
-                sendClientText(firstSocket, "[7,1,0]");
+                sendClientText(firstSocket, "[7,2,0]");
                 assertEquals("[17,1,[0,0]]", text(readServerFrame(firstSocket)));
                 assertEquals("[18,1]", text(readServerFrame(firstSocket)));
                 sendClientText(firstSocket, "[8,1]");
@@ -320,7 +320,7 @@ class WebServerTests {
                                sessionId.sessionId(),
                                "dGhlIHNhbXBsZSBub25jZQ==");
                 assertTrue(readHttpHeaders(resumedSocket).startsWith("HTTP/1.1 101 Switching Protocols"));
-                sendClientText(resumedSocket, "[7,1,1]");
+                sendClientText(resumedSocket, "[7,2,1]");
                 assertEquals("[18,1]", text(readServerFrame(resumedSocket)));
                 assertEquals(1, server.liveSessionCount());
 
@@ -439,7 +439,7 @@ class WebServerTests {
             final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
             writeHandshake(socket, server.port(), sessionId.deviceId(), sessionId.sessionId(), "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
-            sendClientText(socket, "[7,1,0]");
+            sendClientText(socket, "[7,2,0]");
             readServerFrame(socket);
 
             socket.getOutputStream().write(maskedClientFrame(false, WebSocketFrame.OPCODE_TEXT, "[".getBytes(StandardCharsets.UTF_8)));
@@ -658,7 +658,7 @@ class WebServerTests {
 
         @Override
         public void onOpen(final WebSocket webSocket) {
-            webSocket.sendText("[7,1,0]", true);
+            webSocket.sendText("[7,2,0]", true);
             webSocket.request(10);
         }
 

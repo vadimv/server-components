@@ -3,13 +3,15 @@ package rsp.http;
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonUtils;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
  * Transport controls layered around the existing RSP application protocol.
  */
 final class RspTransportProtocol {
-    static final int VERSION = 1;
+    static final int VERSION = 2;
 
     static final int RESUME = 7;
     static final int ACKNOWLEDGE = 8;
@@ -18,12 +20,22 @@ final class RspTransportProtocol {
     static final int FRAME = 17;
     static final int RESUME_ACCEPTED = 18;
     static final int RESUME_REJECTED = 19;
+    static final int FRAME_BATCH = 20;
 
     private RspTransportProtocol() {
     }
 
     static String frame(final long sequence, final String applicationMessage) {
         return "[" + FRAME + "," + sequence + "," + applicationMessage + "]";
+    }
+
+    static String frameBatch(final long firstSequence, final List<String> applicationMessages) {
+        Objects.requireNonNull(applicationMessages);
+        if (applicationMessages.isEmpty()) {
+            throw new IllegalArgumentException("applicationMessages must not be empty");
+        }
+        return "[" + FRAME_BATCH + "," + firstSequence + ",["
+               + String.join(",", applicationMessages) + "]]";
     }
 
     static String resumeAccepted(final long currentSequence) {
