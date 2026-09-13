@@ -30,6 +30,8 @@ import static rsp.dsl.Html.div;
 
 class ListBlockTests {
 
+    private static final String DIAGNOSTIC_CANARY = "diagnostic-canary-secret";
+
     private static final Composition TEST_COMPOSITION = new Composition(
             new Router().route("/related", TestListBlock.class),
             new DefaultLayout(),
@@ -146,6 +148,30 @@ class ListBlockTests {
         assertEquals("ownerId", related.filterField());
     }
 
+    @Test
+    void load_failure_does_not_expose_exception_details() {
+        TestListBlock block = new TestListBlock();
+        block.failLoads = true;
+
+        render(new Parent(block, new ParentState("1", "asc")));
+
+        assertEquals("Could not load items.", block.initialState.message());
+        assertFalse(block.initialState.message().contains(DIAGNOSTIC_CANARY));
+    }
+
+    @Test
+    void delete_failure_does_not_expose_exception_details() {
+        TestListBlock block = new TestListBlock();
+        Harness harness = render(new Parent(block, new ParentState("1", "asc")));
+        block.failDeletes = true;
+
+        listSegment(harness.root()).dispatch(new ListView.DeleteConfirmed("page-1"));
+        harness.commands().runTasks();
+
+        assertEquals("Delete failed.", block.lastUpdatedState.message());
+        assertFalse(block.lastUpdatedState.message().contains(DIAGNOSTIC_CANARY));
+    }
+
     @SuppressWarnings("unchecked")
     private static ComponentSegment<ListView.ListViewState> listSegment(ComponentSegment<ParentState> root) {
         return (ComponentSegment<ListView.ListViewState>) root.directChildren().getFirst();
@@ -217,6 +243,8 @@ class ListBlockTests {
         private final boolean related;
         private int bulkDeleteCalls;
         private Set<String> lastDeletedIds = Set.of();
+        private boolean failLoads;
+        private boolean failDeletes;
 
         private TestListBlock() {
             this(true, true, true, false);
@@ -246,6 +274,9 @@ class ListBlockTests {
 
         @Override
         protected ListPage<TestItem> items(ListQuery query) {
+            if (failLoads) {
+                throw new RuntimeException(DIAGNOSTIC_CANARY);
+            }
             if (query.page() > 3) {
                 return new ListPage<>(List.of(), 30);
             }
@@ -288,6 +319,9 @@ class ListBlockTests {
 
         @Override
         protected DeleteResult bulkDelete(Set<String> ids) {
+            if (failDeletes) {
+                throw new RuntimeException(DIAGNOSTIC_CANARY);
+            }
             bulkDeleteCalls++;
             lastDeletedIds = Set.copyOf(ids);
             return DeleteResult.allDeleted(ids);

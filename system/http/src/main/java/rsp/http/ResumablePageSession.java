@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
+import static rsp.util.SafeDiagnostics.failure;
 
 /**
  * A live page whose component state outlives any one WebSocket attachment.
@@ -72,7 +73,7 @@ final class ResumablePageSession {
         remoteOut.setRenderNum(0);
         livePage.start();
         scheduleExpiry();
-        logger.log(DEBUG, () -> "Local live page created: " + sessionId);
+        logger.log(DEBUG, () -> "Local live page created");
     }
 
     AttachResult attach(final Transport transport, final long lastAppliedSequence) {
@@ -107,7 +108,7 @@ final class ResumablePageSession {
                 if (previous != null) {
                     previous.transport().close(CLOSE_REPLACED, "Connection replaced by failed resume");
                 }
-                logger.log(DEBUG, "WebSocket resume write failed for " + sessionId, ex);
+                logger.log(DEBUG, () -> failure("WebSocket resume write failed", ex));
                 return AttachResult.rejected("transport-write-failed");
             }
         }
@@ -115,7 +116,7 @@ final class ResumablePageSession {
         if (previous != null) {
             previous.transport().close(CLOSE_REPLACED, "Connection replaced by resume");
         }
-        logger.log(DEBUG, () -> "Local live page attached: " + sessionId);
+        logger.log(DEBUG, () -> "Local live page attached");
         return AttachResult.accepted(new AttachmentHandle(current.generation()));
     }
 
@@ -148,7 +149,7 @@ final class ResumablePageSession {
             attachment = null;
             scheduleExpiryLocked();
         }
-        logger.log(DEBUG, () -> "Local live page detached: " + sessionId);
+        logger.log(DEBUG, () -> "Local live page detached");
     }
 
     void terminate(final AttachmentHandle handle, final String reason) {
@@ -215,7 +216,7 @@ final class ResumablePageSession {
                         sendFrames(attachment.transport(), newFrames);
                         delivered = true;
                     } catch (final IOException ex) {
-                        logger.log(DEBUG, "WebSocket write failed for " + sessionId, ex);
+                        logger.log(DEBUG, () -> failure("WebSocket write failed", ex));
                         failedTransport = attachment.transport();
                         attachment = null;
                         scheduleExpiryLocked();
@@ -236,7 +237,7 @@ final class ResumablePageSession {
             failedTransport.closeSocket();
         }
         if (overflow) {
-            logger.log(WARNING, () -> "Detached local session replay buffer exceeded for " + sessionId);
+            logger.log(WARNING, () -> "Detached local session replay buffer exceeded");
             close("resume-buffer-overflow");
         }
     }
@@ -365,7 +366,7 @@ final class ResumablePageSession {
         }
         livePage.eventsConsumer().accept(new ShutdownSessionCommand());
         onClosed.accept(this);
-        logger.log(DEBUG, () -> "Local live page closed (" + reason + "): " + sessionId);
+        logger.log(DEBUG, () -> "Local live page closed");
     }
 
     record AttachmentHandle(long generation) {

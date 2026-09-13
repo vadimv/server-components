@@ -344,7 +344,7 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
             publishSelection(Set.of());
             return reloaded;
         } catch (RuntimeException failure) {
-            return state.withMessage("Delete failed: " + safeMessage(failure), true);
+            return state.withMessage("Delete failed.", true);
         }
     }
 
@@ -431,7 +431,7 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
         } catch (RuntimeException failure) {
             long previousTotal = current == null ? 0 : current.totalItems();
             return new ListViewState(List.of(), schema, query, previousTotal, modulePath, Set.of(), title,
-                    editTarget, capabilities, "Could not load items: " + safeMessage(failure), true,
+                    editTarget, capabilities, "Could not load items.", true,
                     ListStatus.READY, relatedListColumns);
         }
     }
@@ -666,9 +666,4 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
         return new ListView.EditTarget(Boolean.TRUE.equals(hasRoute), Boolean.TRUE.equals(opensAsOverlay), routePattern);
     }
 
-    private static String safeMessage(RuntimeException failure) {
-        return failure.getMessage() == null || failure.getMessage().isBlank()
-                ? failure.getClass().getSimpleName()
-                : failure.getMessage();
-    }
 }

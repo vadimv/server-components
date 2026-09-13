@@ -128,7 +128,7 @@ public class ActionDispatcher {
             try {
                 parsed = action.parsePayload().apply(payload);
             } catch (IllegalArgumentException e) {
-                return new DispatchResult.PayloadError(action.action(), e.getMessage());
+                return new DispatchResult.PayloadError(action.action(), "Payload does not match the action schema.");
             }
             blockLookup.publish((EventKey.SimpleKey) sk, parsed);
         }

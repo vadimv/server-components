@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import static rsp.util.SafeDiagnostics.failure;
+
 /**
  * Claude API-backed agent service using the Anthropic Messages API with tool use.
  *
@@ -94,9 +96,11 @@ public final class ClaudeAgentService extends AgentService {
                 return parsed.get();
             }
         } catch (Exception e) {
-            LOGGER.log(System.Logger.Level.WARNING,
-                "Claude intent parse failed.", e);
-            return new AgentResult.TextReply("LLM request failed: " + e.getClass().getSimpleName());
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            LOGGER.log(System.Logger.Level.WARNING, () -> failure("Claude request failed", e));
+            return new AgentResult.TextReply("LLM request failed.");
         }
         return new AgentResult.TextReply("LLM response could not be parsed as an intent.");
     }
@@ -208,7 +212,8 @@ public final class ClaudeAgentService extends AgentService {
 
         String toolName = toolNameHolder[0];
         LOGGER.log(System.Logger.Level.DEBUG,
-            () -> "Claude [" + prompt + "] -> tool=" + toolNameHolder[0] + " input=" + toolInputJson);
+            () -> "Claude response processed [toolCall=" + (toolNameHolder[0] != null)
+                    + ", textChars=" + textContent.length() + "]");
 
         // If we got a tool use, convert to AgentResult
         if (toolName != null && !toolName.isEmpty()) {
@@ -235,7 +240,7 @@ public final class ClaudeAgentService extends AgentService {
                 return AgentServiceUtils.toolUseToAgentResult(toolName, input, profile, structureTree);
             }
         } catch (Exception e) {
-            LOGGER.log(System.Logger.Level.WARNING, "Failed to parse tool input JSON", e);
+            LOGGER.log(System.Logger.Level.WARNING, () -> failure("Claude tool input parse failed", e));
         }
         return Optional.empty();
     }

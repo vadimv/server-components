@@ -122,7 +122,7 @@ class ActionDispatcherTests {
         ActionDispatcher.DispatchResult.PayloadError pe =
             (ActionDispatcher.DispatchResult.PayloadError) result;
         assertEquals("delete", pe.action());
-        assertTrue(pe.message().contains("Boolean"));
+        assertEquals("Payload does not match the action schema.", pe.message());
     }
 
     @Test

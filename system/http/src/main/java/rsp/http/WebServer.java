@@ -36,6 +36,7 @@ import java.util.function.Supplier;
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
+import static rsp.util.SafeDiagnostics.failure;
 
 /**
  * Zero-runtime-dependency HTTP server for RSP applications.
@@ -277,7 +278,7 @@ public class WebServer {
             try {
                 socketToClose.close();
             } catch (final IOException ex) {
-                logger.log(DEBUG, "Error closing server socket", ex);
+                logger.log(DEBUG, () -> failure("Server socket close failed", ex));
             }
         }
         if (threadToInterrupt != null) {
@@ -367,11 +368,11 @@ public class WebServer {
                 connectionPermits.release();
                 closeQuietly(socket);
                 if (running) {
-                    logger.log(ERROR, "HTTP connection rejected by executor", ex);
+                    logger.log(ERROR, () -> failure("HTTP connection rejected by executor", ex));
                 }
             } catch (final SocketException ex) {
                 if (running) {
-                    logger.log(ERROR, "Server socket failed", ex);
+                    logger.log(ERROR, () -> failure("Server socket failed", ex));
                 }
                 closeQuietly(socket);
                 return;
@@ -381,7 +382,7 @@ public class WebServer {
                 return;
             } catch (final IOException ex) {
                 if (running) {
-                    logger.log(ERROR, "Error accepting HTTP connection", ex);
+                    logger.log(ERROR, () -> failure("HTTP connection accept failed", ex));
                 }
                 closeQuietly(socket);
             }
@@ -402,7 +403,7 @@ public class WebServer {
             }
             if (!isSupportedHttpMethod(request.method())) {
                 responseWriter.write(socket.getOutputStream(),
-                                     HttpResponses.text(405, "Method Not Allowed"),
+                                     HttpResponses.status(405),
                                      request.method());
                 return;
             }
@@ -410,17 +411,17 @@ public class WebServer {
                 if (ex == null) {
                     return resp;
                 }
-                logger.log(ERROR, "HTTP rendering exception", ex);
-                return HttpResponses.text(500, "500 Internal server error\nException: " + ex.getMessage());
+                logger.log(ERROR, () -> failure("HTTP rendering failed", ex));
+                return HttpResponses.status(500);
             }).join();
             responseWriter.write(socket.getOutputStream(), response, request.method());
         } catch (final HttpProtocolException ex) {
             writeProtocolError(socket, ex);
         } catch (final IOException ex) {
-            logger.log(DEBUG, "HTTP connection closed with I/O error", ex);
+            logger.log(DEBUG, () -> failure("HTTP connection closed with I/O error", ex));
         } catch (final RuntimeException ex) {
-            logger.log(ERROR, "Unexpected HTTP connection error", ex);
-            writeRuntimeError(socket, ex);
+            logger.log(ERROR, () -> failure("Unexpected HTTP connection failure", ex));
+            writeRuntimeError(socket);
         }
     }
 
@@ -446,7 +447,7 @@ public class WebServer {
                 activeWebSockets.remove(connection);
             }
         } catch (final WebSocketHandshakeException ex) {
-            responseWriter.write(socket.getOutputStream(), HttpResponses.text(ex.status(), ex.getMessage()), request.method());
+            responseWriter.write(socket.getOutputStream(), HttpResponses.status(ex.status()), request.method());
         }
     }
 
@@ -481,7 +482,7 @@ public class WebServer {
         } catch (final TimeoutException ex) {
             logger.log(DEBUG, () -> "Timed out waiting for WebSocket close handshakes");
         } catch (final ExecutionException ex) {
-            logger.log(DEBUG, "WebSocket close waiter failed", ex);
+            logger.log(DEBUG, () -> failure("WebSocket close waiter failed", ex));
         } catch (final InterruptedException ex) {
             Thread.currentThread().interrupt();
         }
@@ -514,19 +515,19 @@ public class WebServer {
 
     private void writeProtocolError(final Socket socket, final HttpProtocolException ex) {
         try {
-            responseWriter.write(socket.getOutputStream(), HttpResponses.text(ex.status(), ex.getMessage()), null);
+            responseWriter.write(socket.getOutputStream(), HttpResponses.status(ex.status()), null);
         } catch (final IOException ioEx) {
-            logger.log(DEBUG, "Failed to write HTTP protocol error", ioEx);
+            logger.log(DEBUG, () -> failure("HTTP protocol error response write failed", ioEx));
         }
     }
 
-    private void writeRuntimeError(final Socket socket, final RuntimeException ex) {
+    private void writeRuntimeError(final Socket socket) {
         try {
             responseWriter.write(socket.getOutputStream(),
-                                 HttpResponses.text(500, "500 Internal server error\nException: " + ex.getMessage()),
+                                 HttpResponses.status(500),
                                  null);
         } catch (final IOException ioEx) {
-            logger.log(DEBUG, "Failed to write HTTP runtime error", ioEx);
+            logger.log(DEBUG, () -> failure("HTTP runtime error response write failed", ioEx));
         }
     }
 

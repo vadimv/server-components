@@ -10,6 +10,7 @@ import java.util.Optional;
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 import static java.lang.System.Logger.Level.WARNING;
+import static rsp.util.SafeDiagnostics.failure;
 
 final class RspWebSocketEndpoint implements WebSocketEndpoint {
     private static final String ENDPOINT_PREFIX = "/bridge/web-socket";
@@ -35,8 +36,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
 
     @Override
     public WebSocketListener open(final HttpRequest request, final WebSocketSession session) {
-        return new RspWebSocketListener(request,
-                                        session,
+        return new RspWebSocketListener(session,
                                         sessionId(request).orElseThrow(),
                                         liveSessions);
     }
@@ -53,7 +53,6 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
     private static final class RspWebSocketListener implements WebSocketListener {
         private static final System.Logger logger = System.getLogger(RspWebSocketListener.class.getName());
 
-        private final HttpRequest handshakeRequest;
         private final WebSocketSession socket;
         private final QualifiedSessionId sessionId;
         private final LocalSessionRegistry liveSessions;
@@ -62,11 +61,9 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
         private ResumablePageSession pageSession;
         private ResumablePageSession.AttachmentHandle attachmentHandle;
 
-        private RspWebSocketListener(final HttpRequest handshakeRequest,
-                                     final WebSocketSession socket,
+        private RspWebSocketListener(final WebSocketSession socket,
                                      final QualifiedSessionId sessionId,
                                      final LocalSessionRegistry liveSessions) {
-            this.handshakeRequest = Objects.requireNonNull(handshakeRequest);
             this.socket = Objects.requireNonNull(socket);
             this.sessionId = Objects.requireNonNull(sessionId);
             this.liveSessions = Objects.requireNonNull(liveSessions);
@@ -86,7 +83,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
                     try {
                         socket.close(code, reason);
                     } catch (final IOException ex) {
-                        logger.log(DEBUG, "Failed to close WebSocket for " + sessionId, ex);
+                        logger.log(DEBUG, () -> failure("WebSocket close failed", ex));
                         socket.closeSocket();
                     }
                 }
@@ -102,14 +99,14 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
         public void onOpen() {
             pageSession = liveSessions.findOrCreate(sessionId).orElse(null);
             if (pageSession == null) {
-                logger.log(WARNING, () -> "Local page session not found, reload remote on: " + handshakeRequest.url);
+                logger.log(WARNING, () -> "Local page session not found; client reload required");
                 sendControl(RspTransportProtocol.resumeRejected("session-not-found"));
             }
         }
 
         @Override
         public void onText(final String message) throws WebSocketProtocolException {
-            logger.log(TRACE, () -> sessionId + " -> " + message);
+            logger.log(TRACE, () -> "RSP message received [chars=" + message.length() + "]");
             if (pageSession == null) {
                 return;
             }
@@ -189,7 +186,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
             try {
                 socket.close(WebSocketFrame.CLOSE_PROTOCOL_ERROR, reason);
             } catch (final IOException ex) {
-                logger.log(DEBUG, "Failed to reject WebSocket resume for " + sessionId, ex);
+                logger.log(DEBUG, () -> failure("WebSocket resume rejection failed", ex));
                 socket.closeSocket();
             }
         }
@@ -198,7 +195,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
             try {
                 sendText(message);
             } catch (final IOException ex) {
-                logger.log(DEBUG, "Failed to send RSP transport control for " + sessionId, ex);
+                logger.log(DEBUG, () -> failure("RSP transport control send failed", ex));
                 socket.closeSocket();
             }
         }
@@ -207,7 +204,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
             if (!socket.isOpen()) {
                 throw new IOException("WebSocket is closed");
             }
-            logger.log(TRACE, () -> sessionId + " <- " + text);
+            logger.log(TRACE, () -> "RSP message sent [chars=" + text.length() + "]");
             socket.sendText(text);
         }
 

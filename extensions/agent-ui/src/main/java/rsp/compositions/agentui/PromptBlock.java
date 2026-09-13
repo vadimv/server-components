@@ -120,19 +120,15 @@ public class PromptBlock extends Block<PromptView.PromptViewState, PromptView.Pr
         serviceUnsubscribe = promptService.subscribe(scopeKey, message -> {
             Message msg = new Message(message.id(), message.text(), message.fromUser());
             logger.log(System.Logger.Level.DEBUG,
-                () -> String.format("PromptBlock@%x bridge: PromptService -> lookup@%x [%s id=%d fromUser=%s text='%s' scope=%s]",
-                                    System.identityHashCode(this), System.identityHashCode(lookup()),
-                                    message.update() ? "UPDATE" : "NEW",
-                                    msg.id(), msg.fromUser(), abbreviate(msg.text()), scopeKey));
+                () -> String.format("Prompt message bridged [update=%s, messageId=%d, fromUser=%s]",
+                                    message.update(), msg.id(), msg.fromUser()));
             if (message.update()) {
                 stateUpdate.applyStateTransformation(current -> current.withLastSystemMessageUpdated(msg.text()));
             } else {
                 stateUpdate.applyStateTransformation(current -> current.withMessage(msg));
             }
         });
-        logger.log(System.Logger.Level.DEBUG,
-            () -> String.format("PromptBlock@%x created [scope=%s, lookup@%x]",
-                                System.identityHashCode(this), scopeKey, System.identityHashCode(lookup())));
+        logger.log(System.Logger.Level.DEBUG, "Prompt block created");
     }
 
     @Override
@@ -160,8 +156,7 @@ public class PromptBlock extends Block<PromptView.PromptViewState, PromptView.Pr
             serviceUnsubscribe = null;
         }
         logger.log(System.Logger.Level.DEBUG,
-            () -> String.format("PromptBlock@%x destroyed [scope=%s, bridgeUnsubscribed=%s]",
-                                System.identityHashCode(this), scopeKey, hadBridge));
+            () -> String.format("Prompt block destroyed [bridgeUnsubscribed=%s]", hadBridge));
         runtime = null;
         scopeKey = null;
     }
@@ -175,9 +170,4 @@ public class PromptBlock extends Block<PromptView.PromptViewState, PromptView.Pr
         runtime.submit(text);
     }
 
-    private static String abbreviate(String s) {
-        if (s == null) return "null";
-        String oneLine = s.replace('\n', ' ').replace('\r', ' ');
-        return oneLine.length() <= 60 ? oneLine : oneLine.substring(0, 57) + "...";
-    }
 }

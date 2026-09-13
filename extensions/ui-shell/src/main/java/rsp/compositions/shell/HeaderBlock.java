@@ -48,9 +48,9 @@ public class HeaderBlock extends Block<HeaderView.HeaderViewState, HeaderView.Si
                                      StateUpdater<HeaderView.HeaderViewState> stateUpdate) {
         commandsEnqueue = lookup().get(CommandsEnqueue.class);
         currentCategory = normalizeCategory(lookup().get(ContextKeys.PRIMARY_CATEGORY_KEY));
-        logCurrentCategory("mount", "", currentCategory);
-        watch(ContextKeys.PRIMARY_CATEGORY_KEY, (previous, next) ->
-                updateCurrentCategory("watch", previous, next));
+        logCurrentCategory("mount");
+        watch(ContextKeys.PRIMARY_CATEGORY_KEY, (_, next) ->
+                updateCurrentCategory("watch", next));
     }
 
     @Override
@@ -69,12 +69,11 @@ public class HeaderBlock extends Block<HeaderView.HeaderViewState, HeaderView.Si
         commandsEnqueue = null;
     }
 
-    private void updateCurrentCategory(String source, String previous, String next) {
-        String normalizedPrevious = normalizeCategory(previous);
+    private void updateCurrentCategory(String source, String next) {
         String normalizedNext = normalizeCategory(next);
         if (!Objects.equals(currentCategory, normalizedNext)) {
             currentCategory = normalizedNext;
-            logCurrentCategory(source, normalizedPrevious, normalizedNext);
+            logCurrentCategory(source);
         }
     }
 
@@ -82,12 +81,7 @@ public class HeaderBlock extends Block<HeaderView.HeaderViewState, HeaderView.Si
         return category != null ? category : "";
     }
 
-    private static void logCurrentCategory(String source, String previous, String current) {
-        LOGGER.log(System.Logger.Level.DEBUG, () -> "HeaderBlock current category [" + source + "]: "
-                + printable(previous) + " -> " + printable(current));
-    }
-
-    private static String printable(String category) {
-        return category == null || category.isBlank() ? "<empty>" : category;
+    private static void logCurrentCategory(String source) {
+        LOGGER.log(System.Logger.Level.DEBUG, () -> "Header block category changed [source=" + source + "]");
     }
 }

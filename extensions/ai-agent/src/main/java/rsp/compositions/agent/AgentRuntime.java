@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static rsp.util.SafeDiagnostics.failure;
+
 /**
  * Orchestrates LLM calls, authorization, action dispatch and plan execution
  * on behalf of a host block (e.g. {@code PromptBlock}).
@@ -109,8 +111,6 @@ public class AgentRuntime {
     private final Class<? extends Block<?, ?>> approvalBlockClass;
     private final LoopPolicy loopPolicy;
     private final InterruptionPolicy interruptionPolicy;
-    private final String diagnosticLabel;
-
     // Touched from both the event thread (submit, onApprovalDecided) and
     // the loop's virtual thread. Volatile guarantees the cross-thread reads
     // see the latest assignment without locking.
@@ -191,8 +191,6 @@ public class AgentRuntime {
         this.feedback = Objects.requireNonNull(feedback);
         this.approvalBlockClass = Objects.requireNonNull(approvalBlockClass);
         this.loopPolicy = Objects.requireNonNull(loopPolicy);
-        this.diagnosticLabel = diagnosticLabel != null ? diagnosticLabel : "unknown";
-
         // Pre-spawn: deny-by-default gate; the loop's evaluateAndDispatch
         // escalates to the spawner when a denial is encountered without a session.
         this.agentSession = null;
@@ -312,7 +310,7 @@ public class AgentRuntime {
                 reg.unsubscribe();
             } catch (Throwable t) {
                 logger.log(System.Logger.Level.WARNING,
-                        "Failed to unsubscribe user-event monitor", t);
+                        () -> failure("User-event monitor unsubscribe failed", t));
             }
         }
         userEventMonitorRegistrations.clear();
@@ -361,10 +359,9 @@ public class AgentRuntime {
      */
     public void submit(String text) {
         logger.log(System.Logger.Level.DEBUG,
-            () -> String.format("AgentRuntime@%x submit text='%s' [queuedResult=%s, pendingConfirm=%s, running=%s, label=%s]",
-                                System.identityHashCode(this), abbreviate(text),
-                                queuedResult != null, pendingConfirm != null,
-                                running.get(), diagnosticLabel));
+            () -> String.format("Agent prompt submitted [textChars=%d, queuedResult=%s, pendingConfirm=%s, running=%s]",
+                                text == null ? 0 : text.length(), queuedResult != null,
+                                pendingConfirm != null, running.get()));
 
         if (queuedResult != null) {
             feedback.send("Still awaiting your approval for the previous request...");
@@ -420,23 +417,18 @@ public class AgentRuntime {
         final long startTime = System.currentTimeMillis();
 
         Thread.startVirtualThread(() -> {
-            logger.log(System.Logger.Level.DEBUG,
-                () -> String.format("AgentRuntime@%x loop START [label=%s]",
-                                    System.identityHashCode(this), diagnosticLabel));
+            logger.log(System.Logger.Level.DEBUG, "Agent loop started");
             try {
                 runLoop(text, initialBlock, token, startTime);
             } catch (Throwable t) {
-                logger.log(System.Logger.Level.ERROR, "Loop crashed", t);
-                feedback.send("Internal error: " + t.getClass().getSimpleName()
-                                + (t.getMessage() != null ? " - " + t.getMessage() : ""));
+                logger.log(System.Logger.Level.ERROR, () -> failure("Agent loop crashed", t));
+                feedback.send("Internal error.");
             } finally {
                 running.set(false);
                 if (this.currentToken == token) {
                     this.currentToken = null;
                 }
-                logger.log(System.Logger.Level.DEBUG,
-                    () -> String.format("AgentRuntime@%x loop END [label=%s]",
-                                        System.identityHashCode(this), diagnosticLabel));
+                logger.log(System.Logger.Level.DEBUG, "Agent loop ended");
             }
         });
     }
@@ -533,8 +525,8 @@ public class AgentRuntime {
             try {
                 runLoop(userText, capturedBlock, token, startTime, queued);
             } catch (Throwable t) {
-                logger.log(System.Logger.Level.ERROR, "Post-approval loop failed", t);
-                feedback.send("Internal error: " + t.getClass().getSimpleName());
+                logger.log(System.Logger.Level.ERROR, () -> failure("Post-approval agent loop failed", t));
+                feedback.send("Internal error.");
             } finally {
                 running.set(false);
                 if (this.currentToken == token) {
@@ -592,7 +584,7 @@ public class AgentRuntime {
             if (token.isCancelled()) {
                 final int cancelledAt = step;
                 logger.log(System.Logger.Level.DEBUG,
-                    () -> String.format("AgentRuntime@%x loop cancelled at step %d", System.identityHashCode(this), cancelledAt));
+                    () -> String.format("Agent loop cancelled at step %d", cancelledAt));
                 return;
             }
 
@@ -642,9 +634,8 @@ public class AgentRuntime {
                             },
                             token);
                 } catch (Throwable t) {
-                    logger.log(System.Logger.Level.ERROR, "LLM call failed", t);
-                    feedback.send("Internal error: " + t.getClass().getSimpleName()
-                                    + (t.getMessage() != null ? " - " + t.getMessage() : ""));
+                    logger.log(System.Logger.Level.ERROR, () -> failure("LLM call failed", t));
+                    feedback.send("Internal error.");
                     return;
                 }
 
@@ -657,8 +648,7 @@ public class AgentRuntime {
             final int currentStep = step + 1;
             final AgentResult dispatched = result;
             logger.log(System.Logger.Level.DEBUG,
-                () -> String.format("AgentRuntime@%x step %d: %s",
-                                    System.identityHashCode(this), currentStep,
+                () -> String.format("Agent loop step %d: %s", currentStep,
                                     dispatched.getClass().getSimpleName()));
 
             agentDispatchActive = true;
@@ -842,7 +832,8 @@ public class AgentRuntime {
                 try {
                     d.processed().join();
                 } catch (Throwable t) {
-                    feedback.send("Dispatch wait failed: " + t.getClass().getSimpleName());
+                    logger.log(System.Logger.Level.ERROR, () -> failure("Agent dispatch wait failed", t));
+                    feedback.send("Dispatch wait failed.");
                     yield false;
                 }
                 if (awaitSceneChange && !awaitSceneSettled()) {
@@ -1001,9 +992,4 @@ public class AgentRuntime {
                 && scene.routedBlockKey().equals(target.key());
     }
 
-    private static String abbreviate(String s) {
-        if (s == null) return "null";
-        String oneLine = s.replace('\n', ' ').replace('\r', ' ');
-        return oneLine.length() <= 60 ? oneLine : oneLine.substring(0, 57) + "...";
-    }
 }

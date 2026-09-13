@@ -14,6 +14,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import static java.lang.System.Logger.Level.TRACE;
+import static rsp.util.SafeDiagnostics.failure;
 
 /**
  * The implementation of the text-based protocol is based on the protocol of the Korolev project by Aleksey Fomkin.
@@ -89,7 +90,8 @@ public final class RemotePageMessageDecoder implements MessageDecoder {
             }
 
         } catch (final Exception ex) {
-            logger.log(System.Logger.Level.ERROR, "Incoming message parse exception for message: " + message, ex);
+            logger.log(System.Logger.Level.ERROR, () -> failure(
+                    "Incoming message parse failed [messageChars=" + message.length() + "]", ex));
         }
     }
 

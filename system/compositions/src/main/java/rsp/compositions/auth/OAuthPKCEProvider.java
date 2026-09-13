@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Flow;
 
 import static rsp.dsl.Html.html;
+import static rsp.util.SafeDiagnostics.failure;
 
 /**
  * OAuth 2.0 PKCE authentication provider.
@@ -194,7 +195,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
         try {
             codeChallenge = generateCodeChallenge(codeVerifier);
         } catch (NoSuchAlgorithmException e) {
-            logger.log(System.Logger.Level.ERROR, "SHA-256 not available", e);
+            logger.log(System.Logger.Level.ERROR, () -> failure("PKCE code challenge generation failed", e));
             return html().redirect("/");
         }
 
@@ -229,7 +230,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
         PendingAuth pending = pendingAuths.remove(state);
         if (pending == null) {
-            logger.log(System.Logger.Level.WARNING, "No pending auth for state: " + state);
+            logger.log(System.Logger.Level.WARNING, "No pending authentication for callback state");
             return html().redirect("/");
         }
 
@@ -256,12 +257,12 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
             // Create session
             String sessionToken = createSession(username);
-            logger.log(System.Logger.Level.DEBUG, "OAuth session created for user: " + username);
+            logger.log(System.Logger.Level.DEBUG, "OAuth session created");
 
             return html().redirect(pending.originalPath())
                     .addHeader("Set-Cookie", sessionCookie(sessionToken));
         } catch (Exception e) {
-            logger.log(System.Logger.Level.ERROR, "OAuth callback error", e);
+            logger.log(System.Logger.Level.ERROR, () -> failure("OAuth callback failed", e));
             return html().redirect("/");
         }
     }
@@ -376,7 +377,7 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
 
             if (response.statusCode() != 200) {
                 logger.log(System.Logger.Level.ERROR,
-                        "Token endpoint returned " + response.statusCode() + ": " + response.body());
+                        "Token endpoint request failed [status=" + response.statusCode() + "]");
                 return null;
             }
 
@@ -389,7 +390,10 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             logger.log(System.Logger.Level.ERROR, "Unexpected token response format");
             return null;
         } catch (IOException | InterruptedException e) {
-            logger.log(System.Logger.Level.ERROR, "Token exchange HTTP error", e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            logger.log(System.Logger.Level.ERROR, () -> failure("Token exchange request failed", e));
             return null;
         }
     }
@@ -420,7 +424,10 @@ public class OAuthPKCEProvider implements AuthComponent.AuthProvider {
             logger.log(System.Logger.Level.ERROR, "Unexpected userinfo response format");
             return null;
         } catch (IOException | InterruptedException e) {
-            logger.log(System.Logger.Level.ERROR, "UserInfo HTTP error", e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            logger.log(System.Logger.Level.ERROR, () -> failure("UserInfo request failed", e));
             return null;
         }
     }

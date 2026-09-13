@@ -6,7 +6,9 @@ import rsp.component.definitions.Component;
 import rsp.component.definitions.StatelessComponent;
 import rsp.component.definitions.StatelessComponent.Unit;
 import rsp.server.StaticResources;
+import rsp.server.http.AuthorizationException;
 import rsp.server.http.HttpRequest;
+import rsp.server.http.NotFoundException;
 
 import java.net.URI;
 import java.net.Socket;
@@ -37,6 +39,8 @@ import static rsp.dsl.Html.p;
 import static rsp.dsl.Html.title;
 
 class WebServerTests {
+    private static final String DIAGNOSTIC_CANARY = "diagnostic-canary-secret";
+
     private final HttpClient client = HttpClient.newHttpClient();
 
     @TempDir
@@ -143,6 +147,13 @@ class WebServerTests {
         } finally {
             server.stop();
         }
+    }
+
+    @Test
+    void render_failures_do_not_expose_exception_details() throws Exception {
+        assertSanitizedRenderFailure(404, "404 Not Found", new NotFoundException(DIAGNOSTIC_CANARY));
+        assertSanitizedRenderFailure(403, "403 Forbidden", new AuthorizationException(DIAGNOSTIC_CANARY));
+        assertSanitizedRenderFailure(500, "500 Internal Server Error", new RuntimeException(DIAGNOSTIC_CANARY));
     }
 
     @Test
@@ -475,6 +486,21 @@ class WebServerTests {
         return server;
     }
 
+    private void assertSanitizedRenderFailure(final int expectedStatus,
+                                              final String expectedBody,
+                                              final RuntimeException failure) throws Exception {
+        final WebServer server = started(new WebServer(0, _ -> failingPage(failure)));
+        try {
+            final HttpResponse<String> response = client.send(get(server, "/failure"), BodyHandlers.ofString());
+
+            assertEquals(expectedStatus, response.statusCode());
+            assertEquals(expectedBody, response.body());
+            assertFalse(response.body().contains(DIAGNOSTIC_CANARY));
+        } finally {
+            server.stop();
+        }
+    }
+
     private static java.net.http.HttpRequest get(final WebServer server, final String path) {
         return java.net.http.HttpRequest.newBuilder(uri(server, path)).GET().build();
     }
@@ -641,6 +667,12 @@ class WebServerTests {
     private static Component<?, ?> page(final String text) {
         return new StatelessComponent((rsp.component.View<Unit>) _ -> html(head(PLAIN, title("HTTP test")),
                                                                            body(h1(text), p("served"))));
+    }
+
+    private static Component<?, ?> failingPage(final RuntimeException failure) {
+        return new StatelessComponent((rsp.component.View<Unit>) _ -> _ -> {
+            throw failure;
+        });
     }
 
     private record RawServerFrame(int opcode, byte[] payload) {

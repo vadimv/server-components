@@ -72,7 +72,7 @@ public final class LivePageSession implements Consumer<Command> {
     }
 
     private void shutdown() {
-        logger.log(DEBUG, () -> "Live Page shutdown: " + this);
+        logger.log(DEBUG, () -> "Live page shutdown");
         pageRenderContext.shutdown();
         reactor.stop();
     }
@@ -80,14 +80,14 @@ public final class LivePageSession implements Consumer<Command> {
     private void handleExtractPropertyResponse(final int descriptorId, final ExtractPropertyResponse result) {
         Objects.requireNonNull(result);
         if (result instanceof ExtractPropertyResponse.NotFound) {
-            logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " failed");
+            logger.log(DEBUG, () -> "Property extraction failed [descriptor=" + descriptorId + "]");
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
             if (cf != null) {
                 cf.completeExceptionally(new RuntimeException("Extract property: " + descriptorId + " not found"));
                 registeredEventHandlers.remove(descriptorId);
             }
         } else if (result instanceof ExtractPropertyResponse.Value(JsonDataType value)) {
-            logger.log(DEBUG, () -> "extractProperty: " + descriptorId + " value: " + value);
+            logger.log(DEBUG, () -> "Property extraction completed [descriptor=" + descriptorId + "]");
             final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
             if (cf != null) {
                 cf.complete(value);
@@ -98,7 +98,7 @@ public final class LivePageSession implements Consumer<Command> {
 
     private void handleEvalJsResponse(final int descriptorId, final JsonDataType value) {
         Objects.requireNonNull(value);
-        logger.log(DEBUG, () -> "evalJsResponse: " + descriptorId + " value: " + value.toString());
+        logger.log(DEBUG, () -> "JavaScript evaluation completed [descriptor=" + descriptorId + "]");
         final CompletableFuture<JsonDataType> cf = registeredEventHandlers.get(descriptorId);
         if (cf != null) {
             cf.complete(value);
@@ -113,7 +113,7 @@ public final class LivePageSession implements Consumer<Command> {
         Objects.requireNonNull(nodeId);
         Objects.requireNonNull(eventType);
         Objects.requireNonNull(eventObject);
-        logger.log(DEBUG, () -> "DOM event " + renderNumber + ", nodeId: " + nodeId + ", type: " + eventType + ", event data: " + eventObject);
+        logger.log(DEBUG, () -> "DOM event received [render=" + renderNumber + "]");
         NodeId currentNodeId = nodeId;
         while (currentNodeId.elementsCount() >= 0) {
             for (final DomEventEntry event: pageRenderContext.recursiveEvents()) {
@@ -172,7 +172,7 @@ public final class LivePageSession implements Consumer<Command> {
 
     private CompletableFuture<JsonDataType> evalJs(final String js) {
         Objects.requireNonNull(js);
-        logger.log(DEBUG, () -> "Called an JS evaluation: " + js);
+        logger.log(DEBUG, () -> "JavaScript evaluation requested [scriptChars=" + js.length() + "]");
         final int newDescriptor = ++descriptorsCounter;
         final CompletableFuture<JsonDataType> resultHandler = new CompletableFuture<>();
         registeredEventHandlers.put(newDescriptor, resultHandler);

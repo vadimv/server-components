@@ -5,6 +5,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.function.Consumer;
 
 import static java.lang.System.Logger;
+import static rsp.util.SafeDiagnostics.failure;
 
 /**
  * A Reactor is responsible for processing a sequential queue of events for a single component session.
@@ -54,7 +55,7 @@ public final class Reactor<T> implements Consumer<T> {
         try {
             eventsQueue.put(s);
         } catch (InterruptedException e) {
-            logger.log(Logger.Level.ERROR, "Event loop queue put InterruptedException", e);
+            logger.log(Logger.Level.ERROR, () -> failure("Event loop queue put interrupted", e));
             Thread.currentThread().interrupt();
         }
     }
@@ -82,7 +83,7 @@ public final class Reactor<T> implements Consumer<T> {
             // call to take() is interrupted by the EventLoop's stop() method.
             Thread.currentThread().interrupt();
         } catch (final Throwable e) {
-            logger.log(Logger.Level.ERROR, "Event loop error", e);
+            logger.log(Logger.Level.ERROR, () -> failure("Event loop failed", e));
         }
     }
 }

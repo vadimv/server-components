@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
 import static java.lang.System.Logger.Level.DEBUG;
+import static rsp.util.SafeDiagnostics.failure;
 
 final class WebSocketConnection {
     static final int MAX_INBOUND_MESSAGE_BYTES = 256 * 1024;
@@ -47,7 +48,8 @@ final class WebSocketConnection {
             logger.log(DEBUG, () -> "WebSocket closed");
         } catch (final WebSocketProtocolException ex) {
             closeCode = ex.closeCode();
-            closeReason = ex.getMessage();
+            closeReason = "";
+            logger.log(DEBUG, () -> "WebSocket protocol rejected [closeCode=" + closeCode + "]");
             session.close(closeCode, closeReason);
         } catch (final IOException | RuntimeException ex) {
             listener.onError(ex);
@@ -71,7 +73,7 @@ final class WebSocketConnection {
         try {
             session.close(code, reason);
         } catch (final IOException ex) {
-            logger.log(DEBUG, "Failed to send WebSocket close frame", ex);
+            logger.log(DEBUG, () -> failure("WebSocket close frame send failed", ex));
             forceClose();
         }
     }

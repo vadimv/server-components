@@ -60,10 +60,34 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class AgentRuntimeTests {
 
     private static final long ASYNC_TIMEOUT_SECONDS = 5;
+    private static final String DIAGNOSTIC_CANARY = "diagnostic-canary-secret";
 
     // ------------------------------------------------------------------
     // Lazy spawn semantics
     // ------------------------------------------------------------------
+
+    @Test
+    void llm_failure_does_not_expose_exception_details_to_feedback() throws InterruptedException {
+        AgentService service = new AgentService() {
+            @Override
+            public AgentResult handlePrompt(String prompt,
+                                            BlockProfile profile,
+                                            rsp.compositions.composition.StructureNode structureTree,
+                                            Consumer<String> onPartialContent,
+                                            AbortToken abortToken) {
+                throw new RuntimeException(DIAGNOSTIC_CANARY);
+            }
+        };
+        RecordingFeedback feedback = new RecordingFeedback("Internal error."::equals);
+        AgentRuntime runtime = newRuntime(service, new ActionDispatcher(),
+                new FailingSpawner(), allowAuthorization(), feedback, new TestLookup());
+
+        runtime.submit("private prompt " + DIAGNOSTIC_CANARY);
+
+        assertTrue(feedback.await(ASYNC_TIMEOUT_SECONDS));
+        assertEquals("Internal error.", feedback.messages.getLast());
+        assertFalse(feedback.messages.stream().anyMatch(message -> message.contains(DIAGNOSTIC_CANARY)));
+    }
 
     /** Invariant 1a: pre-session, an Allow decision executes without spawning. */
     @Test

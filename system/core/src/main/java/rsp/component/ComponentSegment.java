@@ -16,6 +16,7 @@ import java.util.function.*;
 
 import static java.lang.System.Logger.Level.*;
 import static rsp.page.PageBuilder.WINDOW_DOM_PATH;
+import static rsp.util.SafeDiagnostics.failure;
 
 /**
  * Represents a stateful component which is a part of a UI components tree.
@@ -122,7 +123,10 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
     private S state;
 
     private static final ThreadLocal<ComponentSegment<?>> CALLBACK_OWNER = new ThreadLocal<>();
-    private static final Set<String> AMBIGUOUS_RECONCILIATION_WARNINGS = ConcurrentHashMap.newKeySet();
+    private static final Set<ComponentTypePair> AMBIGUOUS_RECONCILIATION_WARNINGS = ConcurrentHashMap.newKeySet();
+
+    private record ComponentTypePair(Object parentType, Object childType) {
+    }
 
     private record PendingDomEventEntry(String eventName,
                                         TreePositionPath elementPath,
@@ -191,7 +195,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
         this.metrics = Metrics.from(componentContext);
 
         this.metrics.incrementCounter(MetricNames.SEGMENT_CREATED);
-        logger.log(TRACE, () -> "New component is created: " + this);
+        logger.log(TRACE, () -> "Component segment created");
     }
 
     /**
@@ -404,7 +408,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
                     callbacks.onMounted(this, componentId, state, commandsEnqueue, this.new EnqueueTaskStateUpdater()));
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
-            logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
+            logger.log(DEBUG, () -> failure("Component rendering failed", renderEx));
         }
     }
 
@@ -421,7 +425,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
                     callbacks.onAfterRendered(state, subscriber, commandsEnqueue, this.new EnqueueTaskStateUpdater()));
         } catch (Throwable renderEx) {
             renderContext.addException(renderEx);
-            logger.log(DEBUG, () -> "Component " + this + " rendering exception", renderEx);
+            logger.log(DEBUG, () -> failure("Reused component rendering failed", renderEx));
         } finally {
             finishChildReconciliation();
         }
@@ -585,12 +589,11 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
             if (entry.getValue() <= 1) {
                 continue;
             }
-            final String warningKey = componentId.componentType() + "|" + entry.getKey();
+            final ComponentTypePair warningKey = new ComponentTypePair(componentId.componentType(), entry.getKey());
             if (AMBIGUOUS_RECONCILIATION_WARNINGS.add(warningKey)) {
                 logger.log(WARNING, () ->
-                        "Ambiguous component reconciliation under " + componentId
-                                + ": " + entry.getValue()
-                                + " reusable unkeyed children of type " + entry.getKey()
+                        "Ambiguous component reconciliation: " + entry.getValue()
+                                + " reusable unkeyed children of the same type"
                                 + ". Reuse is positional; state may attach to the wrong item after "
                                 + "insert/remove/reorder. Use explicit keys when available or override "
                                 + "isReusable() to false.");
@@ -621,7 +624,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
 
     private void dispatchQueuedIntent(final Object intent) {
         if (isUnmounted) {
-            logger.log(WARNING, () -> "Ignored intent on unmounted component: " + componentId);
+            logger.log(WARNING, () -> "Ignored intent on unmounted component");
             metrics.incrementCounter(MetricNames.SEGMENT_UPDATE_DROPPED_UNMOUNTED);
             return;
         }
@@ -655,7 +658,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
     @Override
     public void applyStateTransformationIfPresent(final Function<S, Optional<S>> stateTransformer) {
         if (isUnmounted) {
-            logger.log(WARNING, () -> "Ignored state update on unmounted component: " + componentId);
+            logger.log(WARNING, () -> "Ignored state update on unmounted component");
             metrics.incrementCounter(MetricNames.SEGMENT_UPDATE_DROPPED_UNMOUNTED);
             return;
         }
@@ -671,7 +674,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
     @Override
     public void applyStateTransformation(final UnaryOperator<S> newStateFunction) {
         if (isUnmounted) {
-            logger.log(WARNING, () -> "Ignored state update on unmounted component: " + componentId);
+            logger.log(WARNING, () -> "Ignored state update on unmounted component");
             metrics.incrementCounter(MetricNames.SEGMENT_UPDATE_DROPPED_UNMOUNTED);
             return;
         }
@@ -696,7 +699,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
             prepareForRender(true, oldChildren, false);
             withCallbackOwner(this, () -> callbacks.onBeforeRendered(this, state));
 
-            logger.log(TRACE, () -> "Component state updated, previous: " + oldState + " new: " + state + " for " + componentId);
+            logger.log(TRACE, () -> "Component state updated");
 
             final TreeBuilder renderContext = treeBuilderFactory.createTreeBuilder(startNodeDomPath);
             renderContext.setComponentContext(descendantContextResolver().apply(componentContext(), state));

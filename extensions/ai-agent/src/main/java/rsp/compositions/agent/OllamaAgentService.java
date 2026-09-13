@@ -19,6 +19,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import static rsp.util.SafeDiagnostics.failure;
+
 /**
  * Local LLM-backed agent service using the Ollama Chat API with tool calling.
  *
@@ -88,9 +90,11 @@ public final class OllamaAgentService extends AgentService {
                 return parsed.get();
             }
         } catch (Exception e) {
-            LOGGER.log(System.Logger.Level.WARNING,
-                "Ollama intent parse failed.", e);
-            return new AgentResult.TextReply("LLM request failed: " + e.getClass().getSimpleName());
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            LOGGER.log(System.Logger.Level.WARNING, () -> failure("Ollama request failed", e));
+            return new AgentResult.TextReply("LLM request failed.");
         }
         return new AgentResult.TextReply("LLM response could not be parsed as an intent.");
     }
@@ -192,7 +196,8 @@ public final class OllamaAgentService extends AgentService {
         String toolName = toolNameHolder[0];
         JsonDataType.Object toolArguments = toolArgsHolder[0];
         LOGGER.log(System.Logger.Level.DEBUG,
-            () -> "Ollama [" + prompt + "] -> tool=" + toolNameHolder[0] + " args=" + toolArgsHolder[0]);
+            () -> "Ollama response processed [toolCall=" + (toolNameHolder[0] != null)
+                    + ", textChars=" + textContent.length() + "]");
 
         // If we got a tool call, convert to AgentResult
         if (toolName != null && !toolName.isEmpty() && toolArguments != null) {

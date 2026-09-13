@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -11,6 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class WebSocketConnectionTests {
+    private static final String DIAGNOSTIC_CANARY = "diagnostic-canary-secret";
+
     @Test
     void generic_connection_delivers_binary_messages_to_listener() throws Exception {
         final CompletableFuture<byte[]> binary = new CompletableFuture<>();
@@ -46,6 +49,48 @@ class WebSocketConnectionTests {
 
             assertArrayEquals(new byte[] {1, 2, 3}, binary.get(2, TimeUnit.SECONDS));
             assertEquals(WebSocketFrame.CLOSE_NORMAL, closeCode.get(2, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    void protocol_failure_does_not_expose_exception_message_as_close_reason() throws Exception {
+        final CompletableFuture<String> listenerCloseReason = new CompletableFuture<>();
+
+        try (ServerSocket serverSocket = new ServerSocket(0);
+             Socket clientSocket = new Socket("localhost", serverSocket.getLocalPort());
+             Socket serverSideSocket = serverSocket.accept()) {
+            Thread.startVirtualThread(() -> {
+                try {
+                    final WebSocketSession session = new WebSocketSession(serverSideSocket);
+                    new WebSocketConnection(serverSideSocket, session, new WebSocketListener() {
+                        @Override
+                        public void onText(final String message) throws WebSocketProtocolException {
+                            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR,
+                                                                 DIAGNOSTIC_CANARY);
+                        }
+
+                        @Override
+                        public void onClose(final int code, final String reason) {
+                            listenerCloseReason.complete(reason);
+                        }
+                    }).run();
+                } catch (final Exception ex) {
+                    listenerCloseReason.completeExceptionally(ex);
+                }
+            });
+
+            clientSocket.getOutputStream().write(maskedClientFrame(
+                    WebSocketFrame.OPCODE_TEXT, DIAGNOSTIC_CANARY.getBytes(StandardCharsets.UTF_8)));
+            clientSocket.getOutputStream().flush();
+
+            final int first = clientSocket.getInputStream().read();
+            final int length = clientSocket.getInputStream().read() & 0x7F;
+            final byte[] closePayload = clientSocket.getInputStream().readNBytes(length);
+            assertEquals(WebSocketFrame.OPCODE_CLOSE, first & 0x0F);
+            assertEquals(WebSocketFrame.CLOSE_PROTOCOL_ERROR,
+                    ((closePayload[0] & 0xFF) << 8) | (closePayload[1] & 0xFF));
+            assertEquals(2, closePayload.length, "close frame must not contain a reason");
+            assertEquals("", listenerCloseReason.get(2, TimeUnit.SECONDS));
         }
     }
 

@@ -66,7 +66,7 @@ public final class HttpHandler {
         } else {
             return new HttpResponse(500,
                                     Collections.emptyList(),
-                                    "JS client bundle resource not found in classpath");
+                                    "500 Internal Server Error");
         }
     }
 
@@ -103,11 +103,11 @@ public final class HttpHandler {
                 if (firstException instanceof NotFoundException) {
                     return CompletableFuture.completedFuture(new HttpResponse(404,
                         Collections.emptyList(),
-                        "404 Not Found\n" + firstException.getMessage()));
+                        "404 Not Found"));
                 } else if (firstException instanceof AuthorizationException) {
                     return CompletableFuture.completedFuture(new HttpResponse(403,
                         Collections.emptyList(),
-                        "403 Forbidden\n" + firstException.getMessage()));
+                        "403 Forbidden"));
                 }
                 throw new RuntimeException(firstException);
             }
@@ -116,7 +116,8 @@ public final class HttpHandler {
             renderedPages.put(pageId, pageSnapshot);
             final String responseBody = pageBuilder.html();
 
-            logger.log(TRACE, () -> "Page body: " + responseBody);
+            logger.log(TRACE, () -> "Page rendered [status=" + pageBuilder.statusCode()
+                    + ", bodyChars=" + responseBody.length() + "]");
 
             return CompletableFuture.completedFuture(new HttpResponse(pageBuilder.statusCode(),
                                                                       renderedHeaders(pageBuilder.headers(), deviceId),
