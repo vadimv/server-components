@@ -42,7 +42,7 @@ public final class MetricsRuntime implements AutoCloseable {
         } catch (final InstanceAlreadyExistsException
                        | MBeanRegistrationException
                        | NotCompliantMBeanException ex) {
-            throw new IllegalStateException("Could not register framework metrics MBean", ex);
+            throw new IllegalStateException("Could not register metrics MBean", ex);
         }
     }
 
@@ -90,7 +90,7 @@ public final class MetricsRuntime implements AutoCloseable {
         } catch (final javax.management.InstanceNotFoundException ignored) {
             // Already unregistered by the owning application.
         } catch (final MBeanRegistrationException ex) {
-            throw new IllegalStateException("Could not unregister framework metrics MBean", ex);
+            throw new IllegalStateException("Could not unregister metrics MBean", ex);
         }
     }
 }

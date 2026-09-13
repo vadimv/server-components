@@ -2,6 +2,7 @@ package rsp.metrics;
 
 import org.junit.jupiter.api.Test;
 import rsp.component.ComponentContext;
+import rsp.component.TestLookup;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,6 +19,19 @@ class MetricsResolutionTests {
         final RecordingMetrics rec = new RecordingMetrics();
         final ComponentContext ctx = new ComponentContext().with(Metrics.class, rec);
         assertSame(rec, Metrics.from(ctx));
+    }
+
+    @Test
+    void from_empty_lookup_returns_noop() {
+        assertSame(Metrics.noop(), Metrics.from(new TestLookup()));
+    }
+
+    @Test
+    void from_lookup_with_recording_returns_it() {
+        final RecordingMetrics rec = new RecordingMetrics();
+        final TestLookup lookup = new TestLookup().withData(Metrics.class, rec);
+
+        assertSame(rec, Metrics.from(lookup));
     }
 
     @Test

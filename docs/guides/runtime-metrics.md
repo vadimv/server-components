@@ -29,6 +29,23 @@ MetricCatalog catalog = MetricNames.frameworkCatalog().with(
 MetricsRuntime runtime = MetricsRuntime.withPlatformJmx(catalog);
 ```
 
+The web server installs that process-wide `Metrics` instance into every root
+component context. Application code can resolve it without making telemetry a
+required dependency of the component:
+
+```java
+Metrics metrics = Metrics.from(componentContext);
+Metrics metrics = Metrics.from(lookup);
+```
+
+Both forms return `Metrics.noop()` when no runtime was configured. Application
+entry points may instead use ordinary constructor injection when they already
+own the runtime. The `Counter` example does this and declares a monotonic
+`app.counter.increments` metric. Every page has independent UI state, while all
+accepted increment intents update the same process-wide counter. Instrument the
+intent or operation boundary rather than rendering callbacks, which can execute
+more than once for a single application operation.
+
 Values and descriptions should remain aggregate and must not encode user,
 tenant, request, session, payload, or exception data.
 
@@ -43,9 +60,10 @@ tenant, request, session, payload, or exception data.
 
 2. Start the JDK `jconsole` application and select the local Counter JVM.
 3. Open **MBeans → rsp.metrics → Framework → Attributes**.
-4. Refresh the attributes while loading `http://localhost:8080` and interacting
-   with the counter page. `HttpRequests`, `SegmentCreated`, and the active gauges
-   should change.
+4. Refresh the attributes while loading `http://localhost:8080` in one or more
+   browser sessions and interacting with the counter page. `AppCounterIncrements`
+   should equal the total number of increment actions across those sessions;
+   `HttpRequests`, `SegmentCreated`, and the active gauges should also change.
 5. Stop the application and verify that the local process disappears from
    JConsole.
 

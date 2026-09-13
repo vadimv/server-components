@@ -1,6 +1,8 @@
 package rsp.metrics.runtime;
 
 import org.junit.jupiter.api.Test;
+import rsp.metrics.MetricCatalog;
+import rsp.metrics.MetricDescriptor;
 import rsp.metrics.MetricNames;
 
 import javax.management.Attribute;
@@ -69,6 +71,24 @@ class MetricsRuntimeTests {
             assertEquals(0, info.getNotifications().length);
             assertThrows(AttributeNotFoundException.class,
                          () -> server.getAttribute(name, "SessionId"));
+        }
+    }
+
+    @Test
+    void mirrors_catalogued_application_metrics() throws Exception {
+        final MBeanServer server = MBeanServerFactory.createMBeanServer();
+        final ObjectName name = new ObjectName("test.metrics:type=Application");
+        final MetricDescriptor increments = MetricDescriptor.counter(
+                "app.counter.increments",
+                "1",
+                "Counter increments handled across all page sessions",
+                "AppCounterIncrements");
+        final MetricCatalog catalog = MetricNames.frameworkCatalog().with(increments);
+
+        try (MetricsRuntime runtime = MetricsRuntime.withJmx(catalog, server, name)) {
+            runtime.metrics().incrementCounter(increments.name(), 3);
+
+            assertEquals(3L, server.getAttribute(name, increments.jmxAttribute()));
         }
     }
 

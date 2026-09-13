@@ -28,7 +28,7 @@ final class MetricsDynamicMBean implements DynamicMBean {
                 .map(MetricsDynamicMBean::attributeInfo)
                 .toArray(MBeanAttributeInfo[]::new);
         mBeanInfo = new MBeanInfo(MetricsDynamicMBean.class.getName(),
-                                  "Read-only RSP framework metrics",
+                                  "Read-only RSP framework and application metrics",
                                   attributes,
                                   new MBeanConstructorInfo[0],
                                   new MBeanOperationInfo[0],
