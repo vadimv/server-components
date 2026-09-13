@@ -65,4 +65,21 @@ public final class MetricCatalog {
     public Optional<MetricDescriptor> descriptorForJmxAttribute(final String attribute) {
         return Optional.ofNullable(byJmxAttribute.get(attribute));
     }
+
+    @Override
+    public boolean equals(final Object other) {
+        return this == other
+                || other instanceof MetricCatalog catalog
+                && descriptors.equals(catalog.descriptors);
+    }
+
+    @Override
+    public int hashCode() {
+        return descriptors.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return "MetricCatalog" + descriptors;
+    }
 }

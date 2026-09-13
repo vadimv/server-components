@@ -47,6 +47,18 @@ public final class MetricNames {
     /** Metric updates rejected because the name, type, or counter delta was invalid. */
     public static final String METRIC_UPDATES_REJECTED = "rsp.metrics.updates.rejected";
 
+    /** Lifecycle-bound metric objects created by this process. */
+    public static final String METRIC_OBJECTS_CREATED = "rsp.metric_objects.created";
+
+    /** Lifecycle-bound metric objects currently active in this process. */
+    public static final String METRIC_OBJECTS_ACTIVE = "rsp.metric_objects.active";
+
+    /** Metric-object opens rejected because of schema, capacity, or shutdown. */
+    public static final String METRIC_OBJECTS_REJECTED = "rsp.metric_objects.rejected";
+
+    /** Metric-object adapter callbacks that failed without affecting application work. */
+    public static final String METRIC_OBJECT_ADAPTER_FAILURES = "rsp.metric_objects.adapter.failures";
+
     private static final MetricCatalog FRAMEWORK_CATALOG = MetricCatalog.of(
             MetricDescriptor.counter(SEGMENT_CREATED, "1", "Component segments created", "SegmentCreated"),
             MetricDescriptor.counter(SEGMENT_UNMOUNTED, "1", "Component segments unmounted", "SegmentUnmounted"),
@@ -67,7 +79,23 @@ public final class MetricNames {
             MetricDescriptor.counter(METRIC_UPDATES_REJECTED,
                                      "1",
                                      "Rejected metric updates",
-                                     "MetricUpdatesRejected"));
+                                     "MetricUpdatesRejected"),
+            MetricDescriptor.counter(METRIC_OBJECTS_CREATED,
+                                     "1",
+                                     "Lifecycle-bound metric objects created",
+                                     "MetricObjectsCreated"),
+            MetricDescriptor.gauge(METRIC_OBJECTS_ACTIVE,
+                                   "1",
+                                   "Currently active lifecycle-bound metric objects",
+                                   "MetricObjectsActive"),
+            MetricDescriptor.counter(METRIC_OBJECTS_REJECTED,
+                                     "1",
+                                     "Rejected lifecycle-bound metric-object opens",
+                                     "MetricObjectsRejected"),
+            MetricDescriptor.counter(METRIC_OBJECT_ADAPTER_FAILURES,
+                                     "1",
+                                     "Failed metric-object adapter callbacks",
+                                     "MetricObjectAdapterFailures"));
 
     /** Returns the fixed allow-list of framework runtime metrics. */
     public static MetricCatalog frameworkCatalog() {

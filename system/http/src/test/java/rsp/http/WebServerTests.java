@@ -6,6 +6,7 @@ import rsp.component.definitions.Component;
 import rsp.component.definitions.StatelessComponent;
 import rsp.component.definitions.StatelessComponent.Unit;
 import rsp.metrics.MetricNames;
+import rsp.metrics.MetricObjectTypes;
 import rsp.metrics.MetricRegistry;
 import rsp.server.StaticResources;
 import rsp.server.http.AuthorizationException;
@@ -242,11 +243,23 @@ class WebServerTests {
             assertEquals(1, metrics.value(MetricNames.WEB_SOCKET_CONNECTIONS_ACTIVE));
             assertEquals(1, metrics.value(MetricNames.PAGE_SESSIONS_ACTIVE));
             assertEquals(2, metrics.value(MetricNames.HTTP_REQUESTS));
+            assertEquals(1, metrics.activeMetricObjectCount());
+            final var connectionMetrics = metrics.metricObjectSnapshots().getFirst();
+            assertEquals(MetricObjectTypes.WEB_SOCKET_CONNECTION, connectionMetrics.type());
+            assertTrue(connectionMetrics.metrics()
+                    .value(MetricObjectTypes.WEB_SOCKET_MESSAGES_RECEIVED) >= 1);
+            assertTrue(connectionMetrics.metrics()
+                    .value(MetricObjectTypes.WEB_SOCKET_MESSAGES_SENT) >= 1);
+            assertTrue(connectionMetrics.metrics()
+                    .value(MetricObjectTypes.WEB_SOCKET_BYTES_RECEIVED) > 0);
+            assertTrue(connectionMetrics.metrics()
+                    .value(MetricObjectTypes.WEB_SOCKET_BYTES_SENT) > 0);
 
             webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "").join();
             awaitActiveWebSockets(server, 0);
             assertEquals(0, metrics.value(MetricNames.WEB_SOCKET_CONNECTIONS_ACTIVE));
             assertEquals(1, metrics.value(MetricNames.PAGE_SESSIONS_ACTIVE));
+            assertEquals(0, metrics.activeMetricObjectCount());
 
             server.stop();
             assertEquals(0, metrics.value(MetricNames.PAGE_SESSIONS_ACTIVE));

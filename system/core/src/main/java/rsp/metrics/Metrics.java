@@ -38,6 +38,16 @@ public interface Metrics {
     void setGauge(String name, long value);
 
     /**
+     * Opens one lifecycle-bound metric object. Implementations that do not
+     * support metric objects return a disabled handle.
+     *
+     * @param type a type registered in the runtime's metric-object catalog
+     */
+    default MetricObject openObject(final MetricObjectType type) {
+        return MetricObject.noop(type);
+    }
+
+    /**
      * @return the no-op singleton; safe to call from any thread.
      */
     static Metrics noop() {

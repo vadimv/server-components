@@ -1,5 +1,8 @@
 package rsp.http;
 
+import rsp.metrics.MetricObjectTypes;
+import rsp.metrics.Metrics;
+
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -24,6 +27,7 @@ final class WebSocketConnection {
     private final Socket socket;
     private final WebSocketSession session;
     private final WebSocketListener listener;
+    private final Metrics metrics;
     private final CompletableFuture<Void> closed = new CompletableFuture<>();
 
     private int fragmentedOpcode = -1;
@@ -34,9 +38,17 @@ final class WebSocketConnection {
     WebSocketConnection(final Socket socket,
                         final WebSocketSession session,
                         final WebSocketListener listener) {
+        this(socket, session, listener, Metrics.noop());
+    }
+
+    WebSocketConnection(final Socket socket,
+                        final WebSocketSession session,
+                        final WebSocketListener listener,
+                        final Metrics metrics) {
         this.socket = Objects.requireNonNull(socket);
         this.session = Objects.requireNonNull(session);
         this.listener = Objects.requireNonNull(listener);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     void run() throws IOException {
@@ -160,6 +172,8 @@ final class WebSocketConnection {
 
     private void deliver(final int opcode,
                          final byte[] payload) throws IOException, WebSocketProtocolException {
+        metrics.incrementCounter(MetricObjectTypes.WEB_SOCKET_MESSAGES_RECEIVED);
+        metrics.incrementCounter(MetricObjectTypes.WEB_SOCKET_BYTES_RECEIVED, payload.length);
         if (opcode == WebSocketFrame.OPCODE_TEXT) {
             listener.onText(text(payload));
         } else if (opcode == WebSocketFrame.OPCODE_BINARY) {

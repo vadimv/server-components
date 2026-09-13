@@ -5,6 +5,12 @@ import org.junit.jupiter.api.Test;
 import rsp.dom.TreePositionPath;
 import rsp.dom.XmlNs;
 import rsp.metrics.MetricNames;
+import rsp.metrics.MetricCatalog;
+import rsp.metrics.MetricDescriptor;
+import rsp.metrics.MetricObject;
+import rsp.metrics.MetricObjectCatalog;
+import rsp.metrics.MetricObjectType;
+import rsp.metrics.MetricRegistry;
 import rsp.metrics.Metrics;
 import rsp.metrics.RecordingMetrics;
 import rsp.page.QualifiedSessionId;
@@ -13,6 +19,7 @@ import rsp.page.events.Command;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -25,6 +32,10 @@ import static org.junit.jupiter.api.Assertions.*;
 class ComponentSegmentMetricsTests {
 
     private static final TreePositionPath START_DOM_PATH = TreePositionPath.of("1");
+    private static final MetricDescriptor CURRENT_LENGTH = MetricDescriptor.gauge(
+            "test.component.length", "1", "Current state length", "CurrentLength");
+    private static final MetricObjectType COMPONENT_METRICS = new MetricObjectType(
+            "test.component", "TestComponent", MetricCatalog.of(CURRENT_LENGTH));
 
     private QualifiedSessionId sessionId;
     private ComponentCompositeKey componentId;
@@ -147,7 +158,147 @@ class ComponentSegmentMetricsTests {
         assertTrue(true);
     }
 
-    private static final class NoOpCallbacks implements ComponentCallbacks<String> {
+    @Test
+    void segment_owns_one_metric_object_and_closes_it_on_unmount() {
+        final MetricRegistry registry = new MetricRegistry(
+                MetricNames.frameworkCatalog(), MetricObjectCatalog.of(COMPONENT_METRICS));
+        final ComponentContext registryContext = new ComponentContext().with(Metrics.class, registry);
+        final TreeBuilder treeBuilder = new TreeBuilder(
+                sessionId, START_DOM_PATH, registryContext, commandsEnqueue);
+        final AtomicReference<MetricObject> mountedObject = new AtomicReference<>();
+        final ComponentCallbacks<String> callbacks = new NoOpCallbacks() {
+            @Override
+            public void onMounted(final ComponentSegment<String> segment,
+                                  final ComponentCompositeKey componentId,
+                                  final String state,
+                                  final CommandsEnqueue commandsEnqueue,
+                                  final StateUpdater<String> stateUpdater) {
+                final MetricObject object = segment.metricObject(COMPONENT_METRICS);
+                assertEquals(object, segment.metricObject(COMPONENT_METRICS));
+                object.setGauge(CURRENT_LENGTH.name(), state.length());
+                mountedObject.set(object);
+            }
+
+            @Override
+            public void onUpdated(final ComponentSegment<String> segment,
+                                  final ComponentCompositeKey componentId,
+                                  final String oldState,
+                                  final String newState,
+                                  final StateUpdater<String> stateUpdater) {
+                segment.metricObject(COMPONENT_METRICS)
+                       .setGauge(CURRENT_LENGTH.name(), newState.length());
+            }
+        };
+        final ComponentSegment<String> segment = createSegment(
+                treeBuilder, registryContext, callbacks, state -> state);
+
+        treeBuilder.openComponent(segment);
+        segment.render(treeBuilder);
+        treeBuilder.closeComponent();
+
+        assertEquals(1, registry.activeMetricObjectCount());
+        assertEquals(0, mountedObject.get().instanceNumber());
+        assertEquals("initial".length(), mountedObject.get().value(CURRENT_LENGTH.name()));
+
+        segment.applyStateTransformation(_ -> "updated state");
+
+        assertEquals(1, registry.activeMetricObjectCount());
+        assertEquals("updated state".length(), mountedObject.get().value(CURRENT_LENGTH.name()));
+
+        segment.unmount();
+
+        assertTrue(mountedObject.get().isClosed());
+        assertEquals(0, registry.activeMetricObjectCount());
+        assertEquals(0, registry.value(MetricNames.METRIC_OBJECTS_ACTIVE));
+    }
+
+    @Test
+    void failed_initial_render_closes_objects_opened_by_lifecycle_callbacks() {
+        final MetricRegistry registry = new MetricRegistry(
+                MetricNames.frameworkCatalog(), MetricObjectCatalog.of(COMPONENT_METRICS));
+        final ComponentContext registryContext = new ComponentContext().with(Metrics.class, registry);
+        final TreeBuilder treeBuilder = new TreeBuilder(
+                sessionId, START_DOM_PATH, registryContext, commandsEnqueue);
+        final AtomicReference<MetricObject> openedObject = new AtomicReference<>();
+        final ComponentCallbacks<String> callbacks = new NoOpCallbacks() {
+            @Override
+            public void onBeforeRendered(final ComponentSegment<String> segment, final String state) {
+                openedObject.set(segment.metricObject(COMPONENT_METRICS));
+            }
+        };
+        final ComponentSegment<String> segment = createSegment(
+                treeBuilder,
+                registryContext,
+                callbacks,
+                _ -> {
+                    throw new IllegalStateException("render failed");
+                });
+
+        treeBuilder.openComponent(segment);
+        segment.render(treeBuilder);
+        treeBuilder.closeComponent();
+
+        assertTrue(openedObject.get().isClosed());
+        assertEquals(0, registry.activeMetricObjectCount());
+    }
+
+    @Test
+    void unmount_callback_failure_does_not_leak_segment_metric_objects() {
+        final MetricRegistry registry = new MetricRegistry(
+                MetricNames.frameworkCatalog(), MetricObjectCatalog.of(COMPONENT_METRICS));
+        final ComponentContext registryContext = new ComponentContext().with(Metrics.class, registry);
+        final TreeBuilder treeBuilder = new TreeBuilder(
+                sessionId, START_DOM_PATH, registryContext, commandsEnqueue);
+        final ComponentCallbacks<String> callbacks = new NoOpCallbacks() {
+            @Override
+            public void onMounted(final ComponentSegment<String> segment,
+                                  final ComponentCompositeKey componentId,
+                                  final String state,
+                                  final CommandsEnqueue commandsEnqueue,
+                                  final StateUpdater<String> stateUpdater) {
+                segment.metricObject(COMPONENT_METRICS);
+            }
+
+            @Override
+            public void onUnmounted(final ComponentCompositeKey componentId, final String state) {
+                throw new IllegalStateException("application cleanup failed");
+            }
+        };
+        final ComponentSegment<String> segment = createSegment(
+                treeBuilder, registryContext, callbacks, state -> state);
+        treeBuilder.openComponent(segment);
+        segment.render(treeBuilder);
+        treeBuilder.closeComponent();
+
+        assertThrows(IllegalStateException.class, segment::unmount);
+
+        assertEquals(0, registry.activeMetricObjectCount());
+        assertEquals(1, registry.value(MetricNames.SEGMENT_UNMOUNTED));
+    }
+
+    private ComponentSegment<String> createSegment(
+            final TreeBuilder treeBuilder,
+            final ComponentContext context,
+            final ComponentCallbacks<String> callbacks,
+            final java.util.function.Function<String, String> renderedText) {
+        final ComponentView<String, Object> view = intents -> state -> renderContext -> {
+            final String text = renderedText.apply(state);
+            renderContext.openNode(XmlNs.html, "div", false);
+            renderContext.addTextNode(text);
+            renderContext.closeNode("div", false);
+        };
+        return new ComponentSegment<>(
+                componentId,
+                (key, componentContext) -> "initial",
+                (componentContext, state) -> componentContext,
+                view,
+                callbacks,
+                treeBuilder,
+                context,
+                commandsEnqueue);
+    }
+
+    private static class NoOpCallbacks implements ComponentCallbacks<String> {
         @Override public boolean onBeforeUpdated(String newState, CommandsEnqueue cmd) { return true; }
         @Override public void onAfterRendered(String state, Subscriber sub, CommandsEnqueue cmd, StateUpdater<String> upd) {}
         @Override public void onMounted(ComponentCompositeKey id, String state, StateUpdater<String> upd) {}

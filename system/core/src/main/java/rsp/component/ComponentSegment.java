@@ -4,6 +4,8 @@ import rsp.dom.*;
 import rsp.dom.Segment;
 import rsp.dsl.Definition;
 import rsp.metrics.MetricNames;
+import rsp.metrics.MetricObject;
+import rsp.metrics.MetricObjectType;
 import rsp.metrics.Metrics;
 import rsp.page.EventContext;
 import rsp.page.events.GenericTaskEvent;
@@ -101,6 +103,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
     private final Map<Ref, TreePositionPath> refs = new HashMap<>();
     private final List<ComponentSegment<?>> children = new ArrayList<>();
     private final List<Node> rootNodes = new ArrayList<>();
+    private final Map<MetricObjectType, MetricObject> metricObjects = new LinkedHashMap<>();
     private final Set<ContextScope.Controller> contextMirrors = Collections.newSetFromMap(new IdentityHashMap<>());
 
     /**
@@ -300,6 +303,22 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
     }
 
     /**
+     * Returns this segment's lifecycle-bound metric object of the requested
+     * type, creating it on first access. Call this only from a segment-aware
+     * lifecycle callback. The object is closed automatically on unmount.
+     *
+     * @param type a type allowed by the process metric-object catalog
+     * @return the live object, or a disabled handle when unavailable
+     */
+    public MetricObject metricObject(final MetricObjectType type) {
+        Objects.requireNonNull(type, "type");
+        if (isUnmounted) {
+            return MetricObject.noop(type);
+        }
+        return metricObjects.computeIfAbsent(type, metrics::openObject);
+    }
+
+    /**
      * @return this segment's live context scope.
      * <p>
      * Used by framework-created {@link ContextLookup} instances so components can
@@ -407,6 +426,7 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
             withCallbackOwner(this, () ->
                     callbacks.onMounted(this, componentId, state, commandsEnqueue, this.new EnqueueTaskStateUpdater()));
         } catch (Throwable renderEx) {
+            closeMetricObjects();
             renderContext.addException(renderEx);
             logger.log(DEBUG, () -> failure("Component rendering failed", renderEx));
         }
@@ -752,7 +772,11 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
             }
 
             withCallbackOwner(this, () ->
-                    callbacks.onUpdated(componentId, oldState, state, this.new EnqueueTaskStateUpdater()));
+                    callbacks.onUpdated(this,
+                                        componentId,
+                                        oldState,
+                                        state,
+                                        this.new EnqueueTaskStateUpdater()));
         } catch (RuntimeException | Error failure) {
             restore(snapshot);
             throw failure;
@@ -773,13 +797,28 @@ public final class ComponentSegment<S> implements Segment, StateUpdater<S>, Inte
             return;
         }
         isUnmounted = true;
-        recursiveChildren().forEach(c -> c.unmount());
-        withCallbackOwner(this, () -> callbacks.onUnmounted(componentId, state));
-        componentEventOwners.clear();
-        componentEventEntries.clear();
-        contextScope.clear();
-        contextMirrors.clear();
-        metrics.incrementCounter(MetricNames.SEGMENT_UNMOUNTED);
+        try {
+            recursiveChildren().forEach(ComponentSegment::unmount);
+            withCallbackOwner(this, () -> callbacks.onUnmounted(componentId, state));
+        } finally {
+            closeMetricObjects();
+            componentEventOwners.clear();
+            componentEventEntries.clear();
+            contextScope.clear();
+            contextMirrors.clear();
+            metrics.incrementCounter(MetricNames.SEGMENT_UNMOUNTED);
+        }
+    }
+
+    private void closeMetricObjects() {
+        for (final MetricObject object : metricObjects.values()) {
+            try {
+                object.close();
+            } catch (final RuntimeException ignored) {
+                // Diagnostics cleanup must not break component teardown.
+            }
+        }
+        metricObjects.clear();
     }
 
     private List<Node> rootNodes() {

@@ -106,6 +106,25 @@ public interface ComponentCallbacks<S> {
     void onUpdated(ComponentCompositeKey componentId, S oldState, S newState, StateUpdater<S> stateUpdater);
 
     /**
+     * Called after a successful state update with access to the live segment.
+     * Override this form when updating a segment-owned resource such as a
+     * lifecycle-bound metric object. The default delegates to the simple hook.
+     *
+     * @param segment live mounted segment
+     * @param componentId component's composite key
+     * @param oldState previous state
+     * @param newState current state
+     * @param stateUpdater capability for subsequent state updates
+     */
+    default void onUpdated(ComponentSegment<S> segment,
+                           ComponentCompositeKey componentId,
+                           S oldState,
+                           S newState,
+                           StateUpdater<S> stateUpdater) {
+        onUpdated(componentId, oldState, newState, stateUpdater);
+    }
+
+    /**
      * Called when the component is unmounted from the rendered tree.
      *
      * @param componentId component's composite key

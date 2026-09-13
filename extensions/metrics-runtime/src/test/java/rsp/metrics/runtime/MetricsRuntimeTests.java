@@ -4,6 +4,9 @@ import org.junit.jupiter.api.Test;
 import rsp.metrics.MetricCatalog;
 import rsp.metrics.MetricDescriptor;
 import rsp.metrics.MetricNames;
+import rsp.metrics.MetricObject;
+import rsp.metrics.MetricObjectCatalog;
+import rsp.metrics.MetricObjectType;
 
 import javax.management.Attribute;
 import javax.management.AttributeNotFoundException;
@@ -18,6 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MetricsRuntimeTests {
+    private static final MetricDescriptor CURRENT_VALUE = MetricDescriptor.gauge(
+            "test.counter.value", "1", "Current value", "CurrentValue");
+    private static final MetricObjectType COUNTER_TYPE = new MetricObjectType(
+            "test.counter", "Counter", MetricCatalog.of(CURRENT_VALUE));
+    private static final MetricDescriptor MESSAGES = MetricDescriptor.counter(
+            "test.connection.messages", "1", "Messages", "Messages");
+    private static final MetricObjectType CONNECTION_TYPE = new MetricObjectType(
+            "test.connection", "Connection", MetricCatalog.of(MESSAGES));
+
     @Test
     void default_factory_registers_with_the_platform_mbean_server() throws Exception {
         final MBeanServer server = ManagementFactory.getPlatformMBeanServer();
@@ -90,6 +102,54 @@ class MetricsRuntimeTests {
 
             assertEquals(3L, server.getAttribute(name, increments.jmxAttribute()));
         }
+    }
+
+    @Test
+    void registers_one_read_only_mbean_per_live_metric_object() throws Exception {
+        final MBeanServer server = MBeanServerFactory.createMBeanServer();
+        final ObjectName aggregateName = new ObjectName("test.metrics:type=Framework");
+        final ObjectName firstName = new ObjectName("test.metrics:type=Counter,instance=0");
+        final ObjectName secondName = new ObjectName("test.metrics:type=Counter,instance=1");
+        final ObjectName connectionName = new ObjectName("test.metrics:type=Connection,instance=0");
+
+        try (MetricsRuntime runtime = MetricsRuntime.withJmx(
+                MetricNames.frameworkCatalog(),
+                MetricObjectCatalog.of(COUNTER_TYPE, CONNECTION_TYPE),
+                10,
+                server,
+                aggregateName)) {
+            final MetricObject first = runtime.metrics().openObject(COUNTER_TYPE);
+            final MetricObject connection = runtime.metrics().openObject(CONNECTION_TYPE);
+            final MetricObject second = runtime.metrics().openObject(COUNTER_TYPE);
+            first.setGauge(CURRENT_VALUE.name(), 7);
+            connection.incrementCounter(MESSAGES.name(), 3);
+            second.setGauge(CURRENT_VALUE.name(), 11);
+
+            assertTrue(server.isRegistered(firstName));
+            assertTrue(server.isRegistered(secondName));
+            assertTrue(server.isRegistered(connectionName));
+            assertEquals(7L, server.getAttribute(firstName, CURRENT_VALUE.jmxAttribute()));
+            assertEquals(11L, server.getAttribute(secondName, CURRENT_VALUE.jmxAttribute()));
+            assertEquals(3L, server.getAttribute(connectionName, MESSAGES.jmxAttribute()));
+            assertEquals(1, server.getMBeanInfo(firstName).getAttributes().length);
+            assertFalse(server.getMBeanInfo(firstName).getAttributes()[0].isWritable());
+            assertEquals(0, server.getMBeanInfo(firstName).getOperations().length);
+            assertEquals("Counter", firstName.getKeyProperty("type"));
+            assertEquals("0", firstName.getKeyProperty("instance"));
+            assertEquals(2, firstName.getKeyPropertyList().size());
+            assertThrows(AttributeNotFoundException.class,
+                         () -> server.getAttribute(firstName, "SessionId"));
+
+            first.close();
+
+            assertFalse(server.isRegistered(firstName));
+            assertTrue(server.isRegistered(secondName));
+            assertTrue(server.isRegistered(connectionName));
+        }
+
+        assertFalse(server.isRegistered(aggregateName));
+        assertFalse(server.isRegistered(secondName));
+        assertFalse(server.isRegistered(connectionName));
     }
 
     @Test

@@ -1,6 +1,8 @@
 package rsp.metrics.runtime;
 
 import rsp.metrics.MetricDescriptor;
+import rsp.metrics.MetricCatalog;
+import rsp.metrics.MetricObject;
 import rsp.metrics.MetricRegistry;
 
 import javax.management.Attribute;
@@ -16,19 +18,36 @@ import javax.management.MBeanNotificationInfo;
 import javax.management.MBeanOperationInfo;
 import javax.management.ReflectionException;
 import java.util.Objects;
+import java.util.function.ToLongFunction;
 
 /** Catalog-driven, read-only numeric projection of a metric registry. */
 final class MetricsDynamicMBean implements DynamicMBean {
-    private final MetricRegistry registry;
+    private final MetricCatalog catalog;
+    private final ToLongFunction<String> value;
     private final MBeanInfo mBeanInfo;
 
     MetricsDynamicMBean(final MetricRegistry registry) {
-        this.registry = Objects.requireNonNull(registry);
-        final MBeanAttributeInfo[] attributes = registry.catalog().descriptors().stream()
+        this(Objects.requireNonNull(registry).catalog(),
+             registry::value,
+             "Read-only RSP framework and application metrics");
+    }
+
+    MetricsDynamicMBean(final MetricObject object) {
+        this(Objects.requireNonNull(object).type().metrics(),
+             object::value,
+             "Read-only lifecycle-bound metric object");
+    }
+
+    private MetricsDynamicMBean(final MetricCatalog catalog,
+                                final ToLongFunction<String> value,
+                                final String description) {
+        this.catalog = catalog;
+        this.value = value;
+        final MBeanAttributeInfo[] attributes = catalog.descriptors().stream()
                 .map(MetricsDynamicMBean::attributeInfo)
                 .toArray(MBeanAttributeInfo[]::new);
         mBeanInfo = new MBeanInfo(MetricsDynamicMBean.class.getName(),
-                                  "Read-only RSP framework and application metrics",
+                                  description,
                                   attributes,
                                   new MBeanConstructorInfo[0],
                                   new MBeanOperationInfo[0],
@@ -41,10 +60,10 @@ final class MetricsDynamicMBean implements DynamicMBean {
         if (attribute == null) {
             throw new AttributeNotFoundException("Unknown metric attribute");
         }
-        final MetricDescriptor descriptor = registry.catalog()
+        final MetricDescriptor descriptor = catalog
                 .descriptorForJmxAttribute(attribute)
                 .orElseThrow(() -> new AttributeNotFoundException("Unknown metric attribute"));
-        return registry.value(descriptor.name());
+        return value.applyAsLong(descriptor.name());
     }
 
     @Override

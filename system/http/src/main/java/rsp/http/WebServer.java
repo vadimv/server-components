@@ -2,6 +2,8 @@ package rsp.http;
 
 import rsp.component.definitions.Component;
 import rsp.metrics.MetricNames;
+import rsp.metrics.MetricObject;
+import rsp.metrics.MetricObjectTypes;
 import rsp.metrics.Metrics;
 import rsp.page.DefaultEventLoop;
 import rsp.page.EventLoop;
@@ -521,20 +523,26 @@ public class WebServer {
                     .orElseThrow(() -> new WebSocketHandshakeException(404, "WebSocket endpoint not found"));
             endpoint.validate(request.request());
             webSocketUpgrader.upgrade(socket, request, endpoint.supportedSubprotocols());
-            final WebSocketSession session = new WebSocketSession(socket);
-            final WebSocketConnection connection = new WebSocketConnection(socket,
-                                                                           session,
-                                                                           endpoint.open(request.request(), session));
-            final boolean shouldRun = registerWebSocket(connection);
-            try {
-                if (!shouldRun) {
-                    connection.initiateClose(WebSocketFrame.CLOSE_GOING_AWAY, WEB_SOCKET_SERVER_STOP_REASON);
-                    connection.forceClose();
-                    return;
+            try (MetricObject connectionMetrics = metrics.openObject(
+                    MetricObjectTypes.WEB_SOCKET_CONNECTION)) {
+                final WebSocketSession session = new WebSocketSession(socket, connectionMetrics);
+                final WebSocketConnection connection = new WebSocketConnection(
+                        socket,
+                        session,
+                        endpoint.open(request.request(), session),
+                        connectionMetrics);
+                final boolean shouldRun = registerWebSocket(connection);
+                try {
+                    if (!shouldRun) {
+                        connection.initiateClose(WebSocketFrame.CLOSE_GOING_AWAY, WEB_SOCKET_SERVER_STOP_REASON);
+                        connection.forceClose();
+                        return;
+                    }
+                    connection.run();
+                } finally {
+                    connectionMetrics.close();
+                    deregisterWebSocket(connection);
                 }
-                connection.run();
-            } finally {
-                deregisterWebSocket(connection);
             }
         } catch (final WebSocketHandshakeException ex) {
             metrics.incrementCounter(MetricNames.HTTP_FAILURES);

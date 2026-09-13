@@ -1,5 +1,8 @@
 package rsp.app;
 
+import rsp.component.CommandsEnqueue;
+import rsp.component.ComponentCompositeKey;
+import rsp.component.ComponentSegment;
 import rsp.component.ComponentView;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.StateUpdater;
@@ -8,6 +11,8 @@ import rsp.http.WebServer;
 import rsp.metrics.MetricCatalog;
 import rsp.metrics.MetricDescriptor;
 import rsp.metrics.MetricNames;
+import rsp.metrics.MetricObjectType;
+import rsp.metrics.MetricObjectTypes;
 import rsp.metrics.Metrics;
 import rsp.metrics.runtime.MetricsRuntime;
 
@@ -19,6 +24,15 @@ public final class Counter {
             "1",
             "Counter increments handled across all page sessions",
             "AppCounterIncrements");
+    static final MetricDescriptor CURRENT_VALUE = MetricDescriptor.gauge(
+            "app.counter.value",
+            "1",
+            "Current value of this counter component",
+            "CurrentValue");
+    static final MetricObjectType METRIC_OBJECT_TYPE = new MetricObjectType(
+            "app.counter",
+            "Counter",
+            MetricCatalog.of(CURRENT_VALUE));
 
     enum CounterIntent {
         INCREMENT
@@ -35,7 +49,9 @@ public final class Counter {
                     )
                 );
         final MetricCatalog catalog = MetricNames.frameworkCatalog().with(INCREMENTS);
-        try (MetricsRuntime metricsRuntime = MetricsRuntime.withPlatformJmx(catalog)) {
+        try (MetricsRuntime metricsRuntime = MetricsRuntime.withPlatformJmx(
+                catalog,
+                MetricObjectTypes.frameworkCatalog().with(METRIC_OBJECT_TYPE))) {
             final var server = new WebServer(
                     8080,
                     _ -> new CounterComponent(view, metricsRuntime.metrics()),
@@ -43,6 +59,7 @@ public final class Counter {
             Runtime.getRuntime().addShutdownHook(Thread.ofPlatform().unstarted(server::stop));
             System.out.println("http://localhost:8080");
             System.out.println("JMX: rsp.metrics / Framework (local attach; no JMX port opened)");
+            System.out.println("Each live page counter is under rsp.metrics / Counter");
             server.start();
             server.join();
         }
@@ -76,6 +93,24 @@ public final class Counter {
                 metrics.incrementCounter(INCREMENTS.name());
                 stateUpdater.applyStateTransformation(value -> value + 1);
             }
+        }
+
+        @Override
+        public void onMounted(final ComponentSegment<Integer> segment,
+                              final ComponentCompositeKey componentId,
+                              final Integer state,
+                              final CommandsEnqueue commandsEnqueue,
+                              final StateUpdater<Integer> stateUpdater) {
+            segment.metricObject(METRIC_OBJECT_TYPE).setGauge(CURRENT_VALUE.name(), state);
+        }
+
+        @Override
+        public void onUpdated(final ComponentSegment<Integer> segment,
+                              final ComponentCompositeKey componentId,
+                              final Integer oldState,
+                              final Integer newState,
+                              final StateUpdater<Integer> stateUpdater) {
+            segment.metricObject(METRIC_OBJECT_TYPE).setGauge(CURRENT_VALUE.name(), newState);
         }
     }
 }
