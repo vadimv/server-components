@@ -4,6 +4,7 @@ import rsp.component.CommandsEnqueue;
 import rsp.component.ComponentContext;
 import rsp.component.ContextKey;
 import rsp.component.definitions.Component;
+import rsp.metrics.Metrics;
 import rsp.server.StaticResourceHandler;
 import rsp.server.http.AuthorizationException;
 import rsp.server.http.Header;
@@ -32,16 +33,31 @@ public final class HttpHandler {
     private final Function<HttpRequest, Component<?, ?>> rootComponentDefinition;
     private final Optional<StaticResourceHandler> staticResourceHandler;
     private final int heartBeatIntervalMs;
+    private final Metrics metrics;
 
     public HttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
                        final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
                        final Optional<StaticResourceHandler> staticResourceHandler,
                        final int heartBeatIntervalMs) {
 
+        this(pagesStorage,
+             rootComponentDefinition,
+             staticResourceHandler,
+             heartBeatIntervalMs,
+             Metrics.noop());
+    }
+
+    public HttpHandler(final Map<QualifiedSessionId, RenderedPage> pagesStorage,
+                       final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
+                       final Optional<StaticResourceHandler> staticResourceHandler,
+                       final int heartBeatIntervalMs,
+                       final Metrics metrics) {
+
         this.renderedPages = Objects.requireNonNull(pagesStorage);
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
         this.staticResourceHandler = Objects.requireNonNull(staticResourceHandler);
         this.heartBeatIntervalMs = heartBeatIntervalMs;
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     public CompletableFuture<HttpResponse> handle(final HttpRequest request) {
@@ -86,7 +102,8 @@ public final class HttpHandler {
 
             final ComponentContext componentContext = new ComponentContext()
                 .with(new ContextKey.ClassKey<>(QualifiedSessionId.class), pageId)
-                .with(new ContextKey.ClassKey<>(CommandsEnqueue.class), commandsEnqueue);
+                .with(new ContextKey.ClassKey<>(CommandsEnqueue.class), commandsEnqueue)
+                .with(Metrics.class, metrics);
 
 
             final PageBuilder pageBuilder = new PageBuilder(pageId,

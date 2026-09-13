@@ -27,6 +27,7 @@ are short signposts for people browsing the source tree.
 - [Schema-driven create and edit forms](guides/data-forms.md)
 - [Testing](guides/testing.md)
 - [Mutation testing](guides/mutation-testing.md)
+- [Runtime metrics and local JMX](guides/runtime-metrics.md)
 
 ## Reference
 

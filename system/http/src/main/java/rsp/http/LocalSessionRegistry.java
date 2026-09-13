@@ -1,5 +1,7 @@
 package rsp.http;
 
+import rsp.metrics.MetricNames;
+import rsp.metrics.Metrics;
 import rsp.page.EventLoop;
 import rsp.page.QualifiedSessionId;
 import rsp.page.RenderedPage;
@@ -24,6 +26,7 @@ final class LocalSessionRegistry {
     private final Map<QualifiedSessionId, RenderedPage> renderedPages;
     private final Supplier<EventLoop> eventLoopSupplier;
     private final LocalSessionResumeConfig config;
+    private final Metrics metrics;
     private final Map<QualifiedSessionId, ResumablePageSession> liveSessions = new HashMap<>();
 
     private ScheduledExecutorService expiryExecutor;
@@ -32,9 +35,17 @@ final class LocalSessionRegistry {
     LocalSessionRegistry(final Map<QualifiedSessionId, RenderedPage> renderedPages,
                          final Supplier<EventLoop> eventLoopSupplier,
                          final LocalSessionResumeConfig config) {
+        this(renderedPages, eventLoopSupplier, config, Metrics.noop());
+    }
+
+    LocalSessionRegistry(final Map<QualifiedSessionId, RenderedPage> renderedPages,
+                         final Supplier<EventLoop> eventLoopSupplier,
+                         final LocalSessionResumeConfig config,
+                         final Metrics metrics) {
         this.renderedPages = Objects.requireNonNull(renderedPages);
         this.eventLoopSupplier = Objects.requireNonNull(eventLoopSupplier);
         this.config = Objects.requireNonNull(config);
+        this.metrics = Objects.requireNonNull(metrics);
     }
 
     Optional<ResumablePageSession> findOrCreate(final QualifiedSessionId sessionId) {
@@ -59,6 +70,7 @@ final class LocalSessionRegistry {
                                                                           this::schedule,
                                                                           closed -> remove(sessionId, closed));
             liveSessions.put(sessionId, created);
+            updateSessionGauge();
             return Optional.of(created);
         }
     }
@@ -72,6 +84,7 @@ final class LocalSessionRegistry {
     void start() {
         synchronized (lock) {
             accepting = true;
+            updateSessionGauge();
         }
     }
 
@@ -90,6 +103,9 @@ final class LocalSessionRegistry {
         if (executor != null) {
             executor.shutdownNow();
         }
+        synchronized (lock) {
+            updateSessionGauge();
+        }
     }
 
     private ResumablePageSession.ExpiryTask schedule(final Runnable task, final Duration delay) {
@@ -105,7 +121,14 @@ final class LocalSessionRegistry {
 
     private void remove(final QualifiedSessionId sessionId, final ResumablePageSession session) {
         synchronized (lock) {
-            liveSessions.remove(sessionId, session);
+            if (liveSessions.remove(sessionId, session)) {
+                updateSessionGauge();
+            }
         }
+    }
+
+    /** Must be called while holding {@link #lock}. */
+    private void updateSessionGauge() {
+        metrics.setGauge(MetricNames.PAGE_SESSIONS_ACTIVE, liveSessions.size());
     }
 }

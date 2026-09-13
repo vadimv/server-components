@@ -1,6 +1,8 @@
 package rsp.http;
 
 import rsp.component.definitions.Component;
+import rsp.metrics.MetricNames;
+import rsp.metrics.Metrics;
 import rsp.page.DefaultEventLoop;
 import rsp.page.EventLoop;
 import rsp.page.HttpHandler;
@@ -71,6 +73,7 @@ public class WebServer {
     private final int connectionLimit;
     private final Supplier<EventLoop> eventLoopSupplier;
     private final LocalSessionResumeConfig localSessionResumeConfig;
+    private final Metrics metrics;
     private final LocalSessionRegistry localSessionRegistry;
     private final Optional<StaticResourceHandler> staticResourceHandler;
     private final HttpHandler httpHandler;
@@ -131,6 +134,36 @@ public class WebServer {
                      final int connectionLimit,
                      final Supplier<EventLoop> eventLoopSupplier,
                      final LocalSessionResumeConfig localSessionResumeConfig) {
+        this(port,
+             rootComponentDefinition,
+             staticResources,
+             sslConfiguration,
+             connectionLimit,
+             eventLoopSupplier,
+             localSessionResumeConfig,
+             Metrics.noop());
+    }
+
+    /**
+     * Creates a web server with explicit session bounds and process-wide metrics.
+     *
+     * @param port a web server's listening port
+     * @param rootComponentDefinition a root component's definition
+     * @param staticResources a setup object for an optional static resources handler
+     * @param sslConfiguration a TLS connection configuration or {@link Optional#empty()} for HTTP
+     * @param connectionLimit maximum number of concurrently handled HTTP connections
+     * @param eventLoopSupplier creates event loops for live page sessions
+     * @param localSessionResumeConfig same-process WebSocket resume bounds
+     * @param metrics process-wide metrics sink
+     */
+    public WebServer(final int port,
+                     final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
+                     final Optional<StaticResources> staticResources,
+                     final Optional<SslConfiguration> sslConfiguration,
+                     final int connectionLimit,
+                     final Supplier<EventLoop> eventLoopSupplier,
+                     final LocalSessionResumeConfig localSessionResumeConfig,
+                     final Metrics metrics) {
         this.configuredPort = port;
         this.rootComponentDefinition = Objects.requireNonNull(rootComponentDefinition);
         this.staticResources = Objects.requireNonNull(staticResources);
@@ -138,18 +171,21 @@ public class WebServer {
         this.connectionLimit = requirePositiveConnectionLimit(connectionLimit);
         this.eventLoopSupplier = Objects.requireNonNull(eventLoopSupplier);
         this.localSessionResumeConfig = Objects.requireNonNull(localSessionResumeConfig);
+        this.metrics = Objects.requireNonNull(metrics);
         this.connectionPermits = new Semaphore(this.connectionLimit);
         this.boundPort = port;
         this.localSessionRegistry = new LocalSessionRegistry(pagesStorage,
                                                              this.eventLoopSupplier,
-                                                             this.localSessionResumeConfig);
+                                                             this.localSessionResumeConfig,
+                                                             this.metrics);
         this.rspWebSocketEndpoint = new RspWebSocketEndpoint(localSessionRegistry);
         this.staticResourceHandler = this.staticResources.map(sr -> new StaticResourceHandler(sr.resourcesBaseDir(),
                                                                                               sr.contextPath()));
         this.httpHandler = new HttpHandler(pagesStorage,
                                            this.rootComponentDefinition,
                                            this.staticResourceHandler,
-                                           DEFAULT_HEARTBEAT_INTERVAL_MS);
+                                           DEFAULT_HEARTBEAT_INTERVAL_MS,
+                                           this.metrics);
     }
 
     public WebServer(final int port,
@@ -171,6 +207,28 @@ public class WebServer {
                      final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
                      final StaticResources staticResources) {
         this(port, rootComponentDefinition, Optional.of(staticResources), Optional.empty(), DEFAULT_CONNECTION_LIMIT);
+    }
+
+    /**
+     * Creates a web server with static resources and a process-wide metrics sink.
+     *
+     * @param port a web server's listening port
+     * @param rootComponentDefinition an application's root server component
+     * @param staticResources a setup object for the static resources handler
+     * @param metrics process-wide metrics sink
+     */
+    public WebServer(final int port,
+                     final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
+                     final StaticResources staticResources,
+                     final Metrics metrics) {
+        this(port,
+             rootComponentDefinition,
+             Optional.of(staticResources),
+             Optional.empty(),
+             DEFAULT_CONNECTION_LIMIT,
+             DefaultEventLoop::new,
+             LocalSessionResumeConfig.defaults(),
+             metrics);
     }
 
     /**
@@ -201,6 +259,26 @@ public class WebServer {
     public WebServer(final int port,
                      final Function<HttpRequest, Component<?, ?>> rootComponentDefinition) {
         this(port, rootComponentDefinition, Optional.empty(), Optional.empty(), DEFAULT_CONNECTION_LIMIT);
+    }
+
+    /**
+     * Creates a web server with a process-wide metrics sink.
+     *
+     * @param port a web server's listening port
+     * @param rootComponentDefinition a root component
+     * @param metrics process-wide metrics sink
+     */
+    public WebServer(final int port,
+                     final Function<HttpRequest, Component<?, ?>> rootComponentDefinition,
+                     final Metrics metrics) {
+        this(port,
+             rootComponentDefinition,
+             Optional.empty(),
+             Optional.empty(),
+             DEFAULT_CONNECTION_LIMIT,
+             DefaultEventLoop::new,
+             LocalSessionResumeConfig.defaults(),
+             metrics);
     }
 
     /**
@@ -328,6 +406,10 @@ public class WebServer {
         return localSessionResumeConfig;
     }
 
+    protected Metrics metrics() {
+        return metrics;
+    }
+
     protected Optional<StaticResourceHandler> staticResourceHandler() {
         return staticResourceHandler;
     }
@@ -397,11 +479,13 @@ public class WebServer {
                 return;
             }
             final ParsedHttpRequest request = parsedRequest.get();
+            metrics.incrementCounter(MetricNames.HTTP_REQUESTS);
             if (isWebSocketDispatch(request.request())) {
                 handleWebSocket(socket, request);
                 return;
             }
             if (!isSupportedHttpMethod(request.method())) {
+                metrics.incrementCounter(MetricNames.HTTP_FAILURES);
                 responseWriter.write(socket.getOutputStream(),
                                      HttpResponses.status(405),
                                      request.method());
@@ -414,12 +498,18 @@ public class WebServer {
                 logger.log(ERROR, () -> failure("HTTP rendering failed", ex));
                 return HttpResponses.status(500);
             }).join();
+            if (response.status >= 400) {
+                metrics.incrementCounter(MetricNames.HTTP_FAILURES);
+            }
             responseWriter.write(socket.getOutputStream(), response, request.method());
         } catch (final HttpProtocolException ex) {
+            metrics.incrementCounter(MetricNames.HTTP_FAILURES);
             writeProtocolError(socket, ex);
         } catch (final IOException ex) {
+            metrics.incrementCounter(MetricNames.HTTP_FAILURES);
             logger.log(DEBUG, () -> failure("HTTP connection closed with I/O error", ex));
         } catch (final RuntimeException ex) {
+            metrics.incrementCounter(MetricNames.HTTP_FAILURES);
             logger.log(ERROR, () -> failure("Unexpected HTTP connection failure", ex));
             writeRuntimeError(socket);
         }
@@ -444,9 +534,10 @@ public class WebServer {
                 }
                 connection.run();
             } finally {
-                activeWebSockets.remove(connection);
+                deregisterWebSocket(connection);
             }
         } catch (final WebSocketHandshakeException ex) {
+            metrics.incrementCounter(MetricNames.HTTP_FAILURES);
             responseWriter.write(socket.getOutputStream(), HttpResponses.status(ex.status()), request.method());
         }
     }
@@ -454,8 +545,22 @@ public class WebServer {
     private boolean registerWebSocket(final WebSocketConnection connection) {
         synchronized (lifecycleLock) {
             activeWebSockets.add(connection);
+            updateWebSocketGauge();
             return running;
         }
+    }
+
+    private void deregisterWebSocket(final WebSocketConnection connection) {
+        synchronized (lifecycleLock) {
+            if (activeWebSockets.remove(connection)) {
+                updateWebSocketGauge();
+            }
+        }
+    }
+
+    /** Must be called while holding {@link #lifecycleLock}. */
+    private void updateWebSocketGauge() {
+        metrics.setGauge(MetricNames.WEB_SOCKET_CONNECTIONS_ACTIVE, activeWebSockets.size());
     }
 
     private void initiateWebSocketShutdown(final Set<WebSocketConnection> connections) {

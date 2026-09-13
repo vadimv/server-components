@@ -6,9 +6,9 @@ import rsp.component.ComponentContext;
  * Framework metrics SPI. Single counter / gauge interface, no tags, no histograms.
  * <p>
  * Default {@link NoOpMetrics} is zero-cost — virtual calls to empty methods, JIT-inlined.
- * Tests use {@link RecordingMetrics}. Production embeds plug their own adapter
- * (Micrometer/OpenTelemetry/etc.) by placing a {@code Metrics} instance into
- * the page session's root {@link ComponentContext}.
+ * Tests can use {@link RecordingMetrics}; production applications can use
+ * {@link MetricRegistry} or provide an adapter. A {@code Metrics} instance can
+ * also be placed into a page session's root {@link ComponentContext}.
  * <p>
  * Metric names are part of the public stability contract — see {@link MetricNames}.
  * Names must have bounded cardinality; do not embed session ids, component ids, or
@@ -23,8 +23,8 @@ public interface Metrics {
     void incrementCounter(String name);
 
     /**
-     * Increment a counter by a delta. Negative deltas are permitted but discouraged —
-     * prefer separate increment/decrement counters for clarity.
+     * Increment a counter by a non-negative delta. Implementations may reject
+     * negative updates; prefer separate counters for opposing events.
      */
     void incrementCounter(String name, long delta);
 

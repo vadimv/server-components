@@ -5,6 +5,8 @@ import org.junit.jupiter.api.io.TempDir;
 import rsp.component.definitions.Component;
 import rsp.component.definitions.StatelessComponent;
 import rsp.component.definitions.StatelessComponent.Unit;
+import rsp.metrics.MetricNames;
+import rsp.metrics.MetricRegistry;
 import rsp.server.StaticResources;
 import rsp.server.http.AuthorizationException;
 import rsp.server.http.HttpRequest;
@@ -58,6 +60,42 @@ class WebServerTests {
             assertEquals(200, response.statusCode());
             assertTrue(response.body().contains("Hello from http"));
             assertTrue(response.headers().firstValue("set-cookie").orElse("").contains("deviceId="));
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void records_http_and_component_metrics_in_the_injected_process_registry() throws Exception {
+        final MetricRegistry metrics = new MetricRegistry(MetricNames.frameworkCatalog());
+        final WebServer server = started(new WebServer(0, _ -> page("instrumented"), metrics));
+        try {
+            final HttpResponse<String> response = client.send(get(server, "/instrumented"),
+                                                              BodyHandlers.ofString());
+
+            assertEquals(200, response.statusCode());
+            assertEquals(1, metrics.value(MetricNames.HTTP_REQUESTS));
+            assertEquals(0, metrics.value(MetricNames.HTTP_FAILURES));
+            assertTrue(metrics.value(MetricNames.SEGMENT_CREATED) > 0);
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void records_failed_http_responses_without_exposing_failure_details() throws Exception {
+        final MetricRegistry metrics = new MetricRegistry(MetricNames.frameworkCatalog());
+        final WebServer server = started(new WebServer(0,
+                                                       _ -> failingPage(new RuntimeException(DIAGNOSTIC_CANARY)),
+                                                       metrics));
+        try {
+            final HttpResponse<String> response = client.send(get(server, "/failure"),
+                                                              BodyHandlers.ofString());
+
+            assertEquals(500, response.statusCode());
+            assertFalse(response.body().contains(DIAGNOSTIC_CANARY));
+            assertEquals(1, metrics.value(MetricNames.HTTP_REQUESTS));
+            assertEquals(1, metrics.value(MetricNames.HTTP_FAILURES));
         } finally {
             server.stop();
         }
@@ -181,6 +219,37 @@ class WebServerTests {
             assertEquals("[17,1,[0,0]]", firstText.get(2, TimeUnit.SECONDS));
             assertTrue(server.pagesStorage.isEmpty());
             webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "").join();
+        } finally {
+            server.stop();
+        }
+    }
+
+    @Test
+    void tracks_live_websocket_and_resumable_session_gauges() throws Exception {
+        final MetricRegistry metrics = new MetricRegistry(MetricNames.frameworkCatalog());
+        final WebServer server = started(new WebServer(0, _ -> page("gauges"), metrics));
+        try {
+            client.send(get(server, "/gauges"), BodyHandlers.ofString());
+            final rsp.page.QualifiedSessionId sessionId = server.pagesStorage.keySet().iterator().next();
+            final CompletableFuture<String> firstText = new CompletableFuture<>();
+            final WebSocket webSocket = client.newWebSocketBuilder()
+                    .buildAsync(webSocketUri(server, sessionId),
+                                new TestWebSocketListener(firstText, new CompletableFuture<>()))
+                    .join();
+
+            assertEquals("[17,1,[0,0]]", firstText.get(2, TimeUnit.SECONDS));
+            awaitActiveWebSockets(server, 1);
+            assertEquals(1, metrics.value(MetricNames.WEB_SOCKET_CONNECTIONS_ACTIVE));
+            assertEquals(1, metrics.value(MetricNames.PAGE_SESSIONS_ACTIVE));
+            assertEquals(2, metrics.value(MetricNames.HTTP_REQUESTS));
+
+            webSocket.sendClose(WebSocket.NORMAL_CLOSURE, "").join();
+            awaitActiveWebSockets(server, 0);
+            assertEquals(0, metrics.value(MetricNames.WEB_SOCKET_CONNECTIONS_ACTIVE));
+            assertEquals(1, metrics.value(MetricNames.PAGE_SESSIONS_ACTIVE));
+
+            server.stop();
+            assertEquals(0, metrics.value(MetricNames.PAGE_SESSIONS_ACTIVE));
         } finally {
             server.stop();
         }

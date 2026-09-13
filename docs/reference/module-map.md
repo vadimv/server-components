@@ -22,6 +22,7 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `ai-agent` | Agent runtime, model services, action dispatch, policies, and delegation | `core`, `authorization`, `schema`, `compositions` |
 | `agent-ui` | Prompt and delegation-approval blocks and views | `core`, `compositions`, `authorization`, `ai-agent` |
 | `telemetry` | Typed keys, timestamped samples, quality, subscriptions, registries, and command boundaries | none |
+| `metrics-runtime` | Fixed framework metric registry with a read-only local JMX mirror | `core` |
 | `dashboard` | Immutable dashboard/widget definitions, telemetry DSL, renderer registry, block, and view | `core`, `compositions`, `telemetry` |
 | `ui-shell` | Explorer and header blocks and views | `core`, `compositions` |
 

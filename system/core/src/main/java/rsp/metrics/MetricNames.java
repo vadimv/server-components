@@ -29,4 +29,48 @@ public final class MetricNames {
      * the framework's reconciliation invariant is being violated somewhere.
      */
     public static final String SEGMENT_UPDATE_DROPPED_UNMOUNTED = "rsp.segment.update.dropped_unmounted";
+
+    // ===== HTTP and live-session lifecycle =====
+
+    /** A syntactically valid HTTP request was received, including WebSocket upgrade requests. */
+    public static final String HTTP_REQUESTS = "rsp.http.requests";
+
+    /** A request could not complete normally due to protocol, rendering, handshake, or I/O failure. */
+    public static final String HTTP_FAILURES = "rsp.http.failures";
+
+    /** WebSocket connections currently registered in this process. */
+    public static final String WEB_SOCKET_CONNECTIONS_ACTIVE = "rsp.websocket.connections.active";
+
+    /** Resumable page sessions currently retained by this process. */
+    public static final String PAGE_SESSIONS_ACTIVE = "rsp.page.sessions.active";
+
+    /** Metric updates rejected because the name, type, or counter delta was invalid. */
+    public static final String METRIC_UPDATES_REJECTED = "rsp.metrics.updates.rejected";
+
+    private static final MetricCatalog FRAMEWORK_CATALOG = MetricCatalog.of(
+            MetricDescriptor.counter(SEGMENT_CREATED, "1", "Component segments created", "SegmentCreated"),
+            MetricDescriptor.counter(SEGMENT_UNMOUNTED, "1", "Component segments unmounted", "SegmentUnmounted"),
+            MetricDescriptor.counter(SEGMENT_UPDATE_DROPPED_UNMOUNTED,
+                                     "1",
+                                     "Updates dropped for unmounted component segments",
+                                     "SegmentUpdatesDroppedUnmounted"),
+            MetricDescriptor.counter(HTTP_REQUESTS, "1", "HTTP requests received", "HttpRequests"),
+            MetricDescriptor.counter(HTTP_FAILURES, "1", "HTTP request failures", "HttpFailures"),
+            MetricDescriptor.gauge(WEB_SOCKET_CONNECTIONS_ACTIVE,
+                                   "1",
+                                   "Currently active WebSocket connections",
+                                   "WebSocketConnectionsActive"),
+            MetricDescriptor.gauge(PAGE_SESSIONS_ACTIVE,
+                                   "1",
+                                   "Currently retained resumable page sessions",
+                                   "PageSessionsActive"),
+            MetricDescriptor.counter(METRIC_UPDATES_REJECTED,
+                                     "1",
+                                     "Rejected metric updates",
+                                     "MetricUpdatesRejected"));
+
+    /** Returns the fixed allow-list of framework runtime metrics. */
+    public static MetricCatalog frameworkCatalog() {
+        return FRAMEWORK_CATALOG;
+    }
 }

@@ -34,6 +34,14 @@ The default connection limit is `WebServer.DEFAULT_CONNECTION_LIMIT` (`50`).
 The advanced constructor accepts a positive custom limit and an `EventLoop`
 supplier for deterministic tests.
 
+## Runtime Metrics
+
+Pass one process-wide `Metrics` sink to the metrics-aware constructor to record
+HTTP requests and failures, active WebSockets, retained page sessions, and
+component-segment lifecycle events. Existing constructors use a no-op sink.
+The optional `metrics-runtime` extension supplies the production registry and
+a read-only local JMX mirror; see [runtime metrics and local JMX](../guides/runtime-metrics.md).
+
 ## Local Session Resume
 
 A live page is retained in the server process when its WebSocket disconnects.
