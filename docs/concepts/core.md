@@ -1,6 +1,6 @@
-# Core Module
+# UI Core Module
 
-The `core` module is the server-side UI runtime.
+The `ui-core` module is the server-side UI runtime.
 
 Core provides:
 
@@ -8,16 +8,16 @@ Core provides:
 - stateful server-side UI components,
 - virtual DOM rendering and diffing,
 - live page sessions backed by browser events,
-- browser command APIs such as DOM property reads and JavaScript evaluation,
-- HTTP request/response primitives used by server adapters.
+- browser command APIs such as DOM property reads and JavaScript evaluation.
 
 Core is intentionally not the whole toolkit. The embedded HTTP server,
 application compositions, authorization, schema, AI agent integration, and
 examples live in sibling modules.
 
-The embedded server class `rsp.http.WebServer` is implemented in the `http`
-module. Examples import it because they run complete apps, but the core runtime
-itself is server-adapter neutral.
+The embedded server class `rsp.http.WebServer` and initial-page HTTP adapter are
+implemented in `ui-http`; transport-neutral HTTP values live in `http-api`.
+Examples import them because they run complete apps, but `ui-core` itself is
+HTTP-free and server-adapter neutral.
 
 ## Live Page Model
 
@@ -86,14 +86,15 @@ Read the type from left to right:
 - `View<S>` receives the current immutable state snapshot and returns a DSL `Definition`.
 - Dispatching an intent delegates state changes to the owning component.
 
-To run a page in an embedded server, use the `http` module:
+To run a page in an embedded server, use the `ui-http` module:
 
 ```java
 import rsp.http.WebServer;
+import rsp.http.Pages;
 
-final var server = new WebServer(8080, request ->
+final var server = WebServer.pages(8080, Pages.live(request ->
         new LocalStateComponent<>((_, _) -> new Counter(0), view,
-                (state, intent) -> new Counter(state.value() + 1)));
+                (state, intent) -> new Counter(state.value() + 1))));
 server.start();
 server.join();
 ```
@@ -152,9 +153,9 @@ There is also an `of(CompletableFuture<? extends Definition>)` overload. It
 waits for the future with `join()`, so use it only when blocking the render is
 acceptable or the future is already complete.
 
-## SPA And Plain Page
+## HTML Documents And Page Modes
 
-The `<head>` definition controls whether a page becomes interactive.
+The HTML DSL describes markup only:
 
 ```java
 html(
@@ -163,20 +164,15 @@ html(
 )
 ```
 
-`head(...)` is the same as `head(HeadType.SPA, ...)`. It injects the page config
-script and the JavaScript client bundle needed for the WebSocket connection. If
-you omit `head(...)`, core adds a simple SPA head before the body.
-
-For a detached server-rendered page, use `HeadType.PLAIN`:
+`head(...)` is a normal HTML element. It does not select a transport or inject
+scripts. The `ui-http` adapter explicitly selects live or static rendering:
 
 ```java
-html(
-        head(HeadType.PLAIN, title("Not found")),
-        body(h1("404 page not found"))
-).statusCode(404);
+PageResult live = Pages.live(component);
+PageResult detached = Pages.staticHtml(component);
 ```
 
-Plain heads render regular HTML and do not inject the live-page client scripts.
+Only the live mode injects page configuration and the WebSocket client.
 
 ## Components
 
@@ -422,34 +418,36 @@ stay naturally expressed in Java, and use JavaScript evaluation when its
 coupling, async result handling, and browser-only execution model are the right
 tradeoff.
 
-## HTTP Response Metadata
+## Initial HTTP Response Metadata
 
-`html(...)` returns an `HtmlDocument`, which can carry response metadata:
+`HtmlDocument` contains only markup. At the `ui-http` boundary, a `PageResult`
+can attach initial response metadata without coupling components to HTTP:
 
 ```java
-html(
-        head(HeadType.PLAIN, title("Not found")),
-        body(h1("Not found"))
-).statusCode(404)
- .addHeader("Cache-Control", "no-store");
+Pages.staticHtml(notFoundComponent)
+        .status(HttpStatus.NOT_FOUND)
+        .header("Cache-Control", "no-store");
 ```
 
 For redirects:
 
 ```java
-html().redirect("/login");
+Pages.redirect("/login");
 ```
 
-`core` defines server-neutral request and response types in
-`rsp.server.http`. Server adapters translate those values to their concrete
-HTTP stack.
+The transport-neutral request and response types live in `http-api` under
+`rsp.http`. A `PageApplication` receives `HttpRequest` before rendering and
+returns `PageResult`, which is how initial GUI logic reads request data, adds
+headers, sets cookies, returns a direct response, or redirects. Once the live
+page response has been sent, browser navigation uses component commands such
+as `setHref`; it cannot modify that completed HTTP response.
 
 ## Static Resources
 
-Static resource configuration lives in core and is consumed by the HTTP server:
+Static resource configuration lives in `ui-http`:
 
 ```java
-import rsp.server.StaticResources;
+import rsp.http.StaticResources;
 
 import java.io.File;
 
@@ -465,8 +463,8 @@ new WebServer(8080, app, staticResources);
 
 Use a trailing slash for static resource context paths such as `"/res/"`.
 
-`SslConfiguration` remains in core as a compatibility value, but the current
-`system/http` server does not implement TLS and rejects an SSL configuration at
+`SslConfiguration` currently lives in `ui-http`, but the embedded server does
+not implement TLS and rejects an SSL configuration at
 startup. See the [HTTP server reference](../reference/http-server.md) for the
 implemented protocol and deployment limits.
 

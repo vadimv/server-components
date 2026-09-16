@@ -23,7 +23,7 @@ import java.util.function.BiConsumer;
  * @Test
  * void form_submission_triggers_save() {
  *     TestLookup lookup = new TestLookup()
- *         .withData(Router.class, mockRouter);
+ *         .withData(UserService.class, mockUsers);
  *
  *     AtomicBoolean saved = new AtomicBoolean(false);
  *     lookup.subscribe(FORM_SUBMITTED, (name, data) -> saved.set(true));

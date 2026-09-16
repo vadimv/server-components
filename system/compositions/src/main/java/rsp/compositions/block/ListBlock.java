@@ -534,7 +534,7 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
                 relatedListLinks(), "relatedListLinks"));
         if (specs.isEmpty()) return List.of();
         Composition composition = source.get(ContextKeys.ROUTE_COMPOSITION);
-        if (composition == null || composition.router() == null) {
+        if (composition == null || composition.routes() == null) {
             throw new IllegalStateException("Related-list links require a routed composition");
         }
         Set<String> keys = new LinkedHashSet<>();
@@ -548,10 +548,12 @@ public abstract class ListBlock<T> extends Block<ListViewState, ListIntent> {
                 throw new IllegalStateException("Related-list source field is not present in schema: "
                         + spec.sourceField());
             }
-            String targetPath = composition.router().findRoutePattern(spec.targetBlockKey())
+            String targetPath = composition.routes()
+                    .templateFor(composition.blocks().target(spec.targetBlockKey()))
+                    .map(Object::toString)
                     .orElseThrow(() -> new IllegalStateException(
                             "Related-list target has no route: " + spec.targetBlockKey()));
-            if (targetPath.contains(":")) {
+            if (targetPath.contains("{")) {
                 throw new IllegalStateException("Related-list target must be a collection route: " + targetPath);
             }
             resolved.add(new ListView.RelatedListColumn(spec.key(), spec.label(), spec.sourceField(),

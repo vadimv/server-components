@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>io.github.vadimv</groupId>
-            <artifactId>core</artifactId>
+            <artifactId>ui-core</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
         </dependency>

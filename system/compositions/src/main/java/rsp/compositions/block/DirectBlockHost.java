@@ -41,7 +41,7 @@ public final class DirectBlockHost extends Component<BlockDescriptor, Object> {
         return (_, context) -> {
             ComponentContext blockContext = enrich(context);
             if (!block.isAuthorized(LookupFactory.create(blockContext))) {
-                throw new rsp.server.http.AuthorizationException(
+                throw new rsp.component.ComponentAccessDeniedException(
                         "Access denied: insufficient permissions for " + descriptor.blockClass().getName());
             }
             return descriptor;

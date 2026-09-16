@@ -14,13 +14,13 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Placement;
-import rsp.compositions.routing.Router;
-import rsp.server.Path;
-import rsp.server.http.Fragment;
+import rsp.compositions.routing.BlockRoutes;
+import rsp.url.Path;
+import rsp.url.Fragment;
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -56,7 +56,7 @@ class SceneEventHandlerTests {
     void action_success_restores_the_captured_primary_descriptor() {
         Scene inlineScene = scene(EditBlock.class).withInlineReturnTarget(
                 new Scene.InlineReturnTarget(ListBlock.class, "/posts", Query.EMPTY,
-                        rsp.server.http.Fragment.EMPTY));
+                        rsp.url.Fragment.EMPTY));
         RecordingSubscriber subscriber = new RecordingSubscriber();
         RecordingStateUpdater stateUpdate = new RecordingStateUpdater(inlineScene);
 
@@ -88,9 +88,9 @@ class SceneEventHandlerTests {
         Group group = new Group("Posts")
                 .bind(postsKey, ListBlock.class, ListBlock::new)
                 .bind(archivedKey, ListBlock.class, ListBlock::new);
-        Composition composition = new Composition(new Router()
-                .route("/posts", postsKey)
-                .route("/archive", archivedKey), layout, group);
+        Composition composition = new Composition(BlockRoutes.builder()
+                .route("/posts", postsKey, ListBlock.class)
+                .route("/archive", archivedKey, ListBlock.class), layout, group);
         Scene initial = Scene.of(
                 BlockDescriptor.forBlock(postsKey, ListBlock.class, Map.of()),
                 Map.of(), composition);
@@ -145,9 +145,9 @@ class SceneEventHandlerTests {
                 .bind(ListBlock.class, ListBlock::new)
                 .bind(EditBlock.class, EditBlock::new)
                 .bind(CommentsBlock.class, CommentsBlock::new);
-        Composition composition = new Composition(new Router()
+        Composition composition = new Composition(BlockRoutes.builder()
                 .route("/posts", ListBlock.class)
-                .route("/posts/:id", EditBlock.class)
+                .route("/posts/{id}", EditBlock.class)
                 .route("/comments", CommentsBlock.class), layout, group);
         return Scene.of(BlockDescriptor.forBlock(routed, Map.of()), Map.of(), composition);
     }
@@ -156,7 +156,7 @@ class SceneEventHandlerTests {
         return new ComponentContext()
                 .with(CommandsEnqueue.class, NO_OP_COMMANDS)
                 .with(Subscriber.class, new NoOpSubscriber())
-                .with(ContextKeys.URL_PATH_FULL, rsp.server.Path.of("/posts"))
+                .with(ContextKeys.URL_PATH_FULL, rsp.url.Path.of("/posts"))
                 .with(new ContextKey.StringKey<>("url.query.p", String.class), "2");
     }
 

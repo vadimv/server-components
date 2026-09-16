@@ -4,10 +4,10 @@ import org.junit.jupiter.api.Test;
 import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.compositions.block.Block;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 import rsp.pbt.Gen;
 import rsp.pbt.Property;
-import rsp.server.Path;
+import rsp.url.Path;
 
 import java.lang.reflect.RecordComponent;
 import java.util.Map;
@@ -39,21 +39,21 @@ class CompositionsPropertyTests {
     @Test
     void any_path_with_correct_segment_count_matches_param_route() {
         Property.forAll(Gen.alpha(1, 20)).check(segment -> {
-            final Router router = new Router().route("/a/:b", TestBlock.class);
+            final BlockRoutes.Builder routes = BlockRoutes.builder().route("/a/{b}", TestBlock.class);
             final Path path = Path.of("/a/" + segment);
 
-            assertTrue(router.match(path).isPresent(),
-                    "Path '" + path + "' should match pattern '/a/:b'");
+            assertTrue(routes.build().match(path).isPresent(),
+                    "Path '" + path + "' should match pattern '/a/{b}'");
         });
     }
 
     @Test
     void multi_segment_param_route_matches_any_values() {
         Property.forAll(Gen.alpha(1, 20), Gen.alpha(1, 20)).check((postId, commentId) -> {
-            final Router router = new Router().route("/posts/:postId/comments/:commentId", TestBlock.class);
+            final BlockRoutes.Builder routes = BlockRoutes.builder().route("/posts/{postId}/comments/{commentId}", TestBlock.class);
             final Path path = Path.of("/posts/" + postId + "/comments/" + commentId);
 
-            assertTrue(router.match(path).isPresent(),
+            assertTrue(routes.build().match(path).isPresent(),
                     "Multi-param path should match pattern");
         });
     }
@@ -61,15 +61,15 @@ class CompositionsPropertyTests {
     @Test
     void wrong_segment_count_never_matches() {
         Property.forAll(Gen.alpha(1, 10)).check(extra -> {
-            final Router router = new Router().route("/posts/:id", TestBlock.class);
+            final BlockRoutes.Builder routes = BlockRoutes.builder().route("/posts/{id}", TestBlock.class);
 
             // Too few segments
-            assertFalse(router.match(Path.of("/posts")).isPresent(),
+            assertFalse(routes.build().match(Path.of("/posts")).isPresent(),
                     "Too few segments should not match");
 
             // Too many segments
             final Path tooMany = Path.of("/posts/123/" + extra);
-            assertFalse(router.match(tooMany).isPresent(),
+            assertFalse(routes.build().match(tooMany).isPresent(),
                     "Too many segments should not match");
         });
     }
@@ -79,10 +79,10 @@ class CompositionsPropertyTests {
         Property.forAll(Gen.alpha(1, 20)).check(different -> {
             Property.assume(!different.equals("posts"));
 
-            final Router router = new Router().route("/posts", TestBlock.class);
+            final BlockRoutes.Builder routes = BlockRoutes.builder().route("/posts", TestBlock.class);
 
-            assertTrue(router.match(Path.of("/posts")).isPresent(), "Exact path should match");
-            assertFalse(router.match(Path.of("/" + different)).isPresent(),
+            assertTrue(routes.build().match(Path.of("/posts")).isPresent(), "Exact path should match");
+            assertFalse(routes.build().match(Path.of("/" + different)).isPresent(),
                     "Different path should not match exact route");
         });
     }

@@ -14,7 +14,7 @@ import static rsp.dsl.Html.*;
 
 /** Intent-driven login block for the demo and OAuth sign-in flows. */
 public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequested> {
-    private final SimpleAuthProvider simpleAuthProvider;
+    private final DemoSessionProvider demoSessionProvider;
     private final String oauthSignInPath;
     private CommandsEnqueue commandsEnqueue;
 
@@ -25,13 +25,13 @@ public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequest
     public record State(String redirectPath, boolean showDemoDescription) {
     }
 
-    public LoginBlock(SimpleAuthProvider simpleAuthProvider) {
-        this.simpleAuthProvider = Objects.requireNonNull(simpleAuthProvider);
+    public LoginBlock(DemoSessionProvider demoSessionProvider) {
+        this.demoSessionProvider = Objects.requireNonNull(demoSessionProvider);
         this.oauthSignInPath = null;
     }
 
     public LoginBlock(String oauthSignInPath) {
-        this.simpleAuthProvider = null;
+        this.demoSessionProvider = null;
         this.oauthSignInPath = Objects.requireNonNull(oauthSignInPath);
     }
 
@@ -39,7 +39,7 @@ public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequest
     public ComponentStateSupplier<State> initStateSupplier() {
         return (_, context) -> {
             String redirect = context.get(ContextKeys.URL_QUERY.with("redirect"));
-            return new State(redirect == null ? "/" : redirect, simpleAuthProvider != null);
+            return new State(redirect == null ? "/" : redirect, demoSessionProvider != null);
         };
     }
 
@@ -65,10 +65,10 @@ public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequest
         if (commandsEnqueue == null) {
             return;
         }
-        if (simpleAuthProvider != null) {
-            String token = simpleAuthProvider.createSession();
+        if (demoSessionProvider != null) {
+            String token = demoSessionProvider.createSession();
             commandsEnqueue.offer(new RemoteCommand.EvalJs(0,
-                    "document.cookie = '" + SimpleAuthProvider.SESSION_COOKIE_NAME
+                    "document.cookie = '" + demoSessionProvider.cookieName()
                             + "=" + token + "; path=/; SameSite=Strict'"));
             commandsEnqueue.offer(new RemoteCommand.SetHref(state.redirectPath()));
             return;
@@ -85,5 +85,12 @@ public class LoginBlock extends Block<LoginBlock.State, LoginBlock.SignInRequest
     @Override
     public String title() {
         return "Sign In";
+    }
+
+    /** Minimal adapter implemented by demo authentication integrations. */
+    public interface DemoSessionProvider {
+        String createSession();
+
+        String cookieName();
     }
 }

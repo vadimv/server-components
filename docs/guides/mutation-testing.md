@@ -76,7 +76,7 @@ mvn -q -pl core -am test -Dtest=MutationHarnessManualTest -Dmutate.run=true -Dfa
 ```
 
 A real example lives at
-[`core/.../MutationHarnessManualTest.java`](../../system/core/src/test/java/rsp/dom/MutationHarnessManualTest.java).
+[`ui-core/.../MutationHarnessManualTest.java`](../../system/ui-core/src/test/java/rsp/dom/MutationHarnessManualTest.java).
 
 
 ## API

@@ -4,7 +4,7 @@ import rsp.component.*;
 import rsp.component.definitions.Component;
 import rsp.compositions.layout.LayerLayout;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
-import rsp.server.http.RelativeUrl;
+import rsp.url.RelativeUrl;
 
 import java.util.Objects;
 

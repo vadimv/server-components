@@ -27,7 +27,7 @@ public interface Layout {
      * Declare which blocks this layout needs eagerly instantiated (companions).
      * <p>
      * The framework instantiates these alongside the routed block during scene building.
-     * Blocks not listed here and not matched by the Router are stored as lazy factories.
+     * Blocks not listed here and not matched by the route table are stored as lazy factories.
      *
      * @return set of block classes this layout requires
      */

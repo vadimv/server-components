@@ -13,7 +13,7 @@ import rsp.compositions.schema.DataSchema;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
@@ -33,7 +33,7 @@ class ListBlockTests {
     private static final String DIAGNOSTIC_CANARY = "diagnostic-canary-secret";
 
     private static final Composition TEST_COMPOSITION = new Composition(
-            new Router().route("/related", TestListBlock.class),
+            BlockRoutes.builder().route("/related", TestListBlock.class),
             new DefaultLayout(),
             new Group().bind(TestListBlock.class, TestListBlock::new));
 

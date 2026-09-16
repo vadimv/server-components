@@ -8,9 +8,10 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.Layout;
 import rsp.compositions.layout.PlacementDecision;
-import rsp.compositions.routing.Router;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
+import rsp.url.Fragment;
+import rsp.url.Query;
+import rsp.url.routing.RouteMatch;
+import rsp.url.routing.RouteTemplate;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -30,7 +31,7 @@ import java.util.Set;
  *   <li>Live block instances are created only by DirectBlockHost on mount</li>
  * </ul>
  * <p>
- * When the routed block has a parent route (e.g., "/posts/:id" has parent "/posts"),
+ * When the routed block has a parent route (e.g., "/posts/{id}" has parent "/posts"),
  * it is treated as an overlay-like block: the parent becomes the routed descriptor
  * and this block is pre-activated for LayerComponent auto-open.
  * <p>
@@ -83,7 +84,10 @@ public final class SceneBuilder {
         // Check if this block has a parent route → potentially overlay-like.
         // The layout's placement decision determines whether we auto-open over the parent
         // (modal) or route directly to the child as the primary (inline).
-        Optional<Router.RouteMatch> parentRoute = composition.router().findParentRoute(routePattern);
+        Optional<RouteMatch<BlockTarget>> parentRoute = composition.routes()
+                .parentOf(RouteTemplate.parse(routePattern))
+                // A shorter route to the same target is an alias, not an overlay parent.
+                .filter(parent -> !parent.target().key().equals(target.key()));
 
         Scene scene;
         if (parentRoute.isPresent() && resolvesToModal(target)) {
@@ -97,9 +101,9 @@ public final class SceneBuilder {
             // the form in place and Save/Cancel would appear to do nothing.
             if (parentRoute.isPresent()) {
                 Scene.InlineReturnTarget rt = new Scene.InlineReturnTarget(
-                        parentRoute.get().blockKey(),
-                        blocks.target(parentRoute.get().blockKey()).blockClass(),
-                        parentRoute.get().pattern(),
+                        parentRoute.get().target().key(),
+                        parentRoute.get().target().blockClass(),
+                        parentRoute.get().template().toString(),
                         captureQuery(context),
                         captureFragment(context));
                 scene = scene.withInlineReturnTarget(rt);
@@ -147,7 +151,7 @@ public final class SceneBuilder {
      * Build scene for overlay-like block routed directly via URL.
      * The parent block becomes the routed block; this block is pre-activated for LayerComponent.
      */
-    private Scene buildAutoOpenScene(Router.RouteMatch parentRoute) {
+    private Scene buildAutoOpenScene(RouteMatch<BlockTarget> parentRoute) {
         Group blocks = composition.blocks();
 
         if (!blocks.hasBinding(target.key())) {
@@ -155,7 +159,7 @@ public final class SceneBuilder {
         }
 
         // Select the parent block as the routed descriptor
-        Object parentKey = parentRoute.blockKey();
+        Object parentKey = parentRoute.target().key();
         if (!blocks.hasBinding(parentKey)) {
             throw new IllegalStateException(
                     "Parent block not found in composition: " + parentKey);
@@ -196,12 +200,16 @@ public final class SceneBuilder {
     /**
      * Whether the layout would render this block as a modal layer.
      * <p>
-     * The Scene argument is null because no Scene exists at build time — the
-     * resolver tolerates null and treats this as a "no routed descriptor yet" hint
-     * (the first-in-* policies return INLINE in that case).
+     * A placement-only scene exposes the composition's groups while deliberately
+     * having no routed descriptor. This lets first-in-group policies make their
+     * decision before the real scene exists.
      */
     private boolean resolvesToModal(BlockTarget blockTarget) {
-        PlacementDecision decision = layout.resolvePlacement(blockTarget, null);
+        // Supply the composition/group registry even before a routed descriptor exists.
+        // Group-aware policies need it to distinguish a cross-group primary route from
+        // a same-group overlay; passing null made every direct child route modal.
+        Scene placementContext = Scene.of(null, Map.of(), composition);
+        PlacementDecision decision = layout.resolvePlacement(blockTarget, placementContext);
         return decision.placement().isModal();
     }
 

@@ -12,7 +12,8 @@ import rsp.compositions.schema.FieldType;
 import rsp.compositions.schema.TextAlign;
 import rsp.dsl.Definition;
 import rsp.ref.ElementRef;
-import rsp.server.http.Query;
+import rsp.url.Query;
+import rsp.url.routing.RouteTemplate;
 import rsp.util.json.JsonDataType;
 
 import java.net.URLEncoder;
@@ -358,7 +359,7 @@ public class DefaultListView implements ComponentView<ListView.ListViewState, Li
                                         boolean disabled,
                                         IntentDispatcher<ListView.ListIntent> intents) {
         if (editTarget.hasRoute() && !editTarget.opensAsOverlay()) {
-            String editUrl = editTarget.routePattern().replace(":id", rowId);
+            String editUrl = RouteTemplate.parse(editTarget.routePattern()).expand(java.util.Map.of("id", rowId));
             if (!queryParams.isEmpty()) editUrl += "?" + queryParams;
             return a(disabled ? of() : attr("href", editUrl), attr("class", "edit-button edit-link"),
                     disabled ? attr("aria-disabled", "true") : of(),

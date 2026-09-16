@@ -11,7 +11,7 @@ import rsp.component.Subscriber;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -44,7 +44,7 @@ class SceneContextEnricherTests {
         final Group group = new Group()
                 .bind(LookupReadingBlock.class, LookupReadingBlock::new);
         return new Composition(
-                new Router().route("/lookup", LookupReadingBlock.class),
+                BlockRoutes.builder().route("/lookup", LookupReadingBlock.class),
                 new DefaultLayout(),
                 group);
     }

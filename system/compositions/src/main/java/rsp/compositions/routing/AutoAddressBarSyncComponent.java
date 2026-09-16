@@ -4,9 +4,9 @@ import rsp.component.*;
 import rsp.component.definitions.AddressBarSyncComponent;
 import rsp.component.definitions.ContextStateComponent;
 import rsp.page.events.RemoteCommand;
-import rsp.server.Path;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.url.Path;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
 
 import java.util.*;
 import java.util.function.BiFunction;

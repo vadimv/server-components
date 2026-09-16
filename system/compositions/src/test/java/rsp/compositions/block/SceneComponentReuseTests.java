@@ -14,17 +14,17 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.Placement;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 import rsp.compositions.routing.UrlSyncComponent;
 import rsp.dom.TreePositionPath;
 import rsp.page.QualifiedSessionId;
 import rsp.page.events.Command;
 import rsp.page.events.ComponentEventNotification;
 import rsp.page.events.GenericTaskEvent;
-import rsp.server.Path;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.url.Path;
+import rsp.url.Fragment;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,9 +69,9 @@ class SceneComponentReuseTests {
         Group group = new Group("Items")
                 .bind(ListBlock.class, ListBlock::new)
                 .bind(OverlayBlock.class, OverlayBlock::new);
-        Composition composition = new Composition(new Router()
+        Composition composition = new Composition(BlockRoutes.builder()
                 .route("/items", ListBlock.class)
-                .route("/items/:id", OverlayBlock.class), layout, group);
+                .route("/items/{id}", OverlayBlock.class), layout, group);
         UrlSyncComponent component = new UrlSyncComponent(
                 new RelativeUrl(Path.of("/items"), Query.EMPTY, Fragment.EMPTY));
         TreeBuilder treeBuilder = new TreeBuilder(

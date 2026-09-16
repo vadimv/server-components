@@ -6,7 +6,7 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.compositions.application.TestLookup;
 import rsp.component.ContextKey;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -99,12 +99,6 @@ class ContextKeysTests {
     class TypeConsistencyTests {
 
         @Test
-        void router_key_has_correct_type() {
-            assertEquals(Router.class, ContextKeys.ROUTER.type());
-            assertEquals(Router.class, ContextKeys.ROUTER.clazz());
-        }
-
-        @Test
         void is_active_block_key_has_correct_type() {
             assertEquals(Boolean.class, ContextKeys.IS_ACTIVE_BLOCK.type());
         }
@@ -124,15 +118,6 @@ class ContextKeysTests {
     class ContextIntegrationTests {
 
         @Test
-        void can_store_and_retrieve_router() {
-            final Router router = new Router().route("/posts", TestBlock.class);
-            final TestLookup lookup = new TestLookup()
-                    .withData(ContextKeys.ROUTER, router);
-
-            assertSame(router, lookup.get(ContextKeys.ROUTER));
-        }
-
-        @Test
         void can_store_and_retrieve_is_active_block() {
             final TestLookup lookup = new TestLookup()
                     .withData(ContextKeys.IS_ACTIVE_BLOCK, true);
@@ -143,9 +128,9 @@ class ContextKeysTests {
         @Test
         void can_store_and_retrieve_route_pattern() {
             final TestLookup lookup = new TestLookup()
-                    .withData(ContextKeys.ROUTE_PATTERN, "/posts/:id");
+                    .withData(ContextKeys.ROUTE_PATTERN, "/posts/{id}");
 
-            assertEquals("/posts/:id", lookup.get(ContextKeys.ROUTE_PATTERN));
+            assertEquals("/posts/{id}", lookup.get(ContextKeys.ROUTE_PATTERN));
         }
 
     }

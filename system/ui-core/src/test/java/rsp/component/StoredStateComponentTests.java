@@ -1,0 +1,110 @@
+package rsp.component;
+
+import org.junit.jupiter.api.Test;
+import rsp.component.definitions.InitialStateComponent;
+import rsp.component.definitions.LocalStateComponent;
+import rsp.component.definitions.Component;
+import rsp.component.definitions.StoredStateComponent;
+import rsp.dom.DefaultDomChangesContext;
+import rsp.dom.DomEventEntry;
+import rsp.dom.TreePositionPath;
+import rsp.page.EventContext;
+import rsp.page.QualifiedSessionId;
+import rsp.page.events.GenericTaskEvent;
+import rsp.page.events.RemoteCommand;
+import rsp.server.TestSessonEventsConsumer;
+import rsp.util.json.JsonDataType;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static rsp.dsl.Html.*;
+import static rsp.util.HtmlAssertions.assertHtmlFragmentsEqual;
+
+class StoredStateComponentTests {
+    static final Map<ComponentCompositeKey, Integer> stateStore = new HashMap<>();
+    static final ComponentView<Boolean, Boolean> view = intents -> state ->
+            div(
+                    span(text("toggle"), on("click", ctx -> intents.dispatch(!state))),
+                    when(state, () ->
+                         new StoredStateComponent<Integer, Object>(100, stateStore) {
+
+                             @Override
+                             public ComponentView<Integer, Object> componentView() {
+                                 return _ -> s -> div(text("test-store-" + s));
+                             }
+                         })
+            );
+
+    @Test
+    void component_renders_initial_html_and_after_state_set_generates_dom_update_commands() {
+        final QualifiedSessionId qualifiedSessionId = new QualifiedSessionId("test-device", "test-session");
+
+        final TestSessonEventsConsumer commands = new TestSessonEventsConsumer();
+        final TreeBuilder renderContext = new TreeBuilder(qualifiedSessionId,
+                                                          TreePositionPath.of("1"),
+                                                          new ComponentContext(),
+                                                          commands);
+        final Component<Boolean, Boolean> scd = new LocalStateComponent<>((_, _) -> true,
+                                                                            view,
+                                                                            (_, next) -> next);
+        // Initial render
+        scd.render(renderContext);
+
+        assertHtmlFragmentsEqual("<div>\n" +
+                                 " <span>toggle</span>\n" +
+                                 " <div>\n" +
+                                 "  test-store-100\n" +
+                                 " </div>\n" +
+                                 "</div>",
+                                renderContext.html());
+
+        assertEquals(1, renderContext.recursiveEvents().size());
+
+        // Remove subcomponent
+        // Click
+        final DomEventEntry clickEvent = renderContext.recursiveEvents().get(0);
+        final EventContext clickEventContext = new EventContext(clickEvent.eventTarget.nodeId(),
+                                                                js -> CompletableFuture.completedFuture(JsonDataType.Object.EMPTY),
+                                                                ref -> null,
+                                                                JsonDataType.Object.EMPTY,
+                                                                (nodeId, customEvent) -> {},
+                                                                ref -> {});
+        clickEvent.eventHandler.accept(clickEventContext);
+        runQueuedTask(commands);
+
+        assertEquals(1, commands.list.size());
+        final RemoteCommand.Batch removeBatch = assertInstanceOf(RemoteCommand.Batch.class, commands.list.getFirst());
+        final RemoteCommand.ModifyDom modifyDomOutMessage = removeBatch.commands().stream()
+                .filter(RemoteCommand.ModifyDom.class::isInstance)
+                .map(RemoteCommand.ModifyDom.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(1, modifyDomOutMessage.domChanges().size());
+        assertInstanceOf(DefaultDomChangesContext.Remove.class, modifyDomOutMessage.domChanges().getFirst());
+
+        commands.list.clear();
+
+        // Add the hidden stateful component back
+        final DomEventEntry clickEvent2 = renderContext.recursiveEvents().get(0);
+        clickEvent2.eventHandler.accept(clickEventContext);
+        runQueuedTask(commands);
+        assertEquals(1, commands.list.size());
+        final RemoteCommand.Batch addBatch = assertInstanceOf(RemoteCommand.Batch.class, commands.list.getFirst());
+        final RemoteCommand.ModifyDom modifyDomOutMessage2 = addBatch.commands().stream()
+                .filter(RemoteCommand.ModifyDom.class::isInstance)
+                .map(RemoteCommand.ModifyDom.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertTrue(modifyDomOutMessage2.toString().contains("test-store-100"));
+    }
+
+    private static void runQueuedTask(final TestSessonEventsConsumer commands) {
+        assertInstanceOf(GenericTaskEvent.class, commands.list.getFirst()).task().run();
+        commands.list.removeFirst();
+    }
+
+}

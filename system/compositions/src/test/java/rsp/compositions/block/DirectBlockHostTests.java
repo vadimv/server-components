@@ -13,7 +13,7 @@ import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 import rsp.compositions.ui.DefaultEditView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.dom.TreePositionPath;
@@ -47,7 +47,7 @@ class DirectBlockHostTests {
         TestBlock block = new TestBlock();
         BlockDescriptor descriptor = BlockDescriptor.forBlock(TestBlock.class, Map.of("id", "42"));
         Group group = new Group().bind(TestBlock.class, TestBlock::new);
-        Scene scene = Scene.of(descriptor, Map.of(), new Composition(new Router(), new DefaultLayout(), group));
+        Scene scene = Scene.of(descriptor, Map.of(), new Composition(BlockRoutes.builder(), new DefaultLayout(), group));
         TreeBuilder treeBuilder = new TreeBuilder(
                 new QualifiedSessionId("device", "session"),
                 TreePositionPath.of("1"),

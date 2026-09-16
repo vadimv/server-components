@@ -1,0 +1,104 @@
+package rsp.url;
+
+
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+/**
+ * Represents a URL query.
+ * @see RelativeUrl
+ * @param parameters a list of query parameters
+ */
+public record Query(List<Parameter> parameters) {
+
+    /**
+     * An empty query parameters.
+     */
+    public static final Query EMPTY = new Query(List.of());
+
+    /**
+     * Creates a new instance of a Query given a list of query parameters.
+     * <p>
+     * The parameters are expected to be <b>decoded</b> (e.g., "hello world", not "hello%20world").
+     * This is consistent with how Servlet containers provide parameters.
+     * </p>
+     * @param parameters a list of parameters
+     */
+    public Query(final List<Parameter> parameters) {
+        this.parameters = List.copyOf(Objects.requireNonNull(parameters, "parameters"));
+    }
+
+    /**
+     * Creates a new instance of this class by parsing a query string in the format attribute-value pairs separated by the delimiter.
+     * A query string optionally can start with '?'.
+     * <p>
+     * The input string is expected to be <b>URL-encoded</b> (e.g., "q=hello%20world").
+     * The method will decode the names and values before storing them.
+     * </p>
+     * @param queryString a query string
+     * @return a new instance
+     */
+    public static Query of(final String queryString) {
+        return parse(queryString);
+    }
+
+    public static Query parse(final String queryString) {
+        Objects.requireNonNull(queryString);
+        final String trimmedStr = queryString.trim().replaceFirst("^\\?", "");
+        final List<Parameter> params = Arrays.stream(trimmedStr.split("&")).filter(s -> !s.isEmpty()).map(paramString -> {
+            final String[] tokens = paramString.split("=", 2);
+            final String name = URLDecoder.decode(tokens[0], StandardCharsets.UTF_8);
+            final String value = tokens.length > 1 ? URLDecoder.decode(tokens[1], StandardCharsets.UTF_8) : "";
+            return new Parameter(name, value);
+        }).toList();
+        return new Query(params);
+    }
+
+    public List<String> parameterValues(final String name) {
+        Objects.requireNonNull(name, "name");
+        return parameters.stream()
+                .filter(parameter -> parameter.name.equals(name))
+                .map(Parameter::value)
+                .toList();
+    }
+
+    /**
+     * Provides a value of a query parameter
+     * @param name a parameter's name, must not be null
+     * @return the parameter value or null if not found
+     */
+    public String parameterValue(final String name) {
+        Objects.requireNonNull(name);
+        for (final Parameter param : parameters) {
+            if (param.name.equals(name)) {
+                return param.value;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        if (parameters.isEmpty()) {
+            return "";
+        }
+        final var paramStrings = parameters.stream()
+                .map(parameter -> URLEncoder.encode(parameter.name, StandardCharsets.UTF_8) + '=' + URLEncoder.encode(parameter.value, StandardCharsets.UTF_8))
+                .toArray(String[]::new);
+        return "?" + String.join("&", paramStrings);
+    }
+
+    /**
+     * A URL's query parameter attribute-value pair.
+     * @param name
+     * @param value
+     */
+    public record Parameter(String name, String value) {
+        public Parameter {
+            Objects.requireNonNull(name);
+            Objects.requireNonNull(value);
+        }
+    }
+}

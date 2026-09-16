@@ -62,7 +62,7 @@ class PlacementResolverTests {
                 .bind(BaseBlock.class, BaseBlock::new)
                 .bind(ChildBlock.class, ChildBlock::new);
         Scene scene = Scene.of(BlockDescriptor.forBlock(BaseBlock.class, Map.of()), Map.of(),
-                new rsp.compositions.composition.Composition(new rsp.compositions.routing.Router(),
+                new rsp.compositions.composition.Composition(rsp.compositions.routing.BlockRoutes.builder(),
                         new DefaultLayout(), posts));
 
         PlacementDecision decision = PlacementResolver.resolve(ChildBlock.class, scene, Map.of(),

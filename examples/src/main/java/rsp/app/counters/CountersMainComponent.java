@@ -3,7 +3,7 @@ package rsp.app.counters;
 import rsp.component.ComponentCompositeKey;
 import rsp.component.ComponentView;
 import rsp.component.definitions.AddressBarSyncComponent;
-import rsp.server.http.RelativeUrl;
+import rsp.url.RelativeUrl;
 
 import java.util.List;
 import java.util.Map;
@@ -26,7 +26,7 @@ import static rsp.dsl.Html.div;
  *   <li>Handle browser history (back/forward) navigation</li>
  * </ul>
  * <p>
- * <strong>URL Structure:</strong> {@code http://localhost:8085/:c1/:c2?c4=value}
+ * <strong>URL Structure:</strong> {@code http://localhost:8085/{c1}/{c2}?c4=value}
  * <ul>
  *   <li>Path element 0 (position 0) → maps to context key \"c1\" → ContextCounterComponent(\"c1\")</li>
  *   <li>Path element 1 (position 1) → maps to context key \"c2\" → ContextCounterComponent(\"c2\")</li>

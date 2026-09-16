@@ -1,7 +1,7 @@
 package rsp.compositions.routing;
 
 import rsp.component.ComponentView;
-import rsp.server.http.RelativeUrl;
+import rsp.url.RelativeUrl;
 
 import java.util.Objects;
 

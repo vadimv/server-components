@@ -11,7 +11,7 @@ import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.auth.LoginBlock;
-import rsp.compositions.auth.SimpleAuthProvider;
+import rsp.http.auth.SimpleAuthProvider;
 import rsp.compositions.authorization.*;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
@@ -20,13 +20,15 @@ import rsp.compositions.dashboard.DashboardBlock;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.GroupPlacementPolicy;
 import rsp.compositions.layout.Placement;
-import rsp.compositions.routing.Router;
+import rsp.compositions.block.BlockTarget;
+import rsp.compositions.routing.BlockRoutes;
 import rsp.compositions.shell.ExplorerBlock;
+import rsp.url.routing.RouteTable;
 import rsp.compositions.shell.HeaderBlock;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
-import rsp.server.StaticResources;
+import rsp.http.StaticResources;
 
 import java.io.File;
 import java.time.Duration;
@@ -67,17 +69,18 @@ public class CrudApp {
                 .with(System.getProperties());
 
         // URL to block mapping. Literal segments ("/posts/new") must precede parameter
-        // routes ("/posts/:id") or "/posts/new" would be treated as id "new".
+        // routes ("/posts/{id}") or "/posts/new" would be treated as id "new".
         final Object postsKey = new Object();
-        final Router router = new Router()
+        final RouteTable<BlockTarget> routes = BlockRoutes.builder()
                 .route("/dashboard", DashboardBlock.class)
-                .route("/posts", postsKey)
-                .route("/", postsKey)
+                .route("/posts", postsKey, PostsListBlock.class)
+                .route("/", postsKey, PostsListBlock.class)
                 .route("/posts/new", PostCreateBlock.class)
-                .route("/posts/:id", PostEditBlock.class)
+                .route("/posts/{id}", PostEditBlock.class)
                 .route("/comments", CommentsListBlock.class)
                 .route("/comments/new", CommentCreateBlock.class)
-                .route("/comments/:id", CommentEditBlock.class);
+                .route("/comments/{id}", CommentEditBlock.class)
+                .build();
 
         // Application services. They are passed into block constructors below so blocks
         // remain free of static singletons and easy to swap in tests.
@@ -142,16 +145,17 @@ public class CrudApp {
 
         // This is the posts feature package: routes decide which page is active, layout decides
         // where it appears, and both user-facing and support block groups are available to the scene.
-        final Composition postsComposition = new Composition(router, layout, mainBlocks, systemBlocks);
+        final Composition postsComposition = new Composition(routes, layout, mainBlocks, systemBlocks);
 
         // Login lives in its own composition. The auth provider redirects anonymous users to
         // /auth/login, which keeps login code out of the posts composition.
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
-        final Router authRouter = new Router()
-                .route("/auth/login", LoginBlock.class);
+        final RouteTable<BlockTarget> authRoutes = BlockRoutes.builder()
+                .route("/auth/login", LoginBlock.class)
+                .build();
         final Group authGroup = new Group()
                 .bind(LoginBlock.class, () -> new LoginBlock(authProvider));
-        final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
+        final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
 
         // App-wide services available to any block. The auth provider is stored here so
         // AuthComponent can find it on every request.
@@ -161,10 +165,9 @@ public class CrudApp {
         // Compositions are tried in order; the login route is checked before the posts routes.
         final App app = new App(config, List.of(authComposition, postsComposition), services);
 
-        final WebServer server = new WebServer(8085,
-                                               app,
-                                               new StaticResources(resolvePostsResourceDir(),
-                                                                   "/res/"));
+        final WebServer server = WebServer.pages(8085,
+                                                 authProvider.pages(app),
+                                                 new StaticResources(resolvePostsResourceDir(), "/res/"));
         server.start();
         if (blockCurrentThread) {
             server.join();

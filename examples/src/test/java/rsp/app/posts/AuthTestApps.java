@@ -9,14 +9,17 @@ import rsp.compositions.application.App;
 import rsp.compositions.application.Config;
 import rsp.compositions.application.Services;
 import rsp.compositions.auth.*;
+import rsp.http.auth.BasicAuthProvider;
+import rsp.http.auth.OAuthPKCEProvider;
+import rsp.http.auth.SimpleAuthProvider;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 import rsp.compositions.ui.DefaultFormView;
 import rsp.compositions.ui.DefaultListView;
 import rsp.http.WebServer;
-import rsp.server.StaticResources;
+import rsp.http.StaticResources;
 
 import java.io.File;
 import java.util.List;
@@ -31,11 +34,11 @@ class AuthTestApps {
         final CommentService commentService = new CommentService(postService::exists);
         postService.onDelete(commentService::deleteByPostId);
 
-        final Router router = new Router()
+        final BlockRoutes.Builder routes = BlockRoutes.builder()
                 .route("/posts", PostsListBlock.class)
-                .route("/posts/:id", PostEditBlock.class)
+                .route("/posts/{id}", PostEditBlock.class)
                 .route("/comments", CommentsListBlock.class)
-                .route("/comments/:id", CommentEditBlock.class);
+                .route("/comments/{id}", CommentEditBlock.class);
 
         final Group mainBlocks = new Group("Admin")
                 .add(new Group("Posts")
@@ -55,22 +58,22 @@ class AuthTestApps {
                 .leftSidebar(ExplorerBlock.class)
                 .header(HeaderBlock.class);
 
-        return new Composition(router, layout, mainBlocks, systemBlocks);
+        return new Composition(routes, layout, mainBlocks, systemBlocks);
     }
 
     static WebServer simpleAuth(int port) {
         final SimpleAuthProvider authProvider = new SimpleAuthProvider();
 
-        final Router authRouter = new Router().route("/auth/login", LoginBlock.class);
+        final BlockRoutes.Builder authRoutes = BlockRoutes.builder().route("/auth/login", LoginBlock.class);
         final Group authGroup = new Group()
                 .bind(LoginBlock.class, () -> new LoginBlock(authProvider));
-        final Composition authComposition = new Composition(authRouter, new DefaultLayout(), authGroup);
+        final Composition authComposition = new Composition(authRoutes, new DefaultLayout(), authGroup);
 
         final Services services = new Services()
                 .service(AuthComponent.AuthProvider.class, authProvider);
 
         final App app = new App(new Config(), List.of(authComposition, postsComposition()), services);
-        final WebServer server = new WebServer(port, app,
+        final WebServer server = WebServer.pages(port, authProvider.pages(app),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
@@ -84,7 +87,7 @@ class AuthTestApps {
                 .service(AuthComponent.AuthProvider.class, authProvider);
 
         final App app = new App(new Config(), List.of(postsComposition()), services);
-        final WebServer server = new WebServer(port, app,
+        final WebServer server = WebServer.pages(port, authProvider.pages(app),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;
@@ -110,7 +113,7 @@ class AuthTestApps {
                 .service(AuthComponent.AuthProvider.class, authProvider);
 
         final App app = new App(new Config(), List.of(authProvider.authComposition(), postsComposition()), services);
-        final WebServer server = new WebServer(port, app,
+        final WebServer server = WebServer.pages(port, authProvider.pages(app),
                 new StaticResources(new File("src/main/java/rsp/app/posts"), "/res/"));
         server.start();
         return server;

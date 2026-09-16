@@ -11,20 +11,17 @@ import rsp.compositions.composition.Composition;
 import rsp.compositions.block.ContextKeys;
 import rsp.compositions.block.SceneComponent;
 
-import rsp.dsl.Definition;
-
 import java.util.Objects;
 import java.util.function.BiFunction;
 
 /**
- * AuthComponent - Authentication gate.
+ * AuthComponent - Authentication context bridge.
  * <p>
  * This component:
  * 1. Reads authentication provider from context
- * 2. Authenticates user from session/cookies/headers
+ * 2. Reads the request identity selected by an outer adapter/middleware
  * 3. Enriches context with auth data (auth.user, auth.roles, auth.authenticated)
- * 4. Gates access: redirects to login path when not authenticated on protected routes
- * 5. Passes through to SceneComponent when authenticated or on public routes
+ * 4. Passes through to SceneComponent
  * <p>
  * Position in component chain: UrlSyncComponent → RoutingComponent → AuthComponent → SceneComponent
  * <p>
@@ -40,14 +37,9 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
     public ComponentStateSupplier<AuthComponentState> initStateSupplier() {
         return (_, context) -> {
             final AuthProvider authProvider = context.get(ContextKeys.AUTH_PROVIDER);
-            if (authProvider == null) {
-                // No auth provider configured - anonymous access
-                return stateFrom(context, authProvider, AuthResult.anonymous(), null);
-            }
-
-            // Authenticate user
-            final AuthResult authResult = authProvider.authenticate(context);
-            return stateFrom(context, authProvider, authResult, authProvider.gateResponse(context, authResult));
+            final AuthResult authResult = context.get(ContextKeys.AUTH_RESULT);
+            return stateFrom(context, authProvider,
+                    authResult == null ? AuthResult.anonymous() : authResult);
         };
     }
 
@@ -62,11 +54,6 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
     @Override
     public ComponentView<AuthComponentState, Object> componentView() {
         return _ -> state -> {
-            if (state.gateResponse() != null) {
-                return state.gateResponse();
-            }
-
-            // Pass through — create SceneComponent from routing context
             return new SceneComponent(state.path(),
                                       state.composition(),
                                       state.blockKey(),
@@ -83,8 +70,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
 
     private static AuthComponentState stateFrom(ComponentContext context,
                                                 AuthProvider authProvider,
-                                                AuthResult authResult,
-                                                Definition gateResponse) {
+                                                AuthResult authResult) {
         Objects.requireNonNull(authResult, "authResult");
         return new AuthComponentState(
                 authResult.user(),
@@ -95,8 +81,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
                 context.getRequired(ContextKeys.ROUTE_BLOCK_KEY),
                 context.getRequired(ContextKeys.ROUTE_BLOCK_CLASS),
                 context.getRequired(ContextKeys.ROUTE_PATH),
-                context.getRequired(ContextKeys.ROUTE_PATTERN),
-                gateResponse);
+                context.getRequired(ContextKeys.ROUTE_PATTERN));
     }
 
     public record AuthComponentState(Object user,
@@ -107,8 +92,7 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
                                      Object blockKey,
                                      Class<? extends Block<?, ?>> blockClass,
                                      String path,
-                                     String pattern,
-                                     Definition gateResponse) {
+                                     String pattern) {
         public AuthComponentState {
             roles = roles != null ? roles.clone() : new String[0];
             Objects.requireNonNull(composition, "composition");
@@ -125,44 +109,10 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
     }
 
     /**
-     * AuthProvider interface - implement to provide custom authentication.
-     * <p>
-     * Override {@link #gateResponse(ComponentContext, AuthResult)} to control what happens when a user
-     * is not authenticated on a protected route. The default implementation returns null (no gate).
+     * UI-side behavior exposed by an authentication integration.
+     * Request authentication and access responses belong to the outer transport adapter.
      */
     public interface AuthProvider {
-        AuthResult authenticate(ComponentContext context);
-
-        /**
-         * Returns the response to render when the user is not authenticated on the given path.
-         * Return null to allow access (no gate, or public path).
-         * <p>
-         * Examples:
-         * <ul>
-         *   <li>Redirect to login page: {@code html().redirect("/login?redirect=" + currentPath)}</li>
-         *   <li>HTTP Basic challenge: {@code html().statusCode(401).addHeader("WWW-Authenticate", "Basic realm=\"app\"")}</li>
-         * </ul>
-         */
-        default Definition gateResponse(ComponentContext context, AuthResult authResult) {
-            Objects.requireNonNull(context, "context");
-            Objects.requireNonNull(authResult, "authResult");
-            if (authResult.authenticated()) {
-                return null;
-            }
-            return gateResponse(context.getRequired(ContextKeys.ROUTE_PATH));
-        }
-
-        /**
-         * Returns the response to render when an anonymous user reaches the given path.
-         * Override {@link #gateResponse(ComponentContext, AuthResult)} when a provider
-         * needs the full request context or must handle auth-control paths before the
-         * anonymous-only gate decision.
-         */
-        @Deprecated
-        default Definition gateResponse(String currentPath) {
-            return null;
-        }
-
         /**
          * Whether this provider supports sign-out.
          * When true, a "Sign out" button is shown and {@link #signOut(CommandsEnqueue)} is called on click.
@@ -184,6 +134,15 @@ public class AuthComponent extends Component<AuthComponent.AuthComponentState, O
      * AuthResult - result of authentication attempt.
      */
     public record AuthResult(Object user, boolean authenticated, String[] roles) {
+        public AuthResult {
+            roles = roles == null ? new String[0] : roles.clone();
+        }
+
+        @Override
+        public String[] roles() {
+            return roles.clone();
+        }
+
         public static AuthResult anonymous() {
             return new AuthResult(null, false, new String[0]);
         }

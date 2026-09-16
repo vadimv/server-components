@@ -1,13 +1,10 @@
 package rsp.compositions.block;
 
 import rsp.component.Lookup;
-import rsp.server.Path;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
-
-import java.util.ArrayList;
-import java.util.List;
+import rsp.url.Path;
+import rsp.url.Fragment;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
 
 /**
  * RouteUtils - Generic utilities for building routes.
@@ -21,17 +18,17 @@ public class RouteUtils {
      * Build parent route by stripping last segment.
      * <p>
      * Generic - works for any route pattern.
-     * Convention: remove last segment if it's a parameter (starts with :) or a token (new, create).
+     * Convention: remove the last segment if it is a {@code {parameter}} or a token ({@code new}, {@code create}).
      * <p>
      * Examples:
      * <ul>
-     *   <li>{@code "/posts/:id" → "/posts"}</li>
+     *   <li>{@code "/posts/{id}" → "/posts"}</li>
      *   <li>{@code "/posts/new" → "/posts"}</li>
-     *   <li>{@code "/posts/:id" with fromQuery=p%3D3%26sort%3Dtitle →
+     *   <li>{@code "/posts/{id}" with fromQuery=p%3D3%26sort%3Dtitle →
      *       "/posts?p=3&sort=title"}</li>
      * </ul>
      *
-     * @param routePattern The route pattern (e.g., "/posts/:id")
+     * @param routePattern The route pattern (e.g., "/posts/{id}")
      * @param lookup Lookup for reading query parameters
      * @return The parent route URL (path + restored query + empty fragment)
      */
@@ -52,8 +49,7 @@ public class RouteUtils {
         if (lastSlash > 0) {
             String lastSegment = routePattern.substring(lastSlash + 1);
 
-            // Strip last segment if it's a parameter (starts with :) or a token
-            if (lastSegment.startsWith(":") || isPathToken(lastSegment)) {
+            if ((lastSegment.startsWith("{") && lastSegment.endsWith("}")) || isPathToken(lastSegment)) {
                 return routePattern.substring(0, lastSlash);
             }
         }
@@ -75,9 +71,6 @@ public class RouteUtils {
     /**
      * Build the parent query from an encoded {@code fromQuery} value.
      * <p>
-     * The older conventions {@code fromP → p} and {@code fromSort → sort}
-     * remain as a fallback for existing links.
-     *
      * @param lookup Lookup for reading query parameters
      * @return Query with restored parameters (may be empty)
      */
@@ -86,18 +79,6 @@ public class RouteUtils {
         if (fromQuery != null && !fromQuery.isBlank()) {
             return Query.of(fromQuery);
         }
-        List<Query.Parameter> params = new ArrayList<>();
-
-        String fromP = lookup.get(ContextKeys.URL_QUERY.with("fromP"));
-        if (fromP != null && !fromP.isEmpty()) {
-            params.add(new Query.Parameter("p", fromP));
-        }
-
-        String fromSort = lookup.get(ContextKeys.URL_QUERY.with("fromSort"));
-        if (fromSort != null && !fromSort.isEmpty()) {
-            params.add(new Query.Parameter("sort", fromSort));
-        }
-
-        return params.isEmpty() ? Query.EMPTY : new Query(params);
+        return Query.EMPTY;
     }
 }

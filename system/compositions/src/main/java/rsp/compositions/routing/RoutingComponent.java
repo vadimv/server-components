@@ -10,8 +10,9 @@ import rsp.component.definitions.Component;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.block.ContextKeys;
-import rsp.server.Path;
-import rsp.server.http.NotFoundException;
+import rsp.url.Path;
+import rsp.page.PageNotFoundException;
+import rsp.url.routing.RouteMatch;
 
 import java.util.List;
 import java.util.Objects;
@@ -23,7 +24,7 @@ import java.util.function.BiFunction;
  * <p>
  * This component:
  * 1. Reads url.path from context (populated by UrlSyncComponent/AutoAddressBarSyncComponent)
- * 2. Iterates Compositions in order, trying each one's Router
+ * 2. Iterates Compositions in order, trying each one's route table
  * 3. First matching route wins - enriches context with route.composition, route.blockClass, route.path, route.pattern
  * 4. Renders AuthComponent
  * <p>
@@ -76,19 +77,19 @@ public class RoutingComponent extends Component<RoutingComponent.RoutingComponen
             }
 
             for (Composition composition : compositions) {
-                Optional<Router.RouteMatch> match = composition.router().match(path);
+                Optional<RouteMatch<BlockTarget>> match = composition.routes().match(path);
                 if (match.isPresent()) {
-                    Router.RouteMatch routeMatch = match.get();
-                    BlockTarget target = composition.blocks().target(routeMatch.blockKey());
+                    RouteMatch<BlockTarget> routeMatch = match.get();
+                    BlockTarget target = routeMatch.target();
                     return new RoutingComponentState(composition,
                                                      target.key(),
                                                      target.blockClass(),
                                                      path.toString(),
-                                                     routeMatch.pattern());
+                                                     routeMatch.template().toString());
                 }
             }
 
-            throw new NotFoundException("No route found for path: " + path);
+            throw new PageNotFoundException("No route found for path: " + path);
         };
     }
 

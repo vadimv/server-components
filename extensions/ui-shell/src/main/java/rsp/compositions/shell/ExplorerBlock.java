@@ -10,6 +10,7 @@ import rsp.compositions.block.Block;
 import rsp.compositions.block.BlockTarget;
 import rsp.compositions.block.NavigationEntry;
 import rsp.compositions.block.NavigationNode;
+import rsp.url.routing.RouteTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -95,10 +96,10 @@ public class ExplorerBlock extends Block<ExplorerView.ExplorerViewState, Explore
         NavigationEntry entry = null;
         if (node.label() != null && compositions != null) {
             for (BlockTarget target : node.blockTargets()) {
-                Optional<String> routeOpt = findRoute(compositions, target.key());
-                if (routeOpt.isPresent() && !routeOpt.get().contains(":")) {
+                Optional<RouteTemplate> routeOpt = findRoute(compositions, target.key());
+                if (routeOpt.isPresent() && routeOpt.get().parameterNames().isEmpty()) {
                     entry = new NavigationEntry(node.label(), node.label(), target.key(),
-                            target.blockClass(), routeOpt.get());
+                            target.blockClass(), routeOpt.get().toString());
                     break;
                 }
             }
@@ -111,10 +112,13 @@ public class ExplorerBlock extends Block<ExplorerView.ExplorerViewState, Explore
         return new NavigationNode(node.label(), entry, List.copyOf(childNodes));
     }
 
-    private static Optional<String> findRoute(List<Composition> compositions,
-                                              Object blockKey) {
+    private static Optional<RouteTemplate> findRoute(List<Composition> compositions,
+                                                     Object blockKey) {
         for (Composition comp : compositions) {
-            Optional<String> route = comp.router().findRoutePattern(blockKey);
+            Optional<RouteTemplate> route = comp.routes().routes().stream()
+                    .filter(candidate -> candidate.target().key().equals(blockKey))
+                    .map(candidate -> candidate.template())
+                    .findFirst();
             if (route.isPresent()) {
                 return route;
             }

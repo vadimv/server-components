@@ -8,10 +8,10 @@ import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 import rsp.page.events.Command;
 import rsp.page.events.RemoteCommand;
-import rsp.server.Path;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.url.Path;
+import rsp.url.Fragment;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -4,8 +4,8 @@ import rsp.component.*;
 import rsp.component.definitions.AddressBarSyncComponent;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.layout.PlacementDecision;
-import rsp.compositions.routing.Router;
-import rsp.server.http.RelativeUrl;
+import rsp.url.RelativeUrl;
+import rsp.url.routing.RouteMatch;
 
 import java.util.Map;
 import java.util.Objects;
@@ -113,7 +113,7 @@ public final class SceneEventHandler {
         }
 
         // Update the URL bar to reflect the now-routed inline block (e.g. /comments/3).
-        // The Router's pattern is the source of truth for URL shape; we substitute path
+        // The route template is the source of truth for URL shape; we substitute path
         // parameters from the SHOW payload data and preserve the current query state.
         RelativeUrl targetUrl = navigator.pushInlineUrl(state, blockKey, payload.data());
 
@@ -177,16 +177,16 @@ public final class SceneEventHandler {
         }
 
         Composition composition = state.composition();
-        if (composition == null || composition.router() == null) {
+        if (composition == null || composition.routes() == null) {
             return;
         }
 
-        Optional<Router.RouteMatch> match = composition.router().match(targetUrl.path());
+        Optional<RouteMatch<BlockTarget>> match = composition.routes().match(targetUrl.path());
         if (match.isEmpty()) {
             return;
         }
 
-        Object targetKey = match.get().blockKey();
+        Object targetKey = match.get().target().key();
         if (state.isRouted(targetKey)) {
             stateUpdate.applyStateTransformation(s -> s.withEffectiveUrl(targetUrl));
             return;

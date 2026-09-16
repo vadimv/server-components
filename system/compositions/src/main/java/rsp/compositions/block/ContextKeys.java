@@ -3,8 +3,7 @@ package rsp.compositions.block;
 import rsp.component.ContextKey;
 import rsp.compositions.auth.AuthComponent;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.routing.Router;
-import rsp.server.Path;
+import rsp.url.Path;
 
 import java.util.List;
 import java.util.Map;
@@ -28,18 +27,15 @@ public final class ContextKeys {
     // ===== CLASS-BASED KEYS (ServiceLoader style) =====
 
     /**
-     * Router service for URL routing and path matching.
-     * Stored as: Router.class → Router instance
-     */
-    public static final ContextKey.ClassKey<Router> ROUTER =
-            new ContextKey.ClassKey<>(Router.class);
-
-    /**
      * Authentication provider for user authentication.
      * Stored as: AuthComponent.AuthProvider.class → AuthComponent.AuthProvider instance
      */
     public static final ContextKey.ClassKey<AuthComponent.AuthProvider> AUTH_PROVIDER =
             new ContextKey.ClassKey<>(AuthComponent.AuthProvider.class);
+
+    /** The identity established for the current initial page request. */
+    public static final ContextKey.ClassKey<AuthComponent.AuthResult> AUTH_RESULT =
+            new ContextKey.ClassKey<>(AuthComponent.AuthResult.class);
 
     /**
      * Authorization strategy for access control.
@@ -73,7 +69,7 @@ public final class ContextKeys {
             new ContextKey.StringKey<>("route.blockKey", Object.class);
 
     /**
-     * The URL path matched by the router.
+     * The URL path matched by the route table.
      * Type: String
      * Example: "/posts/123"
      */
@@ -83,7 +79,7 @@ public final class ContextKeys {
     /**
      * The route pattern with placeholders.
      * Type: String
-     * Example: "/posts/:id"
+     * Example: "/posts/{id}"
      */
     public static final ContextKey.StringKey<String> ROUTE_PATTERN =
             new ContextKey.StringKey<>("route.pattern", String.class);
@@ -91,7 +87,7 @@ public final class ContextKeys {
     /**
      * Whether the edit block has a registered route.
      * Type: Boolean
-     * True if Router has a route for the edit block (e.g., "/posts/:id").
+     * True if the route table has a route for the edit block (e.g., "/posts/{id}").
      * Used by list view to determine edit button behavior (URL navigation vs event-only).
      */
     public static final ContextKey.StringKey<Boolean> EDIT_HAS_ROUTE =
@@ -100,7 +96,7 @@ public final class ContextKeys {
     /**
      * The route pattern for the edit block (if it has one).
      * Type: String
-     * Example: "/posts/:id"
+     * Example: "/posts/{id}"
      * Used by list view to build edit URLs when EDIT_HAS_ROUTE is true.
      */
     public static final ContextKey.StringKey<String> EDIT_ROUTE_PATTERN =
@@ -110,7 +106,7 @@ public final class ContextKeys {
      * Whether the edit block opens as an overlay (has a parent route).
      * Type: Boolean
      * <p>
-     * True when the edit block's route has a parent route (e.g., "/posts/:id" has parent "/posts"),
+     * True when the edit block's route has a parent route (e.g., "/posts/{id}" has parent "/posts"),
      * meaning it opens as an overlay via SHOW event rather than navigating as a primary view.
      * Used by list view to determine whether the edit button renders as a link or a SHOW button.
      */
@@ -288,8 +284,8 @@ public final class ContextKeys {
      *
      * <p>Examples:</p>
      * <ul>
-     *   <li>{@code URL_PATH.with("id")} - ID from /posts/:id</li>
-     *   <li>{@code URL_PATH.with("slug")} - slug from /articles/:slug</li>
+     *   <li>{@code URL_PATH.with("id")} - ID from /posts/{id}</li>
+     *   <li>{@code URL_PATH.with("slug")} - slug from /articles/{slug}</li>
      * </ul>
      */
     public static final ContextKey.DynamicKey<String> URL_PATH =

@@ -5,10 +5,11 @@ import rsp.component.ComponentContext;
 import rsp.component.Lookup;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.routing.AutoAddressBarSyncComponent;
-import rsp.server.Path;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.url.Path;
+import rsp.url.Fragment;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
+import rsp.url.routing.RouteTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,12 +46,15 @@ final class SceneNavigator {
             return null;
         }
         Composition composition = state.composition();
-        if (composition == null || composition.router() == null) {
+        if (composition == null || composition.routes() == null) {
             return null;
         }
         Object prevKey = state.routedDescriptor().blockKey();
         Class<? extends Block<?, ?>> prevClass = state.routedDescriptor().blockClass();
-        String prevRoute = composition.router().findRoutePattern(prevKey).orElse(null);
+        String prevRoute = composition.routes()
+                .templateFor(composition.blocks().target(prevKey))
+                .map(RouteTemplate::toString)
+                .orElse(null);
         if (prevRoute == null) {
             return null;
         }
@@ -66,14 +70,16 @@ final class SceneNavigator {
                               Object blockKey,
                               Map<String, Object> showData) {
         Composition composition = state.composition();
-        if (composition == null || composition.router() == null) {
+        if (composition == null || composition.routes() == null) {
             return null;
         }
-        String pattern = composition.router().findRoutePattern(blockKey).orElse(null);
-        if (pattern == null) {
+        RouteTemplate template = composition.routes()
+                .templateFor(composition.blocks().target(blockKey))
+                .orElse(null);
+        if (template == null) {
             return null;
         }
-        String resolvedPath = substitutePathParams(pattern, showData);
+        String resolvedPath = template.expand(showData);
         RelativeUrl url = new RelativeUrl(Path.of(resolvedPath),
                 captureQuery(state), captureFragment(state));
         pushUrlOnly(url);
@@ -88,16 +94,16 @@ final class SceneNavigator {
      */
     RelativeUrl pushPrimaryUrl(Scene state, Object blockKey) {
         Composition composition = state.composition();
-        if (composition == null || composition.router() == null) {
+        if (composition == null || composition.routes() == null) {
             return null;
         }
-        String route = composition.router()
-                .findRoutePattern(blockKey)
+        RouteTemplate route = composition.routes()
+                .templateFor(composition.blocks().target(blockKey))
                 .orElse(null);
         if (route == null) {
             return null;
         }
-        RelativeUrl url = new RelativeUrl(Path.of(route), Query.EMPTY, Fragment.EMPTY);
+        RelativeUrl url = new RelativeUrl(Path.parse(route.expand(Map.of())), Query.EMPTY, Fragment.EMPTY);
         pushUrlOnly(url);
         return url;
     }
@@ -160,22 +166,6 @@ final class SceneNavigator {
             return Fragment.EMPTY;
         }
         return new Fragment(value);
-    }
-
-    /**
-     * Substitute {@code :name} placeholders in a route pattern with values from
-     * SHOW data. Unknown parameters are left as-is.
-     */
-    private static String substitutePathParams(String pattern, Map<String, Object> data) {
-        if (data == null || data.isEmpty() || !pattern.contains(":")) {
-            return pattern;
-        }
-        String result = pattern;
-        for (Map.Entry<String, Object> entry : data.entrySet()) {
-            if (entry.getValue() == null) continue;
-            result = result.replace(":" + entry.getKey(), String.valueOf(entry.getValue()));
-        }
-        return result;
     }
 
     private static RelativeUrl withQueryParameter(RelativeUrl url, String name, String value) {

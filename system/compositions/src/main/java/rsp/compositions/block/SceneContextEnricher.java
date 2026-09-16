@@ -2,9 +2,10 @@ package rsp.compositions.block;
 
 import rsp.component.ComponentContext;
 import rsp.compositions.composition.Composition;
-import rsp.compositions.routing.Router;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
+import rsp.url.routing.RouteTable;
+import rsp.url.routing.RouteTemplate;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -43,7 +44,7 @@ public final class SceneContextEnricher {
         enrichedContext = enrichedContext.with(ContextKeys.BLOCK_TITLE, scene.pageTitle());
 
         // Add edit route info to context for DefaultListView
-        enrichedContext = enrichEditInfo(enrichedContext, composition, composition.router());
+        enrichedContext = enrichEditInfo(enrichedContext, composition, composition.routes());
 
         return enrichedContext;
     }
@@ -92,8 +93,10 @@ public final class SceneContextEnricher {
                 .with(ContextKeys.ROUTE_BLOCK_CLASS, blockClass)
                 .with(ContextKeys.ROUTE_PATH, effectiveUrl.path().toString());
 
-        if (composition.router() != null) {
-            Optional<String> routePattern = composition.router().findRoutePattern(blockKey);
+        if (composition.routes() != null) {
+            Optional<String> routePattern = composition.routes()
+                    .templateFor(composition.blocks().target(blockKey))
+                    .map(RouteTemplate::toString);
             if (routePattern.isPresent()) {
                 next = next.with(ContextKeys.ROUTE_PATTERN, routePattern.get());
             }
@@ -106,7 +109,9 @@ public final class SceneContextEnricher {
      * Add edit block route info to context.
      * This helps DefaultListView determine how to render the Edit button.
      */
-    private ComponentContext enrichEditInfo(ComponentContext context, Composition composition, Router router) {
+    private ComponentContext enrichEditInfo(ComponentContext context,
+                                            Composition composition,
+                                            RouteTable<BlockTarget> routes) {
         // Find the edit block class in the composition.
         BlockTarget editTarget = null;
         for (BlockTarget target : composition.blocks().blockTargets()) {
@@ -121,15 +126,15 @@ public final class SceneContextEnricher {
         }
 
         // Check if edit block has a route
-        boolean hasRoute = router != null && router.hasRoute(editTarget.key());
+        boolean hasRoute = routes != null && routes.containsTarget(editTarget);
         context = context.with(ContextKeys.EDIT_HAS_ROUTE, hasRoute);
 
-        if (hasRoute && router != null) {
-            Optional<String> editRouteOpt = router.findRoutePattern(editTarget.key());
+        if (hasRoute && routes != null) {
+            Optional<RouteTemplate> editRouteOpt = routes.templateFor(editTarget);
             if (editRouteOpt.isPresent()) {
-                context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editRouteOpt.get());
-                // Overlay-like if route has a parent (e.g., /posts/:id has parent /posts)
-                boolean opensAsOverlay = router.findParentRoute(editRouteOpt.get()).isPresent();
+                context = context.with(ContextKeys.EDIT_ROUTE_PATTERN, editRouteOpt.get().toString());
+                // Overlay-like if route has a parent (e.g., /posts/{id} has parent /posts)
+                boolean opensAsOverlay = routes.parentOf(editRouteOpt.get()).isPresent();
                 context = context.with(ContextKeys.EDIT_OPENS_AS_OVERLAY, opensAsOverlay);
             }
         }

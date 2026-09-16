@@ -4,8 +4,11 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.component.definitions.Component;
 import rsp.dsl.Definition;
-import rsp.server.http.HttpMethod;
-import rsp.server.http.HttpRequest;
+import rsp.http.HttpMethod;
+import rsp.http.HttpRequest;
+import rsp.http.HttpStatus;
+import rsp.http.PageResult;
+import rsp.http.Pages;
 
 import static rsp.dsl.Html.*;
 import static rsp.dsl.Html.attr;
@@ -18,20 +21,29 @@ import static rsp.dsl.Html.link;
 public class CountersAppComponent extends Component<CountersAppComponent.AppState, Object> {
 
     private static final Definition NOT_FOUND_PAGE =
-            html(head(HeadType.PLAIN, title("Not found")),
-                 body(h1("Not found 404"))).statusCode(404);
+            html(head(title("Not found")), body(h1("Not found 404")));
     private final HttpRequest httpRequest;
 
     public CountersAppComponent(final HttpRequest httpRequest) {
         this.httpRequest = httpRequest;
     }
 
+    public static PageResult initialPage(HttpRequest request) {
+        return isValid(request)
+                ? Pages.live(new CountersAppComponent(request))
+                : Pages.staticHtml(new CountersAppComponent(request)).status(HttpStatus.NOT_FOUND);
+    }
+
     @Override
     public ComponentStateSupplier<AppState> initStateSupplier() {
         return (_, _) ->
                 // the URL path is expected to contain two integers for the counters c1 and c2
-                HttpMethod.GET.equals(httpRequest.method) && httpRequest.path.matches("^/\\d+/\\d+") ?
+                isValid(httpRequest) ?
                 new CountersAppState() : new NotFoundState();
+    }
+
+    private static boolean isValid(HttpRequest request) {
+        return HttpMethod.GET.equals(request.method()) && request.path().matches("^/\\d+/\\d+");
     }
 
     @Override

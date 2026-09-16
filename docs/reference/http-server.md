@@ -1,16 +1,17 @@
 # HTTP Server
 
-Status: current as of `system/http` in this repository
+Status: current as of `system/ui-http` in this repository
 
-The `http` artifact provides the embedded `rsp.http.WebServer`. It uses JDK
+The `ui-http` artifact provides the embedded `rsp.http.WebServer`. It uses JDK
 sockets and virtual threads, serves initial RSP pages and static files, and
-binds live page sessions over WebSocket. It has no third-party runtime
-dependency.
+binds live page sessions over WebSocket. Transport-neutral contracts are in the
+separate `http-api` artifact. The socket implementation remains in `ui-http`
+until the next extraction phase moves it to `server-jdk`.
 
 ## Start And Stop
 
 ```java
-WebServer server = new WebServer(8080, request -> rootComponent(request));
+WebServer server = WebServer.pages(8080, Pages.live(request -> rootComponent(request)));
 server.start();
 server.join();
 ```
@@ -25,7 +26,7 @@ Use port `0` in integration tests. After `start()`, `port()` returns the actual
 bound port:
 
 ```java
-WebServer server = new WebServer(0, request -> rootComponent(request));
+WebServer server = WebServer.pages(0, Pages.live(request -> rootComponent(request)));
 server.start();
 int port = server.port();
 ```
@@ -62,12 +63,13 @@ var resume = new LocalSessionResumeConfig(
 
 var server = new WebServer(
         8080,
-        app,
+        pageApplication,
         Optional.empty(),
         Optional.empty(),
         WebServer.DEFAULT_CONNECTION_LIMIT,
         DefaultEventLoop::new,
-        resume);
+        resume,
+        Metrics.noop());
 ```
 
 Expiry is measured from a confirmed detachment. Failed reconnect attempts do
@@ -90,26 +92,51 @@ Mount one directory at a context path ending in `/`:
 ```java
 StaticResources resources =
         new StaticResources(new File("src/main/resources/public"), "/res/");
-WebServer server = new WebServer(8080, app, resources);
+WebServer server = WebServer.pages(8080, Pages.live(app), resources);
 ```
 
 The bundled browser client is served automatically from
 `/static/js-client.min.js`.
 
+## Initial Page Results
+
+The initial request is handled before a component is rendered. This is the
+appropriate place to inspect HTTP data and choose a page response:
+
+```java
+PageApplication pages = request -> {
+    if (request.header("Authorization") == null) {
+        return Pages.redirect("/login");
+    }
+    return Pages.live(rootComponent(request.relativeUrl()))
+            .header("X-Frame-Options", "DENY");
+};
+
+WebServer server = WebServer.pages(8080, pages);
+```
+
+Use `Pages.staticHtml(component)` for detached server-rendered HTML and
+`Pages.response(httpResponse)` when no UI rendering is required. `HtmlDocument`
+does not contain HTTP status, header, cookie, or redirect state.
+
 ## HTTP Behavior
 
 The current server supports HTTP/1.0 and HTTP/1.1 request parsing for:
 
-- `GET`, `HEAD`, and `POST`;
+- all standard `HttpMethod` values, with method policy left to the application;
 - query parameters, headers, and cookies;
 - `application/x-www-form-urlencoded` request bodies merged into the request's
   query parameters;
-- repeated response headers and `InputStream` response bodies;
-- response status and headers set on `HtmlDocument`.
+- bounded byte-oriented request bodies;
+- repeated response headers and repeatable or streamed response bodies;
+- status, headers, cookies, redirects, and direct responses selected by
+  `PageResult` before UI rendering.
 
 Each non-WebSocket response closes its connection. Keep-alive, pipelining,
 chunked request or response bodies, multipart forms, and a general request-body
-API are not implemented.
+decoder registry are not implemented. `HttpApplication` is the UI-neutral REST
+application contract; binding it directly to the JDK transport is planned for
+the `server-jdk` extraction.
 
 Current parser limits are fixed in the implementation:
 
@@ -118,13 +145,12 @@ Current parser limits are fixed in the implementation:
 | Request line | 8 KiB |
 | All request headers | 16 KiB |
 | Header count | 100 |
-| Form body | 256 KiB |
+| Request body | 256 KiB |
 | Header read timeout | 5 seconds |
 | Body read timeout | 10 seconds |
 
 Malformed or oversized requests return the corresponding `400`, `408`, `413`,
-`414`, or `431` response. Known but unsupported HTTP methods return `405`;
-unknown method tokens return `501`.
+`414`, or `431` response. Unknown method tokens return `501`.
 
 ## WebSocket Behavior
 
@@ -152,7 +178,7 @@ The JavaScript client's long-polling routes are not implemented by this server.
 
 ## TLS And Deployment Limits
 
-TLS is not implemented in `system/http`. Although compatibility constructors
+TLS is not implemented in `system/ui-http`. Although constructors
 accept `SslConfiguration`, `start()` throws `UnsupportedOperationException` when
 one is supplied. Do not use the TLS constructor in current applications.
 
@@ -165,5 +191,5 @@ behavior must be provided and validated by the deployment environment.
 Run the server's parser, socket, and WebSocket tests with:
 
 ```bash
-mvn -pl system/http -am test
+mvn -pl system/ui-http -am test
 ```

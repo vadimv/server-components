@@ -7,6 +7,7 @@ import rsp.component.View;
 import rsp.dsl.Html;
 import rsp.dsl.Tag;
 import rsp.http.WebServer;
+import rsp.http.Pages;
 
 import java.util.Objects;
 
@@ -21,16 +22,16 @@ import static rsp.dsl.Html.*;
  */
 public class PlainForm {
     static void main(final String[] args) {
-        final var server = new WebServer(8080, httpRequest -> new Component<Name, Object>() {
+        final var server = WebServer.pages(8080, httpRequest -> Pages.staticHtml(new Component<Name, Object>() {
 
             @Override
             public ComponentStateSupplier<Name> initStateSupplier() {
                 return (_, _) ->
-                    switch (httpRequest.method) {
+                    switch (httpRequest.method()) {
                         case GET -> new EmptyName();
-                        case POST -> new FullName(Objects.requireNonNull(httpRequest.queryParameters.parameterValue("firstname")),
-                                                  Objects.requireNonNull(httpRequest.queryParameters.parameterValue("lastname")));
-                        default -> throw new IllegalStateException("Unexpected HTTP mehtod: " + httpRequest.method);
+                        case POST -> new FullName(Objects.requireNonNull(httpRequest.query().parameterValue("firstname")),
+                                                  Objects.requireNonNull(httpRequest.query().parameterValue("lastname")));
+                        default -> throw new IllegalStateException("Unexpected HTTP mehtod: " + httpRequest.method());
                     };
             }
 
@@ -38,7 +39,7 @@ public class PlainForm {
             public ComponentView<Name, Object> componentView() {
                 return _ -> pagesView();
             }
-        });
+        }));
         server.start();
         server.join();
     }
@@ -61,7 +62,7 @@ public class PlainForm {
 
     private static View<Name> pagesView() {
         return state -> html(
-                        head(HeadType.PLAIN, title("Plain Form Pages")),
+                        head(title("Plain Form Pages")),
                         body(
                             state instanceof FullName ? formResult((FullName)state) : form()
                         )

@@ -13,7 +13,7 @@ import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
 import rsp.compositions.layout.GroupPlacementPolicy;
 import rsp.compositions.layout.Placement;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 import rsp.dom.DomEventEntry;
 import rsp.page.EventContext;
 
@@ -32,7 +32,7 @@ class SceneBuilderTests {
     void modal_child_keeps_parent_as_primary_and_auto_opens_child() {
         Composition composition = compositionWith(new DefaultLayout());
 
-        Scene scene = new SceneBuilder(composition, EditBlock.class, "/posts/:id", composition.layout())
+        Scene scene = new SceneBuilder(composition, EditBlock.class, "/posts/{id}", composition.layout())
                 .buildScene(testContext());
 
         assertEquals(ListBlock.class, scene.routedDescriptor().blockClass());
@@ -46,7 +46,7 @@ class SceneBuilderTests {
         DefaultLayout layout = new DefaultLayout().placement(EditBlock.class, Placement.INLINE.primary());
         Composition composition = compositionWith(layout);
 
-        Scene scene = new SceneBuilder(composition, EditBlock.class, "/posts/:id", layout)
+        Scene scene = new SceneBuilder(composition, EditBlock.class, "/posts/{id}", layout)
                 .buildScene(testContext());
 
         assertEquals(EditBlock.class, scene.routedDescriptor().blockClass());
@@ -60,11 +60,11 @@ class SceneBuilderTests {
         Group group = new Group("Posts")
                 .bind(ListBlock.class, ListBlock::new)
                 .bind(FormChildBlock.class, FormChildBlock::new);
-        Composition composition = new Composition(new Router()
+        Composition composition = new Composition(BlockRoutes.builder()
                 .route("/posts", ListBlock.class)
-                .route("/posts/:id", FormChildBlock.class), layout, group);
+                .route("/posts/{id}", FormChildBlock.class), layout, group);
 
-        Scene scene = new SceneBuilder(composition, FormChildBlock.class, "/posts/:id", layout)
+        Scene scene = new SceneBuilder(composition, FormChildBlock.class, "/posts/{id}", layout)
                 .buildScene(testContext());
 
         assertEquals(FormChildBlock.class, scene.routedDescriptor().blockClass());
@@ -76,7 +76,7 @@ class SceneBuilderTests {
         DefaultLayout layout = new DefaultLayout().groupPlacementPolicy(GroupPlacementPolicy.ALL_INLINE);
         Composition composition = compositionWith(layout);
 
-        Scene scene = new SceneBuilder(composition, EditBlock.class, "/posts/:id", layout)
+        Scene scene = new SceneBuilder(composition, EditBlock.class, "/posts/{id}", layout)
                 .buildScene(testContext());
 
         assertEquals(EditBlock.class, scene.routedDescriptor().blockClass());
@@ -91,11 +91,11 @@ class SceneBuilderTests {
         Group group = new Group("Posts")
                 .bind(listKey, ListBlock.class, ListBlock::new)
                 .bind(editKey, ListBlock.class, ListBlock::new);
-        Composition composition = new Composition(new Router()
-                .route("/posts", listKey)
-                .route("/posts/:id", editKey), layout, group);
+        Composition composition = new Composition(BlockRoutes.builder()
+                .route("/posts", listKey, ListBlock.class)
+                .route("/posts/{id}", editKey, ListBlock.class), layout, group);
 
-        Scene scene = new SceneBuilder(composition, group.target(editKey), "/posts/:id", layout)
+        Scene scene = new SceneBuilder(composition, group.target(editKey), "/posts/{id}", layout)
                 .buildScene(testContext());
 
         assertEquals(listKey, scene.routedBlockKey());
@@ -106,13 +106,48 @@ class SceneBuilderTests {
         assertNotNull(scene.preActivatedDescriptor(editKey));
     }
 
+    @Test
+    void a_parent_path_for_the_same_target_is_an_alias_not_an_overlay() {
+        DefaultLayout layout = new DefaultLayout();
+        Group group = new Group("Posts").bind(ListBlock.class, ListBlock::new);
+        Composition composition = new Composition(BlockRoutes.builder()
+                .route("/", ListBlock.class)
+                .route("/posts", ListBlock.class), layout, group);
+
+        Scene scene = new SceneBuilder(composition, ListBlock.class, "/posts", layout)
+                .buildScene(testContext());
+
+        assertEquals(ListBlock.class, scene.routedDescriptor().blockClass());
+        assertFalse(scene.hasPreActivatedBlocks());
+        assertNull(scene.autoOpen());
+    }
+
+    @Test
+    void a_direct_route_in_a_different_group_is_primary_under_group_policy() {
+        DefaultLayout layout = new DefaultLayout()
+                .groupPlacementPolicy(GroupPlacementPolicy.FIRST_IN_GROUP_INLINE_OTHERS_MODAL);
+        Group group = new Group("Application")
+                .add(new Group("Posts").bind(ListBlock.class, ListBlock::new))
+                .add(new Group("Comments").bind(OtherListBlock.class, OtherListBlock::new));
+        Composition composition = new Composition(BlockRoutes.builder()
+                .route("/", ListBlock.class)
+                .route("/comments", OtherListBlock.class), layout, group);
+
+        Scene scene = new SceneBuilder(composition, OtherListBlock.class, "/comments", layout)
+                .buildScene(testContext());
+
+        assertEquals(OtherListBlock.class, scene.routedDescriptor().blockClass());
+        assertFalse(scene.hasPreActivatedBlocks());
+        assertNull(scene.autoOpen());
+    }
+
     private Composition compositionWith(DefaultLayout layout) {
         Group group = new Group("Posts")
                 .bind(ListBlock.class, ListBlock::new)
                 .bind(EditBlock.class, EditBlock::new);
-        return new Composition(new Router()
+        return new Composition(BlockRoutes.builder()
                 .route("/posts", ListBlock.class)
-                .route("/posts/:id", EditBlock.class), layout, group);
+                .route("/posts/{id}", EditBlock.class), layout, group);
     }
 
     private ComponentContext testContext() {
@@ -130,6 +165,7 @@ class SceneBuilderTests {
     static class EditBlock extends ListBlock {
         @Override public String title() { return "Edit"; }
     }
+    static class OtherListBlock extends ListBlock {}
 
     static abstract class FormBaseBlock extends ListBlock {}
     static class FormChildBlock extends FormBaseBlock {}

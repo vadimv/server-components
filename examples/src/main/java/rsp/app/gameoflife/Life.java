@@ -6,7 +6,7 @@ import rsp.component.ComponentView;
 import rsp.component.StateUpdater;
 import rsp.component.definitions.Component;
 import rsp.http.WebServer;
-import rsp.server.StaticResources;
+import rsp.http.StaticResources;
 
 import java.io.File;
 import java.util.HashMap;

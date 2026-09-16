@@ -13,4 +13,8 @@ public record BlockTarget(Object key, Class<? extends Block<?, ?>> blockClass) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(blockClass, "blockClass");
     }
+
+    public static BlockTarget of(Class<? extends Block<?, ?>> blockClass) {
+        return new BlockTarget(blockClass, blockClass);
+    }
 }

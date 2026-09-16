@@ -2,9 +2,9 @@ package rsp.compositions.block;
 
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
-import rsp.server.http.Fragment;
-import rsp.server.http.Query;
-import rsp.server.http.RelativeUrl;
+import rsp.url.Fragment;
+import rsp.url.Query;
+import rsp.url.RelativeUrl;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

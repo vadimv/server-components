@@ -5,7 +5,7 @@ import rsp.component.ComponentStateSupplier;
 import rsp.component.ComponentView;
 import rsp.compositions.block.Block;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 
 import java.util.List;
 
@@ -47,17 +47,17 @@ class CompositionTests {
 
     @Test
     void composition_keeps_routes_and_all_bound_block_classes() {
-        Router router = new Router()
+        BlockRoutes.Builder routes = BlockRoutes.builder()
                 .route("/items", ListBlock.class)
-                .route("/items/:id", EditBlock.class);
+                .route("/items/{id}", EditBlock.class);
         Group group = new Group()
                 .bind(ListBlock.class, ListBlock::new)
                 .bind(CreateBlock.class, CreateBlock::new)
                 .bind(EditBlock.class, EditBlock::new);
 
-        Composition composition = new Composition(router, new DefaultLayout(), group);
+        Composition composition = new Composition(routes, new DefaultLayout(), group);
 
-        assertSame(router, composition.router());
+        assertEquals(2, composition.routes().routes().size());
         assertEquals(3, composition.blocks().blockClasses().size());
         assertTrue(composition.blocks().hasBinding(ListBlock.class));
         assertFalse(composition.blocks().hasBinding(UnknownBlock.class));
@@ -90,7 +90,7 @@ class CompositionTests {
         Group main = new Group("Main").bind(ListBlock.class, ListBlock::new);
         Group system = new Group().bind(CreateBlock.class, CreateBlock::new);
 
-        Composition composition = new Composition(new Router(), new DefaultLayout(), main, system);
+        Composition composition = new Composition(BlockRoutes.builder(), new DefaultLayout(), main, system);
 
         assertEquals(2, composition.blocks().blockClasses().size());
         assertTrue(composition.blocks().hasBinding(ListBlock.class));
@@ -101,24 +101,26 @@ class CompositionTests {
     void constructor_rejects_missing_required_composition_parts() {
         Group group = new Group();
 
-        assertThrows(NullPointerException.class, () -> new Composition(null, new DefaultLayout(), group));
-        assertThrows(IllegalArgumentException.class, () -> new Composition(new Router(), new DefaultLayout()));
+        assertThrows(NullPointerException.class, () -> new Composition(
+                (rsp.url.routing.RouteTable<rsp.compositions.block.BlockTarget>) null,
+                new DefaultLayout(), group));
+        assertThrows(IllegalArgumentException.class, () -> new Composition(BlockRoutes.builder(), new DefaultLayout()));
     }
 
     @Test
     void composition_rejects_an_unbound_route_without_sealing_inputs() {
         Object postsKey = new Object();
-        Router router = new Router().route("/posts", postsKey);
+        BlockRoutes.Builder routes = BlockRoutes.builder().route("/posts", postsKey, ListBlock.class);
         Group group = new Group("Posts");
 
         IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
-                () -> new Composition(router, new DefaultLayout(), group));
+                () -> new Composition(routes, new DefaultLayout(), group));
 
         assertTrue(error.getMessage().contains("/posts"));
         group.bind(postsKey, ListBlock.class, ListBlock::new);
-        Composition composition = new Composition(router, new DefaultLayout(), group);
-        assertSame(postsKey, composition.router().match(rsp.server.Path.of("/posts"))
-                .orElseThrow().blockKey());
+        Composition composition = new Composition(routes, new DefaultLayout(), group);
+        assertSame(postsKey, composition.routes().match(rsp.url.Path.of("/posts"))
+                .orElseThrow().target().key());
     }
 
     @Test
@@ -128,10 +130,10 @@ class CompositionTests {
         DefaultLayout layout = new DefaultLayout().leftSidebar(explorerKey);
 
         assertThrows(IllegalArgumentException.class,
-                () -> new Composition(new Router(), layout, group));
+                () -> new Composition(BlockRoutes.builder(), layout, group));
 
         group.bind(explorerKey, ListBlock.class, ListBlock::new);
-        assertEquals(1, new Composition(new Router(), layout, group).blocks().blockTargets().size());
+        assertEquals(1, new Composition(BlockRoutes.builder(), layout, group).blocks().blockTargets().size());
     }
 
     @Test
@@ -147,20 +149,20 @@ class CompositionTests {
                 .add(new Group("One").bind(first, ListBlock.class, ListBlock::new))
                 .add(new Group("Two").bind(equal, EditBlock.class, EditBlock::new));
         assertThrows(IllegalArgumentException.class,
-                () -> new Composition(new Router(), new DefaultLayout(), root));
+                () -> new Composition(BlockRoutes.builder(), new DefaultLayout(), root));
     }
 
     @Test
-    void successful_composition_seals_router_and_all_groups() {
+    void successful_composition_snapshots_routes_and_seals_all_groups() {
         Object postsKey = new Object();
-        Router router = new Router().route("/posts", postsKey);
+        BlockRoutes.Builder routes = BlockRoutes.builder().route("/posts", postsKey, ListBlock.class);
         Group child = new Group("Posts").bind(postsKey, ListBlock.class, ListBlock::new);
         Group root = new Group("Root").add(child);
 
-        new Composition(router, new DefaultLayout(), root);
+        Composition composition = new Composition(routes, new DefaultLayout(), root);
 
-        assertThrows(IllegalStateException.class,
-                () -> router.route("/other", postsKey));
+        routes.route("/other", postsKey, ListBlock.class);
+        assertEquals(1, composition.routes().routes().size());
         assertThrows(IllegalStateException.class,
                 () -> root.add(new Group("Other")));
         assertThrows(IllegalStateException.class,

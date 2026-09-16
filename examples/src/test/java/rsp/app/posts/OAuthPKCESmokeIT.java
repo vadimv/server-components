@@ -7,7 +7,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import rsp.compositions.auth.OAuthPKCEProvider;
+import rsp.http.auth.OAuthPKCEProvider;
 import rsp.http.WebServer;
 
 import java.util.stream.Stream;
@@ -61,7 +61,6 @@ class OAuthPKCESmokeIT {
         System.out.println("Testing: Protected page redirects to OAuth login");
         final BrowserContext context = browser.newContext();
         final Page page = context.newPage();
-
         page.navigate(BASE_URL + "/posts");
         waitFor(PAGE_INIT_MS);
 
@@ -90,7 +89,8 @@ class OAuthPKCESmokeIT {
         page.locator("button:has-text('Sign in')").click();
 
         // Wait for the full redirect chain to complete
-        page.waitForURL("**/posts**", new Page.WaitForURLOptions().setTimeout(10000));
+        page.waitForURL(url -> url.equals(BASE_URL + "/posts"),
+                new Page.WaitForURLOptions().setTimeout(10000));
         waitFor(PAGE_INIT_MS);
 
         assertTrue(page.url().contains("/posts"), "Should be on /posts after OAuth login, but URL is: " + page.url());
@@ -125,7 +125,8 @@ class OAuthPKCESmokeIT {
         page.navigate(BASE_URL + "/posts");
         waitFor(PAGE_INIT_MS);
         page.locator("button:has-text('Sign in')").click();
-        page.waitForURL("**/posts**", new Page.WaitForURLOptions().setTimeout(10000));
+        page.waitForURL(url -> url.equals(BASE_URL + "/posts"),
+                new Page.WaitForURLOptions().setTimeout(10000));
         waitFor(PAGE_INIT_MS);
         assertNotNull(cookieByName(context, OAuthPKCEProvider.SESSION_COOKIE_NAME),
                 "OAuth auth cookie should exist before sign-out");

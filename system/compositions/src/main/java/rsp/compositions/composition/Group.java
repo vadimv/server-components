@@ -70,6 +70,15 @@ public class Group {
         return bind(blockClass, blockClass, blockFactory);
     }
 
+    /** Bind the exact typed target used by a route table. */
+    public <S, I, B extends Block<S, I>> Group bind(BlockTarget target,
+                                                    Supplier<? extends B> blockFactory) {
+        Objects.requireNonNull(target, "target");
+        @SuppressWarnings("unchecked")
+        Class<B> blockClass = (Class<B>) target.blockClass();
+        return bind(target.key(), blockClass, blockFactory);
+    }
+
     /**
      * Bind a block under an application-defined key.
      *

@@ -43,39 +43,41 @@ This gives one state owner per UI fragment:
 
 ## Application Entry Point
 
-An `App` is the request handler passed to a server adapter. It owns a `Config`,
-the available `Composition`s, and app-wide `Services`.
+An `App` maps an initial `RelativeUrl` and authentication result to a UI
+component. It owns a `Config`, the available `Composition`s, and app-wide
+`Services`. The HTTP adapter remains outside this module.
 
 ```java
 App app = new App(new Config(), List.of(postsComposition), services);
-new WebServer(8080, app).start();
+WebServer.pages(8080, Pages.live(request -> app.apply(request.relativeUrl()))).start();
 ```
 
-A `Composition` combines a `Router`, a `Layout`, and one or more `Group`s.
-Compositions are considered in order; the first router that matches the path
-wins.
+A `Composition` combines an immutable `RouteTable<BlockTarget>`, a `Layout`,
+and one or more `Group`s. Compositions are considered in order; the first route
+table that matches the path wins.
 
 ```java
 Object postsKey = new Object();
 
-Router router = new Router()
-        .route("/posts", postsKey)
+RouteTable<BlockTarget> routes = BlockRoutes.builder()
+        .route("/posts", postsKey, PostsListBlock.class)
         .route("/posts/new", PostCreateBlock.class)
-        .route("/posts/:id", PostEditBlock.class);
+        .route("/posts/{id}", PostEditBlock.class)
+        .build();
 ```
 
 Every route target is a non-null object key. The class overload remains the
 compact form: `route(path, PostsListBlock.class)` uses `PostsListBlock.class`
 as both key and type identity. A custom key separates binding identity from
 Java type, so the same block class can be configured more than once. Reuse the
-same key (or an equal key) in the router, group, layout, and block events. A
+same key (or an equal key) in the route table, group, layout, and block events. A
 plain `new Object()` is an identity token; enums, strings, or value objects can
 provide more readable diagnostics when appropriate.
 
-`Router.match(...)` exposes the selected identity through
-`RouteMatch.blockKey()`. Its `blockClass()` accessor is compatibility-only and
-throws for a custom-keyed route; resolve the key through `Group.target(key)`
-when both the key and configured class are needed.
+`RouteTable.match(...)` returns the selected `BlockTarget`, matched
+`RouteTemplate`, and immutable named parameters. Literal segments take
+precedence over parameters independently of registration order; equally
+specific overlapping templates are rejected at build time.
 
 Route patterns remain the source of truth for primary navigation, inline form
 returns, and address-bar updates.

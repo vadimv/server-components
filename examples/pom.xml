@@ -14,7 +14,12 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>http</artifactId>
+            <artifactId>ui-http</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>ui-http-auth</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

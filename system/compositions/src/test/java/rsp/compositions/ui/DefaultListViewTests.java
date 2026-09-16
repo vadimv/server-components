@@ -91,7 +91,7 @@ class DefaultListViewTests {
                 "hello world", Map.of("title", "draft"));
         ListView.ListViewState state = new ListView.ListViewState(
                 List.of(Map.of("id", "7", "title", "Draft")), SCHEMA, query, 30, "/items",
-                Set.of(), "Items", new ListView.EditTarget(true, false, "/items/:id"),
+                Set.of(), "Items", new ListView.EditTarget(true, false, "/items/{id}"),
                 ListCapabilities.crud(), "", false);
 
         String href = render(state).selectFirst("a.edit-link").attr("href");

@@ -1,0 +1,1383 @@
+package rsp.dsl;
+
+import rsp.dom.DomEventEntry;
+import rsp.dom.XmlNs;
+import rsp.page.EventContext;
+import rsp.util.ArrayUtils;
+
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+
+/**
+ * HTML tags definitions domain-specific language and related util functions.
+ */
+public final class Html {
+
+    private Html() {}
+
+    /**
+     * Attributes names which are interpreted by default as properties.
+     * @see #attr(String, String)
+     */
+    public static final String DEFAULT_PROPERTIES_NAMES =
+            "autofocus, autoplay, async, checked, controls, defer, disabled, hidden, loop, multiple, open, readonly, required, scoped, selected, value";
+    private static final Set<String> DEFAULT_PROPERTY_NAMES = Set.of(DEFAULT_PROPERTIES_NAMES.split(", "));
+
+
+    /**
+     * An HTML {@literal <html>} element, the root element of an HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static HtmlDocument html(final Definition... children) {
+        return new HtmlDocument(children);
+    }
+
+    /**
+     * An XML tag.
+     * @param ns an XML namespace
+     * @param name an element name
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag xmlTag(final XmlNs ns, final String name, final Definition... children) {
+        return new Tag(ns, name, children);
+    }
+
+    /**
+     * A self closing XML tag.
+     * @param ns an XML namespace
+     * @param name an element name
+     * @param attributes attributes definitions of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag selfClosingXmlTag(final XmlNs ns, final String name, final Attribute... attributes) {
+        return new SelfClosingTag(ns, name, attributes);
+    }
+
+    /**
+     * An arbitrary HTML element.
+     * @param name an element name
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag tag(final String name, final Definition... children) {
+        return xmlTag(XmlNs.html, name, children);
+    }
+
+    /**
+     * A void element.
+     * @param name an element name
+     * @param attributes  attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag selfClosingTag(final String name, final Attribute... attributes) {
+        return selfClosingXmlTag(XmlNs.html, name, attributes);
+    }
+
+    /**
+     * A HTML element's attribute.
+     * @param name an attribute name
+     * @param value an attribute value
+     * @param isProperty true if this attribute should be interpreted as a property, false otherwise
+     * @return an attribute definition
+     */
+    public static Attribute attr(final String name, final String value, final boolean isProperty) {
+        return new Attribute(name, value, isProperty);
+    }
+
+    /**
+     * An element's property attribute.
+     * @param name a property name
+     * @param value a property value
+     * @return a property definition
+     */
+    public static Attribute prop(final String name, final String value) {
+        return attr(name, value, true);
+    }
+
+    /**
+     * An HTML element's attribute.
+     * This attribute is interpreted as a property if its name is one of the properties by default:
+     * {@value #DEFAULT_PROPERTIES_NAMES}.
+     * @param name an attribute name
+     * @param value an attribute value
+     * @return an attribute definition
+     */
+    public static Attribute attr(final String name, final String value) {
+        return attr(name, value, isPropertyByDefault(name));
+    }
+
+    /**
+     * A boolean attribute.
+     * @param name an attribute name
+     * @return an attribute definition
+     */
+    public static Attribute attr(final String name) {
+        return new Attribute(name, name, isPropertyByDefault(name));
+    }
+
+    /**
+     * A DOM event handler definition.
+     * @param eventType an event name
+     * @param handler an event handler
+     * @return a DOM event handler definition
+     */
+    public static EventDefinition on(final String eventType, final Consumer<EventContext> handler) {
+        return new EventDefinition(eventType, handler, DomEventEntry.NO_MODIFIER);
+    }
+
+    /**
+     * A DOM event handler definition.
+     * @param eventType an event name
+     * @param preventDefault true if the event does not get explicitly handled,
+     *                        its default action should not be taken as it normally would be, false otherwise
+     * @param handler an event handler
+     * @return a DOM event handler definition
+     */
+    public static EventDefinition on(final String eventType, final boolean preventDefault, final Consumer<EventContext> handler) {
+        return new EventDefinition(eventType, handler, preventDefault, DomEventEntry.NO_MODIFIER);
+    }
+
+    /**
+     * An element's text content.
+     * @param text a text as a {@link String}
+     * @return a text node definition
+     */
+    public static Text text(final String text) {
+        return new Text(text);
+    }
+
+    /**
+     * An element's text content, for an input class other than q {@link String}.
+     * @param obj an arbitrary object to be converted to text using its {@link #toString()} method
+     * @return a text node definition
+     */
+    public static Text text(final Object obj) {
+        return new Text(String.valueOf(obj));
+    }
+
+
+    /**
+     * A HTML {@literal <body>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag body(final Definition... children) {
+        return tag("body", children);
+    }
+
+    /**
+     * An HTML {@literal <head>} element of an HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag head(final Definition... children) {
+        return tag("head", children);
+    }
+
+    /**
+     * A HTML {@literal <title>} element of a HTML document.
+     * @param text a document's title text
+     * @return a tag definition
+     */
+    public static Tag title(final String text) {
+        return tag("title", text(text));
+    }
+
+
+    public static Tag script(final Definition... children) {
+        return tag("script", children);
+    }
+
+    /**
+     * A HTML {@literal <link>} element of a HTML document.
+     * @param children the element's attributes
+     * @return a tag definition
+     */
+    public static Tag link(final Attribute... children) {
+        return tag("link", children);
+    }
+
+    /**
+     * A HTML {@literal <meta>} element of a HTML document.
+     * @param children the element's attributes
+     * @return a tag definition
+     */
+    public static Tag meta(final Attribute... children) {
+        return tag("meta", children);
+    }
+
+    /**
+     * A HTML {@literal <h1>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return  a tag definition
+     */
+    public static Tag h1(final Definition... children) {
+        return tag("h1", children);
+    }
+
+    /**
+     * A HTML {@literal <h1>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static Tag h1(final String text) {
+        return h1(text(text));
+    }
+
+    /**
+     * A HTML {@literal <h2>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return  a tag definition
+     */
+    public static Tag h2(final Definition... children) {
+        return tag("h2", children);
+    }
+
+    /**
+     * A HTML {@literal <h2>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static Tag h2(final String text) {
+        return h2(text(text));
+    }
+
+    /**
+     * A HTML {@literal <h3>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag h3(final Definition... children) {
+        return tag("h3", children);
+    }
+
+    /**
+     * A HTML {@literal <h3>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static Tag h3(final String text) {
+        return h3(text(text));
+    }
+
+    /**
+     * A HTML {@literal <h4>} element of a HTML document
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag h4(final Definition... children) {
+        return tag("h4", children);
+    }
+
+    /**
+     * A HTML {@literal <h4>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static Tag h4(final String text) {
+        return h4(text(text));
+    }
+
+    /**
+     * A HTML {@literal <h5>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag h5(final Definition... children) {
+        return tag("h5", children);
+    }
+
+    /**
+     * A HTML {@literal <h5>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static Tag h5(final String text) {
+        return h5(text(text));
+    }
+
+    /**
+     * A HTML {@literal <h6>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag h6(final Definition... children) {
+        return tag("h6", children);
+    }
+
+    /**
+     * A HTML {@literal <h6>} element of a HTML document.
+     * @param text the element's text content
+     * @return  a tag definition
+     */
+    public static Tag h6(final String text) {
+        return h6(text(text));
+    }
+
+    /**
+     * A HTML {@literal <div>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag div(final Definition... children) {
+        return tag("div", children);
+    }
+
+    /**
+     * A HTML {@literal <div>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag div(final String text) {
+        return div(text(text));
+    }
+
+    /**
+     * A HTML {@literal <a>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag a(final Definition... children) {
+        return tag("a", children);
+    }
+
+    /**
+     * An HTML {@literal <a>}, or anchor element of an HTML document.
+     * @param href the URL that the hyperlink points to
+     * @param text the link's destination text content
+     * @param children other descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag a(final String href, final String text, final Definition... children) {
+        return a(ArrayUtils.concat(new Definition[]{ attr("href", href), text(text)}, children));
+    }
+
+    /**
+     * A HTML {@literal <p>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag p(final Definition... children) {
+        return tag("p", children);
+    }
+
+    /**
+     * A HTML {@literal <p>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag p(final String text) {
+        return p(text(text));
+    }
+
+    /**
+     * A HTML {@literal <span>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag span(final Definition... children) {
+        return tag("span", children);
+    }
+
+    /**
+     * A HTML {@literal <span>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag span(final String text) {
+        return span(text(text));
+    }
+
+    /**
+     * A HTML {@literal <form>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag form(final Definition... children) {
+        return tag("form", children);
+    }
+
+    /**
+     * A HTML {@literal <input>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag input(final Definition... children) {
+        return tag("input", children);
+    }
+
+    /**
+     * A HTML {@literal <button>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag button(final Definition... children) {
+        return tag("button", children);
+    }
+
+    /**
+     * A HTML {@literal <ul>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag ul(final Definition... children) {
+        return tag("ul", children);
+    }
+
+    /**
+     * A HTML {@literal <ol>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag ol(final Definition... children) {
+        return tag("ol", children);
+    }
+
+    /**
+     * A HTML {@literal <li>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag li(final Definition... children) {
+        return tag("li", children);
+    }
+
+    /**
+     * A HTML {@literal <li>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag li(final String text) {
+        return li(text(text));
+    }
+
+    /**
+     * A HTML {@literal <table>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag table(final Definition... children) {
+        return tag("table", children);
+    }
+
+    /**
+     * A HTML {@literal <thead>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag thead(final Definition... children) {
+        return tag("thead", children);
+    }
+
+    /**
+     * A HTML {@literal <tbody>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag tbody(final Definition... children) {
+        return tag("tbody", children);
+    }
+
+    /**
+     * A HTML {@literal <th>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag th(final Definition... children) {
+        return tag("th", children);
+    }
+
+    /**
+     * A HTML {@literal <th>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag th(final String text) {
+        return th(text(text));
+    }
+
+    /**
+     * A HTML {@literal <tr>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag tr(final Definition... children) {
+        return tag("tr", children);
+    }
+
+    /**
+     * A HTML {@literal <td>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag td(final Definition... children) {
+        return tag("td", children);
+    }
+
+    /**
+     * A HTML {@literal <td>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag td(final String text) {
+        return td(text(text));
+    }
+
+    /**
+     * A HTML {@literal <label>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag label(final Definition... children) {
+        return tag("label", children);
+    }
+
+    /**
+     * A HTML {@literal <br />} element of a HTML document.
+     * @return a tag definition
+     */
+    public static SelfClosingTag br() {
+        return selfClosingTag("br");
+    }
+
+    /**
+     * A HTML {@literal <hr />} element of a HTML document.
+     * @return a tag definition
+     */
+    public static SelfClosingTag hr() {
+        return selfClosingTag("hr");
+    }
+
+    /**
+     * A HTML {@literal <header>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag header(final Definition... children) {
+        return tag("header", children);
+    }
+
+    /**
+     * A HTML {@literal <footer>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag footer(final Definition... children) {
+        return tag("footer", children);
+    }
+
+    /**
+     * A HTML {@literal <main>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag main(final Definition... children) {
+        return tag("main", children);
+    }
+
+    /**
+     * A HTML {@literal <section>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag section(final Definition... children) {
+        return tag("section", children);
+    }
+
+    /**
+     * A HTML {@literal <article>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag article(final Definition... children) {
+        return tag("article", children);
+    }
+
+    /**
+     * A HTML {@literal <aside>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag aside(final Definition... children) {
+        return tag("aside", children);
+    }
+
+    /**
+     * A HTML {@literal <nav>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag nav(final Definition... children) {
+        return tag("nav", children);
+    }
+
+    /**
+     * A HTML {@literal <pre>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag pre(final Definition... children) {
+        return tag("pre", children);
+    }
+
+    /**
+     * A HTML {@literal <pre>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag pre(final String text) {
+        return pre(text(text));
+    }
+
+    /**
+     * A HTML {@literal <code>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag code(final Definition... children) {
+        return tag("code", children);
+    }
+
+    /**
+     * A HTML {@literal <code>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag code(final String text) {
+        return code(text(text));
+    }
+
+    /**
+     * A HTML {@literal <blockquote>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag blockquote(final Definition... children) {
+        return tag("blockquote", children);
+    }
+
+    /**
+     * A HTML {@literal <blockquote>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag blockquote(final String text) {
+        return blockquote(text(text));
+    }
+
+    /**
+     * A HTML {@literal <strong>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag strong(final Definition... children) {
+        return tag("strong", children);
+    }
+
+    /**
+     * A HTML {@literal <strong>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag strong(final String text) {
+        return strong(text(text));
+    }
+
+    /**
+     * A HTML {@literal <em>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag em(final Definition... children) {
+        return tag("em", children);
+    }
+
+    /**
+     * A HTML {@literal <em>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag em(final String text) {
+        return em(text(text));
+    }
+
+    /**
+     * A HTML {@literal <i>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag i(final Definition... children) {
+        return tag("i", children);
+    }
+
+    /**
+     * A HTML {@literal <i>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag i(final String text) {
+        return i(text(text));
+    }
+
+    /**
+     * A HTML {@literal <b>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag b(final Definition... children) {
+        return tag("b", children);
+    }
+
+    /**
+     * A HTML {@literal <b>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag b(final String text) {
+        return b(text(text));
+    }
+
+    /**
+     * A HTML {@literal <u>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag u(final Definition... children) {
+        return tag("u", children);
+    }
+
+    /**
+     * A HTML {@literal <u>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag u(final String text) {
+        return u(text(text));
+    }
+
+    /**
+     * A HTML {@literal <small>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag small(final Definition... children) {
+        return tag("small", children);
+    }
+
+    /**
+     * A HTML {@literal <small>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag small(final String text) {
+        return small(text(text));
+    }
+
+    /**
+     * A HTML {@literal <sub>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag sub(final Definition... children) {
+        return tag("sub", children);
+    }
+
+    /**
+     * A HTML {@literal <sub>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag sub(final String text) {
+        return sub(text(text));
+    }
+
+    /**
+     * A HTML {@literal <sup>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag sup(final Definition... children) {
+        return tag("sup", children);
+    }
+
+    /**
+     * A HTML {@literal <sup>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag sup(final String text) {
+        return sup(text(text));
+    }
+
+    /**
+     * A HTML {@literal <mark>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag mark(final Definition... children) {
+        return tag("mark", children);
+    }
+
+    /**
+     * A HTML {@literal <mark>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag mark(final String text) {
+        return mark(text(text));
+    }
+
+    /**
+     * A HTML {@literal <time>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag time(final Definition... children) {
+        return tag("time", children);
+    }
+
+    /**
+     * A HTML {@literal <time>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag time(final String text) {
+        return time(text(text));
+    }
+
+    /**
+     * A HTML {@literal <del>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag del(final Definition... children) {
+        return tag("del", children);
+    }
+
+    /**
+     * A HTML {@literal <del>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag del(final String text) {
+        return del(text(text));
+    }
+
+    /**
+     * A HTML {@literal <ins>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag ins(final Definition... children) {
+        return tag("ins", children);
+    }
+
+    /**
+     * A HTML {@literal <ins>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag ins(final String text) {
+        return ins(text(text));
+    }
+
+    /**
+     * A HTML {@literal <figure>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag figure(final Definition... children) {
+        return tag("figure", children);
+    }
+
+    /**
+     * A HTML {@literal <figcaption>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag figcaption(final Definition... children) {
+        return tag("figcaption", children);
+    }
+
+    /**
+     * A HTML {@literal <figcaption>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag figcaption(final String text) {
+        return figcaption(text(text));
+    }
+
+    /**
+     * A HTML {@literal <audio>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag audio(final Definition... children) {
+        return tag("audio", children);
+    }
+
+    /**
+     * A HTML {@literal <video>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag video(final Definition... children) {
+        return tag("video", children);
+    }
+
+    /**
+     * A HTML {@literal <picture>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag picture(final Definition... children) {
+        return tag("picture", children);
+    }
+
+    /**
+     * A HTML {@literal <object>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag object(final Definition... children) {
+        return tag("object", children);
+    }
+
+    /**
+     * A HTML {@literal <iframe>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag iframe(final Definition... children) {
+        return tag("iframe", children);
+    }
+
+    /**
+     * A HTML {@literal <img>} element of a HTML document.
+     * @param attributes attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag img(final Attribute... attributes) {
+        return selfClosingTag("img", attributes);
+    }
+
+    /**
+     * A HTML {@literal <source>} element of a HTML document.
+     * @param attributes attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag source(final Attribute... attributes) {
+        return selfClosingTag("source", attributes);
+    }
+
+    /**
+     * A HTML {@literal <track>} element of a HTML document.
+     * @param attributes attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag track(final Attribute... attributes) {
+        return selfClosingTag("track", attributes);
+    }
+
+    /**
+     * A HTML {@literal <embed>} element of a HTML document.
+     * @param attributes attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag embed(final Attribute... attributes) {
+        return selfClosingTag("embed", attributes);
+    }
+
+    /**
+     * A HTML {@literal <param>} element of a HTML document.
+     * @param attributes attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag param(final Attribute... attributes) {
+        return selfClosingTag("param", attributes);
+    }
+
+    /**
+     * A HTML {@literal <dl>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag dl(final Definition... children) {
+        return tag("dl", children);
+    }
+
+    /**
+     * A HTML {@literal <dt>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag dt(final Definition... children) {
+        return tag("dt", children);
+    }
+
+    /**
+     * A HTML {@literal <dt>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag dt(final String text) {
+        return dt(text(text));
+    }
+
+    /**
+     * A HTML {@literal <dd>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag dd(final Definition... children) {
+        return tag("dd", children);
+    }
+
+    /**
+     * A HTML {@literal <dd>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag dd(final String text) {
+        return dd(text(text));
+    }
+
+    /**
+     * A HTML {@literal <caption>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag caption(final Definition... children) {
+        return tag("caption", children);
+    }
+
+    /**
+     * A HTML {@literal <caption>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag caption(final String text) {
+        return caption(text(text));
+    }
+
+    /**
+     * A HTML {@literal <tfoot>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag tfoot(final Definition... children) {
+        return tag("tfoot", children);
+    }
+
+    /**
+     * A HTML {@literal <colgroup>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag colgroup(final Definition... children) {
+        return tag("colgroup", children);
+    }
+
+    /**
+     * A HTML {@literal <col>} element of a HTML document.
+     * @param attributes attributes of this element
+     * @return a tag definition
+     */
+    public static SelfClosingTag col(final Attribute... attributes) {
+        return selfClosingTag("col", attributes);
+    }
+
+    /**
+     * A HTML {@literal <textarea>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag textarea(final Definition... children) {
+        return tag("textarea", children);
+    }
+
+    /**
+     * A HTML {@literal <textarea>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag textarea(final String text) {
+        return textarea(text(text));
+    }
+
+    /**
+     * A HTML {@literal <select>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag select(final Definition... children) {
+        return tag("select", children);
+    }
+
+    /**
+     * A HTML {@literal <option>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag option(final Definition... children) {
+        return tag("option", children);
+    }
+
+    /**
+     * A HTML {@literal <option>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag option(final String text) {
+        return option(text(text));
+    }
+
+    /**
+     * A HTML {@literal <optgroup>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag optgroup(final Definition... children) {
+        return tag("optgroup", children);
+    }
+
+    /**
+     * A HTML {@literal <fieldset>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag fieldset(final Definition... children) {
+        return tag("fieldset", children);
+    }
+
+    /**
+     * A HTML {@literal <legend>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag legend(final Definition... children) {
+        return tag("legend", children);
+    }
+
+    /**
+     * A HTML {@literal <legend>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag legend(final String text) {
+        return legend(text(text));
+    }
+
+    /**
+     * A HTML {@literal <details>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag details(final Definition... children) {
+        return tag("details", children);
+    }
+
+    /**
+     * A HTML {@literal <summary>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag summary(final Definition... children) {
+        return tag("summary", children);
+    }
+
+    /**
+     * A HTML {@literal <summary>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag summary(final String text) {
+        return summary(text(text));
+    }
+
+    /**
+     * A HTML {@literal <dialog>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag dialog(final Definition... children) {
+        return tag("dialog", children);
+    }
+
+    /**
+     * A HTML {@literal <dialog>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag dialog(final String text) {
+        return dialog(text(text));
+    }
+
+    /**
+     * A HTML {@literal <output>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag output(final Definition... children) {
+        return tag("output", children);
+    }
+
+    /**
+     * A HTML {@literal <output>} element of a HTML document.
+     * @param text text content
+     * @return a tag definition
+     */
+    public static Tag output(final String text) {
+        return output(text(text));
+    }
+
+    /**
+     * A HTML {@literal <progress>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag progress(final Definition... children) {
+        return tag("progress", children);
+    }
+
+    /**
+     * A HTML {@literal <meter>} element of a HTML document.
+     * @param children descendants definitions of this element
+     * @return a tag definition
+     */
+    public static Tag meter(final Definition... children) {
+        return tag("meter", children);
+    }
+
+    /**
+     * Inserts a zero or more definitions provided as a stream.
+     * @param items varargs of definitions
+     * @return a document part definition representing a sequence of definitions
+     */
+    public static Definition of(Definition... items) {
+        return new SequenceDefinition(items);
+    }
+
+    /**
+     * Inserts a zero or more definitions provided as a stream.
+     * @param items a {@link Stream} of definitions
+     * @return a document part definition representing a sequence of definitions
+     */
+    public static Definition of(final Stream<Definition> items) {
+        Objects.requireNonNull(items, "Stream of items cannot be null");
+        return new SequenceDefinition(items.toArray(Definition[]::new));
+    }
+
+    /**
+     * Inserts a definition which is a result of some code execution.
+     * This functions allows mix declarative DOM tree definitions and code fragments.
+     * @param itemSupplier a code block
+     * @return a result definition
+     */
+    public static Definition of(final Supplier<Definition> itemSupplier) {
+        Objects.requireNonNull(itemSupplier, "Item supplier cannot be null");
+        return new SequenceDefinition(new Definition[] { itemSupplier.get() });
+    }
+
+    /**
+     * Inserts a definition which is a result of a {@link CompletableFuture} completion.
+     * @param completableFutureDefinition an asynchronous computation of a definition
+     * @return a result definition
+     */
+    public static Definition of(final CompletableFuture<? extends Definition> completableFutureDefinition) {
+        Objects.requireNonNull(completableFutureDefinition, "CompletableFuture cannot be null");
+        return completableFutureDefinition.join();
+    }
+
+    /**
+     * Inserts a document part definition provided as an argument if condition is true, otherwise inserts an empty definition.
+     * @param condition a condition to check
+     * @param then a definition which may be inserted
+     * @return a result definition
+     */
+    public static Definition when(final boolean condition, final Definition then) {
+        Objects.requireNonNull(then, "Definition in 'when' clause cannot be null");
+        return when(condition, () -> then);
+    }
+
+    /**
+     * A lazy form of conditional function.
+     * Inserts a document part definition provided as in a {@link Supplier} if condition is true, otherwise inserts an empty definition.
+     * @param condition a condition to check
+     * @param then a {@link Supplier} of a definition which may be inserted
+     * @return a result definition
+     */
+    public static Definition when(final boolean condition, final Supplier<Definition> then) {
+        Objects.requireNonNull(then, "Supplier in 'when' clause cannot be null");
+        return condition ? then.get() : EmptyDefinition.INSTANCE;
+    }
+
+    /**
+     * Provides a definition of a browsers' window object.
+     * @return a window object definition
+     */
+    public static Window window() {
+        return new Window();
+    }
+
+    /**
+     * Creates reference to an HTML element which can be used as a key for obtaining its element's properties values.
+     * @see EventContext#propertiesByRef(rsp.ref.ElementRef)
+     * @return a reference object
+     */
+    public static rsp.ref.ElementRef createElementRef() {
+        return new rsp.ref.ElementRef() {};
+    }
+
+    /**
+     * A reference DSL directive binds its parent element to the reference provided.
+     * The bound reference can later be used to read the element's properties from an
+     * event handler via {@link EventContext#propertiesByRef(rsp.ref.ElementRef)}.
+     * <p>Note: this does not set the HTML {@code id} attribute; it is an internal
+     * rendering hint, not added to the result HTML tree.
+     * @param ref the reference which could be used to access the bound element's properties
+     * @return a rendering hint definition, not added to the result HTML tree
+     */
+    public static ElementRef ref(rsp.ref.ElementRef ref) {
+        return new ElementRef(ref);
+    }
+
+    /**
+     * Tags the parent element with a stable numeric identity for keyed list diffing.
+     * When every child of a parent carries a key, the diff matches children across renders
+     * by key instead of by sibling position.
+     * <p>The key's value must be stable across renders for the same logical element and unique
+     * among its siblings; use an entity id or a sequence number.
+     * @param value a stable numeric identifier (an {@code int} literal widens to {@code long})
+     * @return a rendering hint definition, not added to the result HTML tree
+     */
+    public static Key key(final long value) {
+        return Key.of(value);
+    }
+
+    /**
+     * Tags the parent element with a stable string identity for keyed list diffing.
+     * When every child of a parent carries a key, the diff matches children across renders
+     * by key instead of by sibling position.
+     * <p>The key's value must be stable across renders for the same logical element and unique
+     * among its siblings; use an entity id. Avoid values regenerated each render
+     * (e.g. {@code UUID.randomUUID()}), which break identity.
+     * @param value a stable string identifier
+     * @return a rendering hint definition, not added to the result HTML tree
+     */
+    public static Key key(final String value) {
+        return Key.of(value);
+    }
+
+
+    private static boolean isPropertyByDefault(final String name) {
+        return DEFAULT_PROPERTY_NAMES.contains(name);
+    }
+}

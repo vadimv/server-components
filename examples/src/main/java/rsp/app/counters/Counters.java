@@ -2,7 +2,7 @@ package rsp.app.counters;
 
 import rsp.component.ComponentView;
 import rsp.http.WebServer;
-import rsp.server.StaticResources;
+import rsp.http.StaticResources;
 
 import java.io.File;
 
@@ -24,10 +24,10 @@ public final class Counters {
     }
 
     public static Counters run(final boolean blockCurrentThread) {
-        final Counters s = new Counters(new WebServer(PORT,
-                                                      CountersAppComponent::new,
-                                                      new StaticResources(new File("src/main/java/rsp/app/counters"),
-                                                     "/res/")));
+        final Counters s = new Counters(WebServer.pages(PORT,
+                                                        CountersAppComponent::initialPage,
+                                                        new StaticResources(new File("src/main/java/rsp/app/counters"),
+                                                                "/res/")));
         s.webServer.start();
         if (blockCurrentThread) {
             s.webServer.join();

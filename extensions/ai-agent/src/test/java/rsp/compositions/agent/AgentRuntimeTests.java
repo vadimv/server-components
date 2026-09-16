@@ -22,7 +22,7 @@ import rsp.compositions.block.Scene;
 import rsp.compositions.composition.Composition;
 import rsp.compositions.composition.Group;
 import rsp.compositions.layout.DefaultLayout;
-import rsp.compositions.routing.Router;
+import rsp.compositions.routing.BlockRoutes;
 
 import java.lang.reflect.Field;
 import java.time.Instant;
@@ -1023,7 +1023,7 @@ class AgentRuntimeTests {
 
     private static Scene sceneFor(BlockDescriptor descriptor) {
         return Scene.of(descriptor, Map.of(),
-                new Composition(new Router(), new DefaultLayout(), new Group()));
+                new Composition(BlockRoutes.builder(), new DefaultLayout(), new Group()));
     }
 
     private static CompletableFuture<?> awaitPendingSettle(AgentRuntime runtime)

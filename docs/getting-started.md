@@ -41,13 +41,13 @@ model calls.
 ## Select Maven Dependencies
 
 `mvn install` publishes the current `3.1.0-SNAPSHOT` artifacts to your local
-Maven repository. A minimal live application needs `http`; it brings in the
-core runtime and browser client:
+Maven repository. A minimal live application needs `ui-http`; it brings in the
+UI runtime, HTTP contracts, and browser client:
 
 ```xml
 <dependency>
     <groupId>io.github.vadimv</groupId>
-    <artifactId>http</artifactId>
+    <artifactId>ui-http</artifactId>
     <version>3.1.0-SNAPSHOT</version>
 </dependency>
 ```
@@ -61,6 +61,11 @@ Add `compositions` for routed admin applications:
     <version>3.1.0-SNAPSHOT</version>
 </dependency>
 ```
+
+Add `ui-http-auth` when using the supplied Basic, cookie-session, or OAuth PKCE
+page adapters. REST applications that do not render UI can depend directly on
+`http-api` (and, as those integrations are populated, `http-routing` and
+`http-json`).
 
 Optional features are separate artifacts: `ai-agent`, `agent-ui`, `telemetry`, `dashboard`,
 and `ui-shell`. See the [module map](reference/module-map.md) before adding them.

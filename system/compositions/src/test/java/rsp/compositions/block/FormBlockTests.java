@@ -152,7 +152,7 @@ class FormBlockTests {
     @Test
     void missing_edit_entity_has_a_non_mutating_not_found_state() {
         TestEditBlock block = new TestEditBlock(null);
-        render(block, "/items/:id", Map.of("id", "404"));
+        render(block, "/items/{id}", Map.of("id", "404"));
 
         assertEquals(FormStatus.NOT_FOUND, block.initialState.status());
         assertFalse(block.initialState.capabilities().canSave());
@@ -166,7 +166,7 @@ class FormBlockTests {
         TestEditBlock block = new TestEditBlock(
                 new TestItem("404", "Existing", 3, LocalDate.of(2026, 9, 1), "server"));
         block.deleteResult = FormMutationResult.failure("Delete was rejected.");
-        Harness harness = render(block, "/items/:id", Map.of("id", "404"));
+        Harness harness = render(block, "/items/{id}", Map.of("id", "404"));
         assertEquals(FormStatus.READY, block.initialState.status());
         assertTrue(block.initialState.capabilities().canDelete());
 
