@@ -302,12 +302,12 @@ class WebServerTests {
             awaitActiveWebSockets(server, 1);
 
             final CompletableFuture<Void> stopped = stopAsync(server);
-            final RawServerFrame close = readFrameWithOpcode(socket, WebSocketFrame.OPCODE_CLOSE);
+            final RawServerFrame close = readFrameWithOpcode(socket, WebSocketTestFrame.OPCODE_CLOSE);
 
-            assertEquals(WebSocketFrame.CLOSE_GOING_AWAY, closeCode(close));
+            assertEquals(WebSocketTestFrame.CLOSE_GOING_AWAY, closeCode(close));
             assertEquals(WebServer.WEB_SOCKET_SERVER_STOP_REASON, closeReason(close));
 
-            socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_CLOSE, close.payload));
+            socket.getOutputStream().write(maskedClientFrame(WebSocketTestFrame.OPCODE_CLOSE, close.payload));
             socket.getOutputStream().flush();
             stopped.get(2, TimeUnit.SECONDS);
             assertEquals(0, server.activeWebSocketCount());
@@ -335,7 +335,7 @@ class WebServerTests {
 
             assertTrue(elapsedMs < WebServer.WEB_SOCKET_CLOSE_GRACE_TIMEOUT_MS + 2_000);
             assertEquals(0, server.activeWebSocketCount());
-            assertEquals(WebSocketFrame.CLOSE_GOING_AWAY, readCloseCode(socket));
+            assertEquals(WebSocketTestFrame.CLOSE_GOING_AWAY, readCloseCode(socket));
             assertEquals(-1, socket.getInputStream().read());
         } finally {
             server.stop();
@@ -354,11 +354,11 @@ class WebServerTests {
             readServerFrame(socket);
             awaitActiveWebSockets(server, 1);
 
-            socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_CLOSE,
-                                                             WebSocketFrame.closePayload(WebSocketFrame.CLOSE_NORMAL, "")));
+            socket.getOutputStream().write(maskedClientFrame(WebSocketTestFrame.OPCODE_CLOSE,
+                                                             WebSocketTestFrame.closePayload(WebSocketTestFrame.CLOSE_NORMAL, "")));
             socket.getOutputStream().flush();
 
-            assertEquals(WebSocketFrame.CLOSE_NORMAL, readCloseCode(socket));
+            assertEquals(WebSocketTestFrame.CLOSE_NORMAL, readCloseCode(socket));
             awaitActiveWebSockets(server, 0);
         } finally {
             server.stop();
@@ -398,8 +398,8 @@ class WebServerTests {
                 assertEquals("[17,1,[0,0]]", text(readServerFrame(firstSocket)));
                 assertEquals("[18,1]", text(readServerFrame(firstSocket)));
                 sendClientText(firstSocket, "[8,1]");
-                sendClientClose(firstSocket, WebSocketFrame.CLOSE_NORMAL, "");
-                assertEquals(WebSocketFrame.CLOSE_NORMAL, readCloseCode(firstSocket));
+                sendClientClose(firstSocket, WebSocketTestFrame.CLOSE_NORMAL, "");
+                assertEquals(WebSocketTestFrame.CLOSE_NORMAL, readCloseCode(firstSocket));
             }
 
             awaitActiveWebSockets(server, 0);
@@ -417,7 +417,7 @@ class WebServerTests {
                 assertEquals(1, server.liveSessionCount());
 
                 sendClientText(resumedSocket, "[9]");
-                final RawServerFrame close = readFrameWithOpcode(resumedSocket, WebSocketFrame.OPCODE_CLOSE);
+                final RawServerFrame close = readFrameWithOpcode(resumedSocket, WebSocketTestFrame.OPCODE_CLOSE);
                 sendClientClosePayload(resumedSocket, close.payload);
             }
 
@@ -501,7 +501,7 @@ class WebServerTests {
             socket.getOutputStream().write(new byte[] {(byte) 0x81, 0x00});
             socket.getOutputStream().flush();
 
-            assertEquals(WebSocketFrame.CLOSE_PROTOCOL_ERROR, readCloseCode(socket));
+            assertEquals(WebSocketTestFrame.CLOSE_PROTOCOL_ERROR, readCloseCode(socket));
         } finally {
             server.stop();
         }
@@ -514,10 +514,10 @@ class WebServerTests {
             writeHandshake(socket, server.port(), "device-utf8", "session-utf8", "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
 
-            socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_TEXT, new byte[] {(byte) 0xC3, 0x28}));
+            socket.getOutputStream().write(maskedClientFrame(WebSocketTestFrame.OPCODE_TEXT, new byte[] {(byte) 0xC3, 0x28}));
             socket.getOutputStream().flush();
 
-            assertEquals(WebSocketFrame.CLOSE_INVALID_PAYLOAD, readCloseCode(socket));
+            assertEquals(WebSocketTestFrame.CLOSE_INVALID_PAYLOAD, readCloseCode(socket));
         } finally {
             server.stop();
         }
@@ -534,12 +534,12 @@ class WebServerTests {
             sendClientText(socket, "[7,2,0]");
             readServerFrame(socket);
 
-            socket.getOutputStream().write(maskedClientFrame(false, WebSocketFrame.OPCODE_TEXT, "[".getBytes(StandardCharsets.UTF_8)));
-            socket.getOutputStream().write(maskedClientFrame(true, WebSocketFrame.OPCODE_CONTINUATION, "6]".getBytes(StandardCharsets.UTF_8)));
-            socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_PING, "ok".getBytes(StandardCharsets.UTF_8)));
+            socket.getOutputStream().write(maskedClientFrame(false, WebSocketTestFrame.OPCODE_TEXT, "[".getBytes(StandardCharsets.UTF_8)));
+            socket.getOutputStream().write(maskedClientFrame(true, WebSocketTestFrame.OPCODE_CONTINUATION, "6]".getBytes(StandardCharsets.UTF_8)));
+            socket.getOutputStream().write(maskedClientFrame(WebSocketTestFrame.OPCODE_PING, "ok".getBytes(StandardCharsets.UTF_8)));
             socket.getOutputStream().flush();
 
-            final RawServerFrame pong = readFrameWithOpcode(socket, WebSocketFrame.OPCODE_PONG);
+            final RawServerFrame pong = readFrameWithOpcode(socket, WebSocketTestFrame.OPCODE_PONG);
             assertEquals("ok", new String(pong.payload, StandardCharsets.UTF_8));
         } finally {
             server.stop();
@@ -553,10 +553,10 @@ class WebServerTests {
             writeHandshake(socket, server.port(), "device-binary", "session-binary", "dGhlIHNhbXBsZSBub25jZQ==");
             assertTrue(readHttpHeaders(socket).startsWith("HTTP/1.1 101 Switching Protocols"));
 
-            socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_BINARY, new byte[] {1, 2, 3}));
+            socket.getOutputStream().write(maskedClientFrame(WebSocketTestFrame.OPCODE_BINARY, new byte[] {1, 2, 3}));
             socket.getOutputStream().flush();
 
-            assertEquals(WebSocketFrame.CLOSE_UNSUPPORTED_DATA, readCloseCode(socket));
+            assertEquals(WebSocketTestFrame.CLOSE_UNSUPPORTED_DATA, readCloseCode(socket));
         } finally {
             server.stop();
         }
@@ -638,17 +638,17 @@ class WebServerTests {
     }
 
     private static void sendClientText(final Socket socket, final String message) throws Exception {
-        socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_TEXT,
+        socket.getOutputStream().write(maskedClientFrame(WebSocketTestFrame.OPCODE_TEXT,
                                                          message.getBytes(StandardCharsets.UTF_8)));
         socket.getOutputStream().flush();
     }
 
     private static void sendClientClose(final Socket socket, final int code, final String reason) throws Exception {
-        sendClientClosePayload(socket, WebSocketFrame.closePayload(code, reason));
+        sendClientClosePayload(socket, WebSocketTestFrame.closePayload(code, reason));
     }
 
     private static void sendClientClosePayload(final Socket socket, final byte[] payload) throws Exception {
-        socket.getOutputStream().write(maskedClientFrame(WebSocketFrame.OPCODE_CLOSE, payload));
+        socket.getOutputStream().write(maskedClientFrame(WebSocketTestFrame.OPCODE_CLOSE, payload));
         socket.getOutputStream().flush();
     }
 
@@ -671,7 +671,7 @@ class WebServerTests {
     private static int readCloseCode(final Socket socket) throws Exception {
         for (int i = 0; i < 4; i++) {
             final RawServerFrame frame = readServerFrame(socket);
-            if (frame.opcode == WebSocketFrame.OPCODE_CLOSE) {
+            if (frame.opcode == WebSocketTestFrame.OPCODE_CLOSE) {
                 return ((frame.payload[0] & 0xFF) << 8) | (frame.payload[1] & 0xFF);
             }
         }

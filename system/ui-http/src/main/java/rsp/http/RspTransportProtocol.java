@@ -2,10 +2,13 @@ package rsp.http;
 
 import rsp.util.json.JsonDataType;
 import rsp.util.json.JsonUtils;
+import rsp.websocket.WebSocketProtocolException;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+
+import static rsp.websocket.WebSocketCloseCodes.PROTOCOL_ERROR;
 
 /**
  * Transport controls layered around the existing RSP application protocol.
@@ -54,10 +57,10 @@ final class RspTransportProtocol {
             throw protocolError("Invalid RSP message", ex);
         }
         if (!(parsed instanceof JsonDataType.Array(JsonDataType[] elements)) || elements.length == 0) {
-            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR, "RSP message must be a non-empty array");
+            throw new WebSocketProtocolException(PROTOCOL_ERROR, "RSP message must be a non-empty array");
         }
         if (!(elements[0] instanceof JsonDataType.Number typeNumber) || !typeNumber.isIntegral()) {
-            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR, "RSP message type must be an integer");
+            throw new WebSocketProtocolException(PROTOCOL_ERROR, "RSP message type must be an integer");
         }
 
         final int type;
@@ -82,10 +85,10 @@ final class RspTransportProtocol {
         final long version = integralLong(elements[1], "protocol version");
         final long lastAppliedSequence = integralLong(elements[2], "last applied sequence");
         if (version < 0 || version > Integer.MAX_VALUE) {
-            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR, "Invalid protocol version");
+            throw new WebSocketProtocolException(PROTOCOL_ERROR, "Invalid protocol version");
         }
         if (lastAppliedSequence < 0) {
-            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR, "Invalid last applied sequence");
+            throw new WebSocketProtocolException(PROTOCOL_ERROR, "Invalid last applied sequence");
         }
         return new Resume((int) version, lastAppliedSequence);
     }
@@ -96,7 +99,7 @@ final class RspTransportProtocol {
         requireLength(elements, expectedLength, fieldName);
         final long value = integralLong(elements[1], fieldName);
         if (value < 0) {
-            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR, "Invalid " + fieldName);
+            throw new WebSocketProtocolException(PROTOCOL_ERROR, "Invalid " + fieldName);
         }
         return value;
     }
@@ -104,7 +107,7 @@ final class RspTransportProtocol {
     private static long integralLong(final JsonDataType value,
                                      final String fieldName) throws WebSocketProtocolException {
         if (!(value instanceof JsonDataType.Number number) || !number.isIntegral()) {
-            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR, fieldName + " must be an integer");
+            throw new WebSocketProtocolException(PROTOCOL_ERROR, fieldName + " must be an integer");
         }
         try {
             return number.value().longValueExact();
@@ -117,13 +120,13 @@ final class RspTransportProtocol {
                                       final int expectedLength,
                                       final String messageName) throws WebSocketProtocolException {
         if (elements.length != expectedLength) {
-            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR,
+            throw new WebSocketProtocolException(PROTOCOL_ERROR,
                                                  "Invalid " + messageName + " message length");
         }
     }
 
     private static WebSocketProtocolException protocolError(final String message, final Exception cause) {
-        final WebSocketProtocolException result = new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR, message);
+        final WebSocketProtocolException result = new WebSocketProtocolException(PROTOCOL_ERROR, message);
         result.initCause(cause);
         return result;
     }

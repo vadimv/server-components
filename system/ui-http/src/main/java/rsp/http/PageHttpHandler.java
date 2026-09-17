@@ -22,7 +22,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static java.lang.System.Logger.Level.TRACE;
 
-public final class PageHttpHandler {
+public final class PageHttpHandler implements HttpApplication {
     private static final System.Logger logger = System.getLogger(PageHttpHandler.class.getName());
 
     public static final int KEY_LENGTH = 64;
@@ -62,6 +62,7 @@ public final class PageHttpHandler {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
+    @Override
     public CompletableFuture<HttpResponse> handle(final HttpRequest request) {
         Objects.requireNonNull(request);
         if (request.path().endsWith("favicon.ico")) {

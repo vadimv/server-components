@@ -7,8 +7,8 @@ are short signposts for people browsing the source tree.
 
 - [Getting started](getting-started.md): build the repository, run the examples,
   and select dependencies for an application.
-- [Examples](examples.md): runnable applications from a counter to the complete
-  admin UI.
+- [Examples](examples.md): runnable applications from a REST endpoint and a
+  counter to the complete admin UI.
 - [Core runtime](concepts/core.md): components, state, rendering, events, and
   browser commands.
 - [Compositions](concepts/compositions.md): routing, blocks, layouts, schema,

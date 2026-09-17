@@ -9,4 +9,11 @@
         <version>${revision}</version>
     </parent>
     <artifactId>websocket-api</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>http-api</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 </project>

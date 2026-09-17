@@ -1,6 +1,11 @@
 package rsp.http;
 
 import rsp.page.QualifiedSessionId;
+import rsp.websocket.WebSocketEndpoint;
+import rsp.websocket.WebSocketHandshakeException;
+import rsp.websocket.WebSocketListener;
+import rsp.websocket.WebSocketProtocolException;
+import rsp.websocket.WebSocketSession;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Optional;
@@ -9,6 +14,10 @@ import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.TRACE;
 import static java.lang.System.Logger.Level.WARNING;
 import static rsp.util.SafeDiagnostics.failure;
+import static rsp.websocket.WebSocketCloseCodes.INVALID_PAYLOAD;
+import static rsp.websocket.WebSocketCloseCodes.MESSAGE_TOO_BIG;
+import static rsp.websocket.WebSocketCloseCodes.PROTOCOL_ERROR;
+import static rsp.websocket.WebSocketCloseCodes.UNSUPPORTED_DATA;
 
 final class RspWebSocketEndpoint implements WebSocketEndpoint {
     private static final String ENDPOINT_PREFIX = "/bridge/web-socket";
@@ -82,13 +91,13 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
                         socket.close(code, reason);
                     } catch (final IOException ex) {
                         logger.log(DEBUG, () -> failure("WebSocket close failed", ex));
-                        socket.closeSocket();
+                        socket.abort();
                     }
                 }
 
                 @Override
                 public void closeSocket() {
-                    socket.closeSocket();
+                    socket.abort();
                 }
             };
         }
@@ -113,7 +122,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
                     RspTransportProtocol.decodeClientControl(message);
             if (attachmentHandle == null) {
                 if (control.isEmpty() || !(control.get() instanceof RspTransportProtocol.Resume resume)) {
-                    throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR,
+                    throw new WebSocketProtocolException(PROTOCOL_ERROR,
                                                          "The first RSP message must be RESUME");
                 }
                 resume(resume);
@@ -129,7 +138,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
                     case RspTransportProtocol.Terminate _ ->
                             pageSession.terminate(attachmentHandle, "client-terminated");
                     case RspTransportProtocol.Resume _ ->
-                            throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR,
+                            throw new WebSocketProtocolException(PROTOCOL_ERROR,
                                                                  "RSP connection is already resumed");
                 }
             }
@@ -140,9 +149,9 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
             if (pageSession != null && attachmentHandle != null) {
                 pageSession.terminate(attachmentHandle,
                                       "binary-protocol-message",
-                                      WebSocketFrame.CLOSE_UNSUPPORTED_DATA);
+                                      UNSUPPORTED_DATA);
             } else {
-                socket.close(WebSocketFrame.CLOSE_UNSUPPORTED_DATA, "Binary RSP protocol is not supported yet");
+                socket.close(UNSUPPORTED_DATA, "Binary RSP protocol is not supported yet");
             }
         }
 
@@ -182,10 +191,10 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
         private void rejectResume(final String reason) {
             sendControl(RspTransportProtocol.resumeRejected(reason));
             try {
-                socket.close(WebSocketFrame.CLOSE_PROTOCOL_ERROR, reason);
+                socket.close(PROTOCOL_ERROR, reason);
             } catch (final IOException ex) {
                 logger.log(DEBUG, () -> failure("WebSocket resume rejection failed", ex));
-                socket.closeSocket();
+                socket.abort();
             }
         }
 
@@ -194,7 +203,7 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
                 sendText(message);
             } catch (final IOException ex) {
                 logger.log(DEBUG, () -> failure("RSP transport control send failed", ex));
-                socket.closeSocket();
+                socket.abort();
             }
         }
 
@@ -207,10 +216,10 @@ final class RspWebSocketEndpoint implements WebSocketEndpoint {
         }
 
         private static boolean isFatalProtocolClose(final int code) {
-            return code == WebSocketFrame.CLOSE_PROTOCOL_ERROR
-                   || code == WebSocketFrame.CLOSE_UNSUPPORTED_DATA
-                   || code == WebSocketFrame.CLOSE_INVALID_PAYLOAD
-                   || code == WebSocketFrame.CLOSE_MESSAGE_TOO_BIG;
+            return code == PROTOCOL_ERROR
+                   || code == UNSUPPORTED_DATA
+                   || code == INVALID_PAYLOAD
+                   || code == MESSAGE_TOO_BIG;
         }
     }
 }

@@ -63,9 +63,37 @@ Add `compositions` for routed admin applications:
 ```
 
 Add `ui-http-auth` when using the supplied Basic, cookie-session, or OAuth PKCE
-page adapters. REST applications that do not render UI can depend directly on
-`http-api` (and, as those integrations are populated, `http-routing` and
-`http-json`).
+page adapters.
+
+A REST-only application can use the method-aware router, JSON helpers, and JDK
+transport without pulling in UI modules:
+
+```xml
+<dependency>
+    <groupId>io.github.vadimv</groupId>
+    <artifactId>http-routing</artifactId>
+    <version>3.1.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+    <groupId>io.github.vadimv</groupId>
+    <artifactId>http-json</artifactId>
+    <version>3.1.0-SNAPSHOT</version>
+</dependency>
+<dependency>
+    <groupId>io.github.vadimv</groupId>
+    <artifactId>server-jdk</artifactId>
+    <version>3.1.0-SNAPSHOT</version>
+</dependency>
+```
+
+Run the minimal REST example with:
+
+```bash
+mvn exec:java -pl examples -Dexec.mainClass=rsp.app.rest.RestHello
+```
+
+Then try `GET /api/hello/Alice` or post an `application/json` body to
+`POST /api/echo` on port 8080.
 
 Optional features are separate artifacts: `ai-agent`, `agent-ui`, `telemetry`, `dashboard`,
 and `ui-shell`. See the [module map](reference/module-map.md) before adding them.

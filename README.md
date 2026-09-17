@@ -8,6 +8,7 @@ the browser receives initial HTML and small DOM updates over WebSocket.
 
 - plain Java with constructor injection and no annotation-driven lifecycle;
 - typed component state, intents, context, and events;
+- UI-independent REST routing, JSON helpers, and JDK HTTP/WebSocket transport;
 - no third-party runtime dependencies in the framework modules;
 - optional compositions, schema, authorization, telemetry, dashboard, and agent modules.
 
@@ -63,6 +64,7 @@ deterministic local stub and requires no API key.
 - [Documentation home](docs/index.md)
 - [Getting started](docs/getting-started.md)
 - [Examples](docs/examples.md)
+- [HTTP and WebSocket server](docs/reference/http-server.md)
 - [Core runtime and component concepts](docs/concepts/core.md)
 - [Compositions and routed application concepts](docs/concepts/compositions.md)
 - [Module map](docs/reference/module-map.md)

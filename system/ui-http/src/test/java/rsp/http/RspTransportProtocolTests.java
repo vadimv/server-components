@@ -1,6 +1,7 @@
 package rsp.http;
 
 import org.junit.jupiter.api.Test;
+import rsp.websocket.WebSocketProtocolException;
 
 import java.util.List;
 
@@ -29,7 +30,7 @@ class RspTransportProtocolTests {
         final WebSocketProtocolException exception = assertThrows(WebSocketProtocolException.class,
                 () -> RspTransportProtocol.decodeClientControl("[7,1,-1]"));
 
-        assertEquals(WebSocketFrame.CLOSE_PROTOCOL_ERROR, exception.closeCode());
+        assertEquals(rsp.websocket.WebSocketCloseCodes.PROTOCOL_ERROR, exception.closeCode());
         assertInstanceOf(WebSocketProtocolException.class, exception);
     }
 

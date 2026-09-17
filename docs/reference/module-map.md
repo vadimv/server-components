@@ -10,17 +10,17 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `json` | JSON value model, parser, limits, and writer | none | Usually transitive |
 | `url` | Immutable URL values and generic route templates/tables | none | Direct for framework-neutral routing |
 | `http-api` | Transport-neutral HTTP request, response, headers, cookies, and bodies | `url` | Direct for REST applications and server adapters |
-| `http-routing` | HTTP routing integration point | `http-api` | Reserved for method-aware REST routing |
-| `http-json` | HTTP/JSON integration point | `http-api`, `json` | Reserved for JSON body codecs |
-| `websocket-api` | UI-independent WebSocket contracts | none | Reserved for custom endpoints |
+| `http-routing` | Immutable, method-aware REST router over generic URL route tables | `http-api` | Direct for routed REST applications |
+| `http-json` | JSON request validation, decoding, responses, and error envelopes | `http-api`, `json` | Direct for JSON HTTP APIs |
+| `websocket-api` | UI-independent endpoint, session, listener, error, and close-code contracts | `http-api` | Direct for custom WebSocket endpoints |
 | `ui-core` | HTML DSL, components, DOM diffing, and live page sessions | `url`, `json` | Direct for custom UI adapters or low-level runtime use |
 | `js-client` | Browser bridge sources and packaged client bundle | none | Usually transitive through `ui-http` |
 | `authorization` | ABAC policies, attributes, and delegation grants | none | Direct for custom policies |
 | `schema` | Field, validation, widget, and list-column metadata | none | Direct for schema-driven UI |
 | `compositions` | Blocks, layouts, authentication context, and default list/form UI | `ui-core`, `url`, `authorization`, `schema` | Direct for routed admin applications |
-| `ui-http` | Initial-page HTTP adapter plus the current embedded HTTP/1.1 and WebSocket server | `ui-core`, `http-api`; `js-client` at runtime | Direct for the built-in UI server |
+| `ui-http` | Initial-page and resumable RSP adapters over the generic JDK server | `ui-core`, `http-api`, `websocket-api`, `server-jdk`; `js-client` at runtime | Direct for the built-in UI server |
 | `ui-http-auth` | Basic, cookie-session, and OAuth PKCE page adapters | `ui-http`, `compositions`, `json` | Direct when using the supplied authentication providers |
-| `server-jdk` | UI-neutral JDK transport destination | `http-api`, `websocket-api` | Reserved for the next transport extraction phase |
+| `server-jdk` | UI-neutral JDK HTTP/1.1 and RFC 6455 socket transport | `http-api`, `websocket-api` | Direct for embedded REST and custom WebSocket servers |
 
 ## Optional Extensions
 
@@ -41,6 +41,8 @@ dependencies are shown below; Maven resolves their transitive dependencies.
 | `mutate` | Mutation engine and forked JUnit runner | Test dependency |
 | `examples` | Runnable demonstrations and browser integration tests | Not an application dependency |
 
-Start with `ui-http` for a minimal live application. Add `compositions` for routed
-admin UI, then opt into extensions individually. See [getting started](../getting-started.md)
+Start with `ui-http` for a live UI application. For a REST-only application,
+combine `server-jdk` with `http-routing` and optionally `http-json`; none of
+those modules pulls in the UI runtime. Add `compositions` for routed admin UI,
+then opt into extensions individually. See [getting started](../getting-started.md)
 for dependency examples.

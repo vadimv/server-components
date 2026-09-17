@@ -13,6 +13,14 @@ Or from your IDE, by running the `main` method of the entry-point class.
 
 ## Catalog
 
+### REST-only — routing, JSON, and the generic JDK transport
+
+- Entry point: [RestHello.java](../examples/src/main/java/rsp/app/rest/RestHello.java)
+- URL: <http://localhost:8080/api/hello/Alice>
+- Demonstrates: a UI-independent `HttpRouter`, decoded path parameters,
+  `JsonHttp` responses and request validation, typed JSON errors, and direct
+  hosting through `JdkWebServer`.
+
 ### 1. Counter — minimal stateful component
 - Entry point: [Counter.java](../examples/src/main/java/rsp/app/Counter.java)
 - URL: <http://localhost:8080>

@@ -1,12 +1,13 @@
 # HTTP Server
 
-Status: current as of `system/ui-http` in this repository
+Status: current as of `system/server-jdk` and `system/ui-http` in this repository
 
-The `ui-http` artifact provides the embedded `rsp.http.WebServer`. It uses JDK
-sockets and virtual threads, serves initial RSP pages and static files, and
-binds live page sessions over WebSocket. Transport-neutral contracts are in the
-separate `http-api` artifact. The socket implementation remains in `ui-http`
-until the next extraction phase moves it to `server-jdk`.
+The `server-jdk` artifact owns the embedded JDK-socket and virtual-thread
+transport. `rsp.server.jdk.JdkWebServer` accepts any transport-neutral
+`HttpApplication` plus zero or more `WebSocketEndpoint`s. The `ui-http`
+artifact provides `rsp.http.WebServer`, a UI facade which supplies page
+rendering, static-resource, resumable-session, and RSP WebSocket adapters to
+that generic transport.
 
 ## Start And Stop
 
@@ -34,6 +35,24 @@ int port = server.port();
 The default connection limit is `WebServer.DEFAULT_CONNECTION_LIMIT` (`50`).
 The advanced constructor accepts a positive custom limit and an `EventLoop`
 supplier for deterministic tests.
+
+REST-only applications can use the transport directly and do not need a UI
+dependency:
+
+```java
+HttpRouter application = HttpRouter.builder()
+        .get("/api/hello/{name}", HttpRouteHandler.sync((request, route) ->
+                HttpResponse.ok().text("Hello, " + route.requiredParameter("name")).build()))
+        .build();
+
+JdkWebServer server = new JdkWebServer(8080, application);
+server.start();
+server.join();
+```
+
+`JdkWebServer` has equivalent `start()`, `join()`, `stop()`, ephemeral-port,
+and connection-limit behavior. Its most explicit constructor also accepts
+WebSocket endpoints, a WebSocket read timeout, and a `JdkServerObserver`.
 
 ## Runtime Metrics
 
@@ -134,9 +153,10 @@ The current server supports HTTP/1.0 and HTTP/1.1 request parsing for:
 
 Each non-WebSocket response closes its connection. Keep-alive, pipelining,
 chunked request or response bodies, multipart forms, and a general request-body
-decoder registry are not implemented. `HttpApplication` is the UI-neutral REST
-application contract; binding it directly to the JDK transport is planned for
-the `server-jdk` extraction.
+decoder registry are not implemented. `HttpApplication` is the UI-neutral
+application contract and can be bound directly to `JdkWebServer`. `HttpRouter`
+adds method-aware routing, including `HEAD` fallback and `404`/`405` behavior;
+`JsonHttp` adds strict UTF-8 JSON request and response helpers.
 
 Current parser limits are fixed in the implementation:
 
@@ -174,22 +194,25 @@ applied sequence cumulatively, flushing after 256 commands or 50 ms (and at
 resume/disconnect boundaries). This avoids a WebSocket frame and acknowledgement
 round trip for every event-listener removal or other small command.
 
-The JavaScript client's long-polling routes are not implemented by this server.
+Custom endpoints implement the contracts from `websocket-api` and are passed
+to `JdkWebServer`. Endpoint matching and handshake policy therefore remain
+independent of UI code. The JavaScript client's long-polling routes are not
+implemented by this server.
 
 ## TLS And Deployment Limits
 
-TLS is not implemented in `system/ui-http`. Although constructors
-accept `SslConfiguration`, `start()` throws `UnsupportedOperationException` when
-one is supplied. Do not use the TLS constructor in current applications.
+TLS is not implemented by `server-jdk`. Although `ui-http` constructors accept
+`SslConfiguration`, `start()` throws `UnsupportedOperationException` when one
+is supplied. Do not use the TLS constructor in current applications.
 
-HTTP/2, SSE, streaming/chunked responses, and a generic WebSocket endpoint API
-are also outside the current public server. TLS termination and reverse-proxy
-behavior must be provided and validated by the deployment environment.
+HTTP/2, SSE, keep-alive, pipelining, and chunked request or response bodies are
+also outside the current server. TLS termination and reverse-proxy behavior
+must be provided and validated by the deployment environment.
 
 ## Tests
 
-Run the server's parser, socket, and WebSocket tests with:
+Run the generic transport and UI-adapter tests with:
 
 ```bash
-mvn -pl system/ui-http -am test
+mvn -pl system/server-jdk,system/ui-http -am test
 ```

@@ -10,6 +10,7 @@ import rsp.server.RemoteOut;
 import rsp.server.protocol.RemotePageMessageDecoder;
 import rsp.server.protocol.RemotePageMessageEncoder;
 import rsp.util.json.JsonUtils;
+import rsp.websocket.WebSocketProtocolException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -20,6 +21,9 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import static rsp.websocket.WebSocketCloseCodes.NORMAL;
+import static rsp.websocket.WebSocketCloseCodes.PROTOCOL_ERROR;
 
 import static java.lang.System.Logger.Level.DEBUG;
 import static java.lang.System.Logger.Level.WARNING;
@@ -127,7 +131,7 @@ final class ResumablePageSession {
             }
             final long currentSequence = nextSequence - 1;
             if (sequence < lastAcknowledgedSequence || sequence > currentSequence) {
-                throw new WebSocketProtocolException(WebSocketFrame.CLOSE_PROTOCOL_ERROR,
+                throw new WebSocketProtocolException(PROTOCOL_ERROR,
                                                      "Invalid RSP acknowledgement sequence");
             }
             acknowledgeLocked(sequence);
@@ -153,7 +157,7 @@ final class ResumablePageSession {
     }
 
     void terminate(final AttachmentHandle handle, final String reason) {
-        terminate(handle, reason, WebSocketFrame.CLOSE_NORMAL);
+        terminate(handle, reason, NORMAL);
     }
 
     void terminate(final AttachmentHandle handle, final String reason, final int closeCode) {
@@ -172,7 +176,7 @@ final class ResumablePageSession {
         synchronized (this) {
             termination = beginCloseLocked();
         }
-        finishClose(termination, reason, WebSocketFrame.CLOSE_NORMAL);
+        finishClose(termination, reason, NORMAL);
     }
 
     synchronized boolean isClosed() {
@@ -341,7 +345,7 @@ final class ResumablePageSession {
             }
             termination = beginCloseLocked();
         }
-        finishClose(termination, "resume-timeout", WebSocketFrame.CLOSE_NORMAL);
+        finishClose(termination, "resume-timeout", NORMAL);
     }
 
     private Termination beginCloseLocked() {
